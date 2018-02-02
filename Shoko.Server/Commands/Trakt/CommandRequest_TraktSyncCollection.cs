@@ -38,21 +38,19 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
-                if (sched != null)
+                using (var usch = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync)))
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
-
-                    // if we have run this in the last xxx hours then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
+                    if (usch.Original != null)
                     {
-                        if (!ForceRefresh) return;
-                    }
-                }
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 
-                using (var usch = Repo.ScheduledUpdate.BeginUpdate(sched))
-                {
+                        // if we have run this in the last xxx hours then exit
+                        TimeSpan tsLastRun = DateTime.Now - usch.Entity.LastUpdate;
+                        if (tsLastRun.TotalHours < freqHours)
+                        {
+                            if (!ForceRefresh) return;
+                        }
+                    }
                     usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktSync;
                     usch.Entity.UpdateDetails = string.Empty;
                     usch.Entity.LastUpdate = DateTime.Now;
@@ -75,7 +73,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_TraktSyncCollection";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

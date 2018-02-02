@@ -4,9 +4,11 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -25,13 +27,13 @@ namespace Shoko.Server.Repositories.Repos
         {
             bool isMigrating = false;
             bool newSeries = false;
-            AnimeGroup oldGroup = null;
+            int oldGroup = 0;
             if (original_entity != null)
             {
                 // means we are moving series to a different group
                 if (original_entity.AnimeGroupID != entity.AnimeGroupID)
                 {
-                    oldGroup = Repo.AnimeGroup.GetByID(original_entity.AnimeGroupID);
+                    oldGroup = original_entity.AnimeGroupID;
                     SVR_AnimeGroup newGroup = Repo.AnimeGroup.GetByID(entity.AnimeGroupID);
                     if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
                         isMigrating = true;
@@ -40,25 +42,27 @@ namespace Shoko.Server.Repositories.Repos
             }
             else
                 newSeries = true;
-            HashSet<GroupFilterConditionType> types = entity.UpdateContract(parameters.onlyupdatestats);
+            (CL_AnimeSeries_User contract, HashSet<GroupFilterConditionType> types) = entity.GenerateContract(parameters.onlyupdatestats);
             if (newSeries && !isMigrating)
                 entity.Contract = null;
+            else
+                entity.Contract = contract;
             return (isMigrating, oldGroup, types);
         }
 
         internal override void EndSave(SVR_AnimeSeries entity, object returnFromBeginSave,
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
-            (bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types) = ((bool isMigrating, SVR_AnimeGroup oldGroup, HashSet<GroupFilterConditionType> types))returnFromBeginSave;
+            (bool isMigrating, int oldGroup, HashSet<GroupFilterConditionType> types) = ((bool isMigrating, int oldGroup, HashSet<GroupFilterConditionType> types))returnFromBeginSave;
 
             if (parameters.updateGroups && !isMigrating)
             {
                 logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", entity.AnimeSeriesID);
-                Repo.AnimeGroup.BeginUpdate(entity.AnimeGroupID)?.Commit((true, true, true));
-                if (oldGroup != null)
+                Repo.AnimeGroup.Touch(() => Repo.AnimeGroup.GetByID(entity.AnimeGroupID), (true, true, true));
+                if (oldGroup != 0)
                 {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",oldGroup.AnimeGroupID);
-                    Repo.AnimeGroup.BeginUpdate(oldGroup).Commit((true, true, true));
+                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",oldGroup);
+                    Repo.AnimeGroup.Touch(() => Repo.AnimeGroup.GetByID(oldGroup), (true, true, true));
                 }
             }
             if (!parameters.skipgroupfilters && !isMigrating)
@@ -85,13 +89,13 @@ namespace Shoko.Server.Repositories.Repos
             }
             if (parameters.alsoupdateepisodes)
             {
-                Repo.AnimeEpisode.BeginUpdate(Repo.AnimeEpisode.GetBySeriesID(entity.AnimeSeriesID))?.Commit();
+                Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetBySeriesID(entity.AnimeSeriesID));
             }
         }
 
         public void CleanAnimeGroups()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 //In the future we can do Bulk Updates, but they seems to be married with the sql provider of choice, 
                 //or using them under the hood. So to keep us clear of problems in the future, chose not to use bulk providers.
@@ -126,7 +130,7 @@ namespace Shoko.Server.Repositories.Repos
             if (entity.AnimeGroupID != 0)
             {
                 logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", entity.AnimeGroupID);
-                Repo.AnimeGroup.BeginUpdate(entity.AnimeGroupID)?.Commit((true, true, true));
+                Repo.AnimeGroup.Touch(()=>Repo.AnimeGroup.GetByID(entity.AnimeGroupID),(true, true, true));
             }
         }
 
@@ -205,7 +209,7 @@ namespace Shoko.Server.Repositories.Repos
         */
         public SVR_AnimeSeries GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AniDBIds.GetOne(id);
@@ -213,10 +217,17 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        public List<int> GetAllAnimeIds()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().Select(a => a.AniDB_ID).Distinct().ToList();
+            }
+        } 
 
         public List<SVR_AnimeSeries> GetByGroupID(int groupid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Groups.GetMultiple(groupid);
@@ -225,7 +236,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetSeriesIdByGroupID(int groupid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Groups.GetMultiple(groupid).Select(a=>a.AnimeSeriesID).ToList();
@@ -235,13 +246,37 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeSeries> GetWithMissingEpisodes()
         {
-            return Where(a => a.MissingEpisodeCountGroups > 0).OrderByDescending(a => a.EpisodeAddedDate).ToList();
+            using (RepoLock.ReaderLock())
+            {
+                return Where(a => a.MissingEpisodeCountGroups > 0).OrderByDescending(a => a.EpisodeAddedDate).ToList();
+            }
         }
+
+        public Dictionary<int, List<int>> GetGroupsByAniDBIDGroups()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.AniDB_ID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeGroupID).ToList());
+            }
+        }
+
+        public Dictionary<int, List<int>> GetGroupByAnimeGroupIDAnimeSeries()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.AnimeGroupID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeSeriesID).ToList());
+            }
+
+        }
+
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
         {
             //+15 ?
-            return WhereAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+            }
         }
     }
 }

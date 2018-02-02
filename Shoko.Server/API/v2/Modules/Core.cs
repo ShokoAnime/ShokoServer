@@ -32,102 +32,102 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 01.Settings
 
-            Post["/config/port/set", true] = async (x,ct) => await Task.Factory.StartNew(SetPort, ct);
-            Get["/config/port/get", true] = async (x,ct) => await Task.Factory.StartNew(GetPort, ct);
-            Post["/config/imagepath/set", true] = async (x,ct) => await Task.Factory.StartNew(SetImagepath, ct);
-            Get["/config/imagepath/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagepath, ct);
-            Get["/config/export", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct);
-            Post["/config/import", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig, ct);
-            Post["/config/set", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting, ct);
-            Post["/config/get", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting, ct);
+            Post("/config/port/set", async (x,ct) => await Task.Factory.StartNew(SetPort, ct));
+            Get("/config/port/get", async (x,ct) => await Task.Factory.StartNew(GetPort, ct));
+            Post("/config/imagepath/set", async (x,ct) => await Task.Factory.StartNew(SetImagepath, ct));
+            Get("/config/imagepath/get", async (x,ct) => await Task.Factory.StartNew(GetImagepath, ct));
+            Get("/config/export", async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct));
+            Post("/config/import", async (x,ct) => await Task.Factory.StartNew(ImportConfig, ct));
+            Post("/config/set", async (x, ct) => await Task.Factory.StartNew(SetSetting, ct));
+            Post("/config/get", async (x, ct) => await Task.Factory.StartNew(GetSetting, ct));
 
             #endregion
 
             #region 02.AniDB
 
-            Post["/anidb/set", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
-            Get["/anidb/get", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
-            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
-            Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct);
-            Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
-            Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
+            Post("/anidb/set", async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct));
+            Get("/anidb/get", async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct));
+            Get("/anidb/test", async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct));
+            Get("/anidb/votes/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct));
+            Get("/anidb/list/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct));
+            Get("/anidb/update", async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct));
 
             #endregion
 
             #region 03.MyAnimeList
 
-            Post["/mal/set", true] = async (x,ct) => await Task.Factory.StartNew(SetMAL, ct);
-            Get["/mal/get", true] = async (x,ct) => await Task.Factory.StartNew(GetMAL, ct);
-            Get["/mal/test", true] = async (x,ct) => await Task.Factory.StartNew(TestMAL, ct);
-            Get["/mal/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMAL, ct);
-            Get["/mal/download", true] = async (x,ct) => await Task.Factory.StartNew(DownloadFromMAL, ct);
-            Get["/mal/upload", true] = async (x,ct) => await Task.Factory.StartNew(UploadToMAL, ct);
-            //Get["/mal/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncMALVotes, ct); <-- not implemented as CommandRequest
+            Post("/mal/set", async (x,ct) => await Task.Factory.StartNew(SetMAL, ct));
+            Get("/mal/get", async (x,ct) => await Task.Factory.StartNew(GetMAL, ct));
+            Get("/mal/test", async (x,ct) => await Task.Factory.StartNew(TestMAL, ct));
+            Get("/mal/update", async (x,ct) => await Task.Factory.StartNew(ScanMAL, ct));
+            Get("/mal/download", async (x,ct) => await Task.Factory.StartNew(DownloadFromMAL, ct));
+            Get("/mal/upload", async (x,ct) => await Task.Factory.StartNew(UploadToMAL, ct));
+            //Get("/mal/votes/sync", async (x,ct) => await Task.Factory.StartNew(SyncMALVotes, ct)); <-- not implemented as CommandRequest
 
             #endregion
 
             #region 04.Trakt
 
-            Post["/trakt/set", true] = async (x,ct) => await Task.Factory.StartNew(SetTraktPIN, ct);
-            Get["/trakt/get", true] = async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct);
-            Get["/trakt/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateTrakt, ct);
-            Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct);
-            Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct);
+            Post("/trakt/set", async (x,ct) => await Task.Factory.StartNew(SetTraktPIN, ct));
+            Get("/trakt/get", async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct));
+            Get("/trakt/create", async (x,ct) => await Task.Factory.StartNew(CreateTrakt, ct));
+            Get("/trakt/sync", async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct));
+            Get("/trakt/update", async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct));
 
             #endregion
 
             #region 05.TvDB
 
-            Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
+            Get("/tvdb/update", async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct));
 
             #endregion
 
             #region 06.MovieDB
 
-            Get["/moviedb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMovieDB, ct);
+            Get("/moviedb/update", async (x,ct) => await Task.Factory.StartNew(ScanMovieDB, ct));
 
             #endregion
 
             #region 07.User
 
-            Get["/user/list", true] = async (x,ct) => await Task.Factory.StartNew(GetUsers, ct);
-            Post["/user/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateUser, ct);
-            Post["/user/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteUser, ct);
-            Post["/user/password", true] = async (x,ct) => await Task.Factory.StartNew(ChangePassword, ct);
-            Post["/user/password/{uid}", true] = async (x,ct) => await Task.Factory.StartNew(() => ChangePassword(x.uid), ct);
+            Get("/user/list", async (x,ct) => await Task.Factory.StartNew(GetUsers, ct));
+            Post("/user/create", async (x,ct) => await Task.Factory.StartNew(CreateUser, ct));
+            Post("/user/delete", async (x,ct) => await Task.Factory.StartNew(DeleteUser, ct));
+            Post("/user/password", async (x,ct) => await Task.Factory.StartNew(ChangePassword, ct));
+            Post("/user/password/{uid}", async (x,ct) => await Task.Factory.StartNew(() => ChangePassword(x.uid), ct));
 
             #endregion
 
             #region 08.OS-based operations
 
-            Get["/os/folder/base", true] = async (x,ct) => await Task.Factory.StartNew(GetOSBaseFolder, ct);
-            Post["/os/folder", true] = async (x,ct) => await Task.Factory.StartNew(() => GetOSFolder(x.folder), ct);
-            Get["/os/drives", true] = async (x,ct) => await Task.Factory.StartNew(GetOSDrives, ct);
+            Get("/os/folder/base", async (x,ct) => await Task.Factory.StartNew(GetOSBaseFolder, ct));
+            Post("/os/folder", async (x,ct) => await Task.Factory.StartNew(() => GetOSFolder(x.folder), ct));
+            Get("/os/drives", async (x,ct) => await Task.Factory.StartNew(GetOSDrives, ct));
 
             #endregion
 
             #region 09.Cloud accounts
 
-            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct);
-            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct);
-            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct);
-            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct);
-            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct);
+            Get("/cloud/list", async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct));
+            Get("/cloud/count", async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct));
+            Post("/cloud/add", async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct));
+            Post("/cloud/delete", async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct));
+            Get("/cloud/import", async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct));
 
             #endregion
 
             #region 10.Logs
 
-            Get["/log/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog(10, 0), ct);
-            Get["/log/get/{max}/{position}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog((int) x.max, (int) x.position), ct);
-            Post["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(SetRotateLogs, ct);
-            Get["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(GetRotateLogs, ct);
-            Get["/log/rotate/start", true] = async (x,ct) => await Task.Factory.StartNew(StartRotateLogs, ct);
+            Get("/log/get", async (x,ct) => await Task.Factory.StartNew(() => GetLog(10, 0), ct));
+            Get("/log/get/{max}/{position}", async (x,ct) => await Task.Factory.StartNew(() => GetLog((int) x.max, (int) x.position), ct));
+            Post("/log/rotate", async (x,ct) => await Task.Factory.StartNew(SetRotateLogs, ct));
+            Get("/log/rotate", async (x,ct) => await Task.Factory.StartNew(GetRotateLogs, ct));
+            Get("/log/rotate/start", async (x,ct) => await Task.Factory.StartNew(StartRotateLogs, ct));
 
             #endregion
 
             #region 11. Image Actions
-            Get["/images/update", true] = async (x, ct) => await Task.Factory.StartNew(() => UpdateImages());
+            Get("/images/update", async (x, ct) => await Task.Factory.StartNew(() => UpdateImages()));
             #endregion
         }
 

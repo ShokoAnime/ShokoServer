@@ -176,11 +176,10 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        public static bool RefreshIfMediaEmpty(SVR_VideoLocal vl, Video v)
+        public static (bool,SVR_VideoLocal) RefreshIfMediaEmpty(SVR_VideoLocal vl, Video v)
         {
-            if (v.Medias != null && v.Medias.Count != 0) return false;
-            Repo.VideoLocal.BeginUpdate(vl).Commit(true);
-            return true;
+            if (v.Medias != null && v.Medias.Count != 0) return (false,vl);
+            return (true, Repo.VideoLocal.Touch(() => Repo.VideoLocal.GetByID(vl.VideoLocalID),true));
         }
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
@@ -206,7 +205,7 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
 
-        public static Video VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
+        public static (Video,SVR_VideoLocal) VideoFromVideoLocal(IProvider prov, SVR_VideoLocal v, int userid)
         {
             Video l = new Video
             {
@@ -229,13 +228,14 @@ namespace Shoko.Server.PlexAndKodi
             Media m = v.Media;
             if (string.IsNullOrEmpty(m?.Duration))
             {
+
                 SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl != null)
                 {
-                    using (var upd = Repo.VideoLocal.BeginUpdate(v))
+                    using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => Repo.VideoLocal.GetByID(v.VideoLocalID)))
                     {
                         if (pl.RefreshMediaInfo(upd.Entity))
-                            upd.Commit(true);
+                            v=upd.Commit(true);
                     }
                 }
 
@@ -247,7 +247,7 @@ namespace Shoko.Server.PlexAndKodi
                 l.Duration = m.Duration;
             }
             AddLinksToAnimeEpisodeVideo(prov, l, userid);
-            return l;
+            return (l,v);
         }
 
 
@@ -259,21 +259,24 @@ namespace Shoko.Server.PlexAndKodi
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
-                foreach (SVR_VideoLocal vl2 in e.Key.GetVideoLocals())
+                using (var upd = Repo.VideoLocal.BeginBatchUpdate(() => e.Key.GetVideoLocals()))
                 {
-                    if (!string.IsNullOrEmpty(vl2.Media?.Duration)) continue;
-                    SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
-                    if (pl != null)
+                    foreach (SVR_VideoLocal vl2 in upd)
                     {
-                        using (var upd = Repo.VideoLocal.BeginUpdate(vl2))
+                        if (!string.IsNullOrEmpty(vl2.Media?.Duration)) continue;
+                        SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
+                        if (pl != null)
                         {
-                            if (pl.RefreshMediaInfo(upd.Entity))
-                                upd.Commit(true);
+                            if (pl.RefreshMediaInfo(vl2))
+                                upd.Update(vl2);
                         }
                     }
+                    upd.Commit(true);
+
                 }
-                Repo.AnimeEpisode.BeginUpdate(e.Key).Commit();
-                v = e.Key.PlexContract?.Clone<Video>(prov);
+
+                SVR_AnimeEpisode rep=Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(e.Key.AnimeEpisodeID));
+                v = rep.PlexContract?.Clone<Video>(prov);
             }
             if (v != null)
             {
@@ -330,17 +333,18 @@ namespace Shoko.Server.PlexAndKodi
                 l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
                 l.Year = vids[0].DateTimeCreated.Year.ToString();
                 l.Medias = new List<Media>();
-                foreach (SVR_VideoLocal v in vids)
+                foreach (SVR_VideoLocal vll in vids)
                 {
+                    SVR_VideoLocal v = vll;
                     if (string.IsNullOrEmpty(v.Media?.Duration))
                     {
                         SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl != null)
                         {
-                            using (var upd = Repo.VideoLocal.BeginUpdate(v))
+                            using (var upd = Repo.VideoLocal.BeginAddOrUpdate(()=>Repo.VideoLocal.GetByID(v.VideoLocalID)))
                             {
                                 if (pl.RefreshMediaInfo(upd.Entity))
-                                    upd.Commit(true);
+                                    v=upd.Commit(true);
                             }
                         }
 

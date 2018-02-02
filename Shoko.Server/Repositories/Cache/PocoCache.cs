@@ -74,7 +74,7 @@ namespace NutzCode.InMemoryIndex
                 ? _dict[key] 
                 : null;
         }
-        public IEnumerable<S> GetMany(List<T> keys)
+        public IEnumerable<S> GetMany(IEnumerable<T> keys)
         {
             return _dict.Where(a => keys.Contains(a.Key)).Select(a => a.Value);
         }

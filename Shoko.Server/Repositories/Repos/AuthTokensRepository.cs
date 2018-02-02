@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -30,7 +31,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (string.IsNullOrEmpty(token)) return null;
             List<AuthTokens> tokens;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                  tokens = IsCached
                     ? Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList()
@@ -46,7 +47,7 @@ namespace Shoko.Server.Repositories.Repos
         public void DeleteAllWithUserID(int userID)
         {
             List<AuthTokens> tokens;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 tokens = IsCached
                     ? UserIDs.GetMultiple(userID).ToList()
@@ -59,7 +60,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (string.IsNullOrEmpty(token)) return;
             List<AuthTokens> tokens;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 tokens = IsCached
                     ? Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList()
@@ -70,7 +71,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AuthTokens> GetByUserID(int userID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached
                     ? UserIDs.GetMultiple(userID).ToList()
@@ -88,7 +89,7 @@ namespace Shoko.Server.Repositories.Repos
 
             int uid = userrecord.JMMUserID;
             List<AuthTokens> tokens;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 tokens = IsCached
                     ? UserIDs.GetMultiple(uid).Where(a => string.IsNullOrEmpty(a.Token) || a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase)).ToList()

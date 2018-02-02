@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -30,7 +31,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Refs.GetMultiple(id, (int)CustomTagCrossRefType.Anime);
@@ -41,7 +42,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_CustomTag> GetByCustomTagID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Tags.GetMultiple(id);
@@ -52,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_CustomTag> GetByUniqueID(int customTagID, int crossRefType, int crossRefID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Refs.GetMultiple(crossRefID, crossRefType).Where(a => a.CustomTagID == customTagID).ToList(); 

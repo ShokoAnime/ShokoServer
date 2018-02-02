@@ -4,6 +4,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -34,7 +35,7 @@ namespace Shoko.Server.Repositories.Repos
             Filenames = null;
         }
 
-        internal override void EndSave(CrossRef_File_Episode entity, CrossRef_File_Episode original_entity, object returnFromBeginSave,
+        internal override void EndSave(CrossRef_File_Episode entity, object returnFromBeginSave,
             object parameters)
         {
             logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", entity.Hash);
@@ -53,7 +54,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_File_Episode> GetByHash(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).OrderBy(a => a.EpisodeOrder).ToList();
@@ -62,16 +63,25 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByHash(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).Select(a=>a.CrossRef_File_EpisodeID).ToList();
                 return Table.Where(a => a.Hash == hash).Select(a => a.CrossRef_File_EpisodeID).ToList();
             }
         }
+        public List<int> GetAnimesIdByHashes(IEnumerable<string> hashes)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return hashes.SelectMany(a=>Hashes.GetMultiple(a)).Select(a => a.AnimeID).Distinct().ToList();
+                return Table.Where(a => hashes.Contains(a.Hash)).Select(a => a.AnimeID).Distinct().ToList();
+            }
+        }
         public List<int> GetMultiEpIdByHashes(IEnumerable<string> hashes)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return hashes.Select(a=>Hashes.GetMultiple(a)).SelectMany(a=>a).GroupBy(a=>a.EpisodeID).Where(a=>a.Count()>1).Select(a=>a.Key).Distinct().ToList();
@@ -80,7 +90,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<CrossRef_File_Episode> GetByAnimeID(int animeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeID);
@@ -91,7 +101,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_File_Episode> GetByFileNameAndSize(string filename, long filesize)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Filenames.GetMultiple(filename).Where(a => a.FileSize == filesize).ToList();
@@ -107,7 +117,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public CrossRef_File_Episode GetByHashAndEpisodeID(string hash, int episodeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).FirstOrDefault(a => a.EpisodeID == episodeID);
@@ -117,7 +127,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Episodes.GetMultiple(episodeID);
@@ -126,7 +136,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<string> GetHashesByEpisodeIds(IEnumerable<int> episodeIDs)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return episodeIDs.SelectMany(a => Episodes.GetMultiple(a)).Select(a => a.Hash).Distinct().ToList();
@@ -135,11 +145,27 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<string> GetHashesByEpisodeId(int episodeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     Episodes.GetMultiple(episodeID).Select(a => a.Hash).Distinct().ToList();
                 return Table.Where(a => a.EpisodeID==episodeID).Select(a => a.Hash).Distinct().ToList();
+            }
+        }
+
+        public List<int> GetEpisodesIdsWithMultipleFiles()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.EpisodeID).Where(a => a.Count() > 1).Select(a => a.Key).ToList();
+            }
+        }
+
+        public Dictionary<int, List<string>> GetGroupByEpisodeIDHashes()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.EpisodeID).ToDictionary(a => a.Key, a => a.Select(b => b.Hash).ToList());
             }
         }
     }

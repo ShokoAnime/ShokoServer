@@ -55,17 +55,18 @@ namespace Shoko.Server.Commands
                 {
                     var anime = Repo.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AnimeID);
                     if (anime == null) continue;
-                    var episodes = Repo.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
-                    foreach (SVR_AnimeEpisode episode in episodes)
+                    using (var upd = Repo.AnimeEpisode.BeginBatchUpdate(() => Repo.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID)))
                     {
-                        // Save
-                        if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
-                        using (var upd = Repo.AnimeEpisode.BeginUpdate(episode))
+                        foreach (SVR_AnimeEpisode episode in upd)
                         {
-                            upd.Entity.TvDBEpisode = null;
-                            upd.Commit();
+                            // Save
+                            if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
+                            episode.TvDBEpisode = null;
+                            upd.Update(episode);
                         }
+                        upd.Commit();
                     }
+
                     anime.QueueUpdateStats();
                 }
             }
@@ -80,7 +81,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBUpdateEpisodes{TvDBEpisodeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

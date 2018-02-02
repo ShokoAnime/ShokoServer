@@ -166,7 +166,7 @@ namespace Shoko.Server.Extensions
                 AnimeID = i.AnimeID,
                 IgnoreType = i.IgnoreType
             };
-            c.Anime = Repo.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient();
+            c.Anime = Repo.AniDB_Anime.GetByID(i.AnimeID).ToClient();
             return c;
         }
 
@@ -307,7 +307,7 @@ namespace Shoko.Server.Extensions
                 Downloading = bookmarkedanime.Downloading
             };
             cl.Anime = null;
-            SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByAnimeID(bookmarkedanime.AnimeID);
+            SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByID(bookmarkedanime.AnimeID);
             if (an != null)
                 cl.Anime = an.Contract.AniDBAnime;
 
@@ -337,7 +337,7 @@ namespace Shoko.Server.Extensions
                     cl.EpisodeType = eps[0].EpisodeType;
                     cl.EpisodeName = eps[0].RomajiName;
                     cl.AnimeID = eps[0].AnimeID;
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(eps[0].AnimeID);
                     if (anime != null)
                         cl.AnimeName = anime.MainTitle;
                 }

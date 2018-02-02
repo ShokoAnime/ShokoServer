@@ -62,7 +62,8 @@ namespace Shoko.Server.API.v2.Models.common
 
             List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();
             var contract = ser.Contract;
-            if (contract == null) ser.UpdateContract();
+            if (contract == null)
+                ser=SVR_AnimeSeries.UpdateContract(ser.AnimeSeriesID);
 
             sr.id = ser.AnimeSeriesID;
             sr.summary = contract.AniDBAnime.AniDBAnime.Description;
@@ -75,8 +76,8 @@ namespace Shoko.Server.API.v2.Models.common
 
             sr.rating = Math.Round(contract.AniDBAnime.AniDBAnime.Rating / 100D, 1)
                 .ToString(CultureInfo.InvariantCulture);
-            AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.Anime) ??
-                              RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp);
+            AniDB_Vote vote = Repo.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.Anime) ??
+                              Repo.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp);
             if (vote != null)
                 sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
             sr.titles = ser.GetAnime().GetTitles().Select(title =>

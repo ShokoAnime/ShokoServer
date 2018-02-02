@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_Trakt_Episode> GetByAniDBEpisodeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Episodes.GetMultiple(id);
@@ -37,7 +38,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_Trakt_Episode> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);

@@ -14,9 +14,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+
 
 namespace Shoko.Server
 {
@@ -936,7 +934,7 @@ namespace Shoko.Server
                 // get root level files
 
                 FileSystemResult r = sDir.Populate();
-                if (r == null || !r.IsOk)
+                if (r.Status!=Status.Ok)
                 {
                     logger.Error($"Unable to retrieve folder {sDir.FullName}");
                     return;

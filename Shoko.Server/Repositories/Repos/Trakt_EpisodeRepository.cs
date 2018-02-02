@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -26,7 +27,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<Trakt_Episode> GetByShowID(int showID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Shows.GetMultiple(showID);
@@ -36,7 +37,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<Trakt_Episode> GetByShowIDAndSeason(int showID, int seasonNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ShowsSeasons.GetMultiple(showID,seasonNumber);
@@ -46,7 +47,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public Trakt_Episode GetByShowIDSeasonAndEpisode(int showID, int seasonNumber, int epnumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ShowsSeasons.GetMultiple(showID, seasonNumber).FirstOrDefault(a=>a.EpisodeNumber==epnumber);
@@ -56,7 +57,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<int> GetSeasonNumbersForSeries(int showID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Shows.GetMultiple(showID).Select(a=>a.Season).Distinct().OrderBy(a=>a).ToList();

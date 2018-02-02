@@ -93,24 +93,25 @@ namespace Shoko.Server.Models
 
         public void DeleteFromFilters()
         {
-            foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
+            using (var upd=Repo.GroupFilter.BeginBatchUpdate(()=> Repo.GroupFilter.GetAll()))
             {
-                if (gf.GroupsIds.ContainsKey(JMMUserID))
+                foreach (SVR_GroupFilter gf in upd)
                 {
-                    if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
+                    if (gf.GroupsIds.ContainsKey(JMMUserID))
                     {
-                        using (var upd = Repo.GroupFilter.BeginUpdate(gf))
+                        if (gf.GroupsIds[JMMUserID].Contains(AnimeGroupID))
                         {
-                            upd.Entity.GroupsIds[JMMUserID].Remove(AnimeGroupID);
-                            upd.Commit();
+                            gf.GroupsIds[JMMUserID].Remove(AnimeGroupID);
+                            upd.Update(gf);
                         }
                     }
                 }
+                upd.Commit();
             }
         }
 
 
-        public void UpdatePlexKodiContracts()
+        public void UpdatePlexKodiContracts_RA()
         {
             SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);
             if (grp == null)

@@ -10,7 +10,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void EndDelete(CustomTag entity, object returnFromBeginDelete, object parameters)
         {
-            Repo.CrossRef_CustomTag.Delete(Repo.CrossRef_CustomTag.GetByCustomTagID(entity.CustomTagID));
+            Repo.CrossRef_CustomTag.FindAndDelete(()=>Repo.CrossRef_CustomTag.GetByCustomTagID(entity.CustomTagID));
         }
 
         internal override void PopulateIndexes()

@@ -222,7 +222,7 @@ namespace Shoko.Server.Commands
                 if (string.IsNullOrEmpty(local.Hash) && folder.CloudID.HasValue)
                 {
                     logger.Trace("No Hash found for cloud " + filename + " putting in videolocal table with empty ED2K");
-                    using (var vupd = Repo.VideoLocal_Place.BeginAddOrUpdateWithLock(() => Repo.VideoLocal_Place.GetByFilePathAndShareID(filePath, nshareID)))
+                    using (var vupd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => Repo.VideoLocal_Place.GetByFilePathAndShareID(filePath, nshareID)))
                     {
                         if (vupd.Original == null)
                         {
@@ -261,15 +261,15 @@ namespace Shoko.Server.Commands
                 FillMissingHashes(local);
                 if (vlocalplace != null && ForceHash)
                 {
-                    using (var vupd = Repo.VideoLocal.BeginUpdate(vlocalplace.VideoLocal))
-                    {
+                    using (var vupd = Repo.VideoLocal.BeginAddOrUpdate(() => Repo.VideoLocal.GetByID(vlocalplace.VideoLocalID)))
+                    { 
                         vupd.Entity.ForceMergeInfoFrom_RA(local);
                         vupd.Commit();
                     }
                 }
                 else if (vlocalplace == null)
                 {
-                    using (var vupd = Repo.VideoLocal.BeginAddOrUpdateWithLock(() => Repo.VideoLocal.GetByHashAndSize(local.Hash, filesize), local))
+                    using (var vupd = Repo.VideoLocal.BeginAddOrUpdate(() => Repo.VideoLocal.GetByHashAndSize(local.Hash, filesize), ()=>local))
                     {
                         if (vupd.Original != null && ForceHash)
                         {
@@ -347,7 +347,7 @@ namespace Shoko.Server.Commands
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
 
-                using (var fupd = Repo.FileNameHash.BeginAddOrUpdateWithLock(() =>
+                using (var fupd = Repo.FileNameHash.BeginAddOrUpdate(() =>
                 {
                     FileNameHash fnhash = null;
                     List<FileNameHash> fnhashes2 = Repo.FileNameHash.GetByFileNameAndSize(vlocal.FileName, vlocal.FileSize);
@@ -382,10 +382,10 @@ namespace Shoko.Server.Commands
 
             if ((vlocal.Media == null) || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration == 0)
             {
-                using (var upd = Repo.VideoLocal.BeginUpdate(vlocal))
+                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(()=>Repo.VideoLocal.GetByID(vlocal.VideoLocalID)))
                 {
                     if (vlocalplace.RefreshMediaInfo(upd.Entity))
-                        upd.Commit(true);
+                        vlocal=upd.Commit(true);
 
                 }
             }
@@ -604,7 +604,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_HashFile_{FileName}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

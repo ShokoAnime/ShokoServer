@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -67,7 +68,17 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Tag> GetAllForLocalSeries()
         {
-            return GetMany(GetByAnimeIDs(Repo.AnimeSeries.WhereAll().Select(a=>a.AniDB_ID).Distinct()).SelectMany(a=>a.Value).Select(a=>a.TagID));
+            return GetMany(GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Select(a=>a.TagID));
         }
+
+        public Dictionary<string, List<int>> GetGroupByTagName()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.TagName).ToDictionary(a => a.Key, a => a.Select(b => b.TagID).ToList());
+            }
+        }
+
+
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -56,7 +57,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (string.IsNullOrEmpty(cmdid)) return null;
             List<CommandRequest> cmds;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 cmds = IsCached
                     ? CommandIDs.GetMultiple(cmdid)
@@ -75,7 +76,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             try
             {
-                using (CacheLock.ReaderLock())
+                using (RepoLock.ReaderLock())
                 {
                     if (IsCached)
                         return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority).ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
@@ -92,7 +93,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CommandRequest> GetAllCommandRequestGeneral()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(0);
@@ -105,7 +106,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             try
             {
-                using (CacheLock.ReaderLock())
+                using (RepoLock.ReaderLock())
                 {
                     if (IsCached)
                         return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
@@ -123,7 +124,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CommandRequest> GetAllCommandRequestHasher()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(1);
@@ -135,7 +136,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             try
             {
-                using (CacheLock.ReaderLock())
+                using (RepoLock.ReaderLock())
                 {
                     if (IsCached)
                         return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
@@ -153,7 +154,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CommandRequest> GetAllCommandRequestImages()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(2);
@@ -163,7 +164,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public int GetQueuedCommandCountGeneral()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(0).Count;
@@ -173,7 +174,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public int GetQueuedCommandCountHasher()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(1).Count;
@@ -185,7 +186,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public int GetQueuedCommandCountImages()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(2).Count;

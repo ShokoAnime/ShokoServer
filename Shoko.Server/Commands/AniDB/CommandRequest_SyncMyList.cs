@@ -226,7 +226,7 @@ namespace Shoko.Server.Commands
                 modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
-                using (var upd = Repo.ScheduledUpdate.BeginUpdate(sched))
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync)))
                 {
                     upd.Entity.UpdateType = (int) ScheduledUpdateType.AniDBMyListSync;
                     upd.Entity.UpdateDetails = string.Empty;
@@ -245,7 +245,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_SyncMyList";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -43,7 +43,7 @@ namespace Shoko.Server.Providers.MovieDB
 
             // save to the DB
             MovieDB_Movie movie;
-            using (var upd = Repo.MovieDb_Movie.BeginAddOrUpdateWithLock(() => Repo.MovieDb_Movie.GetByMovieID(searchResult.MovieID).FirstOrDefault()))
+            using (var upd = Repo.MovieDb_Movie.BeginAddOrUpdate(() => Repo.MovieDb_Movie.GetByMovieID(searchResult.MovieID).FirstOrDefault()))
             {
                 upd.Entity.Populate_RA(searchResult);
                 // Only save movie info if source is not trakt, this presents adding tv shows as movies
@@ -65,7 +65,7 @@ namespace Shoko.Server.Providers.MovieDB
                 if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
                 {
                     MovieDB_Poster poster;
-                    using (var upd = Repo.MovieDB_Poster.BeginAddOrUpdateWithLock(() => Repo.MovieDB_Poster.GetByOnlineID(img.URL)))
+                    using (var upd = Repo.MovieDB_Poster.BeginAddOrUpdate(() => Repo.MovieDB_Poster.GetByOnlineID(img.URL)))
                     {
                         upd.Entity.Populate_RA(img, movie.MovieId);
                         poster = upd.Commit();
@@ -77,7 +77,7 @@ namespace Shoko.Server.Providers.MovieDB
                 {
                     // fanart (backdrop)
                     MovieDB_Fanart fanart;
-                    using (var upd = Repo.MovieDB_Fanart.BeginAddOrUpdateWithLock(() => Repo.MovieDB_Fanart.GetByOnlineID(img.URL)))
+                    using (var upd = Repo.MovieDB_Fanart.BeginAddOrUpdate(() => Repo.MovieDB_Fanart.GetByOnlineID(img.URL)))
                     {
                         upd.Entity.Populate_RA(img, movie.MovieId);
                         fanart = upd.Commit();
@@ -244,7 +244,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
             CrossRef_AniDB_Other xref;
-            using (var upd = Repo.CrossRef_AniDB_Other.BeginAddOrUpdateWithLock(() => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
+            using (var upd = Repo.CrossRef_AniDB_Other.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
             {
                 upd.Entity.AnimeID= animeID;
                 if (fromWebCache)

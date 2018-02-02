@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -23,7 +24,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeid).FirstOrDefault(a=>a.ImageType==imageType);
@@ -34,7 +35,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -43,7 +44,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public Dictionary<int, List<AniDB_Anime_DefaultImage>> GetByAnimeIDs(IEnumerable<int> ids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a => a, a => Animes.GetMultiple(a));

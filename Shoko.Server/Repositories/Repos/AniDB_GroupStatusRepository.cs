@@ -4,6 +4,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -39,7 +40,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public AniDB_GroupStatus GetByAnimeIDAndGroupID(int animeid, int groupid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AnimeGroups.GetOne(animeid, groupid);
@@ -49,14 +50,22 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_GroupStatus> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
                 return Table.Where(a => a.AnimeID == id).ToList();
             }
         }
-
+        public List<int> GetIdsByAnimeID(int id)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Animes.GetMultiple(id).Select(a=>a.AniDB_GroupStatusID).ToList();
+                return Table.Where(a => a.AnimeID == id).ToList().Select(a => a.AniDB_GroupStatusID).ToList();
+            }
+        }
         public void DeleteForAnime(int animeid)
         {
             Delete(GetByAnimeID(animeid));

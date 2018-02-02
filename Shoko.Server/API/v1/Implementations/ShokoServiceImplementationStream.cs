@@ -49,7 +49,7 @@ namespace Shoko.Server
                 Nancy.Request request = RestModule.CurrentModule.Request;
 
                 FileSystemResult<Stream> fr = r.File.OpenRead();
-                if (fr == null || !fr.IsOk)
+                if (fr.Status!=Status.Ok)
                 {
                     return new StreamWithResponse(HttpStatusCode.InternalServerError,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
@@ -172,7 +172,7 @@ namespace Shoko.Server
             try
             {
                 InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+                SVR_VideoLocal loc = Repo.VideoLocal.GetByID(videolocalid);
                 if (loc == null)
                 {
                     r.Status = HttpStatusCode.NotFound;
@@ -212,7 +212,7 @@ namespace Shoko.Server
             }
             if (userId.HasValue && autowatch.HasValue && userId.Value != 0)
             {
-                r.User = RepoFactory.JMMUser.GetByID(userId.Value);
+                r.User = Repo.JMMUser.GetByID(userId.Value);
                 if (r.User == null)
                 {
                     r.Status = HttpStatusCode.NotFound;

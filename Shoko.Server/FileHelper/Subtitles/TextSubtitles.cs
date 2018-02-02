@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using NutzCode.CloudFileSystem;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Path = Pri.LongPath.Path;
+
 
 namespace Shoko.Server.FileHelper.Subtitles
 {

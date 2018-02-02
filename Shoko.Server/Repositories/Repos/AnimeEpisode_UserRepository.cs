@@ -6,6 +6,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -67,7 +68,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeEpisode_User> GetBySeriesID(int seriesid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Series.GetMultiple(seriesid);
@@ -77,7 +78,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersEpisodes.GetOne(userid, epid);
@@ -88,7 +89,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Users.GetMultiple(userid);
@@ -110,7 +111,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersSeries.GetMultiple(userid, seriesid).Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate).FirstOrDefault();
@@ -120,7 +121,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Episodes.GetMultiple(epid);
@@ -130,7 +131,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersSeries.GetMultiple(userid, seriesid);

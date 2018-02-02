@@ -39,138 +39,138 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 1. import folders
 
-            Get["/folder/list", true] = async (x,ct) => await Task.Factory.StartNew(GetFolders, ct);
-            Get["/folder/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFolders, ct);
-            Post["/folder/add", true] = async (x,ct) => await Task.Factory.StartNew(AddFolder, ct);
-            Post["/folder/edit", true] = async (x,ct) => await Task.Factory.StartNew(EditFolder, ct);
-            Post["/folder/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteFolder, ct);
-            Get["/folder/import", true] = async (x,ct) => await Task.Factory.StartNew(RunImport, ct);
-            Get["/folder/scan", true] = async (x, ct) => await Task.Factory.StartNew(ScanDropFolders, ct);
+            Get("/folder/list", async (x, ct) => await Task.Factory.StartNew(GetFolders, ct));
+            Get("/folder/count",async (x,ct) => await Task.Factory.StartNew(CountFolders, ct));
+            Post("/folder/add", async (x,ct) => await Task.Factory.StartNew(AddFolder, ct));
+            Post("/folder/edit", async (x,ct) => await Task.Factory.StartNew(EditFolder, ct));
+            Post("/folder/delete", async (x,ct) => await Task.Factory.StartNew(DeleteFolder, ct));
+            Get("/folder/import", async (x,ct) => await Task.Factory.StartNew(RunImport, ct));
+            Get("/folder/scan", async (x, ct) => await Task.Factory.StartNew(ScanDropFolders, ct));
 
             #endregion
 
             #region 2. upnp
 
-            Post["/upnp/list", true] = async (x, ct) => await Task.Factory.StartNew(ListUPNP, ct);
-            Post["/upnp/add", true] = async (x, ct) => await Task.Factory.StartNew(AddUPNP, ct);
-            Post["/upnp/delete", true] = async (x, ct) => await Task.Factory.StartNew(DeleteUPNP, ct);
+            Post("/upnp/list", async (x, ct) => await Task.Factory.StartNew(ListUPNP, ct));
+            Post("/upnp/add", async (x, ct) => await Task.Factory.StartNew(AddUPNP, ct));
+            Post("/upnp/delete", async (x, ct) => await Task.Factory.StartNew(DeleteUPNP, ct));
 
             #endregion
 
             #region 3. Actions
 
-            Get["/remove_missing_files", true] = async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles, ct);
-            Get["/stats_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateStats, ct);
-            Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct);
-            Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync, ct);
-            Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct);
-            Get["/rescanunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RescanUnlinked, ct);
-            Get["/rescanmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RescanManualLinks, ct);
-            Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct);
-            Get["/rehashunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct);
-            Get["/rehashmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct);
-            Get["/avdumpmismatchedfiles", true] = async (x,ct) => await Task.Factory.StartNew(AVDumpMismatchedFiles, ct);
+            Get("/remove_missing_files", async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles, ct));
+            Get("/stats_update", async (x,ct) => await Task.Factory.StartNew(UpdateStats, ct));
+            Get("/mediainfo_update", async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct));
+            Get("/hash/sync", async (x,ct) => await Task.Factory.StartNew(HashSync, ct));
+            Get("/rescan", async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct));
+            Get("/rescanunlinked", async (x,ct) => await Task.Factory.StartNew(RescanUnlinked, ct));
+            Get("/rescanmanuallinks", async (x,ct) => await Task.Factory.StartNew(RescanManualLinks, ct));
+            Get("/rehash", async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct));
+            Get("/rehashunlinked", async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct));
+            Get("/rehashmanuallinks", async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct));
+            Get("/avdumpmismatchedfiles", async (x,ct) => await Task.Factory.StartNew(AVDumpMismatchedFiles, ct));
 
             #endregion
 
             #region 4. Misc
 
-            Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID, ct);
-            Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct);
-            Get["/dashboard", true] = async (x,ct) => await Task.Factory.StartNew(GetDashboard, ct);
-            Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch, ct);
+            Get("/myid/get", async (x,ct) => await Task.Factory.StartNew(MyID, ct));
+            Get("/news/get", async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct));
+            Get("/dashboard", async (x,ct) => await Task.Factory.StartNew(GetDashboard, ct));
+            Get("/search", async (x,ct) => await Task.Factory.StartNew(BigSearch, ct));
 
             #endregion
 
             #region 5. Queue
 
-            Get["/queue/get", true] = async (x,ct) => await Task.Factory.StartNew(GetQueue, ct);
-            Get["/queue/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseQueue, ct);
-            Get["/queue/start", true] = async (x,ct) => await Task.Factory.StartNew(StartQueue, ct);
-            Get["/queue/hash/get", true] = async (x,ct) => await Task.Factory.StartNew(GetHasherQueue, ct);
-            Get["/queue/hash/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseHasherQueue, ct);
-            Get["/queue/hash/start", true] = async (x,ct) => await Task.Factory.StartNew(StartHasherQueue, ct);
-            Get["/queue/hash/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearHasherQueue, ct);
-            Get["/queue/general/get", true] = async (x,ct) => await Task.Factory.StartNew(GetGeneralQueue, ct);
-            Get["/queue/general/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseGeneralQueue, ct);
-            Get["/queue/general/start", true] = async (x,ct) => await Task.Factory.StartNew(StartGeneralQueue, ct);
-            Get["/queue/general/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearGeneralQueue, ct);
-            Get["/queue/images/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagesQueue, ct);
-            Get["/queue/images/pause", true] = async (x,ct) => await Task.Factory.StartNew(PauseImagesQueue, ct);
-            Get["/queue/images/start", true] = async (x,ct) => await Task.Factory.StartNew(StartImagesQueue, ct);
-            Get["/queue/images/clear", true] = async (x,ct) => await Task.Factory.StartNew(ClearImagesQueue, ct);
+            Get("/queue/get", async (x,ct) => await Task.Factory.StartNew(GetQueue, ct));
+            Get("/queue/pause", async (x,ct) => await Task.Factory.StartNew(PauseQueue, ct));
+            Get("/queue/start", async (x,ct) => await Task.Factory.StartNew(StartQueue, ct));
+            Get("/queue/hash/get", async (x,ct) => await Task.Factory.StartNew(GetHasherQueue, ct));
+            Get("/queue/hash/pause", async (x,ct) => await Task.Factory.StartNew(PauseHasherQueue, ct));
+            Get("/queue/hash/start", async (x,ct) => await Task.Factory.StartNew(StartHasherQueue, ct));
+            Get("/queue/hash/clear", async (x,ct) => await Task.Factory.StartNew(ClearHasherQueue, ct));
+            Get("/queue/general/get", async (x,ct) => await Task.Factory.StartNew(GetGeneralQueue, ct));
+            Get("/queue/general/pause", async (x,ct) => await Task.Factory.StartNew(PauseGeneralQueue, ct));
+            Get("/queue/general/start", async (x,ct) => await Task.Factory.StartNew(StartGeneralQueue, ct));
+            Get("/queue/general/clear", async (x,ct) => await Task.Factory.StartNew(ClearGeneralQueue, ct));
+            Get("/queue/images/get", async (x,ct) => await Task.Factory.StartNew(GetImagesQueue, ct));
+            Get("/queue/images/pause", async (x,ct) => await Task.Factory.StartNew(PauseImagesQueue, ct));
+            Get("/queue/images/start", async (x,ct) => await Task.Factory.StartNew(StartImagesQueue, ct));
+            Get("/queue/images/clear", async (x,ct) => await Task.Factory.StartNew(ClearImagesQueue, ct));
 
             #endregion
 
             #region 6. Files
 
-            Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile, ct);
-            Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles, ct);
-            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0), ct);
-            Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
-            Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct);
-            Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
-            Get["/file/needsavdumped", true] = async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct);
-            Get["/file/deprecated", true] = async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct);
+            Get("/file", async (x,ct) => await Task.Factory.StartNew(GetFile, ct));
+            Get("/file/count", async (x,ct) => await Task.Factory.StartNew(CountFiles, ct));
+            Get("/file/recent", async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0), ct));
+            Get("/file/unsort", async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct));
+            Get("/file/multiples", async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct));
+            Post("/file/offset", async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct));
+            Get("/file/needsavdumped", async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct));
+            Get("/file/deprecated", async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct));
 
             #endregion
 
             #region 7. Episodes
 
-            Get["/ep", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisode, ct);
-            Get["/ep/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes, ct);
-            Get["/ep/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched, ct);
-            Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct);
-            Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct);
-            Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
-            Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct);
-            Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct);
+            Get("/ep", async (x,ct) => await Task.Factory.StartNew(GetEpisode, ct));
+            Get("/ep/recent", async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes, ct));
+            Get("/ep/watch", async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched, ct));
+            Get("/ep/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct));
+            Get("/ep/vote", async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct));
+            Get("/ep/unsort", async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct));
+            Get("/ep/scrobble", async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct));
+            Get("/ep/getbyfilename", async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct));
 
             #endregion
 
             #region 8. Series
 
-            Get["/serie", true] = async (x,ct) => await Task.Factory.StartNew(GetSerie, ct);
-            Get["/serie/count", true] = async (x,ct) => await Task.Factory.StartNew(CountSerie, ct);
-            Get["/serie/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent, ct);
-            Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct);
-            Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct);
-            Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct);
-            Get["/serie/infobyfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesInfoByFolderId, ct);
-            Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct);
-            Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct);
-            Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct);
-            Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
-            Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
-            Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
+            Get("/serie", async (x,ct) => await Task.Factory.StartNew(GetSerie, ct));
+            Get("/serie/count", async (x,ct) => await Task.Factory.StartNew(CountSerie, ct));
+            Get("/serie/recent", async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent, ct));
+            Get("/serie/search", async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct));
+            Get("/serie/tag", async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct));
+            Get("/serie/byfolder", async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct));
+            Get("/serie/infobyfolder", async (x,ct) => await Task.Factory.StartNew(GetSeriesInfoByFolderId, ct));
+            Get("/serie/watch", async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct));
+            Get("/serie/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct));
+            Get("/serie/vote", async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct));
+            Get("/serie/fromep", async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct));
+            Get("/serie/startswith", async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct));
+            Get("/serie/today", async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct));
 
             #endregion
 
             #region 9. Cloud accounts
 
-            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct);
-            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct);
-            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct);
-            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct);
-            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct);
+            Get("/cloud/list", async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct));
+            Get("/cloud/count", async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct));
+            Post("/cloud/add", async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct));
+            Post("/cloud/delete", async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct));
+            Get("/cloud/import", async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct));
 
             #endregion
 
             #region 10. Filters
 
-            Get["/filter", true] = async (x,ct) => await Task.Factory.StartNew(GetFilters, ct);
+            Get("/filter", async (x,ct) => await Task.Factory.StartNew(GetFilters, ct));
 
             #endregion
 
             #region 11. Groups
 
-            Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups, ct);
-            Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct);
-            Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct);
+            Get("/group", async (x,ct) => await Task.Factory.StartNew(GetGroups, ct));
+            Get("/group/watch", async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct));
+            Get("/group/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct));
 
             #endregion
 
-            Get["/links/serie", true] = async (x, ct) => await Task.Factory.StartNew(GetLinks, ct);
+            Get("/links/serie", async (x, ct) => await Task.Factory.StartNew(GetLinks, ct));
         }
 
         #region 1.Import Folders
@@ -394,7 +394,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(para.id);
                 if (vid == null) return APIStatus.NotFound();
                 if (string.IsNullOrEmpty(vid.Hash))
                     return APIStatus.BadRequest("Could not Update a cloud file without hash, hash it locally first");
@@ -418,7 +418,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> filesWithoutEpisode = Repo.VideoLocal.GetVideosWithoutEpisode();
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -442,7 +442,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+                List<SVR_VideoLocal> filesWithoutEpisode = Repo.VideoLocal.GetManuallyLinkedVideos();
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -467,7 +467,7 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
-            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
+            SVR_VideoLocal vl = Repo.VideoLocal.GetByID(para.id);
             if (vl == null) return APIStatus.NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
             if (pl?.FullServerPath == null) return APIStatus.NotFound("videolocal_place not found");
@@ -486,7 +486,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
+                foreach (SVR_VideoLocal vl in Repo.VideoLocal.GetVideosWithoutEpisode())
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                     if (pl?.FullServerPath == null) continue;
@@ -511,7 +511,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vl in Repo.VideoLocal.GetManuallyLinkedVideos())
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
                     if (pl?.FullServerPath == null) continue;
@@ -841,7 +841,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
+                Repo.CommandRequest.FindAndDelete(()=>Repo.CommandRequest.GetAllCommandRequestHasher());
 
                 ShokoService.CmdProcessorHasher.Init();
 
@@ -869,7 +869,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
+                Repo.CommandRequest.FindAndDelete(()=>Repo.CommandRequest.GetAllCommandRequestGeneral());
 
                 ShokoService.CmdProcessorGeneral.Init();
 
@@ -897,7 +897,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
                 Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
+                Repo.CommandRequest.FindAndDelete(()=>Repo.CommandRequest.GetAllCommandRequestImages());
 
                 ShokoService.CmdProcessorImages.Init();
 
@@ -937,7 +937,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+            var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                 .Where(_tuple => _tuple.anidb != null)
@@ -955,7 +955,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+            var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             Logger logger = LogManager.GetCurrentClassLogger();
             Task.Factory.StartNew(() =>
@@ -988,7 +988,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll()
+            var allvids = Repo.VideoLocal.GetAll()
                 .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated == 1).ToList();
             return allvids.Select(vid => GetFileById(vid.VideoLocalID, para.level, user.JMMUserID)).ToList();
         }
@@ -1006,7 +1006,7 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
             try
             {
-                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true);
+                List<SVR_AnimeEpisode> list = Repo.AnimeEpisode.GetEpisodesWithMultipleFiles(true);
                 foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
@@ -1056,7 +1056,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Counter count = new Counter
             {
-                count = RepoFactory.VideoLocal.GetAll().Count
+                count = Repo.VideoLocal.GetAll().Count
             };
             return count;
         }
@@ -1088,7 +1088,7 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             List<RawFile> list = new List<RawFile>();
-            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
+            foreach (SVR_VideoLocal file in Repo.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
                 list.Add(new RawFile(Context, file, para.level, user.JMMUserID));
             }
@@ -1108,7 +1108,7 @@ namespace Shoko.Server.API.v2.Modules
 
             List<RawFile> lst = new List<RawFile>();
 
-            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisode();
 
             foreach (SVR_VideoLocal vl in vids)
             {
@@ -1148,7 +1148,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.BadRequest("Invalid arguments");
             }
-            SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
+            SVR_VideoLocal vlu = Repo.VideoLocal.GetByID(para.id);
             if (vlu != null)
             {
                 vlu.SetResumePosition(para.offset, user.JMMUserID);
@@ -1168,7 +1168,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>RawFile or APIStatus</returns>
         internal object GetFileById(int file_id, int level, int uid)
         {
-            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(file_id);
+            SVR_VideoLocal vl = Repo.VideoLocal.GetByID(file_id);
             if (vl != null)
             {
                 RawFile rawfile = new RawFile(Context, vl, level, uid);
@@ -1191,7 +1191,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 limit_x = 100;
             }
-            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetAll(limit_x))
+            foreach (SVR_VideoLocal file in Repo.VideoLocal.GetAllLimit(limit_x))
             {
                 list.Add(new RawFile(Context, file, level, uid));
                 if (limit != 0)
@@ -1240,7 +1240,7 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
             if (String.IsNullOrEmpty(para.filename)) return APIStatus.BadRequest("missing 'filename'");
 
-            SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
+            SVR_AnimeEpisode aep = Repo.AnimeEpisode.GetByFilename(para.filename);
             if (aep != null)
             {
                 return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0);
@@ -1265,7 +1265,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             List<object> lst = new List<object>();
 
-            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit);
+            List<SVR_VideoLocal> vids = Repo.VideoLocal.GetMostRecentlyAdded(para.limit);
 
             foreach (SVR_VideoLocal vl in vids)
             {
@@ -1392,13 +1392,13 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(id);
+                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(id);
                 if (ep == null)
                 {
                     return APIStatus.NotFound();
                 }
                 ep.ToggleWatchedStatus(status, true, DateTime.Now, false, uid, true);
-                ep.GetAnimeSeries()?.UpdateStats(true, false, true);
+                SVR_AnimeSeries.UpdateStats(ep.GetAnimeSeries(), true, false, true);
                 return APIStatus.OK();
             }
             catch (Exception ex)
@@ -1414,7 +1414,7 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all)
         {
             List<Episode> eps = new List<Episode>();
-            List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
+            List<int> aepul = Repo.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
             if (limit == 0)
             {
                 // hardcoded
@@ -1453,7 +1453,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (id > 0)
             {
-                SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+                SVR_AnimeEpisode aep = Repo.AnimeEpisode.GetByID(id);
                 if (aep != null)
                 {
                     Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level);
@@ -1481,24 +1481,18 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (score > 0 && score < 1000)
                 {
-                    AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode);
-
-                    if (thisVote == null)
-                    {
-                        thisVote = new AniDB_Vote
-                        {
-                            VoteType = (int)AniDBVoteType.Episode,
-                            EntityID = id
-                        };
-                    }
-
                     if (score <= 10)
                     {
                         score = score * 100;
                     }
 
-                    thisVote.VoteValue = score;
-                    RepoFactory.AniDB_Vote.Save(thisVote);
+                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Episode)))
+                    {
+                        upd.Entity.VoteType = (int) AniDBVoteType.Episode;
+                        upd.Entity.EntityID = id;
+                        upd.Entity.VoteValue = score;
+                        upd.Commit();
+                    }
 
                     //CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
                     //cmdVote.Save();
@@ -1544,7 +1538,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             Counter count = new Counter
             {
-                count = RepoFactory.AnimeSeries.GetAll().Count
+                count = Repo.AnimeSeries.GetAll().Count
             };
             return count;
         }
@@ -1561,14 +1555,14 @@ namespace Shoko.Server.API.v2.Modules
             // 1. get series airing
             // 2. get eps for those series
             // 3. calculate which series have most of the files released today
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel()
+            ParallelQuery<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll().AsParallel()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
                                 .FindInEnumerable(user.GetHideCategories()));
             DateTime now = DateTime.Now;
             List<Serie> result = allSeries.Where(ser =>
             {
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                var anime = Repo.AniDB_Anime.GetByID(ser.AniDB_ID);
                 // It might end today, but that's okay
                 if (anime.EndDate != null)
                 {
@@ -1641,7 +1635,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 para.limit = 10;
             }
-            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit);
+            List<SVR_AnimeSeries> series = Repo.AnimeSeries.GetMostRecentlyAdded(para.limit);
 
             foreach (SVR_AnimeSeries aser in series)
             {
@@ -1786,7 +1780,7 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit, bool allpic, int pic, byte tagfilter)
         {
             List<object> allseries = new List<object>();
-            List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+            List<SVR_VideoLocal> vlpall = Repo.VideoLocal_Place.GetByImportFolder(id)
                 .Select(a => a.VideoLocal)
                 .ToList();
 
@@ -1819,7 +1813,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Dictionary<string, long> tmp_list = new Dictionary<string, long>();
             List<object> allseries = new List<object>();
-            List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
+            List<SVR_VideoLocal> vlpall = Repo.VideoLocal_Place.GetByImportFolder(id)
                 .Select(a => a.VideoLocal)
                 .ToList();
 
@@ -1876,7 +1870,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         internal object GetSerieFromEpisode(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
         {
-            SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+            SVR_AnimeEpisode aep = Repo.AnimeEpisode.GetByID(id);
             if (aep != null)
             {
                 return Serie.GenerateFromAnimeSeries(Context, aep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic, tagfilter);
@@ -1898,7 +1892,7 @@ namespace Shoko.Server.API.v2.Modules
 
             List<Serie> allseries = new List<Serie>();
 
-            foreach (SVR_AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries asi in Repo.AnimeSeries.GetAll())
             {
                 if (offset <= 0)
                 {
@@ -1930,7 +1924,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
-            Serie ser = Serie.GenerateFromAnimeSeries(Context, RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
+            Serie ser = Serie.GenerateFromAnimeSeries(Context, Repo.AnimeSeries.GetByID(series_id), user.JMMUserID,
                 nocast, notag, level, all, allpic, pic, tagfilter);
             return ser;
         }
@@ -1946,7 +1940,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
                 if (ser == null) return APIStatus.BadRequest("Series not Found");
 
                 foreach (SVR_AnimeEpisode ep in ser.GetAnimeEpisodes())
@@ -1968,7 +1962,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                 }
 
-                ser.UpdateStats(true, true, true);
+                SVR_AnimeSeries.UpdateStats(ser, true, true, true);
 
                 return APIStatus.OK();
             }
@@ -2120,12 +2114,12 @@ namespace Shoko.Server.API.v2.Modules
         {
             query = query.ToLowerInvariant();
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
             Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+            ParallelQuery<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
                                 .FindInEnumerable(user.GetHideCategories()))
@@ -2360,13 +2354,13 @@ namespace Shoko.Server.API.v2.Modules
         {
             query = query.ToLowerInvariant();
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
             Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
             ConcurrentDictionary<SVR_AnimeSeries, string> tempseries = new ConcurrentDictionary<SVR_AnimeSeries, string>();
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+            ParallelQuery<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
                                 .FindInEnumerable(user.GetHideCategories()))
@@ -2411,33 +2405,22 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("'score' value is wrong");
             }
 
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
             if (ser == null) return APIStatus.BadRequest($"Series with id {id} was not found");
             int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
                 ? (int) AniDBVoteType.Anime
                 : (int) AniDBVoteType.AnimeTemp;
-
-            AniDB_Vote thisVote =
-                RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
-                RepoFactory.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime);
-
-            if (thisVote == null)
-            {
-                thisVote = new AniDB_Vote
-                {
-                    EntityID = ser.AniDB_ID
-                };
-            }
-
             if (score <= 10)
             {
                 score = score * 100;
             }
-
-            thisVote.VoteValue = score;
-            thisVote.VoteType = voteType;
-
-            RepoFactory.AniDB_Vote.Save(thisVote);
+            using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(id, (AniDBVoteType)voteType)))
+            {
+                upd.Entity.EntityID = ser.AniDB_ID;
+                upd.Entity.VoteType = voteType;
+                upd.Entity.VoteValue = score;
+                upd.Commit();
+            }
 
             CommandRequest_VoteAnime cmdVote =
                 new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
@@ -2523,7 +2506,7 @@ namespace Shoko.Server.API.v2.Modules
                 viewed = 0,
                 url = APIHelper.ConstructFilterUrl(Context)
             };
-            List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
+            List<SVR_GroupFilter> allGfs = Repo.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
@@ -2537,7 +2520,7 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             // Include 'Unsort'
-            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisode();
             if (vids.Count > 0)
             {
                 Filter filter = new Filter
@@ -2576,7 +2559,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Filter or Filters</returns>
         internal object GetFilter(int id, int uid, bool nocast, bool notag, int level, bool all, bool allpic, int pic, byte tagfilter)
         {
-            SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
+            SVR_GroupFilter gf = Repo.GroupFilter.GetByID(id);
 
             if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
@@ -2659,10 +2642,10 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetAllGroups(int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, byte tagfilter)
         {
             List<Group> grps = new List<Group>();
-            List<SVR_AnimeGroup_User> allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
+            List<SVR_AnimeGroup_User> allGrps = Repo.AnimeGroup_User.GetByUserID(uid);
             foreach (SVR_AnimeGroup_User gr in allGrps)
             {
-                SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+                SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(gr.AnimeGroupID);
                 Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0, allpics, pic, tagfilter);
                 grps.Add(grp);
             }
@@ -2682,7 +2665,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Group or APIStatus</returns>
         internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic, byte tagfilter)
         {
-            SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(id);
+            SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(id);
             if (ag != null)
             {
                 Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid, allpics, pic, tagfilter);
@@ -2702,7 +2685,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                SVR_AnimeGroup group = RepoFactory.AnimeGroup.GetByID(groupid);
+                SVR_AnimeGroup group = Repo.AnimeGroup.GetByID(groupid);
                 if (group == null)
                 {
                     return APIStatus.NotFound("Group not Found");
@@ -2717,7 +2700,7 @@ namespace Shoko.Server.API.v2.Modules
 
                         ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, userid, true);
                     }
-                    series.UpdateStats(true, false, false);
+                    SVR_AnimeSeries.UpdateStats(series, true, false, false);
                 }
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
 
@@ -2743,7 +2726,7 @@ namespace Shoko.Server.API.v2.Modules
 
             Dictionary<string, object> links = new Dictionary<string, object>();
 
-            var serie = RepoFactory.AnimeSeries.GetByID(para.id);
+            var serie = Repo.AnimeSeries.GetByID(para.id);
             var trakt = serie.GetTraktShow();
             links.Add("trakt", trakt?.Select(x => x.URL));
             var tvdb = serie.GetTvDBSeries();

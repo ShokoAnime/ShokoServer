@@ -207,7 +207,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.Votes).IsRequired();
                 model.Property(x => x.EpisodeRange).IsRequired().HasMaxLength(200);
             }
-            /*
+       
             {
                 var model = builder.Entity<AniDB_MylistStats>();
                 model.ToTable("AniDB_MylistStats").HasKey(x => x.AniDB_MylistStatsID);
@@ -231,7 +231,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.Reviews).IsRequired();
                 model.Property(x => x.ViewiedLength).IsRequired();
             }
-            */
+   
             {
                 var model = builder.Entity<AniDB_Recommendation>();
                 model.ToTable("AniDB_Recommendation").HasKey(x => x.AniDB_RecommendationID);

@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
-    public class AnimeGroupRepository : BaseRepository<SVR_AnimeGroup, int,(bool updategrpcontractstats, bool recursive, bool verifylockedFilters)>
+    public class AnimeGroupRepository : BaseRepository<SVR_AnimeGroup, int, (bool updategrpcontractstats, bool recursive, bool verifylockedFilters)>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -39,12 +41,12 @@ namespace Shoko.Server.Repositories.Repos
                 //This call will create extra years or tags if the Group have a new year or tag
                 entity.UpdateGroupFilters(types);
             }
-            if (entity.AnimeGroupParentID.HasValue && parameters.recursive)
+            if (entity.AnimeGroupParentID.HasValue && parameters.recursive && entity.AnimeGroupParentID.Value!=entity.AnimeGroupID)
             {
-                SVR_AnimeGroup pgroup = GetByID(entity.AnimeGroupParentID.Value);
-                if (pgroup != null && pgroup.AnimeGroupParentID == entity.AnimeGroupID)
+                using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => GetByID(entity.AnimeGroupParentID.Value)))
                 {
-                    Repo.AnimeGroup.BeginUpdate(pgroup).Commit((parameters.updategrpcontractstats, true, parameters.verifylockedFilters));
+                    if (upd.IsUpdate)
+                        upd.Commit((parameters.updategrpcontractstats, true, parameters.verifylockedFilters)); // WARNING: This might creata a recursion loop
                 }
             }
         }
@@ -59,10 +61,10 @@ namespace Shoko.Server.Repositories.Repos
         internal override void EndDelete(SVR_AnimeGroup entity, object returnFromBeginDelete,
             (bool updategrpcontractstats, bool recursive, bool verifylockedFilters) parameters)
         {
-            if (entity.AnimeGroupParentID.HasValue && entity.AnimeGroupParentID.Value > 0)
+            if (entity.AnimeGroupParentID.HasValue && entity.AnimeGroupParentID.Value > 0 && entity.AnimeGroupParentID!=entity.AnimeGroupID)
             {
                 logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", entity.AnimeGroupParentID.Value);
-                Repo.AnimeGroup.BeginUpdate(entity.AnimeGroupParentID.Value).Commit((false, true, true));
+                Repo.AnimeGroup.Touch(()=>Repo.AnimeGroup.GetByID(entity.AnimeGroupParentID.Value),(false, true, true));
             }
         }
 
@@ -84,7 +86,7 @@ namespace Shoko.Server.Repositories.Repos
             if (grps.Count == 0)
                 return;
             InitProgress regen = new InitProgress();
-            regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Regen");
+            regen.Title = String.Format(Resources.Database_Validating, typeof(AnimeEpisode_User).Name, " Regen");
             regen.Step = 0;
             regen.Total = grps.Count;
             BatchAction(grps, batchSize, (g, original) =>
@@ -229,7 +231,7 @@ namespace Shoko.Server.Repositories.Repos
         */
         public List<SVR_AnimeGroup> GetByParentID(int parentid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Parents.GetMultiple(parentid);
@@ -239,7 +241,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeGroup> GetAllTopLevelGroups()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Parents.GetMultiple(0);
@@ -248,7 +250,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public void KillEmAllExceptGrimorieOfZero()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
 
                 if (IsCached)
@@ -272,5 +274,7 @@ namespace Shoko.Server.Repositories.Repos
                 return Changes;
             }
         }
+
+     
     }
 }

@@ -60,12 +60,13 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilters()
         {
-            List<SVR_GroupFilter> gfs = Repo.GroupFilter.GetAll();
+
             List<SVR_AnimeGroup> allGrps = Repo.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
             List<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
-            foreach (SVR_GroupFilter gf in gfs)
+            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetAll()))
             {
-                using (var upd = Repo.GroupFilter.BeginUpdate(gf))
+
+                foreach (SVR_GroupFilter gf in upd)
                 {
                     bool change = false;
                     foreach (SVR_AnimeGroup grp in allGrps)
@@ -79,11 +80,12 @@ namespace Shoko.Server.Models
                         CL_AnimeSeries_User cser = ser.GetUserContract(JMMUserID);
                         change |= gf.CalculateGroupFilterSeries_RA(cser, this, JMMUserID);
                     }
-
                     if (change)
-                        upd.Commit();
+                        upd.Update(gf);
                 }
+                upd.Commit();
             }
+
         }
     }
 }

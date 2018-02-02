@@ -289,7 +289,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 try
                 {
-                    Video m = Helper.VideoFromVideoLocal(prov, v, userid);
+                    (Video m,_) = Helper.VideoFromVideoLocal(prov, v, userid);
                     dirs.Add(prov, m, info);
                     m.Thumb = prov.ConstructSupportImageLink("plex_404.png");
                     m.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");
@@ -319,7 +319,7 @@ namespace Shoko.Server.PlexAndKodi
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
                     Path.GetFileNameWithoutExtension(vi.FileName ?? string.Empty),
                     true, false, info));
-            Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
+            (Video v2, _) = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();
             dirs.EppAdd(prov, v2, info, true);
             v2.Thumb = prov.ConstructSupportImageLink("plex_404.png");
@@ -633,7 +633,7 @@ namespace Shoko.Server.PlexAndKodi
                     return rsp;
                 }
                 ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
-                ep.GetAnimeSeries().UpdateStats(true, false, true);
+                SVR_AnimeSeries.UpdateStats(ep.GetAnimeSeries(), true, false, true);
                 rsp.Code = "200";
                 rsp.Message = null;
             }
@@ -678,7 +678,7 @@ namespace Shoko.Server.PlexAndKodi
                     ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                 }
 
-                series.UpdateStats(true, false, true);
+                SVR_AnimeSeries.UpdateStats(series, true, false, true);
                 rsp.Code = "200";
                 rsp.Message = null;
             }
@@ -723,7 +723,7 @@ namespace Shoko.Server.PlexAndKodi
 
                         ep.ToggleWatchedStatus(wstatus, true, DateTime.Now, false, usid, true);
                     }
-                    series.UpdateStats(true, false, false);
+                    SVR_AnimeSeries.UpdateStats(series, true, false, false);
                 }
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
 
@@ -782,7 +782,7 @@ namespace Shoko.Server.PlexAndKodi
                         iVoteValue);
                     logger.Info(msg);
 
-                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdateWithLock(() => Repo.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode)))
+                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode)))
                     {
                         upd.Entity.EntityID = ep.AnimeEpisodeID;
                         upd.Entity.VoteType = vt;
@@ -820,7 +820,7 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
 
 
-                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdateWithLock(() => (Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp) ?? Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime))))
+                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => (Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp) ?? Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime))))
                     {
                         upd.Entity.EntityID = anime.AnimeID;
                         upd.Entity.VoteType = vt;

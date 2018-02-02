@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -28,7 +29,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<FileNameHash> GetByHash(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash);
@@ -38,7 +39,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<FileNameHash> GetByFileNameAndSize(string filename, long filesize)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return FileNameFileSizes.GetMultiple(filename, filesize);
@@ -49,7 +50,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public FileNameHash GetByNameSizeAndHash(string filename, long filesize, string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).FirstOrDefault(a=>a.FileName==filename && a.FileSize==filesize);

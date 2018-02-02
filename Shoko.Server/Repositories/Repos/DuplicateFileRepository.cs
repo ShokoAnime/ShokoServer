@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -32,7 +33,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<DuplicateFile> GetByFilePathsAndImportFolder(string filePath1, string filePath2, int folderID1, int folderID2)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return FileImport1.GetMultiple(filePath1, folderID1).Where(a=>a.FilePathFile2==filePath2 && a.ImportFolderIDFile2==folderID2).ToList();
@@ -41,7 +42,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<DuplicateFile> GetByFilePathsAndImportFolderCheckBoth(string filePath1, string filePath2, int folderID1, int folderID2)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return FileImport1.GetMultiple(filePath1, folderID1).Where(a => a.FilePathFile2 == filePath2 && a.ImportFolderIDFile2 == folderID2).Union(FileImport1.GetMultiple(filePath2, folderID2).Where(a => a.FilePathFile2 == filePath1 && a.ImportFolderIDFile2 == folderID1)).ToList();
@@ -50,7 +51,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<DuplicateFile> GetByFilePathAndImportFolder(string filePath, int folderID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return FileImport1.GetMultiple(filePath, folderID).Union(FileImport2.GetMultiple(filePath,folderID)).ToList();
@@ -62,7 +63,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<DuplicateFile> GetByImportFolder1(int folderID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Folder1.GetMultiple(folderID);
@@ -72,7 +73,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<DuplicateFile> GetByImportFolder2(int folderID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Folder2.GetMultiple(folderID);

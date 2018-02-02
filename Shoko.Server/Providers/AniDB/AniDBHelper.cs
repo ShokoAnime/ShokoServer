@@ -10,21 +10,18 @@ using System.Threading;
 using System.Timers;
 using AniDBAPI;
 using AniDBAPI.Commands;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Timer = System.Timers.Timer;
 
-namespace Shoko.Server
+namespace Shoko.Server.Providers.AniDB
 {
     public class AniDBHelper
     {
@@ -428,11 +425,11 @@ namespace Shoko.Server
                             return;
                 }
                 if (cmdGetFileStatus.MyListFile?.WatchedDate == null) return;
-                var aniFile = RepoFactory.AniDB_File.GetByFileID(aniDBFileID);
-                var vids = aniFile.EpisodeIDs.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
+                var aniFile = Repo.AniDB_File.GetByFileID(aniDBFileID);
+                var vids = aniFile.EpisodeIDs.SelectMany(a => Repo.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
                 foreach (var vid in vids)
                 {
-                    foreach (var user in RepoFactory.JMMUser.GetAniDBUsers())
+                    foreach (var user in Repo.JMMUser.GetAniDBUsers())
                     {
                         vid.ToggleWatchedStatus(true, false, cmdGetFileStatus.MyListFile.WatchedDate, true,
                             user.JMMUserID, false, true);
@@ -455,19 +452,15 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
-                    AniDB_MylistStats stat = null;
-                    IReadOnlyList<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
-                    if (allStats.Count == 0)
-                        stat = new AniDB_MylistStats();
-                    else
-                        stat = allStats[0];
-
-                    stat.Populate(cmdGetMylistStats.MyListStats);
-                    RepoFactory.AniDB_MylistStats.Save(stat);
+                    using (var upd = Repo.AniDB_MylistStats.BeginAddOrUpdate(() => Repo.AniDB_MylistStats.GetAll().FirstOrDefault()))
+                    {
+                        upd.Entity.Populate_RA(cmdGetMylistStats.MyListStats);
+                        upd.Commit();
+                    }
                 }
             }
         }
-
+    
         public void GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
         {
             //startTime = 0;
@@ -701,7 +694,7 @@ namespace Shoko.Server
                 skip = false;
             else
             {
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) skip = false;
             }
 
@@ -727,10 +720,7 @@ namespace Shoko.Server
             if (ev == enHelperActivityType.GotAnimeInfo && getAnimeCmd.AnimeInfo != null)
             {
                 // check for an existing record so we don't over write the description
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(getAnimeCmd.AnimeInfo.AnimeID);
-                if (anime == null) anime = new SVR_AniDB_Anime();
-
-                anime.PopulateAndSaveFromUDP(getAnimeCmd.AnimeInfo);
+                anime=SVR_AniDB_Anime.PopulateAndSaveFromUDP(getAnimeCmd.AnimeInfo);
             }
 
             return anime;
@@ -796,29 +786,38 @@ namespace Shoko.Server
             if (ev != enHelperActivityType.GotGroupStatus || getCmd.GrpStatusCollection == null)
                 return getCmd.GrpStatusCollection;
 
-            // delete existing records
-            RepoFactory.AniDB_GroupStatus.DeleteForAnime(animeID);
-
-            // save the records
-            foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
+            using (var upd = Repo.AniDB_GroupStatus.BeginBatchUpdate(() => Repo.AniDB_GroupStatus.GetByAnimeID(animeID)))
             {
-                AniDB_GroupStatus grpstat = new AniDB_GroupStatus();
-                grpstat.Populate(raw);
-                RepoFactory.AniDB_GroupStatus.Save(grpstat);
+                foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
+                {
+                    AniDB_GroupStatus gh = upd.FindOrCreate(a => a.AnimeID == animeID && a.GroupID == raw.GroupID);
+                    gh.Populate_RA(raw);
+                }
+                upd.Commit();
             }
 
             if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
             {
                 // update the anime with a record of the latest subbed episode
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = null;
+                using (var ua = Repo.AniDB_Anime.BeginAddOrUpdate(() => Repo.AniDB_Anime.GetByID(animeID)))
+                {
+                    if (ua.IsUpdate())
+                    {
+                        anime = ua.Entity;
+                        if (anime.LatestEpisodeNumber != getCmd.GrpStatusCollection.LatestEpisodeNumber)
+                        {
+                            anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
+                            anime = ua.Commit();
+                        }
+                    }
+                }
                 if (anime != null)
                 {
-                    anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
-                    RepoFactory.AniDB_Anime.Save(anime);
 
                     // check if we have this episode in the database
                     // if not get it now by updating the anime record
-                    List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                    List<AniDB_Episode> eps = Repo.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
                         getCmd.GrpStatusCollection.LatestEpisodeNumber);
                     if (eps.Count == 0)
                     {
@@ -827,7 +826,7 @@ namespace Shoko.Server
                         cr_anime.Save();
                     }
                     // update the missing episode stats on groups and children
-                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(animeID);
                     series?.QueueUpdateStats();
                     //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
@@ -873,17 +872,16 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            AniDB_Review review = null;
             if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
             {
-                review = RepoFactory.AniDB_Review.GetByReviewID(reviewID);
-                if (review == null) review = new AniDB_Review();
-
-                review.Populate(cmd.ReviewInfo);
-                RepoFactory.AniDB_Review.Save(review);
+                using (var upd = Repo.AniDB_Review.BeginAddOrUpdate(()=>Repo.AniDB_Review.GetByID(reviewID)))
+                {
+                    upd.Entity.Populate_RA(cmd.ReviewInfo);
+                    return upd.Commit();
+                }
             }
 
-            return review;
+            return null;
         }
 
         public void VoteAnime(int animeID, decimal voteValue, AniDBVoteType voteType)
@@ -899,14 +897,13 @@ namespace Shoko.Server
                 var ev = cmdVote.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 if (ev != enHelperActivityType.Voted && ev != enHelperActivityType.VoteUpdated) return;
-                AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType) ?? new AniDB_Vote
+                using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType)))
                 {
-                    EntityID = cmdVote.EntityID
-                };
-
-                thisVote.VoteType = (int) cmdVote.VoteType;
-                thisVote.VoteValue = cmdVote.VoteValue;
-                RepoFactory.AniDB_Vote.Save(thisVote);
+                    upd.Entity.EntityID = cmdVote.EntityID;
+                    upd.Entity.VoteType = (int)cmdVote.VoteType;
+                    upd.Entity.VoteValue = cmdVote.VoteValue;
+                    upd.Commit();
+                }
             }
         }
 
@@ -916,22 +913,14 @@ namespace Shoko.Server
         }
 
 
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations);
-            }
-        }
 
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh,
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh,
             bool downloadRelations)
         {
             //if (!Login()) return null;
 
-            ISessionWrapper sessionWrapper = session.Wrap();
 
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+            var anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
             if (anime != null)
@@ -948,7 +937,7 @@ namespace Shoko.Server
 
             if (skip)
             {
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                 return anime;
             }
 
@@ -968,7 +957,7 @@ namespace Shoko.Server
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
+                return SaveResultsForAnimeXML(animeID, downloadRelations, getAnimeCmd);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)
@@ -982,41 +971,35 @@ namespace Shoko.Server
             return null;
         }
 
-        private SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+        private SVR_AniDB_Anime SaveResultsForAnimeXML(int animeID, bool downloadRelations,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
-            ISessionWrapper sessionWrapper = session.Wrap();
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID) ?? new SVR_AniDB_Anime();
-            if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
-                getAnimeCmd.Categories, getAnimeCmd.Tags,
-                getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations))
+            var anime = SVR_AniDB_Anime.PopulateOrCreateFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Categories, getAnimeCmd.Tags, getAnimeCmd.Characters, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations, downloadRelations);
+            if (anime == null)
             {
                 logger.Error($"Failed populate anime info for {animeID}");
                 return null;
             }
-
             // Request an image download
             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(anime.AnimeID,
                 ImageEntityType.AniDB_Cover,
                 false);
-            cmd.Save(session);
+            cmd.Save();
             // create AnimeEpisode records for all episodes in this anime only if we have a series
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            RepoFactory.AniDB_Anime.Save(anime);
+            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+
             if (ser != null)
             {
-                ser.CreateAnimeEpisodes(session);
-                RepoFactory.AnimeSeries.Save(ser, true, false);
+                ser.CreateAnimeEpisodes();
+                ser = Repo.AnimeSeries.Touch(() => Repo.AnimeSeries.GetByID(ser.AnimeSeriesID), (true, false, false, false));
             }
 
             // download character images
-            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters(session.Wrap()))
+            foreach (AniDB_Anime_Character animeChar in anime.GetAnimeCharacters())
             {
-                AniDB_Character chr = animeChar.GetCharacter(sessionWrapper);
+                AniDB_Character chr = animeChar.GetCharacter();
                 if (chr == null) continue;
 
                 if (ServerSettings.AniDB_DownloadCharacters)
@@ -1034,7 +1017,7 @@ namespace Shoko.Server
 
                 if (ServerSettings.AniDB_DownloadCreators)
                 {
-                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu(session);
+                    AniDB_Seiyuu seiyuu = chr.GetSeiyuu();
                     if (string.IsNullOrEmpty(seiyuu?.GetPosterPath())) continue;
 
                     if (!File.Exists(seiyuu.GetPosterPath()))

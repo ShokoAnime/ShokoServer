@@ -16,9 +16,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+
 
 namespace Shoko.Server.Commands
 {
@@ -479,7 +477,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

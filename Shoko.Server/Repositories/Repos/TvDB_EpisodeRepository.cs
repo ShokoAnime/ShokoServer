@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -28,7 +29,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public TvDB_Episode GetByTvDBID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return EpisodeIDs.GetOne(id);
@@ -38,7 +39,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<TvDB_Episode> GetBySeriesID(int seriesID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID);
@@ -53,7 +54,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>distinct list of integers</returns>
         public List<int> GetSeasonNumbersForSeries(int seriesID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).Select(xref => xref.SeasonNumber).Distinct().ToList();
@@ -68,7 +69,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>The last TvDB Season Number, or -1 if unable</returns>
         public int GetLastSeasonForSeries(int seriesID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 List<int> max;
                 if (IsCached)
@@ -89,7 +90,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>List of TvDB_Episodes</returns>
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumber(int seriesID, int seasonNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).Where(xref => xref.SeasonNumber == seasonNumber).ToList();
@@ -108,7 +109,7 @@ namespace Shoko.Server.Repositories.Repos
         public TvDB_Episode GetBySeriesIDSeasonNumberAndEpisode(int seriesID, int seasonNumber, int epNumber)
         {
 
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).FirstOrDefault(xref => xref.SeasonNumber == seasonNumber && xref.EpisodeNumber == epNumber);
@@ -118,7 +119,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public TvDB_Episode GetBySeriesIDAndDate(int seriesID, DateTime date)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).FirstOrDefault(a => a.SeasonNumber > 0 && a.AirDate != null && Math.Abs((a.AirDate.Value - date).TotalDays) <= 2D);
@@ -134,7 +135,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>int</returns>
         public int GetNumberOfEpisodesForSeason(int seriesID, int seasonNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).Count(xref => xref.SeasonNumber == seasonNumber);
@@ -150,7 +151,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<TvDB_Episode> GetBySeriesIDAndSeasonNumberSorted(int seriesID, int seasonNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID).Where(xref => xref.SeasonNumber == seasonNumber).OrderBy(xref => xref.EpisodeNumber).ToList();

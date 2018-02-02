@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories
         public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; private set; }
 
         public static AniDB_RecommendationRepository AniDB_Recommendation { get; private set; }
-
+        public static AniDB_MylistStatsRepository AniDB_MylistStats { get; private set; }            
         public static AniDB_GroupStatusRepository AniDB_GroupStatus { get; private set; }
         public static AniDB_CharacterRepository AniDB_Character { get; private set; }
 
@@ -192,9 +192,8 @@ namespace Shoko.Server.Repositories
             AniDB_Seiyuu = Register<AniDB_SeiyuuRepository, AniDB_Seiyuu>(db.AniDB_Seiyuus);
             AniDB_Review = Register<AniDB_ReviewRepository, AniDB_Review>(db.AniDB_Reviews);
             AniDB_ReleaseGroup = Register<AniDB_ReleaseGroupRepository, AniDB_ReleaseGroup>(db.AniDB_ReleaseGroups);
-
             AniDB_Recommendation = Register<AniDB_RecommendationRepository, AniDB_Recommendation>(db.AniDB_Recommendations);
-
+            AniDB_MylistStats = Register<AniDB_MylistStatsRepository, AniDB_MylistStats>(db.AniDB_MylistStats);
             AniDB_GroupStatus = Register<AniDB_GroupStatusRepository, AniDB_GroupStatus>(db.AniDB_GroupStatus);
             AniDB_Character = Register<AniDB_CharacterRepository, AniDB_Character>(db.AniDB_Characters);
 

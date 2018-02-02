@@ -1,5 +1,6 @@
 ﻿using System;
 using Force.DeepCloner;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories
 {
@@ -43,7 +44,7 @@ namespace Shoko.Server.Repositories
         {
             object obj=_repo.BeginSave(Entity, Original, pars);
             T ret;
-            using (_repo.CacheLock.WriterLock())
+            using (_repo.RepoLock.WriterLock())
             {
                 if (Original == null)
                 {

@@ -8,9 +8,7 @@ using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+
 
 namespace Shoko.Server
 {
@@ -84,7 +82,7 @@ namespace Shoko.Server
 
         public static string DumpFile(int vid)
         {
-            var vl = RepoFactory.VideoLocal.GetByID(vid);
+            var vl = Repo.VideoLocal.GetByID(vid);
             if (vl == null) return "Unable to get videoloocal with id: " + vid;
             string file = vl.GetBestVideoLocalPlace()?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return "Unable to get file: " + vid;

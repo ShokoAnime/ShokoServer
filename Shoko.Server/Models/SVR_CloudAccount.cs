@@ -55,7 +55,7 @@ namespace Shoko.Server.Models
                 {
                     ServerState.Instance.ConnectedFileSystems[Name] = Connect();
                     if (NeedSave)
-                        Repo.CloudAccount.BeginUpdate(this).Commit();
+                        Repo.CloudAccount.Touch(() => this);
                 }
 
                 return ServerState.Instance.ConnectedFileSystems[Name];

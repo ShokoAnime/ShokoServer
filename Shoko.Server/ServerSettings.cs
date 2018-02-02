@@ -2059,7 +2059,7 @@ namespace Shoko.Server
             {
                 logger.Warn($"Error in log (server version lookup): {ex}");
             }
-
+            /*
             try
             {
                 if (DatabaseFactory.Instance != null)
@@ -2070,7 +2070,7 @@ namespace Shoko.Server
                 // oopps, can't create file
                 logger.Warn("Error in log (database version lookup: {0}", ex.Message);
             }
-
+            */
             logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
             try

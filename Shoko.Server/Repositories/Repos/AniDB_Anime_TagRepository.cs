@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 
 namespace Shoko.Server.Repositories.Repos
@@ -24,7 +25,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeid).FirstOrDefault(a => a.TagID == tagid);
@@ -33,7 +34,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<AniDB_Anime_Tag> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -42,7 +43,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).Select(a=>a.AniDB_Anime_TagID).ToList();
@@ -53,7 +54,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a => a, a => Animes.GetMultiple(a));
@@ -64,7 +65,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a => a, a => Animes.GetMultiple(a).Select(b=>b.TagID).ToList());
@@ -77,8 +78,17 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Anime_Tag> GetAllForLocalSeries()
         {
-            return GetByAnimeIDs(Repo.AnimeSeries.WhereAll().Select(a=>a.AniDB_ID).Distinct()).SelectMany(a=>a.Value).Distinct().ToList();
+            return GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Distinct().ToList();
         }
+
+        public Dictionary<int, List<int>> GetGroupByTagIDAnimes()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.TagID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeID).ToList());
+            }
+        }
+
 
     }
 }

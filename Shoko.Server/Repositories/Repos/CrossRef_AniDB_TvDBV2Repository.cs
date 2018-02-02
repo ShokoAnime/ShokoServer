@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -28,7 +29,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AnimeIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
@@ -40,7 +41,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TvDBV2> GetByTvDBID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return TvDBIDs.GetMultiple(id).OrderBy(xref => xref.AniDBStartEpisodeType)
@@ -55,7 +56,7 @@ namespace Shoko.Server.Repositories.Repos
             if (animeIds == null)
                 return new Dictionary<int, List<int>>();
 
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeIds.ToDictionary(a=>a,a=>AnimeIDs.GetMultiple(a).Select(b=>b.TvDBID).ToList());
@@ -67,7 +68,7 @@ namespace Shoko.Server.Repositories.Repos
             if (animeIds == null)
                 return new Dictionary<int, List<CrossRef_AniDB_TvDBV2>>();
 
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeIds.ToDictionary(a=>a,a=>AnimeIDs.GetMultiple(a).OrderBy(xref => xref.AniDBStartEpisodeType).ThenBy(xref => xref.AniDBStartEpisodeNumber).ToList());
@@ -76,7 +77,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeIDEpTypeEpNumber(int id, int aniEpType, int aniEpisodeNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AnimeIDs.GetMultiple(id)
@@ -91,7 +92,7 @@ namespace Shoko.Server.Repositories.Repos
         public CrossRef_AniDB_TvDBV2 GetByTvDBID(int id, int season, int episodeNumber, int animeID,
             int aniEpType, int aniEpisodeNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return TvDBIDs.GetMultiple(id).FirstOrDefault(xref => xref.TvDBSeasonNumber == season &&

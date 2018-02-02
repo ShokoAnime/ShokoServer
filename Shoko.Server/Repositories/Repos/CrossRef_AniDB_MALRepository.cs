@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<CrossRef_AniDB_MAL> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -40,7 +41,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeIds.ToDictionary(a=>a, a => Animes.GetMultiple(a).OrderBy(b => b.StartEpisodeType).ThenBy(b => b.StartEpisodeNumber).ToList());
@@ -50,7 +51,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_MAL> GetByMALID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Mals.GetMultiple(id);
@@ -60,7 +61,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public CrossRef_AniDB_MAL GetByAnimeConstraint(int animeID, int epType, int epNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeID).FirstOrDefault(a=> a.StartEpisodeType==epType && a.StartEpisodeNumber==epNumber);

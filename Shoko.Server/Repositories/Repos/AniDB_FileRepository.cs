@@ -3,6 +3,7 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -28,6 +29,7 @@ namespace Shoko.Server.Repositories.Repos
             }
             return null;
         }
+
 
         internal override void EndDelete(SVR_AniDB_File entity, object returnFromBeginDelete, bool parameters)
         {
@@ -66,14 +68,21 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AniDB_File GetByHash(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? Hashes.GetOne(hash) : Table.FirstOrDefault(a => a.Hash == hash);
             }
         }
+        public List<string> GetAllReleaseGroups()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.Anime_GroupName).OrderByDescending(a => a.Select(b => b.AnimeID).Count()).ThenBy(b => b.Key).Select(a => a.Key).ToList();
+            }
+        }
         public List<string> GetFileSourcesFromHashes(IEnumerable<string> hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached
                     ? hash.Select(a => Hashes.GetOne(a)).Select(a => a.File_Source).Distinct().ToList()
@@ -82,7 +91,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetFileIdsFromHashes(IEnumerable<string> hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached
                     ? hash.Select(a => Hashes.GetOne(a)).Select(a => a.FileID).Distinct().ToList()
@@ -91,7 +100,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public SVR_AniDB_File GetBySHA1(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? SHA1s.GetOne(hash) : Table.FirstOrDefault(a=>a.SHA1==hash);
             }
@@ -99,7 +108,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AniDB_File GetByMD5(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? MD5s.GetOne(hash) : Table.FirstOrDefault(a => a.MD5 == hash);
             }
@@ -107,7 +116,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AniDB_File> GetByInternalVersion(int version)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? InternalVersions.GetMultiple(version) : Table.Where(a=>a.InternalVersion==version).ToList();
             }
@@ -125,7 +134,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AniDB_File GetByHashAndFileSize(string hash, long fsize)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize) : Table.FirstOrDefault(a=>a.Hash==hash && a.FileSize==fsize);
             }
@@ -133,7 +142,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AniDB_File GetByFileID(int fileID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? FileIds.GetOne(fileID) : Table.FirstOrDefault(a => a.FileID == fileID);
             }
@@ -142,7 +151,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? Animes.GetMultiple(animeID) : Table.Where(a => a.AnimeID == animeID).ToList();
             }
@@ -150,9 +159,24 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AniDB_File> GetByResolution(string res)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 return IsCached ? Resolutions.GetMultiple(res) : Table.Where(a => a.File_VideoResolution == res).ToList();
+            }
+        }
+
+        public Dictionary<string, List<string>> GetGroupByHashFileSource()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.Hash).ToDictionary(a => a.Key, a => a.Select(b => b.File_Source).ToList());
+            }
+        }
+        public List<string> GetAllVideoQuality()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().Select(a => a.File_Source).Distinct().ToList();
             }
         }
     }

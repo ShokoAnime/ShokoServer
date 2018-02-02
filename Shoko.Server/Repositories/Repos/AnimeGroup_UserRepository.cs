@@ -5,6 +5,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -21,7 +22,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginSave(SVR_AnimeGroup_User entity, SVR_AnimeGroup_User original_entity, object parameters)
         {
-            entity.UpdatePlexKodiContracts();
+            entity.UpdatePlexKodiContracts_RA();
             return SVR_AnimeGroup_User.GetConditionTypesChanged(original_entity, entity);
         }
 
@@ -210,7 +211,7 @@ namespace Shoko.Server.Repositories.Repos
         */
         public SVR_AnimeGroup_User GetByUserAndGroupID(int userid, int groupid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersGroups.GetOne(userid, groupid);
@@ -221,7 +222,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeGroup_User> GetByUserID(int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Users.GetMultiple(userid);
@@ -231,7 +232,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeGroup_User> GetByGroupID(int groupid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Groups.GetMultiple(groupid);
@@ -239,9 +240,19 @@ namespace Shoko.Server.Repositories.Repos
             }
 
         }
+        public List<SVR_AnimeGroup_User> GetByGroupsID(IEnumerable<int> groupsid)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return groupsid.SelectMany(a => Groups.GetMultiple(a)).ToList();
+                return Table.Where(a => groupsid.Contains(a.AnimeGroupID)).ToList();
+            }
+
+        }
         public void KillEmAll()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
 
                 if (IsCached)

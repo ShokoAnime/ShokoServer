@@ -36,7 +36,7 @@ namespace Shoko.Server.Commands
         public override void ProcessCommand()
         {
             SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(AnimeID);
-            ser?.UpdateStats(true, true, true);
+            SVR_AnimeSeries.UpdateStats(ser, true, true, true);
         }
 
         public override void GenerateCommandID()

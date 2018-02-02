@@ -51,7 +51,7 @@ namespace Shoko.Server.Databases
         public DbSet<AniDB_Episode> AniDB_Episodes { get; set; } // AniDB_Episode
         public DbSet<SVR_AniDB_File> AniDB_Files { get; set; } // AniDB_File
         public DbSet<AniDB_GroupStatus> AniDB_GroupStatus { get; set; } // AniDB_GroupStatus
-        //public DbSet<AniDB_MylistStats> AniDB_MylistStats { get; set; } // AniDB_MylistStats
+        public DbSet<AniDB_MylistStats> AniDB_MylistStats { get; set; } // AniDB_MylistStats
         public DbSet<AniDB_Recommendation> AniDB_Recommendations { get; set; } // AniDB_Recommendation
         public DbSet<AniDB_ReleaseGroup> AniDB_ReleaseGroups { get; set; } // AniDB_ReleaseGroup
         public DbSet<AniDB_Review> AniDB_Reviews { get; set; } // AniDB_Review
