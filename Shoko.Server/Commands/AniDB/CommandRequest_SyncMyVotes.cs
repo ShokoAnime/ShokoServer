@@ -45,27 +45,7 @@ namespace Shoko.Server.Commands
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {
-                        List<AniDB_Vote> dbVotes = Repo.AniDB_Vote.GetByEntity(myVote.EntityID);
-                        AniDB_Vote thisVote = null;
-                        foreach (AniDB_Vote dbVote in dbVotes)
-                        {
-                            // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == AniDBVoteType.Anime ||
-                                myVote.VoteType == AniDBVoteType.AnimeTemp)
-                            {
-                                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
-                                {
-                                    thisVote = dbVote;
-                                }
-                            }
-                            else
-                            {
-                                thisVote = dbVote;
-                            }
-                        }
-
-                        using (var upd = Repo.AniDB_Vote.BeginUpdate(thisVote))
+                        using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(myVote.EntityID, AniDBVoteType.Anime) ?? Repo.AniDB_Vote.GetByEntityAndType(myVote.EntityID, AniDBVoteType.AnimeTemp)))
                         {
                             upd.Entity.EntityID = myVote.EntityID;
                             upd.Entity.VoteType = (int)myVote.VoteType;
@@ -96,7 +76,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_SyncMyVotes";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -23,11 +25,28 @@ namespace Shoko.Server.Repositories.Repos
 
         public Language GetByLanguageName(string lanname)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return LanguageNames.GetOne(lanname);
                 return Table.FirstOrDefault(a=>a.LanguageName==lanname);
+            }
+        }
+
+        public List<string> GetAllUniqueAudioLanguages()
+        {
+            List<int> langsid = Repo.CrossRef_Languages_AniDB_File.GetDistincLanguagesId();
+            using (RepoLock.ReaderLock())
+            {
+                return WhereMany(langsid).Select(a => a.LanguageName).ToList();
+            }
+        }
+        public List<string> GetAllUniqueSubtitleLanguages()
+        {
+            List<int> langsid = Repo.CrossRef_Subtitles_AniDB_File.GetDistincLanguagesId();
+            using (RepoLock.ReaderLock())
+            {
+                return WhereMany(langsid).Select(a => a.LanguageName).ToList();
             }
         }
     }

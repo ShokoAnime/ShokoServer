@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using File = Pri.LongPath.File;
+
 
 namespace Shoko.Server.FileHelper
 {

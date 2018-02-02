@@ -124,7 +124,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

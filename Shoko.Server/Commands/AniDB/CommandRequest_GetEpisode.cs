@@ -54,23 +54,22 @@ namespace Shoko.Server.Commands
 
                 if (epInfo != null)
                 {
-                    //Change, AniDB_File do not create Series Episodes does.
-
-                    List<int> oldanimes=new List<int>();
-                    foreach (CrossRef_File_Episode xref in xrefs)
+                    List<int> oldanimes = new List<int>();
+                    using (var upd = Repo.CrossRef_File_Episode.BeginBatchUpdate(() => Repo.CrossRef_File_Episode.GetByEpisodeID(EpisodeID)))
                     {
-                        if (xref.AnimeID != epInfo.AnimeID)
+                        foreach (CrossRef_File_Episode xref in xrefs)
                         {
-                            if (!oldanimes.Contains(xref.AnimeID))
-                                oldanimes.Add(xref.AnimeID);
-                            using (var upd = Repo.CrossRef_File_Episode.BeginUpdate(xref))
+                            if (xref.AnimeID != epInfo.AnimeID)
                             {
-                                upd.Entity.AnimeID = epInfo.AnimeID;
-                                upd.Commit();
+                                if (!oldanimes.Contains(xref.AnimeID))
+                                    oldanimes.Add(xref.AnimeID);
+                                xref.AnimeID = epInfo.AnimeID;
+                                upd.Update(xref);
                             }
                         }
-                    }
 
+                        upd.Commit();
+                    }
                     if (oldanimes.Count > 0)
                     {
                         foreach (int x in oldanimes)
@@ -94,7 +93,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetEpisode_{EpisodeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

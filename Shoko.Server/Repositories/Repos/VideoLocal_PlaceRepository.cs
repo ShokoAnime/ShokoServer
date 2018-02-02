@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -33,7 +36,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ImportFolders.GetMultiple(importFolderID);
@@ -43,7 +46,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
@@ -53,7 +56,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal_Place> GetByFilePathAndImportFolderType(string filePath, int folderType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Paths.GetMultiple(filePath).FindAll(a => a.ImportFolderType == folderType);
@@ -62,7 +65,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<SVR_VideoLocal_Place> GetByVideoLocal(int videolocalid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return VideoLocals.GetMultiple(videolocalid);
@@ -80,7 +83,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void EndDelete(SVR_VideoLocal_Place entity, object returnFromBeginDelete, object parameters)
         {
-            Repo.AnimeEpisode.BeginUpdate(entity.VideoLocal.GetAnimeEpisodes()).Commit();
+            Repo.AnimeEpisode.Touch(() => entity.VideoLocal.GetAnimeEpisodes());
         }
 
 
@@ -108,7 +111,13 @@ namespace Shoko.Server.Repositories.Repos
             }
             return (null,null);
         }
-
+        public List<SVR_VideoLocal_Place> GetByFilename(string name)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(), StringComparison.InvariantCultureIgnoreCase)).ToList();
+            }
+        }
 
     }
 }

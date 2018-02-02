@@ -1,5 +1,5 @@
 ﻿using System;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;

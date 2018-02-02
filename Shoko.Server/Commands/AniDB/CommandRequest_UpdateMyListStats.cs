@@ -40,36 +40,22 @@ namespace Shoko.Server.Commands
             try
             {
                 // we will always assume that an anime was downloaded via http first
-
-                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
-                if (sched == null)
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats)))
                 {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBMylistStats,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
-                {
+                    upd.Entity.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
+                    upd.Entity.UpdateDetails = string.Empty;
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
 
                     // if we have run this in the last 24 hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
                         if (!ForceRefresh) return;
                     }
-                }
-
-                using (var upd = Repo.ScheduledUpdate.BeginUpdate(sched))
-                {
-                    upd.Entity.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
-                    upd.Entity.UpdateDetails = string.Empty;
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
-
                 }
+
                 ShokoService.AnidbProcessor.UpdateMyListStats();
             }
             catch (Exception ex)
@@ -83,7 +69,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_UpdateMylistStats";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

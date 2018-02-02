@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -29,7 +30,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return TvDBIDs.GetOne(id);
@@ -39,7 +40,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<TvDB_ImagePoster> GetBySeriesID(int seriesID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SeriesIDs.GetMultiple(seriesID);

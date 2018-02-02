@@ -15,7 +15,7 @@ namespace Shoko.Server.API
     using Nancy.TinyIoc;
     using System.Linq;
     using Nancy.ErrorHandling;
-    using Pri.LongPath;
+
     using Nancy.Diagnostics;
     using NLog;
     using System;

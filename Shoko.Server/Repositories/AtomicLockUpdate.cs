@@ -1,5 +1,6 @@
 ﻿using System;
 using Force.DeepCloner;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories
 {
@@ -10,14 +11,14 @@ namespace Shoko.Server.Repositories
         public T Original { get; private set; }
         private IDisposable _lock;
 
-        internal AtomicLockUpdate(BaseRepository<T, TS, TT> repo, Func<T> function, T default_value = null)
+        internal AtomicLockUpdate(BaseRepository<T, TS, TT> repo, Func<T> function, Func<T> default_function = null)
         {
-            _lock = _repo.CacheLock.WriterLock();
+            _lock = _repo.RepoLock.WriterLock();
             _repo = repo;
             Original = function();
             if (Original == null)
             {
-                Entity = default_value ?? new T();
+                Entity = default_function != null ? default_function() : new T();
                 IsUpdate = false;
             }
             else
@@ -60,7 +61,7 @@ namespace Shoko.Server.Repositories
 
 
 
-        private void Release()
+        public void Release()
         {
             if (_lock != null)
             {

@@ -9,6 +9,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -100,7 +101,7 @@ namespace Shoko.Server.Repositories.Repos
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
                     gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                    gf.CalculateGroupsAndSeries();
+                    SVR_GroupFilter.CalculateGroupsAndSeries(gf);
 
                 progress.Report(regen);
             });
@@ -121,7 +122,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public void CleanUpAllgroupsIds()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                 {
@@ -169,7 +170,7 @@ namespace Shoko.Server.Repositories.Repos
                         a.FilterType == (int) GroupFilterType.ContinueWatching);
             if (cwatching != null && cwatching.FilterType != (int) GroupFilterType.ContinueWatching)
             {
-                using (var b = BeginUpdate(cwatching))
+                using (var b = BeginAddOrUpdate(()=>GetByID(cwatching.GroupFilterID)))
                 {
                     b.Entity.FilterType = (int)GroupFilterType.ContinueWatching;
                     b.Commit();
@@ -203,7 +204,7 @@ namespace Shoko.Server.Repositories.Repos
                         GroupFilterID = b.Entity.GroupFilterID
                     };
                     b.Entity.Conditions.Add(gfc);
-                    b.Entity.CalculateGroupsAndSeries();
+                    SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
                     b.Commit();
                 }
             }
@@ -219,7 +220,7 @@ namespace Shoko.Server.Repositories.Repos
                     b.Entity.FilterType = (int) GroupFilterType.All;
                     b.Entity.BaseCondition = 1;
                     b.Entity.SortingCriteria = "5;1";
-                    b.Entity.CalculateGroupsAndSeries();
+                    SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
                     b.Commit();
                 }
             }
@@ -326,7 +327,7 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        b.Entity.CalculateGroupsAndSeries();
+                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
                         b.Commit();
                     }
                     if (frominit)
@@ -401,7 +402,7 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        b.Entity.CalculateGroupsAndSeries();
+                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
                         b.Commit();
                     }
                     if (frominit)
@@ -420,11 +421,12 @@ namespace Shoko.Server.Repositories.Repos
                     List<SVR_AnimeSeries> grps = Repo.AnimeSeries.GetAll().ToList();
 
                     allseasons = new SortedSet<string>(new SeasonComparator());
-                    foreach (SVR_AnimeSeries ser in grps)
+                    foreach (SVR_AnimeSeries s in grps)
                     {
+                        SVR_AnimeSeries ser = s;
                         if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0)
                         {
-                            ser.UpdateContract();
+                            ser = SVR_AnimeSeries.UpdateContract(ser.AnimeSeriesID);
                         }
                         if (ser.Contract?.AniDBAnime?.Stat_AllSeasons == null || ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count==0) 
                             continue;
@@ -476,7 +478,7 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        b.Entity.CalculateGroupsAndSeries();
+                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
                         b.Commit();
                     }
                     if (frominit)
@@ -544,10 +546,14 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>A <see cref="Dictionary{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
         public Dictionary<int, List<int>> CalculateAnimeGroupsPerTagGroupFilter()
         {
-            Dictionary<string, List<int>> alltags = Repo.AniDB_Tag.WhereAll().GroupBy(a => a.TagName).ToDictionary(a => a.Key, a => a.Select(b => b.TagID).ToList());
-            Dictionary<int, List<int>> allanimetags = Repo.AniDB_Anime_Tag.WhereAll().GroupBy(a => a.TagID).ToDictionary(a => a.Key, a => a.Select(b => b.AnimeID).ToList());
-            Dictionary<int, List<int>> allgroups = Repo.AnimeSeries.WhereAll().GroupBy(a=>a.AniDB_ID).ToDictionary(a=>a.Key,a=>a.Select(b=>b.AnimeGroupID).ToList());
-            Dictionary<int, string> filters = WhereAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToDictionary(a => a.GroupFilterID, a => a.GroupFilterName);
+            Dictionary<string, List<int>> alltags = Repo.AniDB_Tag.GetGroupByTagName();
+            Dictionary<int, List<int>> allanimetags = Repo.AniDB_Anime_Tag.GetGroupByTagIDAnimes();
+            Dictionary<int, List<int>> allgroups = Repo.AnimeSeries.GetGroupsByAniDBIDGroups();
+            Dictionary<int, string> filters;
+            using (RepoLock.WriterLock())
+            {
+                filters = WhereAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToDictionary(a => a.GroupFilterID, a => a.GroupFilterName);
+            }
             return filters.ToDictionary(a => a.Key, a => alltags.SafeGetList(a.Value).SelectMany(b => allanimetags.SafeGetList(b).SelectMany(c => allgroups.SafeGetList(c))).ToList());
         }
 

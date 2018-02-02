@@ -91,13 +91,18 @@ namespace Shoko.Server.Commands
 
                     if (fileInfo != null)
                     {
-                        using (var upd = Repo.AniDB_File.BeginUpdate(aniFile))
+                        using (var upd = Repo.AniDB_File.BeginAddOrUpdate(()=> Repo.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize)))
                         {
-                            upd.Entity.Populate_RA(fileInfo);
-                            upd.Entity.FileName = localFileName;
-                            aniFile = upd.Commit();
+                            if (upd.Original != null)
+                            {
+                                upd.Entity.Populate_RA(fileInfo);
+                                upd.Entity.FileName = localFileName;
+                                aniFile = upd.Commit();
+                            }
                         }
 
+                        if (aniFile == null)
+                            return;
                         // save to the database
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
@@ -115,10 +120,9 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        if (anime != null) Repo.AniDB_Anime.BeginUpdate(anime).Commit();
+                        Repo.AniDB_Anime.Touch(() => Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID));
                         SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                        series.UpdateStats(false, true, true);
+                        SVR_AnimeSeries.UpdateStats(series, false, true, true);
                     }
 //                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                 }
@@ -138,7 +142,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetFile_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

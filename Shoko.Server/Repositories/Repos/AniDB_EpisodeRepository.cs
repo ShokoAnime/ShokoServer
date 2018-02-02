@@ -5,6 +5,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -49,7 +50,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public AniDB_Episode GetByEpisodeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return EpisodesIds.GetOne(id);
@@ -59,7 +60,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Episode> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -68,7 +69,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetAniDBEpisodesIdByAnimeIds(IEnumerable<int> animeids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeids.SelectMany(a => Animes.GetMultiple(a)).Select(a => a.AniDB_EpisodeID).Distinct().ToList();
@@ -78,7 +79,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetAniDBEpisodesIdByAnimeId(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).Select(a=>a.AniDB_EpisodeID).ToList();
@@ -87,7 +88,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == EpisodeType.Episode).ToList();
@@ -97,7 +98,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeTypeNumber(int animeid, EpisodeType epType, int epnumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeid).Where(a => a.EpisodeNumber == epnumber && a.GetEpisodeTypeEnum() == epType).ToList();
@@ -107,11 +108,21 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
-            return
-                Repo.CrossRef_File_Episode.WhereAll().GroupBy(a => a.EpisodeID)
-                    .Where(a => a.Count() > 1)
-                    .Select(a => GetByEpisodeID(a.Key))
-                    .ToList();
+            List<int> ids = Repo.CrossRef_File_Episode.GetEpisodesIdsWithMultipleFiles();
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return ids.Select(a => EpisodesIds.GetOne(a)).ToList();
+                return Table.Where(a => ids.Contains(a.EpisodeID)).ToList();
+            }
+        }
+
+        public Dictionary<int, List<int>> GetGroupByAnimeIDEpisodes()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.AnimeID).ToDictionary(a => a.Key, a => a.Select(b => b.AniDB_EpisodeID).ToList());
+            }
         }
     }
 }

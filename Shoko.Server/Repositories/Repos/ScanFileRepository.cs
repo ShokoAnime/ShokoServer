@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<ScanFile> GetByScanID(int scanid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Scans.GetMultiple(scanid).OrderBy(a=>a.CheckDate).ToList();
@@ -36,7 +37,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<ScanFile> GetWaiting(int scanid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ScanStatus.GetMultiple(scanid, (int)ScanFileStatus.Waiting).OrderBy(a=>a.CheckDate).ToList();
@@ -48,7 +49,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<ScanFile> GetProcessedOK(int scanid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ScanStatus.GetMultiple(scanid, (int)ScanFileStatus.ProcessedOK).OrderBy(a => a.CheckDate).ToList();
@@ -58,7 +59,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<ScanFile> GetWithError(int scanid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Scans.GetMultiple(scanid).Where(a=>a.Status > (int)ScanFileStatus.ProcessedOK).OrderBy(a => a.CheckDate).ToList();
@@ -68,7 +69,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public int GetWaitingCount(int scanid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ScanStatus.GetMultiple(scanid, (int) ScanFileStatus.Waiting).Count;

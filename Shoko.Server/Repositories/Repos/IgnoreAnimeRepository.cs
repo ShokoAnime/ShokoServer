@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -29,7 +30,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public IgnoreAnime GetByAnimeUserType(int animeID, int userID, int ignoreType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AnimeUserIgnores.GetOne(animeID,userID,ignoreType);
@@ -39,7 +40,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<IgnoreAnime> GetByUserAndType(int userID, int ignoreType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UserIgnores.GetMultiple(userID, ignoreType);
@@ -49,7 +50,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<IgnoreAnime> GetByUser(int userID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Users.GetMultiple(userID);

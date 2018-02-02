@@ -55,9 +55,9 @@ namespace Shoko.Server.API.v2.Models.common
                     List<CL_AniDB_Anime> arts;
                     if (gf.ApplyToSeries == 1 && gf.SeriesIds.ContainsKey(uid))
                     {
-                        var seriesList = gf.SeriesIds[uid].Select(RepoFactory.AnimeSeries.GetByID).ToList();
+                        var seriesList = gf.SeriesIds[uid].Select(Repo.AnimeSeries.GetByID).ToList();
                         groupsList = seriesList.Select(a => a.AnimeGroupID).Distinct()
-                            .Select(RepoFactory.AnimeGroup.GetByID).ToList();
+                            .Select(Repo.AnimeGroup.GetByID).ToList();
                         arts = seriesList.Where(SeriesHasCompleteArt).Select(a => a?.GetAnime()?.Contract?.AniDBAnime)
                             .Where(a => a != null).ToList();
                         if (arts.Count == 0)
@@ -69,7 +69,7 @@ namespace Shoko.Server.API.v2.Models.common
                     }
                     else
                     {
-                        groupsList = groupsh.Select(a => RepoFactory.AnimeGroup.GetByID(a))
+                        groupsList = groupsh.Select(a => Repo.AnimeGroup.GetByID(a))
                             .Where(a => a != null)
                             .ToList();
                         arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();

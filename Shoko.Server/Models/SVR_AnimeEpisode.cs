@@ -143,9 +143,9 @@ namespace Shoko.Server.Models
                 // lets check if an update is actually required
                 if (epUserRecord?.WatchedDate != null && watchedDate != null && epUserRecord.WatchedDate.Equals(watchedDate.Value) || epUserRecord?.WatchedDate == null && watchedDate == null)
                     return;
-                using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => epUserRecord))
+                using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
                 {
-                    if (epUserRecord == null)
+                    if (upd.IsNew())
                     {
                         upd.Entity.PlayedCount = 0;
                         upd.Entity.StoppedCount = 0;
@@ -170,8 +170,11 @@ namespace Shoko.Server.Models
         }
 
 
-        public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID) => FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash)).Where(v => v != null).Select(v => v.ToClientDetailed(userID)).ToList();
+        public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
+        {
+            return FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash)).Where(v => v != null).Select(v => SVR_VideoLocal.ToClientDetailed(v, userID).Item2).ToList();
 
+        }
         public CL_AnimeEpisode_User GetUserContract(int userid)
         {
             SVR_AnimeEpisode_User rr = GetUserRecord(userid);

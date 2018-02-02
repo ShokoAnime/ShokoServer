@@ -6,6 +6,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -35,6 +36,9 @@ namespace Shoko.Server.Repositories.Repos
             }
             entity.UpdateGroupFilter(types);
         }
+
+
+
 
         internal override void EndDelete(SVR_AnimeSeries_User entity, object returnFromBeginDelete, object parameters)
         {
@@ -90,7 +94,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AnimeSeries_User GetByUserAndSeriesID(int userid, int seriesid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersSeries.GetOne(userid, seriesid);
@@ -100,7 +104,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeSeries_User> GetByUserID(int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Users.GetMultiple(userid);
@@ -110,7 +114,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeSeries_User> GetBySeriesID(int seriesid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Series.GetMultiple(seriesid);

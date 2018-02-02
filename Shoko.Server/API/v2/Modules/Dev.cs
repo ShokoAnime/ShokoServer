@@ -11,9 +11,9 @@ namespace Shoko.Server.API.v2.Modules
         public Dev() : base("/api/dev")
         {
 #if DEBUG
-            Get["/contracts/{entity?}"] = x => ExtractContracts((string) x.entity);
+            Get("/contracts/{entity?}",x => ExtractContracts((string) x.entity));
 #endif
-            Get["/commands"] = x => GetCommands();
+            Get("/commands", x => GetCommands());
         }
 
         private object GetCommands()

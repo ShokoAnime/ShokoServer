@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -30,7 +31,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public AniDB_Character_Seiyuu GetByCharIDAndSeiyuuID(int charid, int seiyuuid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CharSeiyuus.GetOne(charid, seiyuuid);
@@ -40,7 +41,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Character_Seiyuu> GetByCharID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Chars.GetMultiple(id);
@@ -50,7 +51,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByCharID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Chars.GetMultiple(id).Select(a=>a.AniDB_Character_SeiyuuID).ToList();
@@ -61,7 +62,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Character_Seiyuu> GetBySeiyuuID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Seiyuus.GetMultiple(id);
@@ -70,7 +71,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public Dictionary<int, List<int>> GetSeiyuusFromCharIds(IEnumerable<int> charids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return charids.ToDictionary(a => a, a => Chars.GetMultiple(a).Select(b => b.SeiyuuID).ToList());

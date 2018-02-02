@@ -106,7 +106,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     group_full = vl.ReleaseGroup.GroupName;
                     group_short = vl.ReleaseGroup.GroupNameShort;
-                    group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
+                    group_id = vl.ReleaseGroup.GroupID;
                 }
 
                 size = vl.FileSize;

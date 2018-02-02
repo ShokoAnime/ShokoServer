@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 // ReSharper disable All
 
@@ -50,7 +50,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Anime_Title> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -59,7 +59,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).Select(a=>a.AniDB_Anime_TitleID).ToList();
@@ -75,7 +75,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a=>a,a=>Animes.GetMultiple(a));
@@ -85,7 +85,7 @@ namespace Shoko.Server.Repositories.Repos
     
         public AniDB_Anime_Title GetByAnimeIDLanguageTypeValue(int animeID, string language, string titleType, string title)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeID).FirstOrDefault(a =>
@@ -105,7 +105,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Anime_Title> GetAllForLocalSeries()
         {
-            return GetByAnimeIDs(Queryable.Select<SVR_AnimeSeries, int>(Repo.AnimeSeries.WhereAll(), a => a.AniDB_ID).Distinct()).SelectMany(a => a.Value).Distinct().ToList();
+            return GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a => a.Value).Distinct().ToList();
         }
     }
 }

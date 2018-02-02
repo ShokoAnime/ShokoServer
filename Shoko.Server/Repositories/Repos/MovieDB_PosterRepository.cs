@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -31,7 +32,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public MovieDB_Poster GetByOnlineID(string url)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Urls.GetOne(url);
@@ -43,7 +44,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<MovieDB_Poster> GetByMovieID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Movies.GetMultiple(id);
@@ -52,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<MovieDB_Poster> GetAllOriginal()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ImageSizes.GetMultiple(Shoko.Models.Constants.MovieDBImageSize.Original);

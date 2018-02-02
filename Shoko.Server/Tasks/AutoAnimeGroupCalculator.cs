@@ -19,7 +19,7 @@ namespace Shoko.Server.Tasks
 
         private static readonly char[] Whitespace = {' ', '\t', '\r', '\n'};
 
-        private readonly ILookup<int, AnimeRelation> _relationMap;
+        private readonly Dictionary<int, List<AnimeRelation>> _relationMap;
         private readonly Dictionary<int, int> _animeGroupMap = new Dictionary<int, int>();
         private readonly AutoGroupExclude _exclusions;
         private readonly AnimeRelationType _relationsToFuzzyTitleTest;
@@ -35,7 +35,7 @@ namespace Shoko.Server.Tasks
         /// <param name="mainAnimeSelectionStrategy">The strategy to use for selecting the "main" anime that will be used
         /// for representing the group.</param>
         /// <exception cref="ArgumentNullException"><paramref name="relationMap"/> is <c>null</c>.</exception>
-        public AutoAnimeGroupCalculator(ILookup<int, AnimeRelation> relationMap, AutoGroupExclude exclusions,
+        public AutoAnimeGroupCalculator(Dictionary<int, List<AnimeRelation>> relationMap, AutoGroupExclude exclusions,
             AnimeRelationType relationsToFuzzyTitleTest, MainAnimeSelectionStrategy mainAnimeSelectionStrategy)
         {
             if (relationMap == null)
@@ -59,9 +59,7 @@ namespace Shoko.Server.Tasks
         /// <summary>
         /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
         /// </summary>
-        /// <param name="session">The NHibernate session.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
         public static AutoAnimeGroupCalculator CreateFromServerSettings()
         {
             string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
@@ -98,25 +96,21 @@ namespace Shoko.Server.Tasks
 
             return Create(exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
         }
-        
+
         /// <summary>
         /// Creates a new <see cref="AutoAnimeGroupCalculator"/> using relationships stored in the database.
         /// </summary>
-        /// <param name="session">The NHibernate session.</param>
         /// <param name="exclusions">The relation/anime types to ignore when building relation graphs.</param>
         /// <param name="relationsToFuzzyTitleTest">The relationships for which we'll perform title similarity checks for
         /// (If the titles aren't similar enough then the anime will end up in different groups).</param>
         /// <param name="mainAnimeSelectionStrategy">The strategy to use for selecting the "main" anime that will be used
         /// for representing the group.</param>
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-        public static AutoAnimeGroupCalculator Create(AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character,
-            AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
-            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
+        public static AutoAnimeGroupCalculator Create(AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character, AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations, MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
         {
 
             Dictionary<int, (int type, string title, DateTime? airdate)> animes = Repo.AniDB_Anime.GetRelationInfo();
-            Dictionary<int, (int fromType, string fromTitle, DateTime? fromAirDate, int toAnimeID, int toType, string toTitle, DateTime? toAirDate, AnimeRelationType  relation)> relations=new Dictionary<int, (int fromType, string fromTitle, DateTime? fromAirDate, int toAnimeID, int toType, string toTitle, DateTime? toAirDate, AnimeRelationType relation)>();
+            Dictionary<int, List<AnimeRelation>> relations = new Dictionary<int, List<AnimeRelation>>();
             foreach (AniDB_Anime_Relation rel in Repo.AniDB_Anime_Relation.GetAll())
             {
                 (int type, string title, DateTime? airdate) from = animes.ContainsKey(rel.AnimeID) ? animes[rel.AnimeID] : (0, null, null);
@@ -160,11 +154,14 @@ namespace Shoko.Server.Tasks
                             relt = AnimeRelationType.Other;
                             break;
                     }
+                    if (!relations.ContainsKey(rel.AnimeID))
+                        relations.Add(rel.AnimeID, new List<AnimeRelation>());
+                    relations[rel.AnimeID].Add(new AnimeRelation {FromId = rel.AnimeID, FromAirDate = from.airdate, FromMainTitle = from.title, FromType = (AnimeType)from.type, RelationType = relt, ToAirDate = to.airdate, ToId = rel.RelatedAnimeID, ToMainTitle = to.title, ToType = (AnimeType)to.type});
 
-                    relations.Add(rel.AnimeID,(from.type, from.title,from.airdate, rel.RelatedAnimeID,to.type,to.title,to.airdate,relt));
                 }
-            return new AutoAnimeGroupCalculator(relations, exclusions, relationsToFuzzyTitleTest,
-                mainAnimeSelectionStrategy);
+
+            }
+            return new AutoAnimeGroupCalculator(relations, exclusions, relationsToFuzzyTitleTest, mainAnimeSelectionStrategy);
         }
 
         /// <summary>

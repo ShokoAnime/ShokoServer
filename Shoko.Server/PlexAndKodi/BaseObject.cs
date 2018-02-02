@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.ServiceModel.Web;
+using System.ServiceModel;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
 
@@ -90,9 +90,9 @@ namespace Shoko.Server.PlexAndKodi
             Size = int.MaxValue;
             if (prov.Nancy == null)
             {
-                if (WebOperationContext.Current != null)
+                if (OperationContext.Current != null)
                 {
-                    if (WebOperationContext.Current.IncomingRequest.Method == "OPTIONS")
+                    if (OperationContext.Current.IncomingMessageHeaders.Action == "OPTIONS")
                     {
                         prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
                         return false;

@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -25,7 +26,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<Trakt_Season> GetByShowID(int showID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Shows.GetMultiple(showID);
@@ -35,7 +36,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public Trakt_Season GetByShowIDAndSeason(int showID, int seasonNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ShowsSeasons.GetOne(showID, seasonNumber);

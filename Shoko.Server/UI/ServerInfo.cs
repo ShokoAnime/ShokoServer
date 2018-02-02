@@ -345,7 +345,7 @@ namespace Shoko.Server
             try
             {
                 ImportFolders.Clear();
-                RepoFactory.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
+                Repo.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
             }
             catch (Exception ex)
             {
@@ -358,7 +358,7 @@ namespace Shoko.Server
             try
             {
                 CloudAccounts.Clear();
-                RepoFactory.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
+                Repo.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
             }
             catch (Exception ex)
             {
@@ -372,7 +372,7 @@ namespace Shoko.Server
             {
                 FolderProviders.Clear();
                 FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
+                Repo.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
             }
             catch (Exception ex)
             {

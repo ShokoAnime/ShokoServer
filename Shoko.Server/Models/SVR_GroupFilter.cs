@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using NLog;
-using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -13,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+
 
 namespace Shoko.Server.Models
 {
@@ -140,7 +140,7 @@ namespace Shoko.Server.Models
             if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
                 Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
-                Repo.GroupFilter.BeginUpdate(this).Commit();
+                Repo.GroupFilter.Touch(() => this);
             }
 
             CL_GroupFilter contract = new CL_GroupFilter
@@ -162,25 +162,22 @@ namespace Shoko.Server.Models
             return contract;
         }
 
-        public static SVR_GroupFilter FromClient_RA(CL_GroupFilter gfc)
+        public void FromClient_RA(CL_GroupFilter gfc)
         {
-            SVR_GroupFilter gf = new SVR_GroupFilter
-            {
-                GroupFilterID = gfc.GroupFilterID,
-                GroupFilterName = gfc.GroupFilterName,
-                ApplyToSeries = gfc.ApplyToSeries,
-                BaseCondition = gfc.BaseCondition,
-                SortingCriteria = gfc.SortingCriteria,
-                Locked = gfc.Locked,
-                InvisibleInClients = gfc.InvisibleInClients,
-                ParentGroupFilterID = gfc.ParentGroupFilterID,
-                FilterType = gfc.FilterType,
-                Conditions = gfc.FilterConditions,
-                GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>(),
-                SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>()
-            };
-            if (gf.GroupFilterID != 0) gf.Conditions.ForEach(a => a.GroupFilterID = gf.GroupFilterID);
-            return gf;
+            GroupFilterID = gfc.GroupFilterID;
+            GroupFilterName = gfc.GroupFilterName;
+            ApplyToSeries = gfc.ApplyToSeries;
+            BaseCondition = gfc.BaseCondition;
+            SortingCriteria = gfc.SortingCriteria;
+            Locked = gfc.Locked;
+            InvisibleInClients = gfc.InvisibleInClients;
+            ParentGroupFilterID = gfc.ParentGroupFilterID;
+            FilterType = gfc.FilterType;
+            Conditions = gfc.FilterConditions;
+            GroupsIds = gfc.Groups ?? new Dictionary<int, HashSet<int>>();
+            SeriesIds = gfc.Series ?? new Dictionary<int, HashSet<int>>();
+            if (GroupFilterID != 0) Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
+
         }
 
         public CL_GroupFilterExtended ToClientExtended(SVR_JMMUser user)
@@ -256,16 +253,20 @@ namespace Shoko.Server.Models
             return change;
         }
 
-        public void CalculateGroupsAndSeries()
+        public static SVR_GroupFilter CalculateGroupsAndSeries(SVR_GroupFilter grp, List<GroupFilterCondition> setgroups = null, CL_GroupFilter setf=null)
         {
-            using (var upd = Repo.GroupFilter.BeginUpdate(this))
+            using (var upd = Repo.GroupFilter.BeginAddOrUpdate(()=>Repo.GroupFilter.GetByID(grp.GroupFilterID)))
             {
-                if (ApplyToSeries == 1)
+                if (setgroups != null)
+                    upd.Entity.Conditions = setgroups;
+                if (setf!=null)
+                    upd.Entity.FromClient_RA(setf);
+                if (grp.ApplyToSeries == 1)
                 {
                     upd.Entity.EvaluateAnimeSeries_RA();
 
                     HashSet<int> erroredSeries = new HashSet<int>();
-                    foreach (int user in SeriesIds.Keys)
+                    foreach (int user in grp.SeriesIds.Keys)
                     {
                         upd.Entity.GroupsIds[user] = upd.Entity.SeriesIds[user].Select(a =>
                         {
@@ -286,16 +287,16 @@ namespace Shoko.Server.Models
                 {
                     upd.Entity.EvaluateAnimeGroups_RA();
 
-                    foreach (int user in GroupsIds.Keys)
+                    foreach (int user in grp.GroupsIds.Keys)
                     {
                         HashSet<int> ids = upd.Entity.GroupsIds[user];
                         upd.Entity.SeriesIds[user] = ids.SelectMany(a => Repo.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1)).Where(a => a != -1).ToHashSet();
                     }
                 }
 
-                if ((FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
-                    upd.Entity.GroupFilterName = GroupFilterName.Replace('`', '\'');
-                upd.Commit();
+                if ((grp.FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
+                    upd.Entity.GroupFilterName = grp.GroupFilterName.Replace('`', '\'');
+                return upd.Commit();
             }
         }
 
@@ -315,10 +316,11 @@ namespace Shoko.Server.Models
         private void EvaluateAnimeSeries_RA()
         {
             IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
-            foreach (SVR_AnimeSeries ser in Repo.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries s in Repo.AnimeSeries.GetAll())
             {
+                SVR_AnimeSeries ser = s;
                 if (ser.Contract == null)
-                    ser.UpdateContract();
+                    ser = SVR_AnimeSeries.UpdateContract(ser.AnimeSeriesID);
                 if (ser.Contract != null)
                 {
                     CalculateGroupFilterSeries_RA(ser.Contract, null, 0); //Default no filter for JMM Client
@@ -332,8 +334,9 @@ namespace Shoko.Server.Models
 
         public static CL_GroupFilter EvaluateContract(CL_GroupFilter gfc)
         {
-            using (var upd = Repo.GroupFilter.BeginUpdate(FromClient_RA(gfc)))
+            using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => null))
             {
+                upd.Entity.FromClient_RA(gfc);
                 if (upd.Entity.ApplyToSeries == 1)
                 {
                     upd.Entity.EvaluateAnimeSeries_RA();

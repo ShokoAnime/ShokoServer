@@ -4,6 +4,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -31,7 +32,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public MovieDB_Fanart GetByOnlineID(string url)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Urls.GetOne(url);
@@ -43,7 +44,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<MovieDB_Fanart> GetByMovieID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Movies.GetMultiple(id);
@@ -54,7 +55,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (ids==null)
                 return new Dictionary<int, List<MovieDB_Fanart>>();
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a => a, a => Movies.GetMultiple(a).ToList());
@@ -74,7 +75,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<MovieDB_Fanart> GetAllOriginal()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ImageSizes.GetMultiple(Shoko.Models.Constants.MovieDBImageSize.Original);

@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_Azure_SendAnimeTitle_{AnimeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

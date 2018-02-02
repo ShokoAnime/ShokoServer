@@ -35,7 +35,7 @@ namespace Shoko.Server.API.v2.Models.common
                 id = gf.GroupFilterID,
                 name = gf.GroupFilterName
             };
-            List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(f.id)
+            List<SVR_GroupFilter> allGfs = Repo.GroupFilter.GetByParentID(f.id)
                 .Where(a => a.InvisibleInClients == 0 &&
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))

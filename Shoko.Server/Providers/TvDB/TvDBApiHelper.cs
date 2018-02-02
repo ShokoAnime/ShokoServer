@@ -72,7 +72,7 @@ namespace Shoko.Server.Providers.TvDB
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetAsync(seriesID);
                 Series series = response.Data;
-                using (var tupd = Repo.TvDB_Series.BeginUpdate(tvSeries))
+                using (var tupd = Repo.TvDB_Series.BeginAddOrUpdate(()=> Repo.TvDB_Series.GetByTvDBID(seriesID)))
                 {
                     tupd.Entity.PopulateFromSeriesInfo_RA(series);
                     tvSeries=tupd.Commit();
@@ -178,7 +178,7 @@ namespace Shoko.Server.Providers.TvDB
             }
 
             CrossRef_AniDB_TvDBV2 xref;
-            using (var cupd = Repo.CrossRef_AniDB_TvDBV2.BeginAddOrUpdateWithLock(() => Repo.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, (int) aniEpType, aniEpNumber)))
+            using (var cupd = Repo.CrossRef_AniDB_TvDBV2.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvDBID, tvSeasonNumber, tvEpNumber, animeID, (int) aniEpType, aniEpNumber)))
             {
                 cupd.Entity.AnimeID = animeID;
                 cupd.Entity.AniDBStartEpisodeType = (int)aniEpType;
@@ -403,7 +403,7 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (count >= ServerSettings.TvDB_AutoFanartAmount) break;
                     TvDB_ImageFanart img;
-                    using (var repo = Repo.TvDB_ImageFanart.BeginAddOrUpdateWithLock(() => Repo.TvDB_ImageFanart.GetByTvDBID(id)))
+                    using (var repo = Repo.TvDB_ImageFanart.BeginAddOrUpdate(() => Repo.TvDB_ImageFanart.GetByTvDBID(id)))
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
@@ -470,7 +470,7 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (count >= ServerSettings.TvDB_AutoPostersAmount) break;
                     TvDB_ImagePoster img;
-                    using (var repo = Repo.TvDB_ImagePoster.BeginAddOrUpdateWithLock(() => Repo.TvDB_ImagePoster.GetByTvDBID(id)))
+                    using (var repo = Repo.TvDB_ImagePoster.BeginAddOrUpdate(() => Repo.TvDB_ImagePoster.GetByTvDBID(id)))
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
@@ -535,7 +535,7 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (count >= ServerSettings.TvDB_AutoWideBannersAmount) break;
                     TvDB_ImageWideBanner img;
-                    using (var repo = Repo.TvDB_ImageWideBanner.BeginAddOrUpdateWithLock(() => Repo.TvDB_ImageWideBanner.GetByTvDBID(id)))
+                    using (var repo = Repo.TvDB_ImageWideBanner.BeginAddOrUpdate(() => Repo.TvDB_ImageWideBanner.GetByTvDBID(id)))
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
@@ -751,10 +751,10 @@ namespace Shoko.Server.Providers.TvDB
                     EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
                     if (episode == null)
                         return;
-                    using (var eup = Repo.TvDB_Episode.BeginUpdate(ep))
+                    using (var eup = Repo.TvDB_Episode.BeginAddOrUpdate(()=> Repo.TvDB_Episode.GetByTvDBID(tvDBEpisodeID)))
                     {
                         eup.Entity.Populate_RA(episode);
-                        eup.Commit();
+                        ep=eup.Commit();
                     }
                 }
 
@@ -835,7 +835,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
         {
-            using (var upd = Repo.CrossRef_AniDB_TvDB_Episode.BeginAddOrUpdateWithLock(() => Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBID)))
+            using (var upd = Repo.CrossRef_AniDB_TvDB_Episode.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBID)))
             {
                 upd.Entity.AnimeID = animeID;
                 upd.Entity.AniDBEpisodeID = aniDBID;
@@ -845,8 +845,7 @@ namespace Shoko.Server.Providers.TvDB
             }
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            foreach (SVR_AnimeEpisode ep in Repo.AnimeEpisode.GetByAniDBEpisodeID(aniDBID))
-                Repo.AnimeEpisode.BeginUpdate(ep).Commit();
+            Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByAniDBEpisodeID(aniDBID));
 
             logger.Trace($"Changed tvdb episode association: {aniDBID}");
         }

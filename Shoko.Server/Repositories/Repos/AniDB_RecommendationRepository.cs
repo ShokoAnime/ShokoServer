@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Recommendation> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id);
@@ -36,7 +37,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).Select(a=>a.AniDB_RecommendationID).ToList();
@@ -45,7 +46,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public AniDB_Recommendation GetByAnimeIDAndUserID(int animeid, int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return AnimeUsers.GetOne(animeid, userid);

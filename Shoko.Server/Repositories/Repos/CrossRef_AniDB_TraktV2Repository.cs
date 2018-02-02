@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).OrderBy(a=>a.AniDBStartEpisodeType).ThenBy(a=>a.AniDBStartEpisodeNumber).ToList();
@@ -39,7 +40,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<CrossRef_AniDB_TraktV2> GetByAnimeIDEpTypeEpNumber(int id, int aniEpType,
             int aniEpisodeNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(id).Where(a => a.AniDBStartEpisodeType==aniEpType && a.AniDBStartEpisodeNumber==aniEpisodeNumber).ToList();
@@ -49,7 +50,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public CrossRef_AniDB_TraktV2 GetByTraktID(string id, int season, int episodeNumber, int animeID, int aniEpType, int aniEpisodeNumber)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Trakts.GetMultiple(id).FirstOrDefault(a => a.AniDBStartEpisodeType == aniEpType && a.AniDBStartEpisodeNumber == aniEpisodeNumber && a.AnimeID==animeID && a.TraktSeasonNumber==season && a.TraktStartEpisodeNumber==episodeNumber);
@@ -61,7 +62,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TraktV2> GetByTraktIDAndSeason(string traktID, int season)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Trakts.GetMultiple(traktID).Where(a => a.TraktSeasonNumber==season).ToList();
@@ -71,7 +72,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TraktV2> GetByTraktID(string traktID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Trakts.GetMultiple(traktID);

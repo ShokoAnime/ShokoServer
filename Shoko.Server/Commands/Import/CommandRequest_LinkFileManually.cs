@@ -106,28 +106,28 @@ namespace Shoko.Server.Commands
                 }
             }
 
-            vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+            vlocal.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
 
             
-            SVR_AnimeSeries ser = episode.GetAnimeSeries();
-            using (var supd=Repo.AnimeSeries.BeginUpdate(ser))
+            SVR_AnimeSeries ser;
+            using (var supd=Repo.AnimeSeries.BeginAddOrUpdate(()=> episode.GetAnimeSeries()))
             {
                 supd.Entity.EpisodeAddedDate = DateTime.Now;
-                supd.Commit((false, true, false, false));
+                ser=supd.Commit((false, true, false, false));
             }
             //Update will re-save
             ser.QueueUpdateStats();
 
 
-            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
+            using (var gupd = Repo.AnimeGroup.BeginBatchUpdate(() => ser.AllGroupsAbove))
             {
-                using (var gupd = Repo.AnimeGroup.BeginUpdate(grp))
+                foreach (SVR_AnimeGroup grp in gupd)
                 {
-                    gupd.Entity.EpisodeAddedDate = DateTime.Now;
-                    gupd.Commit((false, false,true));
+                    grp.EpisodeAddedDate = DateTime.Now;
+                    gupd.Update(grp);
                 }
+                gupd.Commit((false, false, true));
             }
-
             if (ServerSettings.AniDB_MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
@@ -144,7 +144,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

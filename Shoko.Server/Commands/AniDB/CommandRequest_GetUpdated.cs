@@ -82,12 +82,12 @@ namespace Shoko.Server.Commands
                 // startTime will contain the date/time from which the updates apply to
                 ShokoService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
 
-                using (var upd = Repo.ScheduledUpdate.BeginUpdate(sched))
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates)))
                 {
                     upd.Entity.UpdateType = (int) ScheduledUpdateType.AniDBUpdates;
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Entity.UpdateDetails = webUpdateTimeNew.ToString();
-                    upd.Commit();
+                    sched=upd.Commit();
                 }
                 if (animeIDsToUpdate.Count == 0)
                 {
@@ -145,7 +145,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_GetUpdated";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

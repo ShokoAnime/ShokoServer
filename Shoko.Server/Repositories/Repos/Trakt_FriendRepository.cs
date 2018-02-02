@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -22,7 +23,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public Trakt_Friend GetByUsername(string username)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Usernames.GetOne(username);

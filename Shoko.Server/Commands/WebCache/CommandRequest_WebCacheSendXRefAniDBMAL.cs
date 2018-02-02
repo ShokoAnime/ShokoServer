@@ -54,7 +54,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheSendXRefAniDBMAL{CrossRef_AniDB_MALID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

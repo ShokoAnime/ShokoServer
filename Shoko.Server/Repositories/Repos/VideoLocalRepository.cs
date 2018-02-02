@@ -5,6 +5,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -21,16 +22,23 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginDelete(SVR_VideoLocal entity, bool updateEpisodes)
         {
-            List<SVR_AnimeEpisode> eps= entity.GetAnimeEpisodes();
+            List<int> eps= entity.GetAnimeEpisodes().Select(a=>a.AnimeEpisodeID).ToList();
             Repo.VideoLocal_Place.Delete(entity.Places);
             Repo.VideoLocal_User.Delete(Repo.VideoLocal_User.GetByVideoLocalID(entity.VideoLocalID));
             return eps;
 
         }
 
+        public List<SVR_VideoLocal> GetAllLimit(int limit)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return IsCached ? Cache.Values.Take(limit).ToList() : Table.Take(limit).ToList();
+            }
+        }
         internal override void EndDelete(SVR_VideoLocal entity, object returnFromBeginDelete, bool updateEpisodes)
         {
-            Repo.AnimeEpisode.BeginUpdate((List<SVR_AnimeEpisode>) returnFromBeginDelete).Commit();
+            Repo.AnimeEpisode.Touch(()=>Repo.AnimeEpisode.GetMany((List<int>)returnFromBeginDelete));
         }
 
 
@@ -83,12 +91,15 @@ namespace Shoko.Server.Repositories.Repos
                     froms.Remove(to);
                     foreach (SVR_VideoLocal from in froms)
                     {
-                        List<SVR_VideoLocal_Place> places = from.Places;
-                        if (places == null || places.Count == 0) continue;
-                        using (var update = Repo.VideoLocal_Place.BeginUpdate(places))
+                        using (var upd = Repo.VideoLocal_Place.BeginBatchUpdate(() => Repo.VideoLocal_Place.GetByVideoLocal(from.VideoLocalID)))
                         {
-                            update.EntityList.ForEach(a => a.VideoLocalID = to.VideoLocalID);
-                            update.Commit();
+                            foreach (SVR_VideoLocal_Place place in upd)
+                            {
+                                place.VideoLocalID = to.VideoLocalID;
+                                upd.Update(place);
+                            }
+
+                            upd.Commit();
                         }
                     }
 
@@ -99,7 +110,7 @@ namespace Shoko.Server.Repositories.Repos
                 Delete(toRemove);
             }
 
-            List<CrossRef_File_Episode> frags = WhereAll().SelectMany(a => Repo.CrossRef_File_Episode.GetByHash(a.Hash)).Where(a => Repo.AniDB_Anime.GetByAnimeID(a.AnimeID) == null || a.GetEpisode() == null).ToList();
+            List<CrossRef_File_Episode> frags = WhereAll().SelectMany(a => Repo.CrossRef_File_Episode.GetByHash(a.Hash)).AsQueryable().Where(a => Repo.AniDB_Anime.GetByID(a.AnimeID) == null || a.GetEpisode() == null).ToList();
             if (frags.Count > 0)
             {
                 regen.Step = 0;
@@ -138,7 +149,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override void EndSave(SVR_VideoLocal entity, object returnFromBeginSave, bool updateEpisodes)
         {
             if (updateEpisodes)
-                Repo.AnimeEpisode.BeginUpdate(entity.GetAnimeEpisodes()).Commit();
+                Repo.AnimeEpisode.Touch(()=>entity.GetAnimeEpisodes());
         }
 
 
@@ -146,7 +157,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_VideoLocal GetByHash(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetOne(hash);
@@ -155,7 +166,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<SVR_VideoLocal> GetByHashAndNotId(string hash, int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).Where(a=>a.VideoLocalID!=id).ToList();
@@ -164,7 +175,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public SVR_VideoLocal GetByMD5(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return MD5.GetOne(hash);
@@ -174,7 +185,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_VideoLocal GetBySHA1(string hash)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return SHA1.GetOne(hash);
@@ -184,7 +195,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public long GetTotalRecordCount()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Cache.Keys.Count;
@@ -194,7 +205,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_VideoLocal GetByHashAndSize(string hash, long fsize)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
@@ -211,7 +222,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal> GetMostRecentlyAdded(int maxResults)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                 {
@@ -224,10 +235,24 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
             }
         }
-
+        public List<string> GetHashesMostRecentlyAdded(int maxResults)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                {
+                    if (maxResults == -1)
+                        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Select(a=>a.Hash).ToList();
+                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Select(a => a.Hash).Take(maxResults).ToList();
+                }
+                if (maxResults == -1)
+                    return Table.OrderByDescending(a => a.DateTimeCreated).Select(a => a.Hash).ToList();
+                return Table.OrderByDescending(a => a.DateTimeCreated).Select(a => a.Hash).Take(maxResults).ToList();
+            }
+        }
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Cache.Values.OrderBy(a => Guid.NewGuid()).Take(maxResults).ToList();
@@ -296,7 +321,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal> GetVideosWithoutHash()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Hashes.GetMultiple("").ToList();
@@ -313,7 +338,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             HashSet<string> hashes = new HashSet<string>(Repo.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
             HashSet<string> vlocals;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                 {
@@ -336,12 +361,22 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal> GetIgnoredVideos()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Ignored.GetMultiple(1);
                 return Table.Where(a => a.IsIgnored==1).ToList();
             }
         }
+        public List<string> GetVariationsHashes(bool variation)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (variation)
+                    return Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
+                return Where(a => a.IsVariation == 0 && !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
+            }
+        }
+
     }
 }

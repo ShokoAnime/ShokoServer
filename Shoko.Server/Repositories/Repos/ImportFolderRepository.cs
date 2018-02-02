@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -28,7 +29,7 @@ namespace Shoko.Server.Repositories.Repos
                 .Replace('/', Path.DirectorySeparatorChar)
                 .TrimEnd(Path.DirectorySeparatorChar);
 
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Cache.Values.FirstOrDefault(a =>

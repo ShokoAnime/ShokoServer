@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Force.DeepCloner;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
@@ -48,10 +49,15 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                using (var upd = Repo.VideoLocal.BeginUpdate(place.VideoLocal))
+                SVR_VideoLocal local = place.VideoLocal.DeepClone();
+                place.RefreshMediaInfo(local);
+                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(()=> Repo.VideoLocal.GetByID(VideoLocalID)))
                 {
-                    if (place.RefreshMediaInfo(upd.Entity))
+                    if (upd.Original != null)
+                    {
+                        local.DeepCloneTo(upd.Entity);
                         upd.Commit(true);
+                    }
                 }
 
             }
@@ -71,7 +77,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

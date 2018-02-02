@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -32,7 +33,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<VideoLocal_User> GetByVideoLocalID(int vidid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return VideoLocalIDs.GetMultiple(vidid);
@@ -42,7 +43,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<VideoLocal_User> GetByUserID(int userid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Users.GetMultiple(userid);
@@ -52,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public VideoLocal_User GetByUserIDAndVideoLocalID(int userid, int vidid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UsersVideoLocals.GetOne(userid, vidid);

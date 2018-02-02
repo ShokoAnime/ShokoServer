@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -9,27 +8,35 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
     public class AniDB_AnimeRepository : BaseRepository<SVR_AniDB_Anime, int>
     {
-        private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
         internal override int SelectKey(SVR_AniDB_Anime entity) => entity.AnimeID;
 
         internal override void PopulateIndexes()
         {
-            Animes = new PocoIndex<int, SVR_AniDB_Anime, int>(Cache, a => a.AnimeID);
         }
-
+        public List<int> GetAnimeIdsRecentlyAddedSummary(int maxRecords)
+        {
+            return Repo.CrossRef_File_Episode.GetAnimesIdByHashes(Repo.VideoLocal.GetHashesMostRecentlyAdded(maxRecords * 3)).Take(maxRecords).ToList();
+        }
         internal override void ClearIndexes()
         {
-            Animes = null;
         }
 
+        public List<string> GetAllReleaseGroups()
+        {
+            var releaseGroups = Repo.AniDB_File.GetAllReleaseGroups();
+            if (releaseGroups.Contains("raw/unknown")) releaseGroups.Remove("raw/unknown");
+            return releaseGroups;
+        }
+       
         internal override object BeginSave(SVR_AniDB_Anime entity, SVR_AniDB_Anime original_entity, object parameters)
         {
-            entity.UpdateContractDetailed();
+            SVR_AniDB_Anime.UpdateContractDetailed(entity);
             return null;
         }
 
@@ -60,21 +67,8 @@ namespace Shoko.Server.Repositories.Repos
             progress.Report(prog);
         }
 
-        public SVR_AniDB_Anime GetByAnimeID(int id)
-        {
-            using (CacheLock.ReaderLock())
-            {
-                if (IsCached)
-                    return Animes.GetOne(id);
-                return Table.FirstOrDefault(a => a.AnimeID == id);
-            }
-        }
-        public List<string> GetAllReleaseGroups()
-        {
-            return Repo.AniDB_File.WhereAll().GroupBy(a => a.Anime_GroupName)
-                .OrderByDescending(a => a.Select(b => b.AnimeID).Count()).ThenBy(b => b.Key).Select(a => a.Key)
-                .ToList();
-        }
+
+
 
         public List<SVR_AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
         {
@@ -143,7 +137,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public Dictionary<int, (int type, string title, DateTime? airdate)> GetRelationInfo()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Cache.Values.ToDictionary(a => a.AnimeID, a => (a.AnimeType, a.MainTitle, a.AirDate));

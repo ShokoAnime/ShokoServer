@@ -36,20 +36,20 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
-                if (sched != null)
+                using (var usch = Repo.ScheduledUpdate.BeginAddOrUpdate(() => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate)))
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
-
-                    // if we have run this in the last xxx hours then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
+                    if (usch.Original != null)
                     {
-                        if (!ForceRefresh) return;
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+
+                        // if we have run this in the last xxx hours then exit
+                        TimeSpan tsLastRun = DateTime.Now - usch.Entity.LastUpdate;
+                        if (tsLastRun.TotalHours < freqHours)
+                        {
+                            if (!ForceRefresh) return;
+                        }
                     }
-                }
-                using (var usch = Repo.ScheduledUpdate.BeginUpdate(sched))
-                {
+
                     usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktUpdate;
                     usch.Entity.UpdateDetails = string.Empty;
                     usch.Entity.LastUpdate = DateTime.Now;
@@ -77,7 +77,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_TraktUpdateAllSeries";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

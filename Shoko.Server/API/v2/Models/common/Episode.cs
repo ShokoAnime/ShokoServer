@@ -9,6 +9,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -45,7 +46,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+                ep = GenerateFromAnimeEpisode(ctx, Repo.AnimeEpisode.GetByID(anime_episode_id), uid,
                     level);
             }
 

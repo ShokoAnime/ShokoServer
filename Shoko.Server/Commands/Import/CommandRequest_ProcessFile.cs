@@ -86,15 +86,7 @@ namespace Shoko.Server.Commands
 
             lock (vidLocal)
             {
-                SVR_AniDB_File aniFile = null;
-
-                if (!ForceAniDB)
-                {
-                    aniFile = Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
-
-                    if (aniFile == null)
-                        logger.Trace("AniDB_File record not found");
-                }
+                SVR_AniDB_File aniFile = ForceAniDB ? null : Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
                 // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
                 List<CrossRef_File_Episode> crossRefs = Repo.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                 if (crossRefs == null || crossRefs.Count == 0) aniFile = null;
@@ -105,49 +97,30 @@ namespace Shoko.Server.Commands
                 {
                     // get info from AniDB
                     logger.Debug("Getting AniDB_File record from AniDB....");
-
-                    // check if we already have a record
-                    aniFile = Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
-
-                    if (aniFile == null)
+                    Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                    string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
+                    localFileName = !string.IsNullOrEmpty(localFileName) ? Path.GetFileName(localFileName) : vidLocal.FileName;
+                    if (fileInfo != null)
                     {
-                        aniFile = new SVR_AniDB_File();
-                        ForceAniDB = true;
-                    }
-
-                    if (ForceAniDB)
-                    {
-                        Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
-                        if (fileInfo != null)
+                        using (var upd = Repo.AniDB_File.BeginAddOrUpdate(() => Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize)))
                         {
-                            aniFile.Populate_RA(fileInfo);
-                            if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                            upd.Entity.Populate_RA(fileInfo);
+                            upd.Entity.FileName = localFileName;
+                            aniFile=upd.Commit();
+                        }
+                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
+                        {
+                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
+                            foreach (string epid in epIDs)
                             {
-                                string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                                foreach (string epid in epIDs)
-                                {
-                                    if (!int.TryParse(epid, out int id)) continue;
-                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                    cmdEp.Save();
-                                }
+                                if (!int.TryParse(epid, out int id)) continue;
+                                CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
+                                cmdEp.Save();
                             }
                         }
-                        else aniFile = null;
                     }
-
                     if (aniFile != null)
                     {
-                        string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
-                        localFileName = !string.IsNullOrEmpty(localFileName)
-                            ? Path.GetFileName(localFileName)
-                            : vidLocal.FileName;
-
-                        //overwrite with local file name
-                        using (var aupd=Repo.AniDB_File.BeginUpdate(aniFile))
-                        {
-                            aupd.Entity.FileName = localFileName;
-                            aupd.Commit(false);
-                        }
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
                         animeID = aniFile.AnimeID;
@@ -277,10 +250,25 @@ namespace Shoko.Server.Commands
                 {
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
-                    ser = Repo.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
 
+                    ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+                    AnimeGroup created_grp=null;
+                    if (ser == null)
+                    {
+                        created_grp = anime.CreateAnimeGroup();
+                    }
+                    DateTime now=DateTime.Now;
+                    using (var supd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByAnimeID(animeID)))
+                    {
+                        supd.Entity.Populate_RA(anime);
+                        if (created_grp != null)
+                            supd.Entity.AnimeGroupID = created_grp.AnimeGroupID;
+                        supd.Entity.EpisodeAddedDate = now;
+                        ser=supd.Commit((false, true, false, false));
+                    }
                     ser.CreateAnimeEpisodes();
-
+                    if (created_grp!=null)
+                        anime.TriggerAssociations();
                     // check if we have any group status data for this associated anime
                     // if not we will download it now
                     if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
@@ -290,20 +278,14 @@ namespace Shoko.Server.Commands
                         cmdStatus.Save();
                     }
 
-                    // update stats
-                    using (var supd = Repo.AnimeSeries.BeginUpdate(ser))
+                    using (var gupd = Repo.AnimeGroup.BeginBatchUpdate(() => ser.AllGroupsAbove))
                     {
-                        supd.Entity.EpisodeAddedDate = DateTime.Now;
-                        supd.Commit((false, true, false, false));
-                    }
-
-                    foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                    {
-                        using (var gupd = Repo.AnimeGroup.BeginUpdate(grp))
+                        foreach (SVR_AnimeGroup grp in gupd)
                         {
-                            gupd.Entity.EpisodeAddedDate = DateTime.Now;
-                            gupd.Commit((true, false, true));
+                            grp.EpisodeAddedDate = now;
+                            gupd.Update(grp);
                         }
+                        gupd.Commit((true, false, true));
                     }
                     if (ServerSettings.FileQualityFilterEnabled)
                     {
@@ -334,7 +316,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                 }
-                vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+                vidLocal.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
 
                 // update stats for groups and series
                 // update all the groups above this series in the heirarchy
@@ -359,7 +341,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

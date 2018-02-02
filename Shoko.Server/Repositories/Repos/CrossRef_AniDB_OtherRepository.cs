@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -26,7 +27,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeID).FirstOrDefault(a=>a.CrossRefType==(int)xrefType);
@@ -40,7 +41,7 @@ namespace Shoko.Server.Repositories.Repos
             if (xrefTypes == null || xrefTypes.Length == 0 || animeIds == null)
                 return new Dictionary<int, List<CrossRef_AniDB_Other>>();
             List<int> types = xrefTypes.Cast<int>().ToList();
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeIds.ToDictionary(a=>a,a => Animes.GetMultiple(a).Where(b => types.Contains(b.CrossRefType)).ToList());
@@ -51,7 +52,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 return new Dictionary<int, List<string>>();
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return animeIds.ToDictionary(a=>a, a => Animes.GetMultiple(a).Where(b => b.CrossRefType==(int)type).Select(b=>b.CrossRefID).ToList());
@@ -60,7 +61,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<CrossRef_AniDB_Other> GetByType(CrossRefType xrefType)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return CrossTypes.GetMultiple((int)xrefType);
@@ -70,7 +71,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_Other> GetByAnimeID(int animeID)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Animes.GetMultiple(animeID);

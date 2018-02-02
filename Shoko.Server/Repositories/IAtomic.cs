@@ -13,12 +13,16 @@ namespace Shoko.Server.Repositories
     {
         bool IsUpdate { get; }
         T Commit(TT pars = default(TT));
+        void Release();
     }
 
-    public interface IBatchAtomic<T, TT> : IAtomicList<T, TT> 
+    public interface IBatchAtomic<T, TT>  : IEnumerable<T>, IDisposable
     {
-        T Process(Func<T> find, Action<T> populate);
-       
+        void Update(T item);
+        T Create();
+        List<T> Commit(TT pars = default(TT));
+        T FindOrCreate(Func<T, bool> predicate);
+
     }
     public interface IAtomicList<T, TT> : IBaseAtomic<List<T>, TT>
     {
@@ -26,4 +30,15 @@ namespace Shoko.Server.Repositories
         T GetOriginal(T obj);
     }
 
+    public static class AtomicExtensions
+    {
+        public static bool IsNew<T, TT>(this IAtomic<T, TT> at)
+        {
+            return at.Original == null;
+        }
+        public static bool IsUpdate<T, TT>(this IAtomic<T, TT> at)
+        {
+            return at.Original != null;
+        }
+    }
 }

@@ -687,7 +687,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         m.OptimizedForStreaming = "0";
                         byte[] buffer = new byte[8];
                         FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
-                        if (fsr == null || !fsr.IsOk)
+                        if (fsr.Status!=NutzCode.CloudFileSystem.Status.Ok)
                             return null;
                         System.IO.Stream fs = fsr.Result;
                         fs.Read(buffer, 0, 4);

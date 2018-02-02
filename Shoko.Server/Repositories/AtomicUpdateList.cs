@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Force.DeepCloner;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories
 {
@@ -64,7 +65,7 @@ namespace Shoko.Server.Repositories
             List<T> returns=new List<T>();
             var updates = References.Where(a => a.Value != null).ToList();
             var creates = References.Where(a => a.Value == null).ToList();
-            using (_repo.CacheLock.WriterLock())
+            using (_repo.RepoLock.WriterLock())
             {
                 foreach (KeyValuePair<T, T> r in updates)
                 {

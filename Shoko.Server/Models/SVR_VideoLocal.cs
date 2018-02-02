@@ -131,7 +131,7 @@ namespace Shoko.Server.Models
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
-                using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
+                using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
                 {
                     upd.Entity.WatchedDate = DateTime.Now;
                     upd.Entity.JMMUserID = userID;
@@ -219,10 +219,9 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHash(Hash);
-                if (aniFile != null)
+                using (var anupd = Repo.AniDB_File.BeginAddOrUpdate(() => Repo.AniDB_File.GetByHash(Hash)))
                 {
-                    using (var anupd = Repo.AniDB_File.BeginUpdate(aniFile))
+                    if (anupd.IsUpdate)
                     {
                         anupd.Entity.IsWatched = mywatched;
                         if (watched)
@@ -232,7 +231,6 @@ namespace Shoko.Server.Models
                         anupd.Commit();
                     }
                 }
-
                 if (updateOnline)
                     if (watched && ServerSettings.AniDB_MyList_SetWatched || !watched && ServerSettings.AniDB_MyList_SetUnwatched)
                     {
@@ -351,7 +349,7 @@ namespace Shoko.Server.Models
             if (toUpdateSeries.Count > 0 && updateStats)
                 foreach (SVR_AnimeSeries s in toUpdateSeries.Values)
                     // update all the groups above this series in the heirarchy
-                    s.UpdateStats(true, true, true);
+                    SVR_AnimeSeries.UpdateStats(s, true, true, true);
         }
 
         public override string ToString()
@@ -360,24 +358,24 @@ namespace Shoko.Server.Models
         }
 
 
-        public CL_VideoLocal ToClient(int userID)
+        public static (SVR_VideoLocal Videolocal, CL_VideoLocal ClientVideoLocal) ToClient(SVR_VideoLocal videoLocal, int userID)
         {
             CL_VideoLocal cl = new CL_VideoLocal
             {
-                CRC32 = CRC32,
-                DateTimeUpdated = DateTimeUpdated,
-                FileSize = FileSize,
-                Hash = Hash,
-                HashSource = HashSource,
-                IsIgnored = IsIgnored,
-                IsVariation = IsVariation,
-                Duration = Duration,
-                MD5 = MD5,
-                SHA1 = SHA1,
-                VideoLocalID = VideoLocalID,
-                Places = Places.Select(a => a.ToClient()).ToList()
+                CRC32 = videoLocal.CRC32,
+                DateTimeUpdated = videoLocal.DateTimeUpdated,
+                FileSize = videoLocal.FileSize,
+                Hash = videoLocal.Hash,
+                HashSource = videoLocal.HashSource,
+                IsIgnored = videoLocal.IsIgnored,
+                IsVariation = videoLocal.IsVariation,
+                Duration = videoLocal.Duration,
+                MD5 = videoLocal.MD5,
+                SHA1 = videoLocal.SHA1,
+                VideoLocalID = videoLocal.VideoLocalID,
+                Places = videoLocal.Places.Select(a => a.ToClient()).ToList()
             };
-            VideoLocal_User userRecord = GetUserRecord(userID);
+            VideoLocal_User userRecord = videoLocal.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.IsWatched = 0;
@@ -391,8 +389,8 @@ namespace Shoko.Server.Models
 
             if (userRecord != null)
                 cl.ResumePosition = userRecord.ResumePosition;
-            cl.Media = GetMediaFromUser(userID);
-            return cl;
+            (videoLocal,cl.Media)=GetMediaFromUser(videoLocal, userID);
+            return (videoLocal, cl);
         }
 
         // is the videolocal empty. This isn't complete, but without one or more of these the record is useless
@@ -406,13 +404,13 @@ namespace Shoko.Server.Models
             return true;
         }
 
-        public Media GetMediaFromUser(int userID)
+        public static (SVR_VideoLocal, Media) GetMediaFromUser(SVR_VideoLocal videoLocal, int userID)
         {
             Media n;
             string fileName = string.Empty;
-            if (Media == null)
+            if (videoLocal.Media == null)
             {
-                SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = videoLocal.GetBestVideoLocalPlace();
                 if (pl?.FullServerPath != null)
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
@@ -420,10 +418,10 @@ namespace Shoko.Server.Models
                     if (src!=null && src.Status == Status.Ok && src is IFile)
                     {
 
-                        using (var v = Repo.VideoLocal.BeginUpdate(this))
+                        using (var v = Repo.VideoLocal.BeginAddOrUpdate(()=>Repo.VideoLocal.GetByID(videoLocal.VideoLocalID)))
                         {
                             if (pl.RefreshMediaInfo(v.Entity))
-                                v.Commit();
+                                videoLocal=v.Commit();
                         }
                     }
 
@@ -431,9 +429,9 @@ namespace Shoko.Server.Models
                 }
             }
 
-            if (Media == null) return null;
-            n = Media.DeepClone();
-            if (n?.Parts == null) return n;
+            if (videoLocal.Media == null) return (videoLocal, null);
+            n = videoLocal.Media.DeepClone();
+            if (n?.Parts == null) return (videoLocal,n);
             foreach (Part p in n.Parts)
             {
                 string name = UrlSafe.Replace(Path.GetFileName(fileName), " ").Replace("  ", " ").Replace("  ", " ").Trim();
@@ -442,41 +440,41 @@ namespace Shoko.Server.Models
                     name = name.Substring(1);
                 while (name.StartsWith("."))
                     name = name.Substring(1);
-                p.Key = ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
+                p.Key = ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(userID, videoLocal.VideoLocalID.ToString(), name, false));
                 if (p.Streams == null) continue;
                 foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3").ToList())
                     s.Key = ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructFileStream(userID, s.File, false));
             }
 
-            return n;
+            return (videoLocal, n);
         }
 
-        public CL_VideoDetailed ToClientDetailed(int userID)
+        public static (SVR_VideoLocal, CL_VideoDetailed) ToClientDetailed(SVR_VideoLocal videoLocal, int userID)
         {
             CL_VideoDetailed cl = new CL_VideoDetailed();
 
             // get the cross ref episode
-            List<CrossRef_File_Episode> xrefs = EpisodeCrossRefs;
-            if (xrefs.Count == 0) return null;
+            List<CrossRef_File_Episode> xrefs = videoLocal.EpisodeCrossRefs;
+            if (xrefs.Count == 0) return (videoLocal, null);
 
             cl.Percentage = xrefs[0].Percentage;
             cl.EpisodeOrder = xrefs[0].EpisodeOrder;
             cl.CrossRefSource = xrefs[0].CrossRefSource;
             cl.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            cl.VideoLocal_Hash = Hash;
-            cl.VideoLocal_FileSize = FileSize;
-            cl.VideoLocalID = VideoLocalID;
-            cl.VideoLocal_IsIgnored = IsIgnored;
-            cl.VideoLocal_IsVariation = IsVariation;
-            cl.Places = Places.Select(a => a.ToClient()).ToList();
+            cl.VideoLocal_Hash = videoLocal.Hash;
+            cl.VideoLocal_FileSize = videoLocal.FileSize;
+            cl.VideoLocalID = videoLocal.VideoLocalID;
+            cl.VideoLocal_IsIgnored = videoLocal.IsIgnored;
+            cl.VideoLocal_IsVariation = videoLocal.IsVariation;
+            cl.Places = videoLocal.Places.Select(a => a.ToClient()).ToList();
 
-            cl.VideoLocal_MD5 = MD5;
-            cl.VideoLocal_SHA1 = SHA1;
-            cl.VideoLocal_CRC32 = CRC32;
-            cl.VideoLocal_HashSource = HashSource;
+            cl.VideoLocal_MD5 = videoLocal.MD5;
+            cl.VideoLocal_SHA1 = videoLocal.SHA1;
+            cl.VideoLocal_CRC32 = videoLocal.CRC32;
+            cl.VideoLocal_HashSource = videoLocal.HashSource;
 
-            VideoLocal_User userRecord = GetUserRecord(userID);
+            VideoLocal_User userRecord = videoLocal.GetUserRecord(userID);
             if (userRecord?.WatchedDate == null)
             {
                 cl.VideoLocal_IsWatched = 0;
@@ -491,17 +489,17 @@ namespace Shoko.Server.Models
 
             if (userRecord != null)
                 cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
-            cl.VideoInfo_AudioBitrate = AudioBitrate;
-            cl.VideoInfo_AudioCodec = AudioCodec;
-            cl.VideoInfo_Duration = Duration;
-            cl.VideoInfo_VideoBitrate = VideoBitrate;
-            cl.VideoInfo_VideoBitDepth = VideoBitDepth;
-            cl.VideoInfo_VideoCodec = VideoCodec;
-            cl.VideoInfo_VideoFrameRate = VideoFrameRate;
-            cl.VideoInfo_VideoResolution = VideoResolution;
+            cl.VideoInfo_AudioBitrate = videoLocal.AudioBitrate;
+            cl.VideoInfo_AudioCodec = videoLocal.AudioCodec;
+            cl.VideoInfo_Duration = videoLocal.Duration;
+            cl.VideoInfo_VideoBitrate = videoLocal.VideoBitrate;
+            cl.VideoInfo_VideoBitDepth = videoLocal.VideoBitDepth;
+            cl.VideoInfo_VideoCodec = videoLocal.VideoCodec;
+            cl.VideoInfo_VideoFrameRate = videoLocal.VideoFrameRate;
+            cl.VideoInfo_VideoResolution = videoLocal.VideoResolution;
 
             // AniDB File
-            SVR_AniDB_File anifile = GetAniDBFile(); // to prevent multiple db calls
+            SVR_AniDB_File anifile = videoLocal.GetAniDBFile(); // to prevent multiple db calls
             if (anifile != null)
             {
                 cl.AniDB_Anime_GroupName = anifile.Anime_GroupName;
@@ -553,10 +551,10 @@ namespace Shoko.Server.Models
             }
 
 
-            AniDB_ReleaseGroup relGroup = ReleaseGroup; // to prevent multiple db calls
+            AniDB_ReleaseGroup relGroup = videoLocal.ReleaseGroup; // to prevent multiple db calls
             cl.ReleaseGroup = relGroup;
-            cl.Media = GetMediaFromUser(userID);
-            return cl;
+            (videoLocal, cl.Media) = GetMediaFromUser(videoLocal, userID);
+            return (videoLocal, cl);
         }
 
         public CL_VideoLocal_ManualLink ToContractManualLink(int userID)

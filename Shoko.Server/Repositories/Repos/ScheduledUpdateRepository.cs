@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -23,7 +24,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public ScheduledUpdate GetByUpdateType(int uptype)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return UpdateTypes.GetOne(uptype);

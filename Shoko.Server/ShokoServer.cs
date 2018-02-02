@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.SQLite;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -928,7 +927,7 @@ namespace Shoko.Server
                             }
 
                             RepoFactory.CrossRef_File_Episode.Save(xref);
-                            vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+                            vid.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
 
                             // update stats for groups and series
                             if (ser != null)

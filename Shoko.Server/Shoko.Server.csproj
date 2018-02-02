@@ -31,20 +31,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
-    <Compile Remove="Repositories\Repos\AniDB_MylistStatsRepository.cs" />
+    <Compile Remove="Repositories\AtomicBatchUpdate.cs" />
+    <Compile Remove="UPnPServerBrowserDialog.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.1" />
-    <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.9-dmr" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0-preview1-25914-04" />
+    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
+    <PackageReference Include="MimeTypes" Version="1.0.6" />
+    <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.10-rc" />
     <PackageReference Include="Nancy" Version="2.0.0-clinteastwood" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="NLog" Version="5.0.0-beta11" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
+    <PackageReference Include="SharpCompress" Version="0.19.2" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0-preview1-25914-04" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="4.5.0-preview1-25914-04" />
     <PackageReference Include="System.ServiceModel.Web" Version="1.0.0" />
-    <PackageReference Include="TMDbLib" Version="1.0.0" />
+    <PackageReference Include="TMDbLib" Version="1.2.0-alpha" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\Views\" />

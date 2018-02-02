@@ -5,6 +5,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -31,7 +32,7 @@ namespace Shoko.Server.Repositories.Repos
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.AnimeEpisode.BeginUpdate(entity.EntityID)?.Commit();
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
                     break;
             }
         }
@@ -45,7 +46,7 @@ namespace Shoko.Server.Repositories.Repos
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.AnimeEpisode.BeginUpdate(entity.EntityID)?.Commit();
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
                     break;
             }
         }
@@ -53,7 +54,7 @@ namespace Shoko.Server.Repositories.Repos
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             List<AniDB_Vote> cr;
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 cr = IsCached
                     ? EntityIDs.GetMultiple(entID)?.Where(a => a.VoteType == (int) voteType).ToList()
@@ -69,7 +70,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            using(CacheLock.ReaderLock())
+            using(RepoLock.ReaderLock())
             {
                 return IsCached ? EntityIDs.GetMultiple(entID)?.ToList() : Table.Where(a=>a.EntityID==entID).ToList();
             }

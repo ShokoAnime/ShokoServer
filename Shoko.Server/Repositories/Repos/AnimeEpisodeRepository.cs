@@ -5,6 +5,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -52,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Series.GetMultiple(seriesid);
@@ -62,7 +63,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetAniDBEpisodesIdBySeriesIDs(IEnumerable<int> seriesids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return seriesids.SelectMany(a=>Series.GetMultiple(a)).Select(a=>a.AniDB_EpisodeID).Distinct().ToList();
@@ -76,7 +77,7 @@ namespace Shoko.Server.Repositories.Repos
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
 
 
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return EpisodeIDs.GetMultiple(epid);
@@ -87,7 +88,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<SVR_AnimeEpisode> GetByAniDBEpisodeIDs(IEnumerable<int> epids)
         {
             
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return epids.Select(a=>EpisodeIDs.GetMultiple(a)).SelectMany(a=>a).ToList();
@@ -103,8 +104,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>the AnimeEpisode given the file information</returns>
         public SVR_AnimeEpisode GetByFilename(string name)
         {
-            return Repo.VideoLocal_Place.Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),StringComparison.InvariantCultureIgnoreCase)).Select(a => a.VideoLocal.GetAnimeEpisodes())
-                .FirstOrDefault()?.FirstOrDefault();
+            return Repo.VideoLocal_Place.GetByFilename(name).Select(a => a.VideoLocal.GetAnimeEpisodes()).FirstOrDefault()?.FirstOrDefault();
         }
 
 
@@ -124,7 +124,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
 
-            List<string> hashes= ignoreVariations ? Repo.VideoLocal.Where(a=>a.IsVariation==0 && !string.IsNullOrEmpty(a.Hash)).Select(a=>a.Hash).ToList() : Repo.VideoLocal.Where(a => !string.IsNullOrEmpty(a.Hash)).Select(a => a.Hash).ToList();
+            List<string> hashes = Repo.VideoLocal.GetVariationsHashes(!ignoreVariations);
             return GetByAniDBEpisodeIDs(Repo.CrossRef_File_Episode.GetMultiEpIdByHashes(hashes));
         }
 
@@ -141,5 +141,14 @@ namespace Shoko.Server.Repositories.Repos
         {
             return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
         }
+
+        public Dictionary<int, List<int>> GetGroupByAnimeSeriesIDEpisodes()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().GroupBy(a => a.AnimeSeriesID).ToDictionary(a => a.Key, a => a.Select(b => b.AniDB_EpisodeID).ToList());
+            }
+        }
+
     }
 }

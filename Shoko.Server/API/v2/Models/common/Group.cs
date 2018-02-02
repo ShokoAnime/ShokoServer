@@ -44,14 +44,14 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_GroupFilter filter = null;
             if (filterid > 0)
             {
-                filter = RepoFactory.GroupFilter.GetByID(filterid);
+                filter = Repo.GroupFilter.GetByID(filterid);
                 if (filter?.ApplyToSeries == 0)
                     filter = null;
             }
 
             List<SVR_AniDB_Anime> animes;
             if (filter != null)
-                animes = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                animes = filter.SeriesIds[uid].Select(id => Repo.AnimeSeries.GetByID(id))
                     .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).Select(ser => ser.GetAnime())
                     .Where(a => a != null).OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
                     .ToList();
@@ -158,7 +158,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                 List<SVR_AnimeEpisode> ael;
                 if (filter != null)
-                    ael = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                    ael = filter.SeriesIds[uid].Select(id => Repo.AnimeSeries.GetByID(id))
                         .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).SelectMany(ser => ser.GetAnimeEpisodes())
                         .ToList();
                 else

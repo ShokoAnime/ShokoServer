@@ -2,6 +2,7 @@
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -24,7 +25,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_Languages_AniDB_File> GetByFileID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Files.GetMultiple(id);
@@ -33,7 +34,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public CrossRef_Languages_AniDB_File GetByFileAndLanguageID(int id,int langid)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Files.GetMultiple(id).FirstOrDefault(a=>a.LanguageID==langid);
@@ -43,7 +44,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<int> GetIdsByFileID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Files.GetMultiple(id).Select(a=>a.CrossRef_Languages_AniDB_FileID).ToList();
@@ -52,11 +53,19 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<int> GetIdsByFilesIDs(IEnumerable<int> ids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.SelectMany(a => Files.GetMultiple(a)).Select(a => a.FileID).Distinct().ToList();
                 return Table.Where(a => ids.Contains(a.FileID)).Select(a=>a.FileID).Distinct().ToList();
+            }
+        }
+
+        public List<int> GetDistincLanguagesId()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().Select(a => a.LanguageID).Distinct().ToList();
             }
         }
     }

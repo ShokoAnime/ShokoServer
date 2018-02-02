@@ -1,6 +1,7 @@
 ﻿using System;
 using NLog;
 using Shoko.Server.Commands;
+using Shoko.Server.Providers.AniDB;
 
 namespace Shoko.Server
 {

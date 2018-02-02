@@ -51,7 +51,7 @@ namespace Shoko.Server.Commands
                     Raw_AniDB_Group raw=ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
                     if (raw != null)
                     {
-                        using (var upd = Repo.AniDB_ReleaseGroup.BeginUpdate(relGroup))
+                        using (var upd = Repo.AniDB_ReleaseGroup.BeginAddOrUpdate(()=> Repo.AniDB_ReleaseGroup.GetByID(GroupID)))
                         {
                             upd.Entity.Populate_RA(raw);
                             upd.Commit();
@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetReleaseGroup_{GroupID}";
         }
 
-        public override bool InitFromDB(CommandRequest cq)
+        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

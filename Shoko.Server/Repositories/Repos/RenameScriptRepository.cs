@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -26,7 +27,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public RenameScript GetDefaultScript()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return EnabledOnImport.GetOne(1);
@@ -36,7 +37,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public RenameScript GetDefaultOrFirst()
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return EnabledOnImport.GetOne(1) ?? Cache.Values.FirstOrDefault();
@@ -47,7 +48,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public RenameScript GetByName(string scriptName)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ScriptNames.GetOne(scriptName);

@@ -365,7 +365,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             CrossRef_AniDB_TraktV2 xref;
             // download and update series info, episode info and episode images
-            using (var upd = Repo.CrossRef_AniDB_TraktV2.BeginAddOrUpdateWithLock(() => Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int) aniEpType, aniEpNumber)))
+            using (var upd = Repo.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int) aniEpType, aniEpNumber)))
             {
 
                 upd.Entity.AnimeID = animeID;
@@ -1137,7 +1137,7 @@ namespace Shoko.Server.Providers.TraktTV
             {
                 // save this data to the DB for use later
                 Trakt_Show show;
-                using (var tupd = Repo.Trakt_Show.BeginAddOrUpdateWithLock(() => Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
+                using (var tupd = Repo.Trakt_Show.BeginAddOrUpdate(() => Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
                 {
                     tupd.Entity.Populate_RA(tvshow);
                     show = tupd.Commit();
@@ -1164,7 +1164,7 @@ namespace Shoko.Server.Providers.TraktTV
                 foreach (TraktV2Season sea in seasons)
                 {
                     Trakt_Season season;
-                    using (var supd = Repo.Trakt_Season.BeginAddOrUpdateWithLock(() => Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
+                    using (var supd = Repo.Trakt_Season.BeginAddOrUpdate(() => Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
                     {
                         supd.Entity.Season = sea.number;
                         supd.Entity.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
@@ -1176,7 +1176,7 @@ namespace Shoko.Server.Providers.TraktTV
                     {
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            using (var eupd = Repo.Trakt_Episode.BeginAddOrUpdateWithLock(() => Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
+                            using (var eupd = Repo.Trakt_Episode.BeginAddOrUpdate(() => Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
                             {
                                 eupd.Entity.TraktID = ep.ids.TraktID;
                                 eupd.Entity.EpisodeNumber = ep.number;
@@ -1280,7 +1280,7 @@ namespace Shoko.Server.Providers.TraktTV
                 foreach (TraktV2Follower friend in resultFollowers)
                 {
                     Trakt_Friend traktFriend;
-                    using (var tfupd = Repo.Trakt_Friend.BeginAddOrUpdateWithLock(() => Repo.Trakt_Friend.GetByUsername(friend.user.username)))
+                    using (var tfupd = Repo.Trakt_Friend.BeginAddOrUpdate(() => Repo.Trakt_Friend.GetByUsername(friend.user.username)))
                     {
                         tfupd.Entity.Populate_RA(friend.user);
                         traktFriend = tfupd.Commit();

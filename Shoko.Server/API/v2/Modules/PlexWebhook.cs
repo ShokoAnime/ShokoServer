@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public PlexWebhook() : base("/plex")
         {
-            Post["/", true] = async (x,ct) => await Task.Factory.StartNew(WebhookPost, ct);
+            Post("/", async (x,ct) => await Task.Factory.StartNew(WebhookPost, ct));
         }
 
         object WebhookPost()
@@ -57,7 +57,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (episode == null) return;
 
-            var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+            var vl = Repo.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
@@ -73,13 +73,13 @@ namespace Shoko.Server.API.v2.Modules
                         
             if (episode == null) return;
 
-            var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+            var user = Repo.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
                 return; //At this point in time, we don't want to scrobble for unknown users.
 
             episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
                 true);
-            anime.UpdateStats(true, false, true);
+            SVR_AnimeSeries.UpdateStats(anime, true, false, true);
         }
 
         #endregion
@@ -93,7 +93,7 @@ namespace Shoko.Server.API.v2.Modules
             int animeId = int.Parse(parts[1]);
             int series = int.Parse(parts[2]);
 
-            var anime = RepoFactory.AnimeSeries.GetByID(animeId);
+            var anime = Repo.AnimeSeries.GetByID(animeId);
 
             EpisodeType episodeType;
             switch (series
@@ -207,34 +207,34 @@ namespace Shoko.Server.API.v2.Modules
         public PlexWebhookAuthenticated() : base("/plex")
         {
             this.RequiresAuthentication();
-            Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
-            Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
-            Get["/token/invalidate"] = o => CallPlexHelper(h =>
+            Get("/pin", o => CallPlexHelper(h => h.Authenticate()));
+            Get("/pin/authenticated", o => $"{CallPlexHelper(h => h.IsAuthenticated)}");
+            Get("/token/invalidate", o => CallPlexHelper(h =>
             {
                 h.InvalidateToken();
                 return true;
-            });
-            Get["/sync", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            }));
+            Get("/sync",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
                 return APIStatus.OK();
-            });
-            Get["/sync/all", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            }));
+            Get("/sync/all",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            });
+            }));
 
-            Get["/sync/{id}", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            Get("/sync/{id}",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
-                JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
+                JMMUser user = Repo.JMMUser.GetByID(x.id);
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            });
+            }));
 #if DEBUG
-            Get["/test/{id}"] = o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id)));
+            Get("/test/{id}", o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id))));
 #endif
         }
 

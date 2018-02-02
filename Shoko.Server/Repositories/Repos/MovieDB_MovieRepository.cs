@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -26,7 +27,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<MovieDB_Movie> GetByMovieID(int id)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return Movies.GetMultiple(id);
@@ -35,7 +36,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public Dictionary<int, List<MovieDB_Movie>> GetByMoviesIds(IEnumerable<int> ids)
         {
-            using (CacheLock.ReaderLock())
+            using (RepoLock.ReaderLock())
             {
                 if (IsCached)
                     return ids.ToDictionary(a=>a,a => Movies.GetMultiple(a).ToList());
