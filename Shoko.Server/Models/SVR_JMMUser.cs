@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Security.Principal;
 using Nancy.Json;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -9,7 +10,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_JMMUser : JMMUser
+    public class SVR_JMMUser : JMMUser, IIdentity
     {
 
         // IUserIdentity implementation
@@ -87,5 +88,12 @@ namespace Shoko.Server.Models
             }
 
         }
+
+        [NotMapped]
+        public string AuthenticationType { get; } = "api";
+        [NotMapped]
+        public bool IsAuthenticated { get; } = true;
+        [NotMapped]
+        public string Name => Username;
     }
 }
