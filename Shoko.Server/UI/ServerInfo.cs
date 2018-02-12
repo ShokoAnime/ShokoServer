@@ -68,7 +68,7 @@ namespace Shoko.Server
             //Populate Cloud Providers
             foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
             {
-                if (plugin.Name.Equals("Local File System", StringComparison.InvariantCultureIgnoreCase))
+                if (!plugin.Name.Equals("Local File System", StringComparison.InvariantCultureIgnoreCase))
                 {
                     CloudProvider p = new CloudProvider
                     {
