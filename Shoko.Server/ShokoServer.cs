@@ -20,6 +20,7 @@ using Nancy.Hosting.Self;
 using Nancy.Json;
 using NHibernate;
 using NLog;
+using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -35,6 +36,7 @@ using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
+using Shoko.Server.UI;
 using Trinet.Core.IO.Ntfs;
 using UPnP;
 using Action = System.Action;
@@ -93,6 +95,8 @@ namespace Shoko.Server
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
+        public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
+        
         private Mutex mutex;
 
         public string[] GetSupportedDatabases()

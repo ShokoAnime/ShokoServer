@@ -25,7 +25,6 @@ namespace Shoko.CLI
             
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
-            
             ShokoServer.Instance.StartUpServer();
 
             ShokoServer.RunWorkSetupDB();

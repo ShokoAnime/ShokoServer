@@ -55,7 +55,7 @@ namespace Shoko.UI
             InitializeComponent();
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
+            ShokoServer.Instance.OAuthProvider=new AuthProvider(this);
             if (!ShokoServer.Instance.StartUpServer())
             {
                 MessageBox.Show(Commons.Properties.Resources.Server_Running,
