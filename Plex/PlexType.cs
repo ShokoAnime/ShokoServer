@@ -1,11 +1,13 @@
 ﻿namespace Shoko.Models.Plex
 {
-    public enum PlexType
+    public enum 
+        PlexType
     {
         Track,
         Show,
         Artist,
         Movie,
         Episode,
+        Photo
     }
 }
