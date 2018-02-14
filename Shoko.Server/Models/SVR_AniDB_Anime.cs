@@ -7,6 +7,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using AniDBAPI;
 using NLog;
+using Shoko.Commons;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -62,8 +63,10 @@ namespace Shoko.Server.Models
             get
             {
                 if (_contract == null && ContractBlob != null && ContractBlob.Length > 0 && ContractSize > 0)
-                    _contract = CompressionHelper.DeserializeObject<CL_AniDB_AnimeDetailed>(ContractBlob,
-                        ContractSize);
+                {
+                    _contract = new CL_AniDB_AnimeDetailed(new SeasonComparator());
+                    CompressionHelper.PopulateObject(_contract,ContractBlob,ContractSize);
+                }
                 return _contract;
             }
             set
@@ -1214,7 +1217,7 @@ namespace Shoko.Server.Models
 
             foreach (SVR_AniDB_Anime anime in animeColl)
             {
-                var contract = new CL_AniDB_AnimeDetailed();
+                var contract = new CL_AniDB_AnimeDetailed(new SeasonComparator());
                 var animeTitles = titlesByAnime[anime.AnimeID];
 
                 defImagesByAnime.TryGetValue(anime.AnimeID, out DefaultAnimeImages defImages);
@@ -1325,8 +1328,8 @@ namespace Shoko.Server.Models
         public static void UpdateContractDetailed(SVR_AniDB_Anime anime)
         {
             List<AniDB_Anime_Title> animeTitles = Repo.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-            CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed
-            {
+            CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed(new SeasonComparator())
+            {                
                 AniDBAnime = anime.GenerateContract(animeTitles),
                 AnimeTitles = new List<CL_AnimeTitle>(),
                 Tags = new List<CL_AnimeTag>(),

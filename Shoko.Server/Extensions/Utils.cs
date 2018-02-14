@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Shoko.Commons;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 
@@ -64,7 +65,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
-            CL_AnimeGroup_User contract = new CL_AnimeGroup_User
+            CL_AnimeGroup_User contract = new CL_AnimeGroup_User(new SeasonComparator())
             {
                 AnimeGroupID = c.AnimeGroupID,
                 AnimeGroupParentID = c.AnimeGroupParentID,

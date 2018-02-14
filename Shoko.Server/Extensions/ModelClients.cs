@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NLog;
+using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -125,7 +126,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AnimeGroup_User ToClient(this AnimeGroup_User g)
         {
-            return new CL_AnimeGroup_User
+            return new CL_AnimeGroup_User(new SeasonComparator())
             {
                 AnimeGroup_UserID = g.AnimeGroup_UserID,
                 JMMUserID = g.JMMUserID,

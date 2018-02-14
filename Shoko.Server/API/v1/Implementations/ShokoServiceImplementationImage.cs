@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using Shoko.Models.Server;
 using NLog;
@@ -23,14 +25,14 @@ namespace Shoko.Server
             string path = GetImagePath(imageId, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 return new StreamWithResponse(HttpStatusCode.NotFound);
-            return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
+            return new StreamWithResponse(File.OpenRead(path), Nancy.MimeTypes.GetMimeType(path));
         }
 
         public Stream GetImageUsingPath(string serverImagePath)
         {
             if (File.Exists(serverImagePath))
             {
-                return new StreamWithResponse(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
+                return new StreamWithResponse(File.OpenRead(serverImagePath), Nancy.MimeTypes.GetMimeType(serverImagePath));
             }
             logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
             return new StreamWithResponse(HttpStatusCode.NotFound);
@@ -59,7 +61,7 @@ namespace Shoko.Server
             return dest;
         }
 
-        public Stream ResizeToRatio(Image im, double newratio)
+        public Stream ResizeToRatio(Bitmap im, double newratio)
         {
             double calcwidth = im.Width;
             double calcheight = im.Height;
@@ -181,7 +183,7 @@ namespace Shoko.Server
             {
                 if (m != null)
                 {
-                    using (Image im = Image.FromStream(m))
+                    using (Bitmap im = (Bitmap)Image.FromStream(m))
                     {
                         return ResizeToRatio(im, ratio);
                     }
@@ -197,7 +199,7 @@ namespace Shoko.Server
             switch (it)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(imageId);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
                     {

@@ -19,12 +19,12 @@ namespace Shoko.Server.API
     using Nancy.Diagnostics;
     using NLog;
     using System;
-    using Nancy.Gzip;
+
 
     public class Bootstrapper : RestBootstrapper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
+        /*
         protected override NancyInternalConfiguration InternalConfiguration
         {
             //RestBootstraper with use a custom json.net serializer,no need to readd something in here
@@ -36,7 +36,7 @@ namespace Shoko.Server.API
                 return nac;
             }
         }
-
+        */
         /// <inheritdoc />
         /// <summary>
         /// This function override the RequestStartup which is used each time a request came to Nancy
@@ -44,6 +44,7 @@ namespace Shoko.Server.API
         protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines,
             NancyContext context)
         {
+           
             StaticConfiguration.EnableRequestTracing = true;
             var configuration =
                 new StatelessAuthenticationConfiguration(nancyContext =>

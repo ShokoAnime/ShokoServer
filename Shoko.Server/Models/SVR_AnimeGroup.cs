@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using NLog;
+using Shoko.Commons;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -32,7 +33,10 @@ namespace Shoko.Server.Models
             get
             {
                 if (_contract == null && ContractBlob != null && ContractBlob.Length > 0 && ContractSize > 0)
-                    _contract = CompressionHelper.DeserializeObject<CL_AnimeGroup_User>(ContractBlob, ContractSize);
+                {
+                    _contract=new CL_AnimeGroup_User(new SeasonComparator());
+                    CompressionHelper.PopulateObject(_contract,ContractBlob,ContractSize);
+                }
                 return _contract;
             }
             set
@@ -260,7 +264,7 @@ namespace Shoko.Server.Models
         public CL_AnimeGroup_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
             if (Contract == null)
-                return new CL_AnimeGroup_User();
+                return new CL_AnimeGroup_User(new SeasonComparator());
             CL_AnimeGroup_User contract = Contract.DeepCopy();
             SVR_AnimeGroup_User rr = GetUserRecord(userid);
             if (rr != null)

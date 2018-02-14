@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
+using Shoko.Commons;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Enums;
