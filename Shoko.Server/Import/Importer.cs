@@ -967,6 +967,9 @@ namespace Shoko.Server
                 if (!string.IsNullOrEmpty(r))
                     return r;
             }
+            RepoFactory.CloudAccount.Delete(cloudaccountID);
+            ServerInfo.Instance.RefreshImportFolders();
+            ServerInfo.Instance.RefreshCloudAccounts();
             return string.Empty;
         }
 

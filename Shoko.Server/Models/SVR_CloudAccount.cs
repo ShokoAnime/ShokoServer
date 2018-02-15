@@ -5,6 +5,7 @@ using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
+using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -92,7 +93,7 @@ namespace Shoko.Server.Models
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            FileSystemResult<IFileSystem> res = _plugin.Init(Name, new UI.AuthProvider(), auth, ConnectionString);
+            FileSystemResult<IFileSystem> res = _plugin.Init(Name, ShokoServer.Instance.OAuthProvider, auth, ConnectionString);
             if (res == null || !res.IsOk)
                 throw new Exception("Unable to connect to '" + Provider + "'");
             string userauth = res.Result.GetUserAuthorization();

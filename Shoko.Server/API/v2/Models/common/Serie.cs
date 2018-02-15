@@ -17,10 +17,7 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class Serie : BaseDirectory, IComparable
     {
-        public override string type
-        {
-            get { return "serie"; }
-        }
+        public override string type => "serie";
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
@@ -32,7 +29,7 @@ namespace Shoko.Server.API.v2.Models.common
         public int ismovie { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public long filesize { get; set; } 
+        public long filesize { get; set; }
 
         public Serie()
         {
@@ -55,9 +52,8 @@ namespace Shoko.Server.API.v2.Models.common
 
         public static Serie GenerateFromAniDB_Anime(NancyContext ctx, SVR_AniDB_Anime anime, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
-            Serie sr;
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) ?? anime.CreateAnimeSeriesAndGroup();
-            sr = GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpics, pic, tagfilter);
+            var sr = GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpics, pic, tagfilter);
             return sr;
         }
 

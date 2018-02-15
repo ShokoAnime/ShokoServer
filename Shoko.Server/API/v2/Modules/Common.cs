@@ -2017,9 +2017,11 @@ namespace Shoko.Server.API.v2.Modules
         {
             Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
-            Serie ser = Serie.GenerateFromAnimeSeries(Context, RepoFactory.AnimeSeries.GetByID(series_id), user.JMMUserID,
+            var ser = RepoFactory.AnimeSeries.GetByID(series_id);
+            if (ser == null) return APIStatus.NotFound("Series does not exist.");
+            Serie sr = Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID,
                 nocast, notag, level, all, allpic, pic, tagfilter);
-            return ser;
+            return sr;
         }
 
         /// <summary>

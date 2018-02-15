@@ -1571,19 +1571,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         private CL_AniDB_Anime GenerateContract(ISessionWrapper session, List<AniDB_Anime_Title> titles)
         {
             List<CL_AniDB_Character> characters = GetCharactersContract();
-            List<MovieDB_Fanart> movDbFanart = null;
-            List<TvDB_ImageFanart> tvDbFanart = null;
-            List<TvDB_ImageWideBanner> tvDbBanners = null;
 
-            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
-            {
-                movDbFanart = GetMovieDBFanarts(session);
-            }
-            else
-            {
-                tvDbFanart = GetTvDBImageFanarts();
-                tvDbBanners = GetTvDBImageWideBanners();
-            }
+            var movDbFanart = GetMovieDBFanarts(session);
+            var tvDbFanart = GetTvDBImageFanarts();
+            var tvDbBanners = GetTvDBImageWideBanners();
 
             CL_AniDB_Anime cl = GenerateContract(titles, null, characters, movDbFanart, tvDbFanart, tvDbBanners);
             AniDB_Anime_DefaultImage defFanart = GetDefaultFanart(session);
@@ -1613,33 +1604,34 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 cl.DefaultImageWideBanner = defaultImages.WideBanner?.ToContract();
             }
 
-            if (this.GetAnimeTypeEnum() == Shoko.Models.Enums.AnimeType.Movie)
+            cl.Fanarts = new List<CL_AniDB_Anime_DefaultImage>();
+            if (movDbFanart != null && movDbFanart.Any())
             {
-                cl.Fanarts = movDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
-                    {
-                        ImageType = (int) ImageEntityType.MovieDB_FanArt,
-                        MovieFanart = a,
-                        AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
-                    })
-                    .ToList();
+                cl.Fanarts.AddRange(movDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
+                {
+                    ImageType = (int) ImageEntityType.MovieDB_FanArt,
+                    MovieFanart = a,
+                    AniDB_Anime_DefaultImageID = a.MovieDB_FanartID
+                }));
             }
-            else // Not a movie
+
+            if (tvDbFanart != null && tvDbFanart.Any())
             {
-                cl.Fanarts = tvDbFanart?.Select(a => new CL_AniDB_Anime_DefaultImage
-                    {
-                        ImageType = (int) ImageEntityType.TvDB_FanArt,
-                        TVFanart = a,
-                        AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
-                    })
-                    .ToList();
-                cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
-                    {
-                        ImageType = (int) ImageEntityType.TvDB_Banner,
-                        TVWideBanner = a,
-                        AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
-                    })
-                    .ToList();
+                cl.Fanarts.AddRange(tvDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
+                {
+                    ImageType = (int) ImageEntityType.TvDB_FanArt,
+                    TVFanart = a,
+                    AniDB_Anime_DefaultImageID = a.TvDB_ImageFanartID
+                }));
             }
+
+            cl.Banners = tvDbBanners?.Select(a => new CL_AniDB_Anime_DefaultImage
+                             {
+                                 ImageType = (int) ImageEntityType.TvDB_Banner,
+                                 TVWideBanner = a,
+                                 AniDB_Anime_DefaultImageID = a.TvDB_ImageWideBannerID
+                             })
+                             .ToList();
 
             if (cl.Fanarts?.Count == 0) cl.Fanarts = null;
             if (cl.Banners?.Count == 0) cl.Banners = null;
