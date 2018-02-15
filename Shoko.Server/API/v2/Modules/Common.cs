@@ -143,7 +143,9 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
             Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
             Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
-            Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
+            Get["/serie/calendar", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
+            Get["/serie/calendar/refresh", true] = async (x, ct) => await Task.Factory.StartNew(SerieCalendarRefresh, ct);
+            Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct); /* [deprecated] user /api/serie/calendar */
 
             #endregion
 
@@ -1606,28 +1608,51 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
+        /// Handle /api/serie/calendar/refresh
+        /// </summary>
+        /// <returns>API status</returns>
+        private object SerieCalendarRefresh()
+        {
+            try
+            {
+                Importer.CheckForCalendarUpdate(true);
+                return APIStatus.OK();
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.InternalError(ex.ToString());
+            }
+            
+        }
+
+        /// <summary>
         /// Handle /api/serie/soon
+        /// Handle /api/serie/calendar
         /// </summary>
         /// <returns>Group</returns>
         private object SeriesSoon()
         {
             JMMUser user = (JMMUser)Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
-            
-            ParallelQuery<SVR_AniDB_Anime> allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel().Where(a => !a.Contract.AniDBAnime.AllTags.Split('|').FindInEnumerable(user.GetHideCategories()));
             DateTime now = DateTime.Now;
-            List<Serie> result = allSeries.Where(ser =>
+
+            ParallelQuery<SVR_AniDB_Anime> allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel().Where(a => !a.Contract.AniDBAnime.AllTags.Split('|').FindInEnumerable(user.GetHideCategories())).Where(a => a.AirDate != null).Where(x => x.AirDate > now);
+            allSeries = allSeries.OrderBy(x =>
+                x.AirDate != null ? x.AirDate :
+                null
+                );
+            List<SVR_AniDB_Anime> temp = allSeries.ToList(); // without this offset/limit wouldn't work correct
+            
+            int offset_count = 0;
+            int anime_count = 0;
+            List<Serie> result = temp.Where(ser =>
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AnimeID);
                 if (ser == null) { return false; }
-                if (anime.AirDate != null)
-                {
-                    if (now > anime.AirDate.Value) return false;
-                }
-                else
-                {
-                    return false;
-                }
+                if (para.query != null) { if (para.query.ToLower().Contains("d")) { int days = 0; if (int.TryParse(para.query.Substring(0, para.query.Length - 1), out days)) { if (now.AddDays(para.limit) > anime.AirDate.Value) return false; } } }
+                if (para.offset != 0) { if (offset_count < para.offset) { offset_count++; return false; } }
+                if (para.limit != 0) { if (anime_count >= para.limit) { return false; } }
+                anime_count++;
                 return true;
             }).Select(ser => Serie.GenerateFromAniDB_Anime(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).OrderBy(a => a.name).ToList();
 

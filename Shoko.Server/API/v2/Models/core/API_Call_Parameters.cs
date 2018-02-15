@@ -6,7 +6,7 @@
     public class API_Call_Parameters
     {
         /// <summary>
-        /// String used in searching
+        /// String used in searching or as parameter in 'soon'
         /// </summary>
         public string query { get; set; }
 
