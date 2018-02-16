@@ -210,3 +210,9 @@ JMMServer/Images/Unused/
 # Jetbrains
 /.idea/
 /Shoko.Server.VC.db
+
+Installers/Advanced Installer/Shoko Server-cache/
+
+Installers/Advanced Installer/Shoko Server/Setup Files/
+
+Installers/Inno Script/Output/
