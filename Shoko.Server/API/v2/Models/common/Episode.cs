@@ -24,9 +24,6 @@ namespace Shoko.Server.API.v2.Models.common
         public string season { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public string votes { get; set; }
-
-        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int view { get; set; }
 
         [DataMember]

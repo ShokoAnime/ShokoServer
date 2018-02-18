@@ -76,6 +76,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             sr.rating = Math.Round(contract.AniDBAnime.AniDBAnime.Rating / 100D, 1)
                 .ToString(CultureInfo.InvariantCulture);
+            sr.votes = contract.AniDBAnime.AniDBAnime.VoteCount.ToString();
             AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.Anime) ??
                               RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp);
             if (vote != null)
