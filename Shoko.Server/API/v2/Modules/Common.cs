@@ -1869,7 +1869,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser)Context.CurrentUser;
             if (para.id != 0)
             {
-                return RepoFactory.AnimeSeries.GetByAnimeID(para.id)?.AllGroupsAbove;
+                return RepoFactory.AnimeSeries.GetByID(para.id)?.AllGroupsAbove;
             }
             return APIStatus.BadRequest("missing 'id'");
         }
