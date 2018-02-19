@@ -146,6 +146,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/calendar", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
             Get["/serie/calendar/refresh", true] = async (x, ct) => await Task.Factory.StartNew(SerieCalendarRefresh, ct);
             Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct); /* [deprecated] user /api/serie/calendar */
+            Get["/serie/groups", true] = async (x, ct) => await Task.Factory.StartNew(GetSeriesGroups, ct);
 
             #endregion
 
@@ -1856,6 +1857,23 @@ namespace Shoko.Server.API.v2.Modules
             }
             return APIStatus.BadRequest("missing 'id'");
         }
+
+        /// <summary>
+        /// Handle /api/serie/groups?id=...
+        /// Get all related AnimeGroups for a series ID
+        /// </summary>
+        /// <returns>AnimeGroup</returns>
+        private object GetSeriesGroups()
+        {
+            API_Call_Parameters para = this.Bind();
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            if (para.id != 0)
+            {
+                return RepoFactory.AnimeSeries.GetByAnimeID(para.id)?.AllGroupsAbove;
+            }
+            return APIStatus.BadRequest("missing 'id'");
+        }
+
 
         #region internal function
 
