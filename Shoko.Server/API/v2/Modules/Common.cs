@@ -143,6 +143,9 @@ namespace Shoko.Server.API.v2.Modules
             Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
             Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
             Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
+            Get["/serie/bookmark", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmark, ct);
+            Get["/serie/bookmark/add", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkAdd, ct);
+            Get["/serie/bookmark/remove", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkRemove, ct);
             Get["/serie/calendar", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
             Get["/serie/calendar/refresh", true] = async (x, ct) => await Task.Factory.StartNew(SerieCalendarRefresh, ct);
             Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct); /* [deprecated] user /api/serie/calendar */
@@ -1606,6 +1609,92 @@ namespace Shoko.Server.API.v2.Modules
                 url = Request.Url
             };
             return group;
+        }
+
+        /// <summary>
+        /// Handle /api/serie/bookmark
+        /// </summary>
+        /// <returns>List<Serie></returns>
+        private object SeriesBookmark()
+        {
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            List<Serie> result = RepoFactory.BookmarkedAnime.GetAll().Select(ser => Serie.GenerateFromBookmark(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
+
+            Group group = new Group
+            {
+                id = 0,
+                name = "Bookmark",
+                series = result,
+                size = result.Count,
+                summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
+                url = Request.Url
+            };
+            return group;
+        }
+
+        /// <summary>
+        /// Handle /api/serie/bookmark/add
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object SeriesBookmarkAdd()
+        {
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            BookmarkedAnime ba = null;
+            if (para.id != 0)
+            {
+                ba = RepoFactory.BookmarkedAnime.GetByAnimeID(para.id);
+                if (ba == null)
+                {
+                    ba = new BookmarkedAnime();
+                    ba.AnimeID = para.id;
+                    ba.Priority = 1;
+                    ba.Notes = "";
+                    ba.Downloading = 0;
+                    RepoFactory.BookmarkedAnime.Save(ba);
+                    return APIStatus.OK();
+                }
+                else
+                {
+                    return APIStatus.OK("already added");
+                }
+            }
+            else
+            {
+                return APIStatus.BadRequest();
+            }
+        }
+
+        /// <summary>
+        /// Handle /api/serie/bookmark/remove
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object SeriesBookmarkRemove()
+        {
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            BookmarkedAnime ba = null;
+            if (para.id != 0)
+            {
+                ba = RepoFactory.BookmarkedAnime.GetByAnimeID(para.id);
+                if (ba != null)
+                {
+                    RepoFactory.BookmarkedAnime.Delete(ba);
+                    return APIStatus.OK();
+                }
+                else
+                {
+                    return APIStatus.NotFound();
+                }
+            }
+            else
+            {
+                return APIStatus.BadRequest();
+            }
         }
 
         /// <summary>

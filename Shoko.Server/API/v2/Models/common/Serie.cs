@@ -19,6 +19,9 @@ namespace Shoko.Server.API.v2.Models.common
     {
         public override string type => "serie";
 
+        [DataMember(IsRequired = true, EmitDefaultValue = true)]
+        public int aid { get; set; }
+
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
 
@@ -50,6 +53,23 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
+        public static Serie GenerateFromBookmark(NancyContext ctx, BookmarkedAnime bookmark, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+        {
+            SVR_AniDB_Anime aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
+            if (aniDB_Anime == null)
+            {
+                Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
+                cr_anime.Save();
+
+                Serie empty_serie = new Serie();
+                empty_serie.id = 0;
+                empty_serie.name = "GetAnimeInfoHTTP";
+                empty_serie.aid = bookmark.AnimeID;
+                return empty_serie;
+            }
+            return GenerateFromAniDB_Anime(ctx, aniDB_Anime, uid, nocast, notag, level, all, allpics, pic, tagfilter);
+        }
+
         public static Serie GenerateFromAniDB_Anime(NancyContext ctx, SVR_AniDB_Anime anime, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) ?? anime.CreateAnimeSeriesAndGroup();
@@ -66,6 +86,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (contract == null) ser.UpdateContract();
 
             sr.id = ser.AnimeSeriesID;
+            sr.aid = ser.AniDB_ID;
             sr.summary = contract.AniDBAnime.AniDBAnime.Description;
             sr.year = contract.AniDBAnime.AniDBAnime.BeginYear.ToString();
             var airdate = ser.AirDate;
