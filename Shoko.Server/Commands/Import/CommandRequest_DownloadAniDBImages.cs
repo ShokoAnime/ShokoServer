@@ -213,6 +213,7 @@ namespace Shoko.Server.Commands
             {
                 logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} - {1}", AnimeID, ex);
             }
+            AniDbRateLimiter.Instance.ResetRate();
         }
 
         private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
