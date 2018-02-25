@@ -256,9 +256,10 @@ namespace Shoko.Server
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
-                contract.IsBanned = ShokoService.AnidbProcessor.IsBanned;
-                contract.BanReason = ShokoService.AnidbProcessor.BanTime.ToString();
-                contract.BanOrigin = ShokoService.AnidbProcessor.BanOrigin;
+                var helper = ShokoService.AnidbProcessor;
+                contract.IsBanned = helper.IsHttpBanned || helper.IsUdpBanned;
+                contract.BanReason = (helper.IsHttpBanned ? helper.HttpBanTime : helper.UdpBanTime).ToString();
+                contract.BanOrigin = helper.BanOrigin;
             }
             catch (Exception ex)
             {

@@ -27,7 +27,32 @@ namespace Shoko.Server.Repositories.Direct
             (int) CommandRequestType.ValidateAllImages
         };
 
-        private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
+        private static readonly HashSet<int> AniDbUdpCommands = new HashSet<int>
+        {
+            (int) CommandRequestType.AniDB_AddFileUDP,
+            (int) CommandRequestType.AniDB_DeleteFileUDP,
+            (int) CommandRequestType.AniDB_GetCalendar,
+            (int) CommandRequestType.AniDB_GetEpisodeUDP,
+            (int) CommandRequestType.AniDB_GetFileUDP,
+            (int) CommandRequestType.AniDB_GetMyListFile,
+            (int) CommandRequestType.AniDB_GetReleaseGroup,
+            (int) CommandRequestType.AniDB_GetReleaseGroupStatus,
+            (int) CommandRequestType.AniDB_GetReviews, // this isn't used.
+            (int) CommandRequestType.AniDB_GetUpdated,
+            (int) CommandRequestType.AniDB_UpdateWatchedUDP,
+            (int) CommandRequestType.AniDB_UpdateMylistStats,
+            (int) CommandRequestType.AniDB_VoteAnime
+
+        };
+
+        private static readonly HashSet<int> AniDbHttpCommands = new HashSet<int>
+        {
+            (int) CommandRequestType.AniDB_GetAnimeHTTP,
+            (int) CommandRequestType.AniDB_SyncMyList,
+            (int) CommandRequestType.AniDB_SyncVotes,
+        };
+
+    private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
             .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
             .ToHashSet();
 
@@ -94,7 +119,15 @@ namespace Shoko.Server.Repositories.Direct
                         .ThenBy(cr => cr.DateTimeUpdated).Asc
                         .Take(1)
                         .List<CommandRequest>();
-                    if (crs.Count > 0) return crs[0];
+                    if (crs.Count > 0)
+                    {
+                        if (ShokoService.AnidbProcessor.IsHttpBanned)
+                            crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
+                        if (ShokoService.AnidbProcessor.IsUdpBanned)
+                            crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
+
+                        return crs[0];
+                    }
 
                     return null;
                 }

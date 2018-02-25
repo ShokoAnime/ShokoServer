@@ -65,8 +65,9 @@ namespace Shoko.Server.Commands
                             extraParams = new string[0]
                         };
                         pauseTime = null;
-                        ShokoService.AnidbProcessor.IsBanned = false;
-                        ShokoService.AnidbProcessor.BanOrigin = string.Empty;
+                        ShokoService.AnidbProcessor.IsUdpBanned = false;
+                        ShokoService.AnidbProcessor.IsHttpBanned = false;
+                        
                     }
                     ServerInfo.Instance.GeneralQueuePaused = paused;
                     ServerInfo.Instance.GeneralQueueRunning = !paused;

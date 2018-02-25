@@ -46,10 +46,41 @@ namespace Shoko.Server
 
         private Timer logoutTimer;
 
+        [Obsolete("Use HTTP/UDP ban time")]
         public DateTime? BanTime { get; set; }
 
+
+        public DateTime? HttpBanTime { get; set; }
+        public DateTime? UdpBanTime { get; set; }
+
+        [Obsolete("Use HTTP/UDP ban status")]
         private bool isBanned;
 
+        private bool _isHttpBanned;
+        private bool _isUdpBanned;
+
+        public bool IsHttpBanned
+        {
+            get => _isHttpBanned;
+            set
+            {
+                _isHttpBanned = value;
+                HttpBanTime = DateTime.Now;
+            }
+        }
+
+        public bool IsUdpBanned
+        {
+            get => _isUdpBanned;
+            set
+            {
+                _isUdpBanned = value;
+                UdpBanTime = DateTime.Now;
+            }
+        }
+
+
+        [Obsolete("Use HTTP/UDP ban status")]
         public bool IsBanned
         {
             get => isBanned;
@@ -228,7 +259,7 @@ namespace Shoko.Server
                 // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
                 if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
                     tsPing.TotalSeconds >= Constants.PingFrequency &&
-                    !IsBanned && !ExtendPauseSecs.HasValue)
+                    !IsUdpBanned && !ExtendPauseSecs.HasValue)
                 {
                     AniDBCommand_Ping ping = new AniDBCommand_Ping();
                     ping.Init();
