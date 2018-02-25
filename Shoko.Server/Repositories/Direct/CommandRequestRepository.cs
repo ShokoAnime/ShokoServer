@@ -229,11 +229,15 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                int crs = session.QueryOver<CommandRequest>()
-                    .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
-                    .RowCount();
+                var crs = session.QueryOver<CommandRequest>()
+                    .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray()).List();
 
-                return crs;
+                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                    crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
+                if (ShokoService.AnidbProcessor.IsUdpBanned)
+                    crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
+
+                return crs.Count;
             }
         }
 
