@@ -117,7 +117,6 @@ namespace Shoko.Server.Repositories.Direct
                         .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
                         .OrderBy(cr => cr.Priority).Asc
                         .ThenBy(cr => cr.DateTimeUpdated).Asc
-                        .Take(1)
                         .List<CommandRequest>();
 
                     if (ShokoService.AnidbProcessor.IsHttpBanned)
