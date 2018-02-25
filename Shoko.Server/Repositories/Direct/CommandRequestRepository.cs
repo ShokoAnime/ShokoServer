@@ -119,17 +119,13 @@ namespace Shoko.Server.Repositories.Direct
                         .ThenBy(cr => cr.DateTimeUpdated).Asc
                         .Take(1)
                         .List<CommandRequest>();
-                    if (crs.Count > 0)
-                    {
-                        if (ShokoService.AnidbProcessor.IsHttpBanned)
-                            crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
-                        if (ShokoService.AnidbProcessor.IsUdpBanned)
-                            crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
 
-                        return crs[0];
-                    }
+                    if (ShokoService.AnidbProcessor.IsHttpBanned)
+                        crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
+                    if (ShokoService.AnidbProcessor.IsUdpBanned)
+                        crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
 
-                    return null;
+                    return crs.Count > 0 ? crs[0] : null;
                 }
             }
             catch (Exception e)
