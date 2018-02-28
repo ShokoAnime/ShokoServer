@@ -1797,7 +1797,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id != 0)
             {
-                return GetSeriesInfoByFolder(para.id, user.JMMUserID, para.limit, para.tagfilter);
+                return GetSeriesInfoByFolder(para.id);
             }
             return APIStatus.InternalError("missing 'id'");
         }
@@ -2006,60 +2006,96 @@ namespace Shoko.Server.API.v2.Modules
             return allseries;
         }
 
+        class Info
+        {
+            public int id { get; set; }
+            public long filesize { get; set; }
+            public int size { get; set; }
+            public Dictionary<string, List<SeriesInfo>> paths { get; set; }
+        }
+
+        class SeriesInfo
+        {
+            public string name { get; set; }
+            public int id { get; set; }
+            public long filesize { get; set; }
+            public int size { get; set; }
+        }
+
         /// <summary>
         /// Return SeriesInfo inside ObjectList that resine inside folder
         /// </summary>
         /// <param name="id">import folder id</param>
-        /// <param name="uid">user id</param>
-        /// <param name="limit"></param>
-        /// <returns>List<ObjectList></returns>
-        internal object GetSeriesInfoByFolder(int id, int uid, int limit, TagFilter.Filter tagfilter)
+        /// <returns>Info class above</returns>
+        internal object GetSeriesInfoByFolder(int id)
         {
-            Dictionary<string, long> tmp_list = new Dictionary<string, long>();
-            List<object> allseries = new List<object>();
-            List<SVR_VideoLocal> vlpall = RepoFactory.VideoLocalPlace.GetByImportFolder(id)
-                .Select(a => a.VideoLocal)
-                .ToList();
-
-            if (limit == 0)
+            Info info = new Info()
             {
-                // hardcoded limit
-                limit = 100;
-            }
-
-            foreach (SVR_VideoLocal vl in vlpall)
+                id = id
+            };
+            long filesize = 0;
+            int size = 0;
+            Dictionary<string, List<SeriesInfo>> output = new Dictionary<string, List<SeriesInfo>>();
+            var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
+            // each place counts in the filesize, so we use it
+            foreach (SVR_VideoLocal_Place place in vlps)
             {
-                Serie ser = Serie.GenerateFromVideoLocal(Context, vl, uid, true, true, 2, false, false, 0, tagfilter);
+                // The actual size is in VideoLocal
+                var vl = place?.VideoLocal;
+                if (vl?.FileSize == null) continue;
+                if (string.IsNullOrEmpty(place.FilePath)) continue;
+                // There's usually only one, but shit happens
+                var seriesList = vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).DistinctBy(a => a.AnimeSeriesID)
+                    .ToList();
 
-                ObjectList objl = new ObjectList(ser.name, ObjectList.ListType.SERIE, ser.filesize);
-                if (ser.name != null)
+                string path = (Path.GetDirectoryName(place.FilePath) ?? string.Empty) + "/";
+                bool first = true;
+                foreach (var series in seriesList)
                 {
-                    if (!tmp_list.ContainsKey(ser.name))
+                    // optimization in large dictionary search. Since we just added something,
+                    // we know that it exists now
+                    if (!first || output.ContainsKey(path))
                     {
-                        tmp_list.Add(ser.name, ser.filesize);
-                        allseries.Add(objl);
+                        SeriesInfo ser = output[path].FirstOrDefault(a => a.id == series.AnimeSeriesID);
+                        if (ser == null)
+                        {
+                            ser = new SeriesInfo()
+                            {
+                                id = series.AnimeSeriesID,
+                                name = series.GetSeriesName()
+                            };
+                            output[path].Add(ser);
+                        }
+
+                        ser.filesize += vl.FileSize;
+                        ser.size++;
+                        filesize += vl.FileSize;
+                        size++;
                     }
                     else
                     {
-                        if (tmp_list[ser.name] != ser.filesize)
+                        SeriesInfo ser = new SeriesInfo()
                         {
-                            while (tmp_list.ContainsKey(objl.name))
-                            {
-                                objl.name = objl.name + "*";
-                            }
-                            tmp_list.Add(objl.name, ser.filesize);
-                            allseries.Add(objl);
-                        }
+                            id = series.AnimeSeriesID,
+                            filesize = vl.FileSize,
+                            name = series.GetSeriesName(),
+                            size = 1
+                        };
+                        output.Add(path, new List<SeriesInfo> {ser});
+
+                        filesize += vl.FileSize;
+                        size++;
                     }
-                }
-                
-                if (allseries.Count >= limit)
-                {
-                    break;
+
+                    if (first) first = false;
                 }
             }
 
-            return allseries;
+            info.filesize = filesize;
+            info.size = size;
+            info.paths = output;
+
+            return info;
         }
 
         /// <summary>
