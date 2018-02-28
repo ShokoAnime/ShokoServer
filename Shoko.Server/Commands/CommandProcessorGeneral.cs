@@ -157,11 +157,6 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            while (workerCommands.IsBusy)
-            {
-                Thread.Sleep(200);
-            }
-
             processingCommands = true;
             QueueState = new QueueStateStruct
             {

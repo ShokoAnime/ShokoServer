@@ -231,10 +231,5 @@ namespace Shoko.Server.Commands
                 QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
             }
         }
-
-        public void UpdateQueue()
-        {
-            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();
-        }
     }
 }
