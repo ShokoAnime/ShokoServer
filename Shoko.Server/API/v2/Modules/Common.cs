@@ -2011,15 +2011,22 @@ namespace Shoko.Server.API.v2.Modules
             public int id { get; set; }
             public long filesize { get; set; }
             public int size { get; set; }
-            public Dictionary<string, List<SeriesInfo>> paths { get; set; }
+            public IDictionary<string, List<SeriesInfo>> paths { get; set; }
         }
 
-        class SeriesInfo
+        class SeriesInfo : IComparable
         {
             public string name { get; set; }
             public int id { get; set; }
             public long filesize { get; set; }
             public int size { get; set; }
+            public int CompareTo(object obj)
+            {
+                if (obj is SeriesInfo info)
+                    return string.Compare(name, info.name, StringComparison.Ordinal);
+
+                return 0;
+            }
         }
 
         /// <summary>
@@ -2035,7 +2042,7 @@ namespace Shoko.Server.API.v2.Modules
             };
             long filesize = 0;
             int size = 0;
-            Dictionary<string, List<SeriesInfo>> output = new Dictionary<string, List<SeriesInfo>>();
+            SortedDictionary<string, List<SeriesInfo>> output = new SortedDictionary<string, List<SeriesInfo>>();
             var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
             // each place counts in the filesize, so we use it
             foreach (SVR_VideoLocal_Place place in vlps)
@@ -2065,6 +2072,7 @@ namespace Shoko.Server.API.v2.Modules
                                 name = series.GetSeriesName()
                             };
                             output[path].Add(ser);
+                            if (output[path].Count > 1) output[path].Sort();
                         }
 
                         ser.filesize += vl.FileSize;
