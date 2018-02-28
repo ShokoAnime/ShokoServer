@@ -141,7 +141,6 @@ namespace Shoko.Server.Commands
         public void Init()
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
             processingCommands = true;
 
             QueueState = new QueueStateStruct
@@ -180,10 +179,7 @@ namespace Shoko.Server.Commands
             while (true)
             {
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 // if paused we will sleep for 5 seconds, and the try again
                 // we will remove the pause if it was set more than 6 hours ago
@@ -193,10 +189,7 @@ namespace Shoko.Server.Commands
                     try
                     {
                         if (workerCommands.CancellationPending)
-                        {
-                            e.Cancel = true;
                             return;
-                        }
 
                         TimeSpan ts = DateTime.Now - pauseTime.Value;
                         if (ts.TotalHours >= 6)
@@ -214,20 +207,14 @@ namespace Shoko.Server.Commands
                 if (crdb == null) return;
 
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 ICommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
                     return;
 
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 QueueState = icr.PrettyDescription;
 

@@ -327,17 +327,16 @@ namespace Shoko.UI
             }
         }
 
-        void btnImagesClear_Click(object sender, RoutedEventArgs e)
+        async void btnImagesClear_Click(object sender, RoutedEventArgs e)
         {
+            btnImagesClear.IsEnabled = true;
             Task task = new Task(() =>
             {
                 ShokoService.CmdProcessorImages.Stop();
 
                 // wait until the queue stops
-                while (ShokoService.CmdProcessorImages.ProcessingCommands)
-                {
+                while (ShokoService.CmdProcessorImages.ProcessingCommands || ShokoService.CmdProcessorImages.IsWorkerBusy)
                     Thread.Sleep(200);
-                }
                 Thread.Sleep(200);
 
                 RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
@@ -347,76 +346,74 @@ namespace Shoko.UI
 
             try
             {
-                Cursor = Cursors.Wait;
                 task.Start();
-                task.Wait();
-                Cursor = Cursors.Arrow;
+                await task;
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex.Message);
             }
-        }
-
-        void btnGeneralClear_Click(object sender, RoutedEventArgs e)
-        {
-            Task task = new Task(() =>
+            finally
             {
-                    ShokoService.CmdProcessorGeneral.Stop();
-
-                    // wait until the queue stops
-                    while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
-                    {
-                        Thread.Sleep(200);
-                    }
-                    Thread.Sleep(200);
-
-                    RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
-
-                    ShokoService.CmdProcessorGeneral.Init();
-            });
-
-            try
-            {
-                Cursor = Cursors.Wait;
-                task.Start();
-                task.Wait();
-                Cursor = Cursors.Arrow;
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex.Message);
+                btnImagesClear.IsEnabled = true;
             }
         }
 
-        void btnHasherClear_Click(object sender, RoutedEventArgs e)
+        async void btnGeneralClear_Click(object sender, RoutedEventArgs e)
         {
+            btnGeneralClear.IsEnabled = false;
             Task task = new Task(() =>
             {
-                ShokoService.CmdProcessorHasher.Stop();
-
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorHasher.ProcessingCommands)
-                {
+                ShokoService.CmdProcessorGeneral.Stop();
+                while (ShokoService.CmdProcessorGeneral.ProcessingCommands || ShokoService.CmdProcessorGeneral.IsWorkerBusy)
                     Thread.Sleep(200);
-                }
                 Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
-
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
                 ShokoService.CmdProcessorHasher.Init();
             });
 
             try
             {
-                Cursor = Cursors.Wait;
                 task.Start();
-                task.Wait();
-                Cursor = Cursors.Arrow;
+                await task;
             }
             catch (Exception ex)
             {
                 Utils.ShowErrorMessage(ex.Message);
+            }
+            finally
+            {
+                btnGeneralClear.IsEnabled = true;
+            }
+        }
+
+        async void btnHasherClear_Click(object sender, RoutedEventArgs e)
+        {
+            btnHasherClear.IsEnabled = false;
+            Task task = new Task(() =>
+            {
+                ShokoService.CmdProcessorHasher.Stop();
+                while (ShokoService.CmdProcessorHasher.ProcessingCommands || ShokoService.CmdProcessorHasher.IsWorkerBusy)
+                    Thread.Sleep(200);
+                Thread.Sleep(200);
+
+                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
+                ShokoService.CmdProcessorHasher.Init();
+            });
+
+            try
+            {
+                task.Start();
+                await task;
+            }
+            catch (Exception ex)
+            {
+                Utils.ShowErrorMessage(ex.Message);
+            }
+            finally
+            {
+                btnHasherClear.IsEnabled = true;
             }
         }
 
