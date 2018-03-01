@@ -183,7 +183,7 @@ namespace Shoko.Server.API.v2.Models.common
                             }
                         }
                 }
-                else
+                else if (pic > 0)
                 {
                     sr.art.thumb.Add(new Art()
                     {
@@ -262,7 +262,7 @@ namespace Shoko.Server.API.v2.Models.common
                     foreach (SVR_AnimeEpisode ae in ael)
                     {
                         if (!all && (ae?.GetVideoLocals()?.Count ?? 0) == 0) continue;
-                        Episode new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, (level - 1));
+                        Episode new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, (level - 1), pic);
                         if (new_ep != null)
                         {
                             sr.eps.Add(new_ep);

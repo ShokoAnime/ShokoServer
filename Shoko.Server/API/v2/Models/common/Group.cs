@@ -62,7 +62,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 var anime = animes.FirstOrDefault();
                 Random rand = new Random();
-                if (allpic || pic > 1)
+                if (allpic || pic > 1 && pic != 0)
                 {
                     if (allpic) pic = 999;
                     int pic_index = 0;

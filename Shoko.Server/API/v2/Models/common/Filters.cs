@@ -13,47 +13,52 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class Filters : BaseDirectory
     {
-        public override string type
-        {
-            get { return "filters"; }
-        }
+        public override string type => string.Intern("filters");
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public List<Filter> filters { get; set; }
+        public List<Filters> filters { get; set; }
 
         public Filters()
         {
             art = new ArtCollection();
-            filters = new List<Filter>();
+            filters = new List<Filters>();
         }
 
-        internal static Filters GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, bool all,
-            int level, bool allpic, int pic, TagFilter.Filter tagfilter)
+        internal static Filters GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+            bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Filters f = new Filters
             {
                 id = gf.GroupFilterID,
                 name = gf.GroupFilterName
             };
-            List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetByParentID(f.id)
+
+            bool _ = false;
+            var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
+                // Not invisible in clients
                 .Where(a => a.InvisibleInClients == 0 &&
+                            // and Has groups or is a directory
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
-                             (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
-                .ToList();
-            List<Filter> filters = allGfs
-                .Where(cgf =>
-                    (cgf.FilterType & (int) GroupFilterType.Tag) != (int) GroupFilterType.Tag ||
-                    TagFilter.ProcessTags(tagfilter, new List<string> {cgf.GroupFilterName}, false).Count != 0)
-                .Select(cgf =>
+                             (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory) &&
+                            // and is not a blacklisted tag
+                            !((a.FilterType & (int) GroupFilterType.Tag) != 0 &&
+                            TagFilter.IsTagBlackListed(a.GroupFilterName, tagfilter, ref _)));
+
+            if (level > 0)
+            {
+                var filters = gfs.Select(cgf =>
                     Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic,
                         tagfilter)).ToList();
 
-            if (gf.FilterType == ((int)GroupFilterType.Season | (int)GroupFilterType.Directory))
-                f.filters = filters.OrderBy(a => a.name, new SeasonComparator()).ToList();
+                if (gf.FilterType == ((int)GroupFilterType.Season | (int)GroupFilterType.Directory))
+                    f.filters = filters.OrderBy(a => a.name, new SeasonComparator()).Cast<Filters>().ToList();
+                else
+                    f.filters = filters.OrderByNatural(a => a.name).Cast<Filters>().ToList();
+                f.size = filters.Count;
+            }
             else
-                f.filters = filters.OrderByNatural(a => a.name).ToList();
+                f.size = gfs.Count();
 
-            f.size = f.filters.Count();
             f.url = APIHelper.ConstructFilterIdUrl(ctx, f.id);
 
             return f;

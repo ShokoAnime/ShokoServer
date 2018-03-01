@@ -7,8 +7,6 @@ namespace Shoko.Server
     public static class TagFilter
     {
         // ported from python
-        // ReSharper disable once UnusedMember.Local
-        private const int version = 2; // increase with each push/edit
 
         public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
         {
@@ -60,7 +58,7 @@ namespace Shoko.Server
 
         public static readonly HashSet<string> TagBlackListSource = new HashSet<string>
         {
-            // tags containing source of serie
+            // tags containing the source of series
             "4-koma",
             "action game",
             "erotic game",
@@ -156,227 +154,132 @@ namespace Shoko.Server
 
         /// <summary>
         /// Filters tags based on settings specified in flags
-        ///    :param flags:
         ///        0b00001 : Hide AniDB Internal Tags
         ///        0b00010 : Hide Art Style Tags
         ///        0b00100 : Hide Source TransactionHelper.Work Tags
         ///        0b01000 : Hide Useful Miscellaneous Tags
         ///        0b10000 : Hide Plot Spoiler Tags
-        ///    :param string: A list of strings [ 'meta tags', 'elements', 'comedy' ]
-        ///    :return: The list of strings after filtering
         /// </summary>
-        /// <returns></returns>
+        /// <param name="strings">A list of strings [ "meta tags", "elements", "comedy" ]</param>
+        /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
+        /// <returns>the original list with items removed based on rules provided</returns>
         public static List<string> ProcessTags(Filter flags, List<string> strings, bool addOriginal = true)
         {
-            HashSet<string> toRemove = new HashSet<string>();
+            if (strings.Count == 0) return strings;
 
             bool readdOriginal = true;
 
-            var stringsSet = new HashSet<string>(strings);
-            strings.AsParallel().ForAll(a =>
+            if (strings.Count == 1)
             {
-                string tag = a.Trim().ToLowerInvariant();
-                if (flags.HasFlag(Filter.ArtStyle))
-                {
-                    if (TagBlackListArtStyle.Contains(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.Contains("censor"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                }
-                if (flags.HasFlag(Filter.Source)) // if source excluded
-                {
-                    readdOriginal = false;
-                    if (TagBlackListSource.Contains(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if ("original work".Equals(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                }
-                else
-                {
-                    if (TagBlackListSource.Contains(tag))
-                    {
-                        readdOriginal = false;
-                        return;
-                    }
-                    if ("original work".Equals(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                }
-
-                if (flags.HasFlag(Filter.Misc))
-                {
-                    if (TagBlackListUsefulHelpers.Contains(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.StartsWith("preview"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                }
-
-                if (flags.HasFlag(Filter.Plot))
-                {
-                    if (TagBlackListPlotSpoilers.Contains(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.StartsWith("plot") || tag.EndsWith(" dies") || tag.EndsWith(" end") ||
-                        tag.EndsWith(" ending"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                }
-
-                if (flags.HasFlag(Filter.AnidbInternal))
-                {
-                    if (TagBlacklistAniDBHelpers.Contains(tag))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.Contains("to be") || tag.Contains("need") || tag.Contains("needs"))
-                    {
-                        if (tag.Contains("split"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                        if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                        if (tag.Contains("merging") || tag.Contains("merged"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                        if (tag.Contains("deleting") || tag.Contains("deleted"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                        if (tag.Contains("moving") || tag.Contains("moved"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                        if (tag.Contains("improved") || tag.Contains("improving") || tag.Contains("improvement"))
-                        {
-                            lock (toRemove)
-                            {
-                                toRemove.Add(a);
-                            }
-                            return;
-                        }
-                    }
-
-                    if (tag.Contains("old animetags"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.Contains("missing"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.StartsWith("predominantly"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                        return;
-                    }
-                    if (tag.StartsWith("weekly"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add(a);
-                        }
-                    }
-                }
-            });
-
-            foreach (var a in toRemove)
-            {
-                if (stringsSet.Contains(a)) strings.Remove(a);
+                if (IsTagBlackListed(strings[0], flags, ref readdOriginal)) strings.Clear();
+                return strings;
             }
+
+            List<string> toRemove = new List<string>((int)Math.Ceiling(strings.Count / 2D));
+
+            var stringsSet = new HashSet<string>(strings);
+            strings.AsParallel().ForAll(a => MarkTagsForRemoval(a, flags, ref toRemove, ref readdOriginal));
+
+            foreach (var a in toRemove) if (stringsSet.Contains(a)) strings.Remove(a);
 
             if (readdOriginal && addOriginal) strings.Add("Original Work");
 
             return strings;
+        }
+
+        private static void MarkTagsForRemoval(string a, Filter flags, ref List<string> toRemove, ref bool readdOriginal)
+        {
+            if (IsTagBlackListed(a, flags, ref readdOriginal))
+            {
+                lock (toRemove)
+                {
+                    toRemove.Add(a);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Filters tags based on settings specified in flags
+        ///        0b00001 : Hide AniDB Internal Tags
+        ///        0b00010 : Hide Art Style Tags
+        ///        0b00100 : Hide Source TransactionHelper.Work Tags
+        ///        0b01000 : Hide Useful Miscellaneous Tags
+        ///        0b10000 : Hide Plot Spoiler Tags
+        /// </summary>
+        /// <param name="a">the tag to check</param>
+        /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
+        /// <returns>true if the tag would be removed</returns>
+        public static bool IsTagBlackListed(string a, Filter flags, ref bool readdOriginal)
+        {
+            string tag = a.Trim().ToLowerInvariant();
+            if (flags.HasFlag(Filter.ArtStyle))
+            {
+                if (TagBlackListArtStyle.Contains(tag)) return true;
+
+                if (tag.Contains("censor")) return true;
+            }
+
+            if (flags.HasFlag(Filter.Source)) // if source excluded
+            {
+                readdOriginal = false;
+                if ("original work".Equals(tag)) return true;
+
+                if (TagBlackListSource.Contains(tag)) return true;
+            }
+            else
+            {
+                if ("original work".Equals(tag)) return false;
+
+                if (TagBlackListSource.Contains(tag))
+                {
+                    readdOriginal = false;
+                    return false;
+                }
+            }
+
+            if (flags.HasFlag(Filter.Misc))
+            {
+                if (tag.StartsWith("preview")) return true;
+
+                if (TagBlackListUsefulHelpers.Contains(tag)) return true;
+            }
+
+            if (flags.HasFlag(Filter.Plot))
+            {
+                if (tag.StartsWith("plot") || tag.EndsWith(" dies") || tag.EndsWith(" end") ||
+                    tag.EndsWith(" ending")) return true;
+
+                if (TagBlackListPlotSpoilers.Contains(tag)) return true;
+            }
+
+            if (flags.HasFlag(Filter.AnidbInternal))
+            {
+                if (TagBlacklistAniDBHelpers.Contains(tag)) return true;
+
+                if (tag.StartsWith("predominantly")) return true;
+
+                if (tag.StartsWith("weekly")) return true;
+
+                if (tag.Contains("to be") || tag.Contains("need") || tag.Contains("needs"))
+                {
+                    if (tag.EndsWith("improved") || tag.EndsWith("improving") || tag.EndsWith("improvement")) return true;
+
+                    if (tag.EndsWith("merging") || tag.EndsWith("merged")) return true;
+
+                    if (tag.EndsWith("deleting") || tag.EndsWith("deleted")) return true;
+
+                    if (tag.EndsWith("moving") || tag.EndsWith("moved")) return true;
+
+                    // contains is slower, so try the others first
+                    if (tag.Contains("split")) return true;
+                }
+
+                if (tag.Contains("old animetags")) return true;
+
+                if (tag.Contains("missing")) return true;
+            }
+
+            return false;
         }
     }
 }

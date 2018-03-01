@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
 using Nancy;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
@@ -39,20 +38,20 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
                 ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
-                    level);
+                    level, pic);
             }
 
             return ep;
         }
 
-        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode
             {
@@ -91,34 +90,39 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 if (!string.IsNullOrEmpty(tvep.EpisodeName))
                     ep.name = tvep.EpisodeName;
-                if (Misc.IsImageValid(tvep.GetFullImagePath()))
-                    ep.art.thumb.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                            tvep.TvDB_EpisodeID)
-                    });
-                var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
-                if (fanarts != null && fanarts.Count > 0)
+
+                if (pic > 0)
                 {
-                    var cont_image =
-                        fanarts[new Random().Next(fanarts.Count)];
-                    ep.art.fanart.Add(new Art()
+                    if (Misc.IsImageValid(tvep.GetFullImagePath()))
+                        ep.art.thumb.Add(new Art
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
+                                tvep.TvDB_EpisodeID)
+                        });
+                    var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
+                    if (fanarts != null && fanarts.Count > 0)
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                            cont_image.AniDB_Anime_DefaultImageID),
-                        index = 0
-                    });
-                }
-                else
-                {
-                    ep.art.fanart.Add(new Art
+                        var cont_image =
+                            fanarts[new Random().Next(fanarts.Count)];
+                        ep.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                cont_image.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+                    else
                     {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                            tvep.TvDB_EpisodeID)
-                    });
+                        ep.art.fanart.Add(new Art
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
+                                tvep.TvDB_EpisodeID)
+                        });
+                    }
                 }
+
                 if (!string.IsNullOrEmpty(tvep.Overview)) ep.summary = tvep.Overview;
 
                 int zeroPadding = tvep.EpisodeNumber.ToString().Length;
@@ -135,7 +139,7 @@ namespace Shoko.Server.API.v2.Models.common
                 }
             }
             if (string.IsNullOrEmpty(ep.summary)) ep.summary = string.Intern("Episode Overview not Available");
-            if (ep.art.thumb.Count == 0)
+            if (pic > 0 && ep.art.thumb.Count == 0)
             {
                 ep.art.thumb.Add(
                     new Art {index = 0, url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")});

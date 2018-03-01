@@ -18,6 +18,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.v2.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
@@ -1245,9 +1246,9 @@ namespace Shoko.Server.API.v2.Modules
 
             if (para.id == 0)
             {
-                return GetAllEpisodes(user.JMMUserID, para.limit, (int) para.offset, para.level, para.all != 0);
+                return GetAllEpisodes(user.JMMUserID, para.limit, (int) para.offset, para.level, para.all != 0, para.pic);
             }
-            return GetEpisodeById(para.id, user.JMMUserID, para.level);
+            return GetEpisodeById(para.id, user.JMMUserID, para.level, para.pic);
         }
 
         /// <summary>
@@ -1264,7 +1265,7 @@ namespace Shoko.Server.API.v2.Modules
             SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByFilename(para.filename);
             if (aep != null)
             {
-                return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0);
+                return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0, para.pic);
             }
             return APIStatus.NotFound();
         }
@@ -1292,7 +1293,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, para.level);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, para.level, para.pic);
                     if (ep != null)
                     {
                         lst.Add(ep);
@@ -1432,7 +1433,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Return All known Episodes for current user
         /// </summary>
         /// <returns>List<Episode></returns>
-        internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all)
+        internal object GetAllEpisodes(int uid, int limit, int offset, int level, bool all, int pic)
         {
             List<Episode> eps = new List<Episode>();
             List<int> aepul = RepoFactory.AnimeEpisode_User.GetByUserID(uid).Select(a => a.AnimeEpisodeID).ToList();
@@ -1446,7 +1447,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (offset == 0)
                 {
-                    eps.Add(Episode.GenerateFromAnimeEpisodeID(Context, id, uid, level));
+                    eps.Add(Episode.GenerateFromAnimeEpisodeID(Context, id, uid, level, pic));
                     if (limit != 0)
                     {
                         if (eps.Count >= limit)
@@ -1470,14 +1471,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="id">episode id</param>
         /// <param name="uid">user id</param>
         /// <returns>Episode or APIStatus</returns>
-        internal object GetEpisodeById(int id, int uid, int level)
+        internal object GetEpisodeById(int id, int uid, int level, int pic)
         {
             if (id > 0)
             {
                 SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
                 if (aep != null)
                 {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level);
+                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level, pic);
                     if (ep != null)
                     {
                         return ep;
@@ -2771,11 +2772,15 @@ namespace Shoko.Server.API.v2.Modules
                             ((a.GroupsIds.ContainsKey(uid) && a.GroupsIds[uid].Count > 0) ||
                              (a.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory))
                 .ToList();
-            List<Filter> _filters = new List<Filter>();
+            List<Filters> _filters = new List<Filters>();
 
             foreach (SVR_GroupFilter gf in allGfs)
             {
-                Filter filter = Filter.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
+                Filters filter;
+                if((gf.FilterType & (int) GroupFilterType.Directory) == 0)
+                    filter = Filter.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
+                else
+                    filter = Filters.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
                 _filters.Add(filter);
             }
 
@@ -2821,10 +2826,10 @@ namespace Shoko.Server.API.v2.Modules
         {
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(id);
 
-            if ((gf.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
+            if ((gf.FilterType & (int) GroupFilterType.Directory) != 0)
             {
                 // if it's a directory, it IS a filter-inception;
-                Filters fgs = Filters.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, all, level, allpic, pic, tagfilter);
+                Filters fgs = Filters.GenerateFromGroupFilter(Context, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
                 return fgs;
             }
 

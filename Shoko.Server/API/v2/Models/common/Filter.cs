@@ -11,9 +11,9 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.API.v2.Models.common
 {
     [DataContract]
-    public class Filter : BaseDirectory
+    public class Filter : Filters
     {
-        public override string type => "filter";
+        public override string type => string.Intern("filter");
 
         // We need to rethink this
         // There is too much duplicated info.
@@ -32,7 +32,7 @@ namespace Shoko.Server.API.v2.Models.common
             groups = new List<Group>();
         }
 
-        internal static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+        internal new static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
             bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             List<Group> groups = new List<Group>();
@@ -52,36 +52,44 @@ namespace Shoko.Server.API.v2.Models.common
                     // Populate Random Art
                     List<SVR_AnimeGroup> groupsList;
 
-                    List<CL_AniDB_Anime> arts;
+                    List<CL_AniDB_Anime> arts = null;
                     if (gf.ApplyToSeries == 1 && gf.SeriesIds.ContainsKey(uid))
                     {
                         var seriesList = gf.SeriesIds[uid].Select(RepoFactory.AnimeSeries.GetByID).ToList();
                         groupsList = seriesList.Select(a => a.AnimeGroupID).Distinct()
                             .Select(RepoFactory.AnimeGroup.GetByID).ToList();
-                        arts = seriesList.Where(SeriesHasCompleteArt).Select(a => a?.GetAnime()?.Contract?.AniDBAnime)
-                            .Where(a => a != null).ToList();
-                        if (arts.Count == 0)
-                            arts = seriesList.Where(SeriesHasMostlyCompleteArt)
-                                .Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null).ToList();
-                        if (arts.Count == 0)
-                            arts = seriesList.Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null)
-                                .ToList();
+                        if (pic == 1)
+                        {
+                            arts = seriesList.Where(SeriesHasCompleteArt)
+                                .Select(a => a?.GetAnime()?.Contract?.AniDBAnime)
+                                .Where(a => a != null).ToList();
+                            if (arts.Count == 0)
+                                arts = seriesList.Where(SeriesHasMostlyCompleteArt)
+                                    .Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null).ToList();
+                            if (arts.Count == 0)
+                                arts = seriesList.Select(a => a?.GetAnime()?.Contract?.AniDBAnime).Where(a => a != null)
+                                    .ToList();
+                        }
                     }
                     else
                     {
                         groupsList = groupsh.Select(a => RepoFactory.AnimeGroup.GetByID(a))
                             .Where(a => a != null)
                             .ToList();
-                        arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
-                        if (arts.Count == 0)
-                            arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup)
-                                .ToList();
-                        if (arts.Count == 0)
-                            arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0).Select(GetAnimeContractFromGroup)
-                                .ToList();
+                        if (pic == 1)
+                        {
+                            arts = groupsList.Where(GroupHasCompleteArt).Select(GetAnimeContractFromGroup).ToList();
+                            if (arts.Count == 0)
+                                arts = groupsList.Where(GroupHasMostlyCompleteArt).Select(GetAnimeContractFromGroup)
+                                    .ToList();
+                            if (arts.Count == 0)
+                                arts = groupsList.Where(a => (a.Anime?.Count ?? 0) > 0)
+                                    .Select(GetAnimeContractFromGroup)
+                                    .ToList();
+                        }
                     }
 
-                    if (arts.Count > 0)
+                    if (arts?.Count > 0)
                     {
                         Random rand = new Random();
                         var anime = arts[rand.Next(arts.Count)];
