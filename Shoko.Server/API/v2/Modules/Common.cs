@@ -2012,7 +2012,7 @@ namespace Shoko.Server.API.v2.Modules
             public int id { get; set; }
             public long filesize { get; set; }
             public int size { get; set; }
-            public IDictionary<string, List<SeriesInfo>> paths { get; set; }
+            public List<SeriesInfo> series { get; set; }
         }
 
         class SeriesInfo : IComparable
@@ -2021,6 +2021,7 @@ namespace Shoko.Server.API.v2.Modules
             public int id { get; set; }
             public long filesize { get; set; }
             public int size { get; set; }
+            public List<string> paths { get; set; }
             public int CompareTo(object obj)
             {
                 if (obj is SeriesInfo info)
@@ -2043,7 +2044,7 @@ namespace Shoko.Server.API.v2.Modules
             };
             long filesize = 0;
             int size = 0;
-            SortedDictionary<string, List<SeriesInfo>> output = new SortedDictionary<string, List<SeriesInfo>>();
+            Dictionary<int, SeriesInfo> output = new Dictionary<int, SeriesInfo>();
             var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
             // each place counts in the filesize, so we use it
             foreach (SVR_VideoLocal_Place place in vlps)
@@ -2060,24 +2061,14 @@ namespace Shoko.Server.API.v2.Modules
                 bool first = true;
                 foreach (var series in seriesList)
                 {
-                    // optimization in large dictionary search. Since we just added something,
-                    // we know that it exists now
-                    if (!first || output.ContainsKey(path))
+                    if (!first || output.ContainsKey(series.AnimeSeriesID))
                     {
-                        SeriesInfo ser = output[path].FirstOrDefault(a => a.id == series.AnimeSeriesID);
-                        if (ser == null)
-                        {
-                            ser = new SeriesInfo()
-                            {
-                                id = series.AnimeSeriesID,
-                                name = series.GetSeriesName()
-                            };
-                            output[path].Add(ser);
-                            if (output[path].Count > 1) output[path].Sort();
-                        }
+                        SeriesInfo ser = output[series.AnimeSeriesID];
 
                         ser.filesize += vl.FileSize;
                         ser.size++;
+                        if (!ser.paths.Contains(path)) ser.paths.Add(path);
+
                         filesize += vl.FileSize;
                         size++;
                     }
@@ -2088,21 +2079,22 @@ namespace Shoko.Server.API.v2.Modules
                             id = series.AnimeSeriesID,
                             filesize = vl.FileSize,
                             name = series.GetSeriesName(),
-                            size = 1
+                            size = 1,
+                            paths = new List<string> {path}
                         };
-                        output.Add(path, new List<SeriesInfo> {ser});
+                        output.Add(series.AnimeSeriesID, ser);
 
                         filesize += vl.FileSize;
                         size++;
                     }
 
-                    if (first) first = false;
+                    first = false;
                 }
             }
 
             info.filesize = filesize;
             info.size = size;
-            info.paths = output;
+            info.series = output.Values.ToList();
 
             return info;
         }
