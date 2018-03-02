@@ -2095,6 +2095,7 @@ namespace Shoko.Server.API.v2.Modules
             info.filesize = filesize;
             info.size = size;
             info.series = output.Values.ToList();
+            info.series.Sort();
 
             return info;
         }
