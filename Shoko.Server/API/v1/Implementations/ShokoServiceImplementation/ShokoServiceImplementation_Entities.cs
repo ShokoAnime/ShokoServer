@@ -761,6 +761,16 @@ namespace Shoko.Server
             }
         }
 
+        private void RemoveXRefsForFile(int VideoLocalID)
+        {
+            SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
+        }
+
         public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
         {
             try
@@ -775,6 +785,7 @@ namespace Shoko.Server
                 if (ep == null)
                     return "Could not find episode record";
 
+                RemoveXRefsForFile(videoLocalID);
                 var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
                 com.Save();
                 return string.Empty;
@@ -802,17 +813,15 @@ namespace Shoko.Server
                     return "Could not find anime series record";
                 for (int i = startEpNum; i <= endEpNum; i++)
                 {
-                    List<AniDB_Episode> anieps =
-                        RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i);
-                    if (anieps.Count == 0)
+                    AniDB_Episode aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
+                    if (aniep == null)
                         return "Could not find the AniDB episode record";
-
-                    AniDB_Episode aniep = anieps[0];
 
                     SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (ep == null)
                         return "Could not find episode record";
 
+                    RemoveXRefsForFile(videoLocalID);
                     var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                     com.Save();
                 }
@@ -859,6 +868,7 @@ namespace Shoko.Server
                     if (ep == null)
                         return "Could not find episode record";
 
+                    RemoveXRefsForFile(videoLocalID);
                     var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                     if (singleEpisode)
                     {
