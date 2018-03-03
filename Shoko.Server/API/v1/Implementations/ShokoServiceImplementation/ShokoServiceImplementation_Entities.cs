@@ -2541,38 +2541,14 @@ namespace Shoko.Server
                         {
                             if (deleteFiles)
                             {
-                                logger.Info("Deleting video local record and file: {0}", place.FullServerPath);
-                                IFileSystem fileSystem = place.ImportFolder.FileSystem;
-                                if (fileSystem == null)
-                                {
-                                    logger.Error("Unable to delete file, filesystem not found");
-                                    return "Unable to delete file, filesystem not found";
-                                }
-                                FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
-                                if (fr == null || !fr.IsOk)
-                                {
-                                    logger.Error($"Unable to find file '{place.FullServerPath}'");
-                                    return $"Unable to find file '{place.FullServerPath}'";
-                                }
-                                IFile file = fr.Result as IFile;
-                                if (file == null)
-                                {
-                                    logger.Error($"Seems '{place.FullServerPath}' is a directory");
-                                    return $"Seems '{place.FullServerPath}' is a directory";
-                                }
-                                FileSystemResult fs = file.Delete(false);
-                                if (fs == null || !fs.IsOk)
-                                {
-                                    logger.Error($"Unable to delete file '{place.FullServerPath}'");
-                                    return $"Unable to delete file '{place.FullServerPath}'";
-                                }
+                                (bool success, string result) = place.RemoveAndDeleteFile();
+                                if (!success) return result;
                             }
-                            RepoFactory.VideoLocalPlace.Delete(place);
+                            else
+                            {
+                                place.RemoveRecord();
+                            }
                         }
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
-                        cmdDel.Save();
-                        RepoFactory.VideoLocal.Delete(vid);
                     }
                     RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
                 }

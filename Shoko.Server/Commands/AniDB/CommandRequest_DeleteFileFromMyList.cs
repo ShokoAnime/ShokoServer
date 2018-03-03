@@ -49,7 +49,10 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_DeleteFileFromMyList: {0}_{1}", Hash, FileID);
+            if (FileID > 0)
+                logger.Info("Processing CommandRequest_DeleteFileFromMyList: Hash: {0}", Hash);
+            else
+                logger.Info("Processing CommandRequest_DeleteFileFromMyList: FileID: {0}", FileID);
 
             try
             {
@@ -57,72 +60,87 @@ namespace Shoko.Server.Commands
                 {
                     case AniDBFileDeleteType.Delete:
                         if (FileID > 0)
+                        {
                             ShokoService.AnidbProcessor.DeleteFileFromMyList(FileID);
+                            logger.Info("Deleting file from list: FileID: {0}", FileID);
+                        }
                         else
+                        {
                             ShokoService.AnidbProcessor.DeleteFileFromMyList(Hash, FileSize);
-                        logger.Info("Deleting file from list: {0}_{1}", Hash, FileID);
+                            logger.Info("Deleting file from list: Hash: {0}", Hash);
+                        }
                         break;
 
                     case AniDBFileDeleteType.MarkDeleted:
                         if (FileID > 0)
                         {
+                            ShokoService.AnidbProcessor.MarkFileAsDeleted(FileID);
+                            logger.Info("Marking file as deleted from list: FileID: {0}", FileID);
+                        }
+                        else
+                        {
                             ShokoService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
-                            logger.Info("Marking file as deleted from list: {0}_{1}", Hash, FileID);
+                            logger.Info("Marking file as deleted from list: Hash: {0}", Hash);
                         }
                         break;
 
                     case AniDBFileDeleteType.MarkUnknown:
                         if (FileID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
-                            logger.Info("Marking file as unknown: {0}_{1}", Hash, FileID);
+                            ShokoService.AnidbProcessor.MarkFileAsUnknown(FileID);
+                            logger.Info("Marking file as unknown: FileID: {0}", FileID);
                         }
+                        else
+                        {
+                            ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
+                            logger.Info("Marking file as unknown: Hash: {0}", Hash);
+                        }
+
                         break;
 
                     case AniDBFileDeleteType.DeleteLocalOnly:
-                        logger.Info("Keeping physical file and AniDB MyList entry, deleting from local DB: {0}_{1}",
-                            Hash, FileID);
+                        if (FileID > 0)
+                            logger.Info(
+                                "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {0}",
+                                Hash);
+                        else
+                            logger.Info(
+                                "Keeping physical file and AniDB MyList entry, deleting from local DB: FileID: {0}",
+                                FileID);
                         break;
 
-                    default:
+                    case AniDBFileDeleteType.MarkExternalStorage:
                         if (FileID > 0)
                         {
+                            ShokoService.AnidbProcessor.MarkFileAsExternalStorage(FileID);
+                            logger.Info("Moving file to external storage: FileID: {0}", FileID);
+                        }
+                        else
+                        {
                             ShokoService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
-                            logger.Info("Moving file to external storage: {0}_{1}", Hash, FileID);
+                            logger.Info("Moving file to external storage: Hash: {0}", Hash);
                         }
                         break;
-                }
-
-
-                if (ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.Delete ||
-                    ServerSettings.AniDB_MyList_DeleteType == AniDBFileDeleteType.MarkDeleted)
-                {
-                    /*VideoLocalRepository repVids = new VideoLocalRepository();
-                    VideoLocal vid = repVids.GetByHash(this.Hash);
-
-                    // lets also try adding to the users trakt collecion
-                    if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                    {
-                        AnimeEpisodeRepository repEpisodes = new AnimeEpisodeRepository();
-                        List<AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
-
-                        foreach (AnimeEpisode aep in animeEpisodes)
+                    case AniDBFileDeleteType.MarkDisk:
+                        if (FileID > 0)
                         {
-                            CommandRequest_TraktCollectionEpisode cmdSyncTrakt = new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Remove);
-                            cmdSyncTrakt.Save();
+                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(FileID);
+                            logger.Info("Moving file to external storage: FileID: {0}", FileID);
                         }
-
-                    }*/
-
-                    // By the time we get to this point, the VideoLocal records would have been deleted
-                    // So we can't get the episode records to do this on an ep by ep basis
-                    // lets also try adding to the users trakt collecion by sync'ing the series
+                        else
+                        {
+                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(Hash, FileSize);
+                            logger.Info("Moving file to external storage: Hash: {0}", Hash);
+                        }
+                        break;
                 }
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_AddFileToMyList: {0}_{1} - {2}", Hash, FileID,
-                    ex);
+                if (!string.IsNullOrEmpty(Hash))
+                    logger.Error("Error processing CommandRequest_AddFileToMyList: Hash: {0} - {1}", Hash, ex);
+                else
+                    logger.Error("Error processing CommandRequest_AddFileToMyList: FileID: {0} - {1}", Hash, ex);
             }
         }
 

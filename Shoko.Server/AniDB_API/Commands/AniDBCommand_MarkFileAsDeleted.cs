@@ -6,12 +6,12 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsDeleted : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public bool ReturnIsWatched = false;
         public string Hash = string.Empty;
+        public int FileID = 0;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsDeleted" + Hash;
+            return "AniDBCommand_MarkFileAsDeleted" + (FileID != 0 ? "F" + FileID : Hash);
         }
 
         public virtual enHelperActivityType GetStartEventType()
@@ -61,6 +61,16 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
+            commandText += "&state=" + (int) AniDBFile_State.Deleted;
+            commandText += "&edit=1";
+        }
+
+        public void Init(int fileID)
+        {
+            FileID = fileID;
+            commandID = "Deleting File: F" + fileID;
+
+            commandText = "MYLISTADD fid=" + fileID;
             commandText += "&state=" + (int) AniDBFile_State.Deleted;
             commandText += "&edit=1";
         }

@@ -6,12 +6,12 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsExternal : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public bool ReturnIsWatched = false;
         public string Hash = string.Empty;
+        public int FileID = 0;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsExternal" + Hash;
+            return "AniDBCommand_MarkFileAsExternal" + (FileID != 0 ? "F" + FileID : Hash);
         }
 
         public virtual enHelperActivityType GetStartEventType()
@@ -61,7 +61,17 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.DVD;
+            commandText += "&state=" + (int) AniDBFile_State.Remote;
+            commandText += "&edit=1";
+        }
+
+        public void Init(int fileID)
+        {
+            FileID = fileID;
+            commandID = "MarkingFileExternal File: F" + fileID;
+
+            commandText = "MYLISTADD fid=" + fileID;
+            commandText += "&state=" + (int) AniDBFile_State.Remote;
             commandText += "&edit=1";
         }
     }

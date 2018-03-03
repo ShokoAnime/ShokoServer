@@ -659,7 +659,52 @@ namespace Shoko.Server
             }
         }
 
-        internal void MarkFileAsUnknown(string Hash, long FileSize)
+        internal void MarkFileAsExternalStorage(int fileID)
+        {
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                var cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
+                cmdMarkFileExternal.Init(fileID);
+                SetWaitingOnResponse(true);
+                cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+        }
+
+        internal void MarkFileAsOnDisk(string Hash, long FileSize)
+        {
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                var cmdMarkFileDisk = new AniDBCommand_MarkFileAsDisk();
+                cmdMarkFileDisk.Init(Hash, FileSize);
+                SetWaitingOnResponse(true);
+                cmdMarkFileDisk.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+        }
+
+        internal void MarkFileAsOnDisk(int fileID)
+        {
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                var cmdMarkFileDisk = new AniDBCommand_MarkFileAsDisk();
+                cmdMarkFileDisk.Init(fileID);
+                SetWaitingOnResponse(true);
+                cmdMarkFileDisk.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+        }
+
+        public void MarkFileAsUnknown(string Hash, long FileSize)
         {
             if (!Login()) return;
 
@@ -667,6 +712,21 @@ namespace Shoko.Server
             {
                 var cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
                 cmdMarkFileUnknown.Init(Hash, FileSize);
+                SetWaitingOnResponse(true);
+                cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+        }
+
+        public void MarkFileAsUnknown(int fileID)
+        {
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                var cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
+                cmdMarkFileUnknown.Init(fileID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -682,6 +742,21 @@ namespace Shoko.Server
             {
                 var cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
                 cmdDelFile.Init(hash, fileSize);
+                SetWaitingOnResponse(true);
+                cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+            }
+        }
+
+        public void MarkFileAsDeleted(int fileID)
+        {
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                var cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
+                cmdDelFile.Init(fileID);
                 SetWaitingOnResponse(true);
                 cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));

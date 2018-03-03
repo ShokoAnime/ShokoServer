@@ -52,7 +52,8 @@
         GetMyListStats = 25,
         MarkFileDeleted = 26,
         MarkFileExternal = 27,
-        MarkFileUnknown = 28
+        MarkFileUnknown = 28,
+        MarkFileDisk = 29
     }
 
     public enum enHelperActivityType

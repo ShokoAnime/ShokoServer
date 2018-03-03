@@ -4,19 +4,19 @@ using System.Text;
 
 namespace AniDBAPI.Commands
 {
-    public class AniDBCommand_MarkFileAsUnknown : AniDBUDPCommand, IAniDBUDPCommand
+    public class AniDBCommand_MarkFileAsDisk : AniDBUDPCommand, IAniDBUDPCommand
     {
         public string Hash = string.Empty;
         public int FileID = 0;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsUnknown" + (FileID != 0 ? "F" + FileID : Hash);
+            return "AniDBCommand_MarkFileAsDisk" + (FileID != 0 ? "F" + FileID : Hash);
         }
 
         public virtual enHelperActivityType GetStartEventType()
         {
-            return enHelperActivityType.MarkingFileUnknown;
+            return enHelperActivityType.MarkingFileExternal;
         }
 
         public virtual enHelperActivityType Process(ref Socket soUDP,
@@ -49,29 +49,29 @@ namespace AniDBAPI.Commands
             return enHelperActivityType.FileDoesNotExist;
         }
 
-        public AniDBCommand_MarkFileAsUnknown()
+        public AniDBCommand_MarkFileAsDisk()
         {
-            commandType = enAniDBCommandType.MarkFileUnknown;
+            commandType = enAniDBCommandType.MarkFileDisk;
         }
 
         public void Init(string hash, long fileSize)
         {
             Hash = hash;
-            commandID = "MarkingFileUnknown File: " + hash;
+            commandID = "MarkingFileDisk File: " + hash;
 
             commandText = "MYLISTADD size=" + fileSize;
             commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.Unknown;
+            commandText += "&state=" + (int) AniDBFile_State.DVD;
             commandText += "&edit=1";
         }
 
         public void Init(int fileID)
         {
             FileID = fileID;
-            commandID = "MarkingFileUnknown File: F" + fileID;
+            commandID = "MarkingFileDisk File: F" + fileID;
 
             commandText = "MYLISTADD fid=" + fileID;
-            commandText += "&state=" + (int) AniDBFile_State.Unknown;
+            commandText += "&state=" + (int) AniDBFile_State.DVD;
             commandText += "&edit=1";
         }
     }

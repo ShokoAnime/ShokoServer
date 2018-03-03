@@ -206,28 +206,23 @@ namespace Shoko.Server.Models
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                if ((v?.Places?.Count ?? 0) <= 1)
+                if (v?.Places?.Count <= 1)
                 {
+                    CommandRequest_DeleteFileFromMyList cmdDel =
+                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                    cmdDel.Save();
+
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 
-                        if (v != null)
-                        {
-                            episodesToUpdate.AddRange(v.GetAnimeEpisodes());
-                            seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
-                                .Select(a => a.GetAnimeSeries()));
-                            RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                        }
+                        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
+                        seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
+                            .Select(a => a.GetAnimeSeries()));
+                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+
                         dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
-                    }
-
-                    if (v != null)
-                    {
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                        cmdDel.Save();
                     }
                 }
                 else
@@ -271,6 +266,9 @@ namespace Shoko.Server.Models
 
             if (v?.Places?.Count <= 1)
             {
+                CommandRequest_DeleteFileFromMyList cmdDel =
+                    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                cmdDel.Save();
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
@@ -282,9 +280,6 @@ namespace Shoko.Server.Models
 
                     transaction.Commit();
                 }
-                CommandRequest_DeleteFileFromMyList cmdDel =
-                    new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                cmdDel.Save();
             }
             else
             {

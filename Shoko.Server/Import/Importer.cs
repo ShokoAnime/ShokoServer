@@ -907,14 +907,14 @@ namespace Shoko.Server
                     episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
+                    CommandRequest_DeleteFileFromMyList cmdDel =
+                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                    cmdDel.Save();
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
                         transaction.Commit();
                     }
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
-                    cmdDel.Save();
                 }
 
                 // Clean up failed imports
