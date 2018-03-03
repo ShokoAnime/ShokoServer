@@ -8,6 +8,28 @@ namespace Shoko.Commons.Extensions
 {
     public static class EnumerableExtensions
     {
+        private static Random rand;
+
+        static EnumerableExtensions()
+        {
+            rand = new Random();
+        }
+
+
+        public static TSource GetRandomElement<TSource>(this IEnumerable<TSource> source)
+        {
+            // speedup, don't convert to list if it is one
+            if (source is IList<TSource> sourceList)
+            {
+                if (sourceList.Count == 0) return default;
+                return sourceList[rand.Next(sourceList.Count)];
+            }
+
+            var list = source.ToList();
+            if (list.Count == 0) return default;
+            return list.ElementAt(rand.Next(list.Count));
+        }
+
         public static IEnumerable<TSource> DistinctBy<TSource, TKey>
             (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
         {
