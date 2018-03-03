@@ -2058,10 +2058,9 @@ namespace Shoko.Server.API.v2.Modules
                     .ToList();
 
                 string path = (Path.GetDirectoryName(place.FilePath) ?? string.Empty) + "/";
-                bool first = true;
                 foreach (var series in seriesList)
                 {
-                    if (!first || output.ContainsKey(series.AnimeSeriesID))
+                    if (output.ContainsKey(series.AnimeSeriesID))
                     {
                         SeriesInfo ser = output[series.AnimeSeriesID];
 
@@ -2087,8 +2086,6 @@ namespace Shoko.Server.API.v2.Modules
                         filesize += vl.FileSize;
                         size++;
                     }
-
-                    first = false;
                 }
             }
 
