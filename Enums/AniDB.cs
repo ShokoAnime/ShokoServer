@@ -15,7 +15,8 @@ namespace Shoko.Models.Enums
         DeleteLocalOnly = 1,
         MarkDeleted = 2,
         MarkExternalStorage = 3,
-        MarkUnknown = 4
+        MarkUnknown = 4,
+        MarkDisk = 5
     }
 
     [Flags]
