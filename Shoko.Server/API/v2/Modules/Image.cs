@@ -4,10 +4,12 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Resources;
 using System.Threading.Tasks;
 using Nancy;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -36,6 +38,8 @@ namespace Shoko.Server.API.v2.Modules
                 Importer.ValidateAllImages();
                 return APIStatus.OK();
             }, ct);
+            Get["/image/{type}/random", true] =
+                async (x, ct) => await Task.Factory.StartNew(() => GetRandomImage((int) x.type));
         }
 
         /// <summary>
@@ -341,6 +345,251 @@ namespace Shoko.Server.API.v2.Modules
 
                 case ImageEntityType.Staff:
                     var staff = RepoFactory.AnimeStaff.GetByID(id);
+                    if (staff == null)
+                        return null;
+                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find Staff image: {0}",
+                            ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath);
+                    }
+                    break;
+
+                default:
+                    path = string.Empty;
+                    break;
+            }
+
+            return path;
+        }
+
+        /// <summary>
+        /// Return random image with given type and not from restricted content
+        /// </summary>
+        /// <param name="type">image type</param>
+        /// <returns>image body inside stream</returns>
+        private object GetRandomImage(int type)
+        {
+            Response response;
+            string contentType;
+            string path = GetRandomImagePath(type);
+
+            if (string.IsNullOrEmpty(path))
+            {
+                Stream image = MissingImage();
+                contentType = "image/png";
+                response = Response.FromStream(image, contentType);
+            }
+            else
+            {
+                FileStream fs = File.OpenRead(path);
+                contentType = MimeTypes.GetMimeType(path);
+                response = Response.FromStream(fs, contentType);
+            }
+
+            return response;
+        }
+
+        private string GetRandomImagePath(int type)
+        {
+            ImageEntityType imageType = (ImageEntityType) type;
+            string path;
+
+            switch (imageType)
+            {
+                // 1
+                case ImageEntityType.AniDB_Cover:
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a?.PosterPath != null && !a.GetAllTags().Contains("18 restricted"))
+                        .GetRandomElement();
+                    if (anime == null)
+                        return null;
+                    path = anime.PosterPath;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find AniDB_Cover image: {0}", anime.PosterPath);
+                    }
+                    break;
+
+                // 2
+                case ImageEntityType.AniDB_Character:
+                    var chr = RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => a.GetAnimeCharacters()).Select(a => a.GetCharacter()).Where(a => a != null)
+                        .GetRandomElement();
+                    if (chr == null)
+                        return null;
+                    path = chr.GetPosterPath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find AniDB_Character image: {0}", chr.GetPosterPath());
+                    }
+                    break;
+
+                // 3 -- this will likely be slow
+                case ImageEntityType.AniDB_Creator:
+                    var creator = RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => a.GetAnimeCharacters())
+                        .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
+                        .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
+                        .GetRandomElement();
+                    if (creator == null)
+                        return null;
+                    path = creator.GetPosterPath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find AniDB_Creator image: {0}", creator.GetPosterPath());
+                    }
+                    break;
+
+                // 4
+                case ImageEntityType.TvDB_Banner:
+                    // TvDB doesn't allow H content, so we get to skip the check!
+                    TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetAll().GetRandomElement();
+                    if (wideBanner == null)
+                        return null;
+                    path = wideBanner.GetFullImagePath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find TvDB_Banner image: {0}", wideBanner.GetFullImagePath());
+                    }
+                    break;
+
+                // 5
+                case ImageEntityType.TvDB_Cover:
+                    // TvDB doesn't allow H content, so we get to skip the check!
+                    TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetAll().GetRandomElement();
+                    if (poster == null)
+                        return null;
+                    path = poster.GetFullImagePath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find TvDB_Cover image: {0}", poster.GetFullImagePath());
+                    }
+                    break;
+
+                // 6
+                case ImageEntityType.TvDB_Episode:
+                    // TvDB doesn't allow H content, so we get to skip the check!
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetAll().GetRandomElement();
+                    if (ep == null)
+                        return null;
+                    path = ep.GetFullImagePath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find TvDB_Episode image: {0}", ep.GetFullImagePath());
+                    }
+                    break;
+
+                // 7
+                case ImageEntityType.TvDB_FanArt:
+                    // TvDB doesn't allow H content, so we get to skip the check!
+                    TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetAll().GetRandomElement();
+                    if (fanart == null)
+                        return null;
+                    path = fanart.GetFullImagePath();
+                    if (File.Exists(path))
+                        return path;
+                    path = string.Empty;
+                    logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                    break;
+
+                // 8
+                case ImageEntityType.MovieDB_FanArt:
+                    MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetAll().GetRandomElement();
+                    if (mFanart == null)
+                        return null;
+                    path = mFanart.GetFullImagePath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find MovieDB_FanArt image: {0}", mFanart.GetFullImagePath());
+                    }
+                    break;
+
+                // 9
+                case ImageEntityType.MovieDB_Poster:
+                    MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetAll().GetRandomElement();
+                    if (mPoster == null)
+                        return null;
+                    path = mPoster.GetFullImagePath();
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find MovieDB_Poster image: {0}", mPoster.GetFullImagePath());
+                    }
+                    break;
+
+                case ImageEntityType.Character:
+                    var character = RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .Where(a => a.RoleType == (int) StaffRoleType.Seiyuu && a.RoleID.HasValue)
+                        .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID.Value)).GetRandomElement();
+                    if (character == null)
+                        return null;
+                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                    else
+                    {
+                        path = string.Empty;
+                        logger.Trace("Could not find Character image: {0}",
+                            ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath);
+                    }
+                    break;
+
+                case ImageEntityType.Staff:
+                    var staff = RepoFactory.AniDB_Anime.GetAll()
+                        .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
+                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID)).GetRandomElement();
                     if (staff == null)
                         return null;
                     path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
