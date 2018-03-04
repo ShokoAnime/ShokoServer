@@ -682,6 +682,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to DVD/BD.
+        /// </summary>
+        public static string AniDBMyListMarkDisk {
+            get {
+                return ResourceManager.GetString("AniDBMyListMarkDisk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Mark External (CD/DVD).
         /// </summary>
         public static string AniDBMyListMarkExternal {
@@ -723,6 +732,15 @@ namespace Shoko.Commons.Properties {
         public static string AniDBMyListReadWatched {
             get {
                 return ResourceManager.GetString("AniDBMyListReadWatched", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remote.
+        /// </summary>
+        public static string AniDBMyListRemote {
+            get {
+                return ResourceManager.GetString("AniDBMyListRemote", resourceCulture);
             }
         }
         

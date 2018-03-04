@@ -5253,4 +5253,10 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   <data name="ReplaceAllLinks" xml:space="preserve">
     <value>Wymień wszystkie linki</value>
   </data>
+  <data name="AniDBMyListMarkDisk" xml:space="preserve">
+    <value>DVD/BD</value>
+  </data>
+  <data name="AniDBMyListRemote" xml:space="preserve">
+    <value>Zdalne</value>
+  </data>
 </root>

@@ -5251,4 +5251,10 @@ Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di u
   <data name="ReplaceAllLinks" xml:space="preserve">
     <value>Sostituire tutti i collegamenti</value>
   </data>
+  <data name="AniDBMyListMarkDisk" xml:space="preserve">
+    <value>DVD/BD</value>
+  </data>
+  <data name="AniDBMyListRemote" xml:space="preserve">
+    <value>Remoto</value>
+  </data>
 </root>

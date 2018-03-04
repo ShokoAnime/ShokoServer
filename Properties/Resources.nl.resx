@@ -5251,4 +5251,10 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   <data name="ReplaceAllLinks" xml:space="preserve">
     <value>Alle koppelingen vervangen</value>
   </data>
+  <data name="AniDBMyListMarkDisk" xml:space="preserve">
+    <value>DVD/BD</value>
+  </data>
+  <data name="AniDBMyListRemote" xml:space="preserve">
+    <value>Externe</value>
+  </data>
 </root>

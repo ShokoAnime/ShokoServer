@@ -5251,4 +5251,10 @@ S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilis
   <data name="ReplaceAllLinks" xml:space="preserve">
     <value>Remplacer tous les liens</value>
   </data>
+  <data name="AniDBMyListMarkDisk" xml:space="preserve">
+    <value>DVD/BD</value>
+  </data>
+  <data name="AniDBMyListRemote" xml:space="preserve">
+    <value>Distant</value>
+  </data>
 </root>

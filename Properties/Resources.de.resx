@@ -5251,4 +5251,10 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   <data name="ReplaceAllLinks" xml:space="preserve">
     <value>Alle Links zu ersetzen</value>
   </data>
+  <data name="AniDBMyListMarkDisk" xml:space="preserve">
+    <value>DVD/BD</value>
+  </data>
+  <data name="AniDBMyListRemote" xml:space="preserve">
+    <value>Fernbedienung</value>
+  </data>
 </root>
