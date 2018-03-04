@@ -24,6 +24,7 @@ namespace Shoko.Models.Enums
         Unknown,
         HDD,
         Disk,
+        Deleted,
         Remote
     }
 
