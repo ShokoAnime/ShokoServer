@@ -87,41 +87,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.en-gb.resx</DependentUpon>
     </Compile>
-    <Compile Include="Properties\Resources.es.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.es.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.fr.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.fr.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.it.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.it.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.nl.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.nl.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.pl.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.pl.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.pt.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.pt.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Resources.ru.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.ru.resx</DependentUpon>
-    </Compile>
     <Compile Include="Queue\QueueStateStruct.cs" />
     <Compile Include="Utils\AniDB.cs" />
     <Compile Include="Utils\Formatting.cs" />

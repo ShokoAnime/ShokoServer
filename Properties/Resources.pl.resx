@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Oznacz usunięte</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Oznacz Zewnętrzne nośniki (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Oznacz nieznany</value>
   </data>
@@ -5258,5 +5255,8 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Zdalne</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark zdalnego (Cloud/Backup)</value>
   </data>
 </root>

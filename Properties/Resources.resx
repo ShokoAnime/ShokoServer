@@ -208,7 +208,7 @@
     <value>Mark Deleted</value>
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Mark External (CD/DVD)</value>
+    <value>Mark Remote (Cloud/Backup)</value>
   </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Mark Unknown</value>

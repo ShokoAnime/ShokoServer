@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Marke gelöscht</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Mark-extern (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Marke unbekannt</value>
   </data>
@@ -5256,5 +5253,8 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Fernbedienung</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark Fernbedienung (Cloud/Backup)</value>
   </data>
 </root>

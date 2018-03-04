@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Пометить удален</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Пометить внешний (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Пометить неизвестно</value>
   </data>
@@ -5256,5 +5253,8 @@
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Удаленный</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Марк дистанционного (облако/Backup)</value>
   </data>
 </root>

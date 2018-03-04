@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Marcar como excluído</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Marcar como externo (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Marcar como desconhecido</value>
   </data>
@@ -5256,5 +5253,8 @@ Por favor link para plex através do Desktop em configurações-&gt; usuários p
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Remoto</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark remoto (nuvem/Backup)</value>
   </data>
 </root>

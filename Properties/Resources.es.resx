@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Borra marca</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Marca externa (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Marca desconocida</value>
   </data>
@@ -5256,5 +5253,8 @@ Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar e
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Remoto</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Control remoto marca (nube/Backup)</value>
   </data>
 </root>

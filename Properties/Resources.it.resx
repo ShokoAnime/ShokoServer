@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Contrassegno cancellato</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Segno esterno (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Mark Unknown</value>
   </data>
@@ -5256,5 +5253,8 @@ Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di u
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Remoto</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark remoto (Cloud/Backup)</value>
   </data>
 </root>

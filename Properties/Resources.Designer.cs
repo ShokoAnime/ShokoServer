@@ -691,7 +691,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Mark External (CD/DVD).
+        ///   Looks up a localized string similar to Mark Remote (Cloud/Backup).
         /// </summary>
         public static string AniDBMyListMarkExternal {
             get {

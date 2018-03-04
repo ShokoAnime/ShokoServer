@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Mark Deleted</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Mark External (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Mark Unknown</value>
   </data>
@@ -5256,5 +5253,8 @@ Please link to plex via Desktop under settings -&gt;users to use this.!</value>
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Remote</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark Remote (Cloud/Backup)</value>
   </data>
 </root>

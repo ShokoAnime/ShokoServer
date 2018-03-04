@@ -207,9 +207,6 @@
   <data name="AniDBMyListMarkDeleted" xml:space="preserve">
     <value>Mark verwijderd</value>
   </data>
-  <data name="AniDBMyListMarkExternal" xml:space="preserve">
-    <value>Mark externe (CD/DVD)</value>
-  </data>
   <data name="AniDBMyListMarkUnknown" xml:space="preserve">
     <value>Merk onbekend</value>
   </data>
@@ -5256,5 +5253,8 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Externe</value>
+  </data>
+  <data name="AniDBMyListMarkExternal" xml:space="preserve">
+    <value>Mark afstandsbediening (Cloud/Backup)</value>
   </data>
 </root>
