@@ -1,22 +1,22 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsDisk : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = string.Empty;
-        public int FileID = 0;
+        public int MyListID = 0;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsDisk" + (FileID != 0 ? "F" + FileID : Hash);
+            return "AniDBCommand_MarkFileAsDisk_" + MyListID;
         }
 
         public virtual enHelperActivityType GetStartEventType()
         {
-            return enHelperActivityType.MarkingFileExternal;
+            return enHelperActivityType.MarkingFileRemote;
         }
 
         public virtual enHelperActivityType Process(ref Socket soUDP,
@@ -54,24 +54,13 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.MarkFileDisk;
         }
 
-        public void Init(string hash, long fileSize)
+        public void Init(int lid)
         {
-            Hash = hash;
-            commandID = "MarkingFileDisk File: " + hash;
+            MyListID = lid;
+            commandID = "MarkingFileDisk File: " + lid;
 
-            commandText = "MYLISTADD size=" + fileSize;
-            commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.DVD;
-            commandText += "&edit=1";
-        }
-
-        public void Init(int fileID)
-        {
-            FileID = fileID;
-            commandID = "MarkingFileDisk File: F" + fileID;
-
-            commandText = "MYLISTADD fid=" + fileID;
-            commandText += "&state=" + (int) AniDBFile_State.DVD;
+            commandText = "MYLISTADD lid=" + lid;
+            commandText += "&state=" + (int) AniDBFile_State.Disk;
             commandText += "&edit=1";
         }
     }

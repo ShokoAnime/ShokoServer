@@ -33,6 +33,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.VideoResolution).Not.Nullable();
             Map(x => x.VideoBitDepth).Not.Nullable();
             Map(x => x.Duration).Not.Nullable();
+            Map(x => x.MyListID).Not.Nullable();
         }
     }
 }

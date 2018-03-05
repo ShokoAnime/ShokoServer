@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 80;
+        public int RequiredVersion { get; } = 81;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -600,6 +600,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(80, 1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
             new DatabaseCommand(80, 2, "ALTER TABLE `AniDB_Anime` ADD ( `Site_JP` text character set utf8 null, `Site_EN` text character set utf8 null, `Wikipedia_ID` text character set utf8 null, `WikipediaJP_ID` text character set utf8 null, `SyoboiID` INT NULL, `AnisonID` INT NULL, `CrunchyrollID` text character set utf8 null );"),
             new DatabaseCommand(80, 3, DatabaseFixes.PopulateResourceLinks),
+            new DatabaseCommand(81, 1, "ALTER TABLE `VideoLocal` ADD `MyListID` INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(81, 2, DatabaseFixes.PopulateMyListIDs),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

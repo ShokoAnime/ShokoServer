@@ -523,42 +523,13 @@ namespace Shoko.Server
             }
         }
 
-        public void UpdateMyListFileStatus(IHash fileDataLocal, bool watched, DateTime? watchedDate)
-        {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
-
-            if (!Login()) return;
-
-            lock (lockAniDBConnections)
-            {
-                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-                cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, true, ServerSettings.AniDB_MyList_StorageState);
-                SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
-                    new UnicodeEncoding(true, false));
-                SetWaitingOnResponse(false);
-                if (ev == enHelperActivityType.NoSuchMyListFile && watched)
-                {
-                    // the file is not actually on the user list, so let's add it
-                    // we do this by issueing the same command without the edit flag
-                    cmdUpdateFile = new AniDBCommand_UpdateFile();
-                    cmdUpdateFile.Init(fileDataLocal, watched, watchedDate, false,
-                        ServerSettings.AniDB_MyList_StorageState);
-                    SetWaitingOnResponse(true);
-                    cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
-                        new UnicodeEncoding(true, false));
-                    SetWaitingOnResponse(false);
-                }
-            }
-        }
-
         /// <summary>
         /// This is for generic files (manually linked)
         /// </summary>
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
         /// <param name="watched"></param>
-        public void UpdateMyListFileStatus(int animeID, int episodeNumber, bool watched)
+        public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
         {
             if (!ServerSettings.AniDB_MyList_AddFiles) return;
 
@@ -567,17 +538,17 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-                cmdUpdateFile.Init(animeID, episodeNumber, watched, true);
+                if (watched && watchedDate == null) watchedDate = DateTime.Now;
+
+                cmdUpdateFile.Init(hash, watched, watchedDate);
                 SetWaitingOnResponse(true);
                 enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.NoSuchMyListFile && watched)
                 {
-                    // the file is not actually on the user list, so let's add it
-                    // we do this by issueing the same command without the edit flag
-                    cmdUpdateFile = new AniDBCommand_UpdateFile();
-                    cmdUpdateFile.Init(animeID, episodeNumber, watched, false);
+                    AniDBFile_State? state = null;
+                    AddFileToMyList(hash, ref watchedDate, ref state);
                     SetWaitingOnResponse(true);
                     cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                         new UnicodeEncoding(true, false));
@@ -586,11 +557,11 @@ namespace Shoko.Server
             }
         }
 
-        public bool AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate, ref AniDBFile_State? state)
+        public (int?, bool?) AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return false;
+            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, false);
 
-            if (!Login()) return false;
+            if (!Login()) return (null, false);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -610,15 +581,17 @@ namespace Shoko.Server
             {
                 watchedDate = cmdAddFile.WatchedDate;
                 state = cmdAddFile.State;
-                return cmdAddFile.ReturnIsWatched;
+                return (cmdAddFile.MyListID, cmdAddFile.ReturnIsWatched);
             }
 
-            return false;
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, false);
+
+            return (null, false);
         }
 
-        public bool? AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+        public (int?, bool?) AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
         {
-            if (!Login()) return null;
+            if (!Login()) return (null, null);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -637,21 +610,24 @@ namespace Shoko.Server
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
             {
                 watchedDate = cmdAddFile.WatchedDate;
-                return cmdAddFile.ReturnIsWatched;
+                return (cmdAddFile.MyListID, cmdAddFile.ReturnIsWatched);
             }
-            if (ServerSettings.AniDB_MyList_ReadUnwatched) return false;
+            if (ServerSettings.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, false);
 
-            return null;
+            if (cmdAddFile.MyListID > 0)
+                return (cmdAddFile.MyListID, null);
+
+            return (null, null);
         }
 
-        internal void MarkFileAsExternalStorage(string Hash, long FileSize)
+        internal void MarkFileAsRemote(int myListID)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
-                var cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
-                cmdMarkFileExternal.Init(Hash, FileSize);
+                var cmdMarkFileExternal = new AniDBCommand_MarkFileAsRemote();
+                cmdMarkFileExternal.Init(myListID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -659,29 +635,14 @@ namespace Shoko.Server
             }
         }
 
-        internal void MarkFileAsExternalStorage(int fileID)
-        {
-            if (!Login()) return;
-
-            lock (lockAniDBConnections)
-            {
-                var cmdMarkFileExternal = new AniDBCommand_MarkFileAsExternal();
-                cmdMarkFileExternal.Init(fileID);
-                SetWaitingOnResponse(true);
-                cmdMarkFileExternal.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
-                    new UnicodeEncoding(true, false));
-                SetWaitingOnResponse(false);
-            }
-        }
-
-        internal void MarkFileAsOnDisk(string Hash, long FileSize)
+        internal void MarkFileAsOnDisk(IHash hash)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdMarkFileDisk = new AniDBCommand_MarkFileAsDisk();
-                cmdMarkFileDisk.Init(Hash, FileSize);
+                cmdMarkFileDisk.Init(hash.MyListID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileDisk.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -689,14 +650,14 @@ namespace Shoko.Server
             }
         }
 
-        internal void MarkFileAsOnDisk(int fileID)
+        internal void MarkFileAsOnDisk(int myListID)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdMarkFileDisk = new AniDBCommand_MarkFileAsDisk();
-                cmdMarkFileDisk.Init(fileID);
+                cmdMarkFileDisk.Init(myListID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileDisk.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -704,14 +665,14 @@ namespace Shoko.Server
             }
         }
 
-        public void MarkFileAsUnknown(string Hash, long FileSize)
+        public void MarkFileAsUnknown(IHash hash)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
-                cmdMarkFileUnknown.Init(Hash, FileSize);
+                cmdMarkFileUnknown.Init(hash.MyListID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -719,14 +680,14 @@ namespace Shoko.Server
             }
         }
 
-        public void MarkFileAsUnknown(int fileID)
+        public void MarkFileAsUnknown(int myListID)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdMarkFileUnknown = new AniDBCommand_MarkFileAsUnknown();
-                cmdMarkFileUnknown.Init(fileID);
+                cmdMarkFileUnknown.Init(myListID);
                 SetWaitingOnResponse(true);
                 cmdMarkFileUnknown.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -734,14 +695,14 @@ namespace Shoko.Server
             }
         }
 
-        public void MarkFileAsDeleted(string hash, long fileSize)
+        public void MarkFileAsDeleted(IHash hash)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
-                cmdDelFile.Init(hash, fileSize);
+                cmdDelFile.Init(hash.MyListID);
                 SetWaitingOnResponse(true);
                 cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -749,14 +710,14 @@ namespace Shoko.Server
             }
         }
 
-        public void MarkFileAsDeleted(int fileID)
+        public void MarkFileAsDeleted(int myListID)
         {
             if (!Login()) return;
 
             lock (lockAniDBConnections)
             {
                 var cmdDelFile = new AniDBCommand_MarkFileAsDeleted();
-                cmdDelFile.Init(fileID);
+                cmdDelFile.Init(myListID);
                 SetWaitingOnResponse(true);
                 cmdDelFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));

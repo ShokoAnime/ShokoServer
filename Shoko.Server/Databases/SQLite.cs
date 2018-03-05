@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 70;
+        public int RequiredVersion { get; } = 71;
 
 
         public void BackupDatabase(string fullfilename)
@@ -507,6 +507,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(70, 7, "ALTER TABLE AniDB_Anime ADD AnisonID INT NULL"),
             new DatabaseCommand(70, 8, "ALTER TABLE AniDB_Anime ADD CrunchyrollID TEXT NULL"),
             new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
+            new DatabaseCommand(71, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(71, 2, DatabaseFixes.PopulateMyListIDs),
         };
 
 

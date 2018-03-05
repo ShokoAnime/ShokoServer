@@ -57,28 +57,14 @@ namespace Shoko.Server.Commands
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
                 if (vid != null)
                 {
-                    bool isManualLink = false;
-                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
-                    if (xrefs.Count > 0)
-                        isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
-
-                    if (isManualLink)
+                    if (WatchedDateAsSecs > 0)
                     {
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(xrefs[0].AnimeID,
-                            xrefs[0].GetEpisode().EpisodeNumber, Watched);
-                        logger.Info("Updating file list status (GENERIC): {0} - {1}", vid, Watched);
+                        DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
                     }
                     else
-                    {
-                        if (WatchedDateAsSecs > 0)
-                        {
-                            DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
-                        }
-                        else
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, null);
-                        logger.Info("Updating file list status: {0} - {1}", vid, Watched);
-                    }
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched);
+                    logger.Info("Updating file list status: {0} - {1}", vid, Watched);
 
                     if (UpdateSeriesStats)
                     {

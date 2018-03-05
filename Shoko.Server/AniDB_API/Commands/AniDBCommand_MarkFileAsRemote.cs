@@ -1,22 +1,22 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 
 namespace AniDBAPI.Commands
 {
-    public class AniDBCommand_MarkFileAsExternal : AniDBUDPCommand, IAniDBUDPCommand
+    public class AniDBCommand_MarkFileAsRemote : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = string.Empty;
-        public int FileID = 0;
+        public int MyListID = 0;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsExternal" + (FileID != 0 ? "F" + FileID : Hash);
+            return "AniDBCommand_MarkFileAsRemote_" + MyListID;
         }
 
         public virtual enHelperActivityType GetStartEventType()
         {
-            return enHelperActivityType.MarkingFileExternal;
+            return enHelperActivityType.MarkingFileRemote;
         }
 
         public virtual enHelperActivityType Process(ref Socket soUDP,
@@ -49,28 +49,17 @@ namespace AniDBAPI.Commands
             return enHelperActivityType.FileDoesNotExist;
         }
 
-        public AniDBCommand_MarkFileAsExternal()
+        public AniDBCommand_MarkFileAsRemote()
         {
-            commandType = enAniDBCommandType.MarkFileExternal;
+            commandType = enAniDBCommandType.MarkFileRemote;
         }
 
-        public void Init(string hash, long fileSize)
+        public void Init(int lid)
         {
-            Hash = hash;
-            commandID = "MarkingFileExternal File: " + hash;
+            MyListID = lid;
+            commandID = "MarkingFileRemote File: " + lid;
 
-            commandText = "MYLISTADD size=" + fileSize;
-            commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.Remote;
-            commandText += "&edit=1";
-        }
-
-        public void Init(int fileID)
-        {
-            FileID = fileID;
-            commandID = "MarkingFileExternal File: F" + fileID;
-
-            commandText = "MYLISTADD fid=" + fileID;
+            commandText = "MYLISTADD lid=" + lid;
             commandText += "&state=" + (int) AniDBFile_State.Remote;
             commandText += "&edit=1";
         }

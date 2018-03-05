@@ -1,17 +1,17 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsUnknown : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = string.Empty;
-        public int FileID = 0;
+        public int MyListID;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsUnknown" + (FileID != 0 ? "F" + FileID : Hash);
+            return "AniDBCommand_MarkFileAsUnknown_" + MyListID;
         }
 
         public virtual enHelperActivityType GetStartEventType()
@@ -54,23 +54,12 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.MarkFileUnknown;
         }
 
-        public void Init(string hash, long fileSize)
+        public void Init(int lid)
         {
-            Hash = hash;
-            commandID = "MarkingFileUnknown File: " + hash;
+            MyListID = lid;
+            commandID = "MarkingFileUnknown File: " + lid;
 
-            commandText = "MYLISTADD size=" + fileSize;
-            commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.Unknown;
-            commandText += "&edit=1";
-        }
-
-        public void Init(int fileID)
-        {
-            FileID = fileID;
-            commandID = "MarkingFileUnknown File: F" + fileID;
-
-            commandText = "MYLISTADD fid=" + fileID;
+            commandText = "MYLISTADD lid=" + lid;
             commandText += "&state=" + (int) AniDBFile_State.Unknown;
             commandText += "&edit=1";
         }

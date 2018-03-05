@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 
 namespace AniDBAPI.Commands
@@ -12,6 +13,7 @@ namespace AniDBAPI.Commands
         public bool ReturnIsWatched = false;
         public DateTime? WatchedDate = null;
         public AniDBFile_State? State = null;
+        public int MyListID;
 
         public string GetKey()
         {
@@ -47,6 +49,8 @@ namespace AniDBAPI.Commands
                     if (arrResult.Length >= 2)
                     {
                         string[] arrStatus = arrResult[1].Split('|');
+                        int.TryParse(arrStatus[0], out MyListID);
+
                         int state = int.Parse(arrStatus[6]);
                         State = (AniDBFile_State) state;
 
@@ -65,8 +69,8 @@ namespace AniDBAPI.Commands
                             WatchedDate = null;
                         }
                     }
-                }
                     return enHelperActivityType.FileAlreadyExists;
+                }
                 case "311": return enHelperActivityType.UpdatingFile;
                 case "320": return enHelperActivityType.NoSuchFile;
                 case "411": return enHelperActivityType.NoSuchFile;

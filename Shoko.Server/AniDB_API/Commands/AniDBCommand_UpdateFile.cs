@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Shoko.Commons.Utils;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server;
 
@@ -58,35 +59,19 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.UpdateFile;
         }
 
-        public void Init(IHash fileData, bool watched, DateTime? watchedDate, bool isEdit, AniDBFile_State? fileState)
+        public void Init(IHash fileData, bool watched, DateTime? watchedDate)
         {
             FileData = fileData;
             IsWatched = watched;
 
             commandID = fileData.Info;
 
-            commandText = "MYLISTADD size=" + fileData.FileSize;
-            commandText += "&ed2k=" + fileData.ED2KHash;
+            commandText = "MYLISTADD lid=" + fileData.MyListID;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-            if (fileState.HasValue)
-                commandText += "&state=" + (int) fileState;
+            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
             if (watchedDate.HasValue)
                 commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
-            if (isEdit)
-                commandText += "&edit=1";
-        }
-
-        public void Init(int animeID, int episodeNumber, bool watched, bool isEdit)
-        {
-            IsWatched = watched;
-
-            commandText = "MYLISTADD aid=" + animeID;
-            commandText += "&generic=1";
-            commandText += "&epno=" + episodeNumber;
-            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
-            commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-            if (isEdit)
-                commandText += "&edit=1";
+            commandText += "&edit=1";
         }
     }
 }

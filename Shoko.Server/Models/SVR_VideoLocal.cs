@@ -36,6 +36,8 @@ namespace Shoko.Server.Models
         #endregion
 
 
+        public int MyListID { get; set; }
+
         [ScriptIgnore]
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 

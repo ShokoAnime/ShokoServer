@@ -1,17 +1,17 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsDeleted : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public string Hash = string.Empty;
-        public int FileID = 0;
+        public int MyListID;
 
         public string GetKey()
         {
-            return "AniDBCommand_MarkFileAsDeleted" + (FileID != 0 ? "F" + FileID : Hash);
+            return "AniDBCommand_MarkFileAsDeleted_" + MyListID;
         }
 
         public virtual enHelperActivityType GetStartEventType()
@@ -54,23 +54,12 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.MarkFileDeleted;
         }
 
-        public void Init(string hash, long fileSize)
+        public void Init(int lid)
         {
-            Hash = hash;
-            commandID = "Deleting File: " + hash;
+            MyListID = lid;
+            commandID = "Deleting File: " + lid;
 
-            commandText = "MYLISTADD size=" + fileSize;
-            commandText += "&ed2k=" + hash;
-            commandText += "&state=" + (int) AniDBFile_State.Deleted;
-            commandText += "&edit=1";
-        }
-
-        public void Init(int fileID)
-        {
-            FileID = fileID;
-            commandID = "Deleting File: F" + fileID;
-
-            commandText = "MYLISTADD fid=" + fileID;
+            commandText = "MYLISTADD lid=" + lid;
             commandText += "&state=" + (int) AniDBFile_State.Deleted;
             commandText += "&edit=1";
         }

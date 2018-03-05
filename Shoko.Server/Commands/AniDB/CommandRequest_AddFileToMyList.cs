@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.MAL;
@@ -74,14 +75,21 @@ namespace Shoko.Server.Commands
                 // mark the video file as watched
                 DateTime? watchedDate = null;
                 bool? newWatchedStatus;
+                int? lid;
                 AniDBFile_State? state = null;
 
                 if (isManualLink)
-                    newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
+                    (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
                         xrefs[0].GetEpisode().EpisodeNumber,
                         ref watchedDate);
                 else
-                    newWatchedStatus = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
+                    (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
+
+                if (lid != null && lid.Value > 0)
+                {
+                    vid.MyListID = lid.Value;
+                    RepoFactory.VideoLocal.Save(vid);
+                }
 
                 // do for all AniDB users
                 List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
@@ -98,7 +106,6 @@ namespace Shoko.Server.Commands
 
                     SVR_JMMUser juser = aniDBUsers[0];
                     bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
-                    bool watchedChanged = watched != watchedLocally;
 
                     // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                     if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
@@ -110,13 +117,6 @@ namespace Shoko.Server.Commands
                     {
                         vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
                             false, false);
-                    }
-
-                    if (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState)
-                    {
-                        int watchedDateSec = Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate);
-                        var cmdUpdate = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, watchedDateSec);
-                        cmdUpdate.Save();
                     }
                 }
 

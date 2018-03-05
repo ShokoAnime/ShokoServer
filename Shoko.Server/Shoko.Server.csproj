@@ -271,7 +271,7 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDeleted.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDisk.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsExternal.cs" />
+    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsRemote.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsUnknown.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyGet.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyList.cs" />

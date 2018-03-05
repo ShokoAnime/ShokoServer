@@ -8,6 +8,7 @@ using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -216,6 +217,49 @@ namespace Shoko.Server.Databases
                 while (creator.ImagePath.StartsWith("" + Path.AltDirectorySeparatorChar))
                     creator.ImagePath = creator.ImagePath.Substring(1);
                 RepoFactory.AnimeStaff.Save(creator);
+            }
+        }
+
+        public static void PopulateMyListIDs()
+        {
+            // Get the list from AniDB
+            AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
+            cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+            enHelperActivityType ev = cmd.Process();
+            if (ev != enHelperActivityType.GotMyListHTTP)
+            {
+                logger.Warn("AniDB did not return a successful code: " + ev);
+                return;
+            }
+            // Add missing files on AniDB
+            var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
+            var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+
+            var list = RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)).ToList();
+            int count = 0;
+            foreach (SVR_VideoLocal vid in list)
+            {
+                count++;
+                if (count % 10 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
+                        $" {count}/{list.Count}");
+                }
+
+                // Does it have a linked AniFile
+                if (!dictAniFiles.Contains(vid.Hash)) continue;
+
+                int fileID = dictAniFiles[vid.Hash].FirstOrDefault()?.FileID ?? 0;
+                if (fileID == 0) continue;
+                // Is it in MyList
+                if (!onlineFiles.Contains(fileID)) continue;
+
+                Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null);
+                if (file == null || vid.MyListID != 0) continue;
+
+                vid.MyListID = file.ListID;
+                RepoFactory.VideoLocal.Save(vid);
             }
         }
 

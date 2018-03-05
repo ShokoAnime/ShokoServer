@@ -58,6 +58,8 @@ namespace AniDBAPI
 
         public long FileSize { get; set; }
 
+        public int MyListID { get; set; }
+
         [XmlIgnore]
         public int Version { get; set; }
 
@@ -77,7 +79,7 @@ namespace AniDBAPI
 
         public int IsDeprecated { get; set; }
 
-	    public int IsChaptered { get; set; }
+        public int IsChaptered { get; set; }
 
         public int InternalVersion
         {
@@ -212,7 +214,7 @@ namespace AniDBAPI
                 if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CEN))
                     IsCensored = 1;
 
-	            IsChaptered = BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
+                IsChaptered = BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
             }
 
             if (int.TryParse(sDetails[6].Trim(), out int isdep))
@@ -282,112 +284,6 @@ namespace AniDBAPI
 
             Version = LastVersion;
         }
-
-        /*public Raw_AniDB_File(string sRecMessage)
-		{
-			InitDefaultValues();
-
-			// remove the header info
-			string[] sDetails = sRecMessage.Substring(9).Split('|');
-
-			//BaseConfig.MyAnimeLog.Write("PROCESSING FILE: {0}", sDetails.Length);
-
-			// 220 FILE
-			// 0. 572794 ** fileid
-			// 1. 6107 ** anime id
-			// 2. 99294 ** episode id
-			// 3. 12 ** group id
-			// 4. 2723 ** lid
-
-			// 5. ** other episodes
-
-			// 6 ** Size
-			// 7. c646d82a184a33f4e4f98af39f29a044 ** ed2k hash
-			// 8. ** md5
-			// 9. ** sha1
-			// 10. 8452c4bf ** crc32
-			// 11. high ** quality
-			// 12. HDTV ** source
-			// 13. Vorbis (Ogg Vorbis) ** audio codec
-			// 14. 148 ** audio bit rate
-			// 15. H264/AVC ** video codec
-			// 16. 1773 ** video bit rate
-			// 17. 1280x720 ** video res
-			// 18. mkv ** file extension
-
-			// 19. Audio Langugages.
-			// 20. Subtitle languages.
-
-
-			// 21. 1470 ** length in seconds
-			// 22.   ** description
-			// 23. 1239494400 ** release date ** date is the time of the event (in seconds since 1.1.1970) 
-
-			// 24. Episode FileName
-
-			// 25. 2 ** episode #
-			// 26. The Day It Began ** ep name 
-			// 27. Hajimari no Hi ** ep name romaji
-			// 28. ** ep name kanji
-			// 29. 712 ** episode rating (7.12)
-			// 30. 14 ** episode vote count
-			// 31. Eclipse Productions ** group name
-			// 32. Eclipse ** group name short
-
-			this.FileSize = long.Parse(sDetails[6].Trim());
-			this.ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[7].Trim()).ToUpper();
-			this.MD5 = AniDBAPILib.ProcessAniDBString(sDetails[8].Trim()).ToUpper();
-			this.SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
-			this.CRC = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
-			FileID = int.Parse(sDetails[0].Trim());
-			AnimeID = int.Parse(sDetails[1].Trim());
-
-			EpisodesRAW = sDetails[2].Trim();
-			EpisodesPercentRAW = "100";
-			if (sDetails[5].Trim().Length > 0)
-			{
-				string[] Eps = sDetails[5].Trim().Split('\'');
-				if (Eps.Length > 0)
-				{
-					foreach (string ep in Eps)
-					{
-						string[] ep2 = ep.Split(',');
-						if (ep2.Length > 0)
-							EpisodesRAW += "," + ep2[0];
-						if (ep2.Length > 1)
-							EpisodesPercentRAW += "," + ep2[1];
-						else
-							EpisodesPercentRAW += ",100";
-					}
-				}
-			}
-			// Other Episodes have this format : FileId, % From The End, Per example 1030, 100 Means the complete 1030 Episode
-			// 1030, 49 Means content starts at 51% of the episode 1030. 
-
-			GroupID = int.Parse(sDetails[3].Trim());
-			File_Source = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim());
-			File_AudioCodec = AniDBAPILib.ProcessAniDBString(sDetails[13].Trim());
-			File_VideoCodec = AniDBAPILib.ProcessAniDBString(sDetails[15].Trim());
-			File_VideoResolution = AniDBAPILib.ProcessAniDBString(sDetails[17].Trim());
-			File_FileExtension = AniDBAPILib.ProcessAniDBString(sDetails[18].Trim());
-
-			File_LengthSeconds = AniDBAPILib.ProcessAniDBInt(sDetails[21].Trim());
-			File_Description = AniDBAPILib.ProcessAniDBString(sDetails[22].Trim());
-			File_ReleaseDate = AniDBAPILib.ProcessAniDBInt(sDetails[23].Trim());
-			Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[31].Trim());
-			Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[32].Trim());
-
-			IsWatched = 0; // 0 = false, 1 = true
-			Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[29].Trim());
-			Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[30].Trim());
-
-			LanguagesRAW = AniDBAPILib.ProcessAniDBString(sDetails[19].Trim());
-			SubtitlesRAW = AniDBAPILib.ProcessAniDBString(sDetails[20].Trim());
-
-			FileName = AniDBAPILib.ProcessAniDBString(sDetails[24].Trim());
-
-			Version = LastVersion;
-		}*/
 
         public override string ToString()
         {

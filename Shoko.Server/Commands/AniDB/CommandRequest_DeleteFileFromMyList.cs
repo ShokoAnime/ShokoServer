@@ -13,35 +13,25 @@ namespace Shoko.Server.Commands
     {
         public string Hash { get; set; }
         public long FileSize { get; set; }
-        public int FileID { get; set; }
+        public int MyListID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.AniDB_MyListDelete,
-            extraParams = new[] {Hash, FileID.ToString()}
+            extraParams = new[] {Hash, MyListID.ToString()}
         };
 
         public CommandRequest_DeleteFileFromMyList()
         {
         }
 
-        public CommandRequest_DeleteFileFromMyList(string hash, long fileSize)
-        {
-            Hash = hash;
-            FileSize = fileSize;
-            FileID = -1;
-            Priority = (int) DefaultPriority;
-
-            GenerateCommandID();
-        }
-
-        public CommandRequest_DeleteFileFromMyList(int fileID)
+        public CommandRequest_DeleteFileFromMyList(int myListID)
         {
             Hash = string.Empty;
             FileSize = 0;
-            FileID = fileID;
+            MyListID = myListID;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -49,20 +39,20 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            if (FileID > 0)
+            if (MyListID > 0)
                 logger.Info("Processing CommandRequest_DeleteFileFromMyList: Hash: {0}", Hash);
             else
-                logger.Info("Processing CommandRequest_DeleteFileFromMyList: FileID: {0}", FileID);
+                logger.Info("Processing CommandRequest_DeleteFileFromMyList: MyListID: {0}", MyListID);
 
             try
             {
                 switch (ServerSettings.AniDB_MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
-                        if (FileID > 0)
+                        if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.DeleteFileFromMyList(FileID);
-                            logger.Info("Deleting file from list: FileID: {0}", FileID);
+                            ShokoService.AnidbProcessor.DeleteFileFromMyList(MyListID);
+                            logger.Info("Deleting file from list: MyListID: {0}", MyListID);
                         }
                         else
                         {
@@ -72,65 +62,45 @@ namespace Shoko.Server.Commands
                         break;
 
                     case AniDBFileDeleteType.MarkDeleted:
-                        if (FileID > 0)
+                        if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsDeleted(FileID);
-                            logger.Info("Marking file as deleted from list: FileID: {0}", FileID);
-                        }
-                        else
-                        {
-                            ShokoService.AnidbProcessor.MarkFileAsDeleted(Hash, FileSize);
-                            logger.Info("Marking file as deleted from list: Hash: {0}", Hash);
+                            ShokoService.AnidbProcessor.MarkFileAsDeleted(MyListID);
+                            logger.Info("Marking file as deleted from list: MyListID: {0}", MyListID);
                         }
                         break;
 
                     case AniDBFileDeleteType.MarkUnknown:
-                        if (FileID > 0)
+                        if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsUnknown(FileID);
-                            logger.Info("Marking file as unknown: FileID: {0}", FileID);
-                        }
-                        else
-                        {
-                            ShokoService.AnidbProcessor.MarkFileAsUnknown(Hash, FileSize);
-                            logger.Info("Marking file as unknown: Hash: {0}", Hash);
+                            ShokoService.AnidbProcessor.MarkFileAsUnknown(MyListID);
+                            logger.Info("Marking file as unknown: MyListID: {0}", MyListID);
                         }
 
                         break;
 
                     case AniDBFileDeleteType.DeleteLocalOnly:
-                        if (FileID > 0)
+                        if (MyListID > 0)
+                            logger.Info(
+                                "Keeping physical file and AniDB MyList entry, deleting from local DB: MyListID: {0}",
+                                MyListID);
+                        else
                             logger.Info(
                                 "Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {0}",
                                 Hash);
-                        else
-                            logger.Info(
-                                "Keeping physical file and AniDB MyList entry, deleting from local DB: FileID: {0}",
-                                FileID);
                         break;
 
                     case AniDBFileDeleteType.MarkExternalStorage:
-                        if (FileID > 0)
+                        if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsExternalStorage(FileID);
-                            logger.Info("Moving file to external storage: FileID: {0}", FileID);
-                        }
-                        else
-                        {
-                            ShokoService.AnidbProcessor.MarkFileAsExternalStorage(Hash, FileSize);
-                            logger.Info("Moving file to external storage: Hash: {0}", Hash);
+                            ShokoService.AnidbProcessor.MarkFileAsRemote(MyListID);
+                            logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
                         }
                         break;
                     case AniDBFileDeleteType.MarkDisk:
-                        if (FileID > 0)
+                        if (MyListID > 0)
                         {
-                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(FileID);
-                            logger.Info("Moving file to external storage: FileID: {0}", FileID);
-                        }
-                        else
-                        {
-                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(Hash, FileSize);
-                            logger.Info("Moving file to external storage: Hash: {0}", Hash);
+                            ShokoService.AnidbProcessor.MarkFileAsOnDisk(MyListID);
+                            logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
                         }
                         break;
                 }
@@ -140,7 +110,7 @@ namespace Shoko.Server.Commands
                 if (!string.IsNullOrEmpty(Hash))
                     logger.Error("Error processing CommandRequest_AddFileToMyList: Hash: {0} - {1}", Hash, ex);
                 else
-                    logger.Error("Error processing CommandRequest_AddFileToMyList: FileID: {0} - {1}", Hash, ex);
+                    logger.Error("Error processing CommandRequest_AddFileToMyList: MyListID: {0} - {1}", MyListID, ex);
             }
         }
 
@@ -150,7 +120,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{FileID}";
+            CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{MyListID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -171,7 +141,7 @@ namespace Shoko.Server.Commands
                 Hash = TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "Hash");
                 FileSize = long.Parse(
                     TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileSize"));
-                FileID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "FileID"));
+                MyListID = int.Parse(TryGetProperty(docCreator, "CommandRequest_DeleteFileFromMyList", "MyListID"));
             }
 
             if (Hash.Trim().Length > 0)

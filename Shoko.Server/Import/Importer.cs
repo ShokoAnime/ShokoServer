@@ -908,7 +908,7 @@ namespace Shoko.Server
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
                     CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
                     cmdDel.Save();
                     using (var transaction = session.BeginTransaction())
                     {
@@ -1005,7 +1005,7 @@ namespace Shoko.Server
                         RepoFactory.VideoLocalPlace.Delete(vid);
                         RepoFactory.VideoLocal.Delete(v);
                         CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.Hash, v.FileSize);
+                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
                         cmdDel.Save();
                     }
                     else

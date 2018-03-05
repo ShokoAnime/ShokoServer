@@ -97,17 +97,25 @@ namespace Shoko.Server.Commands
                     {
                         Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null);
 
-                        // Update file state if deleted
-                        if (file != null && file.State != (int) ServerSettings.AniDB_MyList_StorageState)
+                        if (file != null)
                         {
-                            int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
-                            CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
-                                new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue, false,
-                                    seconds);
-                            cmdUpdateFile.Save();
-                        }
-                        else if (file != null)
-                        {
+                            if (vid.MyListID == 0)
+                            {
+                                vid.MyListID = file.ListID;
+                                RepoFactory.VideoLocal.Save(vid);
+                            }
+
+                            // Update file state if deleted
+                            if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
+                            {
+                                int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
+                                CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
+                                    new CommandRequest_UpdateMyListFileStatus(vid.Hash, file.WatchedDate.HasValue,
+                                        false,
+                                        seconds);
+                                cmdUpdateFile.Save();
+                            }
+
                             continue;
                         }
                     }
@@ -155,7 +163,7 @@ namespace Shoko.Server.Commands
                     // We couldn't evem find a hash, so remove it
                     if (string.IsNullOrEmpty(hash))
                     {
-                        filesToRemove.Add(myitem.FileID);
+                        filesToRemove.Add(myitem.ListID);
                         continue;
                     }
 
@@ -163,7 +171,7 @@ namespace Shoko.Server.Commands
                     SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
                     if (vl == null)
                     {
-                        filesToRemove.Add(myitem.FileID);
+                        filesToRemove.Add(myitem.ListID);
                         continue;
                     }
 
@@ -214,7 +222,9 @@ namespace Shoko.Server.Commands
                                     false, true);
                             }
                         }
-                        vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null).ForEach(a => modifiedSeries.Add(a));
+
+                        vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                            .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
                         logger.Info($"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}");
                     }
                 }
@@ -222,10 +232,10 @@ namespace Shoko.Server.Commands
                 // Actually remove the files
                 if (filesToRemove.Count > 0)
                 {
-                    foreach (int fileID in filesToRemove)
+                    foreach (int listID in filesToRemove)
                     {
                         CommandRequest_DeleteFileFromMyList deleteCommand =
-                            new CommandRequest_DeleteFileFromMyList(fileID);
+                            new CommandRequest_DeleteFileFromMyList(listID);
                         deleteCommand.Save();
                     }
                     logger.Info($"MYLIST Missing Files: {filesToRemove.Count} Added to queue for deletion");
