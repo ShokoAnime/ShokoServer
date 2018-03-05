@@ -2033,7 +2033,7 @@ namespace Shoko.Server.Renamer
             }
 
             List<CrossRef_File_Episode> xrefs = video.VideoLocal.EpisodeCrossRefs;
-            if (xrefs.Count == 0 || destFolder == null) return (null, "No xrefs");
+            if (xrefs.Count == 0 && destFolder == null) return (null, "No xrefs");
             CrossRef_File_Episode xref = xrefs[0];
 
             // find the series associated with this episode
@@ -2077,8 +2077,18 @@ namespace Shoko.Server.Renamer
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
 
-                    FileSystemResult<IObject> dir =
-                        place.ImportFolder?.FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
+                    var dstImportFolder = place.ImportFolder;
+                    if (dstImportFolder == null) continue;
+                    // check space
+                    if (!video.ImportFolder.ImportFolderLocation.StartsWith(
+                        Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
+                    {
+                        var fsresultquota = dstImportFolder.BaseDirectory.Quota();
+                        if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    }
+
+                    FileSystemResult<IObject> dir = dstImportFolder
+                        .FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
                             folderName));
                     if (dir == null || !dir.IsOk) continue;
                     // ensure we aren't moving to the current directory
@@ -2096,6 +2106,8 @@ namespace Shoko.Server.Renamer
                     return (destFolder, folderName);
                 }
             }
+
+            if (destFolder == null) return (null, "Unable to resolve a destination");
 
             return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }
