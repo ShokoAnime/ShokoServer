@@ -19,7 +19,7 @@ namespace Shoko.Models.Enums
         MarkDisk = 5
     }
 
-    public enum AniDBFileStorageState
+    public enum AniDBFile_State
     {
         Unknown,
         HDD,
