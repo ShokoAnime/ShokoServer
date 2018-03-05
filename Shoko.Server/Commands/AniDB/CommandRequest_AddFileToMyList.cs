@@ -140,9 +140,7 @@ namespace Shoko.Server.Commands
                     foreach (SVR_AnimeEpisode aep in animeEpisodes)
                     {
                         CommandRequest_TraktCollectionEpisode cmdSyncTrakt =
-                            new CommandRequest_TraktCollectionEpisode
-                            (
-                                aep.AnimeEpisodeID, TraktSyncAction.Add);
+                            new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
                         cmdSyncTrakt.Save();
                     }
                 }

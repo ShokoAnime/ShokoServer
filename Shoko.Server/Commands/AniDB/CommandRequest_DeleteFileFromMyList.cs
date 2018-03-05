@@ -66,7 +66,9 @@ namespace Shoko.Server.Commands
                         {
                             ShokoService.AnidbProcessor.MarkFileAsDeleted(MyListID);
                             logger.Info("Marking file as deleted from list: MyListID: {0}", MyListID);
+                            break;
                         }
+                        logger.Warn("File doesn't have a MyListID, can't mark as deleted: {0}", Hash);
                         break;
 
                     case AniDBFileDeleteType.MarkUnknown:
@@ -74,8 +76,9 @@ namespace Shoko.Server.Commands
                         {
                             ShokoService.AnidbProcessor.MarkFileAsUnknown(MyListID);
                             logger.Info("Marking file as unknown: MyListID: {0}", MyListID);
+                            break;
                         }
-
+                        logger.Warn("File doesn't have a MyListID, can't mark as unknown: {0}", Hash);
                         break;
 
                     case AniDBFileDeleteType.DeleteLocalOnly:
@@ -94,14 +97,18 @@ namespace Shoko.Server.Commands
                         {
                             ShokoService.AnidbProcessor.MarkFileAsRemote(MyListID);
                             logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
+                            break;
                         }
+                        logger.Warn("File doesn't have a MyListID, can't mark as remote: {0}", Hash);
                         break;
                     case AniDBFileDeleteType.MarkDisk:
                         if (MyListID > 0)
                         {
                             ShokoService.AnidbProcessor.MarkFileAsOnDisk(MyListID);
                             logger.Info("Moving file to external storage: MyListID: {0}", MyListID);
+                            break;
                         }
+                        logger.Warn("File doesn't have a MyListID, can't mark as on disk: {0}", Hash);
                         break;
                 }
             }

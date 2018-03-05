@@ -540,19 +540,26 @@ namespace Shoko.Server
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                 if (watched && watchedDate == null) watchedDate = DateTime.Now;
 
-                cmdUpdateFile.Init(hash, watched, watchedDate);
-                SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
-                    new UnicodeEncoding(true, false));
-                SetWaitingOnResponse(false);
-                if (ev == enHelperActivityType.NoSuchMyListFile && watched)
+                enHelperActivityType ev;
+                if (hash.MyListID > 0)
                 {
-                    AniDBFile_State? state = null;
-                    AddFileToMyList(hash, ref watchedDate, ref state);
+                    cmdUpdateFile.Init(hash, watched, watchedDate);
                     SetWaitingOnResponse(true);
-                    cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                         new UnicodeEncoding(true, false));
                     SetWaitingOnResponse(false);
+                }
+                else
+                {
+                    logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
+                    ev = enHelperActivityType.NoSuchFile;
+                }
+
+                if (ev == enHelperActivityType.NoSuchMyListFile)
+                {
+                    // Run sychronously, but still do all of the stuff with watched state settings
+                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash);
+                    addcmd.ProcessCommand();
                 }
             }
         }
