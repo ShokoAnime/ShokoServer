@@ -106,6 +106,7 @@ namespace Shoko.Server.Commands
 
                     SVR_JMMUser juser = aniDBUsers[0];
                     bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
+                    bool watchedChanged = watched != watchedLocally;
 
                     // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                     if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
@@ -117,6 +118,13 @@ namespace Shoko.Server.Commands
                     {
                         vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
                             false, false);
+                    }
+
+                    if (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState)
+                    {
+                        int watchedDateSec = Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate);
+                        var cmdUpdate = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, watchedDateSec);
+                        cmdUpdate.Save();
                     }
                 }
 
