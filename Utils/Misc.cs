@@ -542,7 +542,7 @@ namespace Shoko.Commons.Utils
             }
 
             // Shortcut
-            if (inputString.StartsWith(query))
+            if (inputString.Contains(query))
             {
                 dist = int.MinValue;
                 return 0;
