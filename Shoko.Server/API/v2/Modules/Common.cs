@@ -175,6 +175,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups, ct);
             Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct);
             Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct);
+            Get["/group/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchGroup, ct);
 
             #endregion
 
@@ -2883,6 +2884,30 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.BadRequest("missing 'id'");
         }
 
+        /// <summary>
+        /// api/group/search
+        /// </summary>
+        /// <returns>list of groups</returns>
+        private object SearchGroup()
+        {
+            Request request = Request;
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+
+            if (para.limit == 0)
+            {
+                //hardcoded
+                para.limit = 100;
+            }
+            if (para.query != string.Empty)
+            {
+                return SearchGroupName(para.query, para.limit, (int) para.offset, user.JMMUserID,
+                    para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0,
+                    para.pic, para.tagfilter);
+            }
+            return APIStatus.BadRequest("missing 'query'");
+        }
+
         #region internal function
 
         /// <summary>
@@ -2967,6 +2992,101 @@ namespace Shoko.Server.API.v2.Modules
                 LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
             }
             return APIStatus.BadRequest();
+        }
+
+        private static void CheckGroupNameFuzzy(SVR_AnimeGroup a, string query,
+            ref ConcurrentDictionary<SVR_AnimeGroup, int> distLevenshtein, int limit)
+        {
+            if (distLevenshtein.Count >= limit) return;
+            int dist = int.MaxValue;
+
+            if (string.IsNullOrEmpty(a.GroupName)) return;
+            int k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
+            if (query.Length <= 4 || a.GroupName.Length <= 4) k = 0;
+            if (Misc.BitapFuzzySearch(a.GroupName, query, k, out int newDist) == -1) return;
+            if (newDist < dist)
+            {
+                dist = newDist;
+            }
+            // Keep the lowest distance
+            if (dist < int.MaxValue)
+                distLevenshtein.AddOrUpdate(a, dist,
+                    (key, oldValue) => Math.Min(oldValue, dist) == dist ? dist : oldValue);
+        }
+
+        internal object SearchGroupName(string query, int limit, int offset, int uid, bool nocast,
+            bool notag, int level, bool all, bool fuzzy, bool allpic, int pic, TagFilter.Filter tagfilter)
+        {
+            query = query.ToLowerInvariant();
+
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            if (user == null) return APIStatus.Unauthorized();
+
+            List<Group> group_list = new List<Group>();
+            List<SVR_AnimeGroup> groups = new List<SVR_AnimeGroup>();
+            var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a =>
+                !RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Select(b => b?.Contract?.AniDBAnime?.Tags)
+                    .Where(b => b != null)
+                    .Any(b => b.Select(c => c.TagName).FindInEnumerable(user.GetHideCategories())));
+
+            #region Search_TitlesOnly
+
+            if (!fuzzy || query.Length >= (IntPtr.Size * 8))
+            {
+                groups = allGroups
+                    .Where(a => a.GroupName
+                                    .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
+                                        StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    .OrderBy(a => a.SortName)
+                    .ToList();
+                foreach (SVR_AnimeGroup grp in groups)
+                {
+                    if (offset == 0)
+                    {
+                        group_list.Add(
+                            Group.GenerateFromAnimeGroup(Context, grp, uid, nocast, notag, level, all, 0,
+                                allpic, pic, tagfilter));
+                        if (group_list.Count >= limit)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        offset -= 1;
+                    }
+                }
+            }
+            else
+            {
+                var distLevenshtein = new ConcurrentDictionary<SVR_AnimeGroup, int>();
+                allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, ref distLevenshtein, limit));
+
+                groups = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
+                    .ThenBy(a => a.GroupName.Length)
+                    .ThenBy(a => a.SortName)
+                    .Select(a => a).ToList();
+                foreach (SVR_AnimeGroup grp in groups)
+                {
+                    if (offset == 0)
+                    {
+                        group_list.Add(Group.GenerateFromAnimeGroup(Context, grp, uid, nocast, notag, level,
+                            all, 0, allpic, pic, tagfilter));
+                        if (group_list.Count >= limit)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        offset -= 1;
+                    }
+                }
+            }
+
+            #endregion
+
+            return group_list;
         }
 
         #endregion
@@ -3097,6 +3217,5 @@ namespace Shoko.Server.API.v2.Modules
 
             return links;
         }
-        
     }
 }
