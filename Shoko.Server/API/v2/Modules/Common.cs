@@ -1029,7 +1029,7 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
             try
             {
-                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true);
+                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
                 foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
@@ -1051,7 +1051,7 @@ namespace Shoko.Server.API.v2.Modules
                         bool first = true;
                         foreach (SVR_VideoLocal vl in vls)
                         {
-                            RawFile file = new RawFile(Context, vl, 0, userID);
+                            RawFile file = new RawFile(Context, vl, 0, userID, ep);
                             if (first)
                             {
                                 file.is_preferred = 1;

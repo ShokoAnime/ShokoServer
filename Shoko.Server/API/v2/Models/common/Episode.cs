@@ -160,7 +160,7 @@ namespace Shoko.Server.API.v2.Models.common
                     ep.files = new List<RawFile>();
                     foreach (SVR_VideoLocal vl in vls)
                     {
-                        RawFile file = new RawFile(ctx, vl, (level - 1), uid);
+                        RawFile file = new RawFile(ctx, vl, (level - 1), uid, aep);
                         ep.files.Add(file);
                     }
                 }

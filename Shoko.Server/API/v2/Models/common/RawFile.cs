@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Server.Models;
 using System.Runtime.Serialization;
 using Nancy;
+using Pri.LongPath;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -87,107 +90,91 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        public RawFile(NancyContext ctx, SVR_VideoLocal vl, int level, int uid)
+        public RawFile(NancyContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
         {
-            if (vl != null)
+            if (vl == null) return;
+
+            id = vl.VideoLocalID;
+
+            crc32 = vl.CRC32;
+            ed2khash = vl.ED2KHash;
+            md5 = vl.MD5;
+            sha1 = vl.SHA1;
+
+            created = vl.DateTimeCreated;
+            updated = vl.DateTimeUpdated;
+            duration = vl.Duration;
+
+            var releaseGroup = vl.ReleaseGroup;
+            if (releaseGroup != null)
             {
-                id = vl.VideoLocalID;
+                group_full = releaseGroup.GroupName;
+                group_short = releaseGroup.GroupNameShort;
+                group_id = releaseGroup.AniDB_ReleaseGroupID;
+            }
 
-                crc32 = vl.CRC32;
-                ed2khash = vl.ED2KHash;
-                md5 = vl.MD5;
-                sha1 = vl.SHA1;
+            size = vl.FileSize;
+            hash = vl.Hash;
+            hash_source = vl.HashSource;
 
-                created = vl.DateTimeCreated;
-                updated = vl.DateTimeUpdated;
-                duration = vl.Duration;
+            is_ignored = vl.IsIgnored;
+            var vl_user = vl.GetUserRecord(uid);
+            offset = vl_user?.ResumePosition ?? 0;
 
-                if (vl.ReleaseGroup != null)
+            var place = vl.GetBestVideoLocalPlace();
+            if (place != null)
+            {
+                filename = place.FilePath;
+                server_path = place.FullServerPath;
+                videolocal_place_id = place.VideoLocal_Place_ID;
+                import_folder_id = place.ImportFolderID;
+            }
+
+            url = APIHelper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
+                "file" + Path.GetExtension(filename), false);
+
+            recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
+
+            if (vl.Media == null || (level <= 1 && level != 0)) return;
+
+            MediaInfo new_media = new MediaInfo();
+
+            new_media.AddGeneral(MediaInfo.General.format, vl.Media.Container);
+            new_media.AddGeneral(MediaInfo.General.duration, vl.Media.Duration);
+            new_media.AddGeneral(MediaInfo.General.id, vl.Media.Id);
+            new_media.AddGeneral(MediaInfo.General.overallbitrate, vl.Media.Bitrate);
+
+            if (vl.Media.Parts != null)
+            {
+                new_media.AddGeneral(MediaInfo.General.size, vl.Media.Parts[0].Size);
+
+                foreach (Stream p in vl.Media.Parts[0].Streams)
                 {
-                    group_full = vl.ReleaseGroup.GroupName;
-                    group_short = vl.ReleaseGroup.GroupNameShort;
-                    group_id = vl.ReleaseGroup.AniDB_ReleaseGroupID;
-                }
-
-                size = vl.FileSize;
-                hash = vl.Hash;
-                hash_source = vl.HashSource;
-
-                is_ignored = vl.IsIgnored;
-                var vl_user = vl.GetUserRecord(uid);
-                if (vl_user != null)
-                {
-                    offset = vl_user.ResumePosition;
-                }
-                else
-                {
-                    offset = 0;
-                }
-
-                var place = vl.GetBestVideoLocalPlace();
-                if (place != null)
-                {
-                    filename = place.FilePath;
-                    server_path = place.FullServerPath;
-                    videolocal_place_id = place.VideoLocal_Place_ID;
-                    import_folder_id = place.ImportFolderID;
-                }
-
-                if (vl.EpisodeCrossRefs.Count == 0)
-                {
-                    recognized = false;
-                }
-                else
-                {
-                    recognized = true;
-                }
-
-                if (vl.Media != null && (level > 1 || level == 0))
-                {
-                    media = new MediaInfo();
-
-                    url = APIHelper.ConstructVideoLocalStream(ctx, uid, vl.Media.Id, "file." + vl.Media.Container, false);
-
-                    MediaInfo new_media = new MediaInfo();
-
-                    new_media.AddGeneral(MediaInfo.General.format, vl.Media.Container);
-                    new_media.AddGeneral(MediaInfo.General.duration, vl.Media.Duration);
-                    new_media.AddGeneral(MediaInfo.General.id, vl.Media.Id);
-                    new_media.AddGeneral(MediaInfo.General.overallbitrate, vl.Media.Bitrate);
-
-                    if (vl.Media.Parts != null)
+                    switch (p.StreamType)
                     {
-                        new_media.AddGeneral(MediaInfo.General.size, vl.Media.Parts[0].Size);
-
-                        foreach (Shoko.Models.PlexAndKodi.Stream p in vl.Media.Parts[0].Streams)
-                        {
-                            switch (p.StreamType)
-                            {
-                                //video
-                                case "1":
-                                    new_media.AddVideo(p);
-                                    break;
-                                //audio
-                                case "2":
-                                    new_media.AddAudio(p);
-                                    break;
-                                //subtitle
-                                case "3":
-                                    new_media.AddSubtitle(p);
-                                    break;
-                                //menu
-                                case "4":
-                                    Dictionary<string, string> mdict = new Dictionary<string, string>();
-                                    //TODO APIv2: menu object could be usefull for external players
-                                    new_media.AddMenu(mdict);
-                                    break;
-                            }
-                        }
+                        //video
+                        case "1":
+                            new_media.AddVideo(p);
+                            break;
+                        //audio
+                        case "2":
+                            new_media.AddAudio(p);
+                            break;
+                        //subtitle
+                        case "3":
+                            new_media.AddSubtitle(p);
+                            break;
+                        //menu
+                        case "4":
+                            Dictionary<string, string> mdict = new Dictionary<string, string>();
+                            //TODO APIv2: menu object could be usefull for external players
+                            new_media.AddMenu(mdict);
+                            break;
                     }
-
-                    media = new_media;
                 }
             }
+
+            media = new_media;
         }
 
         /// <summary>
@@ -201,15 +188,15 @@ namespace Shoko.Server.API.v2.Models.common
 
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
-            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> audios { get; private set; }
+            public Dictionary<int, Stream> audios { get; private set; }
 
             //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
-            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> videos { get; private set; }
+            public Dictionary<int, Stream> videos { get; private set; }
 
             //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
-            public Dictionary<int, Shoko.Models.PlexAndKodi.Stream> subtitles { get; private set; }
+            public Dictionary<int, Stream> subtitles { get; private set; }
 
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
             public Dictionary<int, Dictionary<string, string>> menus { get; private set; }
@@ -217,9 +204,9 @@ namespace Shoko.Server.API.v2.Models.common
             public MediaInfo()
             {
                 general = new Dictionary<General, string>();
-                audios = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
-                videos = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
-                subtitles = new Dictionary<int, Shoko.Models.PlexAndKodi.Stream>();
+                audios = new Dictionary<int, Stream>();
+                videos = new Dictionary<int, Stream>();
+                subtitles = new Dictionary<int, Stream>();
                 menus = new Dictionary<int, Dictionary<string, string>>();
             }
 
@@ -228,19 +215,19 @@ namespace Shoko.Server.API.v2.Models.common
                 general.Add(param, value);
             }
 
-            public void AddAudio(Shoko.Models.PlexAndKodi.Stream dict)
+            public void AddAudio(Stream dict)
             {
-                audios.Add(audios.Count + 1, dict);
+                audios.Add(audios.Count + 1, (Stream) dict.Clone());
             }
 
-            public void AddVideo(Shoko.Models.PlexAndKodi.Stream dict)
+            public void AddVideo(Stream dict)
             {
-                videos.Add(videos.Count + 1, dict);
+                videos.Add(videos.Count + 1, (Stream) dict.Clone());
             }
 
-            public void AddSubtitle(Shoko.Models.PlexAndKodi.Stream dict)
+            public void AddSubtitle(Stream dict)
             {
-                subtitles.Add(subtitles.Count + 1, dict);
+                subtitles.Add(subtitles.Count + 1, (Stream) dict.Clone());
             }
 
             public void AddMenu(Dictionary<string, string> dict)
