@@ -15,9 +15,9 @@ namespace Shoko.Models.PlexAndKodi
         [XmlElement("Part")]
         public List<Part> Parts { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 2)]
+        [DataMember(EmitDefaultValue = true, Order = 2)]
         [XmlAttribute("duration")]
-        public string Duration { get; set; }
+        public long Duration { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 3)]
         [XmlAttribute("videoFrameRate")]
@@ -37,27 +37,27 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 7)]
         [XmlAttribute("audioChannels")]
-        public string AudioChannels { get; set; }
+        public byte AudioChannels { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 8)]
         [XmlAttribute("aspectRatio")]
-        public string AspectRatio { get; set; }
+        public float AspectRatio { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 9)]
+        [DataMember(EmitDefaultValue = true, Order = 9)]
         [XmlAttribute("height")]
-        public string Height { get; set; }
+        public int Height { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 10)]
+        [DataMember(EmitDefaultValue = true, Order = 10)]
         [XmlAttribute("width")]
-        public string Width { get; set; }
+        public int Width { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("bitrate")]
-        public string Bitrate { get; set; }
+        public int Bitrate { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 12)]
+        [DataMember(EmitDefaultValue = true, Order = 12)]
         [XmlAttribute("id")]
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 13)]
         [XmlAttribute("videoResolution")]
@@ -65,7 +65,7 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 14)]
         [XmlAttribute("optimizedForStreaming")]
-        public string OptimizedForStreaming { get; set; }
+        public byte OptimizedForStreaming { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 15)]
         [XmlAttribute("chaptered")]

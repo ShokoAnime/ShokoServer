@@ -12,25 +12,25 @@ namespace Shoko.Models.PlexAndKodi
     [DataContract]
     public class Part : ICloneable
     {
-        [DataMember(EmitDefaultValue = false, Order = 1)]
+        [DataMember(EmitDefaultValue = true, Order = 1)]
         [XmlAttribute("accessible")]
-        public string Accessible { get; set; }
+        public byte Accessible { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 2)]
+        [DataMember(EmitDefaultValue = true, Order = 2)]
         [XmlAttribute("exists")]
-        public string Exists { get; set; }
+        public byte Exists { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 3)]
         [XmlElement("Stream")]
         public List<Stream> Streams { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 4)]
+        [DataMember(EmitDefaultValue = true, Order = 4)]
         [XmlAttribute("size")]
-        public string Size { get; set; }
+        public long Size { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 5)]
+        [DataMember(EmitDefaultValue = true, Order = 5)]
         [XmlAttribute("duration")]
-        public string Duration { get; set; }
+        public long Duration { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 6)]
         [XmlAttribute("key")]
@@ -44,9 +44,9 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("container")]
         public string Container { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 9)]
+        [DataMember(EmitDefaultValue = true, Order = 9)]
         [XmlAttribute("id")]
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 10)]
         [XmlAttribute("file")]
@@ -54,7 +54,7 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("optimizedForStreaming")]
-        public string OptimizedForStreaming { get; set; }
+        public byte OptimizedForStreaming { get; set; }
 
         [Ignore]
         [XmlIgnore]
@@ -62,7 +62,7 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 12)]
         [XmlAttribute("has64bitOffsets")]
-        public string Has64bitOffsets { get; set; }
+        public byte Has64bitOffsets { get; set; }
 
         public object Clone()
         {

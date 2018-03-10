@@ -22,8 +22,8 @@ namespace Shoko.Models.PlexAndKodi
         public bool IsMovie { get; set; }
 
         [XmlAttribute("GenericId")]
-        [DataMember(EmitDefaultValue = false, Order = 20)]
-        public string Id { get; set; }
+        [DataMember(EmitDefaultValue = true, Order = 20)]
+        public int Id { get; set; }
 
 
 
@@ -87,14 +87,14 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("grandparentKey")]
         public string GrandparentKey { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 36)]
+        [DataMember(EmitDefaultValue = true, Order = 36)]
         [XmlAttribute("index")]
-        public string Index { get; set; }
+        public int Index { get; set; }
 
         [Tags("Plex")]
-        [DataMember(EmitDefaultValue = false, Order = 37)]
+        [DataMember(EmitDefaultValue = true, Order = 37)]
         [XmlAttribute("parentIndex")]
-        public string ParentIndex { get; set; }
+        public int ParentIndex { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 38)]
         [XmlAttribute("guid")]
@@ -128,18 +128,18 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("summary")]
         public string Summary { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 46)]
+        [DataMember(EmitDefaultValue = true, Order = 46)]
         [XmlAttribute("year")]
-        public string Year { get; set; }
+        public int Year { get; set; }
 
         [Tags("Plex")]
-        [DataMember(EmitDefaultValue = false, Order = 47)]
+        [DataMember(EmitDefaultValue = true, Order = 47)]
         [XmlAttribute("duration")]
-        public string Duration { get; set; }
+        public long Duration { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 48)]
+        [DataMember(EmitDefaultValue = true, Order = 48)]
         [XmlAttribute("episode_count")]
-        public string EpisodeCount { get; set; }
+        public int EpisodeCount { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 49)]
         [XmlAttribute("updatedAt")]
@@ -157,18 +157,18 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("originallyAvailableAt")]
         public string OriginallyAvailableAt { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 53)]
+        [DataMember(EmitDefaultValue = true, Order = 53)]
         [XmlAttribute("leafCount")]
-        public string LeafCount { get; set; }
+        public int LeafCount { get; set; }
 
         [Tags("Plex")]
-        [DataMember(EmitDefaultValue = false, Order = 54)]
+        [DataMember(EmitDefaultValue = true, Order = 54)]
         [XmlAttribute("childCount")]
-        public string ChildCount { get; set; }
+        public int ChildCount { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 55)]
+        [DataMember(EmitDefaultValue = true, Order = 55)]
         [XmlAttribute("viewedLeafCount")]
-        public string ViewedLeafCount { get; set; }
+        public int ViewedLeafCount { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 56)]
         [XmlAttribute("original_title")]
@@ -178,21 +178,21 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("source_title")]
         public string SourceTitle { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 58)]
+        [DataMember(EmitDefaultValue = true, Order = 58)]
         [XmlAttribute("rating")]
-        public string Rating { get; set; }
+        public int Rating { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 59)]
         [XmlAttribute("season")]
         public string Season { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 60)]
+        [DataMember(EmitDefaultValue = true, Order = 60)]
         [XmlAttribute("viewCount")]
-        public string ViewCount { get; set; }
+        public int ViewCount { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 61)]
+        [DataMember(EmitDefaultValue = true, Order = 61)]
         [XmlAttribute("viewOffset")]
-        public string ViewOffset { get; set; }
+        public long ViewOffset { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 62)]
         [XmlAttribute("primaryExtraKey")]
@@ -218,17 +218,17 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("extraType")]
         public string ExtraType { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 68)]
+        [DataMember(EmitDefaultValue = true, Order = 68)]
         [XmlAttribute]
-        public string EpisodeType { get; set; }
+        public int EpisodeType { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 69)]
+        [DataMember(EmitDefaultValue = true, Order = 69)]
         [XmlAttribute]
-        public string EpisodeNumber { get; set; }
+        public int EpisodeNumber { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 70)]
         [XmlAttribute("UserRating")]
-        public string UserRating { get; set; }
+        public int UserRating { get; set; }
 
         [XmlIgnore]
         [Ignore]

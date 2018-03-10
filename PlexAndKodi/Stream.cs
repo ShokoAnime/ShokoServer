@@ -22,29 +22,29 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("key")]
         public string Key { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 4)]
+        [DataMember(EmitDefaultValue = true, Order = 4)]
         [XmlAttribute("duration")]
-        public string Duration { get; set; }
+        public long Duration { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 5)]
+        [DataMember(EmitDefaultValue = true, Order = 5)]
         [XmlAttribute("height")]
-        public string Height { get; set; }
+        public int Height { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 6)]
         [XmlAttribute("width")]
-        public string Width { get; set; }
+        public int Width { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 7)]
         [XmlAttribute("bitrate")]
-        public string Bitrate { get; set; }
+        public int Bitrate { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 8)]
+        [DataMember(EmitDefaultValue = true, Order = 8)]
         [XmlAttribute("subIndex")]
-        public string SubIndex { get; set; }
+        public int SubIndex { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 9)]
+        [DataMember(EmitDefaultValue = true, Order = 9)]
         [XmlAttribute("id")]
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 10)]
         [XmlAttribute("scanType")]
@@ -52,7 +52,7 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 11)]
         [XmlAttribute("refFrames")]
-        public string RefFrames { get; set; }
+        public byte RefFrames { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 12)]
         [XmlAttribute("profile")]
@@ -60,15 +60,15 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 13)]
         [XmlAttribute("level")]
-        public string Level { get; set; }
+        public int Level { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 14)]
         [XmlAttribute("headerStripping")]
-        public string HeaderStripping { get; set; }
+        public byte HeaderStripping { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 15)]
         [XmlAttribute("hasScalingMatrix")]
-        public string HasScalingMatrix { get; set; }
+        public byte HasScalingMatrix { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 16)]
         [XmlAttribute("frameRateMode")]
@@ -80,7 +80,7 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 18)]
         [XmlAttribute("frameRate")]
-        public string FrameRate { get; set; }
+        public float FrameRate { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 19)]
         [XmlAttribute("colorSpace")]
@@ -96,35 +96,35 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 22)]
         [XmlAttribute("cabac")]
-        public string Cabac { get; set; }
+        public byte Cabac { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 23)]
         [XmlAttribute("bitDepth")]
-        public string BitDepth { get; set; }
+        public byte BitDepth { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 24)]
+        [DataMember(EmitDefaultValue = true, Order = 24)]
         [XmlAttribute("index")]
-        public string Index { get; set; }
+        public byte Index { get; set; }
 
         [XmlIgnore]
         [Ignore]
-        public int idx;
+        public byte idx;
 
         [DataMember(EmitDefaultValue = false, Order = 25)]
         [XmlAttribute("codec")]
         public string Codec { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 26)]
+        [DataMember(EmitDefaultValue = true, Order = 26)]
         [XmlAttribute("streamType")]
-        public string StreamType { get; set; }
+        public byte StreamType { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 27)]
         [XmlAttribute("orientation")]
-        public string Orientation { get; set; }
+        public byte Orientation { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 28)]
         [XmlAttribute("qpel")]
-        public string QPel { get; set; }
+        public byte QPel { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 29)]
         [XmlAttribute("gmc")]
@@ -132,23 +132,23 @@ namespace Shoko.Models.PlexAndKodi
 
         [DataMember(EmitDefaultValue = false, Order = 30)]
         [XmlAttribute("bvop")]
-        public string BVOP { get; set; }
+        public byte BVOP { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 31)]
         [XmlAttribute("samplingRate")]
-        public string SamplingRate { get; set; }
+        public int SamplingRate { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 32)]
         [XmlAttribute("languageCode")]
         public string LanguageCode { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 33)]
+        [DataMember(EmitDefaultValue = true, Order = 33)]
         [XmlAttribute("channels")]
-        public string Channels { get; set; }
+        public byte Channels { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 34)]
+        [DataMember(EmitDefaultValue = true, Order = 34)]
         [XmlAttribute("selected")]
-        public string Selected { get; set; }
+        public byte Selected { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 35)]
         [XmlAttribute("dialogNorm")]
@@ -162,13 +162,13 @@ namespace Shoko.Models.PlexAndKodi
         [XmlAttribute("format")]
         public string Format { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 38)]
+        [DataMember(EmitDefaultValue = true, Order = 38)]
         [XmlAttribute("default")]
-        public string Default { get; set; }
+        public byte Default { get; set; }
 
-        [DataMember(EmitDefaultValue = false, Order = 39)]
+        [DataMember(EmitDefaultValue = true, Order = 39)]
         [XmlAttribute("forced")]
-        public string Forced { get; set; }
+        public byte Forced { get; set; }
 
         [DataMember(EmitDefaultValue = false, Order = 40)]
         [XmlAttribute("pixelAspectRatio")]
