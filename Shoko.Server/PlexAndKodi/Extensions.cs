@@ -25,7 +25,7 @@ namespace Shoko.Server.PlexAndKodi
                 prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.GroupUnsort + "/0");
         }
 
-        public static string ConstructGroupIdUrl(this IProvider prov, int userid, string gid)
+        public static string ConstructGroupIdUrl(this IProvider prov, int userid, int gid)
         {
             return prov.ServerUrl(prov.ServicePort,
                 prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Group + "/" + gid );
@@ -34,11 +34,10 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructSerieIdUrl(this IProvider prov, int userid, string sid)
         {
             return prov.ServerUrl(prov.ServicePort,
-                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid 
-                );
+                prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) JMMType.Serie + "/" + sid);
         }
 
-        public static string ContructVideoUrl(this IProvider prov, int userid, string vid, JMMType type)
+        public static string ContructVideoUrl(this IProvider prov, int userid, int vid, JMMType type)
         {
             return prov.ServerUrl(prov.ServicePort,
                 prov.ServiceAddress + "/Metadata/" + userid + "/" + (int) type + "/" + vid );
@@ -184,7 +183,7 @@ namespace Shoko.Server.PlexAndKodi
                     v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeSerie:
-                    v.Key = prov.ConstructSerieIdUrl(userid, v.Id);
+                    v.Key = prov.ConstructSerieIdUrl(userid, v.Id.ToString());
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
@@ -203,7 +202,7 @@ namespace Shoko.Server.PlexAndKodi
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
-                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(int.Parse(a.Id)))
+                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(a.Id))
                             .Where(a => a != null)
                             .Select(a => a.GetUserRecord(userid))
                             .Where(a => a != null)
@@ -211,18 +210,17 @@ namespace Shoko.Server.PlexAndKodi
                             .FirstOrDefault();
                         if (vl != null && vl.ResumePosition > 0)
                         {
-                            v.ViewOffset = vl.ResumePosition.ToString();
+                            v.ViewOffset = vl.ResumePosition;
                             if (vl.WatchedDate.HasValue)
                                 v.LastViewedAt = vl.WatchedDate.Value.ToUnixTime();
                         }
                     }
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
-                    int vid = int.Parse(v.Id); //This suxx, but adding regeneration at videolocal_user is worst.
-                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(vid)?.GetUserRecord(userid);
+                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
-                        v.ViewOffset = vl2.ResumePosition.ToString();
+                        v.ViewOffset = vl2.ResumePosition;
                         if (vl2.WatchedDate.HasValue)
                             v.LastViewedAt = vl2.WatchedDate.Value.ToUnixTime();
                     }

@@ -153,19 +153,19 @@ namespace Shoko.Server.API.v2.Models.common
                     switch (p.StreamType)
                     {
                         //video
-                        case "1":
+                        case 1:
                             new_media.AddVideo(p);
                             break;
                         //audio
-                        case "2":
+                        case 2:
                             new_media.AddAudio(p);
                             break;
                         //subtitle
-                        case "3":
+                        case 3:
                             new_media.AddSubtitle(p);
                             break;
                         //menu
-                        case "4":
+                        case 4:
                             Dictionary<string, string> mdict = new Dictionary<string, string>();
                             //TODO APIv2: menu object could be usefull for external players
                             new_media.AddMenu(mdict);
@@ -184,7 +184,7 @@ namespace Shoko.Server.API.v2.Models.common
         public class MediaInfo
         {
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
-            public Dictionary<General, string> general { get; private set; }
+            public Dictionary<General, object> general { get; private set; }
 
             //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
             [DataMember(IsRequired = false, EmitDefaultValue = false)]
@@ -203,14 +203,14 @@ namespace Shoko.Server.API.v2.Models.common
 
             public MediaInfo()
             {
-                general = new Dictionary<General, string>();
+                general = new Dictionary<General, object>();
                 audios = new Dictionary<int, Stream>();
                 videos = new Dictionary<int, Stream>();
                 subtitles = new Dictionary<int, Stream>();
                 menus = new Dictionary<int, Dictionary<string, string>>();
             }
 
-            public void AddGeneral(General param, string value)
+            public void AddGeneral(General param, object value)
             {
                 general.Add(param, value);
             }

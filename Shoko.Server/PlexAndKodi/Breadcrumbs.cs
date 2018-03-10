@@ -39,7 +39,7 @@ namespace Shoko.Server.PlexAndKodi
 
             cache.Key = v.Key;
             cache.Title = v.Title ?? string.Empty;
-            cache.Index = v.Index;
+            cache.Index = v.Index.ToString();
             if (!noart)
             {
                 cache.GrandParentThumb = cache.ParentThumb;

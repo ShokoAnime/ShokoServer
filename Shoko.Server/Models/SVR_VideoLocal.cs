@@ -480,9 +480,9 @@ namespace Shoko.Server.Models
                 while (name.StartsWith("."))
                     name = name.Substring(1);
                 p.Key = ((IProvider) null).ReplaceSchemeHost(
-                    ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID.ToString(), name, false));
+                    ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID, name, false));
                 if (p.Streams == null) continue;
-                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3").ToList())
+                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == 3).ToList())
                     s.Key =
                         ((IProvider) null).ReplaceSchemeHost(
                             ((IProvider) null).ConstructFileStream(userID, s.File, false));

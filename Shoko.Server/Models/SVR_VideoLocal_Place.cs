@@ -303,42 +303,27 @@ namespace Shoko.Server.Models
 
         public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
         {
-            info.VideoResolution = !string.IsNullOrEmpty(m.Width) && !string.IsNullOrEmpty(m.Height)
-                ? m.Width + "x" + m.Height
-                : string.Empty;
-            info.VideoCodec = !string.IsNullOrEmpty(m.VideoCodec) ? m.VideoCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "1")?.CodecID ?? string.Empty;
-            info.AudioCodec = !string.IsNullOrEmpty(m.AudioCodec) ? m.AudioCodec : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == "2")?.CodecID ?? string.Empty;
+            info.VideoResolution = m.Width != 0 && m.Height != 0 ? m.Width + "x" + m.Height : string.Empty;
+            info.VideoCodec = !string.IsNullOrEmpty(m.VideoCodec)
+                ? m.VideoCodec
+                : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == 1)?.CodecID ?? string.Empty;
+            info.AudioCodec = !string.IsNullOrEmpty(m.AudioCodec)
+                ? m.AudioCodec
+                : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == 2)?.CodecID ?? string.Empty;
 
 
-            if (!string.IsNullOrEmpty(m.Duration))
-            {
-                bool isValidDuration = double.TryParse(m.Duration, out double _);
-                if (isValidDuration)
-                    info.Duration =
-                        (long) double.Parse(m.Duration, NumberStyles.Any, CultureInfo.InvariantCulture);
-                else
-                    info.Duration = 0;
-            }
-            else
-                info.Duration = 0;
+            info.Duration = m.Duration;
 
             info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-            List<Stream> vparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == "1").ToList();
+            List<Stream> vparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == 1).ToList();
             if (vparts.Count > 0)
             {
-                if (!string.IsNullOrEmpty(vparts[0].Bitrate))
-                    info.VideoBitrate = vparts[0].Bitrate;
-                if (!string.IsNullOrEmpty(vparts[0].BitDepth))
-                    info.VideoBitDepth = vparts[0].BitDepth;
-                if (!string.IsNullOrEmpty(vparts[0].FrameRate))
-                    info.VideoFrameRate = vparts[0].FrameRate;
+                info.VideoBitrate = vparts[0].Bitrate.ToString();
+                info.VideoBitDepth = vparts[0].BitDepth.ToString();
+                info.VideoFrameRate = vparts[0].FrameRate.ToString();
             }
-            List<Stream> aparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == "2").ToList();
-            if (aparts.Count > 0)
-            {
-                if (!string.IsNullOrEmpty(aparts[0].Bitrate))
-                    info.AudioBitrate = aparts[0].Bitrate;
-            }
+            List<Stream> aparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == 2).ToList();
+            if (aparts.Count > 0) info.AudioBitrate = aparts[0].Bitrate.ToString();
         }
 
         public bool RefreshMediaInfo()
@@ -367,9 +352,9 @@ namespace Shoko.Server.Models
                     string name = (ImportFolder.CloudID == null)
                         ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
-                            VideoLocalID.ToString(), "file", false));
+                            VideoLocalID, "file", false));
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
-                    if (string.IsNullOrEmpty(m?.Duration))
+                    if ((m?.Duration ?? 0) == 0)
                         m = null;
                     if (m != null)
                         AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);
@@ -381,7 +366,7 @@ namespace Shoko.Server.Models
                     SVR_VideoLocal info = VideoLocal;
                     FillVideoInfoFromMedia(info, m);
 
-                    m.Id = VideoLocalID.ToString();
+                    m.Id = VideoLocalID;
                     List<Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
                     {
@@ -389,24 +374,24 @@ namespace Shoko.Server.Models
                     }
                     foreach (Part p in m.Parts)
                     {
-                        p.Id = null;
-                        p.Accessible = "1";
-                        p.Exists = "1";
+                        p.Id = 0;
+                        p.Accessible = 1;
+                        p.Exists = 1;
                         bool vid = false;
                         bool aud = false;
                         bool txt = false;
                         foreach (Stream ss in p.Streams.ToArray())
                         {
-                            if (ss.StreamType == "1" && !vid) vid = true;
-                            if (ss.StreamType == "2" && !aud)
+                            if (ss.StreamType == 1 && !vid) vid = true;
+                            if (ss.StreamType == 2 && !aud)
                             {
                                 aud = true;
-                                ss.Selected = "1";
+                                ss.Selected = 1;
                             }
-                            if (ss.StreamType == "3" && !txt)
+                            if (ss.StreamType == 3 && !txt)
                             {
                                 txt = true;
-                                ss.Selected = "1";
+                                ss.Selected = 1;
                             }
                         }
                     }

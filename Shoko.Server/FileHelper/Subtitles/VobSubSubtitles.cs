@@ -77,8 +77,8 @@ namespace Shoko.Server.FileHelper.Subtitles
                         Stream s = new Stream
                         {
                             Format = "vobsub",
-                            StreamType = "3",
-                            SubIndex = x.ToString(),
+                            StreamType = 3,
+                            SubIndex = x,
                             File = basename + ".idx",
                             LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language],
                             Language = SubtitleHelper.Iso639_1_TO_Languages[language]

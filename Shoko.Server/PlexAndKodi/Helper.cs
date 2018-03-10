@@ -27,7 +27,7 @@ namespace Shoko.Server.PlexAndKodi
 {
     public static class Helper
     {
-        public static string ConstructVideoLocalStream(this IProvider prov, int userid, string vid, string name,
+        public static string ConstructVideoLocalStream(this IProvider prov, int userid, int vid, string name,
             bool autowatch)
         {
             return prov.ServerUrl(int.Parse(ServerSettings.JMMServerPort),
@@ -201,7 +201,7 @@ namespace Shoko.Server.PlexAndKodi
                     string ff = "file." + p.Container;
                     p.Key = prov.ConstructVideoLocalStream(userid, m.Id, ff, prov.AutoWatch);
                     if (p.Streams == null) continue;
-                    foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == "3"))
+                    foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == 3))
                     {
                         s.Key = prov.ConstructFileStream(userid, s.File, prov.AutoWatch);
                     }
@@ -214,23 +214,23 @@ namespace Shoko.Server.PlexAndKodi
             Video l = new Video
             {
                 AnimeType = AnimeTypes.AnimeFile.ToString(),
-                Id = v.VideoLocalID.ToString(),
+                Id = v.VideoLocalID,
                 Type = "episode",
                 Summary = "Episode Overview Not Available", //TODO Intenationalization
                 Title = Path.GetFileNameWithoutExtension(v.FileName),
                 AddedAt = v.DateTimeCreated.ToUnixTime(),
                 UpdatedAt = v.DateTimeUpdated.ToUnixTime(),
                 OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate(),
-                Year = v.DateTimeCreated.Year.ToString(),
+                Year = v.DateTimeCreated.Year,
                 Medias = new List<Media>()
             };
             VideoLocal_User vlr = v.GetUserRecord(userid);
             if (vlr?.WatchedDate != null)
                 l.LastViewedAt = vlr.WatchedDate.Value.ToUnixTime();
             if (vlr?.ResumePosition > 0)
-                l.ViewOffset = vlr.ResumePosition.ToString();
+                l.ViewOffset = vlr.ResumePosition;
             Media m = v.Media;
-            if (string.IsNullOrEmpty(m?.Duration))
+            if (m?.Duration != 0)
             {
                 SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl?.RefreshMediaInfo() == true)
@@ -257,7 +257,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 foreach (SVR_VideoLocal vl2 in e.Key.GetVideoLocals())
                 {
-                    if (!string.IsNullOrEmpty(vl2.Media?.Duration)) continue;
+                    if (vl2.Media?.Duration != 0) continue;
                     SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
                     if (pl?.RefreshMediaInfo() == true)
                         RepoFactory.VideoLocal.Save(vl2, true);
@@ -269,14 +269,14 @@ namespace Shoko.Server.PlexAndKodi
             {
                 if (e.Value != null)
                 {
-                    v.ViewCount = e.Value.WatchedCount.ToString();
+                    v.ViewCount = e.Value.WatchedCount;
                     if (e.Value.WatchedDate.HasValue)
                         v.LastViewedAt = e.Value.WatchedDate.Value.ToUnixTime();
                 }
-                v.ParentIndex = "1";
+                v.ParentIndex = 1;
                 if (e.Key.EpisodeTypeEnum != EpisodeType.Episode)
                 {
-                    v.ParentIndex = null;
+                    v.ParentIndex = 0;
                 }
 
                 if (e.Key.EpisodeTypeEnum == EpisodeType.Episode)
@@ -291,10 +291,10 @@ namespace Shoko.Server.PlexAndKodi
                     CrossRef_AniDB_TvDBV2 c2 =
                         cross.FirstOrDefault(
                             a =>
-                                a.AniDBStartEpisodeType == int.Parse(v.EpisodeType) &&
-                                a.AniDBStartEpisodeNumber <= int.Parse(v.EpisodeNumber));
+                                a.AniDBStartEpisodeType == v.EpisodeType &&
+                                a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
                     if (c2?.TvDBSeasonNumber > 0)
-                        v.ParentIndex = c2.TvDBSeasonNumber.ToString();
+                        v.ParentIndex = c2.TvDBSeasonNumber;
                 }
                 AddLinksToAnimeEpisodeVideo(prov, v, userid);
             }
@@ -309,7 +309,7 @@ namespace Shoko.Server.PlexAndKodi
             List<SVR_VideoLocal> vids = ep.GetVideoLocals();
             l.Type = "episode";
             l.Summary = "Episode Overview Not Available"; //TODO Intenationalization
-            l.Id = ep.AnimeEpisodeID.ToString();
+            l.Id = ep.AnimeEpisodeID;
             l.AnimeType = AnimeTypes.AnimeEpisode.ToString();
             if (vids.Count > 0)
             {
@@ -318,11 +318,11 @@ namespace Shoko.Server.PlexAndKodi
                 l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
                 l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
                 l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();
-                l.Year = vids[0].DateTimeCreated.Year.ToString();
+                l.Year = vids[0].DateTimeCreated.Year;
                 l.Medias = new List<Media>();
                 foreach (SVR_VideoLocal v in vids)
                 {
-                    if (string.IsNullOrEmpty(v.Media?.Duration))
+                    if ((v.Media?.Duration ?? 0) == 0)
                     {
                         SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl?.RefreshMediaInfo() == true)
@@ -342,20 +342,19 @@ namespace Shoko.Server.PlexAndKodi
                 AniDB_Episode aep = ep?.AniDB_Episode;
                 if (aep != null)
                 {
-                    l.EpisodeNumber = aep.EpisodeNumber.ToString();
-                    l.Index = aep.EpisodeNumber.ToString();
+                    l.EpisodeNumber = aep.EpisodeNumber;
+                    l.Index = aep.EpisodeNumber;
                     l.Title = aep.EnglishName;
                     l.OriginalTitle = aep.RomajiName;
-                    l.EpisodeType = aep.EpisodeType.ToString();
-                    l.Rating = float.Parse(aep.Rating, CultureInfo.InvariantCulture)
-                        .ToString(CultureInfo.InvariantCulture);
+                    l.EpisodeType = aep.EpisodeType;
+                    l.Rating = (int) float.Parse(aep.Rating, CultureInfo.InvariantCulture);
                     AniDB_Vote vote =
                         RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
-                    if (vote != null) l.UserRating = (vote.VoteValue / 100D).ToString(CultureInfo.InvariantCulture);
+                    if (vote != null) l.UserRating = (int) (vote.VoteValue / 100D);
 
                     if (aep.GetAirDateAsDate().HasValue)
                     {
-                        l.Year = aep.GetAirDateAsDate()?.Year.ToString();
+                        l.Year = aep.GetAirDateAsDate()?.Year ?? 0;
                         l.OriginallyAvailableAt = aep.GetAirDateAsDate()?.ToPlexDate();
                     }
 
@@ -414,7 +413,7 @@ namespace Shoko.Server.PlexAndKodi
                     l.Summary = "Episode Overview not Available";
                 }
             }
-            l.Id = ep.AnimeEpisodeID.ToString();
+            l.Id = ep.AnimeEpisodeID;
             return l;
         }
 
@@ -478,8 +477,8 @@ namespace Shoko.Server.PlexAndKodi
                         break;
                 }
             }
-            pp.LeafCount = gfs.Count.ToString();
-            pp.ViewedLeafCount = "0";
+            pp.LeafCount = gfs.Count;
+            pp.ViewedLeafCount = 0;
         }
 
         public static Directory DirectoryFromFilter(IProvider prov, SVR_GroupFilter gg,
@@ -488,7 +487,7 @@ namespace Shoko.Server.PlexAndKodi
             Directory pp = new Directory {Type = "show"};
             pp.Key = prov.ConstructFilterIdUrl(userid, gg.GroupFilterID);
             pp.Title = gg.GroupFilterName;
-            pp.Id = gg.GroupFilterID.ToString();
+            pp.Id = gg.GroupFilterID;
             pp.AnimeType = AnimeTypes.AnimeGroupFilter.ToString();
             if ((gg.FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
             {
@@ -498,8 +497,8 @@ namespace Shoko.Server.PlexAndKodi
             {
                 HashSet<int> groups = gg.GroupsIds[userid];
                 if (groups.Count == 0) return pp;
-                pp.LeafCount = groups.Count.ToString();
-                pp.ViewedLeafCount = "0";
+                pp.LeafCount = groups.Count;
+                pp.ViewedLeafCount = 0;
                 foreach (int grp in groups.Randomize())
                 {
                     SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
@@ -530,7 +529,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         v.Title = nv.Title;
                         v.Summary = nv.Summary;
-                        v.Index = null;
+                        v.Index = 0;
                         ret = true;
                     }
                     else if (v.Title.StartsWith("Part "))
@@ -547,7 +546,7 @@ namespace Shoko.Server.PlexAndKodi
                         v.Type = "movie";
                         v.Thumb = nv.Thumb;
                         v.Summary = nv.Summary;
-                        v.Index = null;
+                        v.Index = 0;
                         ret = true;
                     }
                     break;
@@ -563,7 +562,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (v.Roles == null)
                     v.Roles = nv.Roles;
             }
-            if (string.IsNullOrEmpty(v.Rating))
+            if (v.Rating == 0)
                 v.Rating = nv.Rating;
             if (v.Thumb == null)
                 v.Thumb = v.ParentThumb;
@@ -674,7 +673,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.Group = cgrp;
                 v.AirDate = cgrp.Stat_AirDate_Min ?? DateTime.MinValue;
                 v.UpdatedAt = cgrp.LatestEpisodeAirDate?.ToUnixTime();
-                v.Rating = Math.Round((grp.AniDBRating / 100), 1).ToString(CultureInfo.InvariantCulture);
+                v.Rating = (int) Math.Round((grp.AniDBRating / 100), 1);
                 List<Tag> newTags = new List<Tag>();
                 foreach (AniDB_Tag tag in grp.Tags)
                 {
@@ -790,7 +789,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             Directory p = new Directory
             {
-                Id = grp.AnimeGroupID.ToString(),
+                Id = grp.AnimeGroupID,
                 AnimeType = AnimeTypes.AnimeGroup.ToString(),
                 Title = grp.GroupName,
                 Summary = grp.Description,
@@ -799,16 +798,16 @@ namespace Shoko.Server.PlexAndKodi
             };
             if (grp.Stat_AllYears.Count > 0)
             {
-                p.Year = grp.Stat_AllYears?.Min().ToString();
+                p.Year = grp.Stat_AllYears?.Min() ?? 0;
             }
             if (ser != null)
             {
                 p.Thumb = ser.AniDBAnime?.AniDBAnime.DefaultImagePoster.GenPoster(null);
                 p.Art = ser.AniDBAnime?.AniDBAnime.DefaultImageFanart.GenArt(null);
             }
-            p.LeafCount = (grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount).ToString();
-            p.ViewedLeafCount = grp.WatchedEpisodeCount.ToString();
-            p.ChildCount = (grp.Stat_SeriesCount + subgrpcnt).ToString();
+            p.LeafCount = grp.UnwatchedEpisodeCount + grp.WatchedEpisodeCount;
+            p.ViewedLeafCount = grp.WatchedEpisodeCount;
+            p.ChildCount = grp.Stat_SeriesCount + subgrpcnt;
             if ((grp.UnwatchedEpisodeCount == 0) && grp.WatchedDate.HasValue)
                 p.LastViewedAt = grp.WatchedDate.Value.ToUnixTime();
             return p;
@@ -852,7 +851,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 ISessionWrapper sessionWrapper = session.Wrap();
                 CL_AniDB_Anime anime = ser.AniDBAnime.AniDBAnime;
-                p.Id = ser.AnimeSeriesID.ToString();
+                p.Id = ser.AnimeSeriesID;
                 p.AnimeType = AnimeTypes.AnimeSerie.ToString();
                 if (ser.AniDBAnime.AniDBAnime.Restricted > 0)
                     p.ContentRating = "R";
@@ -873,15 +872,15 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     p.AirDate = anime.AirDate.Value;
                     p.OriginallyAvailableAt = anime.AirDate.Value.ToPlexDate();
-                    p.Year = anime.AirDate.Value.Year.ToString();
+                    p.Year = anime.AirDate.Value.Year;
                 }
-                p.LeafCount = anime.EpisodeCount.ToString();
+                p.LeafCount = anime.EpisodeCount;
                 //p.ChildCount = p.LeafCount;
-                p.ViewedLeafCount = ser.WatchedEpisodeCount.ToString();
-                p.Rating = Math.Round((anime.Rating / 100D), 1).ToString(CultureInfo.InvariantCulture);
+                p.ViewedLeafCount = ser.WatchedEpisodeCount;
+                p.Rating = (int) Math.Round((anime.Rating / 100D), 1);
                 AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime) ??
                                   RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
-                if (vote != null) p.UserRating = (vote.VoteValue / 100D).ToString(CultureInfo.InvariantCulture);
+                if (vote != null) p.UserRating = (int) (vote.VoteValue / 100D);
 
                 List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
                 if (ls != null && ls.Count > 0)
@@ -890,7 +889,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         if (c.TvDBSeasonNumber == 0) continue;
                         p.Season = c.TvDBSeasonNumber.ToString();
-                        p.Index = p.Season;
+                        p.Index = c.TvDBSeasonNumber;
                     }
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster(null);
@@ -921,7 +920,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (eps != null)
                 {
                     List<EpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
-                    p.ChildCount = types.Count > 1 ? types.Count.ToString() : eps.Keys.Count.ToString();
+                    p.ChildCount = types.Count > 1 ? types.Count : eps.Keys.Count;
                 }
                 p.Roles = new List<RoleTag>();
 

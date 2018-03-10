@@ -110,7 +110,7 @@ namespace Shoko.Server.Extensions
                     if (p.Streams != null)
                     {
                         List<Stream> streams = p.Streams
-                            .Where(a => a.StreamType == "3" && !string.IsNullOrEmpty(a.File))
+                            .Where(a => a.StreamType == 3 && !string.IsNullOrEmpty(a.File))
                             .ToList();
                         if (streams.Count > 0)
                             streams.ForEach(a => p.Streams.Remove(a));
@@ -118,7 +118,7 @@ namespace Shoko.Server.Extensions
                 }
             }
             //Cleanup the VideoLocal id
-            m.Id = null;
+            m.Id = 0;
             byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
             r.ED2K = v.ED2KHash;
             r.MediaInfo = new byte[data.Length + 4];
