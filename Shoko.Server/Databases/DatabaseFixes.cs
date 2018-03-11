@@ -255,7 +255,7 @@ namespace Shoko.Server.Databases
                 // Is it in MyList
                 if (!onlineFiles.Contains(fileID)) continue;
 
-                Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null);
+                Raw_AniDB_MyListFile file = onlineFiles[fileID].FirstOrDefault(a => a != null && a.ListID != 0);
                 if (file == null || vid.MyListID != 0) continue;
 
                 vid.MyListID = file.ListID;

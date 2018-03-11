@@ -155,11 +155,19 @@ namespace Shoko.Server.API.v2.Models.common
 
                 List<SVR_AnimeEpisode> ael;
                 if (filter != null)
-                    ael = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
-                        .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).SelectMany(ser => ser.GetAnimeEpisodes())
+                {
+                    var series = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                        .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).ToList();
+                    ael = series.SelectMany(ser => ser.GetAnimeEpisodes())
                         .ToList();
+                    g.size = series.Count;
+                }
                 else
-                    ael = ag.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
+                {
+                    var series = ag.GetAllSeries();
+                    ael = series.SelectMany(a => a.GetAnimeEpisodes()).ToList();
+                    g.size = series.Count;
+                }
 
                 GenerateSizes(g, ael, uid);
 
@@ -293,10 +301,6 @@ namespace Shoko.Server.API.v2.Models.common
                     }
                 }
             }
-
-            grp.size = eps + credits + specials + trailers + parodies + others;
-            grp.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
-            grp.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
 
             grp.total_sizes = new Sizes
             {
