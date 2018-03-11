@@ -566,6 +566,7 @@ namespace Shoko.Server
 
         void WorkerSetupDB_ReportProgress()
         {
+            logger.Info("Starting Server: Complete!");
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
@@ -641,7 +642,7 @@ namespace Shoko.Server
 
         public void SetupNetHosts()
         {
-            logger.Info("Initializing Hosts...");
+            logger.Info("Initializing Web Hosts...");
             ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
             bool started = true;
             started &= NetPermissionWrapper(StartNancyHost);

@@ -60,7 +60,14 @@ namespace Shoko.Server
         public string CurrentSetupStatus
         {
             get => currentSetupStatus;
-            set => this.SetField(() => currentSetupStatus, value);
+            set
+            {
+                if (!value.Equals(currentSetupStatus))
+                {
+                    logger.Trace($"Starting Server: {value}");
+                }
+                this.SetField(() => currentSetupStatus, value);
+            }
         }
 
         private bool databaseIsSQLite = false;

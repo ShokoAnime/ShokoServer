@@ -146,6 +146,7 @@ namespace Shoko.Server.Repositories
             // Update Contracts if necessary
             try
             {
+                logger.Info("Starting Server: RepoFactory.PostInit()");
                 CachedRepositories.ForEach(repo =>
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(

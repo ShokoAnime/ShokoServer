@@ -440,6 +440,14 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return 0;
         }
 
+        private static long GetLong(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
+        {
+            string dta = mi.Get(kind, number, par);
+            if (long.TryParse(dta, out long val))
+                return val;
+            return 0;
+        }
+
         private static float GetFloat(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
         {
             string dta = mi.Get(kind, number, par);
@@ -476,21 +484,26 @@ namespace Shoko.Server.FileHelper.MediaInfo
                             minstance = new MediaInfoLib.MediaInfo();
                         if (minstance.Open(filename) == 0) return; //it's a boolean response.
                         Stream VideoStream = null;
+
+                        m.Duration = p.Duration = minstance.GetLong(StreamKind.General, 0, "Duration");
+                        p.Size = minstance.GetLong(StreamKind.General, 0, "FileSize");
+
+                        int brate = minstance.GetInt(StreamKind.General, 0, "BitRate");
+                        if (brate != 0)
+                            m.Bitrate = (int) Math.Round(brate / 1000F);
+
+                        int chaptercount = minstance.GetInt(StreamKind.General, 0, "MenuCount");
+                        m.Chaptered = chaptercount > 0;
+
                         int video_count = minstance.GetInt(StreamKind.General, 0, "VideoCount");
                         int audio_count = minstance.GetInt(StreamKind.General, 0, "AudioCount");
                         int text_count = minstance.GetInt(StreamKind.General, 0, "TextCount");
-                        if (int.TryParse(minstance.Get(StreamKind.General, 0, "MenuCount"), out int chaptercount))
-                            m.Chaptered = chaptercount > 0;
-                        m.Duration = p.Duration = long.Parse(minstance.Get(StreamKind.General, 0, "Duration"));
+
                         m.Container = p.Container = TranslateContainer(minstance.Get(StreamKind.General, 0, "Format"));
                         string codid = minstance.Get(StreamKind.General, 0, "CodecID");
                         if (!string.IsNullOrEmpty(codid) && (codid.Trim().ToLower() == "qt"))
                             m.Container = p.Container = "mov";
 
-                        int brate = minstance.GetInt(StreamKind.General, 0, "BitRate");
-                        if (brate != 0)
-                            m.Bitrate = (int) Math.Round(brate / 1000F);
-                        p.Size = long.Parse(minstance.Get(StreamKind.General, 0, "FileSize"));
                         List<Stream> streams = new List<Stream>();
                         byte iidx = 0;
                         if (video_count > 0)

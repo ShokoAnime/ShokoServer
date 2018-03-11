@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
 using NHibernate;
 using NLog;
+using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Databases
@@ -19,7 +15,7 @@ namespace Shoko.Server.Databases
 
         private static readonly object sessionLock = new object();
 
-        private static ISessionFactory sessionFactory = null;
+        private static ISessionFactory sessionFactory;
 
         public static ISessionFactory SessionFactory
         {
@@ -77,29 +73,35 @@ namespace Shoko.Server.Databases
                 }
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-                DatabaseFactory.CloseSessionFactory();
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Initializing;
-                ISessionFactory temp = DatabaseFactory.SessionFactory;
+                CloseSessionFactory();
+
+                string message = Resources.Database_Initializing;
+                logger.Info($"Starting Server: {message}");
+                ServerState.Instance.CurrentSetupStatus = message;
+
                 Instance.Init();
                 int version = Instance.GetDatabaseVersion();
                 if (version > Instance.RequiredVersion)
                 {
-                    ServerState.Instance.CurrentSetupStatus =
-                        Commons.Properties.Resources.Database_NotSupportedVersion;
-                    errorMessage = Commons.Properties.Resources.Database_NotSupportedVersion;
+                    message = Resources.Database_NotSupportedVersion;
+                    logger.Info($"Starting Server: {message}");
+                    ServerState.Instance.CurrentSetupStatus = message;
+                    errorMessage = Resources.Database_NotSupportedVersion;
                     return false;
                 }
                 if (version != 0 && version < Instance.RequiredVersion)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Backup;
+                    message = Resources.Database_Backup;
+                    logger.Info($"Starting Server: {message}");
+                    ServerState.Instance.CurrentSetupStatus = message;
                     Instance.BackupDatabase(Instance.GetDatabaseBackupName(version));
                 }
                 try
                 {
-                    logger.Info($"{Instance.GetType()}Instance.CreateAndUpdateSchema()");
+                    logger.Info($"Startomg Server: {Instance.GetType()} - CreateAndUpdateSchema()");
                     Instance.CreateAndUpdateSchema();
 
-                    logger.Info($"RepoFactory.Init()");
+                    logger.Info("Starting Server: RepoFactory.Init()");
                     RepoFactory.Init();
                     Instance.ExecuteDatabaseFixes();
                     Instance.PopulateInitialData();
@@ -112,8 +114,7 @@ namespace Shoko.Server.Databases
                         logger.Error(ex, ex.ToString());
                         Utils.ShowErrorMessage("Database Error :\n\r " + ex +
                             "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
-                        ServerState.Instance.CurrentSetupStatus =
-                            Commons.Properties.Resources.Server_DatabaseFail;
+                        ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
                         errorMessage = "Database Error :\n\r " + ex +
                                        "\n\rNotify developers about this error, it will be logged in your logs";
                         return false;
@@ -121,9 +122,8 @@ namespace Shoko.Server.Databases
                     if (ex is TimeoutException)
                     {
                         logger.Error(ex, $"Database Timeout: {ex}");
-                        ServerState.Instance.CurrentSetupStatus =
-                            Commons.Properties.Resources.Server_DatabaseTimeOut;
-                        errorMessage = Commons.Properties.Resources.Server_DatabaseTimeOut + "\n\r" + ex;
+                        ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseTimeOut;
+                        errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
                         return false;
                     }
                     // throw to the outer try/catch
@@ -137,7 +137,7 @@ namespace Shoko.Server.Databases
             {
                 errorMessage = $"Could not init database: {ex}";
                 logger.Error(ex, errorMessage);
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Server_DatabaseFail;
+                ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
                 return false;
             }
         }
