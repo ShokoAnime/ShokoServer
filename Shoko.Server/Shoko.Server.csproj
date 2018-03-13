@@ -351,6 +351,7 @@
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />
     <Compile Include="API\v2\Modules\Core.cs" />
+    <Compile Include="API\v2\Modules\Dashboard.cs" />
     <Compile Include="API\v2\Modules\Dev.cs" />
     <Compile Include="API\v2\Modules\Image.cs" />
     <Compile Include="API\v2\Modules\Init.cs" />

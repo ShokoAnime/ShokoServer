@@ -78,7 +78,6 @@ namespace Shoko.Server.API.v2.Modules
 
             Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID, ct);
             Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct);
-            Get["/dashboard", true] = async (x,ct) => await Task.Factory.StartNew(GetDashboard, ct);
             Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch, ct);
 
             #endregion
@@ -202,7 +201,7 @@ namespace Shoko.Server.API.v2.Modules
         /// List all saved Import Folders
         /// </summary>
         /// <returns>List<Contract_ImportFolder></returns>
-        private object GetFolders()
+        public static object GetFolders()
         {
             List<ImportFolder> list = new ShokoServiceImplementation().GetImportFolders();
             return list;
@@ -599,23 +598,6 @@ namespace Shoko.Server.API.v2.Modules
                 if (limit >= max) break;
             }
             return news;
-        }
-
-        /// <summary>
-        /// Return Dictionary with nesesery items for Dashboard inside Webui
-        /// </summary>
-        /// <returns>Dictionary<string, object></returns>
-        private object GetDashboard()
-        {
-            Dictionary<string, object> dash = new Dictionary<string, object>
-            {
-                {"queue", GetQueue()},
-                {"file", GetRecentFiles(0, 1)},
-                {"folder", GetFolders()},
-                {"file_count", CountFiles()},
-                {"serie_count", CountSerie()}
-            };
-            return dash;
         }
 
         /// <summary>
@@ -1075,7 +1057,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/file/count
         /// </summary>
         /// <returns>Counter</returns>
-        private object CountFiles()
+        public static object CountFiles()
         {
             Counter count = new Counter
             {
@@ -1113,7 +1095,10 @@ namespace Shoko.Server.API.v2.Modules
             List<RawFile> list = new List<RawFile>();
             foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
-                list.Add(new RawFile(Context, file, para.level, user.JMMUserID));
+                var allowed = user != null && file.GetAnimeEpisodes().Any(a =>
+                                    a.GetAnimeSeries()?.GetAnime()?.GetAllTags()
+                                        ?.FindInEnumerable(user.GetHideCategories()) ?? false);
+                if (allowed) list.Add(new RawFile(Context, file, para.level, user.JMMUserID));
             }
 
             return list;
@@ -1561,10 +1546,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/serie/count
         /// </summary>
         /// <returns>Counter</returns>
-        private object CountSerie()
+        public static object CountSerie()
         {
-            Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
             Counter count = new Counter
             {
                 count = RepoFactory.AnimeSeries.GetAll().Count

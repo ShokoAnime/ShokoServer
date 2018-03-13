@@ -218,7 +218,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (series != null && series.Count > 0 && !series.Contains(ada.AnimeSeriesID)) continue;
                     g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic,
-                        pic, (TagFilter.Filter)tagfilter));
+                        pic, tagfilter));
                 }
                 // This should be faster
                 g.series.Sort();
