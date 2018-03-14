@@ -11,6 +11,7 @@ namespace Shoko.Server
         public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
         {
             // AniDB tags that don't help with anything
+            "asia",
             "body and host",
             "breasts",
             "broadcast cropped to 4-3",
@@ -28,17 +29,15 @@ namespace Shoko.Server
             "ensemble cast",
             "family life",
             "fast-paced",
-            "fictional world",
             "full hd version available",
             "jdrama adaptation",
             "meta tags",
             "motifs",
             "multi-anime projects",
+            "nevada",
             "noitamina",
             "origin",
-            "past",
             "place",
-            "present",
             "season",
             "sentai",
             "setting",
@@ -56,11 +55,132 @@ namespace Shoko.Server
             "unsorted"
         };
 
+        public static readonly HashSet<string> TagBlacklistSetting = new HashSet<string>
+        {
+            "1920s",
+            "1960s",
+            "africa",
+            "akihabara",
+            "alternative past",
+            "alternative present",
+            "americas",
+            "ancient rome",
+            "australia",
+            "autumn",
+            "belgium",
+            "brazil",
+            "canada",
+            "casino",
+            "chicago",
+            "chile",
+            "china",
+            "circus",
+            "cold war",
+            "colony dome",
+            "countryside",
+            "czech republic",
+            "desert",
+            "dungeon",
+            "easter island",
+            "egypt",
+            "europe",
+            "fantasy world",
+            "fictional world",
+            "finland",
+            "floating island",
+            "france",
+            "french revolution",
+            "future",
+            "germany",
+            "han dynasty",
+            "hawaii",
+            "heaven",
+            "hell",
+            "hiroshima",
+            "historical",
+            "hokkaido",
+            "hong kong",
+            "hospital",
+            "ikebukuro",
+            "india",
+            "island",
+            "istanbul",
+            "italy",
+            "japan",
+            "jungle",
+            "korea",
+            "kyoto",
+            "las vegas",
+            "london",
+            "mars",
+            "mexico",
+            "middle east",
+            "moon",
+            "moscow",
+            "nagasaki",
+            "nara",
+            "new york",
+            "ocean world",
+            "ocean",
+            "oceania",
+            "okinawa",
+            "osaka",
+            "other planet",
+            "pacific ocean",
+            "pakistan",
+            "palace",
+            "parallel universe",
+            "paris",
+            "past",
+            "peru",
+            "prague",
+            "present",
+            "prison planet",
+            "prison",
+            "red-light district",
+            "romania",
+            "rome",
+            "russia",
+            "shanghai",
+            "shinjuku",
+            "shipboard",
+            "space colony",
+            "space elevator",
+            "space",
+            "spain",
+            "spirit realm",
+            "spring",
+            "sri lanka",
+            "submarine",
+            "summer",
+            "switzerland",
+            "three kingdoms",
+            "tibet",
+            "tokyo skytree",
+            "tokyo tower",
+            "tokyo",
+            "turkey",
+            "underground",
+            "underwater",
+            "united kingdom",
+            "united states",
+            "venice",
+            "vietnam",
+            "virtual world",
+            "vladivostok",
+            "winter",
+            "world war i",
+            "world war ii",
+            "yokohama",
+        };
+
         public static readonly HashSet<string> TagBlackListSource = new HashSet<string>
         {
             // tags containing the source of series
             "4-koma",
             "action game",
+            "american derived",
+            "cartoon",
             "erotic game",
             "fan-made",
             "game",
@@ -148,68 +268,90 @@ namespace Shoko.Server
             ArtStyle      = 1 << 1,
             Source        = 1 << 2,
             Misc          = 1 << 3,
-            Plot   = 1 << 4,
+            Plot          = 1 << 4,
+            Setting       = 1 << 5,
         }
 
 
         /// <summary>
         /// Filters tags based on settings specified in flags
-        ///        0b00001 : Hide AniDB Internal Tags
-        ///        0b00010 : Hide Art Style Tags
-        ///        0b00100 : Hide Source TransactionHelper.Work Tags
-        ///        0b01000 : Hide Useful Miscellaneous Tags
-        ///        0b10000 : Hide Plot Spoiler Tags
+        ///        0b00000001 : Hide AniDB Internal Tags
+        ///        0b00000010 : Hide Art Style Tags
+        ///        0b00000100 : Hide Source TransactionHelper.Work Tags
+        ///        0b00001000 : Hide Useful Miscellaneous Tags
+        ///        0b00010000 : Hide Plot Spoiler Tags
+        ///        0b00100000 : Hide Settings Tags
         /// </summary>
         /// <param name="strings">A list of strings [ "meta tags", "elements", "comedy" ]</param>
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
         /// <returns>the original list with items removed based on rules provided</returns>
-        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addOriginal = true)
+        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true)
         {
             if (strings.Count == 0) return strings;
 
-            bool readdOriginal = true;
+            List<string> toAdd = new List<string>();
 
             if (strings.Count == 1)
             {
-                if (IsTagBlackListed(strings[0], flags, ref readdOriginal)) strings.Clear();
+                if (IsTagBlackListed(strings[0], flags, ref toAdd)) strings.Clear();
                 return strings;
             }
 
             List<string> toRemove = new List<string>((int)Math.Ceiling(strings.Count / 2D));
 
             var stringsSet = new HashSet<string>(strings);
-            strings.AsParallel().ForAll(a => MarkTagsForRemoval(a, flags, ref toRemove, ref readdOriginal));
+            strings.AsParallel().ForAll(a => MarkTagsForRemoval(a, flags, ref toRemove, ref toAdd));
 
             foreach (var a in toRemove) if (stringsSet.Contains(a)) strings.Remove(a);
 
-            if (readdOriginal && addOriginal) strings.Add("Original Work");
+            if (addTags) toAdd.ForEach(strings.Add);
 
             return strings;
         }
 
-        private static void MarkTagsForRemoval(string a, Filter flags, ref List<string> toRemove, ref bool readdOriginal)
+        private static void MarkTagsForRemoval(string a, Filter flags, ref List<string> toRemove, ref List<string> toAdd)
         {
-            if (IsTagBlackListed(a, flags, ref readdOriginal))
+            if (IsTagBlackListed(a, flags, ref toAdd))
             {
                 lock (toRemove)
                 {
                     toRemove.Add(a);
                 }
             }
+            else
+            {
+                if (!flags.HasFlag(Filter.Setting))
+                {
+                    if (a.Equals("alternative present"))
+                    {
+                        lock (toRemove)
+                        {
+                            toRemove.Add("present");
+                        }
+                    } else if (a.Equals("alternative past"))
+                    {
+                        lock (toRemove)
+                        {
+                            toRemove.Add("past");
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
         /// Filters tags based on settings specified in flags
-        ///        0b00001 : Hide AniDB Internal Tags
-        ///        0b00010 : Hide Art Style Tags
-        ///        0b00100 : Hide Source TransactionHelper.Work Tags
-        ///        0b01000 : Hide Useful Miscellaneous Tags
-        ///        0b10000 : Hide Plot Spoiler Tags
+        ///        0b00000001 : Hide AniDB Internal Tags
+        ///        0b00000010 : Hide Art Style Tags
+        ///        0b00000100 : Hide Source TransactionHelper.Work Tags
+        ///        0b00001000 : Hide Useful Miscellaneous Tags
+        ///        0b00010000 : Hide Plot Spoiler Tags
+        ///        0b00100000 : Hide Settings Tags
         /// </summary>
         /// <param name="a">the tag to check</param>
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
         /// <returns>true if the tag would be removed</returns>
-        public static bool IsTagBlackListed(string a, Filter flags, ref bool readdOriginal)
+        public static bool IsTagBlackListed(string a, Filter flags, ref List<string> toAdd)
         {
             string tag = a.Trim().ToLowerInvariant();
             if (flags.HasFlag(Filter.ArtStyle))
@@ -221,20 +363,17 @@ namespace Shoko.Server
 
             if (flags.HasFlag(Filter.Source)) // if source excluded
             {
-                readdOriginal = false;
-                if ("original work".Equals(tag)) return true;
-
                 if (TagBlackListSource.Contains(tag)) return true;
             }
             else
             {
-                if ("original work".Equals(tag)) return false;
-
-                if (TagBlackListSource.Contains(tag))
+                if (tag.Equals("new"))
                 {
-                    readdOriginal = false;
-                    return false;
+                    toAdd.Add("Original Work");
+                    return true;
                 }
+
+                if (TagBlackListSource.Contains(tag)) return false;
             }
 
             if (flags.HasFlag(Filter.Misc))
@@ -250,6 +389,12 @@ namespace Shoko.Server
                     tag.EndsWith(" ending")) return true;
 
                 if (TagBlackListPlotSpoilers.Contains(tag)) return true;
+            }
+
+            if (flags.HasFlag(Filter.Setting))
+            {
+                if (TagBlacklistSetting.Contains(tag)) return true;
+                if (tag.EndsWith("period")) return true;
             }
 
             if (flags.HasFlag(Filter.AnidbInternal))

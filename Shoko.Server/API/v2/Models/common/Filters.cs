@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Models.common
                 name = gf.GroupFilterName
             };
 
-            bool _ = false;
+            var _ = new List<string>();
             var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
                 // Not invisible in clients
                 .Where(a => a.InvisibleInClients == 0 &&
