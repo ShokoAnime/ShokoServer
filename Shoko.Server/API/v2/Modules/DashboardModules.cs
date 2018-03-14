@@ -12,13 +12,13 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.API.v2.Modules
 {
     //As responds for this API we throw object that will be converted to json/xml
-    public class Dashboard : NancyModule
+    public class DashboardModules : NancyModule
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
 
-        public Dashboard() : base("/api/modules")
+        public DashboardModules() : base("/api/modules")
         {
-            Get["/stats", true] = async (x,ct) => await Task.Factory.StartNew(GetSats, ct);
+            Get["/stats", true] = async (x,ct) => await Task.Factory.StartNew(GetStats, ct);
 
         }
 
@@ -26,7 +26,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Return Dictionary with nesesery items for Dashboard inside Webui
         /// </summary>
         /// <returns>Dictionary<string, object></returns>
-        private object GetSats()
+        private object GetStats()
         {
             SVR_JMMUser user = Context.CurrentUser as SVR_JMMUser;
 
