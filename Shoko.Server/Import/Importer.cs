@@ -330,6 +330,7 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
+                if (fileName.Contains("$RECYCLE.BIN")) continue;
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -396,6 +397,7 @@ namespace Shoko.Server
             List<string> fileListNew = new List<string>();
             foreach (string fileName in fileList)
             {
+                if (fileName.Contains("$RECYCLE.BIN")) continue;
                 if (!dictFilesExisting.ContainsKey(fileName))
                     fileListNew.Add(fileName);
             }
@@ -442,6 +444,7 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
+                if (fileName.Contains("$RECYCLE.BIN")) continue;
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
