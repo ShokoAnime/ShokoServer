@@ -260,15 +260,18 @@ namespace Shoko.Server
 
                 if (tag.StartsWith("weekly")) return true;
 
-                if (tag.Contains("to be") || tag.Contains("need") || tag.Contains("needs"))
+                if (tag.Contains("to be") || tag.Contains("need"))
                 {
                     if (tag.EndsWith("improved") || tag.EndsWith("improving") || tag.EndsWith("improvement")) return true;
 
-                    if (tag.EndsWith("merging") || tag.EndsWith("merged")) return true;
-
                     if (tag.EndsWith("deleting") || tag.EndsWith("deleted")) return true;
 
-                    if (tag.EndsWith("moving") || tag.EndsWith("moved")) return true;
+                    if (tag.EndsWith("removing") || tag.EndsWith("removed")) return true;
+
+                    if (tag.EndsWith("merging") || tag.EndsWith("merged")) return true;
+
+                    // to be moved to ..., so contains
+                    if (tag.Contains("moving") || tag.Contains("moved")) return true;
 
                     // contains is slower, so try the others first
                     if (tag.Contains("split")) return true;
