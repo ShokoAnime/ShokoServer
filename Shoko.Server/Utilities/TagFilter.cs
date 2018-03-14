@@ -6,8 +6,6 @@ namespace Shoko.Server
 {
     public static class TagFilter
     {
-        // ported from python
-
         public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
         {
             // AniDB tags that don't help with anything
@@ -57,6 +55,8 @@ namespace Shoko.Server
 
         public static readonly HashSet<string> TagBlacklistSetting = new HashSet<string>
         {
+            // Tags that involve the setting, a time or place in which the story occurs.
+            // I've seen more that fall under this that AniDB hasn't listed
             "1920s",
             "1960s",
             "africa",
@@ -285,6 +285,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="strings">A list of strings [ "meta tags", "elements", "comedy" ]</param>
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
+        /// <param name="addTags">is it okay to add tags to the list</param>
         /// <returns>the original list with items removed based on rules provided</returns>
         public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true)
         {
@@ -351,6 +352,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="a">the tag to check</param>
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
+        /// <param name="toAdd">tags to add</param>
         /// <returns>true if the tag would be removed</returns>
         public static bool IsTagBlackListed(string a, Filter flags, ref List<string> toAdd)
         {
