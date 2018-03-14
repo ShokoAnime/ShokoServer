@@ -270,7 +270,7 @@ namespace Shoko.Server
 
                 // Get Ignored Files and remove them from the scan listing
                 var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
-                    .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
+                    .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a) ).ToList();
                 fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
                 // get a list of all files in the share
@@ -283,6 +283,7 @@ namespace Shoko.Server
                         if (fldr.IsDropSource == 1)
                             dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
+                    if (fileName.Contains("$RECYCLE.BIN")) continue;
 
                     filesFound++;
                     logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
