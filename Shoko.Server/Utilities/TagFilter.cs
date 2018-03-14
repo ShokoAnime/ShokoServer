@@ -374,7 +374,7 @@ namespace Shoko.Server
                     return true;
                 }
 
-                if (TagBlackListSource.Contains(tag)) return false;
+                if (tag.Equals("original work")) return true;
             }
 
             if (flags.HasFlag(Filter.Misc))

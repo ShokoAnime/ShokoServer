@@ -1697,7 +1697,6 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.InternalError(ex.ToString());
             }
-            
         }
 
         /// <summary>
@@ -1711,34 +1710,28 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
             DateTime now = DateTime.Now;
 
-            ParallelQuery<SVR_AniDB_Anime> allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel().Where(a => !a.Contract.AniDBAnime.AllTags.Split('|').FindInEnumerable(user.GetHideCategories())).Where(a => a.AirDate != null).Where(x => x.AirDate > now);
-            allSeries = allSeries.OrderBy(x =>
-                x.AirDate != null ? x.AirDate :
-                null
-                );
-            List<SVR_AniDB_Anime> temp = allSeries.ToList(); // without this offset/limit wouldn't work correct
-            
+            var allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel()
+                .Where(a => a.AirDate != null && a.AirDate.Value > now &&
+                            !a.GetAllTags().FindInEnumerable(user.GetHideCategories())).OrderBy(a => a.AirDate.Value).ToList();
             int offset_count = 0;
             int anime_count = 0;
-            List<Serie> result = temp.Where(ser =>
+            List<Serie> result = allSeries.Where(anime =>
             {
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AnimeID);
-                if (ser == null) { return false; }
-                if (para.query != null) { if (para.query.ToLower().Contains("d")) { int days = 0; if (int.TryParse(para.query.Substring(0, para.query.Length - 1), out days)) { if (now.AddDays(para.limit) > anime.AirDate.Value) return false; } } }
-                if (para.offset != 0) { if (offset_count < para.offset) { offset_count++; return false; } }
-                if (para.limit != 0) { if (anime_count >= para.limit) { return false; } }
+                if (para.query?.ToLower().Contains("d") == true &&
+                    int.TryParse(para.query.Substring(0, para.query.Length - 1), out int days) &&
+                    now.AddDays(days) > anime.AirDate.Value) return false;
+
+                if (para.offset != 0 && offset_count < para.offset)
+                {
+                    offset_count++;
+                    return false;
+                }
+
+                if (para.limit != 0 && anime_count >= para.limit) return false;
                 anime_count++;
                 return true;
-            }).Select(ser => Serie.GenerateFromAniDB_Anime(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).OrderBy(a => a.name).ToList();
-
-            // custom sort by Air date
-            result.Sort(delegate (Serie x, Serie y)
-            {
-                if (x.air == null && y.air == null) return 0;
-                else if (x.air == null) return -1;
-                else if (y.air == null) return 1;
-                else return x.air.CompareTo(y.air);
-            });
+            }).OrderBy(a => a.AirDate).Select(ser => Serie.GenerateFromAniDB_Anime(Context, ser, para.nocast == 1,
+                para.notag == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
 
             Group group = new Group
             {
