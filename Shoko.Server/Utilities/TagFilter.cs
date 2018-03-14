@@ -191,6 +191,7 @@ namespace Shoko.Server
             "movie",
             "new",
             "novel",
+            "original work",
             "radio programme",
             "remake",
             "rpg",

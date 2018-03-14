@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
@@ -43,6 +44,18 @@ namespace Shoko.Server.API.v2.Models.common
                             // and is not a blacklisted tag
                             !((a.FilterType & (int) GroupFilterType.Tag) != 0 &&
                             TagFilter.IsTagBlackListed(a.GroupFilterName, tagfilter, ref _)));
+
+            if (_.Count > 0)
+            {
+                gfs = gfs.Concat(_.Select(tag => RepoFactory.GroupFilter.GetAll().FirstOrDefault(a =>
+                {
+                    if (a.FilterType != (int) GroupFilterType.Tag) return false;
+                    if (tag.Equals("Original Work"))
+                        return a.GroupFilterName.Equals("new");
+
+                    return a.GroupFilterName.Equals(tag, StringComparison.InvariantCultureIgnoreCase);
+                })).AsParallel());
+            }
 
             if (level > 0)
             {
