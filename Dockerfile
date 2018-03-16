@@ -31,7 +31,7 @@ RUN rm latest.zip
 
 WORKDIR /usr/src/app/build
 
-VOLUME /root/.shoko/
+VOLUME /home/shoko/.shoko/
 VOLUME /usr/src/app/build/webui
 
 HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'Accept: application/json' 'http://localhost:8111/v1/Server' || exit 1
