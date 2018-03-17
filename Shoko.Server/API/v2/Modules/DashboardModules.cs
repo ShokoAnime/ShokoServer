@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Nancy;
+using Nancy.Security;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -18,6 +19,7 @@ namespace Shoko.Server.API.v2.Modules
 
         public DashboardModules() : base("/api/modules")
         {
+            this.RequiresAuthentication();
             Get["/stats", true] = async (x,ct) => await Task.Factory.StartNew(GetStats, ct);
 
         }
