@@ -932,7 +932,6 @@ namespace Shoko.Server.Databases
                 ArrayList rows = mySQL.ExecuteReader(conn, sql);
                 if (rows.Count > 0)
                 {
-                    System.Diagnostics.Debugger.Break();
                     foreach (object[] row in rows)
                     {
                         string alter = "";
