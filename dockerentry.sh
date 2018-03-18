@@ -4,21 +4,37 @@
 PUID=${PUID:-1000}
 PGID=${PGID:-100}
 
-groupadd -o -g "$PGID" shokogroup
-useradd  -o -u "$PUID" -d /home/shoko shoko
+[ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && mono --debug /usr/src/app/build/Shoko.CLI.exe
 
-usermod -G shokogroup shoko
+GROUP="shokogroup"
+USER="shoko"
 
-mkdir -p /home/shoko
-chown -R shoko:shokogroup /home/shoko
+if [ $(getent group $GROUP) ]; then #if group exists
+    if [ $(getent group $GROUP | cut -d: -f3) -ne $PGID ]; then #if gid of said group doesn't match
+        groupmod -g "$PGID" $GROUP
+        REDO_PERM=1
+    fi
+else
+    groupadd -o -g "$PGID" $GROUP
+fi
 
-mkdir -p /home/shoko/.shoko/
+if [ $(getent passwd $USER) ]; then
+    if [ $(getent passwd $USER | cut -d: -f3) -ne $PUID ]; then
+        usermod -u "$PUID" $USER
+        REDO_PERM=1
+    fi
+    [ $(id -g $USER) -ne $PGID ] && usermod -g "$PGID" $USER
+else
+    useradd  -N -o -u "$PUID" -g "$PGID" -d /home/shoko $USER
 
-# Set Ownership for the shoko directory as well.
-chown -R shoko:shokogroup /home/shoko/.shoko/
+    mkdir -p /home/shoko/.shoko/
+    chown -R $USER:$GROUP /home/shoko
+fi
+
+[ $REDO_PERM ] && chown -R $PUID:$PGID /home/shoko/
 
 # Set owership of shoko files to shoko user
-chown -R shoko:shokogroup /usr/src/app/build/
+chown -R $USER:$GROUP /usr/src/app/build/
 if [ -d /root/.shoko ]; then
     echo "
 -------------------------------------
@@ -34,10 +50,10 @@ fi
 
 echo "
 -------------------------------------
-User uid:    $(id -u shoko)
-User gid:    $(id -g shoko)
+User uid:    $(id -u $USER)
+User gid:    $(id -g $USER)
 -------------------------------------
 "
 
 # Go and run the server 
-exec gosu shoko:shokogroup mono --debug /usr/src/app/build/Shoko.CLI.exe
+exec gosu $USER:$GROUP mono --debug /usr/src/app/build/Shoko.CLI.exe

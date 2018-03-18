@@ -1,14 +1,12 @@
 FROM mono:5.4
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
+ENV PUID=1000 \
+    PGID=100
 
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
-
-ENV TINI_VERSION v0.16.1
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /bin/tini
-RUN chmod +x /bin/tini
 
 RUN apt update && apt install -y --force-yes libmediainfo0 librhash0 sqlite.interop jq unzip && apt install -t jessie-backports gosu
 
@@ -38,12 +36,4 @@ HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'A
 
 EXPOSE 8111
 
-#RUN mkdir -p /home/shoko 
-#RUN groupadd -r shoko && useradd --no-log-init -r -g shoko shoko 
-#RUN chown -R shoko:shoko /home/shoko
-#RUN chown -R shoko:shoko /usr/src/app/build
-
-#USER shoko:shoko
-
-#ENTRYPOINT mono --debug Shoko.CLI.exe
 ENTRYPOINT /bin/bash /dockerentry.sh 
