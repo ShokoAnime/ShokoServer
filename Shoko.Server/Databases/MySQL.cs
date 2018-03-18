@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 81;
+        public int RequiredVersion { get; } = 82;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -602,6 +602,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(80, 3, DatabaseFixes.PopulateResourceLinks),
             new DatabaseCommand(81, 1, "ALTER TABLE `VideoLocal` ADD `MyListID` INT NOT NULL DEFAULT 0"),
             new DatabaseCommand(81, 2, DatabaseFixes.PopulateMyListIDs),
+            new DatabaseCommand(82, 1, MySQLFixUTF8)
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
@@ -914,6 +915,44 @@ namespace Shoko.Server.Databases
 
                 ExecuteWithException(myConn, patchCommands);
             });
+        }
+
+        private static void MySQLFixUTF8()
+        {
+            string sql = 
+                $"SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
+                $"FROM information_schema.COLUMNS " +
+                $"WHERE table_schema = '{ServerSettings.MySQL_SchemaName}' " +
+                $"AND collation_name != 'utf8mb4_unicode_ci'";
+
+            using (MySqlConnection conn = new MySqlConnection($"Server={ServerSettings.MySQL_Hostname};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password};database={ServerSettings.MySQL_SchemaName}"))
+            {
+                MySQL mySQL = ((MySQL)DatabaseFactory.Instance);
+                conn.Open();
+                ArrayList rows = mySQL.ExecuteReader(conn, sql);
+                if (rows.Count > 0)
+                {
+                    System.Diagnostics.Debugger.Break();
+                    foreach (object[] row in rows)
+                    {
+                        string alter = "";
+                        switch (row[3].ToString().ToLowerInvariant())
+                        {
+                            case "text":
+                            case "mediumtext":
+                            case "tinytext":
+                            case "longtext":
+                                alter = $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                                break;
+
+                            default:
+                                alter = $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]}({row[4]}) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                                break;
+                        }
+                        mySQL.ExecuteCommand(conn, alter);
+                    }
+                }
+            }
         }
     }
 }
