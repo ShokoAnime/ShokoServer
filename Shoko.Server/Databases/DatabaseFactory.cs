@@ -98,7 +98,7 @@ namespace Shoko.Server.Databases
                 }
                 try
                 {
-                    logger.Info($"Startomg Server: {Instance.GetType()} - CreateAndUpdateSchema()");
+                    logger.Info($"Starting Server: {Instance.GetType()} - CreateAndUpdateSchema()");
                     Instance.CreateAndUpdateSchema();
 
                     logger.Info("Starting Server: RepoFactory.Init()");
