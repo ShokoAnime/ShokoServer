@@ -63,7 +63,6 @@ namespace Shoko.Server.Commands
             {
                 if (vid == null) return;
 
-                List<SVR_AnimeEpisode> animeEpisodes = vid.GetAnimeEpisodes();
                 // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
                 // if the file is already on the user's list
 
@@ -128,7 +127,10 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                SVR_AnimeSeries ser = animeEpisodes[0].GetAnimeSeries();
+                // if we don't have xrefs, then no series or eps.
+                if (xrefs.Count <= 0) return;
+
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID);
                 // all the eps should belong to the same anime
                 ser.QueueUpdateStats();
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
@@ -137,7 +139,7 @@ namespace Shoko.Server.Commands
                 if (ServerSettings.Trakt_IsEnabled &&
                     !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
                 {
-                    foreach (SVR_AnimeEpisode aep in animeEpisodes)
+                    foreach (SVR_AnimeEpisode aep in vid.GetAnimeEpisodes())
                     {
                         CommandRequest_TraktCollectionEpisode cmdSyncTrakt =
                             new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);

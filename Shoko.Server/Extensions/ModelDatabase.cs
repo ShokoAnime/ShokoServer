@@ -69,6 +69,14 @@ namespace Shoko.Server.Extensions
                 animeEp.AnimeSeriesID = animeSeriesID;
                 RepoFactory.AnimeEpisode.Save(animeEp);
             }
+            else
+            {
+                if (existingEp.AnimeSeriesID != animeSeriesID) existingEp.AnimeSeriesID = animeSeriesID;
+                existingEp.PlexContract = null;
+                RepoFactory.AnimeEpisode.Save(existingEp);
+                foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+            }
         }
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)

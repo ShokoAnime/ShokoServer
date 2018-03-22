@@ -36,7 +36,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_TraktUpdateInfoAndImages: {0}", TraktID);
+            logger.Info("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
 
             try
             {
@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktUpdateInfoAndImages: {0} - {1}", TraktID,
+                logger.Error("Error processing CommandRequest_TraktUpdateInfo: {0} - {1}", TraktID,
                     ex);
             }
         }
@@ -52,7 +52,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_TraktUpdateInfoAndImages{TraktID}";
+            CommandID = $"CommandRequest_TraktUpdateInfo{TraktID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfoAndImages", "TraktID");
+                TraktID = TryGetProperty(docCreator, "CommandRequest_TraktUpdateInfo", "TraktID");
             }
 
             return true;

@@ -289,6 +289,9 @@ namespace Shoko.Server.Models
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
                     SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+                    // a show we don't have
+                    if (ep == null) continue;
+
                     // get all the files for this episode
                     int epPercentWatched = 0;
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
@@ -303,6 +306,8 @@ namespace Shoko.Server.Models
                     if (epPercentWatched > 95)
                     {
                         ser = ep.GetAnimeSeries();
+                        // a problem
+                        if (ser == null) continue;
                         if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                             toUpdateSeries.Add(ser.AnimeSeriesID, ser);
                         if (user.IsAniDBUser == 0)
@@ -337,9 +342,9 @@ namespace Shoko.Server.Models
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
                     SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
-                    ser = ep.GetAnimeSeries();
-                    if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
-                        toUpdateSeries.Add(ser.AnimeSeriesID, ser);
+                    // a show we don't have
+                    if (ep == null) continue;
+
                     // get all the files for this episode
                     int epPercentWatched = 0;
                     foreach (CrossRef_File_Episode filexref in ep.FileCrossRefs)
@@ -359,6 +364,12 @@ namespace Shoko.Server.Models
                             foreach (SVR_JMMUser juser in aniDBUsers)
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(false, juser.JMMUserID, watchedDate, true);
+
+                        ser = ep.GetAnimeSeries();
+                        // a problem
+                        if (ser == null) continue;
+                        if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
+                            toUpdateSeries.Add(ser.AnimeSeriesID, ser);
 
                         if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
                             !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
