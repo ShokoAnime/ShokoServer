@@ -16,6 +16,7 @@ using Shoko.Models.Plex;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
 
@@ -28,7 +29,10 @@ namespace Shoko.Server.Plex
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new ConcurrentDictionary<int, PlexHelper>();
-        private readonly JMMUser _user;
+
+        private readonly int _userId;
+        private JMMUser _user { get => RepoFactory.JMMUser.GetByID(_userId); }
+
         internal readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings();
 
         private Connection _cachedConnection;
@@ -53,7 +57,7 @@ namespace Shoko.Server.Plex
 
         private PlexHelper(JMMUser user)
         {
-            _user = user;
+            _userId = user.JMMUserID;
             SerializerSettings.Converters.Add(new PlexConverter(this));
         }
 
@@ -213,7 +217,7 @@ namespace Shoko.Server.Plex
 
         private MediaDevice[] GetPlexDevices()
         {
-            if (string.IsNullOrEmpty(_user?.PlexToken)) return new MediaDevice[0];
+            if (!IsAuthenticated) return new MediaDevice[0];
             var (_, content) = RequestAsync("https://plex.tv/api/resources?includeHttps=1", HttpMethod.Get,
                 AuthenticationHeaders).Result;
             var serializer = new XmlSerializer(typeof(MediaContainer));
@@ -233,7 +237,7 @@ namespace Shoko.Server.Plex
 
         public List<MediaDevice> GetPlexServers()
         {
-            if (string.IsNullOrEmpty(_user?.PlexToken)) return new List<MediaDevice>();
+            if (!IsAuthenticated) return new List<MediaDevice>();
             return GetPlexDevices().Where(d => d.Provides.Split(',').Contains("server")).ToList();
         }
 
