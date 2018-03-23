@@ -57,25 +57,36 @@ namespace Shoko.Commons.Extensions
 
         public static bool IsInYear(this AniDB_Anime anime, int year)
         {
+            // We don't know when it airs, so it's not happened yet
             if (anime.AirDate == null) return false;
 
-            var yearStartBegin = new DateTime(year, 1, 1);
-            var yearStartEnd = new DateTime(year, 1, 15);
+            // reasons to count in a year:
+            // - starts in the year, unless it aired early
+            // - ends well into the year
+            // - airs all throughout the year (starts in 2015, ends in 2017, 2016 counts)
 
-            // If it starts in a year, then it is definitely going to be in it
-            if (anime.AirDate.Value >= yearStartBegin && anime.AirDate.Value <= yearStartEnd) return true;
+            DateTime startDate = anime.AirDate.Value;
 
-            // If it aired before the year, but hasn't finished by the year, count it.
-            if (anime.AirDate.Value < yearStartBegin)
+            // started after the year has ended
+            if (startDate.Year > year) return false;
+
+            if (startDate.Year == year)
             {
-                // null EndDate means it's still airing now
-                if (anime.EndDate == null) return true;
+                // It started in the year, but nowhere near the end
+                if (startDate.Month < 12) return true;
 
-                // A season can run long, so don't count it unless it continues well into the year
-                yearStartBegin = new DateTime(year, 2, 1);
-
-                if (anime.EndDate.Value > yearStartBegin) return true;
+                // implied startDate.Month == 12, unless the calendar changes...
+                // if it's a movie or short series, count it
+                if (anime.AnimeType == (int)AnimeType.Movie || anime.EpisodeCountNormal <= 6) return true;
             }
+
+            // starts before the year, but continues through it
+            if (startDate.Year < year)
+            {
+                // still airing or finished after the year has been started, with some time for late seasons
+                if (anime.EndDate == null || anime.EndDate.Value >= new DateTime(year, 2, 1)) return true;
+            }
+
             return false;
         }
 
