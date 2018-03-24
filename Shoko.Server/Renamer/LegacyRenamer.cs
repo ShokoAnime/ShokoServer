@@ -2022,10 +2022,13 @@ namespace Shoko.Server.Renamer
                 if (fsresult == null || !fsresult.IsOk) continue;
 
                 // Continue if on a separate drive and there's no space
-                if (!fldr.CloudID.HasValue && !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                if (!fldr.CloudID.HasValue &&
+                    !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
                     var fsresultquota = fldr.BaseDirectory.Quota();
-                    if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    // if it's null, then we are likely on network FS, so we can't easily check
+                    if (fsresultquota != null && fsresultquota.IsOk &&
+                        fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
                 }
 
                 destFolder = fldr;
@@ -2033,8 +2036,9 @@ namespace Shoko.Server.Renamer
             }
 
             List<CrossRef_File_Episode> xrefs = video.VideoLocal.EpisodeCrossRefs;
-            if (xrefs.Count == 0 && destFolder == null) return (null, "No xrefs");
-            CrossRef_File_Episode xref = xrefs[0];
+            if (xrefs.Count == 0) return (null, "No xrefs");
+            CrossRef_File_Episode xref = xrefs.FirstOrDefault(a => a != null);
+            if (xref == null) return (null, "No xrefs");
 
             // find the series associated with this episode
             SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
@@ -2066,13 +2070,13 @@ namespace Shoko.Server.Renamer
                 if (crossOver) continue;
 
                 foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
-                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
+                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder?.CloudID &&
                                                   b.ImportFolder.IsDropSource == 0)).ToList())
                 {
                     if (vid.VideoLocalID == video.VideoLocalID) continue;
 
                     SVR_VideoLocal_Place place =
-                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
+                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder?.CloudID);
                     string thisFileName = place?.FilePath;
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
@@ -2084,7 +2088,9 @@ namespace Shoko.Server.Renamer
                         Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
                     {
                         var fsresultquota = dstImportFolder.BaseDirectory.Quota();
-                        if (fsresultquota.IsOk && fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                        // if it's null, then we are likely on network FS, so we can't easily check
+                        if (fsresultquota != null && fsresultquota.IsOk &&
+                            fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
                     }
 
                     FileSystemResult<IObject> dir = dstImportFolder
