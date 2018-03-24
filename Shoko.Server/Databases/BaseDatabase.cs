@@ -422,7 +422,7 @@ namespace Shoko.Server.Databases
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
                 Password = string.Empty,
-                Username = Commons.Properties.Resources.Users_FamilyFriendly
+                Username = "Family Friendly"
             };
             RepoFactory.JMMUser.Save(familyUser, true);
         }

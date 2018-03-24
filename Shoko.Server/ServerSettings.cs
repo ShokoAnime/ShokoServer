@@ -875,7 +875,7 @@ namespace Shoko.Server
 
         #region Database
 
-        public static string DefaultUserUsername { get; set; } = Commons.Properties.Resources.Users_Default;
+        public static string DefaultUserUsername { get; set; } = "Default";
         public static string DefaultUserPassword { get; set; } = string.Empty;
 
         public static string DatabaseType
