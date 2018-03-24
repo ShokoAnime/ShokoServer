@@ -11,6 +11,7 @@ namespace Shoko.Server.Repositories
     public class AniDB_Anime_TagRepository : BaseCachedRepository<AniDB_Anime_Tag, int>
     {
         private PocoIndex<int, AniDB_Anime_Tag, int> Animes;
+        private PocoIndex<int, AniDB_Anime_Tag, int> TagIDs;
 
         private AniDB_Anime_TagRepository()
         {
@@ -33,6 +34,7 @@ namespace Shoko.Server.Repositories
         public override void PopulateIndexes()
         {
             Animes = new PocoIndex<int, AniDB_Anime_Tag, int>(Cache, a => a.AnimeID);
+            TagIDs = new PocoIndex<int, AniDB_Anime_Tag, int>(Cache, a => a.TagID);
         }
 
         public AniDB_Anime_Tag GetByAnimeIDAndTagID(int animeid, int tagid)
@@ -75,6 +77,12 @@ namespace Shoko.Server.Repositories
                 .Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
                 .Where(a => a != null)
                 .ToList();
+        }
+
+        public List<SVR_AnimeSeries> GetAnimeWithTag(int tagID)
+        {
+            return TagIDs.GetMultiple(tagID).Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
+                .Where(a => a != null).ToList();
         }
 
         /// <summary>

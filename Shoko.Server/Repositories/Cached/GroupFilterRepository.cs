@@ -612,21 +612,26 @@ namespace Shoko.Server.Repositories.Cached
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
+                var nameToFilter = filters.ToLookup(a => a.GroupFilterName);
+                var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a.TagName);
 
-                Parallel.ForEach(RepoFactory.AniDB_Tag.GetAllTagNames(session), tag =>
+                Parallel.ForEach(tags, tag =>
                 {
-                    var grpFilters = filters.Where(a =>
-                        a.GroupFilterName.Equals(tag, StringComparison.InvariantCultureIgnoreCase)).ToList();
-                    var grpFilter = grpFilters.FirstOrDefault();
+                    if (tag.Key == null) return;
+                    if (!nameToFilter.Contains(tag.Key)) return;
+                    var grpFilters = nameToFilter[tag.Key].ToList();
+                    if (grpFilters.Count <= 0) return;
+
+                    var grpFilter = grpFilters[0];
                     if (grpFilter == null) return;
 
-                    grpFilters.Remove(grpFilter);
+                    grpFilters.RemoveAt(0);
                     lock (toRemove)
                     {
                         toRemove.AddRange(grpFilters);
                     }
 
-                    foreach (var series in RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(tag))
+                    foreach (var series in tag.ToList().SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
                     {
                         var seriesTags = series.GetAnime()?.GetAllTags();
                         foreach (var user in users)
