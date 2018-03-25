@@ -12,10 +12,7 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class RawFile : BaseDirectory
     {
-        public override string type
-        {
-            get { return "file"; }
-        }
+        public override string type => "file";
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string crc32 { get; set; }
@@ -135,7 +132,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
 
-            if (vl.Media == null || (level <= 1 && level != 0)) return;
+            if (vl.Media == null || level < 0) return;
 
             MediaInfo new_media = new MediaInfo();
 

@@ -106,7 +106,7 @@ namespace Shoko.Server.API.v2.Modules
 
             Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile, ct);
             Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles, ct);
-            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(() => GetRecentFiles(0,0), ct);
+            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentFiles, ct);
             Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
             Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct);
             Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
@@ -1070,35 +1070,20 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/file/recent
         /// </summary>
         /// <returns>List<RawFile></returns>
-        private object GetRecentFiles(int limit = 0, int level = 0)
+        private object GetRecentFiles()
         {
-            Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
-
-            if (limit == 0)
-            {
-                if (para.limit == 0)
-                {
-                    para.limit = 10;
-                }
-            }
-            else
-            {
-                para.limit = limit;
-            }
-            if (level != 0)
-            {
-                para.level = level;
-            }
+            // default 50 as that's reasonable
+            if (para.limit == 0) para.limit = 50;
 
             List<RawFile> list = new List<RawFile>();
             foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
             {
-                var allowed = user != null && file.GetAnimeEpisodes().Any(a =>
+                var allowed = user == null || !file.GetAnimeEpisodes().Any(a =>
                                     a.GetAnimeSeries()?.GetAnime()?.GetAllTags()
                                         ?.FindInEnumerable(user.GetHideCategories()) ?? false);
-                if (allowed) list.Add(new RawFile(Context, file, para.level, user.JMMUserID));
+                if (allowed) list.Add(new RawFile(Context, file, para.level, user?.JMMUserID ?? 0));
             }
 
             return list;
