@@ -610,8 +610,8 @@ namespace Shoko.Server.Repositories.Cached
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
-                var nameToFilter = filters.ToLookup(a => a.GroupFilterName.ToLowerInvariant());
-                var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a.TagName.ToLowerInvariant());
+                var nameToFilter = filters.ToLookup(a => a?.GroupFilterName?.ToLowerInvariant());
+                var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
 
                 Parallel.ForEach(tags, tag =>
                 {
