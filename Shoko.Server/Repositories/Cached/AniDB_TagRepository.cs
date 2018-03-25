@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -92,7 +93,7 @@ namespace Shoko.Server.Repositories
                 .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
                 .Where(a => a != null)
                 .Select(a => GetByTagID(a.TagID))
-                .Distinct()
+                .DistinctBy(a => a.TagID)
                 .ToList();
         }
     }

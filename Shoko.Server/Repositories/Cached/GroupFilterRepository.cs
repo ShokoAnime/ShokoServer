@@ -272,12 +272,10 @@ namespace Shoko.Server.Repositories.Cached
                 HashSet<string> alltags;
                 if (tags == null)
                     alltags = new HashSet<string>(
-                        RepoFactory.AniDB_Tag.GetAll()
-                            .Select(a => a.TagName)
-                            .Distinct(StringComparer.InvariantCultureIgnoreCase),
+                        RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')),
                         StringComparer.InvariantCultureIgnoreCase);
                 else
-                    alltags = new HashSet<string>(tags.Distinct(StringComparer.InvariantCultureIgnoreCase),
+                    alltags = new HashSet<string>(tags,
                         StringComparer.InvariantCultureIgnoreCase);
                 HashSet<string> notin =
                     new HashSet<string>(
@@ -303,7 +301,7 @@ namespace Shoko.Server.Repositories.Cached
                         ParentGroupFilterID = tagsdirec.GroupFilterID,
                         InvisibleInClients = 0,
                         ApplyToSeries = 1,
-                        GroupFilterName = tinfo.ToTitleCase(s.Replace("`", "'")),
+                        GroupFilterName = tinfo.ToTitleCase(s),
                         BaseCondition = 1,
                         Locked = 1,
                         SortingCriteria = "5;1",
@@ -313,7 +311,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         ConditionType = (int) GroupFilterConditionType.Tag,
                         ConditionOperator = (int) GroupFilterOperator.In,
-                        ConditionParameter = s.Replace("`", "'"),
+                        ConditionParameter = s,
                         GroupFilterID = yf.GroupFilterID
                     };
                     yf.Conditions.Add(gfc);
@@ -612,8 +610,8 @@ namespace Shoko.Server.Repositories.Cached
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
-                var nameToFilter = filters.ToLookup(a => a.GroupFilterName);
-                var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a.TagName);
+                var nameToFilter = filters.ToLookup(a => a.GroupFilterName.ToLowerInvariant());
+                var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a.TagName.ToLowerInvariant());
 
                 Parallel.ForEach(tags, tag =>
                 {
