@@ -2737,8 +2737,8 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             // Include 'Unsort'
-            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-            if (vids.Count > 0)
+            var vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+            if (vids.Any())
             {
                 Filter filter = new Filter
                 {

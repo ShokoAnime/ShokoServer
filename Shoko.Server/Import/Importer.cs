@@ -35,13 +35,6 @@ namespace Shoko.Server
 
         public static void RunImport_IntegrityCheck()
         {
-            /*
-            // files which don't have a valid import folder
-            List<VideoLocal> filesToDelete = RepoFactory.VideoLocal.GetVideosWithoutImportFolder();
-            foreach (VideoLocal vl in filesToDelete)
-                RepoFactory.VideoLocal.Delete(vl.VideoLocalID);
-            */
-
             // files which have not been hashed yet
             // or files which do not have a VideoInfo record
             List<SVR_VideoLocal> filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
@@ -57,29 +50,23 @@ namespace Shoko.Server
                 }
             }
 
-            List<SVR_VideoLocal> filesToRehash = RepoFactory.VideoLocal.GetVideosWithoutVideoInfo();
-            Dictionary<int, SVR_VideoLocal> dictFilesToRehash = new Dictionary<int, SVR_VideoLocal>();
             foreach (SVR_VideoLocal vl in filesToHash)
             {
-                dictFilesToRehash[vl.VideoLocalID] = vl;
                 // don't use if it is in the previous list
-                if (!dictFilesToHash.ContainsKey(vl.VideoLocalID))
+                if (dictFilesToHash.ContainsKey(vl.VideoLocalID)) continue;
+                try
                 {
-                    try
+                    SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
+                    if (p != null)
                     {
-                        SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
-                        if (p != null)
-                        {
-                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
-                            cmd.Save();
-                        }
+                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(p.FullServerPath, false);
+                        cmd.Save();
                     }
-                    catch (Exception ex)
-                    {
-                        string msg = string.Format("Error RunImport_IntegrityCheck XREF: {0} - {1}",
-                            vl.ToStringDetailed(), ex.ToString());
-                        logger.Info(msg);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    string msg = $"Error RunImport_IntegrityCheck XREF: {vl.ToStringDetailed()} - {ex}";
+                    logger.Info(msg);
                 }
             }
 
@@ -89,7 +76,6 @@ namespace Shoko.Server
             {
                 CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(v.VideoLocalID, false);
                 cmd.Save();
-                continue;
             }
 
 
@@ -105,7 +91,6 @@ namespace Shoko.Server
                     {
                         CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
                         cmd.Save();
-                        continue;
                     }
                 }
 
@@ -125,7 +110,6 @@ namespace Shoko.Server
                     // this will then download the anime etc
                     CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, false);
                     cmd.Save();
-                    continue;
                 }
             }
         }
