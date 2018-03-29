@@ -276,21 +276,21 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Settings settings;
+                List<Setting> settings;
 
                 try
                 {
-                    settings = this.Bind<Settings>();
+                    settings = this.Bind<List<Setting>>();
                 }
                 catch (ModelBindingException)
                 {
-                    settings = new Settings { settings = new List<Setting> { this.Bind<Setting>() } };
+                    settings = new List<Setting> { this.Bind<Setting>() };
                 }
 
                 List<APIMessage> errors = new List<APIMessage>();
-                for (var index = 0; index < settings.settings.Count; index++)
+                for (var index = 0; index < settings.Count; index++)
                 {
-                    var setting = settings.settings[index];
+                    var setting = settings[index];
                     if (string.IsNullOrEmpty(setting.setting))
                     {
                         errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
