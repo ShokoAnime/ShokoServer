@@ -272,7 +272,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
             }
         }
     }
