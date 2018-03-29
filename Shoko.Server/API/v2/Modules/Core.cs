@@ -249,17 +249,17 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                 if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                Settings return_setting = new Settings
+                Setting returnSetting = new Setting
                 {
                     setting = setting.setting,
                     value = value.ToString()
                 };
-                return return_setting;
+                return returnSetting;
             }
             catch
             {
@@ -276,30 +276,75 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Settings setting = this.Bind();
-                if (string.IsNullOrEmpty(setting.setting))
-                    return APIStatus.BadRequest("An invalid setting was passed");
+                Settings settings;
 
-                if (setting.value == null) return APIStatus.BadRequest("An invalid value was passed");
-
-                var property = typeof(ServerSettings).GetProperty(setting.setting);
-                if (property == null) return APIStatus.BadRequest("An invalid setting was passed");
-                if (!property.CanWrite) return APIStatus.BadRequest("An invalid setting was passed");
-                var settingType = property.PropertyType;
                 try
                 {
-                    var converter = TypeDescriptor.GetConverter(settingType);
-                    if (!converter.CanConvertFrom(typeof(string)))
-                        return APIStatus.BadRequest("An invalid value was passed");
-                    var value = converter.ConvertFromInvariantString(setting.value);
-                    if (value == null) return APIStatus.BadRequest("An invalid value was passed");
-                    property.SetValue(null, value);
+                    settings = this.Bind<Settings>();
                 }
-                catch
+                catch (ModelBindingException)
                 {
+                    settings = new Settings { settings = new List<Setting> { this.Bind<Setting>() } };
                 }
 
-                return APIStatus.BadRequest("An invalid value was passed");
+                List<APIMessage> errors = new List<APIMessage>();
+                for (var index = 0; index < settings.settings.Count; index++)
+                {
+                    var setting = settings.settings[index];
+                    if (string.IsNullOrEmpty(setting.setting))
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+
+                    if (setting.value == null)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                        continue;
+                    }
+
+                    var property = typeof(ServerSettings).GetProperty(setting.setting);
+                    if (property == null)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+
+                    if (!property.CanWrite)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+                    var settingType = property.PropertyType;
+                    try
+                    {
+                        var converter = TypeDescriptor.GetConverter(settingType);
+                        if (!converter.CanConvertFrom(typeof(string)))
+                        {
+                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                            continue;
+                        }
+                        var value = converter.ConvertFromInvariantString(setting.value);
+                        if (value == null)
+                        {
+                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                            continue;
+                        }
+                        property.SetValue(null, value);
+                    }
+                    catch
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                    }
+                }
+
+                if (errors.Count > 0)
+                {
+                    Context.Response.StatusCode = HttpStatusCode.BadRequest;
+                    return errors;
+                }
+
+                return APIStatus.OK();
             }
             catch
             {

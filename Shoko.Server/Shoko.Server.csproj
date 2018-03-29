@@ -346,7 +346,7 @@
     <Compile Include="API\v2\Models\common\Serie.cs" />
     <Compile Include="API\v2\Models\core\OSFile.cs" />
     <Compile Include="API\v2\Models\core\ServerStatus.cs" />
-    <Compile Include="API\v2\Models\core\Settings.cs" />
+    <Compile Include="API\v2\Models\core\Setting.cs" />
     <Compile Include="API\v2\Models\core\WebUI-Settings.cs" />
     <Compile Include="API\v2\Modules\Auth.cs" />
     <Compile Include="API\v2\Modules\Common.cs" />

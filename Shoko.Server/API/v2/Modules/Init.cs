@@ -20,7 +20,6 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
-using Settings = Shoko.Server.API.v2.Models.core.Settings;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -556,19 +555,19 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 try
                 {
                     var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                     if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                    Settings return_setting = new Settings
+                    Setting returnSetting = new Setting
                     {
                         setting = setting.setting,
                         value = value.ToString()
                     };
-                    return return_setting;
+                    return returnSetting;
                 }
                 catch
                 {
@@ -593,7 +592,7 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting.setting))
                     return APIStatus.BadRequest("An invalid setting was passed");
 
