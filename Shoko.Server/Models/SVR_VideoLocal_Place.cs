@@ -195,7 +195,7 @@ namespace Shoko.Server.Models
             return (true, renamed, string.Empty);
         }
 
-        public void RemoveRecord()
+        public void RemoveRecord(bool updateMyListStatus = true)
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
@@ -209,9 +209,12 @@ namespace Shoko.Server.Models
             {
                 if (v?.Places?.Count <= 1)
                 {
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+                    if (updateMyListStatus)
+                    {
+                        CommandRequest_DeleteFileFromMyList cmdDel =
+                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                        cmdDel.Save();
+                    }
 
                     using (var transaction = session.BeginTransaction())
                     {
@@ -256,7 +259,7 @@ namespace Shoko.Server.Models
 
 
         public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
-            ICollection<SVR_AnimeSeries> seriesToUpdate)
+            ICollection<SVR_AnimeSeries> seriesToUpdate, bool updateMyListStatus = true)
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
@@ -267,9 +270,13 @@ namespace Shoko.Server.Models
 
             if (v?.Places?.Count <= 1)
             {
-                CommandRequest_DeleteFileFromMyList cmdDel =
-                    new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                cmdDel.Save();
+                if (updateMyListStatus)
+                {
+                    CommandRequest_DeleteFileFromMyList cmdDel =
+                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                    cmdDel.Save();
+                }
+
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
@@ -923,13 +930,17 @@ namespace Shoko.Server.Models
                 if (dst != null && dst.IsOk)
                 {
                     // A file with the same name exists at the destination.
-                    // Handle Duplicate Files
-                    var dupe =
-                        RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(FilePath, newFilePath, ImportFolderID,
-                            destFolder.ImportFolderID) ??
-                        RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(newFilePath, FilePath,
-                            destFolder.ImportFolderID, ImportFolderID);
-                    if (dupe != null)
+                    // Handle Duplicate Files, A duplicate file record won't exist yet,
+                    // so we'll check the old fashioned way
+                    logger.Trace("A file already exists at the new location, checking it for duplicate");
+                    var destVideoLocal = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
+                        destFolder.ImportFolderID)?.VideoLocal;
+                    if (destVideoLocal == null)
+                    {
+                        logger.Error("The existing file at the new location does not have a VideoLocal. Not moving");
+                        return true;
+                    }
+                    if (destVideoLocal.Hash == VideoLocal.Hash)
                     {
                         logger.Info(
                             "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
@@ -948,7 +959,7 @@ namespace Shoko.Server.Models
                                 return false;
                             }
 
-                            RemoveRecord();
+                            RemoveRecord(false);
 
                             // check for any empty folders in drop folder
                             // only for the drop folder
@@ -971,10 +982,8 @@ namespace Shoko.Server.Models
                     else
                     {
                         // Not a dupe, don't delete it
-                        logger.Info("A file already exists at the new location, checking it for version and group");
-                        var destinationExistingAniDBFile =
-                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
-                                destFolder.ImportFolderID)?.VideoLocal?.GetAniDBFile();
+                        logger.Trace("A file already exists at the new location, checking it for version and group");
+                        var destinationExistingAniDBFile = destVideoLocal.GetAniDBFile();
                         if (destinationExistingAniDBFile == null)
                         {
                             logger.Error("The existing file at the new location does not have AniDB info. Not moving.");
