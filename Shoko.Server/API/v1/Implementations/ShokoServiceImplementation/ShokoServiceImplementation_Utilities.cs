@@ -1173,12 +1173,12 @@ namespace Shoko.Server
                 {
                     case 1:
                         place =
-                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile1,
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
                                 df.ImportFolderIDFile1);
                         break;
                     case 2:
                         place =
-                            RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(df.FilePathFile2,
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
                                 df.ImportFolderIDFile2);
                         break;
                     default:

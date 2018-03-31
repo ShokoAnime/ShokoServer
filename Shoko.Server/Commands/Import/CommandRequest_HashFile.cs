@@ -147,7 +147,7 @@ namespace Shoko.Server.Commands
 
 
             // check if we have already processed this file
-            SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
+            SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
             SVR_VideoLocal vlocal = null;
             var filename = Path.GetFileName(filePath);
 

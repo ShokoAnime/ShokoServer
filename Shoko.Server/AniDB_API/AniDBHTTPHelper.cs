@@ -140,14 +140,33 @@ namespace AniDBAPI
             anime.EpisodeCount = epCount;
             anime.EpisodeCountNormal = epCount;
 
-            int convertedAirDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"), true);
-            int convertedEndDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"), false);
+            string dateString = TryGetProperty(docAnime, "anime", "startdate");
 
-            //anime.AirDate = TryGetProperty(docAnime, "anime", "startdate");
-            //anime.EndDate = TryGetProperty(docAnime, "anime", "enddate");
+            anime.AirDate = null;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date))
+                {
+                    anime.AirDate = date;
+                }
+                else if (DateTime.TryParseExact(dateString, "yyyy-MM", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date2))
+                {
+                    anime.AirDate = date2;
+                }
+            }
 
-            anime.AirDate = AniDB.GetAniDBDateAsDate(convertedAirDate);
-            anime.EndDate = AniDB.GetAniDBDateAsDate(convertedEndDate);
+            dateString = TryGetProperty(docAnime, "anime", "enddate");
+            anime.EndDate = null;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date))
+                {
+                    anime.EndDate = date;
+                }
+            }
 
             anime.BeginYear = anime.AirDate?.Year ?? 0;
             anime.EndYear = anime.EndDate?.Year ?? 0;

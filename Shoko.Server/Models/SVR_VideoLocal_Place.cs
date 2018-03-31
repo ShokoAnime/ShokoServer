@@ -18,6 +18,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper.MediaInfo;
 using Shoko.Server.FileHelper.Subtitles;
+using Shoko.Server.Mappings;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -691,7 +692,7 @@ namespace Shoko.Server.Models
                                 logger.Error(
                                     $"Unable to create directory {part} in {destination.FullName}: {result.Error}");
                                 return (string.Empty,
-                                    $"ERROR: Unable to create directory {part} in {destination.FullName}: {result.Error}"
+                                        $"ERROR: Unable to create directory {part} in {destination.FullName}: {result.Error}"
                                     );
                             }
                             destination = result.Result;
@@ -921,39 +922,184 @@ namespace Shoko.Server.Models
                 FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
                 if (dst != null && dst.IsOk)
                 {
-                    logger.Info(
-                        "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
-                        FullServerPath, newFullServerPath);
-
-                    // if the file already exists, we can just delete the source file instead
-                    // this is safer than deleting and moving
-                    FileSystemResult fr = new FileSystemResult();
-                    try
+                    // A file with the same name exists at the destination.
+                    // Handle Duplicate Files
+                    var dupe =
+                        RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(FilePath, newFilePath, ImportFolderID,
+                            destFolder.ImportFolderID) ??
+                        RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(newFilePath, FilePath,
+                            destFolder.ImportFolderID, ImportFolderID);
+                    if (dupe != null)
                     {
-                        fr = source_file.Delete(false);
-                        if (fr == null || !fr.IsOk)
+                        logger.Info(
+                            "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
+                            FullServerPath, newFullServerPath);
+
+                        // if the file already exists, we can just delete the source file instead
+                        // this is safer than deleting and moving
+                        FileSystemResult fr = null;
+                        try
                         {
-                            logger.Warn("Unable to DELETE file: {0} error {1}", FullServerPath,
+                            fr = source_file.Delete(false);
+                            if (fr == null || !fr.IsOk)
+                            {
+                                logger.Warn("Unable to DELETE file: {0} error {1}", FullServerPath,
+                                    fr?.Error ?? string.Empty);
+                                return false;
+                            }
+
+                            RemoveRecord();
+
+                            // check for any empty folders in drop folder
+                            // only for the drop folder
+                            if (dropFolder.IsDropSource != 1) return true;
+                            FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
+                            if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                            {
+                                RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                            }
+
+                            return true;
+                        }
+                        catch
+                        {
+                            logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
                                 fr?.Error ?? string.Empty);
-                            return false;
+                            return true;
                         }
-                        RemoveRecord();
-
-                        // check for any empty folders in drop folder
-                        // only for the drop folder
-                        if (dropFolder.IsDropSource != 1) return true;
-                        FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                        {
-                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
-                        }
-                        return true;
                     }
-                    catch
+                    else
                     {
-                        logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
-                            fr?.Error ?? string.Empty);
-                        return true;
+                        // Not a dupe, don't delete it
+                        logger.Info("A file already exists at the new location, checking it for version and group");
+                        var destinationExistingAniDBFile =
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
+                                destFolder.ImportFolderID)?.VideoLocal?.GetAniDBFile();
+                        if (destinationExistingAniDBFile == null)
+                        {
+                            logger.Error("The existing file at the new location does not have AniDB info. Not moving.");
+                            return true;
+                        }
+
+                        var aniDBFile = VideoLocal.GetAniDBFile();
+                        if (aniDBFile == null)
+                        {
+                            logger.Error("The file does not have AniDB info. Not moving.");
+                            return true;
+                        }
+
+                        if (destinationExistingAniDBFile.Anime_GroupName == aniDBFile.Anime_GroupName &&
+                            destinationExistingAniDBFile.FileVersion < aniDBFile.FileVersion)
+                        {
+                            // This is a V2 replacing a V1 with the same name.
+                            // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
+                            logger.Info("The existing file is a V1 from the same group. Replacing it.");
+                            // Delete the destination
+                            FileSystemResult fr = null;
+                            try
+                            {
+                                fr = dst.Result.Delete(false);
+                                if (fr == null || !fr.IsOk)
+                                {
+                                    logger.Error("Unable to DELETE file: {0} error {1}", newFullServerPath,
+                                        fr?.Error ?? string.Empty);
+                                    return false;
+                                }
+                            }
+                            catch
+                            {
+                                logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
+                                    fr?.Error ?? string.Empty);
+                                return true;
+                            }
+
+                            // Move
+                            ShokoServer.StopWatchingFiles();
+                            logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
+                            fr = source_file.Move(destination);
+                            if (fr == null || !fr.IsOk)
+                            {
+                                logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
+                                    newFullServerPath, fr?.Error ?? "No Error String");
+                                ShokoServer.StartWatchingFiles(false);
+                                return false;
+                            }
+
+                            string originalFileName = FullServerPath;
+
+                            // Handle Duplicate Files
+                            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+
+                            foreach (var dup in dups)
+                            {
+                                // Move source
+                                if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                                {
+                                    dup.FilePathFile1 = newFilePath;
+                                    dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                                }
+                                else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                                {
+                                    dup.FilePathFile2 = newFilePath;
+                                    dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                                }
+                                // validate the dup file
+                                // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                                if (!dup.GetFullServerPath1()
+                                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                                    RepoFactory.DuplicateFile.Save(dup);
+                                else
+                                    RepoFactory.DuplicateFile.Delete(dup);
+                            }
+
+                            ImportFolderID = destFolder.ImportFolderID;
+                            FilePath = newFilePath;
+                            RepoFactory.VideoLocalPlace.Save(this);
+
+                            try
+                            {
+                                // move any subtitle files
+                                foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+                                {
+                                    FileSystemResult<IObject> src = f.Resolve(subtitleFile);
+                                    if (src == null || !src.IsOk || !(src.Result is IFile)) continue;
+                                    string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
+                                        ((IFile) src.Result).Name);
+                                    dst = f.Resolve(newSubPath);
+                                    if (dst != null && dst.IsOk && dst.Result is IFile)
+                                    {
+                                        FileSystemResult fr2 = src.Result.Delete(false);
+                                        if (fr2 == null || !fr2.IsOk)
+                                        {
+                                            logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
+                                                fr2?.Error ?? string.Empty);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        FileSystemResult fr2 = ((IFile) src.Result).Move(destination);
+                                        if (fr2 == null || !fr2.IsOk)
+                                        {
+                                            logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile,
+                                                newSubPath, fr2?.Error ?? string.Empty);
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Error(ex, ex.ToString());
+                            }
+
+                            // check for any empty folders in drop folder
+                            // only for the drop folder
+                            if (dropFolder.IsDropSource == 1)
+                            {
+                                FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
+                                if (dd != null && dd.IsOk && dd.Result is IDirectory)
+                                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                            }
+                        }
                     }
                 }
                 else

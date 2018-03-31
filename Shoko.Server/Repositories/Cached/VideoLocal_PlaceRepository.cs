@@ -47,7 +47,7 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
+        public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
         {
             lock (Cache)
             {
