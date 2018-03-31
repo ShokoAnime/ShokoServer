@@ -1186,7 +1186,27 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             foreach (Raw_AniDB_Tag rawtag in tags)
             {
                 AniDB_Tag tag = RepoFactory.AniDB_Tag.GetByTagID(rawtag.TagID);
-                if (tag == null) tag = new AniDB_Tag();
+
+                if (tag == null)
+                {
+                    // There are situations in which an ID may have changed, this is usually due to it being moved
+                    var existingTags = RepoFactory.AniDB_Tag.GetByName(rawtag.TagName).ToList();
+                    var xrefsToRemap = existingTags.SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID))
+                        .ToList();
+                    foreach (var xref in xrefsToRemap)
+                    {
+                        xref.TagID = rawtag.TagID;
+                        RepoFactory.AniDB_Anime_Tag.Save(xref);
+                    }
+                    // Delete the obsolete tag(s)
+                    RepoFactory.AniDB_Tag.Delete(existingTags);
+
+                    // While we're at it, clean up other unreferenced tags
+                    RepoFactory.AniDB_Tag.Delete(RepoFactory.AniDB_Tag.GetAll()
+                        .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+
+                    tag = new AniDB_Tag();
+                }
 
                 if(!tag.Populate(rawtag)) continue;
                 tagsToSave.Add(tag);

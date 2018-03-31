@@ -85,6 +85,11 @@ namespace Shoko.Server.Repositories
                 .Where(a => a != null).ToList();
         }
 
+        public List<AniDB_Anime_Tag> GetByTagID(int tagID)
+        {
+            return TagIDs.GetMultiple(tagID);
+        }
+
         /// <summary>
         /// Gets all the anime tags, but only if we have the anime locally
         /// </summary>
