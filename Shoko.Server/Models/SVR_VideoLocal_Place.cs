@@ -933,8 +933,9 @@ namespace Shoko.Server.Models
                     // Handle Duplicate Files, A duplicate file record won't exist yet,
                     // so we'll check the old fashioned way
                     logger.Trace("A file already exists at the new location, checking it for duplicate");
-                    var destVideoLocal = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
-                        destFolder.ImportFolderID)?.VideoLocal;
+                    var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
+                        destFolder.ImportFolderID);
+                    var destVideoLocal = destVideoLocalPlace?.VideoLocal;
                     if (destVideoLocal == null)
                     {
                         logger.Error("The existing file at the new location does not have a VideoLocal. Not moving");
@@ -1004,28 +1005,13 @@ namespace Shoko.Server.Models
                             // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
                             logger.Info("The existing file is a V1 from the same group. Replacing it.");
                             // Delete the destination
-                            FileSystemResult fr = null;
-                            try
-                            {
-                                fr = dst.Result.Delete(false);
-                                if (fr == null || !fr.IsOk)
-                                {
-                                    logger.Error("Unable to DELETE file: {0} error {1}", newFullServerPath,
-                                        fr?.Error ?? string.Empty);
-                                    return false;
-                                }
-                            }
-                            catch
-                            {
-                                logger.Error("Unable to DELETE file: {0} error {1}", FullServerPath,
-                                    fr?.Error ?? string.Empty);
-                                return true;
-                            }
+                            (bool success, string _) = destVideoLocalPlace.RemoveAndDeleteFile();
+                            if (!success) return false;
 
                             // Move
                             ShokoServer.StopWatchingFiles();
                             logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
-                            fr = source_file.Move(destination);
+                            var fr = source_file.Move(destination);
                             if (fr == null || !fr.IsOk)
                             {
                                 logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
