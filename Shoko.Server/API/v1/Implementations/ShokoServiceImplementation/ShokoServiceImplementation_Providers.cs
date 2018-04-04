@@ -1154,6 +1154,24 @@ namespace Shoko.Server
             }
         }
 
+        public CL_TraktDeviceCode GetTraktDeviceCode()
+        {
+            try
+            {
+                var response = TraktTVHelper.GetTraktDeviceCode();
+                return new CL_TraktDeviceCode
+                {
+                    VerificationUrl = response.VerificationUrl,
+                    UserCode = response.UserCode
+                };
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in GetTraktDeviceCode: " + ex.ToString());
+                return null;
+            }
+        }
+
         #endregion
 
         #region MAL

@@ -411,6 +411,9 @@
     <Compile Include="Plex\PlexHelper.cs" />
     <Compile Include="Plex\Libraries\SVR_Directory.cs" />
     <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCode.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
+    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="Renamer\IRenamer.cs" />

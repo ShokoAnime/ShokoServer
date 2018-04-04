@@ -4,6 +4,9 @@
     {
         public const string Oauth = TraktConstants.BaseAPIURL + @"/oauth/token";
 
+        public const string OAuthDeviceCode = TraktConstants.BaseAPIURL + @"/oauth/device/code";
+        public const string OAuthDeviceToken = TraktConstants.BaseAPIURL + @"/oauth/device/token";
+
 
         // Website links
         // http://docs.trakt.apiary.io/#introduction/website-media-links

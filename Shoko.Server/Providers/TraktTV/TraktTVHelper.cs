@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -314,6 +316,125 @@ namespace Shoko.Server.Providers.TraktTV
 
                 logger.Error(ex, "Error in TraktTVHelper.TestUserLogin: " + ex);
                 return ex.Message;
+            }
+        }
+
+        #endregion
+
+        #region New Authorization
+
+        /*
+         *  Trakt Auth Flow
+         *  
+         *  1. Generate codes. Your app calls /oauth/device/code to generate new codes. Save this entire response for later use.
+         *  2. Display the code. Display the user_code and instruct the user to visit the verification_url on their computer or mobile device.
+         *  3. Poll for authorization. Poll the /oauth/device/token method to see if the user successfully authorizes your app. 
+         *     Use the device_code and poll at the interval (in seconds) to check if the user has authorized your app.
+         *     Use expires_in to stop polling after that many seconds, and gracefully instruct the user to restart the process. 
+         *     It is important to poll at the correct interval and also stop polling when expired.
+         *     Status Codes
+         *     This method will send various HTTP status codes that you should handle accordingly.
+         *     Code 	Description
+         *     200 	Success - save the access_token
+         *     400 	Pending - waiting for the user to authorize your app
+         *     404 	Not Found - invalid device_code
+         *     409 	Already Used - user already approved this code
+         *     410 	Expired - the tokens have expired, restart the process
+         *     418 	Denied - user explicitly denied this code
+         *     429 	Slow Down - your app is polling too quickly
+         *  4. Successful authorization. 
+         *     When you receive a 200 success response, save the access_token so your app can authenticate the user in methods that require it. 
+         *     The access_token is valid for 3 months.
+         */
+
+        public static TraktAuthDeviceCodeToken GetTraktDeviceCode()
+        {
+            try
+            {
+                var obj = new TraktAuthDeviceCode();
+                string json = JSONHelper.Serialize(obj);
+                Dictionary<string, string> headers = new Dictionary<string, string>();
+
+                string retData = string.Empty;
+                int response = SendData(TraktURIs.OAuthDeviceCode, json, "POST", headers, ref retData);
+                if (response != TraktStatusCodes.Success && response != TraktStatusCodes.Success_Post)
+                {
+                    throw new Exception($"Error returned from Trakt: {response}");
+                }
+
+                var deviceCode = retData.FromJSON<TraktAuthDeviceCodeToken>();
+
+                Task.Run(() => { TraktAuthPollDeviceToken(deviceCode); });
+
+                return deviceCode;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TraktTVHelper.GetTraktDeviceCode: " + ex);
+                throw ex;
+            }
+        }
+
+        private static void TraktAuthPollDeviceToken(TraktAuthDeviceCodeToken deviceCode)
+        {
+            if (deviceCode == null)
+            {
+                return;
+            }
+            var task = Task.Run(() => { TraktAutoDeviceTokenWorker(deviceCode); });
+            if (!task.Wait(TimeSpan.FromSeconds(deviceCode.ExpiresIn)))
+            {
+                logger.Error("Error in TraktTVHelper.TraktAuthPollDeviceToken: Timed out");
+            }
+        }
+
+        private static void TraktAutoDeviceTokenWorker(TraktAuthDeviceCodeToken deviceCode)
+        {
+            try
+            {
+                var pollInterval = TimeSpan.FromSeconds(deviceCode.Interval);
+                var obj = new TraktAuthDeviceCodePoll
+                {
+                    DeviceCode = deviceCode.DeviceCode
+                };
+                string json = JSONHelper.Serialize(obj);
+                Dictionary<string, string> headers = new Dictionary<string, string>();
+                while (true)
+                {
+                    Thread.Sleep(pollInterval);
+
+                    headers.Clear();
+
+                    string retData = string.Empty;
+                    int response = SendData(TraktURIs.OAuthDeviceToken, json, "POST", headers, ref retData);
+                    if (response == TraktStatusCodes.Success)
+                    {
+                        var tokenResponse = retData.FromJSON<TraktAuthToken>();
+                        ServerSettings.Trakt_AuthToken = tokenResponse.AccessToken;
+                        ServerSettings.Trakt_RefreshToken = tokenResponse.RefreshToken;
+
+                        long.TryParse(tokenResponse.CreatedAt, out long createdAt);
+                        long.TryParse(tokenResponse.ExpiresIn, out long validity);
+                        long expireDate = createdAt + validity;
+
+                        ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
+                        break;
+                    }
+                    if (response == TraktStatusCodes.Rate_Limit_Exceeded)
+                    {
+                        //Temporarily increase poll interval
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                    }
+                    if (response != TraktStatusCodes.Bad_Request && response != TraktStatusCodes.Rate_Limit_Exceeded)
+                    {
+                        throw new Exception($"Error returned from Trakt: {response}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error in TraktTVHelper.TraktAuthDeviceCodeToken: " + ex);
+                throw ex;
             }
         }
 
