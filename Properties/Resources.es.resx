@@ -3701,9 +3701,6 @@ Desconocido de la marca - deja el archivo en la lista, pero cambia el estado a d
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Sincronizar automáticamente la colección</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Autorizar a Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Imágenes de auto descargar episodio</value>
   </data>
@@ -3722,17 +3719,11 @@ Desconocido de la marca - deja el archivo en la lista, pero cambia el estado a d
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Permiten Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Obtener Pin</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Ningunas estaciones disponibles, verifique el ID de Trakt otra vez</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Contraseña</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Credenciales de Trakt válidas se requieren para poder utilizar esta función.</value>
@@ -5256,5 +5247,11 @@ Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar e
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Control remoto marca (nube/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Obtener código</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>código de dispositivo</value>
   </data>
 </root>

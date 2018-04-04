@@ -3704,9 +3704,6 @@
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Автоматически синхронизировать коллекцию</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Авторизовать Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Автоматически загружать изображения эпизода</value>
   </data>
@@ -3725,17 +3722,11 @@
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Включить Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Получить PIN</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Нет сезонов, проверьте Trakt ID</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Пароль</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Действительные тракт учетные данные требуются для того, чтобы использовать эту функцию.</value>
@@ -5256,5 +5247,11 @@
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Марк дистанционного (облако/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Получить код</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Код устройства</value>
   </data>
 </root>

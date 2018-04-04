@@ -3727,9 +3727,6 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Automatically Sync Collection</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Authorize Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Auto Download Episode Images</value>
   </data>
@@ -3748,17 +3745,11 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Enable Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Get Pin</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>No seasons available, check the Trakt ID again</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Password</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Valid Trakt credentials are required in order to use this feature.</value>
@@ -5258,5 +5249,11 @@ Please link to plex via Desktop under settings -&gt;users to use this.</value>
   </data>
   <data name="AniDBMyListRemote" xml:space="preserve">
     <value>Remote</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Get code</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Device code</value>
   </data>
 </root>

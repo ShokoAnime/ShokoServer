@@ -3704,9 +3704,6 @@
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Sincronizar coleção automaticamente</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Autorizar o Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Baixar imagens de episódio automáticamente</value>
   </data>
@@ -3725,17 +3722,11 @@
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Habilitar Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Obter Pin</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Não há temporadas disponíveis, verifique o ID Trakt novamente</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Senha</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Válido Trakt credenciais são necessárias para usar esse recurso.</value>
@@ -5256,5 +5247,11 @@ Por favor link para plex através do Desktop em configurações-&gt; usuários p
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Mark remoto (nuvem/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Obter código</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Dispositivo de carregamento (CÓD.):</value>
   </data>
 </root>

@@ -3706,9 +3706,6 @@
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Automatyczna synchronizacja kolekcja</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Autoryzować Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Automatycznie Pobierz odcinek Zdjęcia</value>
   </data>
@@ -3727,17 +3724,11 @@
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Włącz Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Dostać Pin</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Nie sezony dostępne, ponownie sprawdzić identyfikator Trakt</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Hasło</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Ważny Trakt poświadczenia są wymagane do użycia tej funkcji.</value>
@@ -5258,5 +5249,11 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Mark zdalnego (Cloud/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Pobranie kodu</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Urządzenie</value>
   </data>
 </root>

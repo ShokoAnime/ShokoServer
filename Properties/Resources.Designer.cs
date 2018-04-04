@@ -13643,15 +13643,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Authorize Shoko.
-        /// </summary>
-        public static string Trakt_Authorize {
-            get {
-                return ResourceManager.GetString("Trakt_Authorize", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Auto Download Episode Images.
         /// </summary>
         public static string Trakt_AutoEpisodeImages {
@@ -13697,6 +13688,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Device code.
+        /// </summary>
+        public static string Trakt_DeviceCode {
+            get {
+                return ResourceManager.GetString("Trakt_DeviceCode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enable Trakt.
         /// </summary>
         public static string Trakt_Enable {
@@ -13706,11 +13706,11 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Get Pin.
+        ///   Looks up a localized string similar to Get code.
         /// </summary>
-        public static string Trakt_GetPIN {
+        public static string Trakt_GetCode {
             get {
-                return ResourceManager.GetString("Trakt_GetPIN", resourceCulture);
+                return ResourceManager.GetString("Trakt_GetCode", resourceCulture);
             }
         }
         
@@ -13729,15 +13729,6 @@ namespace Shoko.Commons.Properties {
         public static string Trakt_Password {
             get {
                 return ResourceManager.GetString("Trakt_Password", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Trakt PIN.
-        /// </summary>
-        public static string Trakt_PIN {
-            get {
-                return ResourceManager.GetString("Trakt_PIN", resourceCulture);
             }
         }
         

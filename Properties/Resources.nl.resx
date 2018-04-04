@@ -3704,9 +3704,6 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Automatisch synchroniseren collectie</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Shoko toestaan</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Auto Download aflevering beelden</value>
   </data>
@@ -3725,17 +3722,11 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Inschakelen van de Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Pin krijgen</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Geen seizoenen beschikbaar, de Trakt-ID opnieuw controleren</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Wachtwoord</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Geldige Trakt referenties zijn nodig om het gebruik van deze functie.</value>
@@ -5256,5 +5247,11 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Mark afstandsbediening (Cloud/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Code ophalen</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Apparaatcode</value>
   </data>
 </root>

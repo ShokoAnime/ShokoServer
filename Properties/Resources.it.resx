@@ -3704,9 +3704,6 @@ Mark Unknown - lascia il file nel tuo elenco, ma cambia lo stato sconosciuto.</v
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Sincronizza automaticamente la raccolta</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Autorizzazione Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Auto Download episodio immagini</value>
   </data>
@@ -3725,17 +3722,11 @@ Mark Unknown - lascia il file nel tuo elenco, ma cambia lo stato sconosciuto.</v
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Abilitare Trakt</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Ottenere il Pin</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Nessun stagioni disponibili, controllare nuovamente l'ID Trakt</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Password</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Credenziali valide Trakt sono necessari per poter utilizzare questa funzionalità.</value>
@@ -5256,5 +5247,11 @@ Si prega di link a plex tramite Desktop sotto impostazioni-&gt; agli utenti di u
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Mark remoto (Cloud/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Ottieni il codice</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Codice dispositivo</value>
   </data>
 </root>

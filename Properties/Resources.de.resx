@@ -3704,9 +3704,6 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
   <data name="TraktSyncFrequency" xml:space="preserve">
     <value>Synchronisieren Sie automatisch Collection</value>
   </data>
-  <data name="Trakt_Authorize" xml:space="preserve">
-    <value>Autorisieren von Shoko</value>
-  </data>
   <data name="Trakt_AutoEpisodeImages" xml:space="preserve">
     <value>Auto Download Episode Bilder</value>
   </data>
@@ -3725,17 +3722,11 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
   <data name="Trakt_Enable" xml:space="preserve">
     <value>Trakt aktivieren</value>
   </data>
-  <data name="Trakt_GetPIN" xml:space="preserve">
-    <value>Pin erhalten</value>
-  </data>
   <data name="Trakt_NoSeasons" xml:space="preserve">
     <value>Keine Jahreszeiten verfügbar, überprüfen Sie erneut die Trakt-ID</value>
   </data>
   <data name="Trakt_Password" xml:space="preserve">
     <value>Passwort</value>
-  </data>
-  <data name="Trakt_PIN" xml:space="preserve">
-    <value>Trakt PIN</value>
   </data>
   <data name="Trakt_SearchInfo" xml:space="preserve">
     <value>Gültige Trakt Anmeldeinformationen werden benötigt, um diese Funktion nutzen.</value>
@@ -5256,5 +5247,11 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   </data>
   <data name="AniDBMyListMarkExternal" xml:space="preserve">
     <value>Mark Fernbedienung (Cloud/Backup)</value>
+  </data>
+  <data name="Trakt_GetCode" xml:space="preserve">
+    <value>Code abrufen</value>
+  </data>
+  <data name="Trakt_DeviceCode" xml:space="preserve">
+    <value>Gerät , Code</value>
   </data>
 </root>
