@@ -640,8 +640,8 @@ namespace Shoko.Models.Interfaces
         [Rest("Trakt/LinkValidity/{slug}/{removeDBEntries}", Verbs.Post)]
         bool CheckTraktLinkValidity(string slug, bool removeDBEntries);
 
-        [Rest("Trakt/Pin/{pin}", Verbs.Post)]
-        string EnterTraktPIN(string pin);
+        [Rest("Trakt/DeviceCode", Verbs.Get)]
+        CL_TraktDeviceCode GetTraktDeviceCode();
 
         [Rest("Trakt/Episode/{traktShowID?}", Verbs.Get)]
         List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID);
