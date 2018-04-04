@@ -77,6 +77,7 @@
     <Compile Include="Client\CL_AnimeGroup_User.cs" />
     <Compile Include="Client\CL_CloudAccount.cs" />
     <Compile Include="Client\CL_Response.cs" />
+    <Compile Include="Client\CL_TraktDeviceCode.cs" />
     <Compile Include="Enums\AniDB.cs" />
     <Compile Include="Enums\ShokoInternal.cs" />
     <Compile Include="Enums\CrossrefSource.cs" />
