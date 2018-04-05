@@ -1057,7 +1057,6 @@ namespace Shoko.Commons.Extensions
         public static string GetStartEpisodeTypeString(this CL_CrossRef_AniDB_MAL_Response response) => EnumTranslator.EpisodeTypeTranslated((EpisodeType) response.StartEpisodeType);
 
         public static bool GetAdminApproved(this CL_CrossRef_AniDB_MAL_Response response) => response.IsAdminApproved == 1;
-        public static string GetEpisodeName(this AniDB_Episode episode) => !String.IsNullOrEmpty(episode.EnglishName) ? episode.EnglishName : episode.RomajiName;
 
         public static string GetSiteURL(this CL_MovieDBMovieSearch_Response sresult) => String.Format(Shoko.Models.Constants.URLS.MovieDB_Series, sresult.MovieID);
 
