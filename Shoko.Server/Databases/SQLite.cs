@@ -520,7 +520,7 @@ namespace Shoko.Server.Databases
             {
                 SQLiteConnection myConn = (SQLiteConnection) connection;
                 string createcommand =
-                    "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating varchar(max) not null, Votes varchar(max) not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description nvarchar(max) default '' not null )";
+                    "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating text not null, Votes text not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description text default '' not null )";
                 List<string> indexcommands = new List<string>()
                 {
                     "create index IX_AniDB_Episode_AnimeID on AniDB_Episode (AnimeID)",
