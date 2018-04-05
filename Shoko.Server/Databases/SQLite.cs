@@ -509,12 +509,32 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
             new DatabaseCommand(71, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT 0"),
             new DatabaseCommand(71, 2, DatabaseFixes.PopulateMyListIDs),
-            new DatabaseCommand(72, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
-            new DatabaseCommand(72, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
-            new DatabaseCommand(72, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
-            new DatabaseCommand(72, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(72, 1, DropAniDB_EpisodeTitles),
+            new DatabaseCommand(72, 2, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
+            new DatabaseCommand(72, 3, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
+        private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
+        {
+            try
+            {
+                SQLiteConnection myConn = (SQLiteConnection) connection;
+                string createcommand =
+                    "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating varchar(max) not null, Votes varchar(max) not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description nvarchar(max) default '' not null )";
+                List<string> indexcommands = new List<string>()
+                {
+                    "create index IX_AniDB_Episode_AnimeID on AniDB_Episode (AnimeID)",
+                    "create unique index UIX_AniDB_Episode_EpisodeID on AniDB_Episode (EpisodeID)"
+                };
+                ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Episode",
+                    new List<string>() {"EnglishName", "RomajiName"}, createcommand, indexcommands);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
 
         private static Tuple<bool, string> DropAniDB_AnimeAllCategories(object connection)
         {
