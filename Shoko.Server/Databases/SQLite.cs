@@ -625,12 +625,29 @@ namespace Shoko.Server.Databases
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
             String columnsSeperated = string.Join(",", updatedTableColumns);
-            List<string> cmds = new List<string>
+
+            // Drop indexes first. We can get them from the create commands
+            List<string> dropindexcmds = new List<string>();
+            foreach (string indexcommand in indexcommands)
+            {
+                int position = indexcommand.IndexOf("index", StringComparison.InvariantCultureIgnoreCase) + 6;
+                string indexname = indexcommand.Substring(position);
+                position = indexname.IndexOf(' ');
+                indexname = indexname.Substring(0, position);
+                indexname = "DROP INDEX " + indexname + ";";
+                dropindexcmds.Add(indexname);
+            }
+
+            // Rename table to old
+            // make the new one
+            // recreate indexes
+            // transfer data
+            // drop old table
+            List<string> cmds = dropindexcmds.Concat(new List<string>
             {
                 "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;",
                 createcommand
-            };
-            cmds.AddRange(indexcommands);
+            }).Concat(indexcommands).ToList();
             cmds.Add("INSERT INTO " + tableName + " (" + columnsSeperated + ") SELECT " + columnsSeperated + " FROM " +
                      tableName + "_old; ");
             cmds.Add("DROP TABLE " + tableName + "_old;");
