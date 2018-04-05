@@ -154,9 +154,6 @@ namespace Shoko.Models.Interfaces
         [Rest("Episode/LastWatched/{animeSeriesID}/{jmmuserID}", Verbs.Get)]
         CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID);
 
-        [Rest("Episode/Refresh/{episodeID}", Verbs.Post)]
-        string UpdateEpisodeData(int episodeID);
-
         [Rest("Episode/ContinueWatching/{userID}/{maxRecords}", Verbs.Get)]
         List<CL_AnimeEpisode_User> GetContinueWatchingFilter(int userID, int maxRecords);
 
