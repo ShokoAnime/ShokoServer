@@ -627,7 +627,7 @@ namespace Shoko.Server.Databases
             String columnsSeperated = string.Join(",", updatedTableColumns);
 
             // Drop indexes first. We can get them from the create commands
-            List<string> dropindexcmds = new List<string>();
+            // Ignore if they don't exist
             foreach (string indexcommand in indexcommands)
             {
                 int position = indexcommand.IndexOf("index", StringComparison.InvariantCultureIgnoreCase) + 6;
@@ -635,7 +635,13 @@ namespace Shoko.Server.Databases
                 position = indexname.IndexOf(' ');
                 indexname = indexname.Substring(0, position);
                 indexname = "DROP INDEX " + indexname + ";";
-                dropindexcmds.Add(indexname);
+                try
+                {
+                    Execute(db, indexname);
+                }
+                catch
+                {
+                }
             }
 
             // Rename table to old
@@ -643,11 +649,12 @@ namespace Shoko.Server.Databases
             // recreate indexes
             // transfer data
             // drop old table
-            List<string> cmds = dropindexcmds.Concat(new List<string>
+            List<string> cmds = new List<string>
             {
                 "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;",
                 createcommand
-            }).Concat(indexcommands).ToList();
+            };
+            cmds.AddRange(indexcommands);
             cmds.Add("INSERT INTO " + tableName + " (" + columnsSeperated + ") SELECT " + columnsSeperated + " FROM " +
                      tableName + "_old; ");
             cmds.Add("DROP TABLE " + tableName + "_old;");
