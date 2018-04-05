@@ -347,7 +347,7 @@ namespace Shoko.Server.Extensions
                 {
                     cl.EpisodeNumber = eps[0].EpisodeNumber;
                     cl.EpisodeType = eps[0].EpisodeType;
-                    cl.EpisodeName = eps[0].RomajiName;
+                    cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
                     cl.AnimeID = eps[0].AnimeID;
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(eps[0].AnimeID);
                     if (anime != null)

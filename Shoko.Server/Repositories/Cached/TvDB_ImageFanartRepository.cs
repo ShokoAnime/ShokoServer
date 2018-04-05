@@ -26,7 +26,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static TvDB_ImageFanartRepository Create()
         {
-            return new TvDB_ImageFanartRepository();
+            var repo = new TvDB_ImageFanartRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public TvDB_ImageFanart GetByTvDBID(int id)

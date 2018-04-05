@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 82;
+        public int RequiredVersion { get; } = 83;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -602,7 +602,11 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(80, 3, DatabaseFixes.PopulateResourceLinks),
             new DatabaseCommand(81, 1, "ALTER TABLE `VideoLocal` ADD `MyListID` INT NOT NULL DEFAULT 0"),
             new DatabaseCommand(81, 2, DatabaseFixes.PopulateMyListIDs),
-            new DatabaseCommand(82, 1, MySQLFixUTF8)
+            new DatabaseCommand(82, 1, MySQLFixUTF8),
+            new DatabaseCommand(83, 1, "ALTER TABLE `AniDB_Epiosde` DROP COLUMN `EnglishName`"),
+            new DatabaseCommand(83, 2, "ALTER TABLE `AniDB_Epiosde` DROP COLUMN `RomajiName`"),
+            new DatabaseCommand(83, 3, "CREATE TABLE `AniDB_Episode_Title` ( `AniDB_Episode_TitleID` INT NOT NULL AUTO_INCREMENT, `AniDB_EpisodeID` int NOT NULL, `Language` varchar(50) character set utf8 NOT NULL, `Title` varchar(500) character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Episode_TitleID`) ) ; "),
+            new DatabaseCommand(83, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

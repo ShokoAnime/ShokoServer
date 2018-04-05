@@ -263,5 +263,19 @@ namespace Shoko.Server.Repositories.Direct
                 return crs;
             }
         }
+
+        public List<CommandRequest> GetByCommandTypes(int[] types)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                List<CommandRequest> crs = session.QueryOver<CommandRequest>()
+                    .WhereRestrictionOn(field => field.CommandType).IsIn(types)
+                    .OrderBy(cr => cr.Priority).Asc
+                    .ThenBy(cr => cr.DateTimeUpdated).Asc
+                    .List<CommandRequest>().ToList();
+
+                return crs;
+            }
+        }
     }
 }

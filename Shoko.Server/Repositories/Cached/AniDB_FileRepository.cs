@@ -35,7 +35,9 @@ namespace Shoko.Server.Repositories
 
         public static AniDB_FileRepository Create()
         {
-            return new AniDB_FileRepository();
+            var repo = new AniDB_FileRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AniDB_File entity)

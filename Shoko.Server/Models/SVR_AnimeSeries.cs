@@ -893,8 +893,7 @@ namespace Shoko.Server.Models
             {
                 if ((AnimeType == AnimeType.OVA) || (AnimeType == AnimeType.Movie))
                 {
-                    AniDB_Episode aniEp = ep.AniDB_Episode;
-                    string ename = aniEp.EnglishName.ToLower();
+                    string ename = ep.Title;
                     Match m = partmatch.Match(ename);
                     StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode
                     {
@@ -923,7 +922,7 @@ namespace Shoko.Server.Models
                         }
                         else
                         {
-                            string rname = partmatch.Replace(aniEp.EnglishName.ToLower(), string.Empty);
+                            string rname = partmatch.Replace(ep.Title, string.Empty);
                             rname = remsymbols.Replace(rname, string.Empty);
                             rname = remmultispace.Replace(rname, " ");
                             s.Match = rname.Trim();

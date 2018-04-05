@@ -29,7 +29,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static ImportFolderRepository Create()
         {
-            return new ImportFolderRepository();
+            var repo = new ImportFolderRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public SVR_ImportFolder GetByImportLocation(string importloc)

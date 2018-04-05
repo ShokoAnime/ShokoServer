@@ -23,7 +23,9 @@ namespace Shoko.Server.Repositories
 
         public static AniDB_Anime_TagRepository Create()
         {
-            return new AniDB_Anime_TagRepository();
+            var repo = new AniDB_Anime_TagRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(AniDB_Anime_Tag entity)

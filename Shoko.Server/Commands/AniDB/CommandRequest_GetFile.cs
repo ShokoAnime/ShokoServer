@@ -65,27 +65,6 @@ namespace Shoko.Server.Commands
                 {
                     SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
-                    /*// get anidb file info from web cache
-                    if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
-                    {
-                        AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
-                        if (fr != null)
-                        {
-                            aniFile = new AniDB_File();
-                            aniFile.Populate(fr);
-    
-                            //overwrite with local file name
-                            string localFileName = Path.GetFileName(vlocal.FilePath);
-                            aniFile.FileName = localFileName;
-    
-                            repAniFile.Save(aniFile, false);
-                            aniFile.CreateLanguages();
-                            aniFile.CreateCrossEpisodes(localFileName);
-    
-                            StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
-                        }
-                    }*/
-
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || ForceAniDB)
                         fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
@@ -106,23 +85,10 @@ namespace Shoko.Server.Commands
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
 
-                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
-                        {
-                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                            foreach (string epid in epIDs)
-                            {
-                                if (int.TryParse(epid, out int id))
-                                {
-                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                    cmdEp.Save();
-                                }
-                            }
-                        }
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                         if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
                         SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(true, true, true);
-//                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                     }
                 }
             }

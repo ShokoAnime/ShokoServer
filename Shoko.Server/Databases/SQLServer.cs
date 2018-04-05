@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 76;
+        public int RequiredVersion { get; } = 77;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -567,6 +567,10 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(75, 3, DatabaseFixes.PopulateResourceLinks),
             new DatabaseCommand(76, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT(0)"),
             new DatabaseCommand(76, 2, DatabaseFixes.PopulateMyListIDs),
+            new DatabaseCommand(77, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
+            new DatabaseCommand(77, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
+            new DatabaseCommand(77, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID int IDENTITY(1,1) NOT NULL, AniDB_EpisodeID int NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL )"),
+            new DatabaseCommand(77, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

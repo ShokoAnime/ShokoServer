@@ -25,7 +25,9 @@ namespace Shoko.Server.Repositories
 
         public static AniDB_Anime_TitleRepository Create()
         {
-            return new AniDB_Anime_TitleRepository();
+            var repo = new AniDB_Anime_TitleRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(AniDB_Anime_Title entity)

@@ -1636,6 +1636,12 @@ namespace Shoko.Server
             set => Set("LanguagePreference", value);
         }
 
+        public static string EpisodeLanguagePreference
+        {
+            get => Get("EpisodeLanguagePreference");
+            set => Set("EpisodeLanguagePreference", value);
+        }
+
         public static bool LanguageUseSynonyms
         {
             get

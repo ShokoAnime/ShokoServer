@@ -259,7 +259,6 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetCalendar.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetCharacterInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetCreatorInfo.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetEpisodeInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetFileInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroup.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroupStatus.cs" />
@@ -401,6 +400,7 @@
     <Compile Include="Import\FileQualityFilter.cs" />
     <Compile Include="Import\Importer.cs" />
     <Compile Include="Mappings\AniDB_AnimeUpdateMap.cs" />
+    <Compile Include="Mappings\AniDB_Episode_TitleMap.cs" />
     <Compile Include="Mappings\AnimeCharacterMap.cs" />
     <Compile Include="Mappings\CrossRef_Anime_StaffMap.cs" />
     <Compile Include="Mappings\AnimeStaffMap.cs" />
@@ -420,6 +420,7 @@
     <Compile Include="Renamer\LegacyRenamer.cs" />
     <Compile Include="Renamer\RenameFileHelper.cs" />
     <Compile Include="Renamer\RenamerAttribute.cs" />
+    <Compile Include="Repositories\Cached\AniDB_Episode_TitleRepository.cs" />
     <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeCharacterRepository.cs" />
@@ -487,7 +488,6 @@
     <Compile Include="PocoCache.cs" />
     <Compile Include="BitMaskHelper.cs" />
     <Compile Include="BlockingList.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetEpisode.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />

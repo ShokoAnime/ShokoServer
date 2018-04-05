@@ -18,40 +18,41 @@ namespace Shoko.Server.Repositories
         public static readonly List<ICachedRepository> CachedRepositories = new List<ICachedRepository>();
         //Cached Ones
         // DECLARE THESE IN ORDER OF DEPENDENCY
-        public static JMMUserRepository JMMUser { get; } = CreateCachedRepository(JMMUserRepository.Create());
-        public static AuthTokensRepository AuthTokens { get; } = CreateCachedRepository(AuthTokensRepository.Create());
-        public static CloudAccountRepository CloudAccount { get; } = CreateCachedRepository(CloudAccountRepository.Create());
-        public static ImportFolderRepository ImportFolder { get; } = CreateCachedRepository(ImportFolderRepository.Create());
-        public static AniDB_AnimeRepository AniDB_Anime { get; } = CreateCachedRepository(AniDB_AnimeRepository.Create());
-        public static AniDB_EpisodeRepository AniDB_Episode { get; } = CreateCachedRepository(AniDB_EpisodeRepository.Create());
-        public static AniDB_FileRepository AniDB_File { get; } = CreateCachedRepository(AniDB_FileRepository.Create());
-        public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = CreateCachedRepository(AniDB_Anime_TitleRepository.Create());
-        public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = CreateCachedRepository(AniDB_Anime_TagRepository.Create());
-        public static AniDB_TagRepository AniDB_Tag { get; } = CreateCachedRepository(AniDB_TagRepository.Create());
-        public static CustomTagRepository CustomTag { get; } = CreateCachedRepository(CustomTagRepository.Create());
-        public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = CreateCachedRepository(CrossRef_CustomTagRepository.Create());
-        public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = CreateCachedRepository(CrossRef_File_EpisodeRepository.Create());
-        public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = CreateCachedRepository(VideoLocal_PlaceRepository.Create());
-        public static VideoLocalRepository VideoLocal { get; } = CreateCachedRepository(VideoLocalRepository.Create());
-        public static VideoLocal_UserRepository VideoLocalUser { get; } = CreateCachedRepository(VideoLocal_UserRepository.Create());
-        public static AnimeEpisodeRepository AnimeEpisode { get; } = CreateCachedRepository(AnimeEpisodeRepository.Create());
-        public static AnimeEpisode_UserRepository AnimeEpisode_User { get; } = CreateCachedRepository(AnimeEpisode_UserRepository.Create());
-        public static AnimeSeriesRepository AnimeSeries { get; } = CreateCachedRepository(AnimeSeriesRepository.Create());
-        public static AnimeSeries_UserRepository AnimeSeries_User { get; } = CreateCachedRepository(AnimeSeries_UserRepository.Create());
-        public static AnimeGroupRepository AnimeGroup { get; } = CreateCachedRepository(AnimeGroupRepository.Create());
-        public static AnimeGroup_UserRepository AnimeGroup_User { get; } = CreateCachedRepository(AnimeGroup_UserRepository.Create());
-        public static AniDB_VoteRepository AniDB_Vote { get; } = CreateCachedRepository(AniDB_VoteRepository.Create());
-        public static TvDB_EpisodeRepository TvDB_Episode { get; } = CreateCachedRepository(TvDB_EpisodeRepository.Create());
-        public static TvDB_SeriesRepository TvDB_Series { get; } = CreateCachedRepository(TvDB_SeriesRepository.Create());
-        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; } = CreateCachedRepository(CrossRef_AniDB_TvDBV2Repository.Create());
-        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = CreateCachedRepository(CrossRef_AniDB_TvDB_EpisodeRepository.Create());
-        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = CreateCachedRepository(TvDB_ImagePosterRepository.Create());
-        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = CreateCachedRepository(TvDB_ImageFanartRepository.Create());
-        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = CreateCachedRepository(TvDB_ImageWideBannerRepository.Create());
-        public static AnimeCharacterRepository AnimeCharacter { get; } = CreateCachedRepository(AnimeCharacterRepository.Create());
-        public static AnimeStaffRepository AnimeStaff { get; } = CreateCachedRepository(AnimeStaffRepository.Create());
-        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = CreateCachedRepository(CrossRef_Anime_StaffRepository.Create());
-        public static GroupFilterRepository GroupFilter { get; } = CreateCachedRepository(GroupFilterRepository.Create());
+        public static JMMUserRepository JMMUser { get; } = JMMUserRepository.Create();
+        public static AuthTokensRepository AuthTokens { get; } = AuthTokensRepository.Create();
+        public static CloudAccountRepository CloudAccount { get; } = CloudAccountRepository.Create();
+        public static ImportFolderRepository ImportFolder { get; } = ImportFolderRepository.Create();
+        public static AniDB_AnimeRepository AniDB_Anime { get; } = AniDB_AnimeRepository.Create();
+        public static AniDB_EpisodeRepository AniDB_Episode { get; } = AniDB_EpisodeRepository.Create();
+        public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; } = AniDB_Episode_TitleRepository.Create();
+        public static AniDB_FileRepository AniDB_File { get; } = AniDB_FileRepository.Create();
+        public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = AniDB_Anime_TitleRepository.Create();
+        public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = AniDB_Anime_TagRepository.Create();
+        public static AniDB_TagRepository AniDB_Tag { get; } = AniDB_TagRepository.Create();
+        public static CustomTagRepository CustomTag { get; } = CustomTagRepository.Create();
+        public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = CrossRef_CustomTagRepository.Create();
+        public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = CrossRef_File_EpisodeRepository.Create();
+        public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = VideoLocal_PlaceRepository.Create();
+        public static VideoLocalRepository VideoLocal { get; } = VideoLocalRepository.Create();
+        public static VideoLocal_UserRepository VideoLocalUser { get; } = VideoLocal_UserRepository.Create();
+        public static AnimeEpisodeRepository AnimeEpisode { get; } = AnimeEpisodeRepository.Create();
+        public static AnimeEpisode_UserRepository AnimeEpisode_User { get; } = AnimeEpisode_UserRepository.Create();
+        public static AnimeSeriesRepository AnimeSeries { get; } = AnimeSeriesRepository.Create();
+        public static AnimeSeries_UserRepository AnimeSeries_User { get; } = AnimeSeries_UserRepository.Create();
+        public static AnimeGroupRepository AnimeGroup { get; } = AnimeGroupRepository.Create();
+        public static AnimeGroup_UserRepository AnimeGroup_User { get; } = AnimeGroup_UserRepository.Create();
+        public static AniDB_VoteRepository AniDB_Vote { get; } = AniDB_VoteRepository.Create();
+        public static TvDB_EpisodeRepository TvDB_Episode { get; } = TvDB_EpisodeRepository.Create();
+        public static TvDB_SeriesRepository TvDB_Series { get; } = TvDB_SeriesRepository.Create();
+        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; } = CrossRef_AniDB_TvDBV2Repository.Create();
+        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = CrossRef_AniDB_TvDB_EpisodeRepository.Create();
+        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = TvDB_ImagePosterRepository.Create();
+        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = TvDB_ImageFanartRepository.Create();
+        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = TvDB_ImageWideBannerRepository.Create();
+        public static AnimeCharacterRepository AnimeCharacter { get; } = AnimeCharacterRepository.Create();
+        public static AnimeStaffRepository AnimeStaff { get; } = AnimeStaffRepository.Create();
+        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = CrossRef_Anime_StaffRepository.Create();
+        public static GroupFilterRepository GroupFilter { get; } = GroupFilterRepository.Create();
 
         //Direct Ones
 
@@ -134,12 +135,6 @@ namespace Shoko.Server.Repositories
 
         public static GroupFilterConditionRepository GroupFilterCondition { get; } =
             GroupFilterConditionRepository.Create();
-
-        public static T CreateCachedRepository<T>(T repo) where T : ICachedRepository
-        {
-            CachedRepositories.Add(repo);
-            return repo;
-        }
 
         public static void PostInit()
         {

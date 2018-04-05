@@ -272,7 +272,7 @@ namespace Shoko.Server.Databases
             {
                 if (i % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating Episode Descriptions from Cache",
+                        Commons.Properties.Resources.Database_Validating, "Populating AniDB Info from Cache",
                         $" {i}/{list.Count}");
                 i++;
                 try
@@ -285,13 +285,13 @@ namespace Shoko.Server.Databases
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, getAnimeCmd);
+                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd);
                     }
                 }
                 catch (Exception e)
                 {
                     logger.Error(
-                        $"There was an error Populating AniDB_Episode Descriptions for AniDB_Anime {animeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
+                        $"There was an error Populating AniDB Info for AniDB_Anime {animeID}, Update the Series' AniDB Info for a full stack: {e.Message}");
                 }
             }
         }

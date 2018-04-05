@@ -39,7 +39,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeSeries_UserRepository Create()
         {
-            return new AnimeSeries_UserRepository();
+            var repo = new AnimeSeries_UserRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeSeries_User entity)

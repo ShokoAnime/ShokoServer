@@ -769,9 +769,7 @@ namespace Shoko.Server
 
                                         // anidb
                                         contract.EpisodeNumber = anidbep.EpisodeNumber;
-                                        contract.EpisodeName = anidbep.RomajiName;
-                                        if (!string.IsNullOrEmpty(anidbep.EnglishName))
-                                            contract.EpisodeName = anidbep.EnglishName;
+                                        contract.EpisodeName = epFresh.Title;
 
                                         contract.EpisodeType = anidbep.EpisodeType;
                                         contract.LengthSeconds = anidbep.LengthSeconds;

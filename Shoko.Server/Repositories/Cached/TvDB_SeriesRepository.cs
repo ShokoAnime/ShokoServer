@@ -22,7 +22,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static TvDB_SeriesRepository Create()
         {
-            return new TvDB_SeriesRepository();
+            var repo = new TvDB_SeriesRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public TvDB_Series GetByTvDBID(int id)

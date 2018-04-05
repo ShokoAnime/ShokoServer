@@ -1057,7 +1057,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(episodes[0].EnglishName))
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                        .FirstOrDefault()?.Title;
+                    if (string.IsNullOrEmpty(title))
                     {
                         return notCondition;
                     }
@@ -1072,7 +1074,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(episodes[0].RomajiName))
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                        .FirstOrDefault()?.Title;
+                    if (string.IsNullOrEmpty(title))
                     {
                         return notCondition;
                     }
@@ -1572,8 +1576,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
             {
-                string epname = episodes[0].EnglishName;
-                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                    .FirstOrDefault()?.Title;
+                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
             }
 
@@ -1583,8 +1588,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
             {
-                string epname = episodes[0].RomajiName;
-                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                    .FirstOrDefault()?.Title;
+                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
             }
 

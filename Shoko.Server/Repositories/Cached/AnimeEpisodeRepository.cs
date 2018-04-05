@@ -28,7 +28,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeEpisodeRepository Create()
         {
-            return new AnimeEpisodeRepository();
+            var repo = new AnimeEpisodeRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeEpisode entity)

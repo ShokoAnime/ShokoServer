@@ -46,7 +46,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static GroupFilterRepository Create()
         {
-            return new GroupFilterRepository();
+            var repo = new GroupFilterRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_GroupFilter entity)

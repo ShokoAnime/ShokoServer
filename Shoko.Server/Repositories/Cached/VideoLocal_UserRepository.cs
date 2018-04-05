@@ -18,7 +18,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static VideoLocal_UserRepository Create()
         {
-            return new VideoLocal_UserRepository();
+            var repo = new VideoLocal_UserRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(VideoLocal_User entity)

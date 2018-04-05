@@ -59,7 +59,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static CrossRef_Anime_StaffRepository Create()
         {
-            return new CrossRef_Anime_StaffRepository();
+            var repo = new CrossRef_Anime_StaffRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)

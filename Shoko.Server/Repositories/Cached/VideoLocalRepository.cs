@@ -33,7 +33,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static VideoLocalRepository Create()
         {
-            return new VideoLocalRepository();
+            var repo = new VideoLocalRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_VideoLocal entity)

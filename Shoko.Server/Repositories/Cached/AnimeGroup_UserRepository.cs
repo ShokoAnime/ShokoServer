@@ -41,7 +41,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeGroup_UserRepository Create()
         {
-            return new AnimeGroup_UserRepository();
+            var repo = new AnimeGroup_UserRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup_User entity)

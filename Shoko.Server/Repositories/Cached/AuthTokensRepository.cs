@@ -16,7 +16,12 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-        public static AuthTokensRepository Create() => new AuthTokensRepository();
+        public static AuthTokensRepository Create()
+        {
+            var repo = new AuthTokensRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
+        }
 
         public AuthTokens GetByToken(string token)
         {

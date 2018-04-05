@@ -24,7 +24,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static CrossRef_AniDB_TvDBV2Repository Create()
         {
-            return new CrossRef_AniDB_TvDBV2Repository();
+            var repo = new CrossRef_AniDB_TvDBV2Repository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public List<CrossRef_AniDB_TvDBV2> GetByAnimeID(int id)

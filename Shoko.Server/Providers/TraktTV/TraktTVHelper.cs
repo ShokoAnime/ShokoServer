@@ -995,7 +995,7 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     //3. nothing to send log error
                     logger.Warn("TraktTVHelper.Scrobble: No TraktID found for: " + "AnimeEpisodeID: " + aep +
-                                " AnimeRomajiName: " + ep.AniDB_Episode.RomajiName);
+                                " AnimeRomajiName: " + ep.Title);
                     return 404;
                 }
                 return 200;

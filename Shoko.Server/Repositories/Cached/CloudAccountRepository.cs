@@ -13,7 +13,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static CloudAccountRepository Create()
         {
-            return new CloudAccountRepository();
+            var repo = new CloudAccountRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_CloudAccount entity)

@@ -910,21 +910,6 @@ namespace Shoko.Server
             return string.Empty;
         }
 
-        public string UpdateEpisodeData(int episodeID)
-        {
-            try
-            {
-                CommandRequest_GetEpisode cmd = new CommandRequest_GetEpisode(episodeID);
-                cmd.Save();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-            return string.Empty;
-        }
-
         public string RescanFile(int videoLocalID)
         {
             try

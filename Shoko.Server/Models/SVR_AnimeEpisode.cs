@@ -224,5 +224,24 @@ namespace Shoko.Server.Models
                 vid.SetResumePosition(0, userID);
             }
         }
+
+        public string Title
+        {
+            get
+            {
+                var languages = Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language);
+                foreach (var language in languages)
+                {
+                    var episode_title =
+                        RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
+                    var title = episode_title.FirstOrDefault();
+                    if (string.IsNullOrEmpty(title?.Title)) continue;
+                    return title?.Title;
+                }
+
+                return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
+                    ?.Title;
+            }
+        }
     }
 }

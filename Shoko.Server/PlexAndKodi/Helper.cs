@@ -339,13 +339,18 @@ namespace Shoko.Server.PlexAndKodi
                         l.Medias.Add(v.Media);
                 }
 
+                string title = ep.Title;
+                if (!string.IsNullOrEmpty(title)) l.Title = title;
+
+                string romaji = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
+                    .FirstOrDefault()?.Title;
+                if (!string.IsNullOrEmpty(romaji)) l.OriginalTitle = romaji;
+
                 AniDB_Episode aep = ep?.AniDB_Episode;
                 if (aep != null)
                 {
                     l.EpisodeNumber = aep.EpisodeNumber;
                     l.Index = aep.EpisodeNumber;
-                    l.Title = aep.EnglishName;
-                    l.OriginalTitle = aep.RomajiName;
                     l.EpisodeType = aep.EpisodeType;
                     l.Rating = (int) float.Parse(aep.Rating, CultureInfo.InvariantCulture);
                     AniDB_Vote vote =
@@ -383,7 +388,7 @@ namespace Shoko.Server.PlexAndKodi
                                 if (ser.GetSeriesName() != null) anime = ser.GetSeriesName();
                                 LogManager.GetCurrentClassLogger()
                                     .Warn(
-                                        $"{anime}:  Episode {aep.EpisodeNumber} - {aep.EnglishName} did not match an episode to its TvDB Link. Please check the TvDB links for it.");
+                                        $"{anime}:  Episode {aep.EpisodeNumber} - {ep.Title} did not match an episode to its TvDB Link. Please check the TvDB links for it.");
                             }
                         }
                     }

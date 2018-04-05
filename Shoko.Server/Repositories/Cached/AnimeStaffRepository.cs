@@ -26,7 +26,9 @@ namespace Shoko.Server.Repositories
 
         public static AnimeStaffRepository Create()
         {
-            return new AnimeStaffRepository();
+            var repo = new AnimeStaffRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(AnimeStaff entity)

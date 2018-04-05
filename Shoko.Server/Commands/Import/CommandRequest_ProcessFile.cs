@@ -121,16 +121,6 @@ namespace Shoko.Server.Commands
                         if (fileInfo != null)
                         {
                             SVR_AniDB_File.Populate(aniFile, fileInfo);
-                            if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
-                            {
-                                string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                                foreach (string epid in epIDs)
-                                {
-                                    if (!int.TryParse(epid, out int id)) continue;
-                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                    cmdEp.Save();
-                                }
-                            }
                         }
                         else aniFile = null;
                     }

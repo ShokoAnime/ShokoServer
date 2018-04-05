@@ -35,7 +35,7 @@ namespace Shoko.Server.Commands
                     return new QueueStateStruct
                     {
                         queueState = QueueStateEnum.LinkFileManually,
-                        extraParams = new[] {vlocal.FileName, episode.AniDB_Episode.EnglishName}
+                        extraParams = new[] {vlocal.FileName, episode.Title}
                     };
                 return new QueueStateStruct
                 {

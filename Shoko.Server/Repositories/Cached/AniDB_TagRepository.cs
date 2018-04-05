@@ -24,7 +24,12 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public static AniDB_TagRepository Create() => new AniDB_TagRepository();
+        public static AniDB_TagRepository Create()
+        {
+            var repo = new AniDB_TagRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
+        }
 
         protected override int SelectKey(AniDB_Tag entity) => entity.AniDB_TagID;
 

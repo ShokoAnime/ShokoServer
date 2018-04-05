@@ -19,7 +19,12 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-        public static JMMUserRepository Create() => new JMMUserRepository();
+        public static JMMUserRepository Create()
+        {
+            var repo = new JMMUserRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
+        }
 
         protected override int SelectKey(SVR_JMMUser entity) => entity.JMMUserID;
 

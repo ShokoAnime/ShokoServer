@@ -34,7 +34,9 @@ namespace Shoko.Server.Repositories
 
         public static AniDB_EpisodeRepository Create()
         {
-            return new AniDB_EpisodeRepository();
+            var repo = new AniDB_EpisodeRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(AniDB_Episode entity)
@@ -44,14 +46,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            List<AniDB_Episode> episodes = Cache.Values
-                .Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
-            foreach (AniDB_Episode episode in episodes)
-            {
-                episode.EnglishName = episode.EnglishName.Replace('`', '\'');
-                episode.RomajiName = episode.RomajiName.Replace('`', '\'');
-                Save(episode);
-            }
         }
 
 

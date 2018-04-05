@@ -30,7 +30,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static TvDB_ImagePosterRepository Create()
         {
-            return new TvDB_ImagePosterRepository();
+            var repo = new TvDB_ImagePosterRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public TvDB_ImagePoster GetByTvDBID(int id)

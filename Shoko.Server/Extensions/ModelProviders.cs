@@ -713,13 +713,11 @@ namespace Shoko.Server.Extensions
             episode.AirDate = epInfo.AirDate;
             episode.AnimeID = epInfo.AnimeID;
             episode.DateTimeUpdated = DateTime.Now;
-            episode.EnglishName = epInfo.EnglishName;
             episode.EpisodeID = epInfo.EpisodeID;
             episode.EpisodeNumber = epInfo.EpisodeNumber;
             episode.EpisodeType = epInfo.EpisodeType;
             episode.LengthSeconds = epInfo.LengthSeconds;
             episode.Rating = epInfo.Rating.ToString(CultureInfo.InvariantCulture);
-            episode.RomajiName = epInfo.RomajiName;
             episode.Votes = epInfo.Votes.ToString(CultureInfo.InvariantCulture);
             episode.Description = epInfo.Description ?? string.Empty;
         }

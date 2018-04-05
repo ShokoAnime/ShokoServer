@@ -1490,7 +1490,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
 
-                if (downloadRelations || ServerSettings.AutoGroupSeries)
+                if (downloadRelations)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                         MainTitle, AnimeID, anime_rel.RelatedAnimeID);

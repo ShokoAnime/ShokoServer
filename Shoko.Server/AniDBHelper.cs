@@ -356,40 +356,6 @@ namespace Shoko.Server
             }
         }
 
-        public Raw_AniDB_Episode GetEpisodeInfo(int episodeID)
-        {
-            if (!Login()) return null;
-
-            enHelperActivityType ev = enHelperActivityType.NoSuchEpisode;
-            AniDBCommand_GetEpisodeInfo getInfoCmd = null;
-
-            lock (lockAniDBConnections)
-            {
-                getInfoCmd = new AniDBCommand_GetEpisodeInfo();
-                getInfoCmd.Init(episodeID, true);
-                SetWaitingOnResponse(true);
-                ev = getInfoCmd.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
-                    new UnicodeEncoding(true, false));
-                SetWaitingOnResponse(false);
-            }
-
-            if (ev == enHelperActivityType.GotEpisodeInfo && getInfoCmd.EpisodeInfo != null)
-            {
-                try
-                {
-                    logger.Trace("ProcessResult_GetEpisodeInfo: {0}", getInfoCmd.EpisodeInfo);
-                    return getInfoCmd.EpisodeInfo;
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex.ToString());
-                    return null;
-                }
-            }
-
-            return null;
-        }
-
         public Raw_AniDB_File GetFileInfo(IHash vidLocal)
         {
             if (!Login()) return null;
@@ -1046,7 +1012,7 @@ namespace Shoko.Server
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations, getAnimeCmd);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.AutoGroupSeries, true, getAnimeCmd);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)
@@ -1060,7 +1026,7 @@ namespace Shoko.Server
             return null;
         }
 
-        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations, bool validateImages,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd)
         {
             ISessionWrapper sessionWrapper = session.Wrap();
@@ -1078,8 +1044,11 @@ namespace Shoko.Server
             }
 
             // All images from AniDB are downloaded in this
-            var cmd = new CommandRequest_DownloadAniDBImages(anime.AnimeID, false);
-            cmd.Save();
+            if (validateImages)
+            {
+                var cmd = new CommandRequest_DownloadAniDBImages(anime.AnimeID, false);
+                cmd.Save();
+            }
 
             // create AnimeEpisode records for all episodes in this anime only if we have a series
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);

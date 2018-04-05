@@ -23,7 +23,9 @@ namespace Shoko.Server.Repositories
 
         public static CustomTagRepository Create()
         {
-            return new CustomTagRepository();
+            var repo = new CustomTagRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(CustomTag entity)

@@ -21,7 +21,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static CrossRef_AniDB_TvDB_EpisodeRepository Create()
         {
-            return new CrossRef_AniDB_TvDB_EpisodeRepository();
+            var repo = new CrossRef_AniDB_TvDB_EpisodeRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public CrossRef_AniDB_TvDB_Episode GetByAniDBEpisodeID(int id)

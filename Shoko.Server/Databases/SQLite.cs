@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 71;
+        public int RequiredVersion { get; } = 72;
 
 
         public void BackupDatabase(string fullfilename)
@@ -509,6 +509,10 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
             new DatabaseCommand(71, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT 0"),
             new DatabaseCommand(71, 2, DatabaseFixes.PopulateMyListIDs),
+            new DatabaseCommand(72, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
+            new DatabaseCommand(72, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
+            new DatabaseCommand(72, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
+            new DatabaseCommand(72, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
 

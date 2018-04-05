@@ -38,7 +38,9 @@ namespace Shoko.Server.Repositories
 
         public static CrossRef_CustomTagRepository Create()
         {
-            return new CrossRef_CustomTagRepository();
+            var repo = new CrossRef_CustomTagRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)
