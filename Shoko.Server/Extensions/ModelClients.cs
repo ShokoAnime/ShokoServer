@@ -358,6 +358,26 @@ namespace Shoko.Server.Extensions
             return cl;
         }
 
+        public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
+        {
+            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
+            return new CL_AniDB_Episode
+            {
+                AniDB_EpisodeID = ep.AniDB_EpisodeID,
+                EpisodeID = ep.EpisodeID,
+                AnimeID = ep.AnimeID,
+                LengthSeconds = ep.LengthSeconds,
+                Rating = ep.Rating,
+                Votes = ep.Votes,
+                EpisodeNumber = ep.EpisodeNumber,
+                EpisodeType = ep.EpisodeType,
+                Description = ep.Description,
+                AirDate = ep.AirDate,
+                DateTimeUpdated = ep.DateTimeUpdated,
+                Titles = titles.ToDictionary(a => a.Language, a => a.Title)
+            };
+        }
+
         public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlocalplace)
         {
             CL_VideoLocal_Place v = new CL_VideoLocal_Place

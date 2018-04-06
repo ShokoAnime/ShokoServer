@@ -98,14 +98,14 @@ namespace Shoko.Server
                 if (series == null) return null;
 
                 //List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
-                List<AnimeEpisode> epList = new List<AnimeEpisode>();
+                List<SVR_AnimeEpisode> epList = new List<SVR_AnimeEpisode>();
                 Dictionary<int, SVR_AnimeEpisode_User> dictEpUsers = new Dictionary<int, SVR_AnimeEpisode_User>();
                 foreach (
                     SVR_AnimeEpisode_User userRecord in RepoFactory.AnimeEpisode_User.GetByUserIDAndSeriesID(userID,
                         animeSeriesID))
                     dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                foreach (AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID))
+                foreach (SVR_AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID))
                 {
                     if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                     {
@@ -132,10 +132,6 @@ namespace Shoko.Server
                         if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
                             anidbep.EpisodeType == (int) EpisodeType.Special)
                         {
-                            SVR_AnimeEpisode_User userRecord = null;
-                            if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-                                userRecord = dictEpUsers[ep.AnimeEpisodeID];
-
                             CL_AnimeEpisode_User epContract = ep.GetUserContract(userID);
                             if (epContract != null)
                                 candidateEps.Add(epContract);
@@ -1112,14 +1108,14 @@ namespace Shoko.Server
             }
         }
 
-        public List<AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
+        public List<CL_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
         {
             try
             {
                 return RepoFactory.AniDB_Episode.GetByAnimeID(animeID)
+                    .Select(a => a.ToClient())
                     .OrderBy(a => a.EpisodeType)
                     .ThenBy(a => a.EpisodeNumber)
-                    .Cast<AniDB_Episode>()
                     .ToList();
             }
             catch (Exception ex)
@@ -1127,7 +1123,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return new List<AniDB_Episode>();
+            return new List<CL_AniDB_Episode>();
         }
 
         public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)

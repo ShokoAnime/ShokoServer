@@ -71,12 +71,20 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public List<AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int animeID, string language)
+        public List<AniDB_Episode_Title> GetByEpisodeIDAndLanguage(int id, string language)
         {
             lock (Cache)
             {
-                return Episodes.GetMultiple(animeID).Where(a =>
+                return Episodes.GetMultiple(id).Where(a =>
                     a.Language.Equals(language, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            }
+        }
+
+        public List<AniDB_Episode_Title> GetByEpisodeID(int ID)
+        {
+            lock (Cache)
+            {
+                return Episodes.GetMultiple(ID);
             }
         }
     }
