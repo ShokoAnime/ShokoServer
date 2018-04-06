@@ -72,6 +72,7 @@
     <Compile Include="Client\CL_AniDB_Anime_DefaultImage.cs" />
     <Compile Include="Client\CL_AniDB_Anime_Relation.cs" />
     <Compile Include="Client\CL_AniDB_Character.cs" />
+    <Compile Include="Client\CL_AniDB_Episode.cs" />
     <Compile Include="Client\CL_AniDB_GroupStatus.cs" />
     <Compile Include="Client\CL_AnimeEpisode_User.cs" />
     <Compile Include="Client\CL_AnimeGroup_User.cs" />
