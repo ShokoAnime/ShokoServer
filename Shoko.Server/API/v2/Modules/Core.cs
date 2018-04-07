@@ -74,6 +74,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/trakt/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateTrakt, ct);
             Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct);
             Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct);
+            Get["/trakt/code", true] = async (x,ct) => await Task.Factory.StartNew(GetTraktCode, ct);
 
             #endregion
 
@@ -534,6 +535,22 @@ namespace Shoko.Server.API.v2.Modules
 
         #region 04.Trakt
 
+        /// <summary>
+        /// Get Trakt code and url
+        /// </summary>
+        /// <returns></returns>
+        private object GetTraktCode()
+        {
+            var code = new ShokoServiceImplementation().GetTraktDeviceCode();
+            if (code.UserCode == string.Empty)
+                return APIStatus.InternalError();
+            
+            Dictionary<string, object> result = new Dictionary<string, object>();
+            result.Add("usercode", code.UserCode);
+            result.Add("url", code.VerificationUrl);
+            return result;
+        }
+        
         /// <summary>
         /// Set Trakt PIN
         /// </summary>
