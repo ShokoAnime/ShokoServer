@@ -337,7 +337,8 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
                         int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
-                        if (endyear == 0) endyear = DateTime.Today.Year;
+                        if (endyear <= 0) endyear = DateTime.Today.Year;
+                        if (endyear < startyear || endyear - startyear + 1 >= int.MaxValue) endyear = startyear;
                         if (startyear != 0)
                             allyears.UnionWith(Enumerable.Range(startyear,
                                     endyear - startyear + 1)
