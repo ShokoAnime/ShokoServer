@@ -72,7 +72,7 @@ namespace AniDBAPI.Commands
 
             commandID = "Deleting File: " + fileID.ToString();
 
-            commandText = "MYLISTDEL fid=" + fileID.ToString();
+            commandText = "MYLISTDEL lid=" + fileID.ToString();
         }
     }
 }

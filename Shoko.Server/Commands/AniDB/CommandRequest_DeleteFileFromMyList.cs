@@ -40,9 +40,9 @@ namespace Shoko.Server.Commands
         public override void ProcessCommand()
         {
             if (MyListID > 0)
-                logger.Info("Processing CommandRequest_DeleteFileFromMyList: Hash: {0}", Hash);
-            else
                 logger.Info("Processing CommandRequest_DeleteFileFromMyList: MyListID: {0}", MyListID);
+            else
+                logger.Info("Processing CommandRequest_DeleteFileFromMyList: Hash: {0}", Hash);
 
             try
             {
