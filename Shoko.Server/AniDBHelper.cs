@@ -518,13 +518,15 @@ namespace Shoko.Server
                 else
                 {
                     logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
-                    ev = enHelperActivityType.NoSuchFile;
+                    ev = enHelperActivityType.NoSuchMyListFile;
                 }
 
                 if (ev == enHelperActivityType.NoSuchMyListFile)
                 {
                     // Run sychronously, but still do all of the stuff with watched state settings
                     CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash);
+                    // Initialize private parts
+                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
                     addcmd.ProcessCommand();
                 }
             }
