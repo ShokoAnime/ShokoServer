@@ -1268,51 +1268,6 @@ namespace Shoko.Server.Providers.TraktTV
             return ret;
         }
 
-        public static List<TraktV2Follower> GetFriendsV2()
-        {
-            List<TraktV2Follower> friends = new List<TraktV2Follower>();
-
-            try
-            {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
-                    return friends;
-
-                string url = TraktURIs.GetUserFriends;
-                logger.Trace($"GetFollowers: {url}");
-
-                string json = GetFromTrakt(url);
-                if (string.IsNullOrEmpty(json)) return null;
-
-                var resultFollowers = json.FromJSONArray<TraktV2Follower>();
-
-
-                foreach (TraktV2Follower friend in resultFollowers)
-                {
-                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(friend.user.username) ?? new Trakt_Friend();
-
-                    traktFriend.Populate(friend.user);
-                    RepoFactory.Trakt_Friend.Save(traktFriend);
-                    friends.Add(friend);
-
-                    // get a watched history for each friend
-                    url = string.Format(TraktURIs.GetUserHistory, friend.user.username);
-                    logger.Trace($"GetUserHistory: {url}");
-
-                    GetFromTrakt(url);
-                }
-
-
-                //Contract_Trakt_Friend fr = friends[0].ToContract();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TraktTVHelper.GetFriends: " + ex);
-                return friends;
-            }
-
-            return friends;
-        }
-
         public static List<TraktV2ShowWatchedResult> GetWatchedShows(ref int traktCode)
         {
             if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))

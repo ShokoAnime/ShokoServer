@@ -4,12 +4,14 @@ using System.ComponentModel;
 using System.Dynamic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
+using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -19,12 +21,14 @@ using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
     public class Core : NancyModule
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
         public Core() : base("/api")
         {
             // As this module requireAuthentication all request need to have apikey in header.
@@ -81,6 +85,7 @@ namespace Shoko.Server.API.v2.Modules
             #region 05.TvDB
 
             Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
+            Get["/tvdb/regenlinks", true] = async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct);
 
             #endregion
 
@@ -629,6 +634,25 @@ namespace Shoko.Server.API.v2.Modules
         private object ScanTvDB()
         {
             Importer.RunImport_ScanTvDB();
+            return APIStatus.OK();
+        }
+
+        private object RegenerateAllEpisodeLinks()
+        {
+            try
+            {
+                var list = RepoFactory.AnimeSeries.GetAll().ToList();
+                foreach (var animeseries in list)
+                {
+                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                return APIStatus.InternalError(e.Message);
+            }
+
             return APIStatus.OK();
         }
 

@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 72;
+        public int RequiredVersion { get; } = 73;
 
 
         public void BackupDatabase(string fullfilename)
@@ -512,6 +512,17 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(72, 1, DropAniDB_EpisodeTitles),
             new DatabaseCommand(72, 2, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
             new DatabaseCommand(72, 3, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(73, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID;"),
+            // SQLite is stupid, so we need to create a new table and copy the contents to it
+            new DatabaseCommand(73, 2, RenameCrossRef_AniDB_TvDB_Episode),
+            // For some reason, this was never dropped
+            new DatabaseCommand(73, 3, "DROP TABLE CrossRef_AniDB_TvDB;"),
+            new DatabaseCommand(73, 4, "CREATE TABLE CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID int IDENTITY(1,1) NOT NULL, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);"),
+            new DatabaseCommand(73, 5, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_AniDBID_TvDBID ON CrossRef_AniDB_TvDB(AniDBID,TvDBID);"),
+            new DatabaseCommand(73, 6, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
+            new DatabaseCommand(73, 7, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
+            new DatabaseCommand(73, 8, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+            // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
         };
 
         private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
@@ -528,6 +539,36 @@ namespace Shoko.Server.Databases
                 };
                 ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Episode",
                     new List<string>() {"EnglishName", "RomajiName"}, createcommand, indexcommands);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
+
+        private static Tuple<bool, string> RenameCrossRef_AniDB_TvDB_Episode(object connection)
+        {
+            try
+            {
+                // I'm doing this manually to save time
+                SQLiteConnection myConn = (SQLiteConnection) connection;;
+
+                // make the new one
+                // create indexes
+                // transfer data
+                // drop old table
+                List<string> cmds = new List<string>
+                {
+                    "CREATE TABLE CrossRef_AniDB_TvDB_Episode_Override( CrossRef_AniDB_TvDB_Episode_OverrideID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL );",
+                    "CREATE UNIQUE INDEX UIX_AniDB_TvDB_Episode_Override_AniDBEpisodeID_TvDBEpisodeID ON CrossRef_AniDB_TvDB_Episode_Override(AniDBEpisodeID,TvDBEpisodeID);",
+                    "INSERT INTO CrossRef_AniDB_TvDB_Episode_Override ( AniDBEpisodeID, TvDBEpisodeID ) SELECT AniDBEpisodeID, TvDBEpisodeID FROM CrossRef_AniDB_TvDB_Episode; ",
+                    "DROP TABLE CrossRef_AniDB_TvDB_Episode;"
+                };
+                foreach (string cmdTable in cmds)
+                {
+                    ((SQLite) DatabaseFactory.Instance).Execute(myConn, cmdTable);
+                }
                 return new Tuple<bool, string>(true, null);
             }
             catch (Exception e)

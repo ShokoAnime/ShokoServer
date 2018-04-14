@@ -36,7 +36,7 @@ namespace Shoko.Server.Models
 
         #endregion
 
-        public const int CONTRACT_VERSION = 8;
+        public const int CONTRACT_VERSION = 9;
 
 
         private CL_AnimeSeries_User _contract;
@@ -203,19 +203,19 @@ namespace Shoko.Server.Models
 
         #region TvDB
 
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2()
+        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
         {
-            return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AniDB_ID);
+            return RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
         }
 
         public List<TvDB_Series> GetTvDBSeries()
         {
             List<TvDB_Series> sers = new List<TvDB_Series>();
 
-            List<CrossRef_AniDB_TvDBV2> xrefs = GetCrossRefTvDBV2();
+            List<CrossRef_AniDB_TvDB> xrefs = GetCrossRefTvDB();
             if (xrefs == null || xrefs.Count == 0) return sers;
 
-            foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+            foreach (CrossRef_AniDB_TvDB xref in xrefs)
                 sers.Add(xref.GetTvDBSeries());
 
             return sers;
@@ -540,8 +540,8 @@ namespace Shoko.Server.Models
                 return grpFilterCondTypesPerSeries;
 
             var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
-            var tvDbByAnime = new Lazy<ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>>>(
-                () => RepoFactory.TvDB_Series.GetByAnimeIDsV2(session, animeIds.Value), false);
+            var tvDbByAnime = new Lazy<ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>>(
+                () => RepoFactory.TvDB_Series.GetByAnimeIDs(session, animeIds.Value), false);
             var movieByAnime = new Lazy<Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>>(
                 () => RepoFactory.MovieDb_Movie.GetByAnimeIDs(session, animeIds.Value), false);
             var malXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
@@ -607,12 +607,9 @@ namespace Shoko.Server.Models
                     foreach (var missingTvDbSeries in tvDbCrossRefs.Where(cr => cr.Item2 == null)
                         .Select(cr => cr.Item1))
                         logger.Warn("You are missing database information for TvDB series: {0} - {1}",
-                            missingTvDbSeries.TvDBID, missingTvDbSeries.TvDBTitle);
+                            missingTvDbSeries.TvDBID, missingTvDbSeries.GetTvDBSeries()?.SeriesName ?? "Series Not Found");
 
-                    contract.CrossRefAniDBTvDBV2 = tvDbCrossRefs
-                        .Select(s => s.Item1)
-                        .Cast<CrossRef_AniDB_TvDBV2>()
-                        .ToList();
+                    contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
                     contract.TvDB_Series = tvDbCrossRefs
                         .Select(s => s.Item2)
                         .ToList();
@@ -683,20 +680,19 @@ namespace Shoko.Server.Models
                     return types2;
                 }
                 SVR_AniDB_Anime animeRec = GetAnime();
-                List<CrossRef_AniDB_TvDBV2> tvDBCrossRefs = GetCrossRefTvDBV2();
+                List<CrossRef_AniDB_TvDB> tvDBCrossRefs = GetCrossRefTvDB();
                 CrossRef_AniDB_Other movieDBCrossRef = CrossRefMovieDB;
                 MovieDB_Movie movie = null;
                 if (movieDBCrossRef != null)
                     movie = movieDBCrossRef.GetMovieDB_Movie();
                 List<TvDB_Series> sers = new List<TvDB_Series>();
-                foreach (CrossRef_AniDB_TvDBV2 xref in tvDBCrossRefs)
+                foreach (CrossRef_AniDB_TvDB xref in tvDBCrossRefs)
                 {
                     TvDB_Series tvser = xref.GetTvDBSeries();
                     if (tvser != null)
                         sers.Add(tvser);
                     else
-                        logger.Warn("You are missing database information for TvDB series: {0} - {1}", xref.TvDBID,
-                            xref.TvDBTitle);
+                        logger.Warn("You are missing database information for TvDB series: {0}", xref.TvDBID);
                 }
                 // get AniDB data
                 if (animeRec != null)
@@ -729,7 +725,7 @@ namespace Shoko.Server.Models
                     contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
                 }
 
-                contract.CrossRefAniDBTvDBV2 = tvDBCrossRefs.ToList();
+                contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
 
 
                 contract.TvDB_Series = sers;
@@ -868,7 +864,7 @@ namespace Shoko.Server.Models
 
         public override string ToString()
         {
-            return string.Format("Series: {0} ({1})", GetAnime().MainTitle, AnimeSeriesID);
+            return $"Series: {GetAnime().MainTitle} ({AnimeSeriesID})";
             //return string.Empty;
         }
 

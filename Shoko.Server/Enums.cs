@@ -99,13 +99,6 @@ namespace Shoko.Server
         WebCacheFileName = 2 // the hash was retrieved from the web cache based on file name
     }
 
-    public enum CrossRefSource
-    {
-        AniDB = 1,
-        User = 2,
-        WebCache = 3
-    }
-
     public enum RenamingType
     {
         Raw = 1,

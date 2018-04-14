@@ -56,11 +56,10 @@ namespace Shoko.Server
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null) return result;
 
-                    var xrefs = anime.GetCrossRefTvDBV2().ToList();
+                    var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
 
                     // TvDB
-                    foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
-                        result.CrossRef_AniDB_TvDB.Add(xref);
+                    result.CrossRef_AniDB_TvDB = xrefs;
 
                     foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
                         result.TvDBEpisodes.Add(ep);
@@ -229,7 +228,7 @@ namespace Shoko.Server
             try
             {
                 // Get all the links for this user and anime
-                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
@@ -254,9 +253,9 @@ namespace Shoko.Server
                 if (foundLinks) return "Links already exist, please approve them instead";
 
                 // send the links to the web cache
-                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+                foreach (CrossRef_AniDB_TvDB xref in xrefs)
                 {
-                    AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
+                    AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
                 }
 
                 // now get the links back from the cache and approve them
@@ -445,7 +444,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TvDBV2>().ToList();
+                return RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
             }
             catch (Exception ex)
             {
@@ -454,11 +453,11 @@ namespace Shoko.Server
             }
         }
 
-        public List<CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID)
+        public List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID)
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID).ToList();
+                return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID).ToList();
             }
             catch (Exception ex)
             {
@@ -505,24 +504,21 @@ namespace Shoko.Server
         {
             try
             {
-                CrossRef_AniDB_TvDBV2 xref = RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(link.TvDBID,
-                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, link.AnimeID, link.AniDBStartEpisodeType,
-                    link.AniDBStartEpisodeNumber);
+                CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(link.AnimeID, link.TvDBID);
 
                 if (xref != null && link.IsAdditive)
                 {
-                    string msg = $"You have already linked Anime ID {xref.AnimeID} to this TvDB show/season/ep";
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                    string msg = $"You have already linked Anime ID {xref.AniDBID} to this TvDB show/season/ep";
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                     if (anime != null)
                         msg =
-                            $"You have already linked Anime {anime.MainTitle} ({xref.AnimeID}) to this TvDB show/season/ep";
+                            $"You have already linked Anime {anime.MainTitle} ({xref.AniDBID}) to this TvDB show/season/ep";
                     return msg;
                 }
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-                CommandRequest_LinkAniDBTvDB cmdRequest = new CommandRequest_LinkAniDBTvDB(link.AnimeID,
-                    (EpisodeType) link.AniDBStartEpisodeType, link.AniDBStartEpisodeNumber, link.TvDBID,
-                    link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber, false, link.IsAdditive);
+                CommandRequest_LinkAniDBTvDB cmdRequest =
+                    new CommandRequest_LinkAniDBTvDB(link.AnimeID, link.TvDBID, link.IsAdditive);
                 cmdRequest.Save();
 
                 return string.Empty;
@@ -534,11 +530,11 @@ namespace Shoko.Server
             }
         }
 
-        public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID)
+        public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
         {
             try
             {
-                TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID, animeID);
+                TvDBApiHelper.LinkAniDBTvDBEpisode(aniDBID, tvDBID);
 
                 return string.Empty;
             }
@@ -562,10 +558,10 @@ namespace Shoko.Server
 
                 if (ser == null) return "Could not find Series for Anime!";
 
-                List<CrossRef_AniDB_TvDBV2> xrefs = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
                 if (xrefs == null) return string.Empty;
 
-                foreach (CrossRef_AniDB_TvDBV2 xref in xrefs)
+                foreach (CrossRef_AniDB_TvDB xref in xrefs)
                 {
                     // check if there are default images used associated
                     List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
@@ -580,9 +576,7 @@ namespace Shoko.Server
                         }
                     }
 
-                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AnimeID, (EpisodeType) xref.AniDBStartEpisodeType,
-                        xref.AniDBStartEpisodeNumber,
-                        xref.TvDBID, xref.TvDBSeasonNumber, xref.TvDBStartEpisodeNumber);
+                    TvDBApiHelper.RemoveLinkAniDBTvDB(xref.AniDBID, xref.TvDBID);
                 }
 
                 return string.Empty;
@@ -615,8 +609,7 @@ namespace Shoko.Server
                     }
                 }
 
-                TvDBApiHelper.RemoveLinkAniDBTvDB(link.AnimeID, (EpisodeType) link.AniDBStartEpisodeType,
-                    link.AniDBStartEpisodeNumber, link.TvDBID, link.TvDBSeasonNumber, link.TvDBStartEpisodeNumber);
+                TvDBApiHelper.RemoveLinkAniDBTvDB(link.AnimeID, link.TvDBID);
 
                 return string.Empty;
             }
@@ -627,7 +620,7 @@ namespace Shoko.Server
             }
         }
 
-        public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID)
+        public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvDBEpisodeID)
         {
             try
             {
@@ -635,12 +628,13 @@ namespace Shoko.Server
 
                 if (ep == null) return "Could not find Episode";
 
-                CrossRef_AniDB_TvDB_Episode xref =
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aniDBEpisodeID);
+                CrossRef_AniDB_TvDB_Episode_Override xref =
+                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBEpisodeID,
+                        tvDBEpisodeID);
                 if (xref == null) return "Could not find Link!";
 
 
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(xref.CrossRef_AniDB_TvDB_EpisodeID);
+                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(xref.CrossRef_AniDB_TvDB_Episode_OverrideID);
 
                 return string.Empty;
             }

@@ -129,7 +129,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public List<TvDB_Episode> GetTvDBEpisodes()
         {
             List<TvDB_Episode> results = new List<TvDB_Episode>();
-            int id = GetCrossRefTvDBV2()?.FirstOrDefault()?.TvDBID ?? -1;
+            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
                 results.AddRange(RepoFactory.TvDB_Episode.GetBySeriesID(id).OrderBy(a => a.SeasonNumber)
                     .ThenBy(a => a.EpisodeNumber));
@@ -229,9 +229,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return dictTvDBSeasonsSpecials;
         }
 
-        public List<CrossRef_AniDB_TvDB_Episode> GetCrossRefTvDBEpisodes() => RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TvDB_Episode_Override> GetCrossRefTvDBEpisodes() => RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
 
-        public List<CrossRef_AniDB_TvDBV2> GetCrossRefTvDBV2() => RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB() => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
         {
@@ -255,7 +255,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public TvDB_Series GetTvDBSeries()
         {
-            int id = GetCrossRefTvDBV2()?.FirstOrDefault()?.TvDBID ?? -1;
+            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id == -1) return null;
             return RepoFactory.TvDB_Series.GetByTvDBID(id);
         }
@@ -263,7 +263,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public List<TvDB_ImageFanart> GetTvDBImageFanarts()
         {
             List<TvDB_ImageFanart> results = new List<TvDB_ImageFanart>();
-            int id = GetCrossRefTvDBV2()?.FirstOrDefault()?.TvDBID ?? -1;
+            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
                 results.AddRange(RepoFactory.TvDB_ImageFanart.GetBySeriesID(id));
             return results;
@@ -272,7 +272,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public List<TvDB_ImagePoster> GetTvDBImagePosters()
         {
             List<TvDB_ImagePoster> results = new List<TvDB_ImagePoster>();
-            int id = GetCrossRefTvDBV2()?.FirstOrDefault()?.TvDBID ?? -1;
+            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
                 results.AddRange(RepoFactory.TvDB_ImagePoster.GetBySeriesID(id));
             return results;
@@ -281,7 +281,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners()
         {
             List<TvDB_ImageWideBanner> results = new List<TvDB_ImageWideBanner>();
-            int id = GetCrossRefTvDBV2()?.FirstOrDefault()?.TvDBID ?? -1;
+            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
                 results.AddRange(RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(id));
             return results;

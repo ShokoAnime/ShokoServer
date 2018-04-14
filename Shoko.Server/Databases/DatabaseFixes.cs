@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using NHibernate;
+using NHibernate.Criterion;
 using NLog;
 using Pri.LongPath;
 using Shoko.Commons.Extensions;
@@ -125,6 +127,81 @@ namespace Shoko.Server.Databases
         public static void MigrateTvDBLinks_V1_to_V2()
         {
             // Empty to preserve version info
+        }
+
+        public static void MigrateTvDBLinks_v2_to_V3()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                // This method doesn't need mappings, and it's simple enough to work on all DB types
+                // Migrate Special's overrides
+                var specials = session
+                    .CreateSQLQuery(
+                        @"SELECT AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber FROM CrossRef_AniDB_TvDBV2 WHERE TvDBSeasonNumber = 0")
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddScalar("AniDBStartEpisodeType", NHibernateUtil.Int32)
+                    .AddScalar("AniDBStartEpisodeNumber", NHibernateUtil.Int32)
+                    .AddScalar("TvDBID", NHibernateUtil.Int32)
+                    .AddScalar("TvDBSeasonNumber", NHibernateUtil.Int32)
+                    .AddScalar("TvDBStartEpisodeNumber", NHibernateUtil.Int32)
+                    .List<object[]>().Select(a => new CrossRef_AniDB_TvDBV2
+                    {
+                        AnimeID = (int) a[0],
+                        AniDBStartEpisodeType = (int) a[1],
+                        AniDBStartEpisodeNumber = (int) a[2],
+                        TvDBID = (int) a[3],
+                        TvDBSeasonNumber = (int) a[4],
+                        TvDBStartEpisodeNumber = (int) a[5]
+                    }).ToList();
+                var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specials);
+                foreach (var episodeOverride in overrides)
+                {
+                    var exists =
+                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                            episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
+                    if (exists != null) continue;
+                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                }
+
+                // Series Links
+                var links = session
+                    .CreateSQLQuery(
+                        @"SELECT DISTINCT AnimeID, TvDBID, CrossRefSource FROM CrossRef_AniDB_TvDBV2 WHERE TvDBSeasonNumber != 0")
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddScalar("TvDBID", NHibernateUtil.Int32)
+                    .AddScalar("CrossRefSource", NHibernateUtil.Int32)
+                    .List<object[]>().Select(a => new CrossRef_AniDB_TvDB
+                    {
+                        AniDBID = (int) a[0],
+                        TvDBID = (int) a[1],
+                        CrossRefSource = (CrossRefSource) a[2]
+                    }).DistinctBy(a => (a.AniDBID, a.TvDBID)).ToList();
+                foreach (var link in links)
+                {
+                    var exists =
+                        RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(
+                            link.AniDBID, link.TvDBID);
+                    if (exists != null) continue;
+                    RepoFactory.CrossRef_AniDB_TvDB.Save(link);
+                }
+
+                var list = RepoFactory.AnimeSeries.GetAll().ToList();
+                int count = 0;
+                foreach (var animeseries in list)
+                {
+                    count++;
+                    if (count % 10 == 0)
+                    {
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
+                            $" {count}/{list.Count}");
+                    }
+                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);
+                }
+
+                string dropV2 = "DROP TABLE CrossRef_AniDB_TvDBV2";
+                session.CreateSQLQuery(dropV2).ExecuteUpdate();
+            }
         }
 
         public static void FixDuplicateTraktLinks()

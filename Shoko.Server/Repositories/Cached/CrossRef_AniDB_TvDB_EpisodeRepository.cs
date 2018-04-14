@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 
@@ -11,7 +12,8 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void PopulateIndexes()
         {
-            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => a.AnimeID);
+            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache,
+                a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID)?.AnimeID ?? -1);
             EpisodeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => a.AniDBEpisodeID);
         }
 
@@ -26,12 +28,19 @@ namespace Shoko.Server.Repositories.Cached
             return repo;
         }
 
-        public CrossRef_AniDB_TvDB_Episode GetByAniDBEpisodeID(int id)
+        public CrossRef_AniDB_TvDB_Episode GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
         {
-            // TODO Change this when multiple AniDB <=> TvDB Episode mappings
             lock (Cache)
             {
-                return EpisodeIDs.GetOne(id);
+                return EpisodeIDs.GetMultiple(anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID);
+            }
+        }
+
+        public List<CrossRef_AniDB_TvDB_Episode> GetByAniDBEpisodeID(int id)
+        {
+            lock (Cache)
+            {
+                return EpisodeIDs.GetMultiple(id);
             }
         }
 

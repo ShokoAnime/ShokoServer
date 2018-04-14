@@ -67,6 +67,12 @@ namespace Shoko.Server.Extensions
             return int.TryParse(input, out int output) ? output : (int?)null;
         }
 
+        public static bool IsWithinErrorMargin(this DateTime value1, DateTime value2, TimeSpan error)
+        {
+            if (value1 > value2) return value1 - value2 <= error;
+            return value2 - value1 <= error;
+        }
+
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
             CL_AnimeGroup_User contract = new CL_AnimeGroup_User

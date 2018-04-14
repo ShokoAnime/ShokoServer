@@ -402,6 +402,8 @@
     <Compile Include="Mappings\AniDB_AnimeUpdateMap.cs" />
     <Compile Include="Mappings\AniDB_Episode_TitleMap.cs" />
     <Compile Include="Mappings\AnimeCharacterMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDBMap.cs" />
+    <Compile Include="Mappings\CrossRef_AniDB_TvDB_Episode_OverrideMap.cs" />
     <Compile Include="Mappings\CrossRef_Anime_StaffMap.cs" />
     <Compile Include="Mappings\AnimeStaffMap.cs" />
     <Compile Include="Models\AniDB_AnimeUpdate.cs" />
@@ -415,6 +417,7 @@
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
+    <Compile Include="Providers\TvDB\TvDBLinkingHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
     <Compile Include="Renamer\IRenamer.cs" />
     <Compile Include="Renamer\LegacyRenamer.cs" />
@@ -424,7 +427,8 @@
     <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeCharacterRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBV2Repository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBRepository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_Episode_OverrideRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_Anime_StaffRepository.cs" />
     <Compile Include="Repositories\Cached\AnimeStaffRepository.cs" />
@@ -560,7 +564,6 @@
     <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TraktV2Map.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_Trakt_EpisodeMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TvDBV2Map.cs" />
     <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
     <Compile Include="Mappings\CrossRef_CustomTagMap.cs" />
     <Compile Include="Mappings\CustomTagMap.cs" />

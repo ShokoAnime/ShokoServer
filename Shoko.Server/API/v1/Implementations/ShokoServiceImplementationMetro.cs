@@ -113,7 +113,7 @@ namespace Shoko.Server
                     }
 
                     // TvDB
-                    List<CrossRef_AniDB_TvDBV2> tvdbRef = anime.GetCrossRefTvDBV2();
+                    List<CrossRef_AniDB_TvDB> tvdbRef = anime.GetCrossRefTvDB();
                     if (tvdbRef != null && tvdbRef.Count > 0)
                     {
                         contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
@@ -860,195 +860,26 @@ namespace Shoko.Server
 
         public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
-            #region episode override
-
-            // check if this episode has a direct tvdb over-ride
-            if (tvSummary.DictTvDBCrossRefEpisodes.ContainsKey(ep.EpisodeID))
+            var override_link = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
+            if (override_link.Any(a => a != null))
             {
-                foreach (TvDB_Episode tvep in tvSummary.DictTvDBEpisodes.Values)
-                {
-                    if (tvSummary.DictTvDBCrossRefEpisodes[ep.EpisodeID] == tvep.Id)
-                    {
-                        if (string.IsNullOrEmpty(tvep.Overview))
-                            contract.EpisodeOverview = "Episode Overview Not Available";
-                        else
-                            contract.EpisodeOverview = tvep.Overview;
-
-                        if (string.IsNullOrEmpty(tvep.GetFullImagePath()) || !File.Exists(tvep.GetFullImagePath()))
-                        {
-                            contract.ImageType = 0;
-                            contract.ImageID = 0;
-                        }
-                        else
-                        {
-                            contract.ImageType = (int) ImageEntityType.TvDB_Episode;
-                            contract.ImageID = tvep.TvDB_EpisodeID;
-                        }
-
-                        if (ServerSettings.EpisodeTitleSource == DataSourceType.TheTvDB &&
-                            !string.IsNullOrEmpty(tvep.EpisodeName))
-                            contract.EpisodeName = tvep.EpisodeName;
-
-                        return;
-                    }
-                }
+                var tvep = RepoFactory.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
+                contract.EpisodeName = tvep.EpisodeName;
+                contract.EpisodeOverview = tvep.Overview;
+                contract.ImageID = tvep.Id;
+                contract.ImageType = (int) ImageEntityType.TvDB_Episode;
+                return;
             }
 
-            #endregion
-
-            #region normal episodes
-
-            // now do stuff to improve performance
-            if (ep.GetEpisodeTypeEnum() == EpisodeType.Episode)
+            var link = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(ep.EpisodeID);
+            if (link.Any(a => a != null))
             {
-                if (tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
-                {
-                    // find the xref that is right
-                    // relies on the xref's being sorted by season number and then episode number (desc)
-                    List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2
-                        .OrderByDescending(a => a.AniDBStartEpisodeNumber)
-                        .ToList();
-
-
-                    bool foundStartingPoint = false;
-                    CrossRef_AniDB_TvDBV2 xrefBase = null;
-                    foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
-                    {
-                        if (xrefTV.AniDBStartEpisodeType != (int) EpisodeType.Episode) continue;
-                        if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
-                        {
-                            foundStartingPoint = true;
-                            xrefBase = xrefTV;
-                            break;
-                        }
-                    }
-
-                    // we have found the starting epiosde numbder from AniDB
-                    // now let's check that the TvDB Season and Episode Number exist
-                    if (foundStartingPoint)
-                    {
-                        Dictionary<int, int> dictTvDBSeasons = null;
-                        Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
-                        foreach (TvDBDetails det in tvSummary.TvDetails.Values)
-                        {
-                            if (det.TvDBID == xrefBase.TvDBID)
-                            {
-                                dictTvDBSeasons = det.DictTvDBSeasons;
-                                dictTvDBEpisodes = det.DictTvDBEpisodes;
-                                break;
-                            }
-                        }
-
-                        if (dictTvDBSeasons.ContainsKey(xrefBase.TvDBSeasonNumber))
-                        {
-                            int episodeNumber = dictTvDBSeasons[xrefBase.TvDBSeasonNumber] +
-                                                (ep.EpisodeNumber + xrefBase.TvDBStartEpisodeNumber - 2) -
-                                                (xrefBase.AniDBStartEpisodeNumber - 1);
-                            if (dictTvDBEpisodes.ContainsKey(episodeNumber))
-                            {
-                                TvDB_Episode tvep = dictTvDBEpisodes[episodeNumber];
-                                if (string.IsNullOrEmpty(tvep.Overview))
-                                    contract.EpisodeOverview = "Episode Overview Not Available";
-                                else
-                                    contract.EpisodeOverview = tvep.Overview;
-
-                                if (string.IsNullOrEmpty(tvep.GetFullImagePath()) ||
-                                    !File.Exists(tvep.GetFullImagePath()))
-                                {
-                                    contract.ImageType = 0;
-                                    contract.ImageID = 0;
-                                }
-                                else
-                                {
-                                    contract.ImageType = (int) ImageEntityType.TvDB_Episode;
-                                    contract.ImageID = tvep.TvDB_EpisodeID;
-                                }
-
-                                if (ServerSettings.EpisodeTitleSource == DataSourceType.TheTvDB &&
-                                    !string.IsNullOrEmpty(tvep.EpisodeName))
-                                    contract.EpisodeName = tvep.EpisodeName;
-                            }
-                        }
-                    }
-                }
+                var tvep = RepoFactory.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
+                contract.EpisodeName = tvep.EpisodeName;
+                contract.EpisodeOverview = tvep.Overview;
+                contract.ImageID = tvep.Id;
+                contract.ImageType = (int) ImageEntityType.TvDB_Episode;
             }
-
-            #endregion
-
-            #region special episodes
-
-            if (ep.GetEpisodeTypeEnum() == EpisodeType.Special)
-            {
-                // find the xref that is right
-                // relies on the xref's being sorted by season number and then episode number (desc)
-
-                List<CrossRef_AniDB_TvDBV2> tvDBCrossRef = tvSummary.CrossRefTvDBV2
-                    .OrderByDescending(a => a.AniDBStartEpisodeNumber)
-                    .ToList();
-
-                bool foundStartingPoint = false;
-                CrossRef_AniDB_TvDBV2 xrefBase = null;
-                foreach (CrossRef_AniDB_TvDBV2 xrefTV in tvDBCrossRef)
-                {
-                    if (xrefTV.AniDBStartEpisodeType != (int) EpisodeType.Special) continue;
-                    if (ep.EpisodeNumber >= xrefTV.AniDBStartEpisodeNumber)
-                    {
-                        foundStartingPoint = true;
-                        xrefBase = xrefTV;
-                        break;
-                    }
-                }
-
-                if (tvSummary != null && tvSummary.CrossRefTvDBV2 != null && tvSummary.CrossRefTvDBV2.Count > 0)
-                {
-                    // we have found the starting epiosde numbder from AniDB
-                    // now let's check that the TvDB Season and Episode Number exist
-                    if (foundStartingPoint)
-                    {
-                        Dictionary<int, int> dictTvDBSeasons = null;
-                        Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
-                        foreach (TvDBDetails det in tvSummary.TvDetails.Values)
-                        {
-                            if (det.TvDBID == xrefBase.TvDBID)
-                            {
-                                dictTvDBSeasons = det.DictTvDBSeasons;
-                                dictTvDBEpisodes = det.DictTvDBEpisodes;
-                                break;
-                            }
-                        }
-
-                        if (dictTvDBSeasons.ContainsKey(xrefBase.TvDBSeasonNumber))
-                        {
-                            int episodeNumber = dictTvDBSeasons[xrefBase.TvDBSeasonNumber] +
-                                                (ep.EpisodeNumber + xrefBase.TvDBStartEpisodeNumber - 2) -
-                                                (xrefBase.AniDBStartEpisodeNumber - 1);
-                            if (dictTvDBEpisodes.ContainsKey(episodeNumber))
-                            {
-                                TvDB_Episode tvep = dictTvDBEpisodes[episodeNumber];
-                                contract.EpisodeOverview = tvep.Overview;
-
-                                if (string.IsNullOrEmpty(tvep.GetFullImagePath()) ||
-                                    !File.Exists(tvep.GetFullImagePath()))
-                                {
-                                    contract.ImageType = 0;
-                                    contract.ImageID = 0;
-                                }
-                                else
-                                {
-                                    contract.ImageType = (int) ImageEntityType.TvDB_Episode;
-                                    contract.ImageID = tvep.TvDB_EpisodeID;
-                                }
-
-                                if (ServerSettings.EpisodeTitleSource == DataSourceType.TheTvDB &&
-                                    !string.IsNullOrEmpty(tvep.EpisodeName))
-                                    contract.EpisodeName = tvep.EpisodeName;
-                            }
-                        }
-                    }
-                }
-            }
-
-            #endregion
         }
 
         public List<Metro_AniDB_Character> GetCharactersForAnime(int animeID, int maxRecords)

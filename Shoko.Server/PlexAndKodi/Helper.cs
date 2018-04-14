@@ -136,11 +136,6 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        private static T XmlDeserializeFromString<T>(string objectData)
-        {
-            return (T) XmlDeserializeFromString(objectData, typeof(T));
-        }
-
         private static object XmlDeserializeFromString(string objectData, Type type)
         {
             var serializer = new XmlSerializer(type);
@@ -178,13 +173,6 @@ namespace Shoko.Server.PlexAndKodi
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
         }
 
-
-        public static bool RefreshIfMediaEmpty(SVR_VideoLocal vl, Video v)
-        {
-            if (v.Medias != null && v.Medias.Count != 0) return false;
-            RepoFactory.VideoLocal.Save(vl, true);
-            return true;
-        }
 
         public static void AddLinksToAnimeEpisodeVideo(IProvider prov, Video v, int userid)
         {
@@ -365,51 +353,13 @@ namespace Shoko.Server.PlexAndKodi
 
                     #region TvDB
 
-                    List<CrossRef_AniDB_TvDBV2> xref_tvdbv2 =
-                        RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(aep.AnimeID);
-                    if (xref_tvdbv2.Count > 0)
+                    TvDB_Episode tvep = ep.TvDBEpisode;
+                    if (tvep != null)
                     {
-                        TvDB_Episode tvep = ep.TvDBEpisode;
-                        if (tvep != null)
-                        {
-                            l.Thumb = tvep.GenPoster(null);
-                            l.Summary = tvep.Overview;
-                            l.Season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:0#}";
-                        }
-                        else
-                        {
-                            string anime = "[Blank]";
-                            SVR_AnimeSeries ser = ep.GetAnimeSeries();
-                            var anidb = ser.GetAnime();
-                            bool shouldhaveTvDB = anidb.AnimeType != (int) AnimeType.Movie && anidb.Restricted == 0 &&
-                                                  !aep.GetFutureDated();
-                            if (shouldhaveTvDB)
-                            {
-                                if (ser.GetSeriesName() != null) anime = ser.GetSeriesName();
-                                LogManager.GetCurrentClassLogger()
-                                    .Warn(
-                                        $"{anime}:  Episode {aep.EpisodeNumber} - {ep.Title} did not match an episode to its TvDB Link. Please check the TvDB links for it.");
-                            }
-                        }
+                        l.Thumb = tvep.GenPoster(null);
+                        l.Summary = tvep.Overview;
+                        l.Season = $"{tvep.SeasonNumber}x{tvep.EpisodeNumber:0#}";
                     }
-
-                    #endregion
-
-                    #region TvDB Overrides
-
-                    CrossRef_AniDB_TvDB_Episode xref_tvdb =
-                        RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(aep.AniDB_EpisodeID);
-                    if (xref_tvdb != null)
-                    {
-                        TvDB_Episode tvdb_ep = RepoFactory.TvDB_Episode.GetByTvDBID(xref_tvdb.TvDBEpisodeID);
-                        if (tvdb_ep != null)
-                        {
-                            l.Thumb = tvdb_ep.GenPoster(null);
-                            l.Summary = tvdb_ep.Overview;
-                            l.Season = $"{tvdb_ep.SeasonNumber}x{tvdb_ep.EpisodeNumber:0#}";
-                        }
-                    }
-
                     #endregion
                 }
                 if (l.Thumb == null || l.Summary == null)
@@ -420,27 +370,6 @@ namespace Shoko.Server.PlexAndKodi
             }
             l.Id = ep.AnimeEpisodeID;
             return l;
-        }
-
-        private static void AddCrossRef_AniDB_TvDBV2(int animeID, int anistart, int tvdbID,
-            int tvdbSeason, string title)
-        {
-            CrossRef_AniDB_TvDBV2 xref =
-                RepoFactory.CrossRef_AniDB_TvDBV2.GetByTvDBID(tvdbID, tvdbSeason, 1, animeID,
-                    (int) EpisodeType.Episode, anistart);
-            if (xref != null) return;
-            xref = new CrossRef_AniDB_TvDBV2
-            {
-                AnimeID = animeID,
-                AniDBStartEpisodeType = (int)EpisodeType.Episode,
-                AniDBStartEpisodeNumber = anistart,
-
-                TvDBID = tvdbID,
-                TvDBSeasonNumber = tvdbSeason,
-                TvDBStartEpisodeNumber = 1,
-                TvDBTitle = title
-            };
-            RepoFactory.CrossRef_AniDB_TvDBV2.Save(xref);
         }
 
         private static void GetValidVideoRecursive(IProvider prov, SVR_GroupFilter f, int userid, Directory pp)
@@ -574,14 +503,6 @@ namespace Shoko.Server.PlexAndKodi
             v.IsMovie = ret;
         }
 
-        public static string GetRandomBannerFromSeries(List<SVR_AnimeSeries> series, IProvider prov)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetRandomBannerFromSeries(series, session.Wrap(), prov);
-            }
-        }
-
         public static string GetRandomBannerFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session,
             IProvider prov)
         {
@@ -596,24 +517,11 @@ namespace Shoko.Server.PlexAndKodi
             return source.OrderBy(item => rnd.Next());
         }
 
-        public static string GetRandomFanartFromSeries(List<SVR_AnimeSeries> series, IProvider prov)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetRandomFanartFromSeries(series, session.Wrap(), prov);
-            }
-        }
-
         public static string GetRandomFanartFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session,
             IProvider prov)
         {
             return series.Randomize().Select(ser => ser.GetAnime()?.GetDefaultFanartDetailsNoBlanks(session))
                 .Where(fanart => fanart != null).Select(fanart => fanart.GenArt(prov)).FirstOrDefault();
-        }
-
-        public static string GetRandomFanartFromVideoList(List<Video> videos)
-        {
-            return videos.Randomize().Where(v => v.Art != null).Select(v => v.Art).FirstOrDefault();
         }
 
         public static string GetRandomFanartFromVideo(Video v, IProvider prov)

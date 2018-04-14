@@ -17,6 +17,7 @@ using Shoko.Server.Models;
 using Shoko.Server.LZ4;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Extensions
 {
@@ -854,6 +855,52 @@ namespace Shoko.Server.Extensions
             animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
             animeep.DateTimeUpdated = DateTime.Now;
             animeep.DateTimeCreated = DateTime.Now;
+        }
+
+        public static CrossRef_AniDB_TvDBV2 ToV2Model(this CrossRef_AniDB_TvDB xref)
+        {
+            return new CrossRef_AniDB_TvDBV2
+            {
+                AnimeID = xref.AniDBID,
+                CrossRefSource = (int) xref.CrossRefSource,
+                TvDBID = xref.TvDBID
+            };
+        }
+
+        public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
+        {
+            int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+            if (ep.EpisodeNumber == epsInSeason)
+            {
+                int numberOfSeasons = RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID);
+                if (ep.SeasonNumber == numberOfSeasons) return (0, 0);
+                return (ep.SeasonNumber + 1, 1);
+            }
+
+            return (ep.SeasonNumber, ep.EpisodeNumber + 1);
+        }
+
+        public static (int season, int episodeNumber) GetPreviousEpisode(this TvDB_Episode ep)
+        {
+            // check bounds and exit
+            if (ep.SeasonNumber == 1 && ep.EpisodeNumber == 1) return (0, 0);
+            // self explanatory
+            if (ep.EpisodeNumber > 1) return (ep.SeasonNumber, ep.EpisodeNumber - 1);
+
+            // episode number is 1
+            // get the last episode of last season
+            int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
+            return (ep.SeasonNumber - 1, epsInSeason);
+        }
+
+        public static int GetAbsoluteEpisodeNumber(this TvDB_Episode ep)
+        {
+            if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
+            int number = ep.EpisodeNumber;
+            for (int season = 1; season < RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID); season++)
+                number += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+
+            return number;
         }
     }
 }

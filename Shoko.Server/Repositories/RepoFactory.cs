@@ -44,8 +44,9 @@ namespace Shoko.Server.Repositories
         public static AniDB_VoteRepository AniDB_Vote { get; } = AniDB_VoteRepository.Create();
         public static TvDB_EpisodeRepository TvDB_Episode { get; } = TvDB_EpisodeRepository.Create();
         public static TvDB_SeriesRepository TvDB_Series { get; } = TvDB_SeriesRepository.Create();
-        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; } = CrossRef_AniDB_TvDBV2Repository.Create();
+        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } = CrossRef_AniDB_TvDBRepository.Create();
         public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = CrossRef_AniDB_TvDB_EpisodeRepository.Create();
+        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; } = CrossRef_AniDB_TvDB_Episode_OverrideRepository.Create();
         public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = TvDB_ImagePosterRepository.Create();
         public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = TvDB_ImageFanartRepository.Create();
         public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = TvDB_ImageWideBannerRepository.Create();

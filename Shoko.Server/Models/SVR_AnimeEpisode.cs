@@ -66,64 +66,17 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-        private TvDB_Episode tvDbEpisode;
         public TvDB_Episode TvDBEpisode
         {
             get
             {
-                if (tvDbEpisode != null) return tvDbEpisode;
-                AniDB_Episode aep = AniDB_Episode;
-
-                List<CrossRef_AniDB_TvDBV2> xref_tvdb =
-                    RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeIDEpTypeEpNumber(aep.AnimeID, aep.EpisodeType,
-                        aep.EpisodeNumber);
-                TvDB_Episode tvep;
-
-                if (aep.EpisodeType == (int) EpisodeType.Episode && xref_tvdb.Count <= 0)
-                    xref_tvdb = RepoFactory.CrossRef_AniDB_TvDBV2.GetByAnimeID(aep.AnimeID);
-                if (xref_tvdb.Count <= 0) return null;
-                CrossRef_AniDB_TvDBV2 xref_tvdb2 = xref_tvdb[0];
-
-                DateTime? airdate = aep.GetAirDateAsDate();
-                if (aep.EpisodeType == (int) EpisodeType.Episode && airdate != null)
-                    foreach (var xref in xref_tvdb)
-                    {
-                        tvep = RepoFactory.TvDB_Episode.GetBySeriesIDAndDate(xref.TvDBID, airdate.Value);
-                        if (tvep != null) return tvDbEpisode = tvep;
-                    }
-
-                int epnumber = (aep.EpisodeNumber + xref_tvdb2.TvDBStartEpisodeNumber - 1) -
-                               (xref_tvdb2.AniDBStartEpisodeNumber - 1);
-                int season = xref_tvdb2.TvDBSeasonNumber;
-                tvep =
-                    RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season,
-                        epnumber);
-                if (tvep != null) return tvDbEpisode = tvep;
-
-                int lastSeason = RepoFactory.TvDB_Episode.getLastSeasonForSeries(xref_tvdb2.TvDBID);
-                int previousSeasonsCount = 0;
-                // we checked once, so increment the season
-                season++;
-                previousSeasonsCount +=
-                    RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
-                do
-                {
-                    if (season == 0) break; // Specials will often be wrong
-                    if (season > lastSeason) break;
-                    if (epnumber - previousSeasonsCount <= 0) break;
-                    // This should be 1 or 0, hopefully 1
-                    tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref_tvdb2.TvDBID, season,
-                        epnumber - previousSeasonsCount);
-
-                    if (tvep != null)
-                        break;
-                    previousSeasonsCount +=
-                        RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(xref_tvdb2.TvDBID, season);
-                    season++;
-                } while (true);
-                return tvDbEpisode = tvep;
+                // Try Overrides first, then regular
+                return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
             }
-            set => tvDbEpisode = value;
         }
 
         public double UserRating

@@ -13,12 +13,7 @@ namespace Shoko.Server.Commands.TvDB
     public class CommandRequest_LinkAniDBTvDB : CommandRequestImplementation
     {
         public int animeID;
-        public EpisodeType aniEpType;
-        public int aniEpNumber;
         public int tvDBID;
-        public int tvSeasonNumber;
-        public int tvEpNumber;
-        public bool excludeFromWebCache;
         public bool additiveLink;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
@@ -33,16 +28,10 @@ namespace Shoko.Server.Commands.TvDB
         {
         }
 
-        public CommandRequest_LinkAniDBTvDB(int animeID, EpisodeType aniEpType, int aniEpNumber, int tvDBID,
-            int tvSeasonNumber, int tvEpNumber, bool excludeFromWebCache, bool additiveLink = false)
+        public CommandRequest_LinkAniDBTvDB(int animeID, int tvDBID, bool additiveLink = false)
         {
             this.animeID = animeID;
-            this.aniEpType = aniEpType;
-            this.aniEpNumber = aniEpNumber;
             this.tvDBID = tvDBID;
-            this.tvSeasonNumber = tvSeasonNumber;
-            this.tvEpNumber = tvEpNumber;
-            this.excludeFromWebCache = excludeFromWebCache;
             this.additiveLink = additiveLink;
 
             Priority = (int) DefaultPriority;
@@ -56,8 +45,7 @@ namespace Shoko.Server.Commands.TvDB
 
             try
             {
-                TvDBApiHelper.LinkAniDBTvDB(animeID, aniEpType, aniEpNumber, tvDBID, tvSeasonNumber, tvEpNumber,
-                    excludeFromWebCache, additiveLink);
+                TvDBApiHelper.LinkAniDBTvDB(animeID, tvDBID, additiveLink);
             }
             catch (Exception ex)
             {
@@ -69,7 +57,7 @@ namespace Shoko.Server.Commands.TvDB
         public override void GenerateCommandID()
         {
             CommandID =
-                $"CommandRequest_LinkAniDBTvDB_{animeID}_{aniEpType}_{aniEpNumber}_{tvDBID}_{tvSeasonNumber}_{tvEpNumber}";
+                $"CommandRequest_LinkAniDBTvDB_{animeID}_{tvDBID}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -88,15 +76,7 @@ namespace Shoko.Server.Commands.TvDB
 
                 // populate the fields
                 animeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "animeID"));
-                aniEpType = (EpisodeType) Enum.Parse(typeof(EpisodeType),
-                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpType"));
-                aniEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "aniEpNumber"));
                 tvDBID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvDBID"));
-                tvSeasonNumber = int.Parse(
-                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvSeasonNumber"));
-                tvEpNumber = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "tvEpNumber"));
-                excludeFromWebCache = bool.Parse(
-                    TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "excludeFromWebCache"));
                 additiveLink = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_LinkAniDBTvDB", "additiveLink"));
             }

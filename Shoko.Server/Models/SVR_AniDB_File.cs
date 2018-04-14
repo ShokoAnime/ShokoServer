@@ -7,6 +7,7 @@ using AniDBAPI;
 using Nancy.Extensions;
 using NHibernate.Util;
 using NLog;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;

@@ -35,7 +35,7 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public ILookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>> GetByAnimeIDsV2(ISessionWrapper session,
+        public ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>> GetByAnimeIDs(ISessionWrapper session,
             int[] animeIds)
         {
             if (session == null)
@@ -45,23 +45,23 @@ namespace Shoko.Server.Repositories.Cached
 
             if (animeIds.Length == 0)
             {
-                return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>>.Instance;
+                return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>.Instance;
             }
 
             lock (globalDBLock)
             {
                 var tvDbSeriesByAnime = session.CreateSQLQuery(@"
                 SELECT {cr.*}, {series.*}
-                    FROM CrossRef_AniDB_TvDBV2 cr
+                    FROM CrossRef_AniDB_TvDB cr
                         INNER JOIN TvDB_Series series
                             ON series.SeriesID = cr.TvDBID
-                    WHERE cr.AnimeID IN (:animeIds)")
-                    .AddEntity("cr", typeof(CrossRef_AniDB_TvDBV2))
+                    WHERE cr.AniDBID IN (:animeIds)")
+                    .AddEntity("cr", typeof(CrossRef_AniDB_TvDB))
                     .AddEntity("series", typeof(TvDB_Series))
                     .SetParameterList("animeIds", animeIds)
                     .List<object[]>()
-                    .ToLookup(r => ((CrossRef_AniDB_TvDBV2) r[0]).AnimeID,
-                        r => new Tuple<CrossRef_AniDB_TvDBV2, TvDB_Series>((CrossRef_AniDB_TvDBV2) r[0],
+                    .ToLookup(r => ((CrossRef_AniDB_TvDB) r[0]).AniDBID,
+                        r => new Tuple<CrossRef_AniDB_TvDB, TvDB_Series>((CrossRef_AniDB_TvDB) r[0],
                             (TvDB_Series) r[1]));
 
                 return tvDbSeriesByAnime;

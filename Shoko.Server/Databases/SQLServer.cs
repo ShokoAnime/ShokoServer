@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 77;
+        public int RequiredVersion { get; } = 78;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -571,6 +571,19 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(77, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
             new DatabaseCommand(77, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID int IDENTITY(1,1) NOT NULL, AniDB_EpisodeID int NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL )"),
             new DatabaseCommand(77, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(78, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode;"),
+            new DatabaseCommand(78, 2, "exec sp_rename CrossRef_AniDB_TvDB_Episode, CrossRef_AniDB_TvDB_Episode_Override;"),
+            new DatabaseCommand(78, 3, "ALTER TABLE CrossRef_AniDB_TvDB_Episode_Override DROP COLUMN AnimeID"),
+            new DatabaseCommand(78, 4, "exec sp_rename 'CrossRef_AniDB_TvDB_Episode_Override.CrossRef_AniDB_TvDB_EpisodeID', 'CrossRef_AniDB_TvDB_Episode_OverrideID', 'COLUMN';"),
+            new DatabaseCommand(78, 5, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_Episode_Override_AniDBEpisodeID_TvDBEpisodeID ON CrossRef_AniDB_TvDB_Episode_Override(AniDBEpisodeID,TvDBEpisodeID);"),
+            // For some reason, this was never dropped
+            new DatabaseCommand(78, 6, "DROP TABLE CrossRef_AniDB_TvDB;"),
+            new DatabaseCommand(78, 7, "CREATE TABLE CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID int IDENTITY(1,1) NOT NULL, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);"),
+            new DatabaseCommand(78, 8, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_AniDBID_TvDBID ON CrossRef_AniDB_TvDB(AniDBID,TvDBID);"),
+            new DatabaseCommand(78, 9, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
+            new DatabaseCommand(78, 10, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
+            new DatabaseCommand(78, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+            // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

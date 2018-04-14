@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NHibernate;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -107,7 +108,7 @@ namespace Shoko.Server.Extensions
             return RepoFactory.Trakt_Show.GetByTraktSlug(session, cross.TraktID);
         }
 
-        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDBV2 cross)
+        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
         {
             return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
         }
@@ -143,5 +144,11 @@ namespace Shoko.Server.Extensions
 
         public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => RepoFactory.AniDB_File.GetByHash(
             duplicatefile.Hash);
+
+        public static string GetEnglishTitle(this AniDB_Episode ep)
+        {
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
+                ?.Title;
+        }
     }
 }

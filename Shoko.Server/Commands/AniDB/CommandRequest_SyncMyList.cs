@@ -7,6 +7,7 @@ using AniDBAPI.Commands;
 using Iesi.Collections.Generic;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
