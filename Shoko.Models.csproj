@@ -197,13 +197,15 @@
     <Compile Include="Server\AniDB\AniDB_Tag.cs" />
     <Compile Include="Server\AniDB\AniDB_Vote.cs" />
     <Compile Include="Server\AniDB\AniDB_Episode_Title.cs" />
+    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB.cs" />
+    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB_Episode.cs" />
     <Compile Include="Server\CrossRef\CrossRef_Anime_Staff.cs" />
     <Compile Include="Server\CrossRef\CrossRef_AniDB_MAL.cs" />
     <Compile Include="Server\CrossRef\CrossRef_AniDB_Other.cs" />
     <Compile Include="Server\CrossRef\CrossRef_AniDB_TraktV2.cs" />
     <Compile Include="Server\CrossRef\CrossRef_AniDB_Trakt_Episode.cs" />
     <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDBV2.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB_Episode.cs" />
+    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB_Episode_Override.cs" />
     <Compile Include="Server\CrossRef\CrossRef_CustomTag.cs" />
     <Compile Include="Server\CrossRef\CrossRef_File_Episode.cs" />
     <Compile Include="Server\CrossRef\CrossRef_Languages_AniDB_File.cs" />

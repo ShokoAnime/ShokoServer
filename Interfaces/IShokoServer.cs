@@ -603,14 +603,14 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/Language", Verbs.Get)]
         List<TvDB_Language> GetTvDBLanguages();
 
-        [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}/{animeID}", Verbs.Post)]
-        string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID, int animeID);
+        [Rest("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}", Verbs.Post)]
+        string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID);
 
         [Rest("TvDB/CrossRef/Episode/{animeID}", Verbs.Get)]
-        List<CrossRef_AniDB_TvDB_Episode> GetTVDBCrossRefEpisode(int animeID);
+        List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID);
 
         [Rest("TvDB/CrossRef/Episode/{aniDBEpisodeID}", Verbs.Delete)]
-        string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID);
+        string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvdbEpisodeID);
 
         #endregion
 
