@@ -614,9 +614,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(84, 5, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode_Override` ADD UNIQUE INDEX `UIX_AniDB_TvDB_Episode_Override_AniDBEpisodeID_TvDBEpisodeID` (`AniDBEpisodeID` ASC, `TvDBEpisodeID` ASC);"),
             // For some reason, this was never dropped
             new DatabaseCommand(84, 6, "DROP TABLE `CrossRef_AniDB_TvDB`;"),
-            new DatabaseCommand(84, 7, "CREATE TABLE `CrossRef_AniDB_TvDB` ( `CrossRef_AniDB_TvDBID` INT NOT NULL AUTOINCREMENT, `AniDBID` int NOT NULL, `TvDBID` int NOT NULL, `CrossRefSource` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDBID`));"),
+            new DatabaseCommand(84, 7, "CREATE TABLE `CrossRef_AniDB_TvDB` ( `CrossRef_AniDB_TvDBID` INT NOT NULL AUTO_INCREMENT, `AniDBID` int NOT NULL, `TvDBID` int NOT NULL, `CrossRefSource` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDBID`));"),
             new DatabaseCommand(84, 8, "ALTER TABLE `CrossRef_AniDB_TvDB` ADD UNIQUE INDEX `UIX_AniDB_TvDB_AniDBID_TvDBID` (`AniDBID` ASC, `TvDBID` ASC);"),
-            new DatabaseCommand(84, 9, "CREATE TABLE `CrossRef_AniDB_TvDB_Episode` ( `CrossRef_AniDB_TvDB_EpisodeID` INT NOT NULL AUTOINCREMENT, `AniDBEpisodeID` int NOT NULL, `TvDBEpisodeID` int NOT NULL, `MatchRating` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDB_EpisodeID`) );"),
+            new DatabaseCommand(84, 9, "CREATE TABLE `CrossRef_AniDB_TvDB_Episode` ( `CrossRef_AniDB_TvDB_EpisodeID` INT NOT NULL AUTO_INCREMENT, `AniDBEpisodeID` int NOT NULL, `TvDBEpisodeID` int NOT NULL, `MatchRating` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDB_EpisodeID`) );"),
             new DatabaseCommand(84, 10, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID` ( `AniDBEpisodeID` ASC, `TvDBEpisodeID` ASC);"),
             new DatabaseCommand(84, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
