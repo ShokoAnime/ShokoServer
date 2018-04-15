@@ -517,11 +517,11 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(73, 2, RenameCrossRef_AniDB_TvDB_Episode),
             // For some reason, this was never dropped
             new DatabaseCommand(73, 3, "DROP TABLE CrossRef_AniDB_TvDB;"),
-            new DatabaseCommand(73, 4, "CREATE TABLE CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID int IDENTITY(1,1) NOT NULL, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);"),
+            new DatabaseCommand(73, 4, "CREATE TABLE CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);"),
             new DatabaseCommand(73, 5, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_AniDBID_TvDBID ON CrossRef_AniDB_TvDB(AniDBID,TvDBID);"),
-            new DatabaseCommand(73, 6, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
+            new DatabaseCommand(73, 6, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
             new DatabaseCommand(73, 7, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
-            new DatabaseCommand(73, 8, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+            new DatabaseCommand(73, 9, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
         };
 
