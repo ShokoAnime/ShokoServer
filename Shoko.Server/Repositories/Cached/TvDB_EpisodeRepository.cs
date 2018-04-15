@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private TvDB_EpisodeRepository()
         {
-            SaveWithOpenTransactionCallback += (wrapper, episode) =>
+            EndSaveCallback += (episode) =>
             {
                 var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID);
                 xref.ForEach(a => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(a.AniDBID));

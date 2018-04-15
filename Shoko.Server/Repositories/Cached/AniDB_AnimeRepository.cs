@@ -102,12 +102,12 @@ namespace Shoko.Server.Repositories
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         obj.UpdateContractDetailed(session.Wrap());
-                        // Update TvDB Linking. Doing it here as updating anime updates epiosde info in batch
-                        TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
                     }
                     // populate the database
                     base.Save(obj);
                 }
+                // Update TvDB Linking. Doing it here as updating anime updates epiosde info in batch
+                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
             }
         }
 
