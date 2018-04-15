@@ -157,8 +157,11 @@ namespace Shoko.Server.API.v2.Models.common
             sr.name = ser.GetSeriesNameFromContract(contract);
             GenerateSizes(sr, ael, uid);
 
-            var ls = contract.CrossRefAniDBTvDBV2?.OrderBy(a => a.TvDBSeasonNumber).FirstOrDefault();
-            if ((ls?.TvDBSeasonNumber ?? 0) != 0) sr.season = ls.TvDBSeasonNumber.ToString();
+            int? season = ael.FirstOrDefault(a =>
+                    a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode && a.AniDB_Episode.EpisodeNumber == 1)
+                ?.TvDBEpisode?.SeasonNumber;
+            if (season != null)
+                sr.season = season.Value.ToString();
 
             if (level > 0)
             {
