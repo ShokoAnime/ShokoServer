@@ -22,11 +22,12 @@ namespace Shoko.Server
 
             // Old links except User Verified
             var existing = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
-                .Where(a => a.MatchRating != MatchRating.UserVerified).ToList();
+                .Where(a => a?.MatchRating != MatchRating.UserVerified).ToList();
             existing.ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete);
 
             foreach (var match in matches)
             {
+                if (match.AniDB == null || match.TvDB == null) continue;
                 var xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
                     match.TvDB.Id);
                 // Don't touch User Verified links
