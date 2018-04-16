@@ -20,26 +20,17 @@ namespace Shoko.Server
         {
             var matches = GetTvDBEpisodeMatches(animeID);
 
+            // Old links except User Verified
+            var existing = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
+                .Where(a => a.MatchRating != MatchRating.UserVerified).ToList();
+            existing.ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete);
+
             foreach (var match in matches)
             {
                 var xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
                     match.TvDB.Id);
-                if (xref != null)
-                {
-                    // Don't touch User Verified links
-                    if (xref.MatchRating == MatchRating.UserVerified) continue;
-                    if (xref.MatchRating == match.Rating) continue;
-                    xref.MatchRating = match.Rating;
-                }
-                else
-                {
-                    xref = new CrossRef_AniDB_TvDB_Episode
-                    {
-                        AniDBEpisodeID = match.AniDB.EpisodeID,
-                        TvDBEpisodeID = match.TvDB.Id,
-                        MatchRating = match.Rating
-                    };
-                }
+                // Don't touch User Verified links
+                if (xref?.MatchRating == MatchRating.UserVerified) continue;
 
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.Save(xref);
             }
