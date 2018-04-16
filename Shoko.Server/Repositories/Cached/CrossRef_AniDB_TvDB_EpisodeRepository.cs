@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -59,6 +61,62 @@ namespace Shoko.Server.Repositories.Cached
         protected override int SelectKey(CrossRef_AniDB_TvDB_Episode entity)
         {
             return entity.CrossRef_AniDB_TvDB_EpisodeID;
+        }
+
+        public void DeleteAllUnverifiedLinksForAnime(int AnimeID)
+        {
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    {
+                        var toRemove = GetByAnimeID(AnimeID).Where(a => a.MatchRating != MatchRating.UserVerified)
+                            .ToList();
+                        if (toRemove.Count <= 0) return;
+                        toRemove.ForEach(Cache.Remove);
+
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            session.CreateSQLQuery(
+                                    @"DELETE FROM CrossRef_AniDB_TvDB_Episode
+WHERE CrossRef_AniDB_TvDB_EpisodeID IN (
+    SELECT CrossRef_AniDB_TvDB_EpisodeID
+    FROM CrossRef_AniDB_TvDB_Episode
+    INNER JOIN AniDB_Episode ON AniDB_Episode.EpisodeID = CrossRef_AniDB_TvDB_Episode.AniDBEpisodeID
+    WHERE AniDB_Episode.AnimeID = :animeid
+) AND CrossRef_AniDB_TvDB_Episode.MatchRating != :rating;")
+                                .SetInt32("animeid", AnimeID).SetInt32("rating", (int) MatchRating.UserVerified)
+                                .UniqueResult();
+                            transaction.Commit();
+                        }
+                    }
+                }
+            }
+        }
+
+        public void DeleteAllUnverifiedLinks()
+        {
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    {
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            var toRemove = GetAll().Where(a => a.MatchRating != MatchRating.UserVerified)
+                                .ToList();
+                            toRemove.ForEach(Cache.Remove);
+                            session.CreateSQLQuery(
+                                    "DELETE FROM CrossRef_AniDB_TvDB_Episode WHERE MatchRating != :rating;")
+                                .SetInt32("rating", (int) MatchRating.UserVerified)
+                                .UniqueResult();
+                            transaction.Commit();
+                        }
+                    }
+                }
+            }
         }
     }
 }

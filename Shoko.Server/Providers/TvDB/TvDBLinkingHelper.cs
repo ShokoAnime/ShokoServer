@@ -21,9 +21,7 @@ namespace Shoko.Server
             var matches = GetTvDBEpisodeMatches(animeID);
 
             // wipe old links except User Verified
-            var existing = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
-                .Where(a => a?.MatchRating != MatchRating.UserVerified).ToList();
-            if (existing.Count > 0) existing.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete);
+            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
 
             List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
             foreach (var match in matches)

@@ -641,6 +641,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
                 var list = RepoFactory.AnimeSeries.GetAll().ToList();
                 foreach (var animeseries in list)
                 {
