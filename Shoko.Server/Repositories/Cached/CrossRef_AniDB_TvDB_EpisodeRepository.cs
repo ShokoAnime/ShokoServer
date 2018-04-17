@@ -78,13 +78,18 @@ namespace Shoko.Server.Repositories.Cached
 
                         using (var transaction = session.BeginTransaction())
                         {
+                            // I'm aware that this is stupid, but it's MySQL's fault
+                            // see https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause
                             session.CreateSQLQuery(
                                     @"DELETE FROM CrossRef_AniDB_TvDB_Episode
 WHERE CrossRef_AniDB_TvDB_EpisodeID IN (
     SELECT CrossRef_AniDB_TvDB_EpisodeID
-    FROM CrossRef_AniDB_TvDB_Episode
-    INNER JOIN AniDB_Episode ON AniDB_Episode.EpisodeID = CrossRef_AniDB_TvDB_Episode.AniDBEpisodeID
-    WHERE AniDB_Episode.AnimeID = :animeid
+    FROM (
+      SELECT CrossRef_AniDB_TvDB_EpisodeID
+      FROM CrossRef_AniDB_TvDB_Episode
+      INNER JOIN AniDB_Episode ON AniDB_Episode.EpisodeID = CrossRef_AniDB_TvDB_Episode.AniDBEpisodeID
+      WHERE AniDB_Episode.AnimeID = :animeid
+    ) AS id
 ) AND CrossRef_AniDB_TvDB_Episode.MatchRating != :rating;")
                                 .SetInt32("animeid", AnimeID).SetInt32("rating", (int) MatchRating.UserVerified)
                                 .UniqueResult();
