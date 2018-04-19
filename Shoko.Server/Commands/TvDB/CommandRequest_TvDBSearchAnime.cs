@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -66,13 +67,24 @@ namespace Shoko.Server.Commands
                                     RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
                                 if (xrefTemp != null && xrefTemp.Count > 0) return;
 
+                                // Add overrides for specials
+                                var specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
+                                    .OrderBy(a => a.AniDBStartEpisodeType).ThenBy(a => a.AniDBStartEpisodeNumber)
+                                    .ToList();
+                                if (specialXRefs.Count != 0)
+                                {
+                                    var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
+                                    foreach (var episodeOverride in overrides)
+                                    {
+                                        var exists =
+                                            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                                                episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
+                                        if (exists != null) continue;
+                                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                                    }
+                                }
                                 foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
                                 {
-                                    // Add overrides for specials
-                                    if (xref.TvDBSeasonNumber == 0)
-                                    {
-
-                                    }
                                     TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
                                     if (tvser != null)
                                     {

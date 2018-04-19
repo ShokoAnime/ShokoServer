@@ -280,8 +280,17 @@ namespace Shoko.Server
                 DateTime? seasonEnd = epsInSeason.LastOrDefault(a => a.AirDate != null)?.AirDate;
                 // no need to check seasonEnd, worst case, it's equal to seasonStart
                 // It is extremely unlikely that a TvDB season begins before a series, while including it
-                if (seasonStart < start) continue;
-                if (seasonEnd > end) continue;
+                if (seasonStart < start)
+                {
+                    continue;
+                }
+
+                // It started within the AniDB series
+
+                if (seasonEnd > end)
+                {
+                    continue;
+                }
                 temp.AddRange(epsInSeason);
             }
         }
