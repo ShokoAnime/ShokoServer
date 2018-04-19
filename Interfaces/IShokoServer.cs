@@ -585,6 +585,9 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/CrossRef", Verbs.Delete)]
         string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link);
 
+        [Rest("TvDB/CrossRef/FromWebCache", Verbs.Post)]
+        string LinkTvDBUsingWebCacheLinks(List<CrossRef_AniDB_TvDBV2> links);
+
         [Rest("TvDB/Search/{criteria}", Verbs.Get)]
         List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria);
 
