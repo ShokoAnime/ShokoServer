@@ -103,6 +103,7 @@ namespace Shoko.Server.Repositories.Cached
 
                 if (i == 0)
                 {
+                    if (b.AniDB == null || b.TvDB == null) return new List<CrossRef_AniDB_TvDBV2>();
                     output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber,
                         b.TvDB.EpisodeNumber));
                     continue;
