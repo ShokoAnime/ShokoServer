@@ -100,7 +100,7 @@ namespace Shoko.Server
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
 
-            // Only try to match normal epiosdes if this is a series
+            // Only try to match normal episodes if this is a series
             if (anime?.AnimeType != (int) AnimeType.Movie && aniepsNormal.Count > 0 && tvepsNormal.Count > 0)
                 TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
 
@@ -149,7 +149,11 @@ namespace Shoko.Server
                             a.GetAirDateAsDate()?.ToIso8601Weeknumber() ?? DateTime.Today.ToIso8601Weeknumber())
                         .Select(a => a.Count()).ToList();
                     double average = airdategroupings.Average();
+
                     int firstgroupingcount = airdategroupings.First();
+                    // We prefer the second grouping to deal with pre-screenings
+                    if (airdategroupings.Count > 1) firstgroupingcount = airdategroupings[1];
+
                     double epsilon = firstgroupingcount / (aniepsNormal.Count - 1.5D);
                     bool isregular = Math.Sqrt((firstgroupingcount - average) * (firstgroupingcount - average)) <=
                                      epsilon;
@@ -216,7 +220,7 @@ namespace Shoko.Server
         public static bool IsTitleNumberedAndConsecutive(string title1, string title2)
         {
             // Return if it's Episode {number} ex Nodame Cantibile's "Lesson 1" or Air Gear's "Trick 1"
-            // This will fail if you use not English TvDB or the title is "First Epiosde"
+            // This will fail if you use not English TvDB or the title is "First Episode"
 
             if (string.IsNullOrEmpty(title1) || string.IsNullOrEmpty(title2)) return false;
 
@@ -349,10 +353,11 @@ namespace Shoko.Server
 
                         // It's a continuing anime
                         // We can't subtract the legnth of the sequel and match. We will assume that it's 1-1
-                        if (sequelAnimes.All(a => a.EndDate == null))
+                        if (!isAiring && sequelAnimes.All(a => a.EndDate == null))
                         {
-                            epsInSeason = epsInSeason.Take(aniepsNormal.Count).ToList();
-                            continue;
+                            temp.AddRange(epsInSeason.Take(aniepsNormal.Count));
+                            // since the rest are airing and won't match, we can just break
+                            break;
                         }
 
                         // we check if the season matches any of the sequels
