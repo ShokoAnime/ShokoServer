@@ -98,7 +98,7 @@ WHERE CrossRef_AniDB_TvDB_Episode.MatchRating != :rating AND CrossRef_AniDB_TvDB
     FROM CrossRef_AniDB_TvDB_Episode
     INNER JOIN AniDB_Episode ON AniDB_Episode.EpisodeID = CrossRef_AniDB_TvDB_Episode.AniDBEpisodeID
     WHERE AniDB_Episode.AnimeID = :animeid
-  )
+  ) x
 );")
                                 .SetInt32("animeid", AnimeID).SetInt32("rating", (int) MatchRating.UserVerified)
                                 .ExecuteUpdate();
