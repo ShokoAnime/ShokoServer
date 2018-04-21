@@ -278,20 +278,126 @@ namespace Shoko.Server
                 DateTime? seasonStart = epsInSeason.FirstOrDefault()?.AirDate;
                 if (seasonStart == null) continue;
                 DateTime? seasonEnd = epsInSeason.LastOrDefault(a => a.AirDate != null)?.AirDate;
+
                 // no need to check seasonEnd, worst case, it's equal to seasonStart
+
                 // It is extremely unlikely that a TvDB season begins before a series, while including it
-                if (seasonStart < start)
+                if (seasonStart < start || seasonEnd > end)
                 {
-                    continue;
+                    // We save the original count for checking against. If it hasn't changed, then we escaped nulls or nothing matched
+                    int originalEpCount = epsInSeason.Count;
+
+                    if (seasonStart < start)
+                    {
+                        // This handles exceptions like Aldnoah.Zero, where TvDB lists one season, while AniDB splits them
+                        // This usually happens when a show airs in Fall and continues into Winter
+                        // This handles the second half of Aldnoah.Zero (has a prequel)
+                        // Check relations for prequels, then filter if the air dates match
+                        var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                            .Where(a => a?.RelationType == "Prequel").ToList();
+
+                        List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
+                        allPrequels.AddRange(relations);
+                        HashSet<int> visitedNodes = new HashSet<int> { aniepsNormal[0].AnimeID};
+
+                        GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allPrequels, "Prequel");
+
+                        var prequelAnimes = allPrequels.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                            .Where(a => a != null).OrderBy(a => a.AnimeID).ToList();
+
+                        // we check if the season matches any of the prequels
+                        // since it's a prequel, we'll assume it's finished airing
+                        foreach (var prequelAnime in prequelAnimes)
+                        {
+                            var prequelEps = prequelAnime.GetAniDBEpisodes()
+                                .Where(a => a.EpisodeType == (int) EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
+                                .ToList();
+                            bool match =
+                                prequelEps.Zip(epsInSeason, (aniep, tvep) => aniep.GetAirDateAsDate() == tvep.AirDate)
+                                    .Count(a => a == true) >= prequelEps.Count * 2D / 3D;
+                            if (!match) continue;
+
+                            for (int i = 0; i < prequelEps.Count; i++)
+                            {
+                                if (epsInSeason.Count == 0) break;
+                                epsInSeason.RemoveAt(0);
+                            }
+
+                            if (epsInSeason.Count == 0) break;
+                        }
+
+                        if (epsInSeason.Count == 0) continue;
+                    }
+
+                    // It started within the AniDB series
+
+                    if (seasonEnd > end)
+                    {
+                        // This handles the first half of Aldnoah.Zero
+                        // Check relations for sequels, then filter if the air dates match
+                        var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                            .Where(a => a?.RelationType == "Sequel").ToList();
+
+                        List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
+                        allSequels.AddRange(relations);
+                        HashSet<int> visitedNodes = new HashSet<int> { aniepsNormal[0].AnimeID};
+
+                        GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allSequels, "Sequel");
+
+                        var sequelAnimes = allSequels.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                            .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
+
+                        // It's a continuing anime
+                        // We can't subtract the legnth of the sequel and match. We will assume that it's 1-1
+                        if (sequelAnimes.All(a => a.EndDate == null))
+                        {
+                            epsInSeason = epsInSeason.Take(aniepsNormal.Count).ToList();
+                            continue;
+                        }
+
+                        // we check if the season matches any of the sequels
+                        foreach (var sequelAnime in sequelAnimes)
+                        {
+                            var sequelEps = sequelAnime.GetAniDBEpisodes()
+                                .Where(a => a.EpisodeType == (int) EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
+                                .ToList();
+                            bool match =
+                                sequelEps.Zip(epsInSeason.Skip(aniepsNormal.Count), (aniep, tvep) => aniep.GetAirDateAsDate() == tvep.AirDate)
+                                    .Count(a => a == true) >= sequelEps.Count * 2D / 3D;
+                            if (!match) continue;
+
+                            for (int i = 0; i < sequelEps.Count; i++)
+                            {
+                                if (epsInSeason.Count == 0) break;
+                                epsInSeason.RemoveAt(epsInSeason.Count - 1);
+                            }
+
+                            if (epsInSeason.Count == 0) break;
+                        }
+
+                        if (epsInSeason.Count == 0) continue;
+                    }
+
+                    // Nothing has changed, so no matches
+                    if (epsInSeason.Count == originalEpCount) continue;
                 }
 
-                // It started within the AniDB series
-
-                if (seasonEnd > end)
-                {
-                    continue;
-                }
                 temp.AddRange(epsInSeason);
+            }
+        }
+
+        private static void GetAllRelationsByTypeRecursive(List<AniDB_Anime_Relation> allRelations, ref HashSet<int> visitedNodes, ref List<AniDB_Anime_Relation> resultRelations, string type)
+        {
+            foreach (var relation in allRelations)
+            {
+                if (visitedNodes.Contains(relation.RelatedAnimeID)) continue;
+                var sequels = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(relation.RelatedAnimeID)
+                    .Where(a => a?.RelationType == type).ToList();
+                if (sequels.Count == 0) return;
+
+                GetAllRelationsByTypeRecursive(sequels, ref visitedNodes, ref resultRelations, type);
+                visitedNodes.Add(relation.RelatedAnimeID);
+                resultRelations.AddRange(sequels);
             }
         }
 

@@ -8,15 +8,20 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentNHibernate.MappingModel;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.MAL;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.MyAnimeList;
@@ -86,6 +91,7 @@ namespace Shoko.Server.API.v2.Modules
 
             Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
             Get["/tvdb/regenlinks", true] = async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct);
+            Get["/tvdb/checklinks", true] = async (x,ct) => await Task.Factory.StartNew(CheckAllEpisodeLinksAgainstCurrent, ct);
 
             #endregion
 
@@ -655,6 +661,138 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             return APIStatus.OK();
+        }
+
+        private class EpisodeMatchComparison
+        {
+            public string Anime { get; set; }
+            public int AnimeID { get; set; }
+            public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Current { get; set; }
+            public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Calculated { get; set; }
+        }
+
+        private class AniEpSummary
+        {
+            public int AniDBEpisodeType { get; set; }
+            public int AniDBEpisodeNumber { get; set; }
+            public string AniDBEpisodeName { get; set; }
+
+            protected bool Equals(AniEpSummary other)
+            {
+                return AniDBEpisodeType == other.AniDBEpisodeType && AniDBEpisodeNumber == other.AniDBEpisodeNumber && string.Equals(AniDBEpisodeName, other.AniDBEpisodeName);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((AniEpSummary) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = AniDBEpisodeType;
+                    hashCode = (hashCode * 397) ^ AniDBEpisodeNumber;
+                    hashCode = (hashCode * 397) ^ (AniDBEpisodeName != null ? AniDBEpisodeName.GetHashCode() : 0);
+                    return hashCode;
+                }
+            }
+        }
+
+        private class TvDBEpSummary
+        {
+            public int TvDBSeason { get; set; }
+            public int TvDBEpisodeNumber { get; set; }
+            public string TvDBEpisodeName { get; set; }
+
+            protected bool Equals(TvDBEpSummary other)
+            {
+                return TvDBSeason == other.TvDBSeason && TvDBEpisodeNumber == other.TvDBEpisodeNumber && string.Equals(TvDBEpisodeName, other.TvDBEpisodeName);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((TvDBEpSummary) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = TvDBSeason;
+                    hashCode = (hashCode * 397) ^ TvDBEpisodeNumber;
+                    hashCode = (hashCode * 397) ^ (TvDBEpisodeName != null ? TvDBEpisodeName.GetHashCode() : 0);
+                    return hashCode;
+                }
+            }
+        }
+
+        private object CheckAllEpisodeLinksAgainstCurrent()
+        {
+            try
+            {
+                // This is for testing changes in the algorithm. It will be slow.
+                var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime())
+                    .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
+                var result = new List<EpisodeMatchComparison>();
+                foreach (var animeseries in list)
+                {
+                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID).Select(a => (
+                        AniDB: new AniEpSummary
+                        {
+                            AniDBEpisodeType = a.AniDB.EpisodeType,
+                            AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
+                            AniDBEpisodeName = a.AniDB.GetEnglishTitle()
+                        },
+                        TvDB: a.TvDB == null ? null : new TvDBEpSummary
+                        {
+                            TvDBSeason = a.TvDB.SeasonNumber,
+                            TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
+                            TvDBEpisodeName = a.TvDB.EpisodeName
+                        })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
+                    var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                        .Select(a =>
+                        {
+                            var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
+                            var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            return (AniDB: new AniEpSummary
+                                {
+                                    AniDBEpisodeType = AniDB.EpisodeType,
+                                    AniDBEpisodeNumber = AniDB.EpisodeNumber,
+                                    AniDBEpisodeName = AniDB.GetEnglishTitle()
+                                },
+                                TvDB: TvDB == null ? null : new TvDBEpSummary
+                                {
+                                    TvDBSeason = TvDB.SeasonNumber,
+                                    TvDBEpisodeNumber = TvDB.EpisodeNumber,
+                                    TvDBEpisodeName = TvDB.EpisodeName
+                                });
+                        }).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
+                    if (!currentMatches.SequenceEqual(matches))
+                    {
+                        result.Add(new EpisodeMatchComparison
+                        {
+                            Anime = animeseries.MainTitle,
+                            AnimeID = animeseries.AnimeID,
+                            Current = currentMatches,
+                            Calculated = matches,
+                        });
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                return APIStatus.InternalError(e.Message);
+            }
         }
 
         #endregion
