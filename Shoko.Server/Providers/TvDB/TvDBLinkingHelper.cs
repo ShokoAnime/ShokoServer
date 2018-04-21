@@ -316,9 +316,16 @@ namespace Shoko.Server
                             var prequelEps = prequelAnime.GetAniDBEpisodes()
                                 .Where(a => a.EpisodeType == (int) EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
                                 .ToList();
+
+                            // We'll use ISO6801 for season matching
                             bool match =
-                                prequelEps.Zip(epsInSeason, (aniep, tvep) => aniep.GetAirDateAsDate() == tvep.AirDate)
-                                    .Count(a => a == true) >= prequelEps.Count * 2D / 3D;
+                                prequelEps.Zip(epsInSeason,
+                                    (aniep, tvep) =>
+                                        aniep.GetAirDateAsDate()?.ToIso8601Weeknumber() ==
+                                        tvep.AirDate?.ToIso8601Weeknumber() &&
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                prequelEps.Count * 2D / 3D;
+
                             if (!match) continue;
 
                             for (int i = 0; i < prequelEps.Count; i++)
@@ -366,9 +373,15 @@ namespace Shoko.Server
                             var sequelEps = sequelAnime.GetAniDBEpisodes()
                                 .Where(a => a.EpisodeType == (int) EpisodeType.Episode).OrderBy(a => a.EpisodeNumber)
                                 .ToList();
+
+                            // We'll use ISO6801 for season matching
                             bool match =
-                                sequelEps.Zip(epsInSeason.Skip(aniepsNormal.Count), (aniep, tvep) => aniep.GetAirDateAsDate() == tvep.AirDate)
-                                    .Count(a => a == true) >= sequelEps.Count * 2D / 3D;
+                                sequelEps.Zip(epsInSeason.Skip(aniepsNormal.Count),
+                                    (aniep, tvep) =>
+                                        aniep.GetAirDateAsDate()?.ToIso8601Weeknumber() ==
+                                        tvep.AirDate?.ToIso8601Weeknumber() &&
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                sequelEps.Count * 2D / 3D;
                             if (!match) continue;
 
                             for (int i = 0; i < sequelEps.Count; i++)
