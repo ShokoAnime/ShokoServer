@@ -75,7 +75,7 @@ namespace Shoko.Server.Repositories.Cached
                         var toRemove = GetByAnimeID(AnimeID).Where(a => a.MatchRating != MatchRating.UserVerified)
                             .ToList();
                         if (toRemove.Count <= 0) return;
-                        toRemove.ForEach(Cache.Remove);
+                        foreach (var episode in toRemove) Cache.Remove(episode);
 
                         using (var transaction = session.BeginTransaction())
                         {
@@ -83,7 +83,7 @@ namespace Shoko.Server.Repositories.Cached
                             // see https://stackoverflow.com/questions/45494/mysql-error-1093-cant-specify-target-table-for-update-in-from-clause
                             try
                             {
-                                session.CreateSQLQuery(@"SET optimizer_switch = 'derived_merge=off';").UniqueResult();
+                                session.CreateSQLQuery(@"SET optimizer_switch = 'derived_merge=off';").ExecuteUpdate();
                             }
                             catch
                             {
@@ -92,7 +92,7 @@ namespace Shoko.Server.Repositories.Cached
 
                             session.CreateSQLQuery(
                                     @"DELETE FROM CrossRef_AniDB_TvDB_Episode
-WHERE CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_Episode.MatchRating != :rating AND CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_EpisodeID IN (
+WHERE CrossRef_AniDB_TvDB_Episode.MatchRating != :rating AND CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_EpisodeID IN (
   SELECT CrossRef_AniDB_TvDB_EpisodeID FROM (
     SELECT CrossRef_AniDB_TvDB_EpisodeID
     FROM CrossRef_AniDB_TvDB_Episode
@@ -101,11 +101,11 @@ WHERE CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_Episode.MatchRating != :ra
   )
 );")
                                 .SetInt32("animeid", AnimeID).SetInt32("rating", (int) MatchRating.UserVerified)
-                                .UniqueResult();
+                                .ExecuteUpdate();
 
                             try
                             {
-                                session.CreateSQLQuery(@"SET optimizer_switch = 'derived_merge=on';").UniqueResult();
+                                session.CreateSQLQuery(@"SET optimizer_switch = 'derived_merge=on';").ExecuteUpdate();
                             }
                             catch
                             {
@@ -131,11 +131,11 @@ WHERE CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_Episode.MatchRating != :ra
                         {
                             var toRemove = GetAll().Where(a => a.MatchRating != MatchRating.UserVerified)
                                 .ToList();
-                            toRemove.ForEach(Cache.Remove);
+                            foreach (var episode in toRemove) Cache.Remove(episode);
                             session.CreateSQLQuery(
                                     "DELETE FROM CrossRef_AniDB_TvDB_Episode WHERE MatchRating != :rating;")
                                 .SetInt32("rating", (int) MatchRating.UserVerified)
-                                .UniqueResult();
+                                .ExecuteUpdate();
                             transaction.Commit();
                         }
                     }

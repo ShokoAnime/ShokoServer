@@ -18,10 +18,10 @@ namespace Shoko.Server
 
         public static void GenerateTvDBEpisodeMatches(int animeID)
         {
-            var matches = GetTvDBEpisodeMatches(animeID);
-
             // wipe old links except User Verified
             RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
+
+            var matches = GetTvDBEpisodeMatches(animeID);
 
             List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
             foreach (var match in matches)
