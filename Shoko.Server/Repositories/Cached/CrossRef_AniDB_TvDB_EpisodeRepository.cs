@@ -91,14 +91,14 @@ namespace Shoko.Server.Repositories.Cached
                             }
 
                             session.CreateSQLQuery(
-                                    @"DELETE FROM CrossRef_AniDB_TvDB_Episode x
-WHERE x.CrossRef_AniDB_TvDB_Episode.MatchRating != :rating AND x.CrossRef_AniDB_TvDB_EpisodeID IN (
+                                    @"DELETE FROM CrossRef_AniDB_TvDB_Episode
+WHERE CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_Episode.MatchRating != :rating AND CrossRef_AniDB_TvDB_Episode.CrossRef_AniDB_TvDB_EpisodeID IN (
   SELECT CrossRef_AniDB_TvDB_EpisodeID FROM (
     SELECT CrossRef_AniDB_TvDB_EpisodeID
     FROM CrossRef_AniDB_TvDB_Episode
     INNER JOIN AniDB_Episode ON AniDB_Episode.EpisodeID = CrossRef_AniDB_TvDB_Episode.AniDBEpisodeID
     WHERE AniDB_Episode.AnimeID = :animeid
-  ) z
+  )
 );")
                                 .SetInt32("animeid", AnimeID).SetInt32("rating", (int) MatchRating.UserVerified)
                                 .UniqueResult();
