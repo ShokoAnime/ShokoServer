@@ -137,7 +137,7 @@ namespace Shoko.Server.Databases
                 // Migrate Special's overrides
                 var specials = session
                     .CreateSQLQuery(
-                        @"SELECT AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber FROM CrossRef_AniDB_TvDBV2 WHERE TvDBSeasonNumber = 0")
+                        @"SELECT DISTINCT AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber FROM CrossRef_AniDB_TvDBV2 WHERE TvDBSeasonNumber = 0")
                     .AddScalar("AnimeID", NHibernateUtil.Int32)
                     .AddScalar("AniDBStartEpisodeType", NHibernateUtil.Int32)
                     .AddScalar("AniDBStartEpisodeNumber", NHibernateUtil.Int32)
@@ -166,7 +166,7 @@ namespace Shoko.Server.Databases
                 // Series Links
                 var links = session
                     .CreateSQLQuery(
-                        @"SELECT DISTINCT AnimeID, TvDBID, CrossRefSource FROM CrossRef_AniDB_TvDBV2 WHERE TvDBSeasonNumber != 0")
+                        @"SELECT AnimeID, TvDBID, CrossRefSource FROM CrossRef_AniDB_TvDBV2")
                     .AddScalar("AnimeID", NHibernateUtil.Int32)
                     .AddScalar("TvDBID", NHibernateUtil.Int32)
                     .AddScalar("CrossRefSource", NHibernateUtil.Int32)
@@ -185,7 +185,45 @@ namespace Shoko.Server.Databases
                     RepoFactory.CrossRef_AniDB_TvDB.Save(link);
                 }
 
-                var list = RepoFactory.AnimeSeries.GetAll().ToList();
+                // Scan Series Without links for prequel/sequel links
+                var list = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
+
+                // AniDB_Anime_Relation is a direct repository, so GetFullLinearRelationTree will be slow
+                // Using a visited node set to skip processed nodes should be faster
+                HashSet<int> visitedNodes = new HashSet<int>();
+                var seriesWithoutLinksLookup = list.ToDictionary(a => a.AniDB_ID);
+
+                foreach (var animeseries in list)
+                {
+                    if (visitedNodes.Contains(animeseries.AniDB_ID)) continue;
+
+                    var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(animeseries.AniDB_ID);
+                    int? tvDBID = relations.SelectMany(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a))
+                        .FirstOrDefault(a => a != null)?.TvDBID;
+                    // No link was found in the entire relation tree
+                    if (tvDBID == null)
+                    {
+                        relations.ForEach(a => visitedNodes.Add(a));
+                        continue;
+                    }
+
+                    var seriesToUpdate = relations.Where(a => seriesWithoutLinksLookup.ContainsKey(a))
+                        .Select(a => seriesWithoutLinksLookup[a]).ToList();
+                    foreach (var series in seriesToUpdate)
+                    {
+                        CrossRef_AniDB_TvDB link = new CrossRef_AniDB_TvDB
+                        {
+                            AniDBID = series.AniDB_ID,
+                            TvDBID = tvDBID.Value,
+                            CrossRefSource = CrossRefSource.Automatic
+                        };
+                        // No need to check for existence
+                        RepoFactory.CrossRef_AniDB_TvDB.Save(link);
+                        visitedNodes.Add(series.AniDB_ID);
+                    }
+                }
+
+                list = RepoFactory.AnimeSeries.GetAll().ToList();
                 int count = 0;
                 foreach (var animeseries in list)
                 {
@@ -193,7 +231,7 @@ namespace Shoko.Server.Databases
                     if (count % 10 == 0)
                     {
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
+                            Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
                             $" {count}/{list.Count}");
                     }
                     TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);

@@ -4,6 +4,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -70,6 +71,11 @@ namespace Shoko.Server.Repositories.Cached
             {
                 return TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
             }
+        }
+
+        public List<SVR_AnimeSeries> GetSeriesWithoutLinks()
+        {
+            return RepoFactory.AnimeSeries.GetAll().Where(a => !GetByAnimeID(a.AniDB_ID).Any()).ToList();
         }
 
         public override void RegenerateDb()

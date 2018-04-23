@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
@@ -53,6 +54,40 @@ namespace Shoko.Server.Repositories.Direct
                 .List<AniDB_Anime_Relation>();
 
             return new List<AniDB_Anime_Relation>(cats);
+        }
+
+        /// <summary>
+        /// Return a list of Anime IDs in a prequel/sequel line
+        /// </summary>
+        /// <param name="animeID"></param>
+        /// <returns></returns>
+        public List<int> GetFullLinearRelationTree(int animeID)
+        {
+            var allRelations = GetByAnimeID(animeID).Where(a => a?.RelationType == "Prequel").ToList();
+            HashSet<int> visitedNodes = new HashSet<int>();
+            List<AniDB_Anime_Relation> resultRelations = new List<AniDB_Anime_Relation>();
+            GetAllRelationsByTypeRecursive(allRelations, ref visitedNodes, ref resultRelations, "Prequel");
+
+            allRelations = GetByAnimeID(animeID).Where(a => a?.RelationType == "Sequel").ToList();
+            visitedNodes.Clear();
+            GetAllRelationsByTypeRecursive(allRelations, ref visitedNodes, ref resultRelations, "Sequel");
+
+            return resultRelations.SelectMany(a => new[] {a.AnimeID, a.RelatedAnimeID}).Distinct().OrderBy(a => a)
+                .ToList();
+        }
+
+        private void GetAllRelationsByTypeRecursive(List<AniDB_Anime_Relation> allRelations, ref HashSet<int> visitedNodes, ref List<AniDB_Anime_Relation> resultRelations, string type)
+        {
+            foreach (var relation in allRelations)
+            {
+                if (visitedNodes.Contains(relation.RelatedAnimeID)) continue;
+                var sequels = GetByAnimeID(relation.RelatedAnimeID).Where(a => a?.RelationType == type).ToList();
+                if (sequels.Count == 0) return;
+
+                GetAllRelationsByTypeRecursive(sequels, ref visitedNodes, ref resultRelations, type);
+                visitedNodes.Add(relation.RelatedAnimeID);
+                resultRelations.AddRange(sequels);
+            }
         }
     }
 }
