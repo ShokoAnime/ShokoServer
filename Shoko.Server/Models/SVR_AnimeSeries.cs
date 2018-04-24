@@ -887,15 +887,17 @@ namespace Shoko.Server.Models
 
             public void Add(SVR_AnimeEpisode ep, bool available)
             {
-                if ((AnimeType == AnimeType.OVA) || (AnimeType == AnimeType.Movie))
+                if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
                 {
                     string ename = ep.Title;
-                    Match m = partmatch.Match(ename);
+                    bool empty = string.IsNullOrEmpty(ename);
+                    Match m = null;
+                    if (!empty) m = partmatch.Match(ename);
                     StatEpisodes.StatEpisode s = new StatEpisodes.StatEpisode
                     {
                         Available = available
                     };
-                    if (m.Success)
+                    if (m?.Success ?? false)
                     {
                         int.TryParse(m.Groups[1].Value, out int part_number);
                         int.TryParse(m.Groups[2].Value, out int part_count);
@@ -907,12 +909,12 @@ namespace Shoko.Server.Models
                         s.EpisodeType = StatEpisodes.StatEpisode.EpType.Part;
                         s.PartCount = part_count;
                         s.Match = rname.Trim();
-                        if ((s.Match == "complete movie") || (s.Match == "movie") || (s.Match == "ova"))
+                        if (s.Match == "complete movie" || s.Match == "movie" || s.Match == "ova")
                             s.Match = string.Empty;
                     }
                     else
                     {
-                        if ((ename == "complete movie") || (ename == "movie") || (ename == "ova"))
+                        if (empty || ename == "complete movie" || ename == "movie" || ename == "ova")
                         {
                             s.Match = string.Empty;
                         }
