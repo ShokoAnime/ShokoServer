@@ -237,7 +237,7 @@ namespace Shoko.Server.Databases
                             $" {count}/{list.Count}");
                     }
 
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);
+                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true);
                 });
 
                 string dropV2 = "DROP TABLE CrossRef_AniDB_TvDBV2";
