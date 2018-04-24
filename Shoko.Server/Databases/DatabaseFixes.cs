@@ -134,6 +134,9 @@ namespace Shoko.Server.Databases
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
+                // Clean up possibly failed migration
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+
                 // This method doesn't need mappings, and it's simple enough to work on all DB types
                 // Migrate Special's overrides
                 var specials = session
@@ -176,7 +179,7 @@ namespace Shoko.Server.Databases
                         AniDBID = (int) a[0],
                         TvDBID = (int) a[1],
                         CrossRefSource = (CrossRefSource) a[2]
-                    }).DistinctBy(a => (a.AniDBID, a.TvDBID)).ToList();
+                    }).DistinctBy(a => new[] {a.AniDBID, a.TvDBID}).ToList();
                 foreach (var link in links)
                 {
                     var exists =

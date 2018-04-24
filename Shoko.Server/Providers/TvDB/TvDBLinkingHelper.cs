@@ -33,7 +33,22 @@ namespace Shoko.Server
                 // Don't touch User Verified links
                 if (xref?.MatchRating == MatchRating.UserVerified) continue;
 
-                // The only existing links will be User Verified, so no need to check for duplicates
+                // check for duplicates only if we skip clearing the links
+                if (skipMatchClearing)
+                {
+                    xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
+                        match.TvDB.Id);
+                    if (xref != null)
+                    {
+                        if (xref.MatchRating != match.Rating)
+                        {
+                            xref.MatchRating = match.Rating;
+                            tosave.Add(xref);
+                        }
+                        continue;
+                    }
+                }
+
                 xref = new CrossRef_AniDB_TvDB_Episode
                 {
                     AniDBEpisodeID = match.AniDB.EpisodeID,
