@@ -326,10 +326,10 @@ namespace Shoko.Commons.Utils
         }
 
         // A char array of the allowed characters. This should be infinitely faster
-        private static readonly char[] AllowedSearchCharacters =
-            (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!+-.?,/*&`'\"_").ToCharArray();
+        private static readonly HashSet<char> AllowedSearchCharacters =
+            (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.?*&").ToHashSet();
 
-        public static string FilterCharacters(this string value, char[] allowed, bool blacklist = false)
+        public static string FilterCharacters(this string value, IEnumerable<char> allowed, bool blacklist = false)
         {
             StringBuilder sb = new StringBuilder(value);
             int dest = 0;
