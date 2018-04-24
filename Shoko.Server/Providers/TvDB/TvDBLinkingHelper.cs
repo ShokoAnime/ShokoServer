@@ -16,10 +16,11 @@ namespace Shoko.Server
     {
         #region TvDB Matching
 
-        public static void GenerateTvDBEpisodeMatches(int animeID)
+        public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
             // wipe old links except User Verified
-            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
+            if (!skipMatchClearing)
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
 
             var matches = GetTvDBEpisodeMatches(animeID);
 

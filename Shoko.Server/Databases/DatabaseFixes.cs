@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
@@ -225,17 +226,19 @@ namespace Shoko.Server.Databases
 
                 list = RepoFactory.AnimeSeries.GetAll().ToList();
                 int count = 0;
-                foreach (var animeseries in list)
+
+                list.AsParallel().ForAll(animeseries =>
                 {
-                    count++;
-                    if (count % 10 == 0)
+                    Interlocked.Increment(ref count);
+                    if (count % 50 == 0)
                     {
                         ServerState.Instance.CurrentSetupStatus = string.Format(
                             Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
                             $" {count}/{list.Count}");
                     }
+
                     TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);
-                }
+                });
 
                 string dropV2 = "DROP TABLE CrossRef_AniDB_TvDBV2";
                 session.CreateSQLQuery(dropV2).ExecuteUpdate();

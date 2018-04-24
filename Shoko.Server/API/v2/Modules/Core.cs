@@ -648,11 +648,8 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-                var list = RepoFactory.AnimeSeries.GetAll().ToList();
-                foreach (var animeseries in list)
-                {
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID);
-                }
+                RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
+                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
             }
             catch (Exception e)
             {
