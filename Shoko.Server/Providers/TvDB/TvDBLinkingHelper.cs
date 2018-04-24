@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
@@ -132,7 +132,12 @@ namespace Shoko.Server
             // Those are always in order, so go by dates and fill in the rest
             bool hasNumberedTitles = HasNumberedTitles(aniepsNormal) || HasNumberedTitles(tvepsNormal);
 
-            if (!one2one && seasonLookup.Count > 0)
+            // we will declare this in outer scope to avoid calculating it more than once.
+            List<IGrouping<int, AniDB_Episode>> airdategroupings = null;
+            int firstgroupingcount = 0;
+            bool isregular = false;
+
+            if (!one2one)
             {
                 // we'll need to split seasons and see if the series spans multiple or matches a specific season
                 List<TvDB_Episode> temp = new List<TvDB_Episode>();
@@ -140,40 +145,47 @@ namespace Shoko.Server
                 if (temp.Count > 0) tvepsNormal = temp;
 
                 one2one = aniepsNormal.Count == tvepsNormal.Count;
-                // airing shows won't match
-                if (!one2one && isAiring)
+
+                if (!one2one)
                 {
                     // Saiki K => regular matching detection (5 to 1)
                     // We'll group by week, and we'll cheat by using ISO6801 calendar,
                     // as it ensures that the week is not split on the end of the year
-                    var airdategroupings = aniepsNormal.GroupBy(a =>
-                            a.GetAirDateAsDate()?.ToIso8601Weeknumber() ?? DateTime.Today.ToIso8601Weeknumber())
+                    airdategroupings = aniepsNormal.Where(a => a.GetAirDateAsDate() != null).GroupBy(a =>
+                            a.GetAirDateAsDate().Value.ToIso8601Weeknumber())
+                        .OrderBy(a => a.Key).ToList();
+                    var airdatecounts = airdategroupings
                         .Select(a => a.Count()).ToList();
-                    double average = airdategroupings.Average();
 
-                    int firstgroupingcount = airdategroupings.First();
-                    // We prefer the second grouping to deal with pre-screenings
-                    if (airdategroupings.Count > 1) firstgroupingcount = airdategroupings[1];
-
-                    double epsilon = firstgroupingcount / (aniepsNormal.Count - 1.5D);
-                    bool isregular = Math.Sqrt((firstgroupingcount - average) * (firstgroupingcount - average)) <=
-                                     epsilon;
-                    bool weekly1to1 = isregular && firstgroupingcount == 1;
-                    if (isregular && !weekly1to1)
+                    if (airdatecounts.Count > 0)
                     {
-                        // it's regularly split, so we'll treat it as {firstgroupingcount} to one
-                        // TODO find out how the TvDB episodes might line up.
-                        // In this case, Saiki K was 5 to 1, and we can match by air week ISO6801
-                        one2one = false;
-                        // skip the next step, since we are pretty confident in the season matching here
-                        goto matchepisodes;
-                    }
 
-                    // no need for else, the goto skips ahead
-                    if(weekly1to1)
-                    {
-                        // TODO we may need to check the TvDB side for splitting episodes, but they don't do it often
-                        one2one = true;
+                        // pre-screened episodes skew the data beyond an acceptable margin of error. Remove them from AVG
+                        if (airdatecounts.Count > 1 && airdatecounts.Max() == airdatecounts[0])
+                            airdatecounts.RemoveAt(0);
+
+                        double average = airdatecounts.Average();
+
+                        firstgroupingcount = airdatecounts.First();
+
+                        double epsilon = (double) firstgroupingcount * firstgroupingcount / aniepsNormal.Count;
+                        isregular = Math.Sqrt((firstgroupingcount - average) * (firstgroupingcount - average)) <=
+                                    epsilon;
+                        bool weekly1to1 = isregular && firstgroupingcount == 1;
+                        if (isregular && firstgroupingcount != 1)
+                        {
+                            one2one = false;
+                            // skip the next step, since we are pretty confident in the season matching here
+                            goto matchepisodes;
+                        }
+
+                        // no need for else, the goto skips ahead
+                        // Airing series won't match in most cases
+                        if (weekly1to1 && isAiring)
+                        {
+                            // TODO we may need to check the TvDB side for splitting episodes, but they don't do it often
+                            one2one = true;
+                        }
                     }
                 }
 
@@ -202,7 +214,18 @@ namespace Shoko.Server
             }
             else
             {
-                // Not 1 to 1, this can be messy
+                // Not 1 to 1, this can be messy, and will probably need some overrides
+
+                // if this is sucessful, then all episodes will be matched
+                if (TryToMatchRegularlyDistributedEpisodes(ref aniepsNormal, ref tvepsNormal, ref matches, isregular,
+                    firstgroupingcount)) return;
+
+                // the rest won't be pretty
+                // try to match air dates. Don't remove eps from the list of possible matches
+                TryToMatchEpisodesManyTo1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
+
+                // Fill in the rest and pray to Molag Bal for vengence on thy enemies
+                FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
             }
         }
 
@@ -257,15 +280,39 @@ namespace Shoko.Server
         private static void TryToMatchSeasonsByAirDates(List<AniDB_Episode> aniepsNormal,
             List<IGrouping<int, TvDB_Episode>> seasonLookup, bool isAiring, ref List<TvDB_Episode> temp)
         {
+            /*
+             * My brain ceased complex thought, so a diagram to picture it or something
+             * This should cover any circumstance that we encounter
+             *
+             * anidb      s1----------------------e1                        s3-----------------------e3
+             *                                      s2--------------------e2
+             *
+             *
+             * d.gray-man s1---------------------------------------------w1 s2-----------------------w2
+             *
+             *
+             * calc     s1'--------------------------e1'                 s3'---------------------------e3'
+             *                                   s2'------------------------e2'
+             *
+             * Aldoah.Zero
+             * tvdb long    ss-----------------------------------------------------------------------se
+             *
+             * Most series
+             * tvdb short   ss1-----------------se1                         ss3---------------------sse3
+             *                                      ss2-----------------se2
+             *
+             *
+             * tvdb mixed   ss1-----------------------------------------se1 ss2---------------------se2
+             */
+
             // Compare the start and end of the series to each season
             // This should be almost always accurate
             // Pre-screenings of several months will break it
-
             if (seasonLookup.Count == 0) return;
 
             DateTime start = aniepsNormal.Min(a => a.GetAirDateAsDate() ?? DateTime.MaxValue);
             if (start == DateTime.MaxValue) return;
-            start = start.AddDays(-7);
+            start = start.AddDays(-5);
 
             DateTime endTvDB = seasonLookup.Max(b =>
                 b.Where(c => c.AirDate != null).Select(c => c.AirDate.Value).OrderBy(a => a).LastOrDefault());
@@ -276,7 +323,7 @@ namespace Shoko.Server
                 a.GetAirDateAsDate() ?? endTvDB);
             if (isAiring) end = endTvDB;
 
-            end = end.AddDays(7);
+            end = end.AddDays(5);
             foreach (var season in seasonLookup)
             {
                 var epsInSeason = season.OrderBy(a => a.EpisodeNumber).ToList();
@@ -292,7 +339,8 @@ namespace Shoko.Server
                     // We save the original count for checking against. If it hasn't changed, then we escaped nulls or nothing matched
                     int originalEpCount = epsInSeason.Count;
 
-                    if (seasonStart < start)
+                    // tvdb season starts before, but ends after it starts
+                    if (seasonStart < start && seasonEnd > start)
                     {
                         // This handles exceptions like Aldnoah.Zero, where TvDB lists one season, while AniDB splits them
                         // This usually happens when a show airs in Fall and continues into Winter
@@ -341,9 +389,9 @@ namespace Shoko.Server
                         if (epsInSeason.Count == 0) continue;
                     }
 
-                    // It started within the AniDB series
 
-                    if (seasonEnd > end)
+                    // season ended after series ended, but started before it ended
+                    if (seasonStart < end && seasonEnd > end)
                     {
                         // This handles the first half of Aldnoah.Zero
                         // Check relations for sequels, then filter if the air dates match
@@ -361,12 +409,12 @@ namespace Shoko.Server
 
                         // It's a continuing anime
                         // We can't subtract the legnth of the sequel and match. We will assume that it's 1-1
-                        if (!isAiring && sequelAnimes.All(a => a.EndDate == null))
-                        {
-                            temp.AddRange(epsInSeason.Take(aniepsNormal.Count));
+                        //if (!isAiring && sequelAnimes.All(a => a.EndDate == null))
+                        //{
+                        //    temp.AddRange(epsInSeason.Take(aniepsNormal.Count));
                             // since the rest are airing and won't match, we can just break
-                            break;
-                        }
+                        //    break;
+                        //}
 
                         // we check if the season matches any of the sequels
                         foreach (var sequelAnime in sequelAnimes)
@@ -376,16 +424,18 @@ namespace Shoko.Server
                                 .ToList();
 
                             // We'll use ISO6801 for season matching
+                            var epsInSeasonOffset = epsInSeason.Skip(temp.Count).ToList();
+                            double epsilon = Math.Min(epsInSeasonOffset.Count, sequelEps.Count) * 2D / 3D;
                             bool match =
-                                sequelEps.Zip(epsInSeason.Skip(aniepsNormal.Count),
+                                sequelEps.Zip(epsInSeasonOffset,
                                     (aniep, tvep) =>
                                         aniep.GetAirDateAsDate()?.ToIso8601Weeknumber() ==
                                         tvep.AirDate?.ToIso8601Weeknumber() &&
                                         aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
-                                sequelEps.Count * 2D / 3D;
+                                epsilon;
                             if (!match) continue;
 
-                            for (int i = 0; i < sequelEps.Count; i++)
+                            for (int i = 0; i < epsInSeasonOffset.Count; i++)
                             {
                                 if (epsInSeason.Count == 0) break;
                                 epsInSeason.RemoveAt(epsInSeason.Count - 1);
@@ -572,6 +622,62 @@ namespace Shoko.Server
                 matches.Add((aniep, tvep, MatchRating.SarahJessicaParker));
                 aniepsNormal.Remove(aniep);
                 tvepsNormal.Remove(tvep);
+            }
+        }
+
+        private static bool TryToMatchRegularlyDistributedEpisodes(ref List<AniDB_Episode> aniepsNormal,
+            ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches,
+            bool isregular, int firstgroupingcount)
+        {
+            // first use the checks from earlier to see if it's regularly distributed
+            if (!isregular) return false;
+            // since it's regular, then counts will all be equal give or take an episode in one
+            // we'll treat it as {firstgroupingcount} to one
+            // In this case, Saiki K was 5 to 1
+            int tvDBEpisodeRatio = aniepsNormal.Count / firstgroupingcount;
+
+            // last check to ensure that it is firstgroupingcount to 1
+            if (tvepsNormal.Count != tvDBEpisodeRatio) return false;
+            int count = 0;
+            TvDB_Episode ep = null;
+            foreach (var aniep in aniepsNormal.ToList())
+            {
+                if (count % firstgroupingcount == 0)
+                {
+                    ep = tvepsNormal.FirstOrDefault();
+                    tvepsNormal.Remove(ep);
+                }
+
+                if (ep == null) break;
+
+                // It goes against the initial rules for Good rating, but this is a very specific case
+                matches.Add((aniep, ep, MatchRating.Good));
+                aniepsNormal.Remove(aniep);
+                count++;
+            }
+            return true;
+
+        }
+
+        private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
+            ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        {
+            foreach (var aniep in aniepsNormal.ToList())
+            {
+                DateTime? aniair = aniep.GetAirDateAsDate();
+                if (aniair == null) continue;
+                foreach (var tvep in tvepsNormal)
+                {
+                    DateTime? tvair = tvep.AirDate;
+                    if (tvair == null) continue;
+
+                    // check if the dates are within reason
+                    if (!aniair.Value.IsWithinErrorMargin(tvair.Value, TimeSpan.FromDays(1.5))) continue;
+                    // Add them to the matches and remove them from the lists to process
+                    matches.Add((aniep, tvep, MatchRating.Good));
+                    aniepsNormal.Remove(aniep);
+                    break;
+                }
             }
         }
 
