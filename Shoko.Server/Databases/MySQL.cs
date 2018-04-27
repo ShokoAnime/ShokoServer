@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 84;
+        public int RequiredVersion { get; } = 85;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -606,7 +606,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(83, 1, "ALTER TABLE `AniDB_Episode` DROP COLUMN `EnglishName`"),
             new DatabaseCommand(83, 2, "ALTER TABLE `AniDB_Episode` DROP COLUMN `RomajiName`"),
             new DatabaseCommand(83, 3, "CREATE TABLE `AniDB_Episode_Title` ( `AniDB_Episode_TitleID` INT NOT NULL AUTO_INCREMENT, `AniDB_EpisodeID` int NOT NULL, `Language` varchar(50) character set utf8 NOT NULL, `Title` varchar(500) character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Episode_TitleID`) ) ; "),
-            new DatabaseCommand(83, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(83, 4, DatabaseFixes.DummyMigrationOfObsoletion),
             new DatabaseCommand(84, 1, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` DROP INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID`;"),
             new DatabaseCommand(84, 2, "RENAME TABLE `CrossRef_AniDB_TvDB_Episode` TO `CrossRef_AniDB_TvDB_Episode_Override`;"),
             new DatabaseCommand(84, 3, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode_Override` DROP COLUMN `AnimeID`"),
@@ -620,6 +620,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(84, 10, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID` ( `AniDBEpisodeID` ASC, `TvDBEpisodeID` ASC);"),
             new DatabaseCommand(84, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
+            new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

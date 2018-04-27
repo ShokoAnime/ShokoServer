@@ -1091,7 +1091,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateAnimeReviews();
         }
 
-        private void CreateEpisodes(List<Raw_AniDB_Episode> eps)
+        public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
         {
             if (eps == null) return;
 

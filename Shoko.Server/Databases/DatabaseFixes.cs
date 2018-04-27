@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
@@ -245,6 +246,45 @@ namespace Shoko.Server.Databases
 
                 string dropV2 = "DROP TABLE CrossRef_AniDB_TvDBV2";
                 session.CreateSQLQuery(dropV2).ExecuteUpdate();
+            }
+        }
+
+        public static void FixAniDB_EpisodesWithMissingTitles()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                string query = @"SELECT DISTINCT AnimeID FROM AniDB_Episode
+  LEFT JOIN AniDB_Episode_Title on AniDB_Episode_Title.AniDB_EpisodeID = AniDB_Episode.EpisodeID
+WHERE Title IS NULL
+ORDER BY AnimeID";
+                var specials = session
+                    .CreateSQLQuery(query)
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .List<int>().ToList();
+                int count = 0;
+                foreach (int animeID in specials)
+                {
+                    count++;
+                    try
+                    {
+                        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                        if (anime == null) continue;
+
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Validating, $"Generating Episode Info for {anime.MainTitle}",
+                            $" {count}/{specials.Count}");
+                        XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                        if (docAnime == null) continue;
+
+                        var episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
+                        anime.CreateEpisodes(episodes);
+                        // we don't need to save the AniDB_Anime, since nothing has changed in it
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
+                    }
+                }
             }
         }
 
@@ -621,6 +661,10 @@ namespace Shoko.Server.Databases
         public static void UpdateAllTvDBSeries()
         {
             Importer.RunImport_UpdateTvDB(true);
+        }
+
+        public static void DummyMigrationOfObsoletion()
+        {
         }
     }
 }

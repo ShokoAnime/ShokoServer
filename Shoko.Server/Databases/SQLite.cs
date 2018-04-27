@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 73;
+        public int RequiredVersion { get; } = 74;
 
 
         public void BackupDatabase(string fullfilename)
@@ -511,7 +511,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(71, 2, DatabaseFixes.PopulateMyListIDs),
             new DatabaseCommand(72, 1, DropAniDB_EpisodeTitles),
             new DatabaseCommand(72, 2, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
-            new DatabaseCommand(72, 3, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(72, 3, DatabaseFixes.DummyMigrationOfObsoletion),
             new DatabaseCommand(73, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID;"),
             // SQLite is stupid, so we need to create a new table and copy the contents to it
             new DatabaseCommand(73, 2, RenameCrossRef_AniDB_TvDB_Episode),
@@ -523,6 +523,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(73, 7, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
             new DatabaseCommand(73, 9, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
+            new DatabaseCommand(74, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
         };
 
         private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)

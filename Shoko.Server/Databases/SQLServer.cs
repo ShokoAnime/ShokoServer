@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 78;
+        public int RequiredVersion { get; } = 79;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -570,7 +570,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(77, 1, "ALTER TABLE AniDB_Episode DROP COLUMN EnglishName"),
             new DatabaseCommand(77, 2, "ALTER TABLE AniDB_Episode DROP COLUMN RomajiName"),
             new DatabaseCommand(77, 3, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID int IDENTITY(1,1) NOT NULL, AniDB_EpisodeID int NOT NULL, Language nvarchar(50) NOT NULL, Title nvarchar(500) NOT NULL )"),
-            new DatabaseCommand(77, 4, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(77, 4, DatabaseFixes.DummyMigrationOfObsoletion),
             new DatabaseCommand(78, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID ON CrossRef_AniDB_TvDB_Episode;"),
             new DatabaseCommand(78, 2, "exec sp_rename CrossRef_AniDB_TvDB_Episode, CrossRef_AniDB_TvDB_Episode_Override;"),
             new DatabaseCommand(78, 3, "ALTER TABLE CrossRef_AniDB_TvDB_Episode_Override DROP COLUMN AnimeID"),
@@ -584,6 +584,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(78, 10, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
             new DatabaseCommand(78, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
+            new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
