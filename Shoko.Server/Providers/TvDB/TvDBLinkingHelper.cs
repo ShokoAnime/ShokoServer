@@ -340,6 +340,11 @@ namespace Shoko.Server
             if (isAiring) end = endTvDB;
 
             end = end.AddDays(5);
+
+            // cache the relations, but don't always fetch them
+            List<SVR_AniDB_Anime> prequelAnimes = null;
+            List<SVR_AniDB_Anime> sequelAnimes = null;
+
             foreach (var season in seasonLookup)
             {
                 var epsInSeason = season.OrderBy(a => a.EpisodeNumber).ToList();
@@ -362,17 +367,24 @@ namespace Shoko.Server
                         // This usually happens when a show airs in Fall and continues into Winter
                         // This handles the second half of Aldnoah.Zero (has a prequel)
                         // Check relations for prequels, then filter if the air dates match
-                        var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                            .Where(a => a?.RelationType == "Prequel").ToList();
+                        if (prequelAnimes == null)
+                        {
+                            // only check the relations if they have the same TvDB Series ID
+                            var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                                .Where(a => a?.RelationType == "Prequel" && RepoFactory.CrossRef_AniDB_TvDB
+                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
+                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
-                        List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
-                        allPrequels.AddRange(relations);
-                        HashSet<int> visitedNodes = new HashSet<int> { aniepsNormal[0].AnimeID};
+                            List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
+                            allPrequels.AddRange(relations);
+                            HashSet<int> visitedNodes = new HashSet<int> {aniepsNormal[0].AnimeID};
 
-                        GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allPrequels, "Prequel");
+                            GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allPrequels, "Prequel");
 
-                        var prequelAnimes = allPrequels.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
-                            .Where(a => a != null).OrderBy(a => a.AnimeID).ToList();
+                            prequelAnimes = allPrequels
+                                .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Where(a => a != null).OrderBy(a => a.AnimeID).ToList();
+                        }
 
                         // we check if the season matches any of the prequels
                         // since it's a prequel, we'll assume it's finished airing
@@ -411,17 +423,24 @@ namespace Shoko.Server
                     {
                         // This handles the first half of Aldnoah.Zero
                         // Check relations for sequels, then filter if the air dates match
-                        var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                            .Where(a => a?.RelationType == "Sequel").ToList();
+                        if (sequelAnimes == null)
+                        {
+                            // only check the relations if they have the same TvDB Series ID
+                            var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                                .Where(a => a?.RelationType == "Sequel" && RepoFactory.CrossRef_AniDB_TvDB
+                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
+                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
-                        List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
-                        allSequels.AddRange(relations);
-                        HashSet<int> visitedNodes = new HashSet<int> { aniepsNormal[0].AnimeID};
+                            List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
+                            allSequels.AddRange(relations);
+                            HashSet<int> visitedNodes = new HashSet<int> {aniepsNormal[0].AnimeID};
 
-                        GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allSequels, "Sequel");
+                            GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allSequels, "Sequel");
 
-                        var sequelAnimes = allSequels.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
-                            .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
+                            sequelAnimes = allSequels
+                                .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
+                        }
 
                         // It's a continuing anime
                         // We can't subtract the legnth of the sequel and match. We will assume that it's 1-1
