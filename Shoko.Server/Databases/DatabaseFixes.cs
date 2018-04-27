@@ -251,39 +251,31 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            var specials = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.GetEnglishTitle()))
+                .Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
+            int count = 0;
+            foreach (int animeID in specials)
             {
-                string query = @"SELECT DISTINCT AnimeID FROM AniDB_Episode
-  LEFT JOIN AniDB_Episode_Title on AniDB_Episode_Title.AniDB_EpisodeID = AniDB_Episode.EpisodeID
-WHERE Title IS NULL
-ORDER BY AnimeID";
-                var specials = session
-                    .CreateSQLQuery(query)
-                    .AddScalar("AnimeID", NHibernateUtil.Int32)
-                    .List<int>().ToList();
-                int count = 0;
-                foreach (int animeID in specials)
+                count++;
+                try
                 {
-                    count++;
-                    try
-                    {
-                        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                        if (anime == null) continue;
+                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                    if (anime == null) continue;
 
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, $"Generating Episode Info for {anime.MainTitle}",
-                            $" {count}/{specials.Count}");
-                        XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                        if (docAnime == null) continue;
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating,
+                        $"Generating Episode Info for {anime.MainTitle}",
+                        $" {count}/{specials.Count}");
+                    XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                    if (docAnime == null) continue;
 
-                        var episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
-                        anime.CreateEpisodes(episodes);
-                        // we don't need to save the AniDB_Anime, since nothing has changed in it
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
-                    }
+                    var episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
+                    anime.CreateEpisodes(episodes);
+                    // we don't need to save the AniDB_Anime, since nothing has changed in it
+                }
+                catch (Exception e)
+                {
+                    logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
                 }
             }
         }
