@@ -157,9 +157,8 @@ namespace Shoko.Server
                 // we'll need to split seasons and see if the series spans multiple or matches a specific season
                 List<TvDB_Episode> temp = new List<TvDB_Episode>();
                 TryToMatchSeasonsByAirDates(aniepsNormal, seasonLookup, isAiring, ref temp);
-                if (temp.Count > 0) tvepsNormal = temp;
 
-                one2one = aniepsNormal.Count == tvepsNormal.Count;
+                one2one = aniepsNormal.Count == temp.Count;
 
                 if (!one2one)
                 {
@@ -191,6 +190,8 @@ namespace Shoko.Server
                         {
                             one2one = false;
                             // skip the next step, since we are pretty confident in the season matching here
+                            // since we are skipping ahead, set tvepsNormal
+                            if (temp.Count > 0) tvepsNormal = temp;
                             goto matchepisodes;
                         }
 
@@ -204,15 +205,15 @@ namespace Shoko.Server
                     }
                 }
 
-                if (!one2one && !hasNumberedTitles)
+                // if temp is empty or the air dates matched everything, then try to recalculate, as there was likely  a problem
+                if (!one2one && !hasNumberedTitles && (!temp.Any() || temp.Count == tvepsNormal.Count))
                 {
-                    temp.Clear();
-
                     TryToMatchSeasonsByEpisodeTitles(aniepsNormal, seasonLookup, ref temp);
-                    if (temp.Count > 0) tvepsNormal = temp;
 
                     one2one = aniepsNormal.Count == tvepsNormal.Count;
                 }
+
+                if (temp.Count > 0) tvepsNormal = temp;
             }
 
             matchepisodes:

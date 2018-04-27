@@ -57,7 +57,7 @@ namespace Shoko.Server.Repositories.Direct
         }
 
         /// <summary>
-        /// Return a list of Anime IDs in a prequel/sequel line
+        /// Return a list of Anime IDs in a prequel/sequel line, including the given animeID, in order
         /// </summary>
         /// <param name="animeID"></param>
         /// <returns></returns>
