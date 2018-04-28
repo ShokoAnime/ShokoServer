@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AniDBAPI;
 using FluentNHibernate.MappingModel;
 using Nancy;
 using Nancy.ModelBinding;
@@ -61,6 +62,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct);
             Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
             Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
+            Get["/anidb/updatemissingcache", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct);
 
             #endregion
 
@@ -460,6 +462,45 @@ namespace Shoko.Server.API.v2.Modules
         private object UpdateAllAniDB()
         {
             Importer.RunImport_UpdateAllAniDB();
+            return APIStatus.OK();
+        }
+
+        private object UpdateMissingAniDBXML()
+        {
+            try
+            {
+                var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
+                logger.Info($"Starting the check for {allAnime.Count} anime XML files");
+                int updatedAnime = 0;
+                for (var i = 0; i < allAnime.Count; i++)
+                {
+                    var animeID = allAnime[i];
+                    if (i % 10 == 1) logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
+
+                    var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                    if (xml == null)
+                    {
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        cmd.Save();
+                        updatedAnime++;
+                        continue;
+                    }
+
+                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
+                    if (rawAnime == null)
+                    {
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        cmd.Save();
+                        updatedAnime++;
+                    }
+                }
+                logger.Info($"Updating {updatedAnime} anime");
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
+                return APIStatus.InternalError(e.Message);
+            }
             return APIStatus.OK();
         }
 
