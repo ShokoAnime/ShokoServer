@@ -138,95 +138,103 @@ namespace Shoko.Server.Commands
                 List<int> filesToRemove = new List<int>();
                 foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                 {
-                    totalItems++;
-                    if (myitem.IsWatched) watchedItems++;
-
-                    string hash = string.Empty;
-
-                    SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
-                    if (anifile != null)
+                    try
                     {
-                        hash = anifile.Hash;
-                    }
-                    else
-                    {
-                        // look for manually linked files
-                        List<CrossRef_File_Episode> xrefs =
-                            RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
-                        foreach (CrossRef_File_Episode xref in xrefs)
+                        totalItems++;
+                        if (myitem.IsWatched) watchedItems++;
+
+                        string hash = string.Empty;
+
+                        SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        if (anifile != null)
                         {
-                            if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
-                            hash = xref.Hash;
-                            break;
-                        }
-                    }
-
-                    // We couldn't evem find a hash, so remove it
-                    if (string.IsNullOrEmpty(hash))
-                    {
-                        filesToRemove.Add(myitem.ListID);
-                        continue;
-                    }
-
-                    // If there's no video local, we don't have it
-                    SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
-                    if (vl == null)
-                    {
-                        filesToRemove.Add(myitem.ListID);
-                        continue;
-                    }
-
-                    foreach (SVR_JMMUser juser in aniDBUsers)
-                    {
-                        bool localStatus = false;
-
-                        // doesn't matter which anidb user we use
-                        int jmmUserID = juser.JMMUserID;
-                        VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
-                        if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
-
-                        string action = string.Empty;
-                        if (localStatus == myitem.IsWatched) continue;
-
-                        // localStatus and AniDB Status are different
-                        DateTime? watchedDate = myitem.WatchedDate ?? DateTime.Now;
-                        if (localStatus)
-                        {
-                            // local = watched, anidb = unwatched
-                            if (ServerSettings.AniDB_MyList_ReadUnwatched)
-                            {
-                                modifiedItems++;
-                                vl.ToggleWatchedStatus(false, false, watchedDate,
-                                    false, jmmUserID, false,
-                                    true);
-                                action = "Used AniDB Status";
-                            }
-                            else if (ServerSettings.AniDB_MyList_SetWatched)
-                            {
-                                vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
-                                    false, true);
-                            }
+                            hash = anifile.Hash;
                         }
                         else
                         {
-                            // means local is un-watched, and anidb is watched
-                            if (ServerSettings.AniDB_MyList_ReadWatched)
+                            // look for manually linked files
+                            List<CrossRef_File_Episode> xrefs =
+                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            foreach (CrossRef_File_Episode xref in xrefs)
                             {
-                                modifiedItems++;
-                                vl.ToggleWatchedStatus(true, false, watchedDate, false,
-                                    jmmUserID, false, true);
-                                action = "Updated Local record to Watched";
-                            }
-                            else if (ServerSettings.AniDB_MyList_SetUnwatched)
-                            {
-                                vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
-                                    false, true);
+                                if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
+                                hash = xref.Hash;
+                                break;
                             }
                         }
 
-                        vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
-                            .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
-                        logger.Info($"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}");
+                        // We couldn't evem find a hash, so remove it
+                        if (string.IsNullOrEmpty(hash))
+                        {
+                            filesToRemove.Add(myitem.ListID);
+                            continue;
+                        }
+
+                        // If there's no video local, we don't have it
+                        SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
+                        if (vl == null)
+                        {
+                            filesToRemove.Add(myitem.ListID);
+                            continue;
+                        }
+
+                        foreach (SVR_JMMUser juser in aniDBUsers)
+                        {
+                            bool localStatus = false;
+
+                            // doesn't matter which anidb user we use
+                            int jmmUserID = juser.JMMUserID;
+                            VideoLocal_User userRecord = vl.GetUserRecord(juser.JMMUserID);
+                            if (userRecord != null) localStatus = userRecord.WatchedDate.HasValue;
+
+                            string action = string.Empty;
+                            if (localStatus == myitem.IsWatched) continue;
+
+                            // localStatus and AniDB Status are different
+                            DateTime? watchedDate = myitem.WatchedDate ?? DateTime.Now;
+                            if (localStatus)
+                            {
+                                // local = watched, anidb = unwatched
+                                if (ServerSettings.AniDB_MyList_ReadUnwatched)
+                                {
+                                    modifiedItems++;
+                                    vl.ToggleWatchedStatus(false, false, watchedDate,
+                                        false, jmmUserID, false,
+                                        true);
+                                    action = "Used AniDB Status";
+                                }
+                                else if (ServerSettings.AniDB_MyList_SetWatched)
+                                {
+                                    vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
+                                        false, true);
+                                }
+                            }
+                            else
+                            {
+                                // means local is un-watched, and anidb is watched
+                                if (ServerSettings.AniDB_MyList_ReadWatched)
+                                {
+                                    modifiedItems++;
+                                    vl.ToggleWatchedStatus(true, false, watchedDate, false,
+                                        jmmUserID, false, true);
+                                    action = "Updated Local record to Watched";
+                                }
+                                else if (ServerSettings.AniDB_MyList_SetUnwatched)
+                                {
+                                    vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
+                                        false, true);
+                                }
+                            }
+
+                            vl.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).Where(a => a != null)
+                                .DistinctBy(a => a.AnimeSeriesID).ForEach(a => modifiedSeries.Add(a));
+                            logger.Info(
+                                $"MYLISTDIFF:: File {vl.FileName} - Local Status = {localStatus}, AniDB Status = {myitem.IsWatched} --- {action}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error($"A MyList Item threw an error while syncing: {ex}");
                     }
                 }
 
@@ -251,7 +259,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_SyncMyList: {0} ", ex.Message);
+                logger.Error(ex, "Error processing CommandRequest_SyncMyList: {0} ", ex);
             }
         }
 
