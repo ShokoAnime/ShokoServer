@@ -257,9 +257,24 @@ namespace Shoko.Server
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 
                 var helper = ShokoService.AnidbProcessor;
-                contract.IsBanned = helper.IsHttpBanned || helper.IsUdpBanned;
-                contract.BanReason = (helper.IsHttpBanned ? helper.HttpBanTime : helper.UdpBanTime).ToString();
-                contract.BanOrigin = helper.BanOrigin;
+                if (helper.IsHttpBanned)
+                {
+                    contract.IsBanned = true;
+                    contract.BanReason = helper.HttpBanTime.ToString();
+                    contract.BanOrigin = @"HTTP";
+                }
+                else if (helper.IsUdpBanned)
+                {
+                    contract.IsBanned = true;
+                    contract.BanReason = helper.UdpBanTime.ToString();
+                    contract.BanOrigin = @"UDP";
+                }
+                else
+                {
+                    contract.IsBanned = false;
+                    contract.BanReason = string.Empty;
+                    contract.BanOrigin = string.Empty;
+                }
             }
             catch (Exception ex)
             {
@@ -679,15 +694,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorHasher.ProcessingCommands || ShokoService.CmdProcessorHasher.IsWorkerBusy)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
-
+                RepoFactory.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
             }
             catch (Exception ex)
@@ -702,14 +709,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorImages.ProcessingCommands || ShokoService.CmdProcessorImages.IsWorkerBusy)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
+                RepoFactory.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
             }
             catch (Exception ex)
@@ -724,14 +724,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorGeneral.ProcessingCommands || ShokoService.CmdProcessorGeneral.IsWorkerBusy)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
+                RepoFactory.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)

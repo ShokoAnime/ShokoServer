@@ -46,15 +46,11 @@ namespace Shoko.Server
 
         private Timer logoutTimer;
 
-        [Obsolete("Use HTTP/UDP ban time")]
-        public DateTime? BanTime { get; set; }
-
+        private Timer httpBanResetTimer;
+        private Timer udpBanResetTimer;
 
         public DateTime? HttpBanTime { get; set; }
         public DateTime? UdpBanTime { get; set; }
-
-        [Obsolete("Use HTTP/UDP ban status")]
-        private bool isBanned;
 
         private bool _isHttpBanned;
         private bool _isUdpBanned;
@@ -66,6 +62,19 @@ namespace Shoko.Server
             {
                 _isHttpBanned = value;
                 HttpBanTime = DateTime.Now;
+                if (value)
+                {
+                    ServerInfo.Instance.IsBanned = true;
+                    ServerInfo.Instance.BanOrigin = @"HTTP";
+                    ServerInfo.Instance.BanReason = HttpBanTime.ToString();
+                    httpBanResetTimer.Start();
+                }
+                else if (!IsUdpBanned)
+                {
+                    ServerInfo.Instance.IsBanned = false;
+                    ServerInfo.Instance.BanOrigin = string.Empty;
+                    ServerInfo.Instance.BanReason = string.Empty;
+                }
             }
         }
 
@@ -76,40 +85,19 @@ namespace Shoko.Server
             {
                 _isUdpBanned = value;
                 UdpBanTime = DateTime.Now;
-            }
-        }
-
-
-        [Obsolete("Use HTTP/UDP ban status")]
-        public bool IsBanned
-        {
-            get => isBanned;
-
-            set
-            {
-                isBanned = value;
-                BanTime = DateTime.Now;
-
-                ServerInfo.Instance.IsBanned = isBanned;
-                if (isBanned)
+                if (value)
                 {
-                    ShokoService.CmdProcessorGeneral.Paused = true;
-                    ServerInfo.Instance.BanReason = BanTime.ToString();
+                    ServerInfo.Instance.IsBanned = true;
+                    ServerInfo.Instance.BanOrigin = @"UDP";
+                    ServerInfo.Instance.BanReason = UdpBanTime.ToString();
+                    udpBanResetTimer.Start();
                 }
-                else
+                else if (!IsHttpBanned)
+                {
+                    ServerInfo.Instance.IsBanned = false;
+                    ServerInfo.Instance.BanOrigin = string.Empty;
                     ServerInfo.Instance.BanReason = string.Empty;
-            }
-        }
-
-        private string banOrigin = string.Empty;
-
-        public string BanOrigin
-        {
-            get => banOrigin;
-            set
-            {
-                banOrigin = value;
-                ServerInfo.Instance.BanOrigin = value;
+                }
             }
         }
 
@@ -189,6 +177,14 @@ namespace Shoko.Server
 
             logger.Info("starting logout timer...");
             logoutTimer.Start();
+
+            httpBanResetTimer = new Timer();
+            httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
+            httpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
+
+            udpBanResetTimer = new Timer();
+            udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
+            udpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
         }
 
         public void Dispose()
@@ -276,6 +272,16 @@ namespace Shoko.Server
                     ForceLogout();
                 }
             }
+        }
+
+        private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            IsHttpBanned = false;
+        }
+
+        private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            IsUdpBanned = false;
         }
 
         private void SetWaitingOnResponse(bool isWaiting)

@@ -111,6 +111,8 @@ namespace Shoko.Server.Commands
             }
         }
 
+        public CommandRequest CurrentCommand { get; private set; }
+
         public bool ProcessingCommands => processingCommands;
 
         public bool IsWorkerBusy => workerCommands.IsBusy;
@@ -127,6 +129,7 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            CurrentCommand = null;
             processingCommands = false;
             paused = false;
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
@@ -225,7 +228,19 @@ namespace Shoko.Server.Commands
                 if (workerCommands.CancellationPending)
                     return;
 
-                icr.ProcessCommand();
+                try
+                {
+                    CurrentCommand = crdb;
+                    icr.ProcessCommand();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                }
+                finally
+                {
+                    CurrentCommand = null;
+                }
 
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountHasher();

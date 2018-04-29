@@ -65,9 +65,6 @@ namespace Shoko.Server.Commands
                             extraParams = new string[0]
                         };
                         pauseTime = null;
-                        ShokoService.AnidbProcessor.IsUdpBanned = false;
-                        ShokoService.AnidbProcessor.IsHttpBanned = false;
-                        
                     }
                     ServerInfo.Instance.GeneralQueuePaused = paused;
                     ServerInfo.Instance.GeneralQueueRunning = !paused;
@@ -119,6 +116,8 @@ namespace Shoko.Server.Commands
             }
         }
 
+        public CommandRequest CurrentCommand { get; private set; }
+
         public bool ProcessingCommands => processingCommands;
 
         public bool IsWorkerBusy => workerCommands.IsBusy;
@@ -137,6 +136,7 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            CurrentCommand = null;
             processingCommands = false;
             paused = false;
 
@@ -145,12 +145,6 @@ namespace Shoko.Server.Commands
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
             QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
-
-            if (QueueCount > 0 && !workerCommands.IsBusy)
-            {
-                processingCommands = true;
-                workerCommands.RunWorkerAsync();
-            }
         }
 
         public void Init()
@@ -220,8 +214,8 @@ namespace Shoko.Server.Commands
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
                 if (crdb == null)
                 {
-                    if (QueueCount > 0)
-                        logger.Error($"No command returned from repo, but there are {QueueCount} commands left");
+                    if (QueueCount > 0 && !ShokoService.AnidbProcessor.IsHttpBanned && !ShokoService.AnidbProcessor.IsUdpBanned)
+                        logger.Error($"No command returned from database, but there are {QueueCount} commands left");
                     return;
                 }
 
@@ -243,11 +237,16 @@ namespace Shoko.Server.Commands
                     logger.Trace("Processing command request: {0}", crdb.CommandID);
                     try
                     {
+                        CurrentCommand = crdb;
                         icr.ProcessCommand();
                     }
                     catch (Exception ex)
                     {
                         logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                    }
+                    finally
+                    {
+                        CurrentCommand = null;
                     }
                 }
 

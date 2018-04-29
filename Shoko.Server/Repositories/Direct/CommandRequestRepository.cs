@@ -42,7 +42,6 @@ namespace Shoko.Server.Repositories.Direct
             (int) CommandRequestType.AniDB_UpdateWatchedUDP,
             (int) CommandRequestType.AniDB_UpdateMylistStats,
             (int) CommandRequestType.AniDB_VoteAnime
-
         };
 
         private static readonly HashSet<int> AniDbHttpCommands = new HashSet<int>
@@ -52,9 +51,21 @@ namespace Shoko.Server.Repositories.Direct
             (int) CommandRequestType.AniDB_SyncVotes,
         };
 
-    private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
+        private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
             .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
             .ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralUDPBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbUdpCommands).ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralHTTPBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbHttpCommands).ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralFullBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
 
         private CommandRequestRepository()
         {
@@ -113,16 +124,42 @@ namespace Shoko.Server.Repositories.Direct
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    IList<CommandRequest> crs = session.QueryOver<CommandRequest>()
-                        .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
-                        .OrderBy(cr => cr.Priority).Asc
-                        .ThenBy(cr => cr.DateTimeUpdated).Asc
-                        .List<CommandRequest>();
+                    IList<CommandRequest> crs;
 
-                    if (ShokoService.AnidbProcessor.IsHttpBanned)
-                        crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
-                    if (ShokoService.AnidbProcessor.IsUdpBanned)
-                        crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
+                    // This is called very often, so speed it up as much as possible
+                    // We can spare bytes of RAM to speed up the command queue
+                    if (ShokoService.AnidbProcessor.IsHttpBanned && ShokoService.AnidbProcessor.IsUdpBanned)
+                    {
+                        crs = session.QueryOver<CommandRequest>()
+                            .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneralFullBan.ToArray())
+                            .OrderBy(cr => cr.Priority).Asc
+                            .ThenBy(cr => cr.DateTimeUpdated).Asc
+                            .List<CommandRequest>();
+                    }
+                    else if (ShokoService.AnidbProcessor.IsUdpBanned)
+                    {
+                        crs = session.QueryOver<CommandRequest>()
+                            .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneralUDPBan.ToArray())
+                            .OrderBy(cr => cr.Priority).Asc
+                            .ThenBy(cr => cr.DateTimeUpdated).Asc
+                            .List<CommandRequest>();
+                    }
+                    else if (ShokoService.AnidbProcessor.IsHttpBanned)
+                    {
+                        crs = session.QueryOver<CommandRequest>()
+                            .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneralHTTPBan.ToArray())
+                            .OrderBy(cr => cr.Priority).Asc
+                            .ThenBy(cr => cr.DateTimeUpdated).Asc
+                            .List<CommandRequest>();
+                    }
+                    else
+                    {
+                        crs = session.QueryOver<CommandRequest>()
+                            .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
+                            .OrderBy(cr => cr.Priority).Asc
+                            .ThenBy(cr => cr.DateTimeUpdated).Asc
+                            .List<CommandRequest>();
+                    }
 
                     return crs.Count > 0 ? crs[0] : null;
                 }
@@ -138,10 +175,9 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
+                // This is used to clear the queue, we don't need order
                 List<CommandRequest> crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray())
-                    .OrderBy(cr => cr.Priority).Asc
-                    .ThenBy(cr => cr.DateTimeUpdated).Asc
                     .List<CommandRequest>().ToList();
 
                 return crs;
@@ -231,11 +267,6 @@ namespace Shoko.Server.Repositories.Direct
                 var crs = session.QueryOver<CommandRequest>()
                     .WhereRestrictionOn(field => field.CommandType).IsIn(CommandTypesGeneral.ToArray()).List();
 
-                if (ShokoService.AnidbProcessor.IsHttpBanned)
-                    crs = crs.Where(s => !AniDbHttpCommands.Contains(s.CommandType)).ToList();
-                if (ShokoService.AnidbProcessor.IsUdpBanned)
-                    crs = crs.Where(s => !AniDbUdpCommands.Contains(s.CommandType)).ToList();
-
                 return crs.Count;
             }
         }
@@ -275,6 +306,87 @@ namespace Shoko.Server.Repositories.Direct
                     .List<CommandRequest>().ToList();
 
                 return crs;
+            }
+        }
+
+        public void ClearGeneralQueue()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var currentCommand = ShokoService.CmdProcessorGeneral.CurrentCommand;
+                using (var transaction = session.BeginTransaction())
+                {
+                    if (currentCommand != null)
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
+                            .SetInt32("currentid", currentCommand.CommandRequestID)
+                            .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
+                    }
+                    else
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
+                            .SetParameterList("comtypes", CommandTypesGeneral).ExecuteUpdate();
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
+        public void ClearHasherQueue()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var currentCommand = ShokoService.CmdProcessorHasher.CurrentCommand;
+                using (var transaction = session.BeginTransaction())
+                {
+                    if (currentCommand != null)
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
+                            .SetInt32("currentid", currentCommand.CommandRequestID)
+                            .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
+                    }
+                    else
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
+                            .SetParameterList("comtypes", CommandTypesHasher).ExecuteUpdate();
+                    }
+                    transaction.Commit();
+                }
+            }
+        }
+
+        public void ClearImageQueue()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var currentCommand = ShokoService.CmdProcessorImages.CurrentCommand;
+                using (var transaction = session.BeginTransaction())
+                {
+                    if (currentCommand != null)
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandRequestID != :currentid AND CommandType IN (:comtypes)")
+                            .SetInt32("currentid", currentCommand.CommandRequestID)
+                            .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
+                    }
+                    else
+                    {
+                        session
+                            .CreateSQLQuery(
+                                "DELETE FROM CommandRequest WHERE CommandType IN (:comtypes)")
+                            .SetParameterList("comtypes", CommandTypesImages).ExecuteUpdate();
+                    }
+                    transaction.Commit();
+                }
             }
         }
     }

@@ -839,14 +839,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                while (ShokoService.CmdProcessorHasher.ProcessingCommands)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
-
+                RepoFactory.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
 
                 return APIStatus.OK();
@@ -867,14 +860,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                while (ShokoService.CmdProcessorGeneral.ProcessingCommands)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
-
+                RepoFactory.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorGeneral.Init();
 
                 return APIStatus.OK();
@@ -895,14 +881,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                while (ShokoService.CmdProcessorImages.ProcessingCommands)
-                {
-                    Thread.Sleep(200);
-                }
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
-
+                RepoFactory.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
 
                 return APIStatus.OK();

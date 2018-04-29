@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Force.DeepCloner;
+using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -13,6 +14,8 @@ namespace Shoko.Server.Commands
 {
     public class CommandProcessorImages : IDisposable
     {
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         private readonly BackgroundWorker workerCommands = new BackgroundWorker();
         private bool processingCommands;
         private DateTime? pauseTime;
@@ -109,6 +112,8 @@ namespace Shoko.Server.Commands
             }
         }
 
+        public CommandRequest CurrentCommand { get; private set; }
+
         public bool ProcessingCommands => processingCommands;
 
         public bool IsWorkerBusy => workerCommands.IsBusy;
@@ -125,6 +130,7 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            CurrentCommand = null;
             processingCommands = false;
             paused = false;
 
@@ -218,7 +224,19 @@ namespace Shoko.Server.Commands
 
                 QueueState = icr.PrettyDescription;
 
-                icr.ProcessCommand();
+                try
+                {
+                    CurrentCommand = crdb;
+                    icr.ProcessCommand();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                }
+                finally
+                {
+                    CurrentCommand = null;
+                }
 
                 RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();

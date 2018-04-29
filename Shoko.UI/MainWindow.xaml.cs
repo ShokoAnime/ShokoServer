@@ -334,13 +334,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                // wait until the queue stops
-                while (ShokoService.CmdProcessorImages.ProcessingCommands || ShokoService.CmdProcessorImages.IsWorkerBusy)
-                    Thread.Sleep(200);
-                Thread.Sleep(200);
-
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestImages());
-
+                RepoFactory.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
             });
 
@@ -365,11 +359,8 @@ namespace Shoko.UI
             Task task = new Task(() =>
             {
                 ShokoService.CmdProcessorGeneral.Stop();
-                while (ShokoService.CmdProcessorGeneral.ProcessingCommands || ShokoService.CmdProcessorGeneral.IsWorkerBusy)
-                    Thread.Sleep(200);
-                Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestGeneral());
+                RepoFactory.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 
@@ -394,11 +385,8 @@ namespace Shoko.UI
             Task task = new Task(() =>
             {
                 ShokoService.CmdProcessorHasher.Stop();
-                while (ShokoService.CmdProcessorHasher.ProcessingCommands || ShokoService.CmdProcessorHasher.IsWorkerBusy)
-                    Thread.Sleep(200);
-                Thread.Sleep(200);
 
-                RepoFactory.CommandRequest.Delete(RepoFactory.CommandRequest.GetAllCommandRequestHasher());
+                RepoFactory.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 
