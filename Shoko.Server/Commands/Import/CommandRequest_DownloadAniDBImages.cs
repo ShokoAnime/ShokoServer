@@ -213,7 +213,7 @@ namespace Shoko.Server.Commands
             {
                 logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} - {1}", AnimeID, ex);
             }
-            AniDbRateLimiter.Instance.ResetRate();
+            AniDbRateLimiter.Instance.Reset();
         }
 
         private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
@@ -228,7 +228,9 @@ namespace Shoko.Server.Commands
                     //OnImageDownloadEvent(new ImageDownloadEventArgs("", req, ImageDownloadEventType.Started));
                     //BaseConfig.MyAnimeLog.Write("ProcessImages: Download: {0}  *** to ***  {1}", req.URL, fullName);
 
+                    AniDbImageRateLimiter.Instance.EnsureRate();
                     byte[] bytes = client.DownloadData(downloadURL);
+                    AniDbImageRateLimiter.Instance.Reset();
                     if (bytes.Length < 4)
                         throw new WebException(
                             "The image download stream returned less than 4 bytes (a valid image has 2-4 bytes in the header)");
@@ -282,7 +284,7 @@ namespace Shoko.Server.Commands
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
                     return anime.PosterPath;
-                    
+
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
                     return chr.GetPosterPath();

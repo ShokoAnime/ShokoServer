@@ -10,27 +10,14 @@ namespace Shoko.Server.AniDB_API
         private static readonly AniDbImageRateLimiter instance = new AniDbImageRateLimiter();
 
         // Short Term rate
-        private static int ShortDelay = 500;
-
-        // Long Term rate
-        private static int LongDelay = 1000;
-
-        // Switch to longer delay after 1 hour
-        private static long shortPeriod = 60 * 60 * 1000;
-
-        // Switch to shorter delay after 30 minutes of inactivity
-        private static long resetPeriod = 30 * 60 * 1000;
-
+        private static int ShortDelay = 150;
         private static Stopwatch _requestWatch = new Stopwatch();
-
-        private static Stopwatch _activeTimeWatch = new Stopwatch();
 
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
         static AniDbImageRateLimiter()
         {
             _requestWatch.Start();
-            _activeTimeWatch.Start();
         }
 
         public static AniDbImageRateLimiter Instance => instance;
@@ -39,11 +26,9 @@ namespace Shoko.Server.AniDB_API
         {
         }
 
-        public void ResetRate()
+        public void Reset()
         {
-            long elapsedTime = _activeTimeWatch.ElapsedMilliseconds;
-            _activeTimeWatch.Restart();
-            Logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
+            _requestWatch.Restart();
         }
 
         public void EnsureRate()
@@ -52,22 +37,15 @@ namespace Shoko.Server.AniDB_API
             {
                 long delay = _requestWatch.ElapsedMilliseconds;
 
-                if (delay > resetPeriod)
-                {
-                    ResetRate();
-                }
-
-                int currentDelay = _activeTimeWatch.ElapsedMilliseconds > shortPeriod ? LongDelay : ShortDelay;
-
-                if (delay > currentDelay)
+                if (delay > ShortDelay)
                 {
                     Logger.Trace($"Time since last request is {delay} ms, not throttling.");
                     _requestWatch.Restart();
                     return;
                 }
 
-                Logger.Trace($"Time since last request is {delay} ms, throttling for {currentDelay}.");
-                Thread.Sleep(currentDelay);
+                Logger.Trace($"Time since last request is {delay} ms, throttling for {ShortDelay}.");
+                Thread.Sleep(ShortDelay);
 
                 Logger.Trace("Sending AniDB command.");
                 _requestWatch.Restart();
