@@ -70,6 +70,7 @@ namespace Shoko.Server.LZ4
             {
             }
         }
+
         public static void HandleDeserializationError(object sender, ErrorEventArgs errorArgs)
         {
             var currentError = errorArgs.ErrorContext.Error.Message;
