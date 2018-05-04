@@ -334,6 +334,8 @@ namespace Shoko.Server.Repositories.Direct
                     transaction.Commit();
                 }
             }
+
+            ShokoService.CmdProcessorGeneral.QueueCount = GetQueuedCommandCountGeneral();
         }
 
         public void ClearHasherQueue()
@@ -361,6 +363,8 @@ namespace Shoko.Server.Repositories.Direct
                     transaction.Commit();
                 }
             }
+
+            ShokoService.CmdProcessorHasher.QueueCount = GetQueuedCommandCountHasher();
         }
 
         public void ClearImageQueue()
@@ -388,6 +392,8 @@ namespace Shoko.Server.Repositories.Direct
                     transaction.Commit();
                 }
             }
+
+            ShokoService.CmdProcessorImages.QueueCount = GetQueuedCommandCountImages();
         }
     }
 }
