@@ -154,7 +154,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (contract == null) ser.UpdateContract();
 
             sr.id = ser.AnimeSeriesID;
-            sr.name = ser.GetSeriesNameFromContract(contract);
+            sr.name = ser.GetSeriesName();
             GenerateSizes(sr, ael, uid);
 
             int? season = ael.FirstOrDefault(a =>

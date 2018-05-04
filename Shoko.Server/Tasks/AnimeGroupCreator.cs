@@ -343,24 +343,23 @@ namespace Shoko.Server.Tasks
             DateTime now)
         {
             SVR_AnimeGroup animeGroup = new SVR_AnimeGroup();
-            string groupName = null;
+            string groupName;
 
             if (mainSeries != null)
             {
                 animeGroup.Populate(mainSeries, now);
-                groupName = mainSeries.GetSeriesName();
+                groupName = animeGroup.GroupName;
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
                 SVR_AniDB_Anime mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
 
                 animeGroup.Populate(mainAnime, now);
-                groupName = mainAnime.GetFormattedTitle();
+                groupName = animeGroup.GroupName;
             }
 
-            groupName =
-                _truncateYearRegex.Replace(groupName,
-                    String.Empty); // If the title appears to end with a year suffix, then remove it
+            // If the title appears to end with a year suffix, then remove it
+            groupName = _truncateYearRegex.Replace(groupName, string.Empty);
             animeGroup.GroupName = groupName;
             animeGroup.SortName = groupName;
 
@@ -381,7 +380,7 @@ namespace Shoko.Server.Tasks
             if (series == null)
                 throw new ArgumentNullException(nameof(series));
 
-            SVR_AnimeGroup animeGroup = null;
+            SVR_AnimeGroup animeGroup;
 
             if (_autoGroupSeries)
             {

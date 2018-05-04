@@ -826,61 +826,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
-        public string PreferredTitle
-        {
-            get
-            {
-                List<AniDB_Anime_Title> titles = GetTitles();
-
-                foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
-                {
-                    string thisLanguage = nlan.Language.Trim().ToUpper();
-                    // Romaji and English titles will be contained in MAIN and/or OFFICIAL
-                    // we won't use synonyms for these two languages
-                    if (thisLanguage == "X-JAT" || thisLanguage == "EN")
-                    {
-                        // first try the  Main title
-                        for (int i = 0; i < titles.Count; i++)
-                        {
-                            if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() ==
-                                Shoko.Models.Constants.AnimeTitleType.Main.ToUpper())
-                                return titles[i].Title;
-                        }
-                    }
-
-                    // now try the official title
-                    for (int i = 0; i < titles.Count; i++)
-                    {
-                        if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                            titles[i].TitleType.Trim().ToUpper() ==
-                            Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
-                            return titles[i].Title;
-                    }
-
-                    // try synonyms
-                    if (ServerSettings.LanguageUseSynonyms)
-                    {
-                        for (int i = 0; i < titles.Count; i++)
-                        {
-                            if (titles[i].Language.Trim().ToUpper() == thisLanguage &&
-                                titles[i].TitleType.Trim().ToUpper() ==
-                                Shoko.Models.Constants.AnimeTitleType.Synonym.ToUpper())
-                                return titles[i].Title;
-                        }
-                    }
-                }
-
-                // otherwise just use the main title
-                for (int i = 0; i < titles.Count; i++)
-                {
-                    if (titles[i].TitleType.Trim().ToUpper() == Shoko.Models.Constants.AnimeTitleType.Main.ToUpper())
-                        return titles[i].Title;
-                }
-
-                return "ERROR";
-            }
-        }
+        public string PreferredTitle => GetFormattedTitle();
 
 
         [XmlIgnore]

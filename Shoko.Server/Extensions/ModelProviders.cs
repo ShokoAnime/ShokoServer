@@ -838,14 +838,20 @@ namespace Shoko.Server.Extensions
         {
             SVR_AniDB_Anime anime = series.GetAnime();
 
-            agroup.Populate(anime, now);
+            agroup.Description = anime.Description;
+            string name = series.GetSeriesName();
+            agroup.GroupName = name;
+            agroup.SortName = name;
+            agroup.DateTimeUpdated = now;
+            agroup.DateTimeCreated = now;
         }
 
         public static void Populate(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
         {
             agroup.Description = anime.Description;
-            agroup.GroupName = anime.PreferredTitle;
-            agroup.SortName = anime.PreferredTitle;
+            string name = anime.GetFormattedTitle();
+            agroup.GroupName = name;
+            agroup.SortName = name;
             agroup.DateTimeUpdated = now;
             agroup.DateTimeCreated = now;
         }

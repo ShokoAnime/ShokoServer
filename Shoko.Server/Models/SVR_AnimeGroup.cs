@@ -8,10 +8,12 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models
 {
@@ -120,6 +122,25 @@ namespace Shoko.Server.Models
         }
 
         /// <summary>
+        /// This checks all related anime by settings for the GroupName. It will likely be slow
+        /// </summary>
+        /// <returns></returns>
+        public bool HasCustomName()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            {
+                var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session.Wrap());
+                int animeID = GetSeries().FirstOrDefault()?.GetAnime().AnimeID ?? 0;
+                if (animeID == 0) return false;
+
+                var animes = groupingCalculator.GetIdsOfAnimeInSameGroup(animeID)
+                    .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a)).Where(a => a != null)
+                    .SelectMany(a => a.GetAllTitles()).ToHashSet();
+                return !animes.Contains(GroupName);
+            }
+        }
+
+        /// <summary>
         /// Renames all Anime groups based on the user's language preferences
         /// </summary>
         public static void RenameAllGroups()
@@ -128,7 +149,7 @@ namespace Shoko.Server.Models
             {
                 List<SVR_AnimeSeries> list = grp.GetSeries();
 
-                // only rename the group if it has one direct child Anime Series
+                // rename the group if it only has one direct child Anime Series
                 if (list.Count == 1)
                 {
                     RepoFactory.AnimeSeries.Save(list[0], false);
@@ -143,14 +164,12 @@ namespace Shoko.Server.Models
                     #region Naming
 
                     SVR_AnimeSeries series = null;
-                    bool hasCustomName = true;
+                    bool hasCustomName = grp.HasCustomName();
                     if (grp.DefaultAnimeSeriesID.HasValue)
                     {
                         series = RepoFactory.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
                         if (series == null)
                             grp.DefaultAnimeSeriesID = null;
-                        else
-                            hasCustomName = false;
                     }
 
                     if (!grp.DefaultAnimeSeriesID.HasValue)
@@ -164,20 +183,17 @@ namespace Shoko.Server.Models
                             }
                             else
                             {
-                                if (ser.GetAnime().GetTitles().Any(title => title.Title.Equals(grp.GroupName)))
-                                    hasCustomName = false;
+                                if (hasCustomName)
+                                {
+                                    #region tvdb names
 
-                                #region tvdb names
+                                    List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
+                                    if (tvdbs != null && tvdbs.Count != 0)
+                                        if (tvdbs.Any(tvdbser => tvdbser.SeriesName.Equals(grp.GroupName)))
+                                            hasCustomName = false;
 
-                                List<TvDB_Series> tvdbs = ser.GetTvDBSeries();
-                                if (tvdbs != null && tvdbs.Count != 0)
-                                    if (tvdbs.Any(tvdbser => tvdbser.SeriesName.Equals(grp.GroupName)))
-                                        hasCustomName = false;
-
-                                #endregion
-
-                                RepoFactory.AnimeSeries.Save(ser, false);
-                                ser.UpdateStats(true, true, false);
+                                    #endregion
+                                }
                                 if (series == null)
                                 {
                                     series = ser;

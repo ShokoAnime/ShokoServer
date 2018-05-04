@@ -93,61 +93,6 @@ namespace Shoko.Server.Models
             return seriesName;
         }
 
-        public string GetFormattedTitle(List<CL_AnimeTitle> titles)
-        {
-            foreach (NamingLanguage nlan in Languages.PreferredNamingLanguages)
-            {
-                string thisLanguage = nlan.Language.Trim().ToUpper();
-
-                // Romaji and English titles will be contained in MAIN and/or OFFICIAL
-                // we won't use synonyms for these two languages
-                if (thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.Romaji) ||
-                    thisLanguage.Equals(Shoko.Models.Constants.AniDBLanguageType.English))
-                    foreach (CL_AnimeTitle title in titles)
-                    {
-                        string titleType = title.TitleType.Trim().ToUpper();
-                        // first try the  Main title
-                        if (titleType == Shoko.Models.Constants.AnimeTitleType.Main.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage)
-                            return title.Title;
-                    }
-
-                // now try the official title
-                foreach (CL_AnimeTitle title in titles)
-                {
-                    string titleType = title.TitleType.Trim().ToUpper();
-                    if (titleType == Shoko.Models.Constants.AnimeTitleType.Official.ToUpper() &&
-                        title.Language.Trim().ToUpper() == thisLanguage)
-                        return title.Title;
-                }
-
-                // try synonyms
-                if (ServerSettings.LanguageUseSynonyms)
-                    foreach (CL_AnimeTitle title in titles)
-                    {
-                        string titleType = title.TitleType.Trim().ToUpper();
-                        if (titleType == Shoko.Models.Constants.AnimeTitleType.Synonym.ToUpper() &&
-                            title.Language.Trim().ToUpper() == thisLanguage)
-                            return title.Title;
-                    }
-            }
-
-            return null;
-        }
-
-        public string GetSeriesNameFromContract(CL_AnimeSeries_User con)
-        {
-            if (!string.IsNullOrEmpty(con.SeriesNameOverride))
-                return SeriesNameOverride;
-            if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
-                return GetFormattedTitle(con.AniDBAnime.AnimeTitles) ?? con.AniDBAnime.AniDBAnime.MainTitle;
-            if (con.TvDB_Series != null && con.TvDB_Series.Count > 0 &&
-                !string.IsNullOrEmpty(con.TvDB_Series[0].SeriesName) &&
-                !con.TvDB_Series[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
-                return con.TvDB_Series[0].SeriesName;
-            return GetFormattedTitle(con.AniDBAnime.AnimeTitles) ?? con.AniDBAnime.AniDBAnime.MainTitle;
-        }
-
         public string GenresRaw
         {
             get
@@ -292,7 +237,7 @@ namespace Shoko.Server.Models
                     contract.PlayedCount = rr.PlayedCount;
                     contract.WatchedCount = rr.WatchedCount;
                     contract.StoppedCount = rr.StoppedCount;
-                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
+                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesName();
                     return contract;
                 }
 
@@ -307,7 +252,7 @@ namespace Shoko.Server.Models
                 }
 
                 if (contract.AniDBAnime?.AniDBAnime != null)
-                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesNameFromContract(contract);
+                    contract.AniDBAnime.AniDBAnime.FormattedTitle = GetSeriesName();
 
                 return contract;
             }
