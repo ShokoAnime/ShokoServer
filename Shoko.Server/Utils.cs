@@ -629,7 +629,7 @@ namespace Shoko.Server
             ret = ret.Replace(@"\", @"\");
             ret = ret.Replace(@"/", @"⁄");
             ret = ret.Replace(@":", @"։");
-            ret = ret.Replace("\"", "״"); // double quote
+            ret = ret.Replace("\"", "″"); // double quote
             ret = ret.Replace(@">", @"›");
             ret = ret.Replace(@"<", @"‹");
             ret = ret.Replace(@"?", @"﹖");
