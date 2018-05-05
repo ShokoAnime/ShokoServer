@@ -13,7 +13,7 @@ namespace Shoko.Server.Tasks
     /// <remarks>
     /// This class is NOT thread safe.
     /// </remarks>
-    internal class AutoAnimeGroupCalculator
+    public class AutoAnimeGroupCalculator
     {
         private static readonly Regex TitleNoiseRegex = new Regex(@"[^\w\s]|\d|gekijouban|the animation|the movie",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
