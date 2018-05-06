@@ -831,28 +831,10 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
-
-            IReadOnlyList<CrossRef_AniDB_TvDB> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-            List<int> alreadyLinked = allCrossRefs.Select(xref => xref.AniDBID).ToList();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {
-                if (alreadyLinked.Contains(ser.AniDB_ID)) continue;
-
-                SVR_AniDB_Anime anime = ser.GetAnime();
-
-                if (anime != null)
-                {
-                    if (!anime.GetSearchOnTvDB()) continue; // Don't log if it isn't supposed to be there
-                    logger.Trace($"Found anime without tvDB association: {anime.MainTitle}");
-                    if (anime.IsTvDBLinkDisabled())
-                    {
-                        logger.Trace($"Skipping scan tvDB link because it is disabled: {anime.MainTitle}");
-                        continue;
-                    }
-                }
-
                 CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(ser.AniDB_ID, false);
                 cmd.Save();
             }
