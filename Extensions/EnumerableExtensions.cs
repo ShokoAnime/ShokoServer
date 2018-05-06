@@ -162,6 +162,61 @@ namespace Shoko.Commons.Extensions
             }
         }
 
+
+        // These next few for MaxBy are borrowed from MoreLINQ
+         public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector)
+        {
+            return source.MaxBy(selector, null);
+        }
+
+        public static IEnumerable<TSource> MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector, IComparer<TKey> comparer)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+
+            comparer = comparer ?? Comparer<TKey>.Default;
+            return ExtremaBy(source, selector, (x, y) => comparer.Compare(x, y));
+        }
+
+        static IEnumerable<TSource> ExtremaBy<TSource, TKey>(IEnumerable<TSource> source,
+            Func<TSource, TKey> selector, Func<TKey, TKey, int> comparer)
+        {
+            foreach (var item in Extrema())
+                yield return item;
+
+            IEnumerable<TSource> Extrema()
+            {
+                using (var e = source.GetEnumerator())
+                {
+                    if (!e.MoveNext())
+                        return new List<TSource>();
+
+                    var extrema = new List<TSource> { e.Current };
+                    var extremaKey = selector(e.Current);
+
+                    while (e.MoveNext())
+                    {
+                        var item = e.Current;
+                        var key = selector(item);
+                        var comparison = comparer(key, extremaKey);
+                        if (comparison > 0)
+                        {
+                            extrema = new List<TSource> { item };
+                            extremaKey = key;
+                        }
+                        else if (comparison == 0)
+                        {
+                            extrema.Add(item);
+                        }
+                    }
+
+                    return extrema;
+                }
+            }
+        }
+
         /// <summary>
         /// Converts the specified sequence into a <see cref="HashSet{T}"/>
         /// </summary>
