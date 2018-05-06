@@ -406,6 +406,13 @@ namespace Shoko.Server
             }
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
+
+            var seriesWithoutLinks = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
+            foreach (var series in seriesWithoutLinks)
+            {
+                var cmd = new CommandRequest_TvDBSearchAnime(series.AniDB_ID, true);
+                cmd.Save();
+            }
         }
 
         public static void RunImport_ImportFolderNewFiles(SVR_ImportFolder fldr)

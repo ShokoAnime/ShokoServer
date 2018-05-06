@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
@@ -75,7 +76,14 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks()
         {
-            return RepoFactory.AnimeSeries.GetAll().Where(a => !GetByAnimeID(a.AniDB_ID).Any()).ToList();
+            return RepoFactory.AnimeSeries.GetAll().Where(a =>
+            {
+                var anime = a.GetAnime();
+                if (anime == null) return false;
+                if (anime.Restricted > 0) return false;
+                if (anime.AnimeType == (int) AnimeType.Movie) return false;
+                return !GetByAnimeID(a.AniDB_ID).Any();
+            }).ToList();
         }
 
         public override void RegenerateDb()
