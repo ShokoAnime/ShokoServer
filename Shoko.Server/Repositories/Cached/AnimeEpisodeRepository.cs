@@ -6,6 +6,8 @@ using Shoko.Models.Server;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using Pri.LongPath;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
@@ -152,6 +154,37 @@ namespace Shoko.Server.Repositories.Cached
         public List<SVR_AnimeEpisode> GetMostRecentlyAdded(int seriesID)
         {
             return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();
+        }
+
+        public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials)
+        {
+            var all = GetAll().Where(a =>
+                {
+                    var aniep = a.AniDB_Episode;
+                    if (aniep?.GetFutureDated() != false) return false;
+                    if (aniep.EpisodeType != (int) EpisodeType.Episode)
+                        return false;
+                    if (!includeSpecials &&
+                        aniep.EpisodeType != (int) EpisodeType.Special)
+                        return false;
+                    return a.GetVideoLocals().Count == 0;
+                })
+                .ToList();
+            all.Sort((a1, a2) =>
+            {
+                var name1 = a1.GetAnimeSeries()?.GetSeriesName();
+                var name2 = a2.GetAnimeSeries()?.GetSeriesName();
+
+                if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
+                    return string.Compare(name1, name2, StringComparison.Ordinal);
+
+                if (string.IsNullOrEmpty(name1)) return 1;
+                if (string.IsNullOrEmpty(name2)) return -1;
+
+                return a1.AnimeSeriesID.CompareTo(a2.AnimeSeriesID);
+            });
+
+            return all;
         }
     }
 }

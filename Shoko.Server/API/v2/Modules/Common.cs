@@ -123,6 +123,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct);
             Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct);
             Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
+            Get["/ep/missing", true] = async (x,ct) => await Task.Factory.StartNew(GetMissingEpisodes, ct);
             Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct);
             Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct);
 
@@ -1249,6 +1250,40 @@ namespace Shoko.Server.API.v2.Modules
                         lst.Add(ep);
                     }
                 }
+            }
+
+            return lst;
+        }
+
+        /// <summary>
+        /// Handle /api/ep/missing
+        /// </summary>
+        /// <returns>List<Serie></returns>
+        private object GetMissingEpisodes()
+        {
+            JMMUser user = (JMMUser) Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            List<object> lst = new List<object>();
+
+            List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(para.all == 1);
+
+            var lookup = eps.ToLookup(a => a.AnimeSeriesID);
+            foreach (var ser in lookup)
+            {
+                var series = RepoFactory.AnimeSeries.GetByID(ser.Key);
+                if (series.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false) continue;
+
+                Serie serie = Serie.GenerateFromAnimeSeries(Context, series, user.JMMUserID, true, true, 0, false,
+                    false, para.pic, para.tagfilter);
+
+                var sereps = ser.OrderBy(a => a.AniDB_EpisodeID).ToList();
+                serie.eps = new List<Episode>(sereps.Count);
+                foreach (SVR_AnimeEpisode aep in sereps)
+                {
+                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 1, para.pic);
+                    if (ep != null) serie.eps.Add(ep);
+                }
+                lst.Add(serie);
             }
 
             return lst;
