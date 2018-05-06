@@ -10,6 +10,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
@@ -162,6 +163,18 @@ namespace Shoko.Server.API.v2.Models.common
                 ?.TvDBEpisode?.SeasonNumber;
             if (season != null)
                 sr.season = season.Value.ToString();
+
+            var tvdbseriesID = ael.Select(a => a.TvDBEpisode).Where(a => a != null).GroupBy(a => a.SeriesID)
+                .MaxBy(a => a.Count()).FirstOrDefault()?.Key;
+            if (tvdbseriesID != null)
+            {
+                var tvdbseries = RepoFactory.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
+                if (tvdbseries != null)
+                {
+                    var title = new AnimeTitle {Language = "EN", Title = tvdbseries.SeriesName, Type = "TvDB"};
+                    sr.titles.Add(title);
+                }
+            }
 
             if (level > 0)
             {
