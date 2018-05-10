@@ -23,16 +23,23 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
+        public int RelDepth { get; set; } = 0;
+
         public CommandRequest_GetAnimeHTTP()
         {
         }
 
-        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations)
+        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations) : this(animeid, forced, downloadRelations, 0)
+        { }
+
+
+        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations, int relDepth)
         {
             AnimeID = animeid;
             DownloadRelations = downloadRelations;
             ForceRefresh = forced;
             Priority = (int) DefaultPriority;
+            RelDepth = relDepth;
 
             GenerateCommandID();
         }
@@ -44,7 +51,7 @@ namespace Shoko.Server.Commands
             try
             {
                 SVR_AniDB_Anime anime =
-                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
+                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations, RelDepth);
 
                 // NOTE - related anime are downloaded when the relations are created
 

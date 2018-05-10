@@ -502,6 +502,7 @@ namespace Shoko.Server
                 ServerSettings.AniDB_MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
                 ServerSettings.AniDB_MyList_StorageState = (AniDBFile_State) contractIn.AniDB_MyList_StorageState;
                 ServerSettings.AniDB_MyList_DeleteType = (AniDBFileDeleteType) contractIn.AniDB_MyList_DeleteType;
+                ServerSettings.AniDB_MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
 
                 ServerSettings.AniDB_MyList_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_MyList_UpdateFrequency;

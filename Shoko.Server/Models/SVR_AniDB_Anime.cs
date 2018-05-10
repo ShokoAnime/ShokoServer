@@ -951,7 +951,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
             List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
-            List<Raw_AniDB_Recommendation> recs, bool downloadRelations)
+            List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
         {
             logger.Trace("------------------------------------------------");
             logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle}");
@@ -999,7 +999,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
 
-            CreateRelations(session, rels, downloadRelations);
+            CreateRelations(session, rels, downloadRelations, relDepth);
             taskTimer.Stop();
             logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
@@ -1418,7 +1418,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
         }
 
-        private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations)
+        private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations,
+            int relDepth)
         {
             if (rels == null) return;
 
@@ -1436,7 +1437,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
 
-                if (downloadRelations)
+                if (downloadRelations && relDepth < ServerSettings.AniDB_MaxRelationDepth)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                         MainTitle, AnimeID, anime_rel.RelatedAnimeID);
@@ -1446,7 +1447,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
                     //CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
                     CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID,
-                        false, false);
+                        false, false, relDepth + 1);
                     cmdsToSave.Add(cr_anime);
                 }
             }

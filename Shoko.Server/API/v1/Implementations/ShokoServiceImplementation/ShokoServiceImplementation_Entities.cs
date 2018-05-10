@@ -2308,7 +2308,7 @@ namespace Shoko.Server
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false);
+                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false, 0);
 
                     // also find any files for this anime which don't have proper media info data
                     // we can usually tell this if the Resolution == '0x0'

@@ -880,7 +880,7 @@ namespace Shoko.Server
                     if (eps.Count == 0)
                     {
                         CommandRequest_GetAnimeHTTP cr_anime =
-                            new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                            new CommandRequest_GetAnimeHTTP(animeID, true, false, 0);
                         cr_anime.Save();
                     }
                     // update the missing episode stats on groups and children
@@ -973,16 +973,16 @@ namespace Shoko.Server
         }
 
 
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true, int relDepth = 0)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations);
+                return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations, relDepth);
             }
         }
 
         public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh,
-            bool downloadRelations)
+            bool downloadRelations, int relDepth = 0)
         {
             //if (!Login()) return null;
 
@@ -1020,7 +1020,7 @@ namespace Shoko.Server
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.AutoGroupSeries, true, getAnimeCmd);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.AutoGroupSeries, true, getAnimeCmd, relDepth);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)
@@ -1034,8 +1034,9 @@ namespace Shoko.Server
             return null;
         }
 
-        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations, bool validateImages,
-            AniDBHTTPCommand_GetFullAnime getAnimeCmd)
+        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+            bool validateImages,
+            AniDBHTTPCommand_GetFullAnime getAnimeCmd, int relDepth)
         {
             ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -1045,7 +1046,7 @@ namespace Shoko.Server
             if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations))
+                downloadRelations, relDepth))
             {
                 logger.Error($"Failed populate anime info for {animeID}");
                 return null;

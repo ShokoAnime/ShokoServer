@@ -1933,6 +1933,12 @@ namespace Shoko.Server
             set { Set(nameof(Linux_Permission), Convert.ToString(value, 8)); }
         }
 
+        public static int AniDB_MaxRelationDepth
+        {
+            get => Convert.ToInt32(Get(nameof(AniDB_MaxRelationDepth)));
+            set => Set(nameof(AniDB_MaxRelationDepth), Convert.ToString(value));
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings
@@ -1966,6 +1972,7 @@ namespace Shoko.Server
 
                 AniDB_DownloadCharacters = AniDB_DownloadCharacters,
                 AniDB_DownloadCreators = AniDB_DownloadCreators,
+                AniDB_MaxRelationDepth = AniDB_MaxRelationDepth,
 
                 // Web Cache
                 WebCache_Address = WebCache_Address,
@@ -2153,6 +2160,7 @@ namespace Shoko.Server
             logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDB_MyList_UpdateFrequency);
             logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDB_Calendar_UpdateFrequency);
             logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDB_Anime_UpdateFrequency);
+            logger.Info($"{nameof(AniDB_MaxRelationDepth)}: {AniDB_MaxRelationDepth}");
 
 
             logger.Info("WebCache_Address: {0}", WebCache_Address);
