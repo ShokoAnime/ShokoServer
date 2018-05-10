@@ -271,54 +271,6 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        public static string EnterTraktPIN(string pin)
-        {
-            try
-            {
-                TraktAuthPIN obj = new TraktAuthPIN
-                {
-                    PINCode = pin
-                };
-                string json = JSONHelper.Serialize(obj);
-                Dictionary<string, string> headers = new Dictionary<string, string>();
-
-                string retData = string.Empty;
-                int response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
-                if (response == TraktStatusCodes.Success || response == TraktStatusCodes.Success_Post)
-                {
-                    var loginResponse = retData.FromJSON<TraktAuthToken>();
-
-                    // save the token to the config file to use for subsequent API calls
-                    ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
-                    ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
-
-                    long.TryParse(loginResponse.CreatedAt, out long createdAt);
-                    long.TryParse(loginResponse.ExpiresIn, out long validity);
-                    long expireDate = createdAt + validity;
-
-                    ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
-
-                    //ShokoServer.UpdateTraktFriendInfo(true);
-
-                    return "Success";
-                }
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
-
-                return $"Error returned from Trakt: {response}";
-            }
-            catch (Exception ex)
-            {
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
-
-                logger.Error(ex, "Error in TraktTVHelper.TestUserLogin: " + ex);
-                return ex.Message;
-            }
-        }
-
         #endregion
 
         #region New Authorization

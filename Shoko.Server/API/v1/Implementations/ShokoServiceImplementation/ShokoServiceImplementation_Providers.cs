@@ -1172,19 +1172,6 @@ namespace Shoko.Server
             return comments;
         }
 
-        public string EnterTraktPIN(string pin)
-        {
-            try
-            {
-                return TraktTVHelper.EnterTraktPIN(pin);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in EnterTraktPIN: " + ex.ToString());
-                return ex.Message;
-            }
-        }
-
         public CL_TraktDeviceCode GetTraktDeviceCode()
         {
             try
