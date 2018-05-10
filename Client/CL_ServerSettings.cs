@@ -36,6 +36,9 @@ namespace Shoko.Models.Client
         public bool AniDB_DownloadCharacters { get; set; }
         public bool AniDB_DownloadCreators { get; set; }
 
+        public int AniDB_MaxRelationDepth { get; set; }
+         
+
         // Web Cache
         public string WebCache_Address { get; set; }
         public bool WebCache_Anonymous { get; set; }
@@ -115,6 +118,5 @@ namespace Shoko.Models.Client
 
         public string Plex_ServerHost { get; set; }
         public string Plex_Sections { get; set; }
-
     }
 }
