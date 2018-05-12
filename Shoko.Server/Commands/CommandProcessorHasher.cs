@@ -152,7 +152,7 @@ namespace Shoko.Server.Commands
                 queueState = QueueStateEnum.StartingHasher,
                 extraParams = new string[0]
             };
-            if (Paused)
+            if (!workerCommands.IsBusy)
                 workerCommands.RunWorkerAsync();
         }
 
