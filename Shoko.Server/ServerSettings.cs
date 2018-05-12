@@ -1935,7 +1935,7 @@ namespace Shoko.Server
 
         public static int AniDB_MaxRelationDepth
         {
-            get => Convert.ToInt32(Get(nameof(AniDB_MaxRelationDepth)));
+            get => Convert.ToInt32(Get(nameof(AniDB_MaxRelationDepth)) ?? "3");
             set => Set(nameof(AniDB_MaxRelationDepth), Convert.ToString(value));
         }
 
