@@ -954,7 +954,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle}");
+            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.AniDB_MaxRelationDepth}");
             logger.Trace("------------------------------------------------");
 
             Stopwatch taskTimer = new Stopwatch();
