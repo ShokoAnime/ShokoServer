@@ -99,6 +99,7 @@ namespace Shoko.Server.Commands
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
                 ForceRefresh = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
+                RelDepth = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)));
             }
 
             return true;
