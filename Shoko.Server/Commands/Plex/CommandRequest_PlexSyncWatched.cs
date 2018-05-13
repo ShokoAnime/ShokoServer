@@ -31,9 +31,11 @@ namespace Shoko.Server.Commands.Plex
 
         public override void ProcessCommand()
         {
-            foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories().Where(d => ServerSettings.Plex_Libraries.Contains(d.Key)))
+            foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
-                var allSeries = ((SVR_Directory)section).GetShows();
+                if (!ServerSettings.Plex_Libraries.Contains(section.Key)) continue;
+
+                var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)
                 {
                     var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes();
@@ -51,18 +53,16 @@ namespace Shoko.Server.Commands.Plex
                         {
                             lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }
+
                         SVR_VideoLocal video = animeEpisode.GetVideoLocals()?.FirstOrDefault();
                         if (video == null) continue;
                         var alreadyWatched = animeEpisode.GetVideoLocals()
                             .Where(x => x.GetAniDBFile() != null)
                             .Any(x => x.GetAniDBFile().IsWatched > 0);
 
-                        if (alreadyWatched && !isWatched)
-                            episode.Scrobble();
+                        if (alreadyWatched && !isWatched) episode.Scrobble();
 
-                        if (isWatched && !alreadyWatched)
-                            video.ToggleWatchedStatus(true, true, lastWatched, true,
-                                _jmmuser.JMMUserID, true, true);
+                        if (isWatched && !alreadyWatched) video.ToggleWatchedStatus(true, true, lastWatched, true, _jmmuser.JMMUserID, true, true);
                     }
                 }
             }

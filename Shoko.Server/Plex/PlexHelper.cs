@@ -272,7 +272,7 @@ namespace Shoko.Server.Plex
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
                 .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
-                .Container.Directory;
+                .Container.Directory ?? new Directory[0];
         }
 
         public async Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,
