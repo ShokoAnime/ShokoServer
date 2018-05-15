@@ -31,6 +31,8 @@ namespace Shoko.Server.Commands.Plex
 
         public override void ProcessCommand()
         {
+            logger.Info($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
+
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
                 if (!ServerSettings.Plex_Libraries.Contains(section.Key)) continue;

@@ -121,7 +121,7 @@ namespace Shoko.Server.Providers.TraktTV
                         }
                     }
                 }
-                Console.Write(webEx.ToString());
+                logger.Error(webEx);
             }
             catch (Exception ex)
             {
@@ -1130,8 +1130,6 @@ namespace Shoko.Server.Providers.TraktTV
                             Trakt_Episode episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(
                                                         show.Trakt_ShowID, ep.season,
                                                         ep.number) ?? new Trakt_Episode();
-
-                            Console.Write(ep.ids.trakt);
 
                             episode.TraktID = ep.ids.TraktID;
                             episode.EpisodeNumber = ep.number;

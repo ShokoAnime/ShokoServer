@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Xml;
+using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -81,7 +83,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                logger.Error(ex);
                 return 0;
             }
         }
@@ -122,7 +124,7 @@ namespace Shoko.Server.Commands
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    Console.WriteLine($@"Attempt # {numAttempts}");
+                    logger.Error($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                 }
 
                 // if we failed to access the file, get ouuta here

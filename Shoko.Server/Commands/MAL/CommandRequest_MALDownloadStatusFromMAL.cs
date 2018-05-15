@@ -61,7 +61,7 @@ namespace Shoko.Server.Commands.MAL
 
                     if (malAnime.series_animedb_id == 8107 || malAnime.series_animedb_id == 10737)
                     {
-                        Console.Write("");
+                        logger.Info("");
                     }
 
                     // check if this anime has any other links

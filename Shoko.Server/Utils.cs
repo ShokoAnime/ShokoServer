@@ -954,7 +954,7 @@ namespace Shoko.Server
             }
             catch (Exception excpt)
             {
-                Console.WriteLine(excpt.Message);
+                logger.Error(excpt.Message);
             }
         }
 
@@ -986,7 +986,7 @@ namespace Shoko.Server
                 // Get the output into a string
                 string result = proc.StandardOutput.ReadToEnd();
                 // Display the command output.
-                Console.WriteLine(result);
+                logger.Info(result);
             }
             catch
             {

@@ -154,7 +154,7 @@ namespace Shoko.Server.Providers.MovieDB
                 TMDbClient client = new TMDbClient(apiKey);
                 SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
 
-                Console.WriteLine($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
+                logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
                 {
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
