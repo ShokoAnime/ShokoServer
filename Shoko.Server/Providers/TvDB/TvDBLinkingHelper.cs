@@ -22,7 +22,10 @@ namespace Shoko.Server
             if (!skipMatchClearing)
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
 
-            var matches = GetTvDBEpisodeMatches(animeID);
+            List<CrossRef_AniDB_TvDB> tvxrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+            int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
+
+            var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
 
             List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
             foreach (var match in matches)
@@ -64,8 +67,20 @@ namespace Shoko.Server
             tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Save);
         }
 
+        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
+        {
+            var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
+            return matches.Where(a => a.AniDB != null && a.TvDB != null).OrderBy(a => a.AniDB.EpisodeType)
+                .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_TvDB_Episode
+                {
+                    AniDBEpisodeID = match.AniDB.EpisodeID,
+                    TvDBEpisodeID = match.TvDB.Id,
+                    MatchRating = match.Rating
+                }).ToList();
+        }
+
         public static List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)> GetTvDBEpisodeMatches(
-            int animeID)
+            int animeID, int tvdbID)
         {
             /*   These all apply to normal episodes mainly.
              *   It will fail for specials (BD will cause most to have the same air date).
@@ -98,8 +113,6 @@ namespace Shoko.Server
             // we need extra logic to determine if a series is one or more seasons
 
             // Get TvDB first, if we can't get the episodes, then there's no valid link
-            List<CrossRef_AniDB_TvDB> tvxrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
-            int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
             if (tvdbID == 0) return new List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)>();
 
             List<TvDB_Episode> tveps = RepoFactory.TvDB_Episode.GetBySeriesID(tvdbID);
@@ -120,13 +133,18 @@ namespace Shoko.Server
             if (anime?.AnimeType != (int) AnimeType.Movie && aniepsNormal.Count > 0 && tvepsNormal.Count > 0)
                 TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
 
+            List<TvDB_Episode> tvepsSpecial =
+                tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
+
+            // now try to match OVA
+            if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
+                 anime?.AnimeType == (int) AnimeType.TVSpecial) && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
+                TryToMatchSpeicalsToTvDB(aniepsNormal, tvepsSpecial, ref matches);
+
             // Specials. We aren't going to try too hard here.
             // We'll try by titles and dates, but we'll rely mostly on overrides
             List<AniDB_Episode> aniepsSpecial = anieps.Where(a => a.EpisodeType == (int) EpisodeType.Special)
                 .OrderBy(a => a.EpisodeNumber).ToList();
-
-            List<TvDB_Episode> tvepsSpecial =
-                tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
 
             if (aniepsSpecial.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsSpecial, tvepsSpecial, ref matches);
@@ -441,15 +459,6 @@ namespace Shoko.Server
                                 .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
                                 .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
                         }
-
-                        // It's a continuing anime
-                        // We can't subtract the legnth of the sequel and match. We will assume that it's 1-1
-                        //if (!isAiring && sequelAnimes.All(a => a.EndDate == null))
-                        //{
-                        //    temp.AddRange(epsInSeason.Take(aniepsNormal.Count));
-                            // since the rest are airing and won't match, we can just break
-                        //    break;
-                        //}
 
                         // we check if the season matches any of the sequels
                         foreach (var sequelAnime in sequelAnimes)

@@ -754,7 +754,10 @@ namespace Shoko.Server.API.v2.Modules
                 var result = new List<EpisodeMatchComparison>();
                 foreach (var animeseries in list)
                 {
-                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID).Select(a => (
+                    List<CrossRef_AniDB_TvDB> tvxrefs =
+                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
+                    int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
+                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
                         AniDB: new AniEpSummary
                         {
                             AniDBEpisodeType = a.AniDB.EpisodeType,
