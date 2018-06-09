@@ -118,6 +118,8 @@ namespace Shoko.Server
             List<TvDB_Episode> tveps = RepoFactory.TvDB_Episode.GetBySeriesID(tvdbID);
             List<TvDB_Episode> tvepsNormal = tveps.Where(a => a.SeasonNumber != 0).OrderBy(a => a.SeasonNumber)
                 .ThenBy(a => a.EpisodeNumber).ToList();
+            List<TvDB_Episode> tvepsSpecial =
+                tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
 
             // Get AniDB
             List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeID(animeID);
@@ -129,17 +131,14 @@ namespace Shoko.Server
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
 
-            // Only try to match normal episodes if this is a series
-            if (anime?.AnimeType != (int) AnimeType.Movie && aniepsNormal.Count > 0 && tvepsNormal.Count > 0)
-                TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
-
-            List<TvDB_Episode> tvepsSpecial =
-                tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
-
-            // now try to match OVA
+            // Try to match OVAs
             if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
                  anime?.AnimeType == (int) AnimeType.TVSpecial) && aniepsNormal.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsNormal, tvepsSpecial, ref matches);
+
+            // Only try to match normal episodes if this is a series
+            if (anime?.AnimeType != (int) AnimeType.Movie && aniepsNormal.Count > 0 && tvepsNormal.Count > 0)
+                TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
 
             // Specials. We aren't going to try too hard here.
             // We'll try by titles and dates, but we'll rely mostly on overrides
