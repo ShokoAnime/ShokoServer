@@ -681,24 +681,31 @@ namespace Shoko.Models.Interfaces
         #region MAL Provider
 
         [Rest("MAL/Search/{criteria}",Verbs.Get)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         List<CL_MALAnime_Response> SearchMAL(string criteria);
 
         [Rest("MAL/Status", Verbs.Post)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         string TestMALLogin();
 
         [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Post)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
 
         [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Delete)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         string RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber);
 
         [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{oldEpType}/{oldEpNumber}/{newEpType}/{newEpNumber}", Verbs.Patch)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
 
         [Rest("MAL/Sync/Up",Verbs.Post)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         void SyncMALUpload();
 
         [Rest("MAL/Sync/Down", Verbs.Post)]
+        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
         void SyncMALDownload();
 
         #endregion
