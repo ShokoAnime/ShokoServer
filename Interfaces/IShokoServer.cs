@@ -576,6 +576,9 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/CrossRef/{animeID}", Verbs.Get)]
         List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID);
 
+        [Rest("TvDB/CrossRef/Preview/{animeID}/{tvdbID}", Verbs.Get)]
+        List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID);
+
         [Rest("TvDB/CrossRef/{animeID}", Verbs.Delete)]
         string RemoveLinkAniDBTvDBForAnime(int animeID);
 
