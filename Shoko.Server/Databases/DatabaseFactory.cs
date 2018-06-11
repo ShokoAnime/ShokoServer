@@ -96,6 +96,7 @@ namespace Shoko.Server.Databases
                     ServerState.Instance.CurrentSetupStatus = message;
                     Instance.BackupDatabase(Instance.GetDatabaseBackupName(version));
                 }
+
                 try
                 {
                     logger.Info($"Starting Server: {Instance.GetType()} - CreateAndUpdateSchema()");
@@ -107,27 +108,23 @@ namespace Shoko.Server.Databases
                     Instance.PopulateInitialData();
                     RepoFactory.PostInit();
                 }
-                catch (Exception ex)
+                catch (DatabaseCommandException ex)
                 {
-                    if (ex is DatabaseCommandException)
-                    {
-                        logger.Error(ex, ex.ToString());
-                        Utils.ShowErrorMessage("Database Error :\n\r " + ex +
-                            "\n\rNotify developers about this error, it will be logged in your logs", "Database Error");
-                        ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
-                        errorMessage = "Database Error :\n\r " + ex +
-                                       "\n\rNotify developers about this error, it will be logged in your logs";
-                        return false;
-                    }
-                    if (ex is TimeoutException)
-                    {
-                        logger.Error(ex, $"Database Timeout: {ex}");
-                        ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseTimeOut;
-                        errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
-                        return false;
-                    }
-                    // throw to the outer try/catch
-                    throw;
+                    logger.Error(ex, ex.ToString());
+                    Utils.ShowErrorMessage("Database Error :\n\r " + ex +
+                                           "\n\rNotify developers about this error, it will be logged in your logs",
+                        "Database Error");
+                    ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
+                    errorMessage = "Database Error :\n\r " + ex +
+                                   "\n\rNotify developers about this error, it will be logged in your logs";
+                    return false;
+                }
+                catch (TimeoutException ex)
+                {
+                    logger.Error(ex, $"Database Timeout: {ex}");
+                    ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseTimeOut;
+                    errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
+                    return false;
                 }
 
                 errorMessage = string.Empty;

@@ -750,8 +750,25 @@ namespace Shoko.Server
             int AnimeID = xrefs.FirstOrDefault().AnimeID;
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime == null) return new List<CrossRef_AniDB_TvDB_Episode_Override>();
+
+            // Check if we have default links
+            if (links.Count == 1)
+            {
+                var onlyLink = links.FirstOrDefault();
+                if (onlyLink.AniDBStartNumber == 1 &&
+                    onlyLink.AniDBStartType == (int) EpisodeType.Special &&
+                    onlyLink.TvDBSeason == 0 && onlyLink.TvDBStartNumber == 1)
+                    return new List<CrossRef_AniDB_TvDB_Episode_Override>();
+
+                if (onlyLink.AniDBStartNumber == 1 &&
+                    onlyLink.AniDBStartType == (int) EpisodeType.Episode &&
+                    onlyLink.TvDBSeason == 1 && onlyLink.TvDBStartNumber == 1)
+                    return new List<CrossRef_AniDB_TvDB_Episode_Override>();
+            }
+
             var episodes = RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID)
-                .Where(a => a.EpisodeType == (int) EpisodeType.Special).OrderBy(a => a.EpisodeNumber).ToList();
+                .Where(a => a.EpisodeType == (int) EpisodeType.Special || a.EpisodeType == (int) EpisodeType.Episode)
+                .OrderBy(a => a.EpisodeNumber).ToList();
 
             List<CrossRef_AniDB_TvDB_Episode_Override> output = new List<CrossRef_AniDB_TvDB_Episode_Override>();
 
@@ -759,7 +776,7 @@ namespace Shoko.Server
             {
                 var episode = episodes[i];
                 var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
-                if (xref.AniDBStartType == 0) continue;
+                if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
                 // Get TvDB ep
                 var tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, xref.TvDBSeason,

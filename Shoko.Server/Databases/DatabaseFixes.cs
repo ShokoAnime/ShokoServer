@@ -157,15 +157,54 @@ namespace Shoko.Server.Databases
                         TvDBID = (int) a[3],
                         TvDBSeasonNumber = (int) a[4],
                         TvDBStartEpisodeNumber = (int) a[5]
-                    }).ToList();
-                var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specials);
-                foreach (var episodeOverride in overrides)
+                    }).ToLookup(a => a.AnimeID);
+
+                // Split them by series so that we can escape on error more easily
+                foreach (var special in specials)
                 {
-                    var exists =
-                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
-                            episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
-                    if (exists != null) continue;
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                    var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(special.ToList());
+                    foreach (var episodeOverride in overrides)
+                    {
+                        var exists =
+                            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                                episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
+                        if (exists != null) continue;
+                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                    }
+                }
+
+                // override OVAs if they don't have default links
+                var ovas = session
+                    .CreateSQLQuery(
+                        @"SELECT DISTINCT AniDB_Anime.AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID, TvDBSeasonNumber, TvDBStartEpisodeNumber FROM CrossRef_AniDB_TvDBV2 INNER JOIN AniDB_Anime on AniDB_Anime.AnimeID = CrossRef_AniDB_TvDBV2.AnimeID WHERE AnimeType = 1 OR AnimeType = 3")
+                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                    .AddScalar("AniDBStartEpisodeType", NHibernateUtil.Int32)
+                    .AddScalar("AniDBStartEpisodeNumber", NHibernateUtil.Int32)
+                    .AddScalar("TvDBID", NHibernateUtil.Int32)
+                    .AddScalar("TvDBSeasonNumber", NHibernateUtil.Int32)
+                    .AddScalar("TvDBStartEpisodeNumber", NHibernateUtil.Int32)
+                    .List<object[]>().Select(a => new CrossRef_AniDB_TvDBV2
+                    {
+                        AnimeID = (int) a[0],
+                        AniDBStartEpisodeType = (int) a[1],
+                        AniDBStartEpisodeNumber = (int) a[2],
+                        TvDBID = (int) a[3],
+                        TvDBSeasonNumber = (int) a[4],
+                        TvDBStartEpisodeNumber = (int) a[5]
+                    }).ToLookup(a => a.AnimeID);
+
+                // Split them by series so that we can escape on error more easily
+                foreach (var special in ovas)
+                {
+                    var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(special.ToList());
+                    foreach (var episodeOverride in overrides)
+                    {
+                        var exists =
+                            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                                episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
+                        if (exists != null) continue;
+                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                    }
                 }
 
                 // Series Links
