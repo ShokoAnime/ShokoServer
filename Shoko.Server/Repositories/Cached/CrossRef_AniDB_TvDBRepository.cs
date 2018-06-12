@@ -100,8 +100,8 @@ namespace Shoko.Server.Repositories.Cached
             List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
                 .ToLookup(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID),
                     b => RepoFactory.TvDB_Episode.GetByTvDBID(b.TvDBEpisodeID))
-                .Select(a => (AniDB: a.Key, TvDB: a.FirstOrDefault())).OrderBy(a => a.AniDB.EpisodeType)
-                .ThenBy(a => a.AniDB.EpisodeNumber).ToList();
+                .Select(a => (AniDB: a.Key, TvDB: a.FirstOrDefault())).Where(a => a.AniDB != null && a.TvDB != null)
+                .OrderBy(a => a.AniDB.EpisodeType).ThenBy(a => a.AniDB.EpisodeNumber).ToList();
 
             List<(int EpisodeType, int EpisodeNumber, int TvDBSeries, int TvDBSeason, int TvDBNumber)> output =
                 new List<(int EpisodeType, int EpisodeNumber, int TvDBSeries, int TvDBSeason, int TvDBNumber)>();

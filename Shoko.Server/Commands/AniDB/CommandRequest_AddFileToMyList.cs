@@ -119,11 +119,10 @@ namespace Shoko.Server.Commands
                             false, false);
                     }
 
-                    if (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState)
+                    // We should have a MyListID at this point, so hopefully this will prevent looping
+                    if (vid.MyListID > 0 && (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState))
                     {
-                        int watchedDateSec = Commons.Utils.AniDB.GetAniDBDateAsSeconds(watchedDate);
-                        var cmdUpdate = new CommandRequest_UpdateMyListFileStatus(Hash, watched, false, watchedDateSec);
-                        cmdUpdate.Save();
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, watched, watchedDate);
                     }
                 }
 
@@ -145,15 +144,6 @@ namespace Shoko.Server.Commands
                             new CommandRequest_TraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add);
                         cmdSyncTrakt.Save();
                     }
-                }
-
-                // sync the series on MAL
-                if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                    !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                {
-                    CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                        new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-                    cmdMAL.Save();
                 }
             }
             catch (Exception ex)
