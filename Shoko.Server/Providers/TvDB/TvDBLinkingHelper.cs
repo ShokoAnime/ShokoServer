@@ -797,6 +797,8 @@ namespace Shoko.Server
                     }
                 }
 
+                if (tvep == null) continue;
+
                 var newxref = new CrossRef_AniDB_TvDB_Episode_Override
                 {
                     AniDBEpisodeID = episode.EpisodeID,
