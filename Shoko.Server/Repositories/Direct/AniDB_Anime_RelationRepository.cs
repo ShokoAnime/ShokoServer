@@ -56,6 +56,22 @@ namespace Shoko.Server.Repositories.Direct
             return new List<AniDB_Anime_Relation>(cats);
         }
 
+        /// SELECT AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
+        /// UNION
+        /// SELECT RelatedAnimeID AS AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
+        public HashSet<int> GetLinearRelations(ISession session, int id)
+        {
+            var cats = (from relation in session.QueryOver<AniDB_Anime_Relation>()
+                where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                      (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                select relation.AnimeID).Future<int>();
+            var cats2 = (from relation in session.QueryOver<AniDB_Anime_Relation>()
+                where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                      (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                select relation.RelatedAnimeID).Future<int>();
+            return new HashSet<int>(cats.Concat(cats2));
+        }
+
         /// <summary>
         /// Return a list of Anime IDs in a prequel/sequel line, including the given animeID, in order
         /// </summary>
@@ -63,30 +79,28 @@ namespace Shoko.Server.Repositories.Direct
         /// <returns></returns>
         public List<int> GetFullLinearRelationTree(int animeID)
         {
-            var allRelations = GetByAnimeID(animeID).Where(a => a?.RelationType == "Prequel").ToList();
-            HashSet<int> visitedNodes = new HashSet<int>();
-            List<AniDB_Anime_Relation> resultRelations = new List<AniDB_Anime_Relation>();
-            GetAllRelationsByTypeRecursive(allRelations, ref visitedNodes, ref resultRelations, "Prequel");
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var allRelations = GetLinearRelations(session, animeID);
+                HashSet<int> visitedNodes = new HashSet<int> { animeID };
+                HashSet<int> resultRelations = new HashSet<int>(allRelations);
+                GetAllRelationsByTypeRecursive(session, allRelations, ref visitedNodes, ref resultRelations);
 
-            allRelations = GetByAnimeID(animeID).Where(a => a?.RelationType == "Sequel").ToList();
-            visitedNodes.Clear();
-            GetAllRelationsByTypeRecursive(allRelations, ref visitedNodes, ref resultRelations, "Sequel");
-
-            return resultRelations.SelectMany(a => new[] {a.AnimeID, a.RelatedAnimeID}).Distinct().OrderBy(a => a)
-                .ToList();
+                return resultRelations.OrderBy(a => a).ToList();
+            }
         }
 
-        private void GetAllRelationsByTypeRecursive(List<AniDB_Anime_Relation> allRelations, ref HashSet<int> visitedNodes, ref List<AniDB_Anime_Relation> resultRelations, string type)
+        private void GetAllRelationsByTypeRecursive(ISession session, IEnumerable<int> allRelations, ref HashSet<int> visitedNodes, ref HashSet<int> resultRelations)
         {
             foreach (var relation in allRelations)
             {
-                if (visitedNodes.Contains(relation.RelatedAnimeID)) continue;
-                var sequels = GetByAnimeID(relation.RelatedAnimeID).Where(a => a?.RelationType == type).ToList();
-                if (sequels.Count == 0) return;
+                if (visitedNodes.Contains(relation)) continue;
+                var sequels = GetLinearRelations(session, relation);
+                visitedNodes.Add(relation);
+                if (sequels.Count == 0) continue;
 
-                GetAllRelationsByTypeRecursive(sequels, ref visitedNodes, ref resultRelations, type);
-                visitedNodes.Add(relation.RelatedAnimeID);
-                resultRelations.AddRange(sequels);
+                GetAllRelationsByTypeRecursive(session, sequels, ref visitedNodes, ref resultRelations);
+                resultRelations.UnionWith(sequels);
             }
         }
     }
