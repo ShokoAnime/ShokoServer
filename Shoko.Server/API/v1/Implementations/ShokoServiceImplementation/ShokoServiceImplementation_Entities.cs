@@ -3568,6 +3568,8 @@ namespace Shoko.Server
                     return response;
                 }
 
+                if (contract.CloudID == 0) contract.CloudID = null;
+
                 if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
                 {
                     response.ErrorMessage = "Cannot find Import Folder location";
@@ -3604,7 +3606,7 @@ namespace Shoko.Server
                             imf.IsDropDestination = 0;
                             RepoFactory.ImportFolder.Save(imf);
                         }
-                        else if (imf.CloudID != contract.CloudID)
+                        else if (imf.CloudID != contract.CloudID )
                         {
                             if (contract.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
                             {
@@ -3626,7 +3628,7 @@ namespace Shoko.Server
                 ns.IsDropSource = contract.IsDropSource;
                 ns.IsWatched = contract.IsWatched;
                 ns.ImportFolderType = contract.ImportFolderType;
-                ns.CloudID = contract.CloudID.HasValue && contract.CloudID == 0 ? null : contract.CloudID;
+                ns.CloudID = contract.CloudID;
 
                 RepoFactory.ImportFolder.Save(ns);
 
