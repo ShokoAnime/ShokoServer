@@ -847,11 +847,6 @@ namespace Shoko.UI
 
             tabControl1.SelectedIndex = 6; // setup
 
-            if (ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-                ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase))
-            {
-                btnUploadAzureCache.Visibility = Visibility.Visible;
-            }
             logger.Info("Clearing Cache...");
 
             Utils.ClearAutoUpdateCache();

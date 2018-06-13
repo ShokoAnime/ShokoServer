@@ -39,9 +39,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                bool process =
-                    ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase);
+                bool process = false;
 
                 if (!process) return;
 
