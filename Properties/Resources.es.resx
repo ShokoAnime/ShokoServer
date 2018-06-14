@@ -5254,4 +5254,10 @@ Por favor enlace a plex via Desktop bajo configuración-&gt; usuarios utilizar e
   <data name="Trakt_DeviceCode" xml:space="preserve">
     <value>código de dispositivo</value>
   </data>
+  <data name="Tooltip_PreviewTvDB" xml:space="preserve">
+    <value>¡Previsualiza TvDB Matches!</value>
+  </data>
+  <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
+    <value>Ver episodios / especiales que están vinculados entre AniDB y TvDB.!</value>
+  </data>
 </root>

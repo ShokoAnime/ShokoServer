@@ -5256,4 +5256,10 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   <data name="Trakt_DeviceCode" xml:space="preserve">
     <value>Urządzenie</value>
   </data>
+  <data name="Tooltip_PreviewTvDB" xml:space="preserve">
+    <value>Podgląd Mecze TvDB!</value>
+  </data>
+  <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
+    <value>Zobacz odcinki / promocje, które są połączone między AniDB i TvDB.!</value>
+  </data>
 </root>

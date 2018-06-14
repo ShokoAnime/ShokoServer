@@ -5254,4 +5254,10 @@ S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilis
   <data name="Trakt_DeviceCode" xml:space="preserve">
     <value>CODE DE L'APPAREIL</value>
   </data>
+  <data name="Tooltip_PreviewTvDB" xml:space="preserve">
+    <value>Aperçu Matches TvDB!</value>
+  </data>
+  <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
+    <value>Voir les épisodes / spéciaux qui sont liés entre AniDB et TvDB.!</value>
+  </data>
 </root>

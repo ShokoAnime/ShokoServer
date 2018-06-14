@@ -5254,4 +5254,10 @@
   <data name="Trakt_DeviceCode" xml:space="preserve">
     <value>Код устройства</value>
   </data>
+  <data name="Tooltip_PreviewTvDB" xml:space="preserve">
+    <value>Предварительный просмотр матчей TvDB!</value>
+  </data>
+  <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
+    <value>Просмотр эпизодов / спецсредств, которые связаны между AniDB &amp; TvDB.!</value>
+  </data>
 </root>
