@@ -415,11 +415,19 @@ namespace Shoko.Server
 
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            if (!Settings._subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant())) return 0;
-            if (!Settings._subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant())) return 0;
+            if (!Settings._subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings._subgroups.Contains(newFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
+            if (!Settings._subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings._subgroups.Contains(oldFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
             // The above ensures that _subgroups contains both, so no need to check for -1 in this case
             int newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupName.ToLowerInvariant());
+            if (newIndex == -1)
+                newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupNameShort.ToLowerInvariant());
+
             int oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupName.ToLowerInvariant());
+            if (oldIndex == -1)
+                oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupNameShort.ToLowerInvariant());
+
             return newIndex.CompareTo(oldIndex);
         }
 
