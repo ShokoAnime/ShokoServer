@@ -37,7 +37,6 @@ namespace Shoko.Models.Client
         public bool AniDB_DownloadCreators { get; set; }
 
         public int AniDB_MaxRelationDepth { get; set; }
-         
 
         // Web Cache
         public string WebCache_Address { get; set; }
@@ -48,8 +47,6 @@ namespace Shoko.Models.Client
         public bool WebCache_TvDB_Send { get; set; }
         public bool WebCache_Trakt_Get { get; set; }
         public bool WebCache_Trakt_Send { get; set; }
-        public bool WebCache_MAL_Get { get; set; }
-        public bool WebCache_MAL_Send { get; set; }
         public bool WebCache_UserInfo { get; set; }
 
         // TvDB
@@ -73,8 +70,8 @@ namespace Shoko.Models.Client
         // Import settings
         public string VideoExtensions { get; set; }
         public bool AutoGroupSeries { get; set; }
-		public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
-		public string AutoGroupSeriesRelationExclusions { get; set; }
+        public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
+        public string AutoGroupSeriesRelationExclusions { get; set; }
         public bool FileQualityFilterEnabled { get; set; }
         public string FileQualityFilterPreferences { get; set; }
         public bool RunImportOnStart { get; set; }
@@ -100,19 +97,12 @@ namespace Shoko.Models.Client
         public int Trakt_UpdateFrequency { get; set; }
         public int Trakt_SyncFrequency { get; set; }
 
-        // MAL
-        public bool MAL_AutoLink { get; set; }
-        public string MAL_Username { get; set; }
-        public string MAL_Password { get; set; }
-        public int MAL_UpdateFrequency { get; set; }
-        public bool MAL_NeverDecreaseWatchedNums { get; set; }
-
         // LogRotator
         public bool RotateLogs { get; set; }
         public bool RotateLogs_Zip { get; set; }
         public bool RotateLogs_Delete { get; set; }
         public string RotateLogs_Delete_Days { get; set; }
-        
+
         // WebUI
         public string WebUI_Settings { get; set; }
 
