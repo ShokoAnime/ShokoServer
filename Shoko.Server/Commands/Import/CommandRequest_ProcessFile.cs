@@ -263,12 +263,11 @@ namespace Shoko.Server.Commands
                 }
 
                 // create the group/series/episode records if needed
-                SVR_AnimeSeries ser = null;
                 if (anime != null)
                 {
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
-                    ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
+                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
 
                     ser.CreateAnimeEpisodes();
 
@@ -291,14 +290,35 @@ namespace Shoko.Server.Commands
                         RepoFactory.AnimeGroup.Save(grp, true, false);
                     }
 
-                    if (ServerSettings.FileQualityFilterEnabled)
+                    // We do this inside, as the info will not be available as needed otherwise
+                    List<SVR_VideoLocal> videoLocals =
+                        aniFile?.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
+                            .Where(b => b != null)
+                            .ToList();
+                    if (videoLocals != null)
                     {
-                        // We do this inside, as the info will not be available as needed otherwise
-                        List<SVR_VideoLocal> videoLocals =
-                            aniFile?.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
-                                .Where(b => b != null)
-                                .ToList();
-                        if (videoLocals != null)
+                        // Copy over watched states
+                        foreach (var user in RepoFactory.JMMUser.GetAll())
+                        {
+                            var watchedVideo = videoLocals.FirstOrDefault(a =>
+                                a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+                            // No files that are watched
+                            if (watchedVideo == null) continue;
+
+                            var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
+                            var userrecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                            {
+                                JMMUserID = user.JMMUserID,
+                                VideoLocalID = vidLocal.VideoLocalID,
+                            };
+
+                            userrecord.WatchedDate = watchedRecord.WatchedDate;
+                            userrecord.ResumePosition = watchedRecord.ResumePosition;
+
+                            RepoFactory.VideoLocalUser.Save(userrecord);
+                        }
+
+                        if (ServerSettings.FileQualityFilterEnabled)
                         {
                             videoLocals.Sort(FileQualityFilter.CompareTo);
                             List<SVR_VideoLocal> keep = videoLocals
@@ -309,23 +329,19 @@ namespace Shoko.Server.Commands
                                 videoLocals.Contains(vidLocal)) videoLocals.Remove(vidLocal);
                             videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
 
-                            foreach (SVR_VideoLocal toDelete in videoLocals)
-                            {
-                                toDelete.Places.ForEach(a => a.RemoveAndDeleteFile());
-                            }
+                            videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveAndDeleteFile()));
                         }
                     }
+
+                    // update stats for groups and series
+                    // update all the groups above this series in the heirarchy
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
                 }
                 else
                 {
                     logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                 }
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-
-                // update stats for groups and series
-                // update all the groups above this series in the heirarchy
-                ser?.QueueUpdateStats();
-
 
                 // Add this file to the users list
                 if (ServerSettings.AniDB_MyList_AddFiles)
