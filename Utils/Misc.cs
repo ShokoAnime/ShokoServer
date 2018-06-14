@@ -663,7 +663,7 @@ namespace Shoko.Commons.Utils
 
         public static ImageFormatEnum GetImageFormat(byte[] bytes)
         {
-            // see http://www.mikekunz.com/image_file_header.html
+            // see https://www.mikekunz.com/image_file_header.html
             var bmp    = Encoding.ASCII.GetBytes("BM");     // BMP
             var gif    = Encoding.ASCII.GetBytes("GIF");    // GIF
             var png    = new byte[] { 137, 80, 78, 71 };    // PNG
