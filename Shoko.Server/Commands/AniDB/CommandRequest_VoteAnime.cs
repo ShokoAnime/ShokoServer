@@ -5,7 +5,6 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands.MAL;
 
 namespace Shoko.Server.Commands
 {
@@ -47,13 +46,6 @@ namespace Shoko.Server.Commands
             try
             {
                 ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
-
-                if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                    !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                {
-                    CommandRequest_MALUpdatedWatchedStatus cmdMAL = new CommandRequest_MALUpdatedWatchedStatus(AnimeID);
-                    cmdMAL.Save();
-                }
             }
             catch (Exception ex)
             {

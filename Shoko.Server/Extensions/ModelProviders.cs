@@ -25,21 +25,6 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-
-        public static Azure_CrossRef_AniDB_MAL_Request ToRequest(this CrossRef_AniDB_MAL c)
-        {
-            return new Azure_CrossRef_AniDB_MAL_Request
-            {
-                CrossRef_AniDB_MALID = c.CrossRef_AniDB_MALID,
-                AnimeID = c.AnimeID,
-                MALID = c.MALID,
-                MALTitle = c.MALTitle,
-                StartEpisodeType = c.StartEpisodeType,
-                StartEpisodeNumber = c.StartEpisodeNumber,
-                CrossRefSource = c.CrossRefSource
-            };
-        }
-
         public static Azure_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
         {
             return new Azure_CrossRef_AniDB_Other_Request

@@ -171,78 +171,6 @@ namespace Shoko.Server.Providers.Azure
 
         #endregion
 
-        #region MAL
-
-        public static void Send_CrossRefAniDBMAL(CrossRef_AniDB_MAL data)
-        {
-            if (!ServerSettings.WebCache_MAL_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL";
-
-            Azure_CrossRef_AniDB_MAL_Request input = data.ToRequest();
-            input.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                input.Username = Constants.AnonWebCacheUsername;
-            string json = JSONHelper.Serialize(input);
-
-            SendData(uri, json, "POST");
-        }
-
-        public static Azure_CrossRef_AniDB_MAL Get_CrossRefAniDBMAL(int animeID)
-        {
-            try
-            {
-                if (!ServerSettings.WebCache_MAL_Get) return null;
-
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL/{animeID}?p={username}";
-                string msg = $"Getting AniDB/MAL Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/MAL Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                Azure_CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_MAL>(json);
-                xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}",
-                    xref.CrossRef_AniDB_MALID);
-                return xref;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public static void Delete_CrossRefAniDBMAL(int animeID, int epType, int epNumber)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-
-            if (!ServerSettings.WebCache_MAL_Send) return;
-
-            //localhost:50994
-            //jmm.azurewebsites.net
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL/{animeID}?p={ServerSettings.AniDB_Username}&p2={
-                    epType
-                }&p3={epNumber}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
         #region Cross Ref Other
 
         public static Azure_CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
@@ -727,7 +655,6 @@ namespace Shoko.Server.Providers.Azure
                 uinfo.DatabaseType = ServerSettings.DatabaseType;
                 uinfo.WindowsVersion = Utils.GetOSInfo();
                 uinfo.TraktEnabled = ServerSettings.Trakt_IsEnabled ? 1 : 0;
-                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
 
                 uinfo.CountryLocation = string.Empty;
 

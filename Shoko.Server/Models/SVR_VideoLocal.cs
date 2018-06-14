@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
-using FluentNHibernate.Utils;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Pri.LongPath;
@@ -14,7 +13,6 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
@@ -324,14 +322,6 @@ namespace Shoko.Server.Models
                                 new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
                             cmdSyncTrakt.Save();
                         }
-
-                        if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                            !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                        {
-                            CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                                new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-                            cmdMAL.Save();
-                        }
                     }
                 }
             }
@@ -379,13 +369,6 @@ namespace Shoko.Server.Models
                             cmdSyncTrakt.Save();
                         }
                     }
-                }
-                if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                    !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                {
-                    CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                        new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-                    cmdMAL.Save();
                 }
             }
 

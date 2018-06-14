@@ -19,9 +19,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
-using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
 using File = Pri.LongPath.File;
 using Shoko.Server.Repositories;
@@ -756,11 +754,6 @@ namespace Shoko.Server
             MovieDBHelper.ScanForMatches();
         }
 
-        public static void RunImport_ScanMAL()
-        {
-            MALHelper.ScanForMatches();
-        }
-
         public static void RunImport_UpdateTvDB(bool forced)
         {
             TvDBApiHelper.UpdateAllInfo(forced);
@@ -1272,38 +1265,6 @@ namespace Shoko.Server
 
             CommandRequest_GetUpdated cmd = new CommandRequest_GetUpdated(true);
             cmd.Save();
-        }
-
-        public static void CheckForMALUpdate(bool forceRefresh)
-        {
-            if (ServerSettings.AniDB_Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.MAL_UpdateFrequency);
-
-            // check for any updated anime info every 12 hours
-
-            ScheduledUpdate sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.MALUpdate);
-            if (sched != null)
-            {
-                // if we have run this in the last 12 hours and are not forcing it, then exit
-                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            RunImport_ScanMAL();
-
-            if (sched == null)
-            {
-                sched = new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.MALUpdate,
-                    UpdateDetails = string.Empty
-                };
-            }
-            sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
         }
 
         public static void CheckForMyListStatsUpdate(bool forceRefresh)

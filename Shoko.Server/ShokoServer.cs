@@ -1255,7 +1255,6 @@ namespace Shoko.Server
             Importer.CheckForMyListSyncUpdate(false);
             Importer.CheckForTraktAllSeriesUpdate(false);
             Importer.CheckForTraktTokenUpdate(false);
-            Importer.CheckForMALUpdate(false);
             Importer.CheckForMyListStatsUpdate(false);
             Importer.CheckForAniDBFileUpdate(false);
             Importer.UpdateAniDBTitles();
@@ -1464,9 +1463,6 @@ namespace Shoko.Server
 
                 // Check for missing images
                 Importer.RunImport_GetImages();
-
-                // MAL association checks
-                Importer.RunImport_ScanMAL();
 
                 // Check for previously ignored files
                 Importer.CheckForPreviouslyIgnored();

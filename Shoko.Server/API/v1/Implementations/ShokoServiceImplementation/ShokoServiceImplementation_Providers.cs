@@ -9,19 +9,16 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
 using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
-using Shoko.Server.Providers.MyAnimeList;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
-using TvDbSharper.Dto;
 
 namespace Shoko.Server
 {
@@ -1193,139 +1190,6 @@ namespace Shoko.Server
                 logger.Error(ex, "Error in GetTraktDeviceCode: " + ex.ToString());
                 return null;
             }
-        }
-
-        #endregion
-
-        #region MAL
-
-        public CL_CrossRef_AniDB_MAL_Response GetMALCrossRefWebCache(int animeID)
-        {
-            try
-            {
-                return AzureWebAPI.Get_CrossRefAniDBMAL(animeID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
-        }
-
-        public List<CL_MALAnime_Response> SearchMAL(string criteria)
-        {
-            List<CL_MALAnime_Response> results = new List<CL_MALAnime_Response>();
-            try
-            {
-                anime malResults = MALHelper.SearchAnimesByTitle(criteria);
-
-                foreach (animeEntry res in malResults.entry)
-                    results.Add(res.ToContract());
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return results;
-            }
-        }
-
-
-        public string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber)
-        {
-            try
-            {
-                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID);
-                if (xrefTemp != null)
-                {
-                    string animeName = string.Empty;
-                    try
-                    {
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xrefTemp.AnimeID);
-                        if (anime != null) animeName = anime.MainTitle;
-                    }
-                    catch
-                    {
-                    }
-                    return
-                        $"Not using MAL link as this MAL ID ({malID}) is already in use by {xrefTemp.AnimeID} ({animeName})";
-                }
-
-                MALHelper.LinkAniDBMAL(animeID, malID, malTitle, epType, epNumber, false);
-
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber,
-            int newEpType, int newEpNumber)
-        {
-            try
-            {
-                CrossRef_AniDB_MAL xrefTemp = RepoFactory.CrossRef_AniDB_MAL
-                    .GetByAnimeConstraint(animeID, oldEpType, oldEpNumber).FirstOrDefault(a => a.MALID == malID);
-                if (xrefTemp == null)
-                    return $"Could not find MAL link ({animeID}/{oldEpType}/{oldEpNumber})";
-
-                RepoFactory.CrossRef_AniDB_MAL.Delete(xrefTemp);
-
-                return LinkAniDBMAL(animeID, malID, malTitle, newEpType, newEpNumber);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-
-        public string RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber)
-        {
-            try
-            {
-                MALHelper.RemoveLinkAniDBMAL(animeID, malID, epType, epNumber);
-
-                return string.Empty;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public string TestMALLogin()
-        {
-            try
-            {
-                if (MALHelper.VerifyCredentials())
-                    return string.Empty;
-
-                return "Login is not valid";
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error in TestMALLogin: " + ex.ToString());
-                return ex.Message;
-            }
-        }
-
-        public void SyncMALUpload()
-        {
-            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
-            cmd.Save();
-        }
-
-        public void SyncMALDownload()
-        {
-            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-            cmd.Save();
         }
 
         #endregion

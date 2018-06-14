@@ -515,10 +515,6 @@
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
     <Compile Include="Commands\CommandRequest_RefreshAnime.cs" />
-    <Compile Include="Commands\MAL\CommandRequest_MALDownloadStatusFromMAL.cs" />
-    <Compile Include="Commands\MAL\CommandRequest_MALSearchAnime.cs" />
-    <Compile Include="Commands\MAL\CommandRequest_MALUpdatedWatchedStatus.cs" />
-    <Compile Include="Commands\MAL\CommandRequest_MALUploadStatusToMAL.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktCollectionEpisode.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
     <Compile Include="Commands\Trakt\CommandRequest_TraktHistoryEpisode.cs" />
@@ -531,12 +527,10 @@
     <Compile Include="Commands\TvDB\CommandRequest_TvDBSearchAnime.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListFileStatus.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_VoteAnime.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBMAL.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBOther.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTrakt.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBMAL.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBOther.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTrakt.cs" />
     <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTvDB.cs" />
@@ -587,10 +581,6 @@
     <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
     <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
     <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
-    <Compile Include="Providers\MyAnimeList\MALClasses\AnimeList.cs" />
-    <Compile Include="Providers\MyAnimeList\MALClasses\SearchResult.cs" />
-    <Compile Include="Providers\MyAnimeList\MALClasses\VerifyCredentials.cs" />
-    <Compile Include="Providers\MyAnimeList\MALHelper.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodesByNumber.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncWatchedEpisodesByNumber.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Temp.cs" />

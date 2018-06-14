@@ -9,24 +9,17 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AniDBAPI;
-using FluentNHibernate.MappingModel;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
 using NLog;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Models.Client;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.MAL;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.MyAnimeList;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -63,18 +56,6 @@ namespace Shoko.Server.API.v2.Modules
             Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
             Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
             Get["/anidb/updatemissingcache", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct);
-
-            #endregion
-
-            #region 03.MyAnimeList
-
-            Post["/mal/set", true] = async (x,ct) => await Task.Factory.StartNew(SetMAL, ct);
-            Get["/mal/get", true] = async (x,ct) => await Task.Factory.StartNew(GetMAL, ct);
-            Get["/mal/test", true] = async (x,ct) => await Task.Factory.StartNew(TestMAL, ct);
-            Get["/mal/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMAL, ct);
-            Get["/mal/download", true] = async (x,ct) => await Task.Factory.StartNew(DownloadFromMAL, ct);
-            Get["/mal/upload", true] = async (x,ct) => await Task.Factory.StartNew(UploadToMAL, ct);
-            //Get["/mal/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncMALVotes, ct); <-- not implemented as CommandRequest
 
             #endregion
 
@@ -501,85 +482,6 @@ namespace Shoko.Server.API.v2.Modules
                 logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
                 return APIStatus.InternalError(e.Message);
             }
-            return APIStatus.OK();
-        }
-
-        #endregion
-
-        #region 03.MyAnimeList
-
-        /// <summary>
-        /// Set MAL account with login, password
-        /// </summary>
-        /// <returns></returns>
-        private object SetMAL()
-        {
-            Credentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
-                cred.password != string.Empty)
-            {
-                ServerSettings.MAL_Username = cred.login;
-                ServerSettings.MAL_Password = cred.password;
-                return APIStatus.OK();
-            }
-
-            return new APIMessage(400, "Login and Password missing");
-        }
-
-        /// <summary>
-        /// Return current used MAL Creditentials
-        /// </summary>
-        /// <returns></returns>
-        private object GetMAL()
-        {
-            Credentials cred = new Credentials
-            {
-                login = ServerSettings.MAL_Username,
-                password = ServerSettings.MAL_Password
-            };
-            return cred;
-        }
-
-        /// <summary>
-        /// Test MAL Creditionals against MAL
-        /// </summary>
-        /// <returns></returns>
-        private object TestMAL()
-        {
-            return MALHelper.VerifyCredentials()
-                ? APIStatus.OK()
-                : APIStatus.Unauthorized();
-        }
-
-        /// <summary>
-        /// Scan MAL
-        /// </summary>
-        /// <returns></returns>
-        private object ScanMAL()
-        {
-            Importer.RunImport_ScanMAL();
-            return APIStatus.OK();
-        }
-
-        /// <summary>
-        /// Download Watched States from MAL
-        /// </summary>
-        /// <returns></returns>
-        private object DownloadFromMAL()
-        {
-            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-            cmd.Save();
-            return APIStatus.OK();
-        }
-
-        /// <summary>
-        /// Upload Watched States to MAL
-        /// </summary>
-        /// <returns></returns>
-        private object UploadToMAL()
-        {
-            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
-            cmd.Save();
             return APIStatus.OK();
         }
 

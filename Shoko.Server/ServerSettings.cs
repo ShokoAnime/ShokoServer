@@ -1257,28 +1257,6 @@ namespace Shoko.Server
             set => Set("WebCache_Trakt_Send", value.ToString());
         }
 
-        public static bool WebCache_MAL_Get
-        {
-            get
-            {
-                if (bool.TryParse(Get("WebCache_MAL_Get"), out bool usecache))
-                    return usecache;
-                return true; // default
-            }
-            set => Set("WebCache_MAL_Get", value.ToString());
-        }
-
-        public static bool WebCache_MAL_Send
-        {
-            get
-            {
-                if (bool.TryParse(Get("WebCache_MAL_Send"), out bool usecache))
-                    return usecache;
-                return true; // default
-            }
-            set => Set("WebCache_MAL_Send", value.ToString());
-        }
-
         public static bool WebCache_UserInfo
         {
             get
@@ -1805,58 +1783,6 @@ namespace Shoko.Server
 
         #endregion
 
-        #region MAL
-
-        public static bool MAL_AutoLink
-        {
-            get
-            {
-                bool.TryParse(Get("MAL_AutoLink"), out bool val);
-                return val;
-            }
-            set => Set("MAL_AutoLink", value.ToString());
-        }
-
-        public static string MAL_Username
-        {
-            get => Get("MAL_Username");
-            set => Set("MAL_Username", value);
-        }
-
-        public static string MAL_Password
-        {
-            get => Get("MAL_Password");
-            set => Set("MAL_Password", value);
-        }
-
-        public static ScheduledUpdateFrequency MAL_UpdateFrequency
-        {
-            get
-            {
-                if (int.TryParse(Get("MAL_UpdateFrequency"), out int val))
-                    return (ScheduledUpdateFrequency)val;
-                return ScheduledUpdateFrequency.Daily; // default value
-            }
-            set => Set("MAL_UpdateFrequency", ((int) value).ToString());
-        }
-
-        public static bool MAL_NeverDecreaseWatchedNums
-        {
-            get
-            {
-                string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
-                if (!string.IsNullOrEmpty(wtchNum))
-                {
-                    bool.TryParse(wtchNum, out bool val);
-                    return val;
-                }
-                return true;
-            }
-            set => Set("MAL_NeverDecreaseWatchedNums", value.ToString());
-        }
-
-        #endregion
-
         public static string UpdateChannel
         {
             get
@@ -1987,8 +1913,6 @@ namespace Shoko.Server
                 WebCache_TvDB_Send = WebCache_TvDB_Send,
                 WebCache_Trakt_Get = WebCache_Trakt_Get,
                 WebCache_Trakt_Send = WebCache_Trakt_Send,
-                WebCache_MAL_Get = WebCache_MAL_Get,
-                WebCache_MAL_Send = WebCache_MAL_Send,
                 WebCache_UserInfo = WebCache_UserInfo,
 
                 // TvDB
@@ -2036,13 +1960,6 @@ namespace Shoko.Server
                 Trakt_TokenExpirationDate = Trakt_TokenExpirationDate,
                 Trakt_UpdateFrequency = (int)Trakt_UpdateFrequency,
                 Trakt_SyncFrequency = (int)Trakt_SyncFrequency,
-
-                // MAL
-                MAL_AutoLink = MAL_AutoLink,
-                MAL_Username = MAL_Username,
-                MAL_Password = MAL_Password,
-                MAL_UpdateFrequency = (int)MAL_UpdateFrequency,
-                MAL_NeverDecreaseWatchedNums = MAL_NeverDecreaseWatchedNums,
 
                 // LogRotator
                 RotateLogs = RotateLogs,
@@ -2173,8 +2090,6 @@ namespace Shoko.Server
             logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
             logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);
             logger.Info("WebCache_TvDB_Send: {0}", WebCache_TvDB_Send);
-            logger.Info("WebCache_MAL_Get: {0}", WebCache_MAL_Get);
-            logger.Info("WebCache_MAL_Send: {0}", WebCache_MAL_Send);
 
             logger.Info("TvDB_AutoFanart: {0}", TvDB_AutoFanart);
             logger.Info("TvDB_AutoFanartAmount: {0}", TvDB_AutoFanartAmount);

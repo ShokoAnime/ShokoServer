@@ -527,8 +527,6 @@ namespace Shoko.Server
                 ServerSettings.WebCache_TvDB_Send = contractIn.WebCache_TvDB_Send;
                 ServerSettings.WebCache_Trakt_Get = contractIn.WebCache_Trakt_Get;
                 ServerSettings.WebCache_Trakt_Send = contractIn.WebCache_Trakt_Send;
-                ServerSettings.WebCache_MAL_Get = contractIn.WebCache_MAL_Get;
-                ServerSettings.WebCache_MAL_Send = contractIn.WebCache_MAL_Send;
                 ServerSettings.WebCache_UserInfo = contractIn.WebCache_UserInfo;
 
                 // TvDB
@@ -577,13 +575,6 @@ namespace Shoko.Server
                 ServerSettings.Trakt_TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
                 ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_UpdateFrequency;
                 ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_SyncFrequency;
-
-                // MAL
-                ServerSettings.MAL_AutoLink = contractIn.MAL_AutoLink;
-                ServerSettings.MAL_Username = contractIn.MAL_Username;
-                ServerSettings.MAL_Password = contractIn.MAL_Password;
-                ServerSettings.MAL_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.MAL_UpdateFrequency;
-                ServerSettings.MAL_NeverDecreaseWatchedNums = contractIn.MAL_NeverDecreaseWatchedNums;
 
                 //Plex
                 ServerSettings.Plex_Server = contractIn.Plex_ServerHost;
