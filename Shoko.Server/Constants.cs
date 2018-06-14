@@ -160,6 +160,7 @@
 
             //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
             public static readonly string TvDB_Images = @"https://thetvdb.com/download/{0}";
+            public static readonly string TvDB_Episode_Images = @"https://thetvdb.com/banners/{0}";
 
             public static readonly string MovieDB_Series = @"http://www.themoviedb.org/movie/{0}";
             public static readonly string Trakt_Series = @"http://trakt.tv/show/{0}";

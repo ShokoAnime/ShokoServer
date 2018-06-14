@@ -384,7 +384,7 @@ namespace Shoko.Server.Commands
             {
                 case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = req.ImageData as TvDB_Episode;
-                    return string.Format(Constants.URLS.TvDB_Images, ep.Filename);
+                    return string.Format(Constants.URLS.TvDB_Episode_Images, ep.Filename);
 
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
