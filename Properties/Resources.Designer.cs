@@ -169,7 +169,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Upload Local Votes To AniDB And MAL.
+        ///   Looks up a localized string similar to Upload Local Votes To AniDB..
         /// </summary>
         public static string Actions_SyncVotes {
             get {
@@ -13171,6 +13171,24 @@ namespace Shoko.Commons.Properties {
         public static string Tooltip_PlayAll {
             get {
                 return ResourceManager.GetString("Tooltip_PlayAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preview TvDB Matches.
+        /// </summary>
+        public static string Tooltip_PreviewTvDB {
+            get {
+                return ResourceManager.GetString("Tooltip_PreviewTvDB", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View episodes/specials that are linked between AniDB &amp; TvDB..
+        /// </summary>
+        public static string Tooltip_PreviewTvDBInfo {
+            get {
+                return ResourceManager.GetString("Tooltip_PreviewTvDBInfo", resourceCulture);
             }
         }
         

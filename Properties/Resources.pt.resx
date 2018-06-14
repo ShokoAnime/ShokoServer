@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>Página do projeto</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Upload de votos locais para AniDB e MAL</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Adicionar</value>
   </data>
@@ -5259,5 +5256,8 @@ Por favor link para plex através do Desktop em configurações-&gt; usuários p
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Veja episódios / especiais que estão ligados entre AniDB e TvDB.!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Upload de votos locais para AniDB.!</value>
   </data>
 </root>

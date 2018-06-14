@@ -130,7 +130,7 @@
     <value>Project Page</value>
   </data>
   <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Upload Local Votes To AniDB And MAL</value>
+    <value>Upload Local Votes To AniDB.</value>
   </data>
   <data name="Add" xml:space="preserve">
     <value>Add</value>

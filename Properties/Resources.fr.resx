@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>Page du projet</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Télécharger voix locales sur AniDB et MAL</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Ajouter</value>
   </data>
@@ -5259,5 +5256,8 @@ S’il vous plaît lien vers plex via le bureau sous paramètres-&gt; aux utilis
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Voir les épisodes / spéciaux qui sont liés entre AniDB et TvDB.!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Télécharger voix locales sur AniDB. !</value>
   </data>
 </root>

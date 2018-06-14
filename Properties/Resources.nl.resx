@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>Projectpagina</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Lokale stemmen uploaden naar AniDB en MAL</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Toevoegen</value>
   </data>
@@ -5259,5 +5256,8 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Bekijk afleveringen / specials die zijn gekoppeld tussen AniDB &amp; TvDB.</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Lokale stemmen uploaden naar AniDB.!</value>
   </data>
 </root>

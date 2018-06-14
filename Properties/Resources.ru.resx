@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>Страница проекта</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Местные голоса передать AniDB и мал</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Добавить</value>
   </data>
@@ -5259,5 +5256,8 @@
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Просмотр эпизодов / спецсредств, которые связаны между AniDB &amp; TvDB.!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Местные голоса передать AniDB.!</value>
   </data>
 </root>

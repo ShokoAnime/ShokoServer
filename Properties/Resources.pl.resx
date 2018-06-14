@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>O projekcie</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Synchronizacja lokalnych głosów do AniDB i MAL</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Dodaj</value>
   </data>
@@ -5261,5 +5258,8 @@ Proszę o link do plex poprzez pulpit w obszarze Ustawienia-&gt; użytkownik wob
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Zobacz odcinki / promocje, które są połączone między AniDB i TvDB.!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Zdobądź 50 głosów za artykuł</value>
   </data>
 </root>

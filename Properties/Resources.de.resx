@@ -129,9 +129,6 @@
   <data name="About_Project" xml:space="preserve">
     <value>Projektseite</value>
   </data>
-  <data name="Actions_SyncVotes" xml:space="preserve">
-    <value>Lokale Stimmen auf AniDB und MAL hochladen</value>
-  </data>
   <data name="Add" xml:space="preserve">
     <value>Hinzufügen</value>
   </data>
@@ -5259,5 +5256,8 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   </data>
   <data name="Tooltip_PreviewTvDBInfo" xml:space="preserve">
     <value>Zeige Episoden / Specials, die zwischen AniDB &amp; TvDB verlinkt sind.!</value>
+  </data>
+  <data name="Actions_SyncVotes" xml:space="preserve">
+    <value>Laden Sie lokale Stimmen auf AniDB.!</value>
   </data>
 </root>
