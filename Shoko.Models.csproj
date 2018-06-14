@@ -151,7 +151,6 @@
     <Compile Include="Client\CL_GroupVideoQuality.cs" />
     <Compile Include="Client\CL_IgnoreAnime.cs" />
     <Compile Include="Client\CL_MainChanges.cs" />
-    <Compile Include="Client\CL_MALAnime_Response.cs" />
     <Compile Include="Client\CL_MissingEpisode.cs" />
     <Compile Include="Client\CL_MissingFile.cs" />
     <Compile Include="Client\CL_MovieDBMovieSearch_Response.cs" />
