@@ -977,18 +977,17 @@ namespace Shoko.Server
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
 
-                    SVR_AnimeSeries ser = null;
-                    List<SVR_AnimeEpisode> animeEpisodes = vid.VideoLocal.GetAnimeEpisodes();
-                    if (animeEpisodes.Count > 0)
+                    List<SVR_AnimeEpisode> animeEpisodes = vid.VideoLocal?.GetAnimeEpisodes();
+                    if (animeEpisodes?.Count > 0)
                     {
-                        ser = animeEpisodes[0].GetAnimeSeries();
+                        var ser = animeEpisodes[0].GetAnimeSeries();
                         if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
                             affectedSeries.Add(ser.AnimeSeriesID, ser);
                     }
                     SVR_VideoLocal v = vid.VideoLocal;
                     // delete video local record
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
-                    if (v.Places.Count == 1)
+                    if (v?.Places.Count == 1)
                     {
                         RepoFactory.VideoLocalPlace.Delete(vid);
                         RepoFactory.VideoLocal.Delete(v);
@@ -1024,9 +1023,7 @@ namespace Shoko.Server
                 foreach (SVR_AnimeSeries ser in affectedSeries.Values)
                 {
                     ser.QueueUpdateStats();
-                    //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
                 }
-
 
                 return string.Empty;
             }
