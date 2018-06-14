@@ -390,7 +390,7 @@ namespace Shoko.Server.Providers.TvDB
                 // delete any images from the database which are no longer valid
                 foreach (TvDB_ImageFanart img in RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID))
                     if (!validIDs.Contains(img.Id))
-                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
+                        RepoFactory.TvDB_ImageFanart.Delete(img);
             }
             catch (TvDbServerException exception)
             {
@@ -408,7 +408,7 @@ namespace Shoko.Server.Providers.TvDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, $"Error in TVDBApiHelper.GetSeriesBannersOnlineAsync: {ex}");
+                logger.Error(ex, $"Error in TVDBApiHelper.GetSeriesFanartOnlineAsync: {ex}");
             }
 
             return tvImages;
@@ -576,7 +576,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImagePoster img in images)
-                if (ServerSettings.TvDB_AutoFanart && imageCount < ServerSettings.TvDB_AutoFanartAmount &&
+                if (ServerSettings.TvDB_AutoPosters && imageCount < ServerSettings.TvDB_AutoPostersAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
@@ -592,7 +592,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImagePosterID);
+                        RepoFactory.TvDB_ImagePoster.Delete(img);
                 }
         }
 
@@ -619,7 +619,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
+                        RepoFactory.TvDB_ImageWideBanner.Delete(img);
                 }
         }
 

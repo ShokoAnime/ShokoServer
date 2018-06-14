@@ -7,7 +7,9 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Nancy;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TvDB;
@@ -313,6 +315,12 @@ namespace Shoko.Server.API.v2.Models.common
         public static void PopulateArtFromAniDBAnime(NancyContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics, int pic)
         {
             Random rand = new Random();
+            var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            var fanarts = tvdbIDs
+                .SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+            var banners = tvdbIDs
+                .SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+
             if (allpics || pic > 1)
             {
                 if (allpics)
@@ -321,8 +329,9 @@ namespace Shoko.Server.API.v2.Models.common
                 }
 
                 int pic_index = 0;
-                if (anime.AllPosters != null)
-                    foreach (var cont_image in anime.AllPosters)
+                var posters = anime.AllPosters;
+                if (posters != null)
+                    foreach (var cont_image in posters)
                     {
                         if (pic_index < pic)
                         {
@@ -341,76 +350,100 @@ namespace Shoko.Server.API.v2.Models.common
                     }
 
                 pic_index = 0;
-                if (anime.Contract.AniDBAnime.Fanarts != null)
-                    foreach (var cont_image in anime.Contract.AniDBAnime.Fanarts)
+                foreach (var cont_image in fanarts)
+                {
+                    if (pic_index < pic)
                     {
-                        if (pic_index < pic)
+                        sr.art.fanart.Add(new Art()
                         {
-                            sr.art.fanart.Add(new Art()
-                            {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                    cont_image.AniDB_Anime_DefaultImageID),
-                                index = pic_index
-                            });
-                            pic_index++;
-                        }
-                        else
-                        {
-                            break;
-                        }
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
+                                cont_image.TvDB_ImageFanartID),
+                            index = pic_index
+                        });
+                        pic_index++;
                     }
+                    else
+                    {
+                        break;
+                    }
+                }
 
                 pic_index = 0;
-                if (anime.Contract.AniDBAnime.Banners != null)
-                    foreach (var cont_image in anime.Contract.AniDBAnime.Banners)
+                foreach (var cont_image in banners)
+                {
+                    if (pic_index < pic)
                     {
-                        if (pic_index < pic)
+                        sr.art.banner.Add(new Art()
                         {
-                            sr.art.banner.Add(new Art()
-                            {
-                                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                                    cont_image.AniDB_Anime_DefaultImageID),
-                                index = pic_index
-                            });
-                            pic_index++;
-                        }
-                        else
-                        {
-                            break;
-                        }
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
+                                cont_image.TvDB_ImageWideBannerID),
+                            index = pic_index
+                        });
+                        pic_index++;
                     }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
             else if (pic > 0)
             {
+                var poster = anime.GetDefaultPosterDetailsNoBlanks();
                 sr.art.thumb.Add(new Art()
                 {
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
-                        anime.AnimeID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) poster.ImageType, poster.ImageID),
                     index = 0
                 });
 
-                var fanarts = anime.Contract.AniDBAnime.Fanarts;
-                if (fanarts != null && fanarts.Count > 0)
+                if (fanarts.Count > 0)
                 {
-                    var art = fanarts[rand.Next(fanarts.Count)];
-                    sr.art.fanart.Add(new Art()
+                    var default_fanart = anime.GetDefaultFanart();
+
+                    if (default_fanart != null)
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
-                            art.AniDB_Anime_DefaultImageID),
-                        index = 0
-                    });
+                        sr.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
+                                default_fanart.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+                    else
+                    {
+                        var tvdbart = fanarts[rand.Next(fanarts.Count)];
+                        sr.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
+                                tvdbart.TvDB_ImageFanartID),
+                            index = 0
+                        });
+                    }
                 }
 
-                fanarts = anime.Contract.AniDBAnime.Banners;
-                if (fanarts != null && fanarts.Count > 0)
+                if (banners.Count > 0)
                 {
-                    var art = fanarts[rand.Next(fanarts.Count)];
-                    sr.art.banner.Add(new Art()
+                    var default_fanart = anime.GetDefaultWideBanner();
+
+                    if (default_fanart != null)
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, art.ImageType,
-                            art.AniDB_Anime_DefaultImageID),
-                        index = 0
-                    });
+                        sr.art.banner.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
+                                default_fanart.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+                    else
+                    {
+                        var tvdbart = banners[rand.Next(banners.Count)];
+                        sr.art.banner.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
+                                tvdbart.TvDB_ImageWideBannerID),
+                            index = 0
+                        });
+                    }
                 }
             }
         }

@@ -71,12 +71,12 @@ namespace Shoko.Server.Repositories.Cached
             lock (globalDBLock)
             {
                 var bannersByAnime = session.CreateSQLQuery(@"
-                SELECT DISTINCT crAdbTvTb.AnimeID, {tvdbBanner.*}
-                   FROM CrossRef_AniDB_TvDBV2 AS crAdbTvTb
+                SELECT DISTINCT crAdbTvTb.AniDBID, {tvdbBanner.*}
+                   FROM CrossRef_AniDB_TvDB AS crAdbTvTb
                       INNER JOIN TvDB_ImageWideBanner AS tvdbBanner
                          ON tvdbBanner.SeriesID = crAdbTvTb.TvDBID
-                   WHERE crAdbTvTb.AnimeID IN (:animeIds)")
-                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                   WHERE crAdbTvTb.AniDBID IN (:animeIds)")
+                    .AddScalar("AniDBID", NHibernateUtil.Int32)
                     .AddEntity("tvdbBanner", typeof(TvDB_ImageWideBanner))
                     .SetParameterList("animeIds", animeIds)
                     .List<object[]>()
