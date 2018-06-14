@@ -1067,6 +1067,7 @@ namespace Shoko.Server
                 ser.CreateAnimeEpisodes(session);
                 RepoFactory.AnimeSeries.Save(ser, true, false);
             }
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             return anime;
         }
