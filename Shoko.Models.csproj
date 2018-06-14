@@ -52,8 +52,6 @@
     <Compile Include="Azure\Azure_AnimeLink.cs" />
     <Compile Include="Azure\Azure_AnimeShout.cs" />
     <Compile Include="Azure\Azure_AnimeXML.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_MAL.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_MAL_Request.cs" />
     <Compile Include="Azure\Azure_CrossRef_AniDB_Other.cs" />
     <Compile Include="Azure\Azure_CrossRef_AniDB_Other_Request.cs" />
     <Compile Include="Azure\Azure_CrossRef_AniDB_Trakt.cs" />
@@ -145,7 +143,6 @@
     <Compile Include="Client\CL_AppVersions.cs" />
     <Compile Include="Client\CL_BookmarkedAnime.cs" />
     <Compile Include="Client\CL_Changes.cs" />
-    <Compile Include="Client\CL_CrossRef_AniDB_MAL_Response.cs" />
     <Compile Include="Client\CL_CrossRef_AniDB_Other_Response.cs" />
     <Compile Include="Client\CL_DuplicateFile.cs" />
     <Compile Include="Client\CL_GroupFileSummary.cs" />

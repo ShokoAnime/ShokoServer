@@ -12,7 +12,6 @@ namespace Shoko.Models.Azure
         public string WindowsVersion { get; set; }
         public string JMMServerVersion { get; set; }
         public int TraktEnabled { get; set; }
-        public int MALEnabled { get; set; }
         public int LocalUserCount { get; set; }
         public string CountryLocation { get; set; }
         public long LastEpisodeWatched { get; set; }

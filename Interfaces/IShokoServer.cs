@@ -251,15 +251,12 @@ namespace Shoko.Models.Interfaces
 
         [Rest("WebCache/AdminMessages", Verbs.Get)]
         List<Azure_AdminMessage> GetAdminMessages();
-        
+
         [Rest("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}",Verbs.Get)]
         List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin);
 
         [Rest("WebCache/CrossRef/Other/{animeID}/{crossRefType}", Verbs.Get)]
         CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType);
-
-        [Rest("WebCache/CrossRef/MAL/{animeID}", Verbs.Get)]
-        CL_CrossRef_AniDB_MAL_Response GetMALCrossRefWebCache(int animeID);
 
         [Rest("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}", Verbs.Post)]
         string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId);
@@ -678,38 +675,6 @@ namespace Shoko.Models.Interfaces
 
         [Rest("Trakt/Sync/{animeID}", Verbs.Post)]
         string SyncTraktSeries(int animeID);
-
-        #endregion
-
-        #region MAL Provider
-
-        [Rest("MAL/Search/{criteria}",Verbs.Get)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        List<CL_MALAnime_Response> SearchMAL(string criteria);
-
-        [Rest("MAL/Status", Verbs.Post)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        string TestMALLogin();
-
-        [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Post)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        string LinkAniDBMAL(int animeID, int malID, string malTitle, int epType, int epNumber);
-
-        [Rest("MAL/CrossRef/{animeID}/{malID}/{epType}/{epNumber}", Verbs.Delete)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        string RemoveLinkAniDBMAL(int animeID, int malID, int epType, int epNumber);
-
-        [Rest("MAL/CrossRef/{animeID}/{malID}/{malTitle}/{oldEpType}/{oldEpNumber}/{newEpType}/{newEpNumber}", Verbs.Patch)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        string LinkAniDBMALUpdated(int animeID, int malID, string malTitle, int oldEpType, int oldEpNumber, int newEpType, int newEpNumber);
-
-        [Rest("MAL/Sync/Up",Verbs.Post)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        void SyncMALUpload();
-
-        [Rest("MAL/Sync/Down", Verbs.Post)]
-        [Obsolete("MyAnimeList API has now been removed, this should be removed.")]
-        void SyncMALDownload();
 
         #endregion
 
