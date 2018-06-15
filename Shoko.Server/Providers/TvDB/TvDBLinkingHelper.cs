@@ -789,6 +789,7 @@ namespace Shoko.Server
                 {
                     for (int j = 0; j < delta; j++)
                     {
+                        if (tvep == null) goto label0;
                         var nextep = tvep.GetNextEpisode();
                         // continue outer loop
                         if (nextep.episodeNumber == 0) goto label0;

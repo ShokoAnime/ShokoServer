@@ -860,6 +860,7 @@ namespace Shoko.Server.Extensions
 
         public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
         {
+            if (ep == null) return (0, 0);
             int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
             if (ep.EpisodeNumber == epsInSeason)
             {
