@@ -294,7 +294,7 @@ namespace Shoko.Server
                             else
                                 summ.UnwatchedEpisodeCount = 0;
 
-                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks();
                             summ.ImageType = (int) imgDet.ImageType;
                             summ.ImageID = imgDet.ImageID;
 
@@ -375,7 +375,7 @@ namespace Shoko.Server
                             else
                                 summ.UnwatchedEpisodeCount = 0;
 
-                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                            ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks();
                             summ.ImageType = (int) imgDet.ImageType;
                             summ.ImageID = imgDet.ImageID;
 
@@ -469,7 +469,7 @@ namespace Shoko.Server
                                 else
                                     summ.UnwatchedEpisodeCount = 0;
 
-                                ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                                ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks();
                                 summ.ImageType = (int) imgDet.ImageType;
                                 summ.ImageID = imgDet.ImageID;
 
@@ -536,9 +536,9 @@ namespace Shoko.Server
                         }
                         summ.BeginYear = anidb_anime.BeginYear;
                         summ.EndYear = anidb_anime.EndYear;
-                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
+                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks();
 
-                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks();
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
@@ -593,9 +593,9 @@ namespace Shoko.Server
                         }
                         summ.BeginYear = anidb_anime.BeginYear;
                         summ.EndYear = anidb_anime.EndYear;
-                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks(sessionWrapper);
+                        summ.PosterName = anidb_anime.GetDefaultPosterPathNoBlanks();
 
-                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                        ImageDetails imgDet = anidb_anime.GetDefaultPosterDetailsNoBlanks();
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
@@ -643,11 +643,11 @@ namespace Shoko.Server
                     ret.BeginYear = anime.BeginYear;
                     ret.EndYear = anime.EndYear;
 
-                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks();
                     ret.PosterImageType = (int) imgDet.ImageType;
                     ret.PosterImageID = imgDet.ImageID;
 
-                    ImageDetails imgDetFan = anime.GetDefaultFanartDetailsNoBlanks(sessionWrapper);
+                    ImageDetails imgDetFan = anime.GetDefaultFanartDetailsNoBlanks();
                     if (imgDetFan != null)
                     {
                         ret.FanartImageType = (int) imgDetFan.ImageType;
@@ -819,9 +819,9 @@ namespace Shoko.Server
 
                         BeginYear = anime.BeginYear,
                         EndYear = anime.EndYear,
-                        PosterName = anime.GetDefaultPosterPathNoBlanks(sessionWrapper)
+                        PosterName = anime.GetDefaultPosterPathNoBlanks()
                     };
-                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                    ImageDetails imgDet = anime.GetDefaultPosterDetailsNoBlanks();
                     summ.ImageType = (int) imgDet.ImageType;
                     summ.ImageID = imgDet.ImageID;
 
@@ -1101,7 +1101,7 @@ namespace Shoko.Server
 
                             RelationshipType = link.RelationType
                         };
-                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks();
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 
@@ -1146,7 +1146,7 @@ namespace Shoko.Server
 
                             RelationshipType = "Recommendation"
                         };
-                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks(sessionWrapper);
+                        ImageDetails imgDet = animeLink.GetDefaultPosterDetailsNoBlanks();
                         summ.ImageType = (int) imgDet.ImageType;
                         summ.ImageID = imgDet.ImageID;
 

@@ -135,21 +135,6 @@ namespace Shoko.Server.PlexAndKodi
             return Encoding.UTF8.GetString(data);
         }
 
-
-        private static object XmlDeserializeFromString(string objectData, Type type)
-        {
-            var serializer = new XmlSerializer(type);
-            object result;
-
-            using (TextReader reader = new StringReader(objectData))
-            {
-                result = serializer.Deserialize(reader);
-            }
-
-            return result;
-        }
-
-
         public static SVR_JMMUser GetUser(string userid)
         {
             IReadOnlyList<SVR_JMMUser> allusers = RepoFactory.JMMUser.GetAll();
@@ -503,25 +488,10 @@ namespace Shoko.Server.PlexAndKodi
             v.IsMovie = ret;
         }
 
-        public static string GetRandomBannerFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session,
-            IProvider prov)
-        {
-            return series.Randomize().Select(ser => ser.GetAnime()?.GetDefaultWideBannerDetailsNoBlanks(session))
-                .Where(banner => banner != null).Select(banner => banner.GenArt(prov)).FirstOrDefault();
-        }
-
-
         public static IEnumerable<T> Randomize<T>(this IEnumerable<T> source, int seed = -1)
         {
             var rnd = seed == -1 ? new Random() : new Random(seed);
             return source.OrderBy(item => rnd.Next());
-        }
-
-        public static string GetRandomFanartFromSeries(List<SVR_AnimeSeries> series, ISessionWrapper session,
-            IProvider prov)
-        {
-            return series.Randomize().Select(ser => ser.GetAnime()?.GetDefaultFanartDetailsNoBlanks(session))
-                .Where(fanart => fanart != null).Select(fanart => fanart.GenArt(prov)).FirstOrDefault();
         }
 
         public static string GetRandomFanartFromVideo(Video v, IProvider prov)

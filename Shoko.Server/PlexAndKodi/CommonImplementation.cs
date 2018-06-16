@@ -217,9 +217,9 @@ namespace Shoko.Server.PlexAndKodi
                             var anime = RepoFactory.AnimeEpisode.GetByID(episodeID)
                                 .GetAnimeSeries()
                                 .GetAnime();
-                            dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks(sessionWrapper)?.GenPoster(prov);
-                            dir.Art = anime?.GetDefaultFanartDetailsNoBlanks(sessionWrapper)?.GenArt(prov);
-                            dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks(sessionWrapper)?.GenArt(prov);
+                            dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks()?.GenPoster(prov);
+                            dir.Art = anime?.GetDefaultFanartDetailsNoBlanks()?.GenArt(prov);
+                            dir.Banner = anime?.GetDefaultWideBannerDetailsNoBlanks()?.GenArt(prov);
                         }
                         else
                         {

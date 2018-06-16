@@ -423,6 +423,7 @@
     <Compile Include="Renamer\LegacyRenamer.cs" />
     <Compile Include="Renamer\RenameFileHelper.cs" />
     <Compile Include="Renamer\RenamerAttribute.cs" />
+    <Compile Include="Repositories\Cached\AniDB_Anime_DefaultImageRepository.cs" />
     <Compile Include="Repositories\Cached\AniDB_Episode_TitleRepository.cs" />
     <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
     <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
@@ -729,7 +730,6 @@
     <Compile Include="Repositories\AdhocRepository.cs" />
     <Compile Include="Repositories\Cached\AniDB_AnimeRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_Anime_CharacterRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Anime_DefaultImageRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_Anime_RelationRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_Anime_ReviewRepository.cs" />
     <Compile Include="Repositories\Direct\AniDB_Anime_SimilarRepository.cs" />

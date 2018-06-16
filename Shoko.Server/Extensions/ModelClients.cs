@@ -202,8 +202,7 @@ namespace Shoko.Server.Extensions
         }
 
 
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage,
-            ISessionWrapper session)
+        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultImage)
         {
             ImageEntityType imgType = (ImageEntityType) defaultImage.ImageParentType;
             IImageEntity parentImage = null;
@@ -211,33 +210,24 @@ namespace Shoko.Server.Extensions
             switch (imgType)
             {
                 case ImageEntityType.TvDB_Banner:
-                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_Cover:
-                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_FanArt:
-                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_Poster:
-                    parentImage = RepoFactory.MovieDB_Poster.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_FanArt:
-                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(session, defaultImage.ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
                     break;
             }
 
             return defaultImage.ToClient(parentImage);
         }
-
-        public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return defaultimage.ToClient(session.Wrap());
-            }
-        }
-
 
         public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage,
             IImageEntity parentImage)
