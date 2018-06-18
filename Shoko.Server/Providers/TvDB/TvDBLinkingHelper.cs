@@ -79,6 +79,33 @@ namespace Shoko.Server
                 }).ToList();
         }
 
+        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreviewWithOverrides(int animeID, int tvdbID)
+        {
+            var matches = GetMatchPreview(animeID, tvdbID);
+            var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
+            List<CrossRef_AniDB_TvDB_Episode> result = new List<CrossRef_AniDB_TvDB_Episode>();
+            foreach (var match in matches)
+            {
+                var match_override = overrides.FirstOrDefault(a => a.AniDBEpisodeID == match.AniDBEpisodeID);
+                if (match_override == null)
+                {
+                    result.Add(match);
+                }
+                else
+                {
+                    var new_match = new CrossRef_AniDB_TvDB_Episode
+                    {
+                        AniDBEpisodeID = match_override.AniDBEpisodeID,
+                        TvDBEpisodeID = match_override.TvDBEpisodeID,
+                        MatchRating = MatchRating.UserVerified
+                    };
+                    result.Add(new_match);
+                }
+            }
+
+            return result;
+        }
+
         public static List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)> GetTvDBEpisodeMatches(
             int animeID, int tvdbID)
         {

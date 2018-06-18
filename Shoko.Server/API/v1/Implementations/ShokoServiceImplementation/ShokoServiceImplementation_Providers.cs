@@ -453,7 +453,7 @@ namespace Shoko.Server
 
         public List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID)
         {
-            return TvDBLinkingHelper.GetMatchPreview(animeID, tvdbID);
+            return TvDBLinkingHelper.GetMatchPreviewWithOverrides(animeID, tvdbID);
         }
 
         public List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID)
