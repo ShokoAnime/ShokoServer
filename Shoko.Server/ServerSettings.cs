@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -574,6 +575,21 @@ namespace Shoko.Server
         public static void LoadSettings()
         {
             LoadSettingsFromFile(string.Empty);
+            LoadSettingsFromEnv();
+        }
+
+        private static void LoadSettingsFromEnv(bool force = false)
+        {
+            if (!FirstRun && !force) return;
+
+            foreach (DictionaryEntry envPair in Environment.GetEnvironmentVariables())
+            {
+                string name = envPair.Key.ToString();
+                if (!name.StartsWith("SHOKO_")) continue;
+
+                name = name.Substring(6);
+                Set(name, envPair.Value.ToString());
+            }
         }
 
         public static event EventHandler MigrationStarted;
