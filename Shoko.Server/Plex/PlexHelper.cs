@@ -222,8 +222,6 @@ namespace Shoko.Server.Plex
 
             configureRequest?.Invoke(req);
 
-            HttpResponseMessage resp = null;
-
             HttpClient.Timeout = TimeSpan.FromSeconds(60);
             var resp = await HttpClient.SendAsync(req).ConfigureAwait(false);
             Logger.Trace($"Got response: {resp.StatusCode}");
