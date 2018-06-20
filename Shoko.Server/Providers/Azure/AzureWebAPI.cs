@@ -972,46 +972,61 @@ namespace Shoko.Server.Providers.Azure
         public static void Send_Media(List<SVR_VideoLocal> locals)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (locals == null || locals.Count == 0) return;
 
-            string uri = $@"http://{azureHostBaseAddress}/api/Media";
-
-            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
-            // send a max of 25 at a time
-            // send a max of 25 at a time
-            foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
-                                                           a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
-                                                           !string.IsNullOrEmpty(a.ED2KHash)))
+            try
             {
-                Azure_Media_Request input = v.ToMediaRequest();
-                if (inputs.Count < 25)
-                    inputs.Add(input);
-                else
+                string uri = $@"http://{azureHostBaseAddress}/api/Media";
+    
+                List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
+                // send a max of 25 at a time
+                // send a max of 25 at a time
+                foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
+                                                               a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
+                                                               !string.IsNullOrEmpty(a.ED2KHash)))
+                {
+                    Azure_Media_Request input = v.ToMediaRequest();
+                    if (inputs.Count < 25)
+                        inputs.Add(input);
+                    else
+                    {
+                        string json = JSONHelper.Serialize(inputs);
+                        //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
+                        SendData(uri, json, "POST");
+                        inputs.Clear();
+                    }
+                }
+    
+                if (inputs.Count <= 0)
                 {
                     string json = JSONHelper.Serialize(inputs);
-                    //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
                     SendData(uri, json, "POST");
-                    inputs.Clear();
                 }
             }
-
-            if (inputs.Count <= 0)
+            catch (Exception ex)
             {
-                string json = JSONHelper.Serialize(inputs);
-                SendData(uri, json, "POST");
+                logger.Warn($"There was an error sending MediaInfo to WebCache for {locals.FirstOrDefault().ED2KHash}: {ex.Message}");
             }
         }
 
         public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (string.IsNullOrEmpty(ed2k)) return;
 
-            string uri = $@"http://{azureHostBaseAddress}/api/Media";
+            try
+            {
+                string uri = $@"http://{azureHostBaseAddress}/api/Media";
 
-            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
-            Azure_Media_Request input = media.ToMediaRequest(ed2k);
-            inputs.Add(input);
-            string json = JSONHelper.Serialize(inputs);
-            SendData(uri, json, "POST");
+                List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
+                Azure_Media_Request input = media.ToMediaRequest(ed2k);
+                inputs.Add(input);
+                string json = JSONHelper.Serialize(inputs);
+                SendData(uri, json, "POST");
+            }
+            catch (Exception ex)
+            {
+                logger.Warn($"There was an error sending MediaInfo to WebCache for {ed2k}: {ex.Message}");
+            }
         }
 
         public static List<Azure_Media> Get_Media(string ed2k)
