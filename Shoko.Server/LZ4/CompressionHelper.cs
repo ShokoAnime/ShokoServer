@@ -53,6 +53,23 @@ namespace Shoko.Server.LZ4
                 return null;
             }
         }
+        public static void PopulateObject<T>(T def,byte[] data, int originalsize) where T : class
+        {
+            if (data == null || data.Length == 0)
+                return;
+            try
+            {
+
+                JsonConvert.PopulateObject(
+                    Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)), def, new JsonSerializerSettings
+                    {
+                        Error = HandleDeserializationError
+                    });
+            }
+            catch
+            {
+            }
+        }
 
         public static void HandleDeserializationError(object sender, ErrorEventArgs errorArgs)
         {

@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.ServiceModel.Web;
+using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.ServiceModel;
+using System.ServiceModel.Channels;
 using Nancy;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
@@ -26,10 +29,9 @@ namespace Shoko.Server.PlexAndKodi
         {
             Request req = prov?.Nancy?.Request;
 
-            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                              ?.RequestUri.Host;
-            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                                ?.RequestUri.Scheme;
+            string host = req?.Url.HostName ?? OperationContext.Current.IncomingMessageHeaders.To.Host;
+
+            string scheme = req?.Url.Scheme ?? OperationContext.Current?.IncomingMessageHeaders.To.Scheme;
             if (host == null)
             {
                 var context = System.ServiceModel.OperationContext.Current;
@@ -64,10 +66,12 @@ namespace Shoko.Server.PlexAndKodi
             {
                 return prov.Nancy.Request.Query[name];
             }
-            if (WebOperationContext.Current == null)
+            if (OperationContext.Current == null)
                 return null;
-            if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];
+            HttpReq
+            HttpValueCollection collection = OperationContext.Current.IncomingMessageHeaders..To.ParseQueryString();
+            if (collection.Any(a => a.Key == name))
+                return collection[name];
             return null;
         }
 
@@ -88,9 +92,16 @@ namespace Shoko.Server.PlexAndKodi
                 if (prov.Nancy.Request.Headers.Keys.Contains(name))
                     return prov.Nancy.Request.Headers[name].ElementAt(0);
             }
-            else if (WebOperationContext.Current != null &&
-                     WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.Headers[name];
+            else
+            {
+                var headers = OperationContext.Current.IncomingMessageProperties["httpRequest"];
+                if (headers!=null)
+                {
+                    WebHeaderCollection coll = ((HttpRequestMessageProperty) headers).Headers;
+                    if (coll.AllKeys.Contains(name))
+                        return coll.Get(name);
+                }
+            }            
             return null;
         }
 
@@ -118,13 +129,20 @@ namespace Shoko.Server.PlexAndKodi
                         ctx.Response.ContentType = contentype;
                 });
             }
-            else if (WebOperationContext.Current != null)
-            {
-                foreach (string n in headers.Keys)
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
-                if (contentype != null)
-                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
-            }
+
+            //else if (OperationContext.Current != null)
+            //{
+                //TODO, donno how to do it in .NET CORE
+
+                /*
+                            httpRequestProperty.Headers.Add(HttpRequestHeader.Cookie, "CookieTestValue"); 
+                                HttpRequestMessageProperty requestMessage = new HttpRequestMessageProperty();
+                                foreach (string n in headers.Keys)
+                                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
+                                if (contentype != null)
+                                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
+                                    */
+            //}
         }
 
         public static Dictionary<string, string> GetOptions()

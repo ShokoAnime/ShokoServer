@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons;
 using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
