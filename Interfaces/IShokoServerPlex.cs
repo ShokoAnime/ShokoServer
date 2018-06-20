@@ -36,22 +36,20 @@ namespace Shoko.Models.Interfaces
 
         #region Plex Linking
 
-        [Rest("Linking/Devices/Current/{userId}", Verbs.Get)]
+        [Rest("Linking/Devices/Current/{userId}", Verbs.Get, TimeOutSeconds = 600)]
         MediaDevice CurrentDevice(int userId);
 
         [Rest("Linking/Directories/{userId}", Verbs.Post)]
         void UseDirectories(int userId, List<Plex.Libraries.Directory> directories);
 
-        [Rest("Linking/Directories/{userId}", Verbs.Get)]
+        [Rest("Linking/Directories/{userId}", Verbs.Get, TimeOutSeconds = 600)]
         Plex.Libraries.Directory[] Directories(int userId);
 
         [Rest("Linking/Servers/{userId}", Verbs.Post)]
         void UseDevice(int userId, MediaDevice server);
 
-        [Rest("Linking/Devices/{userId}", Verbs.Get)]
+        [Rest("Linking/Devices/{userId}", Verbs.Get, TimeOutSeconds = 600)]
         MediaDevice[] AvailableDevices(int userId);
-
-
 
         #endregion
 
