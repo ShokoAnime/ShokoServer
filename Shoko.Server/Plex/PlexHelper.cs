@@ -95,20 +95,31 @@ namespace Shoko.Server.Plex
                 if (DateTime.Now - TimeSpan.FromHours(12) < _lastCacheTime && _cachedConnection != null)
                     return _cachedConnection;
 
-                foreach (var connection in ServerCache.Connection)
-                    try
-                    {
-                        var (result, _) = RequestAsync($"{connection.Uri}/library/sections", HttpMethod.Get,
-                                new Dictionary<string, string> {{"X-Plex-Token", ServerCache.AccessToken}})
-                            .Result;
+                //foreach (var connection in ServerCache.Connection)
+                Parallel.ForEach(ServerCache.Connection, (connection, state) =>
+                        {
+                            try
+                            {
+                                if (state.ShouldExitCurrentIteration) return;
+                                var (result, _) = RequestAsync($"{connection.Uri}/library/sections", HttpMethod.Get,
+                                        new Dictionary<string, string> {{"X-Plex-Token", ServerCache.AccessToken}})
+                                    .Result;
 
-                        if (result != HttpStatusCode.OK) continue;
-                        _cachedConnection = connection;
-                        break;
-                    }
-                    catch (AggregateException)
-                    {
-                    }
+                                if (result != HttpStatusCode.OK)
+                                {
+                                    Logger.Trace($"Got response from: {connection.Uri} {result}");
+                                    return;
+                                }
+
+                                _cachedConnection = connection;
+                                state.Stop();
+                            }
+                            catch (AggregateException)
+                            {
+                                Logger.Trace($"Failed connection to: {connection.Uri}");
+                            }
+                        }
+                    );
 
                 _lastCacheTime = DateTime.Now;
 
