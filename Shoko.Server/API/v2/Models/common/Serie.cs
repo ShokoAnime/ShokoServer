@@ -138,8 +138,6 @@ namespace Shoko.Server.API.v2.Models.common
                 }
             }
 
-            #endregion
-
             if (!nocast)
             {
                 var tags = anime.GetAllTags();

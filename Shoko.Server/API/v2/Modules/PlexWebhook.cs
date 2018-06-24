@@ -13,6 +13,7 @@ using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Nancy.Security;
 using NLog;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Plex;
@@ -220,32 +221,32 @@ namespace Shoko.Server.API.v2.Modules
         {
             this.RequiresAuthentication();
             //Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
-            Get["/loginurl"] = o => CallPlexHelper(h => h.LoginUrl);
-            Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
-            Get["/token/invalidate"] = o => CallPlexHelper(h =>
+            Get("/loginurl", o => CallPlexHelper(h => h.LoginUrl));
+            Get("/pin/authenticated", o => $"{CallPlexHelper(h => h.IsAuthenticated)}");
+            Get("/token/invalidate", o => CallPlexHelper(h =>
             {
                 h.InvalidateToken();
                 return true;
             }));
-            Get("/sync",  async (x, ct) => await Task.Factory.StartNew(() =>
+            Get("/sync", async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
                 return APIStatus.OK();
-            });
-            Get["/sync/all", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            }));
+            Get("/sync/all",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            });
+            }));
 
-            Get("/sync/{id}",  async (x, ct) => await Task.Factory.StartNew(() =>
+            Get("/sync/{id}", async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
+                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            });
+            }));
 #if DEBUG
             Get["/test/dir"] = o => Response.AsJson(CallPlexHelper(h => h.GetDirectories()));
             Get["/test/lib/{id}"] = o =>

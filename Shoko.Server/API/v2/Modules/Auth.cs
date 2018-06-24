@@ -42,7 +42,7 @@ namespace Shoko.Server.API.v2.Modules
                 var apiKey = (string) Request.Query.apikey;
                 RepoFactory.AuthTokens.DeleteWithToken(apiKey);
                 return APIStatus.OK();
-            }, ct);
+            }, ct));
         }
     }
 }

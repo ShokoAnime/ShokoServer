@@ -187,7 +187,9 @@
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MigrationForm.cs" />
+    <Compile Include="MigrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="MigrationForm.Designer.cs">
       <DependentUpon>MigrationForm.cs</DependentUpon>
     </Compile>

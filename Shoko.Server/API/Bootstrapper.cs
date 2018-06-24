@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using Nancy.Rest.Module;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
@@ -21,7 +22,7 @@ namespace Shoko.Server.API
     using Nancy.Diagnostics;
     using NLog;
     using System;
-    using Nancy.Gzip;
+    //using Nancy.Gzip;
 
     public class Bootstrapper : RestBootstrapper
     {
@@ -43,6 +44,38 @@ namespace Shoko.Server.API
             }
         }
 
+        private IList<string> MimeTypes { get; set; } = new List<string>
+        {
+            "text/plain",
+            "text/html",
+            "text/xml",
+            "text/css",
+            "application/json",
+            "application/x-javascript",
+            "application/atom+xml",
+            "application/xml"
+        };
+
+        public SVR_JMMUser GetRequestUser(NancyContext ctx)
+        {
+            if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
+            string apikey = ctx.Request.Headers["apikey"].FirstOrDefault()?.Trim();
+            if (string.IsNullOrEmpty(apikey))
+            {
+                // try from query string instead
+                try
+                {
+                    apikey = (string)ctx.Request.Query.apikey.Value;
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+            AuthTokens auth = Repo.AuthTokens.GetByToken(apikey);
+            return auth != null ? Repo.JMMUser.GetByID(auth.UserID) : null;
+        }
+
         /// <inheritdoc />
         /// <summary>
         /// This function override the RequestStartup which is used each time a request came to Nancy
@@ -50,34 +83,7 @@ namespace Shoko.Server.API
         protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines,
             NancyContext context)
         {
-            StaticConfiguration.EnableRequestTracing = true;
-            var configuration =
-                new StatelessAuthenticationConfiguration(nancyContext =>
-                {
-                    // If the server isn't up yet, we can't access the db for users
-                    if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
-                    // get apikey from header
-                    string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault()?.Trim();
-                    // if not in header
-                    if (string.IsNullOrEmpty(apiKey))
-                    {
-                        // try from query string instead
-                        try
-                        {
-                            apiKey = (string) nancyContext.Request.Query.apikey.Value;
-                        }
-                        catch
-                        {
-                            // ignore
-                        }
-                    }
-                    AuthTokens auth = RepoFactory.AuthTokens.GetByToken(apiKey);
-                    return auth != null
-                        ? RepoFactory.JMMUser.GetByID(auth.UserID)
-                        : null;
-                });
-            StaticConfiguration.DisableErrorTraces = false;
-            StatelessAuthentication.Enable(pipelines, configuration);
+            context.CurrentUser = new ClaimsPrincipal(GetRequestUser(context));
 
             pipelines.OnError += (ctx, ex) => onError(ctx, ex);
 
@@ -210,7 +216,7 @@ namespace Shoko.Server.API
                         writer.Close();
                     }
                     catch
-                    {}
+                    { }
                 }
             };
         }
