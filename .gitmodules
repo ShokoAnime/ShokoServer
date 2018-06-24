@@ -1,10 +1,16 @@
 [submodule "Shoko.Commons"]
 	path = Shoko.Commons
 	url = https://github.com/shokoanime/Shoko.Commons
+	branch = NetStandard20
 [submodule "CloudFileSystem"]
 	path = CloudFileSystem
 	url = https://github.com/maxpiva/CloudFileSystem
+	branch = NetStandard20
 [submodule "Nancy.Rest/Nancy.Rest.Module"]
 	path = Nancy.Rest/Nancy.Rest.Module
 	url = https://github.com/maxpiva/Nancy.Rest.Module
+	branch = NetStandard20
+[submodule "Nancy.Rest.Annotations"]
+	path = Nancy.Rest.Annotations
+	url = https://github.com/maxpiva/Nancy.Rest.Annotations
 	branch = NetStandard20
