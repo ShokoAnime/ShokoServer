@@ -5,125 +5,102 @@ using System.Threading;
 
 namespace Shoko.Server
 {
-    public class BlockingList<T> : IEnumerable<T>
+    public class BlockingList<T> : IEnumerable<T> where T : class
     {
-        private List<T> _list;
+        private readonly List<T> _list;
         private readonly object _syncRoot;
-        private int _count = 0;
-        private int _size = 0;
+        private readonly int _maxCap;
 
         public int Count
         {
-            get { return _count; }
+            get
+            {
+                lock (_syncRoot)
+                    return _list.Count;
+            }
         }
 
         public void Add(T data)
-        {
-            Add(data, Timeout.Infinite);
-        }
-
-        public void Add(T data, int millisecondsTimeout)
         {
             if (data == null) throw new ArgumentNullException("data");
 
             lock (_syncRoot)
             {
-                while (_count == _size)
+                //poll every 100ms until there is space in list to add
+                while (_list.Count >= _maxCap)
                 {
-                    try
-                    {
-                        // Monitor exited with exception.
-                        // Could be owner thread of monitor
-                        // object was terminated or timeout
-                        // on wait. Pulse any/all waiting
-                        // threads to ensure we don't get
-                        // any "live locked" producers.
-                        if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-                            throw new System.Exception("Timeout on blockinglist add");
-                    }
-                    catch
-                    {
-                        Monitor.PulseAll(_syncRoot);
-                        throw;
-                    }
+                    Monitor.Wait(_syncRoot, 100);
+                    //if it throws, it throws
                 }
 
                 _list.Add(data);
-                _count++;
-                if (_count == 1)
-                    // could have blocking Dequeue thread(s).
-                    Monitor.PulseAll(_syncRoot);
+                Monitor.Pulse(_syncRoot);
             }
         }
 
         public void Remove(T data)
         {
-            _count--;
-            lock (_list) _list.Remove(data);
+            lock (_syncRoot)
+            {
+                if (_list.Remove(data))
+                    //something was removed, signal
+                    Monitor.Pulse(_syncRoot);
+            }
         }
 
         public T GetNextItem()
         {
-            return GetNextItem(Timeout.Infinite);
-        }
-
-        public T GetNextItem(int millisecondsTimeout)
-        {
             lock (_syncRoot)
             {
-                do
+                while (0 == _list.Count)
                 {
-                    while (_count == 0)
+                    //poll every 100ms if there is something to return
+                    try
                     {
-                        try
-                        {
-                            if (!Monitor.Wait(_syncRoot, millisecondsTimeout))
-                                throw new System.Exception("Timeout on blockinglist GetNextItem");
-                        }
-                        catch
-                        {
-                            Monitor.PulseAll(_syncRoot);
-                            throw;
-                        }
+                        Monitor.Wait(_syncRoot, 100);
                     }
-
-                    if (_count == _size - 1)
-                        // could have blocking Enqueue thread(s).
-                        Monitor.PulseAll(_syncRoot);
-
-                    if (_list.Count < 0)
+                    catch (Exception)
                     {
-                        _count = 0;
+                        //yield doesnt do exceptions
+                        return null;
                     }
-                } while (_count == 0);
+                }
                 return _list[0];
             }
         }
 
-        public BlockingList(int size)
+        public BlockingList(int capacity)
         {
-            if (size <= 0) throw new ArgumentOutOfRangeException("size");
+            if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity");
 
-            _size = size;
-            _syncRoot = new object();
-            _list = new List<T>(size);
+            _maxCap = capacity;
+            _list = new List<T>(_maxCap);
+            _syncRoot = ((ICollection) _list).SyncRoot;
         }
 
         public BlockingList()
         {
-            _size = int.MaxValue;
-            _syncRoot = new object();
+            _maxCap = int.MaxValue;
             _list = new List<T>();
+            _syncRoot = ((ICollection) _list).SyncRoot;
         }
+
 
         public bool Contains(T data)
         {
-            lock (_list) return _list.Contains(data);
+            lock (_syncRoot)
+                return _list.Contains(data);
         }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            while (true) yield return GetNextItem();
+            T item;
+            do {
+                item = GetNextItem();
+                if (null != item)
+                    yield return item;
+                //else drop out
+            } while (null != item);
         }
 
         IEnumerator IEnumerable.GetEnumerator()

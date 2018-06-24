@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Xml;
+using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -13,13 +15,15 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Repos;
-
+using Shoko.Server.Repositories.Cached;
+using File = Pri.LongPath.File;
+using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_HashFile : CommandRequest
+    [Command(CommandRequestType.HashFile)]
+    public class CommandRequest_HashFile : CommandRequestImplementation
     {
         public virtual string FileName { get; set; }
         public virtual bool ForceHash { get; set; }
@@ -32,7 +36,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {FileName}
         };
 
-        public virtual QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
+        public QueueStateStruct PrettyDescriptionHashing => new QueueStateStruct
         {
             queueState = QueueStateEnum.HashingFile,
             extraParams = new[] {FileName}
@@ -46,7 +50,6 @@ namespace Shoko.Server.Commands
         {
             FileName = filename;
             ForceHash = force;
-            CommandType = (int) CommandRequestType.HashFile;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -80,31 +83,30 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                logger.Error(ex);
                 return 0;
             }
         }
 
-        private SVR_VideoLocal_Place ProcessFile_LocalInfo()
+        private void ProcessFile_LocalInfo()
         {
             // hash and read media info for file
             int nshareID = -1;
-            string filePath = string.Empty;
 
 
             (SVR_ImportFolder, string) tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
             if (tup.Item1 == null)
             {
                 logger.Error($"Unable to locate Import Folder for {FileName}");
-                return null;
+                return;
             }
             SVR_ImportFolder folder = tup.Item1;
-            filePath = tup.Item2;
+            string filePath = tup.Item2;
             IFileSystem f = tup.Item1.FileSystem;
             if (f == null)
             {
                 logger.Error("Unable to open filesystem for: {0}", FileName);
-                return null;
+                return;
             }
             long filesize = 0;
             if (folder.CloudID == null) // Local Access
@@ -112,85 +114,127 @@ namespace Shoko.Server.Commands
                 if (!File.Exists(FileName))
                 {
                     logger.Error("File does not exist: {0}", FileName);
-                    return null;
+                    return;
                 }
 
                 int numAttempts = 0;
 
-                // Wait 1 minute seconds before giving up on trying to access the file
+                // Wait 1 minute before giving up on trying to access the file
                 while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    Console.WriteLine($@"Attempt # {numAttempts}");
+                    logger.Error($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                 }
 
                 // if we failed to access the file, get ouuta here
                 if (numAttempts >= 60)
                 {
                     logger.Error("Could not access file: " + FileName);
-                    return null;
+                    return;
                 }
             }
 
 
-            IObject source = f.Resolve(FileName);
-            if (source.Status!=Status.Ok || !(source is IFile))
+            FileSystemResult<IObject> source = f.Resolve(FileName);
+            if (source == null || !source.IsOk || !(source.Result is IFile))
             {
                 logger.Error("Could not access file: " + FileName);
-                return null;
+                return;
             }
             IFile source_file = (IFile) source;
             if (folder.CloudID.HasValue)
                 filesize = source_file.Size;
             nshareID = folder.ImportFolderID;
-            string filename = source.Name;
 
             // check if we have already processed this file
 
-            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocal_Place.GetByFilePathAndShareID(filePath, nshareID);
+            // check if we have already processed this file
+            SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
             SVR_VideoLocal vlocal = null;
+            var filename = Path.GetFileName(filePath);
 
             if (vlocalplace != null)
             {
                 vlocal = vlocalplace.VideoLocal;
-                logger.Trace("VideoLocal record found in database: {0}", vlocal.VideoLocalID);
-                if (vlocalplace.FullServerPath == null)
+                if (vlocal != null)
                 {
-                    if (vlocal.Places.Count == 1)
+                    logger.Trace("VideoLocal record found in database: {0}", FileName);
+
+                    // This will only happen with DB corruption, so just clean up the mess.
+                    if (vlocalplace.FullServerPath == null)
                     {
-                        Repo.VideoLocal.Delete(vlocal);
-                        vlocal = null;
+                        if (vlocal.Places.Count == 1)
+                        {
+                            RepoFactory.VideoLocal.Delete(vlocal);
+                            vlocal = null;
+                        }
+
+                        RepoFactory.VideoLocalPlace.Delete(vlocalplace);
+                        vlocalplace = null;
                     }
-                    Repo.VideoLocal_Place.Delete(vlocalplace);
-                    vlocalplace = null;
+
+                    if (vlocal != null && ForceHash)
+                    {
+                        vlocal.FileSize = filesize;
+                        vlocal.DateTimeUpdated = DateTime.Now;
+                    }
                 }
             }
 
-            SVR_VideoLocal local=new SVR_VideoLocal();
-            local.DateTimeUpdated = DateTime.Now;
-            local.DateTimeCreated = DateTimeUpdated;
-            local.FileSize = filesize;
-            local.Hash = string.Empty;
-            local.CRC32 = string.Empty;
-            local.MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty;
-            local.SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty;
-            local.IsIgnored = 0;
-            local.IsVariation = 0;
-
-
-            if (string.IsNullOrEmpty(vlocal?.Hash) || ForceHash)
+            if (vlocal == null)
             {
-                // try getting the hash from the CrossRef
+                logger.Trace("No existing VideoLocal, creating temporary record");
+                vlocal = new SVR_VideoLocal
+                {
+                    DateTimeUpdated = DateTime.Now,
+                    DateTimeCreated = DateTimeUpdated,
+                    FileName = filename,
+                    FileSize = filesize,
+                    Hash = string.Empty,
+                    CRC32 = string.Empty,
+                    MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty,
+                    SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty,
+                    IsIgnored = 0,
+                    IsVariation = 0
+                };
+            }
+
+            if (vlocalplace == null)
+            {
+                logger.Trace("No existing VideoLocal_Place, creating a new record");
+                vlocalplace = new SVR_VideoLocal_Place
+                {
+                    FilePath = filePath,
+                    ImportFolderID = nshareID,
+                    ImportFolderType = folder.ImportFolderType
+                };
+                // Make sure we have an ID
+                RepoFactory.VideoLocalPlace.Save(vlocalplace);
+            }
+
+            // check if we need to get a hash this file
+            if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
+            {
+                logger.Trace("No existing hash in VideoLocal, checking XRefs");
                 if (!ForceHash)
                 {
-                    List<CrossRef_File_Episode> crossRefs = Repo.CrossRef_File_Episode.GetByFileNameAndSize(filename, filesize);
-                    if (crossRefs.Count >= 1)
+                    // try getting the hash from the CrossRef
+                    List<CrossRef_File_Episode> crossRefs =
+                        RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
+                    if (crossRefs.Any())
                     {
                         local.Hash = crossRefs[0].Hash;
                         local.HashSource = (int) HashSource.DirectHash;
                     }
-                    else
+                }
+
+                // try getting the hash from the LOCAL cache
+                if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
+                {
+                    List<FileNameHash> fnhashes =
+                        RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                    if (fnhashes != null && fnhashes.Count > 1)
                     {
                         List<FileNameHash> fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, filesize);
                         if (fnhashes != null && fnhashes.Count > 1)
@@ -202,6 +246,9 @@ namespace Shoko.Server.Commands
                                 Repo.FileNameHash.Delete(fnh.FileNameHashID);
                             }
                         }
+                    }
+                    // reinit this to check if we erased them
+                    fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
 
                         // reinit this to check if we erased them
                         fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, filesize);
@@ -215,29 +262,20 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (!string.IsNullOrEmpty(local.Hash))
-                    FillVideoHashes_RA(local);
+                if (string.IsNullOrEmpty(vlocal.Hash))
+                    FillVideoHashes(vlocal);
 
                 //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
                 if (string.IsNullOrEmpty(local.Hash) && folder.CloudID.HasValue)
                 {
-                    logger.Trace("No Hash found for cloud " + filename + " putting in videolocal table with empty ED2K");
-                    using (var vupd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => Repo.VideoLocal_Place.GetByFilePathAndShareID(filePath, nshareID)))
-                    {
-                        if (vupd.Original == null)
-                        {
-                            using (var vlupd = Repo.VideoLocal.BeginAdd(local))
-                            {
-                                local = vlupd.Commit();
-                            }
-
-                            vupd.Entity.FilePath = filePath;
-                            vupd.Entity.ImportFolderID = nshareID;
-                            vupd.Entity.ImportFolderType = folder.ImportFolderType;
-                            vupd.Entity.VideoLocalID = local.VideoLocalID;
-                            return vupd.Commit();
-                        }
-                    }
+                    logger.Trace("No Hash found for cloud " + filename +
+                                 " putting in videolocal table with empty ED2K");
+                    RepoFactory.VideoLocal.Save(vlocal, false);
+                    vlocalplace.VideoLocalID = vlocal.VideoLocalID;
+                    RepoFactory.VideoLocalPlace.Save(vlocalplace);
+                    if (vlocalplace.RefreshMediaInfo())
+                        RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+                    return;
                 }
 
                 // hash the file
@@ -246,9 +284,9 @@ namespace Shoko.Server.Commands
                     logger.Info("Hashing File: {0}", FileName);
                     ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                     DateTime start = DateTime.Now;
-                    logger.Trace("Calculating ED2K hashes for: {0}", FileName);
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress, true, true, true);
+                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
+                        true, true, true);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName, Utils.FormatByteSize(vlocal.FileSize));
                     local.Hash = hashes.ED2K?.ToUpperInvariant();
@@ -292,20 +330,64 @@ namespace Shoko.Server.Commands
                 List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(a => a.ImportFolder.CloudID == folder.CloudID && !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
                 foreach (var prep in preps)
                 {
-                    if (prep == null) continue;
-                    // clean up, if there is a 'duplicate file' that is invalid, remove it.
-                    if (prep.FullServerPath == null)
+                    logger.Trace("Found existing VideoLocal with hash, merging info from it");
+                    // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
+                    changed = tlocal.MergeInfoFrom(vlocal);
+                    vlocal = tlocal;
+
+                    List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(
+                        a => a.ImportFolder.CloudID == folder.CloudID &&
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
+                    foreach (var prep in preps)
                     {
-                        Repo.VideoLocal_Place.Delete(prep);
-                        preps.Remove(prep);
-                    }
-                    else
-                    {
-                        IObject dupFileSystemResult = prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
-                        if (dupFileSystemResult.Status != Status.Ok)
+                        if (prep == null) continue;
+                        // clean up, if there is a 'duplicate file' that is invalid, remove it.
+                        if (prep.FullServerPath == null)
                         {
-                            Repo.VideoLocal_Place.Delete(prep);
-                            preps.Remove(prep);
+                            RepoFactory.VideoLocalPlace.Delete(prep);
+                        }
+                        else
+                        {
+                            FileSystemResult dupFileSystemResult =
+                                prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
+                            if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
+                                RepoFactory.VideoLocalPlace.Delete(prep);
+                        }
+                    }
+
+                    var dupPlace = vlocal.Places.FirstOrDefault(
+                        a => a.ImportFolder.CloudID == folder.CloudID &&
+                             !vlocalplace.FullServerPath.Equals(a.FullServerPath));
+
+                    if (dupPlace != null)
+                    {
+                        logger.Warn("Found Duplicate File");
+                        logger.Warn("---------------------------------------------");
+                        logger.Warn($"New File: {vlocalplace.FullServerPath}");
+                        logger.Warn($"Existing File: {dupPlace.FullServerPath}");
+                        logger.Warn("---------------------------------------------");
+
+                        // check if we have a record of this in the database, if not create one
+                        List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
+                            vlocalplace.FilePath,
+                            dupPlace.FilePath,
+                            vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
+                        if (dupFiles.Count == 0)
+                            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
+                                vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
+
+                        if (dupFiles.Count == 0)
+                        {
+                            DuplicateFile dup = new DuplicateFile
+                            {
+                                DateTimeUpdated = DateTime.Now,
+                                FilePathFile1 = vlocalplace.FilePath,
+                                FilePathFile2 = dupPlace.FilePath,
+                                ImportFolderIDFile1 = vlocalplace.ImportFolderID,
+                                ImportFolderIDFile2 = dupPlace.ImportFolderID,
+                                Hash = vlocal.Hash
+                            };
+                            RepoFactory.DuplicateFile.Save(dup);
                         }
                     }
                 }
@@ -341,13 +423,15 @@ namespace Shoko.Server.Commands
                 {
                     CommandRequest_ProcessFile cr_procfile3 = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
                     cr_procfile3.Save();
-                    return vlocalplace;
+                    return;
                 }
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
-
-                using (var fupd = Repo.FileNameHash.BeginAddOrUpdate(() =>
+                FileNameHash fnhash;
+                List<FileNameHash> fnhashes2 =
+                    RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                if (fnhashes2 != null && fnhashes2.Count > 1)
                 {
                     FileNameHash fnhash = null;
                     List<FileNameHash> fnhashes2 = Repo.FileNameHash.GetByFileNameAndSize(vlocal.FileName, vlocal.FileSize);
@@ -364,15 +448,11 @@ namespace Shoko.Server.Commands
                         fnhash = fnhashes2[2];
                     }
 
-                    return fnhash;
-                }))
-                {
-                    fupd.Entity.FileName = vlocal.FileName;
-                    fupd.Entity.FileSize = vlocal.FileSize;
-                    fupd.Entity.Hash = vlocal.Hash;
-                    fupd.Entity.DateTimeUpdated = DateTime.Now;
-                    fupd.Commit();
-                }
+                fnhash.FileName = filename;
+                fnhash.FileSize = vlocal.FileSize;
+                fnhash.Hash = vlocal.Hash;
+                fnhash.DateTimeUpdated = DateTime.Now;
+                RepoFactory.FileNameHash.Save(fnhash);
             }
             else
             {
@@ -393,8 +473,6 @@ namespace Shoko.Server.Commands
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
             cr_procfile.Save();
-
-            return vlocalplace;
         }
 
         private void FillMissingHashes(SVR_VideoLocal vlocal)
@@ -423,7 +501,7 @@ namespace Shoko.Server.Commands
                 Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                     needcrc32, needmd5, needsha1);
                 TimeSpan ts = DateTime.Now - start;
-                logger.Trace("Hashed file in {0} seconds --- {1} ({2})", ts.TotalSeconds.ToString("#0.0"),
+                logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds,
                     FileName, Utils.FormatByteSize(vlocal.FileSize));
                 if (String.IsNullOrEmpty(vlocal.Hash))
                     vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
@@ -608,7 +686,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -627,6 +704,21 @@ namespace Shoko.Server.Commands
             if (FileName.Trim().Length > 0)
                 return true;
             return false;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

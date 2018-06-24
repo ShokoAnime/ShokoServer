@@ -7,7 +7,8 @@ using Shoko.Server.Providers.TvDB;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBDownloadImages : CommandRequest_TvDBBase
+    [Command(CommandRequestType.TvDB_DownloadImages)]
+    public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
     {
         public virtual int TvDBSeriesID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -30,7 +31,6 @@ namespace Shoko.Server.Commands
         {
             TvDBSeriesID = tvDBSeriesID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.TvDB_DownloadImages;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -61,7 +61,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -80,6 +79,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

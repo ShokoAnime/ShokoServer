@@ -1,14 +1,5 @@
 ﻿namespace AniDBAPI
 {
-    public enum AniDBFile_State
-    {
-        Unknown = 0,
-        HDD = 1,
-        DVD = 2,
-        Deleted = 3,
-        Remote = 4
-    }
-
     public enum AniDBFile_FileState
     {
         Normal = 0,
@@ -51,8 +42,9 @@
         DeleteFile = 24,
         GetMyListStats = 25,
         MarkFileDeleted = 26,
-        MarkFileExternal = 27,
-        MarkFileUnknown = 28
+        MarkFileRemote = 27,
+        MarkFileUnknown = 28,
+        MarkFileDisk = 29
     }
 
     public enum enHelperActivityType
@@ -81,7 +73,7 @@
         FileDeleted = 22,
         MarkingFileDeleted = 23,
         FileMarkedAsDeleted = 24,
-        MarkingFileExternal = 25,
+        MarkingFileRemote = 25,
         FileMarkedExternal = 26,
         MarkingFileUnknown = 27,
         FileMarkedUnknown = 28,

@@ -1,8 +1,11 @@
-﻿using Nancy.Rest.Module;
+﻿using System.Collections.Generic;
+using Nancy.Rest.Module;
 using Shoko.Models.Interfaces;
+using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
+using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 
 namespace Shoko.Server.API.v1.Implementations
 {
@@ -47,6 +50,17 @@ namespace Shoko.Server.API.v1.Implementations
             return _impl.VoteAnime(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
                 votetype);
         }
+
+        public MediaDevice CurrentDevice(int userId) => _impl.CurrentDevice(userId);
+
+        public void UseDirectories(int userId, List<Shoko.Models.Plex.Libraries.Directory> directories) =>
+            _impl.UseDirectories(userId, directories);
+
+        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => _impl.Directories(userId);
+
+        public void UseDevice(int userId, MediaDevice server) => _impl.UseDevice(userId, server);
+
+        public MediaDevice[] AvailableDevices(int userId) => _impl.AvailableDevices(userId);
 
         public MediaContainer GetMetadataWithoutHistory(string userId, int type, string id) => GetMetadata(userId, type, id, null, null);
     }

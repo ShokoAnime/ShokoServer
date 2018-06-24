@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
@@ -10,12 +11,13 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TvDBUpdateEpisode : CommandRequest_TvDBBase
+    [Command(CommandRequestType.TvDB_UpdateEpisode)]
+    public class CommandRequest_TvDBUpdateEpisode : CommandRequestImplementation
     {
-        public virtual int TvDBEpisodeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
-        public virtual bool DownloadImages { get; set; }
-        public virtual string InfoString { get; set; }
+        public int TvDBEpisodeID { get; set; }
+        public bool ForceRefresh { get; set; }
+        public bool DownloadImages { get; set; }
+        public string InfoString { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -35,7 +37,6 @@ namespace Shoko.Server.Commands
             ForceRefresh = forced;
             DownloadImages = downloadImages;
             InfoString = infoString;
-            CommandType = (int) CommandRequestType.TvDB_UpdateEpisode;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -47,26 +48,21 @@ namespace Shoko.Server.Commands
 
             try
             {
-                TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
-                var ep = Repo.TvDB_Episode.GetByTvDBID(TvDBEpisodeID);
-                var xref = Repo.CrossRef_AniDB_TvDBV2.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AnimeID);
+                var ep = TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
+                if (ep == null) return;
+                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AniDBID);
                 if (xref == null) return;
                 foreach (var crossRefAniDbTvDbv2 in xref)
                 {
-                    var anime = Repo.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AnimeID);
+                    var anime = RepoFactory.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AniDBID);
                     if (anime == null) continue;
-                    using (var upd = Repo.AnimeEpisode.BeginBatchUpdate(() => Repo.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID)))
+                    var episodes = RepoFactory.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
+                    foreach (SVR_AnimeEpisode episode in episodes)
                     {
-                        foreach (SVR_AnimeEpisode episode in upd)
-                        {
-                            // Save
-                            if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
-                            episode.TvDBEpisode = null;
-                            upd.Update(episode);
-                        }
-                        upd.Commit();
+                        // Save
+                        if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
+                        RepoFactory.AnimeEpisode.Save(episode);
                     }
-
                     anime.QueueUpdateStats();
                 }
             }
@@ -78,14 +74,13 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_TvDBUpdateEpisodes{TvDBEpisodeID}";
+            CommandID = $"CommandRequest_TvDBUpdateEpisode{TvDBEpisodeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -111,6 +106,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

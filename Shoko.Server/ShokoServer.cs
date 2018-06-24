@@ -19,6 +19,7 @@ using Nancy.Hosting.Self;
 using Nancy.Json;
 using NHibernate;
 using NLog;
+using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -32,6 +33,7 @@ using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
+using Shoko.Server.UI;
 using Trinet.Core.IO.Ntfs;
 using UPnP;
 using Action = System.Action;
@@ -50,6 +52,10 @@ namespace Shoko.Server
         internal static LogRotator logrotator = new LogRotator();
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
+
+        public static DateTime? StartTime = null;
+
+        public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
 
         internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
@@ -86,6 +92,8 @@ namespace Shoko.Server
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
+        public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
+        
         private Mutex mutex;
 
         internal static ManualResetEvent _pauseFileWatchDog = new ManualResetEvent(true);
@@ -131,6 +139,7 @@ namespace Shoko.Server
             }
 
             //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+            CommandHelper.LoadCommands();
 
             try
             {
@@ -487,42 +496,37 @@ namespace Shoko.Server
                             // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
                             // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
 
-                            FileAttributes attr = File.GetAttributes(evt.FullPath); // sometimes throws, sometimes not
-                            if (attr.HasFlag(FileAttributes.Directory))
+                            // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
+                            if (Directory.Exists(evt.FullPath)) // filter out invalid events
                             {
-                                if (Directory.Exists(evt.FullPath)) // filter out invalid events
+                                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+                                foreach (string file in files)
                                 {
-                                    logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                    string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                                    foreach (string file in files)
+                                    if (FileHashHelper.IsVideo(file))
                                     {
-                                        if (FileHashHelper.IsVideo(file))
-                                        {
-                                            logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
-                                            CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                            cmd.Save();
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (File.Exists(evt.FullPath)) // filter out invalid events
-                                {
-                                    logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                    if (FileHashHelper.IsVideo(evt.FullPath))
-                                    {
-                                        logger.Info("Found file {0}", evt.FullPath);
-
-                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
                                         cmd.Save();
                                     }
                                 }
                             }
+                            else if (File.Exists(evt.FullPath))
+                            {
+                                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                {
+                                    logger.Info("Found file {0}", evt.FullPath);
+
+                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                    cmd.Save();
+                                }
+                            }
+                            // else it was deleted before we got here
                         }
                     }
                     if (queueFileEvents.Contains(evt))
@@ -533,10 +537,7 @@ namespace Shoko.Server
                 catch (Exception ex)
                 {
                     logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
-                    if (queueFileEvents.Contains(evt))
-                    {
-                        queueFileEvents.Remove(evt);
-                    }
+                    queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
                 }
             }
@@ -568,6 +569,7 @@ namespace Shoko.Server
 
         void WorkerSetupDB_ReportProgress()
         {
+            logger.Info("Starting Server: Complete!");
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
@@ -643,7 +645,7 @@ namespace Shoko.Server
 
         public void SetupNetHosts()
         {
-            logger.Info("Initializing Hosts...");
+            logger.Info("Initializing Web Hosts...");
             ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
             bool started = true;
             started &= NetPermissionWrapper(StartNancyHost);
@@ -761,6 +763,9 @@ namespace Shoko.Server
 
                 ServerState.Instance.ServerOnline = true;
                 workerSetupDB.ReportProgress(100);
+
+                StartTime = DateTime.Now;
+
                 e.Result = true;
             }
             catch (Exception ex)
@@ -1253,7 +1258,6 @@ namespace Shoko.Server
             Importer.CheckForMyListSyncUpdate(false);
             Importer.CheckForTraktAllSeriesUpdate(false);
             Importer.CheckForTraktTokenUpdate(false);
-            Importer.CheckForMALUpdate(false);
             Importer.CheckForMyListStatsUpdate(false);
             Importer.CheckForAniDBFileUpdate(false);
             Importer.UpdateAniDBTitles();
@@ -1309,13 +1313,14 @@ namespace Shoko.Server
 
         public static void StopWatchingFiles()
         {
-            if (watcherVids == null) return;
-
+            if (watcherVids == null)
+                return;
             foreach (RecoveringFileSystemWatcher fsw in watcherVids)
             {
                 fsw.EnableRaisingEvents = false;
+                fsw.Dispose();
             }
-            StopCloudWatchTimer();
+            watcherVids.Clear();
         }
 
         static void Fsw_CreateHandler(object sender, FileSystemEventArgs e)
@@ -1461,9 +1466,6 @@ namespace Shoko.Server
 
                 // Check for missing images
                 Importer.RunImport_GetImages();
-
-                // MAL association checks
-                Importer.RunImport_ScanMAL();
 
                 // Check for previously ignored files
                 Importer.CheckForPreviouslyIgnored();
@@ -1645,7 +1647,7 @@ namespace Shoko.Server
                 try
                 {
                     state.AutostartRegistryKey.SetValue(state.autostartKey,
-                        '"' + Assembly.GetEntryAssembly().Location + '"');
+                        "\"" + Assembly.GetEntryAssembly().Location + "\"");
                     state.LoadSettings();
                 }
                 catch (Exception ex)
@@ -1669,7 +1671,7 @@ namespace Shoko.Server
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add('"' + Assembly.GetEntryAssembly().Location + '"');
+                td.Actions.Add("\"" + Assembly.GetEntryAssembly().Location + "\"");
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();

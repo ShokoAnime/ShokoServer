@@ -6,6 +6,8 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using System;
+using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Models
 {
@@ -18,23 +20,8 @@ namespace Shoko.Server.Models
         {
         }
 
-        public SVR_AnimeSeries_User(int userID, int seriesID)
-        {
-            JMMUserID = userID;
-            AnimeSeriesID = seriesID;
-            UnwatchedEpisodeCount = 0;
-            WatchedEpisodeCount = 0;
-            WatchedDate = null;
-            PlayedCount = 0;
-            WatchedCount = 0;
-            StoppedCount = 0;
-        }
-        [NotMapped]
-        public int PlexContractVersion { get; set; }
-        [NotMapped]
-        public byte[] PlexContractBlob { get; set; }
-        [NotMapped]
-        public int PlexContractSize { get; set; }
+        private DateTime _lastPlexRegen = DateTime.MinValue;
+        private Video _plexContract = null;
 
         public virtual Video PlexContract
         {
@@ -43,10 +30,10 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
-                    return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series, series.GetAnime(), JMMUserID);
+                    var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+                    return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series,
+                        series.GetAnime(), JMMUserID);
                 }
-
                 return _plexContract;
             }
             set

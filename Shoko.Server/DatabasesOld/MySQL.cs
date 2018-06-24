@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 69;
+        public int RequiredVersion { get; } = 85;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -579,6 +579,48 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(68, 1, "ALTER TABLE `AnimeSeries` ADD `AirsOn` TEXT character set utf8 NULL"),
             new DatabaseCommand(69, 1, "DROP TABLE `Trakt_ImageFanart`"),
             new DatabaseCommand(69, 2, "DROP TABLE `Trakt_ImagePoster`"),
+            new DatabaseCommand(70, 1, "CREATE TABLE `AnimeCharacter` ( `CharacterID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`CharacterID`) )"),
+            new DatabaseCommand(70, 2, "CREATE TABLE `AnimeStaff` ( `StaffID` INT NOT NULL AUTO_INCREMENT, `AniDBID` INT NOT NULL, `Name` text character set utf8 NOT NULL, `AlternateName` text character set utf8 NULL, `Description` text character set utf8 NULL, `ImagePath` text character set utf8 NULL, PRIMARY KEY (`StaffID`) )"),
+            new DatabaseCommand(70, 3, "CREATE TABLE `CrossRef_Anime_Staff` ( `CrossRef_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AniDB_AnimeID` INT NOT NULL, `StaffID` INT NOT NULL, `Role` text character set utf8 NULL, `RoleID` INT, `RoleType` INT NOT NULL, `Language` text character set utf8 NOT NULL, PRIMARY KEY (`CrossRef_Anime_StaffID`) )"),
+            new DatabaseCommand(70, 4, DatabaseFixes.PopulateCharactersAndStaff),
+            new DatabaseCommand(71, 1, "ALTER TABLE `MovieDB_Movie` ADD `Rating` INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(71, 2, "ALTER TABLE `TvDB_Series` ADD `Rating` INT NULL"),
+            new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL"),
+            new DatabaseCommand(72, 2, DatabaseFixes.FixCharactersWithGrave),
+            new DatabaseCommand(73, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
+            new DatabaseCommand(74, 2, Importer.UpdateAllStats),
+            new DatabaseCommand(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(76, 1, "CREATE TABLE `AniDB_AnimeUpdate` ( `AniDB_AnimeUpdateID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_AnimeUpdateID`) );"),
+            new DatabaseCommand(76, 2, "ALTER TABLE `AniDB_AnimeUpdate` ADD INDEX `UIX_AniDB_AnimeUpdate` (`AnimeID` ASC) ;"),
+            new DatabaseCommand(76, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
+            new DatabaseCommand(77, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(78, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
+            new DatabaseCommand(79, 1, DatabaseFixes.RecalculateYears),
+            new DatabaseCommand(80, 1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
+            new DatabaseCommand(80, 2, "ALTER TABLE `AniDB_Anime` ADD ( `Site_JP` text character set utf8 null, `Site_EN` text character set utf8 null, `Wikipedia_ID` text character set utf8 null, `WikipediaJP_ID` text character set utf8 null, `SyoboiID` INT NULL, `AnisonID` INT NULL, `CrunchyrollID` text character set utf8 null );"),
+            new DatabaseCommand(80, 3, DatabaseFixes.PopulateResourceLinks),
+            new DatabaseCommand(81, 1, "ALTER TABLE `VideoLocal` ADD `MyListID` INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(81, 2, DatabaseFixes.PopulateMyListIDs),
+            new DatabaseCommand(82, 1, MySQLFixUTF8),
+            new DatabaseCommand(83, 1, "ALTER TABLE `AniDB_Episode` DROP COLUMN `EnglishName`"),
+            new DatabaseCommand(83, 2, "ALTER TABLE `AniDB_Episode` DROP COLUMN `RomajiName`"),
+            new DatabaseCommand(83, 3, "CREATE TABLE `AniDB_Episode_Title` ( `AniDB_Episode_TitleID` INT NOT NULL AUTO_INCREMENT, `AniDB_EpisodeID` int NOT NULL, `Language` varchar(50) character set utf8 NOT NULL, `Title` varchar(500) character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Episode_TitleID`) ) ; "),
+            new DatabaseCommand(83, 4, DatabaseFixes.DummyMigrationOfObsoletion),
+            new DatabaseCommand(84, 1, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` DROP INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID`;"),
+            new DatabaseCommand(84, 2, "RENAME TABLE `CrossRef_AniDB_TvDB_Episode` TO `CrossRef_AniDB_TvDB_Episode_Override`;"),
+            new DatabaseCommand(84, 3, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode_Override` DROP COLUMN `AnimeID`"),
+            new DatabaseCommand(84, 4, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode_Override` CHANGE `CrossRef_AniDB_TvDB_EpisodeID` `CrossRef_AniDB_TvDB_Episode_OverrideID` INT NOT NULL AUTO_INCREMENT;"),
+            new DatabaseCommand(84, 5, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode_Override` ADD UNIQUE INDEX `UIX_AniDB_TvDB_Episode_Override_AniDBEpisodeID_TvDBEpisodeID` (`AniDBEpisodeID` ASC, `TvDBEpisodeID` ASC);"),
+            // For some reason, this was never dropped
+            new DatabaseCommand(84, 6, "DROP TABLE `CrossRef_AniDB_TvDB`;"),
+            new DatabaseCommand(84, 7, "CREATE TABLE `CrossRef_AniDB_TvDB` ( `CrossRef_AniDB_TvDBID` INT NOT NULL AUTO_INCREMENT, `AniDBID` int NOT NULL, `TvDBID` int NOT NULL, `CrossRefSource` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDBID`));"),
+            new DatabaseCommand(84, 8, "ALTER TABLE `CrossRef_AniDB_TvDB` ADD UNIQUE INDEX `UIX_AniDB_TvDB_AniDBID_TvDBID` (`AniDBID` ASC, `TvDBID` ASC);"),
+            new DatabaseCommand(84, 9, "CREATE TABLE `CrossRef_AniDB_TvDB_Episode` ( `CrossRef_AniDB_TvDB_EpisodeID` INT NOT NULL AUTO_INCREMENT, `AniDBEpisodeID` int NOT NULL, `TvDBEpisodeID` int NOT NULL, `MatchRating` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_TvDB_EpisodeID`) );"),
+            new DatabaseCommand(84, 10, "ALTER TABLE `CrossRef_AniDB_TvDB_Episode` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID` ( `AniDBEpisodeID` ASC, `TvDBEpisodeID` ASC);"),
+            new DatabaseCommand(84, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+            // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
+            new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
@@ -891,6 +933,43 @@ namespace Shoko.Server.Databases
 
                 ExecuteWithException(myConn, patchCommands);
             });
+        }
+
+        private static void MySQLFixUTF8()
+        {
+            string sql = 
+                $"SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
+                $"FROM information_schema.COLUMNS " +
+                $"WHERE table_schema = '{ServerSettings.MySQL_SchemaName}' " +
+                $"AND collation_name != 'utf8mb4_unicode_ci'";
+
+            using (MySqlConnection conn = new MySqlConnection($"Server={ServerSettings.MySQL_Hostname};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password};database={ServerSettings.MySQL_SchemaName}"))
+            {
+                MySQL mySQL = ((MySQL)DatabaseFactory.Instance);
+                conn.Open();
+                ArrayList rows = mySQL.ExecuteReader(conn, sql);
+                if (rows.Count > 0)
+                {
+                    foreach (object[] row in rows)
+                    {
+                        string alter = "";
+                        switch (row[3].ToString().ToLowerInvariant())
+                        {
+                            case "text":
+                            case "mediumtext":
+                            case "tinytext":
+                            case "longtext":
+                                alter = $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                                break;
+
+                            default:
+                                alter = $"ALTER TABLE `{row[1]}` MODIFY `{row[2]}` {row[3]}({row[4]}) CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'";
+                                break;
+                        }
+                        mySQL.ExecuteCommand(conn, alter);
+                    }
+                }
+            }
         }
     }
 }

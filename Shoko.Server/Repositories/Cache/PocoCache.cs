@@ -74,10 +74,6 @@ namespace NutzCode.InMemoryIndex
                 ? _dict[key] 
                 : null;
         }
-        public IEnumerable<S> GetMany(IEnumerable<T> keys)
-        {
-            return _dict.Where(a => keys.Contains(a.Key)).Select(a => a.Value);
-        }
         public void Update(S obj)
         {
             T key = _func(obj);

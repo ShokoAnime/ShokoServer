@@ -6,7 +6,8 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_Azure_SendUserInfo : CommandRequest
+    [Command(CommandRequestType.Azure_SendUserInfo)]
+    public class CommandRequest_Azure_SendUserInfo : CommandRequestImplementation
     {
         public virtual string Username { get; set; }
 
@@ -25,7 +26,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_Azure_SendUserInfo(string username)
         {
             Username = username;
-            CommandType = (int) CommandRequestType.Azure_SendUserInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -52,7 +52,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -68,6 +67,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

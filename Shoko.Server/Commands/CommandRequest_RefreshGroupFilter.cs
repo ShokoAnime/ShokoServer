@@ -5,7 +5,8 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_RefreshGroupFilter : CommandRequest
+    [Command(CommandRequestType.Refresh_GroupFilter)]
+    public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
     {
         public virtual int GroupFilterID { get; set; }
 
@@ -15,7 +16,6 @@ namespace Shoko.Server.Commands
         {
             GroupFilterID = groupFilterID;
 
-            CommandType = (int) CommandRequestType.Refresh_GroupFilter;
             Priority = (int) DefaultPriority;
             GenerateCommandID();
         }
@@ -49,12 +49,26 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
             GroupFilterID = int.Parse(cq.CommandDetails);
             return true;
+        }
+
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = GroupFilterID.ToString(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

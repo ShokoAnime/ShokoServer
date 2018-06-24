@@ -47,10 +47,10 @@ namespace AniDBAPI
             this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
 
             bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out bool lsp);
-            this.Spoiler = lsp ? 1 : 0;
+            this.Spoiler |= lsp ? 1 : 0;
 
             bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out bool gsp);
-            this.Spoiler = gsp ? 1 : 0;
+            this.Spoiler |= gsp ? 1 : 0;
         }
     }
 }

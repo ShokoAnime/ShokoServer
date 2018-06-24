@@ -10,10 +10,17 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
+
+using System.Threading;
+using Shoko.Models.Server;
+
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
+using Directory = Pri.LongPath.Directory;
+using File = Pri.LongPath.File;
+using Path = Pri.LongPath.Path;
 
 
 namespace Shoko.Server
@@ -623,7 +630,7 @@ namespace Shoko.Server
             ret = ret.Replace(@"\", @"\");
             ret = ret.Replace(@"/", @"⁄");
             ret = ret.Replace(@":", @"։");
-            ret = ret.Replace("\"", "״"); // double quote
+            ret = ret.Replace("\"", "″"); // double quote
             ret = ret.Replace(@">", @"›");
             ret = ret.Replace(@"<", @"‹");
             ret = ret.Replace(@"?", @"﹖");
@@ -948,7 +955,7 @@ namespace Shoko.Server
             }
             catch (Exception excpt)
             {
-                Console.WriteLine(excpt.Message);
+                logger.Error(excpt.Message);
             }
         }
 
@@ -980,7 +987,7 @@ namespace Shoko.Server
                 // Get the output into a string
                 string result = proc.StandardOutput.ReadToEnd();
                 // Display the command output.
-                Console.WriteLine(result);
+                logger.Info(result);
             }
             catch
             {

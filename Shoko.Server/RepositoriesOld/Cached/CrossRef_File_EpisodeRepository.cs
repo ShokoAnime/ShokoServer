@@ -48,7 +48,9 @@ namespace Shoko.Server.Repositories
 
         public static CrossRef_File_EpisodeRepository Create()
         {
-            return new CrossRef_File_EpisodeRepository();
+            var repo = new CrossRef_File_EpisodeRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(CrossRef_File_Episode entity)

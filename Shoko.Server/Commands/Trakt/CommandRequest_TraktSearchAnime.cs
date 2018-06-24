@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
+using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -15,7 +16,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSearchAnime : CommandRequest
+    [Command(CommandRequestType.Trakt_SearchAnime)]
+    public class CommandRequest_TraktSearchAnime : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -36,7 +38,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = animeID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.Trakt_SearchAnime;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -66,16 +67,20 @@ namespace Shoko.Server.Commands
                         {
                             foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
                             {
-                                TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
-                                if (showInfo == null) continue;
+                                foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
+                                {
+                                    TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
+                                    if (showInfo == null) continue;
 
-                                logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
-                                    showInfo.title);
-                                TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                    (EpisodeType) xref.AniDBStartEpisodeType,
-                                    xref.AniDBStartEpisodeNumber,
-                                    xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
-                                doReturn = true;
+                                    logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
+                                        showInfo.title);
+                                    TraktTVHelper.LinkAniDBTrakt(AnimeID,
+                                        (EpisodeType) xref.AniDBStartEpisodeType,
+                                        xref.AniDBStartEpisodeNumber,
+                                        xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
+                                    doReturn = true;
+                                }
+                                if (doReturn) return;
                             }
                             if (doReturn) return;
                         }
@@ -87,12 +92,11 @@ namespace Shoko.Server.Commands
                 }
 
 
-                // lets try to see locally if we have a tvDB link for this anime
-                // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                List<CrossRef_AniDB_TvDBV2> xrefTvDBs = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeID(AnimeID);
-                if (xrefTvDBs != null && xrefTvDBs.Count > 0)
-                {
-                    foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                    // lets try to see locally if we have a tvDB link for this anime
+                    // Trakt allows the use of TvDB ID's or their own Trakt ID's
+                    List<CrossRef_AniDB_TvDBV2>
+                        xrefTvDBs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
+                    if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                     {
                         // first search for this show by the TvDB ID
                         List<TraktV2SearchTvDBIDShowResult> searchResults =
@@ -122,7 +126,7 @@ namespace Shoko.Server.Commands
                             logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
                                 AnimeID, showInfo.title);
                             TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                (EpisodeType)tvXRef.AniDBStartEpisodeType,
+                                (EpisodeType) tvXRef.AniDBStartEpisodeType,
                                 tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
                                 tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
                                 true);
@@ -135,12 +139,11 @@ namespace Shoko.Server.Commands
                 // Use TvDB setting due to similarity
                 if (!ServerSettings.TvDB_AutoLink) return;
 
-                // finally lets try searching Trakt directly
-                string searchCriteria = string.Empty;
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
-                if (anime == null) return;
+                    // finally lets try searching Trakt directly
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+                    if (anime == null) return;
 
-                searchCriteria = anime.MainTitle;
+                    var searchCriteria = anime.MainTitle;
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                 List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
@@ -182,7 +185,7 @@ namespace Shoko.Server.Commands
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(AnimeID, EpisodeType.Episode, 1,
+                        TraktTVHelper.LinkAniDBTrakt(session, AnimeID, EpisodeType.Episode, 1,
                             results[0].show.ids.slug, 1, 1,
                             true);
                         return true;
@@ -202,7 +205,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -220,6 +222,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

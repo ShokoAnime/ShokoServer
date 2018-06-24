@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v2.Models.common
 
         public static SearchResult GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
             int level,
-            bool all, string match, bool allpic, int pic, byte tagfilter)
+            bool all, string match, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Serie serie = Serie.GenerateFromAnimeSeries(ctx, ser, uid, nocast, notag, level, all, allpic, pic, tagfilter);
             return new SearchResult(serie, match);

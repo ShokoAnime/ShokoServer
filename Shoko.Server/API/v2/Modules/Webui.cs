@@ -306,9 +306,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
             else
-            {
                 return APIStatus.NotFound();
-            }
         }
 
         /// <summary>
@@ -330,10 +328,7 @@ namespace Shoko.Server.API.v2.Modules
                     return APIStatus.InternalError("error at saving webui settings");
                 }
             }
-            else
-            {
                 return new APIMessage(400, "Config is not a Valid.");
-            }
         }
 
         /// <summary>

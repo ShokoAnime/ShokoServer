@@ -4,7 +4,7 @@ using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Reflection;
+using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -36,7 +36,6 @@ namespace Shoko.Server.Models
 
         [JsonIgnore]
         [XmlIgnore]
-        [NotMapped]
         public byte[] Bitmap => _plugin?.Icon;
 
         [JsonIgnore]
@@ -69,20 +68,21 @@ namespace Shoko.Server.Models
             }
         }
 
-        [NotMapped]
-        public bool IsConnected => ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty);
+        public bool IsConnected
+        {
+            get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
+        }
 
         [NotMapped]
         [JsonIgnore]
         [XmlIgnore]
-        internal bool NeedSave { get; set; }
+        internal bool NeedSave { get; set; } = false;
 
-        private static AuthorizationFactory AuthInstance => new AuthorizationFactory("AppGlue.dll");
-        public const string ClientIdString = "ClientId";
-        public const string ClientSecretString = "ClientSecret";
-        public const string RedirectUriString = "RedirectUri";
-        public const string ScopesString = "Scopes";
-        public const string UserAgentString = "UserAgent";
+        private static AuthorizationFactory _cache; //lazy init, because 
+        private static AuthorizationFactory AuthInstance
+        {
+            get { return new AuthorizationFactory("AppGlue.dll"); }
+        }
 
         public IFileSystem Connect()
         {
@@ -99,10 +99,11 @@ namespace Shoko.Server.Models
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            LocalUserSettings userSettings;
-            if (code==null)
-                userSettings = new LocalUserSettings();
-            else
+            FileSystemResult<IFileSystem> res = _plugin.Init(Name, ShokoServer.Instance.OAuthProvider, auth, ConnectionString);
+            if (res == null || !res.IsOk)
+                throw new Exception("Unable to connect to '" + Provider + "'");
+            string userauth = res.Result.GetUserAuthorization();
+            if (ConnectionString != userauth)
             {
                 userSettings = new LocalUserSettingWithCode();
                 ((LocalUserSettingWithCode) userSettings).Code = code;

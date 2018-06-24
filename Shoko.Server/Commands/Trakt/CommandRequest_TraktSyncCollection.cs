@@ -9,7 +9,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollection : CommandRequest
+    [Command(CommandRequestType.Trakt_SyncCollection)]
+    public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
     {
         public virtual bool ForceRefresh { get; set; }
 
@@ -23,7 +24,6 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktSyncCollection(bool forced)
         {
-            CommandType = (int) CommandRequestType.Trakt_SyncCollection;
             Priority = (int) DefaultPriority;
             ForceRefresh = forced;
 
@@ -40,7 +40,19 @@ namespace Shoko.Server.Commands
 
                 using (var usch = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync)))
                 {
-                    if (usch.Original != null)
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.TraktSync,
+                        UpdateDetails = string.Empty
+                    };
+                }
+                else
+                {
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
+
+                    // if we have run this in the last xxx hours then exit
+                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours)
                     {
                         int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
 
@@ -77,7 +89,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -94,6 +105,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

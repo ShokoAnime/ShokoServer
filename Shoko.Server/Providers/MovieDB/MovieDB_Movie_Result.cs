@@ -15,6 +15,7 @@ namespace Shoko.Server.Providers.MovieDB
         public string MovieName { get; set; }
         public string OriginalName { get; set; }
         public string Overview { get; set; }
+        public double Rating { get; set; }
 
         public List<MovieDB_Image_Result> Images { get; set; }
 
@@ -37,6 +38,7 @@ namespace Shoko.Server.Providers.MovieDB
                 MovieName = movie.Title;
                 OriginalName = movie.Title;
                 Overview = movie.Overview;
+                Rating = movie.VoteAverage;
 
                 if (imgs != null && imgs.Backdrops != null)
                 {

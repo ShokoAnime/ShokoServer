@@ -40,7 +40,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeGroupRepository Create()
         {
-            return new AnimeGroupRepository();
+            var repo = new AnimeGroupRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup entity)
@@ -114,10 +116,7 @@ namespace Shoko.Server.Repositories.Cached
                             SaveWithOpenTransaction(session, grp);
                             transaction.Commit();
                         }
-                        lock (Changes)
-                        {
-                            Changes.AddOrUpdate(grp.AnimeGroupID);
-                        }
+                        Changes.AddOrUpdate(grp.AnimeGroupID);
 
                         if (verifylockedFilters)
                         {
@@ -160,11 +159,7 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 }
             }
-
-            lock (Changes)
-            {
-                Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
-            }
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
         public void UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
@@ -188,11 +183,7 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 }
             }
-
-            lock (Changes)
-            {
-                Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
-            }
+            Changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
         }
 
         /// <summary>
@@ -220,22 +211,15 @@ namespace Shoko.Server.Repositories.Cached
                     session.CreateQuery("delete SVR_AnimeGroup ag where ag.id <> :excludeId")
                         .SetInt32("excludeId", excludeGroupId.Value)
                         .ExecuteUpdate();
-
-                    lock (Changes)
-                    {
-                        Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
-                            .Where(id => id != excludeGroupId.Value));
-                    }
+                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID)
+                        .Where(id => id != excludeGroupId.Value));
                 }
                 else
                 {
                     session.CreateQuery("delete SVR_AnimeGroup ag")
                         .ExecuteUpdate();
 
-                    lock (Changes)
-                    {
-                        Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
-                    }
+                    Changes.RemoveRange(allGrps.Select(g => g.AnimeGroupID));
                 }
             }
 

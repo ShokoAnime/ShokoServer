@@ -4,14 +4,15 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
 using NLog;
+using Pri.LongPath;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -19,7 +20,6 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
-using Settings = Shoko.Server.API.v2.Models.core.Settings;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -37,55 +37,55 @@ namespace Shoko.Server.API.v2.Modules
         {
             // Get version, regardless of server status
             // This will work after init
-            Get("/version",ctx => GetVersion());
+            Get["/version"] = ctx => GetVersion();
 
             // Get the startup state
             // This will work after init
-            Get("/status", ctx => GetServerStatus());
+            Get["/status"] = ctx => GetServerStatus();
 
             // Get the Default User Credentials
-            Get("/defaultuser", ctx => GetDefaultUserCredentials());
+            Get["/defaultuser"] = ctx => GetDefaultUserCredentials();
 
             // Set the Default User Credentials
             // Pass this a Credentials object
-            Post("/defaultuser", ctx => SetDefaultUserCredentials());
+            Post["/defaultuser"] = ctx => SetDefaultUserCredentials();
 
             // Set AniDB user/pass
             // Pass this a Credentials object
-            Post("/anidb", ctx => SetAniDB());
+            Post["/anidb"] = ctx => SetAniDB();
 
             // Get existing AniDB user, don't provide pass
-            Get("/anidb", ctx => GetAniDB());
+            Get["/anidb"] = ctx => GetAniDB();
 
             // Test AniDB login
-            Get("/anidb/test", ctx => TestAniDB());
+            Get["/anidb/test"] = ctx => TestAniDB();
 
             // Get Database Settings
-            Get("/database", ctx => GetDatabaseSettings());
+            Get["/database"] = ctx => GetDatabaseSettings();
 
             // Set Database Settings
-            Post("/database", ctx => SetDatabaseSettings());
+            Post["/database"] = ctx => SetDatabaseSettings();
 
             // Test Database Connection
-            Get("/database/test", ctx => TestDatabaseConnection());
+            Get["/database/test"] = ctx => TestDatabaseConnection();
 
             // Get SQL Server Instances on the Machine
-            Get("/database/sqlserverinstance", ctx => GetMSSQLInstances());
+            Get["/database/sqlserverinstance"] = ctx => GetMSSQLInstances();
 
             // Get the whole settings file
-            Get("/config", ctx => ExportConfig());
+            Get["/config"] = ctx => ExportConfig();
 
             // Replace the whole settings file
-            Post("/config", ctx => ImportConfig());
+            Post["/config"] = ctx => ImportConfig();
 
             // Get a single setting value
-            Get("/setting", ctx => GetSetting());
+            Get["/setting"] = ctx => GetSetting();
 
             // Set a single setting value
-            Patch("/setting", ctx => SetSetting());
+            Patch["/setting"] = ctx => SetSetting();
 
             // Start the server
-            Get("/startserver", ctx => StartServer());
+            Get["/startserver"] = ctx => StartServer();
         }
 
         /// <summary>
@@ -202,10 +202,15 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetServerStatus()
         {
+            TimeSpan? uptime = ShokoServer.UpTime;
+            string uptimemsg = uptime == null
+                ? null
+                : $"{(int) uptime.Value.TotalHours:00}:{uptime.Value.Minutes:00}:{uptime.Value.Seconds:00}";
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.CurrentSetupStatus,
+                server_uptime = uptimemsg,
                 first_run = ServerSettings.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage
@@ -550,19 +555,19 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 try
                 {
                     var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                     if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                    Settings return_setting = new Settings
+                    Setting returnSetting = new Setting
                     {
                         setting = setting.setting,
                         value = value.ToString()
                     };
-                    return return_setting;
+                    return returnSetting;
                 }
                 catch
                 {
@@ -587,7 +592,7 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting.setting))
                     return APIStatus.BadRequest("An invalid setting was passed");
 

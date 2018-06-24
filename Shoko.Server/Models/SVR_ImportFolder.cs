@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Nancy.Json;
 using Newtonsoft.Json;
@@ -98,10 +100,11 @@ namespace Shoko.Server.Models
             }
         }
 
+        private byte[] _bitmap;
+
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        [NotMapped]
         public byte[] Bitmap
         {
             get
@@ -127,8 +130,8 @@ namespace Shoko.Server.Models
             {
                 IObject fr = FileSystem.Resolve(ImportFolderLocation);
 
-                if (fr.Status == Status.Ok && fr is IDirectory)
-                    return (IDirectory) fr;
+                if (fr != null && fr.IsOk && fr.Result is IDirectory)
+                    return (IDirectory) fr.Result;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }
         }

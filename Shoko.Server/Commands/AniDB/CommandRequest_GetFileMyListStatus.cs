@@ -2,14 +2,16 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetFileMyListStatus : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetMyListFile)]
+    public class CommandRequest_GetFileMyListStatus : CommandRequestImplementation
     {
-        public virtual int AniFileID { get; set; }
-        public virtual string FileName { get; set; }
+        public int AniFileID { get; set; }
+        public string FileName { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -27,7 +29,6 @@ namespace Shoko.Server.Commands
         {
             AniFileID = aniFileID;
             FileName = fileName;
-            CommandType = (int) CommandRequestType.AniDB_GetMyListFile;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -57,11 +58,10 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetFileMyListStatus_{AniFileID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -81,6 +81,21 @@ namespace Shoko.Server.Commands
 
             }
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

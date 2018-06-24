@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using static Shoko.Models.FileQualityFilter;
 
 namespace Shoko.Server
 {
@@ -49,26 +49,30 @@ namespace Shoko.Server
 
         */
 
-        public static Dictionary<int, string> ResolutionArea;
-        public static Dictionary<int, string> ResolutionAreaOld;
+        public static readonly Dictionary<int, string> ResolutionArea;
+        public static readonly Dictionary<int, string> ResolutionAreaOld;
 
         public static FileQualityPreferences Settings = new FileQualityPreferences();
 
         static FileQualityFilter()
         {
-            ResolutionArea = new Dictionary<int, string>();
-            ResolutionArea.Add(3840*2160, "2160p");
-            ResolutionArea.Add(2560*1440, "1440p");
-            ResolutionArea.Add(1920*1080, "1080p");
-            ResolutionArea.Add(1280*720, "720p");
-            ResolutionArea.Add(1024*576, "576p");
-            ResolutionArea.Add(853*480, "480p");
+            ResolutionArea = new Dictionary<int, string>
+            {
+                {3840 * 2160, "2160p"},
+                {2560 * 1440, "1440p"},
+                {1920 * 1080, "1080p"},
+                {1280 * 720, "720p"},
+                {1024 * 576, "576p"},
+                {853 * 480, "480p"}
+            };
 
-            ResolutionAreaOld = new Dictionary<int, string>();
-            ResolutionAreaOld.Add(720*576, "576p");
-            ResolutionAreaOld.Add(720*480, "480p");
-            ResolutionAreaOld.Add(480*360, "360p");
-            ResolutionAreaOld.Add(320*240, "240p");
+            ResolutionAreaOld = new Dictionary<int, string>
+            {
+                {720 * 576, "576p"},
+                {720 * 480, "480p"},
+                {480 * 360, "360p"},
+                {320 * 240, "240p"}
+            };
         }
 
         #region Checks
@@ -129,7 +133,7 @@ namespace Shoko.Server
         private static bool CheckAudioCodec(SVR_VideoLocal aniFile)
         {
             string[] codecs = aniFile.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "2")
+                .Where(a => a.StreamType == 2)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
@@ -148,7 +152,7 @@ namespace Shoko.Server
 
         private static bool CheckAudioStreamCount(SVR_VideoLocal aniFile)
         {
-            int streamCount = aniFile.Media.Parts.SelectMany(a => a.Streams).Count(a => a.StreamType == "2");
+            int streamCount = aniFile.Media.Parts.SelectMany(a => a.Streams).Count(a => a.StreamType == 2);
             FileQualityFilterOperationType operationType = Settings.RequiredAudioStreamCountOperator;
             switch (operationType)
             {
@@ -246,7 +250,7 @@ namespace Shoko.Server
 
         private static bool CheckSubStreamCount(SVR_VideoLocal file)
         {
-            int streamCount = file.Media.Parts.SelectMany(a => a.Streams).Count(b => b.StreamType == "3");
+            int streamCount = file.Media.Parts.SelectMany(a => a.Streams).Count(b => b.StreamType == 3);
             FileQualityFilterOperationType operationType = Settings.RequiredSubStreamCountOperator;
             switch (operationType)
             {
@@ -263,7 +267,7 @@ namespace Shoko.Server
         private static bool CheckVideoCodec(SVR_VideoLocal aniFile)
         {
             string[] codecs = aniFile.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "1")
+                .Where(a => a.StreamType == 1)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
@@ -344,12 +348,12 @@ namespace Shoko.Server
         private static int CompareAudioCodecTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
             string[] newCodecs = newFile.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "2")
+                .Where(a => a.StreamType == 2)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
             string[] oldCodecs = oldFile.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "2")
+                .Where(a => a.StreamType == 2)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
@@ -371,8 +375,8 @@ namespace Shoko.Server
 
         private static int CompareAudioStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            int newStreamCount = newFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == "2") ?? 0;
-            int oldStreamCount = oldFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == "2") ?? 0;
+            int newStreamCount = newFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == 2) ?? 0;
+            int oldStreamCount = oldFile.Media?.Parts?.SelectMany(a => a.Streams).Count(a => a.StreamType == 2) ?? 0;
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
@@ -411,18 +415,26 @@ namespace Shoko.Server
 
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            if (!Settings._subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant())) return 0;
-            if (!Settings._subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant())) return 0;
+            if (!Settings._subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings._subgroups.Contains(newFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
+            if (!Settings._subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings._subgroups.Contains(oldFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
             // The above ensures that _subgroups contains both, so no need to check for -1 in this case
             int newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupName.ToLowerInvariant());
+            if (newIndex == -1)
+                newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupNameShort.ToLowerInvariant());
+
             int oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupName.ToLowerInvariant());
+            if (oldIndex == -1)
+                oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupNameShort.ToLowerInvariant());
+
             return newIndex.CompareTo(oldIndex);
         }
 
         private static int CompareSubStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            int newStreamCount = newFile.Media.Parts.Where(a => a.Streams.Any(b => b.StreamType == "3")).ToList().Count;
-            int oldStreamCount = oldFile.Media.Parts.Where(a => a.Streams.Any(b => b.StreamType == "3")).ToList().Count;
+            int newStreamCount = newFile.Media.Parts.Where(a => a.Streams.Any(b => b.StreamType == 3)).ToList().Count;
+            int oldStreamCount = oldFile.Media.Parts.Where(a => a.Streams.Any(b => b.StreamType == 3)).ToList().Count;
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
@@ -439,12 +451,12 @@ namespace Shoko.Server
         private static int CompareVideoCodecTo(SVR_VideoLocal newLocal, SVR_VideoLocal oldLocal)
         {
             string[] newCodecs = newLocal.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "1")
+                .Where(a => a.StreamType == 1)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
             string[] oldCodecs = oldLocal.Media.Parts.SelectMany(a => a.Streams)
-                .Where(a => a.StreamType == "1")
+                .Where(a => a.StreamType == 1)
                 .Select(a => a.Codec)
                 .OrderBy(a => a)
                 .ToArray();
@@ -540,16 +552,20 @@ namespace Shoko.Server
         private static Tuple<int, int> GetResolutionInternal(SVR_VideoLocal videoLocal, SVR_AniDB_File aniFile)
         {
             string[] res = aniFile?.File_VideoResolution?.Split('x');
+            int oldHeight = 0, oldWidth = 0;
             if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0")
             {
                 var stream = videoLocal?.Media?.Parts?.SelectMany(a => a.Streams)
-                    ?.FirstOrDefault(a => a.StreamType == "1");
+                    .FirstOrDefault(a => a.StreamType == 1);
                 if (stream != null)
-                    res = new[] {stream.Width, stream.Height};
+                {
+                    oldWidth = stream.Width;
+                    oldHeight = stream.Height;
+                }
             }
             if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0") return null;
-            if (!int.TryParse(res[0], out int oldWidth)) return null;
-            if (!int.TryParse(res[1], out int oldHeight)) return null;
+            if (oldHeight == 0 && oldWidth == 0 && !int.TryParse(res[0], out oldWidth)) return null;
+            if (oldHeight == 0 && oldWidth == 0 && !int.TryParse(res[1], out oldHeight)) return null;
             if (oldWidth == 0 || oldHeight == 0) return null;
             return new Tuple<int, int>(oldWidth, oldHeight);
         }

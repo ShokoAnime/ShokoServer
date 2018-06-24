@@ -12,7 +12,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_UpdateMyListFileStatus : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
+    public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation
     {
         public virtual string FullFileName { get; set; }
         public virtual string Hash { get; set; }
@@ -37,13 +38,12 @@ namespace Shoko.Server.Commands
         {
             Hash = hash;
             Watched = watched;
-            CommandType = (int) CommandRequestType.AniDB_UpdateWatchedUDP;
             Priority = (int) DefaultPriority;
             UpdateSeriesStats = updateSeriesStats;
             WatchedDateAsSecs = watchedDateSecs;
 
             GenerateCommandID();
-            FullFileName = Repo.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+            FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
         public override void ProcessCommand()
@@ -54,31 +54,17 @@ namespace Shoko.Server.Commands
             try
             {
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-                SVR_VideoLocal vid = Repo.VideoLocal.GetByHash(Hash);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
                 if (vid != null)
                 {
-                    bool isManualLink = false;
-                    List<CrossRef_File_Episode> xrefs = vid.EpisodeCrossRefs;
-                    if (xrefs.Count > 0)
-                        isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
-
-                    if (isManualLink)
+                    if (WatchedDateAsSecs > 0)
                     {
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(xrefs[0].AnimeID,
-                            xrefs[0].GetEpisode().EpisodeNumber, Watched);
-                        logger.Info("Updating file list status (GENERIC): {0} - {1}", vid, Watched);
+                        DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
                     }
                     else
-                    {
-                        if (WatchedDateAsSecs > 0)
-                        {
-                            DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
-                        }
-                        else
-                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, null);
-                        logger.Info("Updating file list status: {0} - {1}", vid, Watched);
-                    }
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched);
+                    logger.Info("Updating file list status: {0} - {1}", vid, Watched);
 
                     if (UpdateSeriesStats)
                     {
@@ -112,7 +98,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -138,12 +123,27 @@ namespace Shoko.Server.Commands
                         TryGetProperty(docCreator, "CommandRequest_UpdateMyListFileStatus", "WatchedDateAsSecs"),
                         out int dateSecs))
                     WatchedDateAsSecs = dateSecs;
-                FullFileName = Repo.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
+                FullFileName = RepoFactory.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
             }
 
             if (Hash.Trim().Length > 0)
                 return true;
             return false;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

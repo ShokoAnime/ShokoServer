@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NHibernate;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -56,6 +57,14 @@ namespace Shoko.Server.Extensions
                     upd.Commit();
                 }
             }
+            else
+            {
+                if (existingEp.AnimeSeriesID != animeSeriesID) existingEp.AnimeSeriesID = animeSeriesID;
+                existingEp.PlexContract = null;
+                RepoFactory.AnimeEpisode.Save(existingEp);
+                foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+            }
         }
 
 
@@ -64,7 +73,7 @@ namespace Shoko.Server.Extensions
         {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return Repo.MovieDb_Movie.GetByMovieID(int.Parse(cross.CrossRefID)).FirstOrDefault();
+            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
@@ -72,7 +81,7 @@ namespace Shoko.Server.Extensions
             return Repo.Trakt_Show.GetByTraktSlug(cross.TraktID);
         }
 
-        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDBV2 cross)
+        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
         {
             return Repo.TvDB_Series.GetByTvDBID(cross.TvDBID);
         }
@@ -108,5 +117,11 @@ namespace Shoko.Server.Extensions
 
         public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => Repo.AniDB_File.GetByHash(
             duplicatefile.Hash);
+
+        public static string GetEnglishTitle(this AniDB_Episode ep)
+        {
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
+                ?.Title;
+        }
     }
 }

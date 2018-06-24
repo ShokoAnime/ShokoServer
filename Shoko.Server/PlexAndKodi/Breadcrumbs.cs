@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Shoko.Models.PlexAndKodi;
 using Force.DeepCloner;
+using NLog;
 
 namespace Shoko.Server.PlexAndKodi
 {
@@ -38,7 +39,7 @@ namespace Shoko.Server.PlexAndKodi
 
             cache.Key = v.Key;
             cache.Title = v.Title ?? string.Empty;
-            cache.Index = v.Index;
+            cache.Index = v.Index.ToString();
             if (!noart)
             {
                 cache.GrandParentThumb = cache.ParentThumb;
@@ -61,10 +62,23 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (Key != null)
             {
+                LogManager.GetCurrentClassLogger().Info("Key found " + Key);
+
                 if (addkey && Key.Contains("/Metadata/"))
-                    m.Key = prov.Proxyfy(Key + "/" + ToKey());
+                {
+                    string md5 = ToKey();
+                    string finalurl = Key + "/" + md5;
+                    if (!string.IsNullOrEmpty(prov.ExcludeTags))
+                        finalurl += "?excludetags=" + prov.ExcludeTags;
+                    m.Key = prov.Proxyfy(finalurl);
+                }
                 else
-                    m.Key = prov.Proxyfy(Key);
+                {
+                    string finalurl = Key;
+                    if (!string.IsNullOrEmpty(prov.ExcludeTags))
+                        finalurl += "?excludetags=" + prov.ExcludeTags;
+                    m.Key = prov.Proxyfy(finalurl);
+                }
             }
             if (ParentKey != null)
                 m.ParentKey = prov.Proxyfy(ParentKey);

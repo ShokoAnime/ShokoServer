@@ -6,6 +6,8 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using System;
 
 namespace Shoko.Server.Models
 {
@@ -21,27 +23,9 @@ namespace Shoko.Server.Models
         }
 
 
-        public SVR_AnimeGroup_User(int userID, int groupID)
-        {
-            JMMUserID = userID;
-            AnimeGroupID = groupID;
-            IsFave = 0;
-            UnwatchedEpisodeCount = 0;
-            WatchedEpisodeCount = 0;
-            WatchedDate = null;
-            PlayedCount = 0;
-            WatchedCount = 0;
-            StoppedCount = 0;
-        }
+        private DateTime _lastPlexRegen = DateTime.MinValue;
+        private Video _plexContract = null;
 
-        [NotMapped]
-        public int PlexContractVersion { get; set; }
-        [NotMapped]
-        public byte[] PlexContractBlob { get; set; }
-        [NotMapped]
-        public int PlexContractSize { get; set; }
-
-        [NotMapped]
         public virtual Video PlexContract
         {
             get
@@ -49,10 +33,9 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var group = Repo.AnimeGroup.GetByID(AnimeGroupID);
+                    var group = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
                     return _plexContract = Helper.GenerateFromAnimeGroup(group, JMMUserID, group.GetAllSeries());
                 }
-
                 return _plexContract;
             }
             set
@@ -65,6 +48,20 @@ namespace Shoko.Server.Models
         public void CollectContractMemory()
         {
             _plexContract = null;
+        }
+
+
+        public SVR_AnimeGroup_User(int userID, int groupID)
+        {
+            JMMUserID = userID;
+            AnimeGroupID = groupID;
+            IsFave = 0;
+            UnwatchedEpisodeCount = 0;
+            WatchedEpisodeCount = 0;
+            WatchedDate = null;
+            PlayedCount = 0;
+            WatchedCount = 0;
+            StoppedCount = 0;
         }
 
         public static HashSet<GroupFilterConditionType> GetConditionTypesChanged(SVR_AnimeGroup_User oldcontract, SVR_AnimeGroup_User newcontract)

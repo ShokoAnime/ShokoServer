@@ -12,13 +12,18 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using Nancy.Security;
-using Shoko.Server.Commands;
+using NLog;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Plex;
+using Shoko.Server.Plex.Libraries;
 
 namespace Shoko.Server.API.v2.Modules
 {
     public class PlexWebhook : NancyModule
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public PlexWebhook() : base("/plex")
         {
             Post("/", async (x,ct) => await Task.Factory.StartNew(WebhookPost, ct));
@@ -29,6 +34,7 @@ namespace Shoko.Server.API.v2.Modules
             PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});
 
+            logger.Trace($"{eventData.Event}: {eventData.Metadata.Guid}");
             switch (eventData.Event)
             {
                 case "media.scrobble":
@@ -57,7 +63,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (episode == null) return;
 
-            var vl = Repo.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+            var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
@@ -70,23 +76,30 @@ namespace Shoko.Server.API.v2.Modules
         {
             PlexEvent.PlexMetadata metadata = data.Metadata;
             (SVR_AnimeEpisode episode, SVR_AnimeSeries anime) = GetEpisode(metadata);
-                        
-            if (episode == null) return;
+            if (episode == null)
+            {
+                logger.Info("No episode returned, aborting scrobble. This might not have been a ShokoMetadata library");
+                return;
+            }
 
-            var user = Repo.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+            logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
+
+            var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
-                return; //At this point in time, we don't want to scrobble for unknown users.
+            {
+                logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
+                return; //At this point in time, we don't want to scrobble for unknown users
+            }
 
             episode.ToggleWatchedStatus(true, true, FromUnixTime(metadata.LastViewedAt), false, user.JMMUserID,
                 true);
-            SVR_AnimeSeries.UpdateStats(anime, true, false, true);
+            anime.UpdateStats(true, false, true);
         }
 
         #endregion
 
         private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
         {
-            
             if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
 
             string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
@@ -96,8 +109,7 @@ namespace Shoko.Server.API.v2.Modules
             var anime = Repo.AnimeSeries.GetByID(animeId);
 
             EpisodeType episodeType;
-            switch (series
-                ) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
+            switch (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
             {
                 case -4:
                     episodeType = EpisodeType.Parody;
@@ -207,9 +219,10 @@ namespace Shoko.Server.API.v2.Modules
         public PlexWebhookAuthenticated() : base("/plex")
         {
             this.RequiresAuthentication();
-            Get("/pin", o => CallPlexHelper(h => h.Authenticate()));
-            Get("/pin/authenticated", o => $"{CallPlexHelper(h => h.IsAuthenticated)}");
-            Get("/token/invalidate", o => CallPlexHelper(h =>
+            //Get["/pin"] = o => CallPlexHelper(h => h.Authenticate());
+            Get["/loginurl"] = o => CallPlexHelper(h => h.LoginUrl);
+            Get["/pin/authenticated"] = o => $"{CallPlexHelper(h => h.IsAuthenticated)}";
+            Get["/token/invalidate"] = o => CallPlexHelper(h =>
             {
                 h.InvalidateToken();
                 return true;
@@ -218,23 +231,26 @@ namespace Shoko.Server.API.v2.Modules
             {
                 new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
                 return APIStatus.OK();
-            }));
-            Get("/sync/all",  async (x, ct) => await Task.Factory.StartNew(() =>
+            });
+            Get["/sync/all", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            }));
+            });
 
             Get("/sync/{id}",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 if (((JMMUser)this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
-                JMMUser user = Repo.JMMUser.GetByID(x.id);
+                JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
-            }));
+            });
 #if DEBUG
-            Get("/test/{id}", o => Response.AsJson(CallPlexHelper(h => h.GetPlexSeries((int) o.id))));
+            Get["/test/dir"] = o => Response.AsJson(CallPlexHelper(h => h.GetDirectories()));
+            Get["/test/lib/{id}"] = o =>
+                Response.AsJson(CallPlexHelper(h =>
+                    ((SVR_Directory) h.GetDirectories().FirstOrDefault(d => d.Key == (int) o.id))?.GetShows()));
 #endif
         }
 

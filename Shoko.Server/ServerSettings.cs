@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -574,6 +575,21 @@ namespace Shoko.Server
         public static void LoadSettings()
         {
             LoadSettingsFromFile(string.Empty);
+            LoadSettingsFromEnv();
+        }
+
+        private static void LoadSettingsFromEnv(bool force = false)
+        {
+            if (!FirstRun && !force) return;
+
+            foreach (DictionaryEntry envPair in Environment.GetEnvironmentVariables())
+            {
+                string name = envPair.Key.ToString();
+                if (!name.StartsWith("SHOKO_")) continue;
+
+                name = name.Substring(6);
+                Set(name, envPair.Value.ToString());
+            }
         }
 
         public static event EventHandler MigrationStarted;
@@ -875,7 +891,7 @@ namespace Shoko.Server
 
         #region Database
 
-        public static string DefaultUserUsername { get; set; } = Commons.Properties.Resources.Users_Default;
+        public static string DefaultUserUsername { get; set; } = "Default";
         public static string DefaultUserPassword { get; set; } = string.Empty;
 
         public static string DatabaseType
@@ -1257,28 +1273,6 @@ namespace Shoko.Server
             set => Set("WebCache_Trakt_Send", value.ToString());
         }
 
-        public static bool WebCache_MAL_Get
-        {
-            get
-            {
-                if (bool.TryParse(Get("WebCache_MAL_Get"), out bool usecache))
-                    return usecache;
-                return true; // default
-            }
-            set => Set("WebCache_MAL_Get", value.ToString());
-        }
-
-        public static bool WebCache_MAL_Send
-        {
-            get
-            {
-                if (bool.TryParse(Get("WebCache_MAL_Send"), out bool usecache))
-                    return usecache;
-                return true; // default
-            }
-            set => Set("WebCache_MAL_Send", value.ToString());
-        }
-
         public static bool WebCache_UserInfo
         {
             get
@@ -1636,6 +1630,12 @@ namespace Shoko.Server
             set => Set("LanguagePreference", value);
         }
 
+        public static string EpisodeLanguagePreference
+        {
+            get => Get("EpisodeLanguagePreference");
+            set => Set("EpisodeLanguagePreference", value);
+        }
+
         public static bool LanguageUseSynonyms
         {
             get
@@ -1799,58 +1799,6 @@ namespace Shoko.Server
 
         #endregion
 
-        #region MAL
-
-        public static bool MAL_AutoLink
-        {
-            get
-            {
-                bool.TryParse(Get("MAL_AutoLink"), out bool val);
-                return val;
-            }
-            set => Set("MAL_AutoLink", value.ToString());
-        }
-
-        public static string MAL_Username
-        {
-            get => Get("MAL_Username");
-            set => Set("MAL_Username", value);
-        }
-
-        public static string MAL_Password
-        {
-            get => Get("MAL_Password");
-            set => Set("MAL_Password", value);
-        }
-
-        public static ScheduledUpdateFrequency MAL_UpdateFrequency
-        {
-            get
-            {
-                if (int.TryParse(Get("MAL_UpdateFrequency"), out int val))
-                    return (ScheduledUpdateFrequency)val;
-                return ScheduledUpdateFrequency.Daily; // default value
-            }
-            set => Set("MAL_UpdateFrequency", ((int) value).ToString());
-        }
-
-        public static bool MAL_NeverDecreaseWatchedNums
-        {
-            get
-            {
-                string wtchNum = Get("MAL_NeverDecreaseWatchedNums");
-                if (!string.IsNullOrEmpty(wtchNum))
-                {
-                    bool.TryParse(wtchNum, out bool val);
-                    return val;
-                }
-                return true;
-            }
-            set => Set("MAL_NeverDecreaseWatchedNums", value.ToString());
-        }
-
-        #endregion
-
         public static string UpdateChannel
         {
             get
@@ -1927,6 +1875,16 @@ namespace Shoko.Server
             set { Set(nameof(Linux_Permission), Convert.ToString(value, 8)); }
         }
 
+        public static int AniDB_MaxRelationDepth
+        {
+            get
+            {
+                if (!Int32.TryParse(Get(nameof(AniDB_MaxRelationDepth)), out int val)) return 3;
+                return val;
+            }
+            set { Set(nameof(AniDB_MaxRelationDepth), value.ToString()); }
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings
@@ -1960,6 +1918,7 @@ namespace Shoko.Server
 
                 AniDB_DownloadCharacters = AniDB_DownloadCharacters,
                 AniDB_DownloadCreators = AniDB_DownloadCreators,
+                AniDB_MaxRelationDepth = AniDB_MaxRelationDepth,
 
                 // Web Cache
                 WebCache_Address = WebCache_Address,
@@ -1970,8 +1929,6 @@ namespace Shoko.Server
                 WebCache_TvDB_Send = WebCache_TvDB_Send,
                 WebCache_Trakt_Get = WebCache_Trakt_Get,
                 WebCache_Trakt_Send = WebCache_Trakt_Send,
-                WebCache_MAL_Get = WebCache_MAL_Get,
-                WebCache_MAL_Send = WebCache_MAL_Send,
                 WebCache_UserInfo = WebCache_UserInfo,
 
                 // TvDB
@@ -2019,13 +1976,6 @@ namespace Shoko.Server
                 Trakt_TokenExpirationDate = Trakt_TokenExpirationDate,
                 Trakt_UpdateFrequency = (int)Trakt_UpdateFrequency,
                 Trakt_SyncFrequency = (int)Trakt_SyncFrequency,
-
-                // MAL
-                MAL_AutoLink = MAL_AutoLink,
-                MAL_Username = MAL_Username,
-                MAL_Password = MAL_Password,
-                MAL_UpdateFrequency = (int)MAL_UpdateFrequency,
-                MAL_NeverDecreaseWatchedNums = MAL_NeverDecreaseWatchedNums,
 
                 // LogRotator
                 RotateLogs = RotateLogs,
@@ -2147,6 +2097,7 @@ namespace Shoko.Server
             logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDB_MyList_UpdateFrequency);
             logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDB_Calendar_UpdateFrequency);
             logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDB_Anime_UpdateFrequency);
+            logger.Info($"{nameof(AniDB_MaxRelationDepth)}: {AniDB_MaxRelationDepth}");
 
 
             logger.Info("WebCache_Address: {0}", WebCache_Address);
@@ -2155,8 +2106,6 @@ namespace Shoko.Server
             logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
             logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);
             logger.Info("WebCache_TvDB_Send: {0}", WebCache_TvDB_Send);
-            logger.Info("WebCache_MAL_Get: {0}", WebCache_MAL_Get);
-            logger.Info("WebCache_MAL_Send: {0}", WebCache_MAL_Send);
 
             logger.Info("TvDB_AutoFanart: {0}", TvDB_AutoFanart);
             logger.Info("TvDB_AutoFanartAmount: {0}", TvDB_AutoFanartAmount);

@@ -18,7 +18,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static VideoLocal_PlaceRepository Create()
         {
-            return new VideoLocal_PlaceRepository();
+            var repo = new VideoLocal_PlaceRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_VideoLocal_Place entity)
@@ -45,7 +47,7 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public SVR_VideoLocal_Place GetByFilePathAndShareID(string filePath, int nshareID)
+        public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
         {
             lock (Cache)
             {

@@ -4,13 +4,16 @@ using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetFile : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetFileUDP)]
+    public class CommandRequest_GetFile : CommandRequestImplementation
     {
         public virtual int VideoLocalID { get; set; }
         public virtual bool ForceAniDB { get; set; }
@@ -45,7 +48,6 @@ namespace Shoko.Server.Commands
         {
             VideoLocalID = vidLocalID;
             ForceAniDB = forceAniDB;
-            CommandType = (int) CommandRequestType.AniDB_GetFileUDP;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -63,31 +65,9 @@ namespace Shoko.Server.Commands
                 if (vlocal == null) return;
                 SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
-                /*// get anidb file info from web cache
-                if (aniFile == null && ServerSettings.WebCache_AniDB_File_Get)
-                {
-                    AniDB_FileRequest fr = XMLService.Get_AniDB_File(vlocal.Hash, vlocal.FileSize);
-                    if (fr != null)
-                    {
-                        aniFile = new AniDB_File();
-                        aniFile.Populate(fr);
-    
-                        //overwrite with local file name
-                        string localFileName = Path.GetFileName(vlocal.FilePath);
-                        aniFile.FileName = localFileName;
-    
-                        repAniFile.Save(aniFile, false);
-                        aniFile.CreateLanguages();
-                        aniFile.CreateCrossEpisodes(localFileName);
-    
-                        StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
-                    }
-                }*/
-
-                string localFileName = vlocal.FileName;
-                if (aniFile == null || ForceAniDB)
-                {
-                    Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
+                    Raw_AniDB_File fileInfo = null;
+                    if (aniFile == null || ForceAniDB)
+                        fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
 
                     if (fileInfo != null)
                     {
@@ -107,22 +87,10 @@ namespace Shoko.Server.Commands
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
 
-                        if (!string.IsNullOrEmpty(fileInfo.OtherEpisodesRAW))
-                        {
-                            string[] epIDs = fileInfo.OtherEpisodesRAW.Split(',');
-                            foreach (string epid in epIDs)
-                            {
-                                if (int.TryParse(epid, out int id))
-                                {
-                                    CommandRequest_GetEpisode cmdEp = new CommandRequest_GetEpisode(id);
-                                    cmdEp.Save();
-                                }
-                            }
-                        }
-
-                        Repo.AniDB_Anime.Touch(() => Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID));
-                        SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
-                        SVR_AnimeSeries.UpdateStats(series, false, true, true);
+                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
+                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                        series.UpdateStats(true, true, true);
                     }
 //                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
                 }
@@ -146,7 +114,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -160,10 +127,25 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
                 ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
-                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

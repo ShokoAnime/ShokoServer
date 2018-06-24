@@ -12,7 +12,7 @@ namespace Shoko.Server.Tasks
     /// <remarks>
     /// This class is NOT thread safe.
     /// </remarks>
-    internal class AutoAnimeGroupCalculator
+    public class AutoAnimeGroupCalculator
     {
         private static readonly Regex TitleNoiseRegex = new Regex(@"[^\w\s]|\d|gekijouban|the animation|the movie",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -117,8 +117,19 @@ namespace Shoko.Server.Tasks
                 (int type, string title, DateTime? airdate) to = animes.ContainsKey(rel.RelatedAnimeID) ? animes[rel.RelatedAnimeID] : (0, null, null);
                 if (from.title != null && to.title != null)
                 {
-                    AnimeRelationType relt;
-                    switch (rel.RelationType.ToLowerInvariant())
+                    var relation = new AnimeRelation
+                    {
+                        FromId = (int) r[0],
+                        ToId = (int) r[1],
+                        FromType = (AnimeType) r[2],
+                        ToType = (AnimeType) r[3],
+                        FromMainTitle = (string) r[4],
+                        ToMainTitle = (string) r[5],
+                        FromAirDate = (DateTime?) r[6],
+                        ToAirDate = (DateTime?) r[7]
+                    };
+
+                    switch (((string) r[8]).ToLowerInvariant())
                     {
                         case "full story":
                             relt = AnimeRelationType.FullStory;
@@ -139,10 +150,10 @@ namespace Shoko.Server.Tasks
                             relt = AnimeRelationType.Sequel;
                             break;
                         case "alternative setting":
-                            relt = AnimeRelationType.AlternateSetting;
+                            relation.RelationType = AnimeRelationType.AlternateSetting;
                             break;
                         case "alternative version":
-                            relt = AnimeRelationType.AlternateVersion;
+                            relation.RelationType = AnimeRelationType.AlternateVersion;
                             break;
                         case "same setting":
                             relt = AnimeRelationType.SameSetting;

@@ -6,7 +6,8 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequest
+    [Command(CommandRequestType.WebCache_DeleteXRefAniDBTvDB)]
+    public class CommandRequest_WebCacheDeleteXRefAniDBTvDB : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual int AniDBStartEpisodeType { get; set; }
@@ -38,7 +39,6 @@ namespace Shoko.Server.Commands
             TvDBID = tvDBID;
             TvDBSeasonNumber = tvDBSeasonNumber;
             TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
-            CommandType = (int) CommandRequestType.WebCache_DeleteXRefAniDBTvDB;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -69,7 +69,6 @@ namespace Shoko.Server.Commands
             {
                 CommandID = cq.CommandID;
                 CommandRequestID = cq.CommandRequestID;
-                CommandType = cq.CommandType;
                 Priority = cq.Priority;
                 CommandDetails = cq.CommandDetails;
                 DateTimeUpdated = cq.DateTimeUpdated;
@@ -107,6 +106,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

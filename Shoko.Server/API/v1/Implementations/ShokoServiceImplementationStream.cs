@@ -8,6 +8,8 @@ using Nancy.Rest.Module;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -49,7 +51,7 @@ namespace Shoko.Server
                 Nancy.Request request = RestModule.CurrentModule.Request;
 
                 FileSystemResult<Stream> fr = r.File.OpenRead();
-                if (fr.Status!=Status.Ok)
+                if (fr == null || !fr.IsOk)
                 {
                     return new StreamWithResponse(HttpStatusCode.InternalServerError,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
@@ -172,7 +174,7 @@ namespace Shoko.Server
             try
             {
                 InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = Repo.VideoLocal.GetByID(videolocalid);
+                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
                 if (loc == null)
                 {
                     r.Status = HttpStatusCode.NotFound;

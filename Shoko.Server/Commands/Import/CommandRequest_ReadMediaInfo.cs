@@ -9,7 +9,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_ReadMediaInfo : CommandRequest
+    [Command(CommandRequestType.ReadMediaInfo)]
+    public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
     {
         public virtual int VideoLocalID { get; set; }
 
@@ -28,7 +29,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_ReadMediaInfo(int vidID)
         {
             VideoLocalID = vidID;
-            CommandType = (int) CommandRequestType.ReadMediaInfo;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -41,8 +41,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_VideoLocal vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
-                SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace();
+                SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
                 if (place == null)
                 {
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
@@ -81,7 +81,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -98,6 +97,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

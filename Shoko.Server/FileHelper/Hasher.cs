@@ -63,11 +63,8 @@ namespace Shoko.Server.FileHelper
                 if (fullexepath != null)
                 {
                     FileInfo fi = new FileInfo(fullexepath);
-                    if (Utils.IsLinux)
-                        fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86","librhash.dll");
-                    else
-                        fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86","hasher.dll");
-
+                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "librhash.dll");
                     Finalise.ModuleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
                 }
             }
@@ -126,7 +123,7 @@ namespace Shoko.Server.FileHelper
             bool getSHA1)
         {
             Hashes rhash = new Hashes();
-            if (Finalise.ModuleHandle != IntPtr.Zero)
+            if (Finalise.ModuleHandle != IntPtr.Zero || Utils.IsLinux)
             {
                 byte[] hash = new byte[56];
                 bool gotHash = false;
@@ -134,29 +131,14 @@ namespace Shoko.Server.FileHelper
                 try
                 {
                     string filename = strPath;
-                    if (Utils.IsLinux)
-                    {
-                        (string e2Dk, string crc32, string md5, string sha1) = NativeHasher.GetHash(filename);
-                        rhash.ED2K = e2Dk;
-                        if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
-                        if (getCRC32) rhash.CRC32 = crc32;
-                        if (getMD5) rhash.MD5 = md5;
-                        if (getSHA1) rhash.SHA1 = sha1;
-                    }
-                    else
-                    {
-                        filename = strPath.StartsWith(@"\\") ? strPath : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
-                        rval = CalculateHashes_dll(filename, ref hash, onHashProgress, getCRC32, getMD5, getSHA1);
-                        if (rval == 0)
-                        {
-                            rhash.ED2K = HashToString(hash, 0, 16);
-                            if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
-                            if (getCRC32) rhash.CRC32 = HashToString(hash, 16, 4);
-                            if (getMD5) rhash.MD5 = HashToString(hash, 20, 16);
-                            if (getSHA1) rhash.SHA1 = HashToString(hash, 36, 20);
-                        }
-                    }
-                   
+                    if (!Utils.IsLinux) filename = strPath.StartsWith(@"\\") ? strPath : @"\\?\" + strPath; //only prepend non-UNC paths (or paths that have this already)
+
+                    (string e2Dk, string crc32, string md5, string sha1) = NativeHasher.GetHash(filename);
+                    rhash.ED2K = e2Dk;
+                    if (!string.IsNullOrEmpty(rhash.ED2K)) gotHash = true;
+                    if (getCRC32) rhash.CRC32 = crc32;
+                    if (getMD5) rhash.MD5 = md5;
+                    if (getSHA1) rhash.SHA1 = sha1;
                 }
                 catch (Exception ex)
                 {

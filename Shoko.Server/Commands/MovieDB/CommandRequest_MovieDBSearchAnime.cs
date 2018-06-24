@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Xml;
-using Nancy.Session;
+using NHibernate;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -17,7 +16,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_MovieDBSearchAnime : CommandRequest
+    [Command(CommandRequestType.MovieDB_SearchAnime)]
+    public class CommandRequest_MovieDBSearchAnime : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -38,7 +38,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = animeID;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.MovieDB_SearchAnime;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -86,7 +85,7 @@ namespace Shoko.Server.Commands
                     if (!ServerSettings.TvDB_AutoLink) return;
 
                     string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -145,7 +144,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -163,6 +161,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

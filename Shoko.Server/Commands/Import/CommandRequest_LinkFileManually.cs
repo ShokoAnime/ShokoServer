@@ -13,13 +13,14 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_LinkFileManually : CommandRequest
+    [Command(CommandRequestType.LinkFileManually)]
+    public class CommandRequest_LinkFileManually : CommandRequestImplementation
     {
         private new static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public virtual int VideoLocalID { get; set; }
-        public virtual int EpisodeID { get; set; }
-        public virtual int Percentage { get; set; }
+        public int VideoLocalID { get; set; }
+        public int EpisodeID { get; set; }
+        public int Percentage { get; set; }
 
         private SVR_AnimeEpisode episode;
         private SVR_VideoLocal vlocal;
@@ -34,7 +35,7 @@ namespace Shoko.Server.Commands
                     return new QueueStateStruct
                     {
                         queueState = QueueStateEnum.LinkFileManually,
-                        extraParams = new[] {vlocal.FileName, episode.AniDB_Episode.EnglishName}
+                        extraParams = new[] {vlocal.FileName, episode.Title}
                     };
                 return new QueueStateStruct
                 {
@@ -52,7 +53,6 @@ namespace Shoko.Server.Commands
         {
             VideoLocalID = vidLocalID;
             EpisodeID = episodeID;
-            CommandType = (int) CommandRequestType.LinkFileManually;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -60,30 +60,21 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(vlocal.Hash);
-
-            foreach (CrossRef_File_Episode fileEp in fileEps)
-                Repo.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
-            CrossRef_File_Episode xref = null;
-            using (var cupd = Repo.CrossRef_File_Episode.BeginAdd())
+            CrossRef_File_Episode xref = new CrossRef_File_Episode();
+            try
             {
-                try
-                {
-                cupd.Entity.PopulateManually_RA(vlocal, episode);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
-                    throw;
-                }
+                xref.PopulateManually(vlocal, episode);
                 if (Percentage > 0 && Percentage <= 100)
                 {
-                    cupd.Entity.Percentage = Percentage;
+                    xref.Percentage = Percentage;
                 }
-
-                xref=cupd.Commit();
             }
-
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
+                throw;
+            }
+            RepoFactory.CrossRef_File_Episode.Save(xref);
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
@@ -106,28 +97,22 @@ namespace Shoko.Server.Commands
                 }
             }
 
-            vlocal.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
+            vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
-            
-            SVR_AnimeSeries ser;
-            using (var supd=Repo.AnimeSeries.BeginAddOrUpdate(()=> episode.GetAnimeSeries()))
-            {
-                supd.Entity.EpisodeAddedDate = DateTime.Now;
-                ser=supd.Commit((false, true, false, false));
-            }
+            SVR_AnimeSeries ser = episode.GetAnimeSeries();
+            ser.EpisodeAddedDate = DateTime.Now;
+            RepoFactory.AnimeSeries.Save(ser, false, true);
+
             //Update will re-save
             ser.QueueUpdateStats();
 
 
-            using (var gupd = Repo.AnimeGroup.BeginBatchUpdate(() => ser.AllGroupsAbove))
+            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
             {
-                foreach (SVR_AnimeGroup grp in gupd)
-                {
-                    grp.EpisodeAddedDate = DateTime.Now;
-                    gupd.Update(grp);
-                }
-                gupd.Commit((false, false, true));
+                grp.EpisodeAddedDate = DateTime.Now;
+                RepoFactory.AnimeGroup.Save(grp, false, false);
             }
+
             if (ServerSettings.AniDB_MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
@@ -144,11 +129,10 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_LinkFileManually_{VideoLocalID}_{EpisodeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -163,16 +147,31 @@ namespace Shoko.Server.Commands
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
                 EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
                 Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
-                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
                 if (null==vlocal)
                 {
                     logger.Info("videolocal object {0} not found", VideoLocalID);
                     return false;
                 }
-                episode = Repo.AnimeEpisode.GetByID(EpisodeID);
+                episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

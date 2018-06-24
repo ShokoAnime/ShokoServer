@@ -23,19 +23,15 @@ namespace Shoko.Server.Providers.MovieDB
     public class MovieDBHelper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static UTF8Encoding enc = new UTF8Encoding();
         private static string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-        public static string SearchURL
+        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
         {
-            get { return @"http://api.themoviedb.org/2.1/Movie.search/en/xml/{0}/{1}"; }
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
+            }
         }
-
-        public static string InfoURL
-        {
-            get { return @"http://api.themoviedb.org/2.1/Movie.getInfo/en/xml/{0}/{1}"; }
-        }
-
 
         public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages,
             bool isTrakt)
@@ -100,7 +96,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
                                 ImageEntityType.MovieDB_Poster, false);
-                            cmd.Save();
+                            cmd.Save(session);
                             numPostersDownloaded++;
                         }
                     }
@@ -130,7 +126,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
                                 ImageEntityType.MovieDB_FanArt, false);
-                            cmd.Save();
+                            cmd.Save(session);
                             numFanartDownloaded++;
                         }
                     }
@@ -157,7 +153,7 @@ namespace Shoko.Server.Providers.MovieDB
                 TMDbClient client = new TMDbClient(apiKey);
                 SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
 
-                Console.WriteLine("Got {0} of {1} results", resultsTemp.Results.Count, resultsTemp.TotalResults);
+                logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
                 {
                     MovieDB_Movie_Result searchResult = new MovieDB_Movie_Result();
@@ -289,7 +285,7 @@ namespace Shoko.Server.Providers.MovieDB
                 if (anime.IsMovieDBLinkDisabled()) continue;
 
                 // don't scan if it is associated on the TvDB
-                if (anime.GetCrossRefTvDBV2().Count > 0) continue;
+                if (anime.GetCrossRefTvDB().Count > 0) continue;
 
                 // don't scan if it is associated on the MovieDB
                 if (anime.GetCrossRefMovieDB() != null) continue;

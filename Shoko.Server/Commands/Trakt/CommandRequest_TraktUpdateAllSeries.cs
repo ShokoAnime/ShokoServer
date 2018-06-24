@@ -9,7 +9,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktUpdateAllSeries : CommandRequest
+    [Command(CommandRequestType.Trakt_UpdateAllSeries)]
+    public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
     {
         public virtual bool ForceRefresh { get; set; }
 
@@ -24,7 +25,6 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_TraktUpdateAllSeries(bool forced)
         {
-            CommandType = (int) CommandRequestType.Trakt_UpdateAllSeries;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -40,14 +40,19 @@ namespace Shoko.Server.Commands
                 {
                     if (usch.Original != null)
                     {
-                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+                        UpdateType = (int)ScheduledUpdateType.TraktUpdate,
+                        UpdateDetails = string.Empty
+                    };
+                }
+                else
+                {
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
 
-                        // if we have run this in the last xxx hours then exit
-                        TimeSpan tsLastRun = DateTime.Now - usch.Entity.LastUpdate;
-                        if (tsLastRun.TotalHours < freqHours)
-                        {
-                            if (!ForceRefresh) return;
-                        }
+                    // if we have run this in the last xxx hours then exit
+                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours)
+                    {
+                        if (!ForceRefresh) return;
                     }
 
                     usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktUpdate;
@@ -81,7 +86,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -98,6 +102,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

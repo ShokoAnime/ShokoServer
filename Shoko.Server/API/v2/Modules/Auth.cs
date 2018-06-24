@@ -15,7 +15,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             // Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
             // return apikey=yzx
-            Post("/", async (x, ct) => await Task.Factory.StartNew(() =>
+            Post["/", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 //Bind POST body
                 AuthUser auth = this.Bind();
@@ -28,21 +28,21 @@ namespace Shoko.Server.API.v2.Modules
                     return new Response {StatusCode = HttpStatusCode.BadRequest};
 
                 //create and save new token for authenticated user or return known one
-                string apiKey = Repo.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
+                string apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
 
                 if (!string.IsNullOrEmpty(apiKey)) return Response.AsJson(new {apikey = apiKey});
 
                 return new Response { StatusCode = HttpStatusCode.Unauthorized };
-            }, ct));
+            }, ct);
 
             //remove apikey from database
             //pass it as ?apikey=xyz
             Delete("/", async (x,ct) => await Task.Factory.StartNew(() =>
             {
                 var apiKey = (string) Request.Query.apikey;
-                Repo.AuthTokens.DeleteWithToken(apiKey);
+                RepoFactory.AuthTokens.DeleteWithToken(apiKey);
                 return APIStatus.OK();
-            }, ct));
+            }, ct);
         }
     }
 }

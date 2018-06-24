@@ -109,18 +109,19 @@ namespace Shoko.Server
         {
             if (string.IsNullOrEmpty(name))
                 return new MemoryStream();
+            
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
                 return new MemoryStream();
+            
             //Little hack
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             if (!name.Contains("404") || (ratio == null || Math.Abs(ratio.Value) < 0.001D))
-            {
                 return new StreamWithResponse(ms, "image/png");
-            }
+            
             Image im = Image.FromStream(ms);
             float w = im.Width;
             float h = im.Height;
@@ -136,9 +137,7 @@ namespace Shoko.Server
                     nh = w / ratio.Value;
                 }
                 else
-                {
                     nh = h;
-                }
             }
             else
             {
@@ -149,9 +148,7 @@ namespace Shoko.Server
                     nw = w * ratio.Value;
                 }
                 else
-                {
                     nw = w;
-                }
             }
             nw = (float) Math.Round(nw);
             nh = (float) Math.Round(nh);
@@ -179,15 +176,12 @@ namespace Shoko.Server
         {
             using (Stream m = GetImage(imageId, imageType, false))
             {
-                if (m != null)
+                if (m == null) return new StreamWithResponse(HttpStatusCode.NotFound);
+                using (Image im = Image.FromStream(m))
                 {
-                    using (Image im = Image.FromStream(m))
-                    {
-                        return ResizeToRatio(im, ratio);
-                    }
+                    return ResizeToRatio(im, ratio);
                 }
             }
-            return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
@@ -197,7 +191,7 @@ namespace Shoko.Server
             switch (it)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(imageId);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
                     {
@@ -210,7 +204,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = Repo.AniDB_Character.GetByID(imageId);
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(imageId);
                     if (chr == null) return null;
                     if (File.Exists(chr.GetPosterPath()))
                     {
@@ -223,7 +217,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(imageId);
+                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(imageId);
                     if (creator == null) return string.Empty;
                     if (File.Exists(creator.GetPosterPath()))
                     {
@@ -236,7 +230,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(imageId);
+                    TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageId);
                     if (poster == null) return null;
                     if (File.Exists(poster.GetFullImagePath()))
                     {
@@ -249,7 +243,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetByID(imageId);
+                    TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageId);
                     if (wideBanner == null) return null;
                     if (File.Exists(wideBanner.GetFullImagePath()))
                     {
@@ -262,7 +256,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = Repo.TvDB_Episode.GetByID(imageId);
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(imageId);
                     if (ep == null) return null;
                     if (File.Exists(ep.GetFullImagePath()))
                     {
@@ -275,7 +269,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(imageId);
+                    TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
                     if (fanart == null) return null;
                     if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
                     {
@@ -283,11 +277,9 @@ namespace Shoko.Server
                         {
                             return fanart.GetFullThumbnailPath();
                         }
-                        else
-                        {
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                            return string.Empty;
-                        }
+                        
+                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
+                        return string.Empty;
                     }
                     else
                     {
@@ -295,15 +287,13 @@ namespace Shoko.Server
                         {
                             return fanart.GetFullImagePath();
                         }
-                        else
-                        {
-                            logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                            return string.Empty;
-                        }
+                        
+                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                        return string.Empty;
                     }
 
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster mPoster = Repo.MovieDB_Poster.GetByID(imageId);
+                    MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(imageId);
                     if (mPoster == null) return null;
 
                     // now find only the original size
@@ -320,7 +310,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart mFanart = Repo.MovieDB_Fanart.GetByID(imageId);
+                    MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(imageId);
                     if (mFanart == null) return null;
                     mFanart = Repo.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;

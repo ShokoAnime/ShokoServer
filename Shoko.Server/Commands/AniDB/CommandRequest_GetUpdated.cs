@@ -10,7 +10,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetUpdated : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetUpdated)]
+    public class CommandRequest_GetUpdated : CommandRequestImplementation
     {
         public virtual bool ForceRefresh { get; set; }
 
@@ -29,7 +30,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_GetUpdated(bool forced)
         {
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetUpdated;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -73,7 +73,6 @@ namespace Shoko.Server.Commands
                     webUpdateTime = long.Parse(sched.UpdateDetails);
                     webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
-                    DateTime timeNow = DateTime.Now.ToUniversalTime();
                     logger.Info(
                         $"{Utils.FormatSecondsToDisplayTime(int.Parse((webUpdateTimeNew - webUpdateTime).ToString()))} since last UPDATED command");
                 }
@@ -110,8 +109,10 @@ namespace Shoko.Server.Commands
 
                     logger.Info("Updating CommandRequest_GetUpdated: {0} ", animeID);
 
+                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+
                     // but only if it hasn't been recently updated
-                    TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
+                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
                     if (ts.TotalHours > 4)
                     {
                         CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
@@ -149,7 +150,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -165,6 +165,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

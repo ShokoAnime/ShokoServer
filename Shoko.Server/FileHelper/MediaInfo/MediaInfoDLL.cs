@@ -17,8 +17,10 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using NLog;
-
+using FileInfo = Pri.LongPath.FileInfo;
+using Path = Pri.LongPath.Path;
 
 
 #pragma warning disable 1591 // Disable XML documentation warnings

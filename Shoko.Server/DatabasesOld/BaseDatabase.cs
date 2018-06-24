@@ -18,7 +18,7 @@ namespace Shoko.Server.Databases
     public abstract class BaseDatabase<T>
     {
         // ReSharper disable once StaticMemberInGenericType
-        protected static Logger Logger = LogManager.GetCurrentClassLogger();
+        protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public string GetDatabaseBackupName(int version)
         {
@@ -136,6 +136,15 @@ namespace Shoko.Server.Databases
             {
                 try
                 {
+                    string message = cmd.CommandName;
+                    if (message.Length > 42)
+                        message = message.Substring(0, 42) + "...";
+                    message = ServerState.Instance.CurrentSetupStatus =
+                        Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+                        " - " + message;
+                    Logger.Info($"Starting Server: {message}");
+                    ServerState.Instance.CurrentSetupStatus = message;
+
                     cmd.DatabaseFix();
                     AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
                 }
@@ -159,6 +168,14 @@ namespace Shoko.Server.Databases
                 return new Tuple<bool, string>(true, null);
 
             Tuple<bool, string> ret;
+
+            string message = cmd.CommandName;
+            if (message.Length > 42)
+                message = message.Substring(0, 42) + "...";
+            message = ServerState.Instance.CurrentSetupStatus =
+                Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+                " - " + message;
+            ServerState.Instance.CurrentSetupStatus = message;
 
             switch (cmd.Type)
             {
@@ -190,20 +207,30 @@ namespace Shoko.Server.Databases
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
-            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Users;
+            string message = Commons.Properties.Resources.Database_Users;
+
+            Logger.Info($"Starting Server: {message}");
+            ServerState.Instance.CurrentSetupStatus = message;
             CreateInitialUsers();
 
-            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_Filters;
+            message = Commons.Properties.Resources.Database_Filters;
+            Logger.Info($"Starting Server: {message}");
+            ServerState.Instance.CurrentSetupStatus = message;
             CreateInitialGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_LockFilters;
+            message = Commons.Properties.Resources.Database_LockFilters;
+            Logger.Info($"Starting Server: {message}");
+            ServerState.Instance.CurrentSetupStatus = message;
             CreateOrVerifyLockedFilters();
 
-
-            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_RenameScripts;
+            message = Commons.Properties.Resources.Database_RenameScripts;
+            Logger.Info($"Starting Server: {message}");
+            ServerState.Instance.CurrentSetupStatus = message;
             CreateInitialRenameScript();
 
-            ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CustomTags;
+            message = Commons.Properties.Resources.Database_CustomTags;
+            Logger.Info($"Starting Server: {message}");
+            ServerState.Instance.CurrentSetupStatus = message;
             CreateInitialCustomTags();
         }
 
@@ -395,7 +422,7 @@ namespace Shoko.Server.Databases
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
                 Password = string.Empty,
-                Username = Commons.Properties.Resources.Users_FamilyFriendly
+                Username = "Family Friendly"
             };
             RepoFactory.JMMUser.Save(familyUser, true);
         }
@@ -462,7 +489,7 @@ namespace Shoko.Server.Databases
             {
                 // group filters
 
-                if (RepoFactory.CustomTag.GetAll().Count() > 0) return;
+                if (RepoFactory.CustomTag.GetAll().Any()) return;
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 

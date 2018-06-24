@@ -1,7 +1,9 @@
 ﻿using System;
+using Shoko.Server.Databases;
+using NHibernate;
 using NLog;
 using Shoko.Server.Commands;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Models.TvDB;
 
 namespace Shoko.Server
 {

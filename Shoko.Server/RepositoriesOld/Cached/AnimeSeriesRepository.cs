@@ -47,7 +47,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeSeriesRepository Create()
         {
-            return new AnimeSeriesRepository();
+            var repo = new AnimeSeriesRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeSeries entity)
@@ -162,12 +164,22 @@ namespace Shoko.Server.Repositories.Cached
                     obj.Contract = null;
                     base.Save(obj);
                 }
+                var seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
+                if (seasons == null || seasons.Count == 0)
+                {
+                    var anime = obj.GetAnime();
+                    if (anime != null)
+                        RepoFactory.AniDB_Anime.Save(anime);
+                }
+
                 HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
                 base.Save(obj);
+                seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
 
                 if (updateGroups && !isMigrating)
                 {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", obj.AnimeSeriesID);
+                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}",
+                        obj.AnimeSeriesID);
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
@@ -189,18 +201,15 @@ namespace Shoko.Server.Repositories.Cached
                         allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
                             endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
                     }
+
                     //This call will create extra years or tags if the Group have a new year or tag
                     RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
-                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears,
-                        obj.Contract?.AniDBAnime?.Stat_AllSeasons);
+                        obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, seasons);
 
                     // Update other existing filters
-                    obj.UpdateGroupFilters(types, null);
+                    obj.UpdateGroupFilters(types);
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(obj.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
             if (alsoupdateepisodes)
             {
@@ -231,10 +240,7 @@ namespace Shoko.Server.Repositories.Cached
                         Cache.Update(series);
                     }
                 }
-                lock (Changes)
-                {
-                    Changes.AddOrUpdate(series.AnimeSeriesID);
-                }
+                Changes.AddOrUpdate(series.AnimeSeriesID);
             }
         }
 
@@ -271,7 +277,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults + 15).ToList();
+                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
             }
         }
     }

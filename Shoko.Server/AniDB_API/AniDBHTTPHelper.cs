@@ -8,6 +8,8 @@ using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
 using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace AniDBAPI
 {
@@ -35,6 +37,15 @@ namespace AniDBAPI
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 rawXML = APIUtils.DownloadWebPage(uri);
+
+                // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
+                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                if (update == null)
+                    update = new AniDB_AnimeUpdate {AnimeID = animeID, UpdatedAt = DateTime.Now};
+                else
+                    update.UpdatedAt = DateTime.Now;
+                RepoFactory.AniDB_AnimeUpdate.Save(update);
+
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
                 if (content.Length > 100) content = content.Substring(0, 100);
@@ -129,14 +140,33 @@ namespace AniDBAPI
             anime.EpisodeCount = epCount;
             anime.EpisodeCountNormal = epCount;
 
-            int convertedAirDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "startdate"), true);
-            int convertedEndDate = AniDB.GetAniDBDateAsSeconds(TryGetProperty(docAnime, "anime", "enddate"), false);
+            string dateString = TryGetProperty(docAnime, "anime", "startdate");
 
-            //anime.AirDate = TryGetProperty(docAnime, "anime", "startdate");
-            //anime.EndDate = TryGetProperty(docAnime, "anime", "enddate");
+            anime.AirDate = null;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date))
+                {
+                    anime.AirDate = date;
+                }
+                else if (DateTime.TryParseExact(dateString, "yyyy-MM", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date2))
+                {
+                    anime.AirDate = date2;
+                }
+            }
 
-            anime.AirDate = AniDB.GetAniDBDateAsDate(convertedAirDate);
-            anime.EndDate = AniDB.GetAniDBDateAsDate(convertedEndDate);
+            dateString = TryGetProperty(docAnime, "anime", "enddate");
+            anime.EndDate = null;
+            if (!string.IsNullOrEmpty(dateString))
+            {
+                if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out DateTime date))
+                {
+                    anime.EndDate = date;
+                }
+            }
 
             anime.BeginYear = anime.AirDate?.Year ?? 0;
             anime.EndYear = anime.EndDate?.Year ?? 0;
@@ -244,6 +274,33 @@ namespace AniDBAPI
             #endregion
 
             return anime;
+        }
+
+        public static List<Raw_AniDB_ResourceLink> ProcessResources(XmlDocument docAnime, int animeID)
+        {
+            List<Raw_AniDB_ResourceLink> result = new List<Raw_AniDB_ResourceLink>();
+
+            XmlNodeList items = docAnime?["anime"]?["resources"]?.GetElementsByTagName("resource");
+            if (items == null) return result;
+            foreach (XmlNode node in items) // each resource
+            {
+                try
+                {
+                    foreach (XmlNode child in node.ChildNodes) // each externalentity
+                    {
+                        Raw_AniDB_ResourceLink resource = new Raw_AniDB_ResourceLink();
+                        resource.ProcessFromHTTPResult(node, animeID);
+                        resource.RawID = child["identifier"]?.InnerText ?? child["url"]?.InnerText;
+                        result.Add(resource);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessResources: {ex}");
+                }
+            }
+
+            return result;
         }
 
         public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)

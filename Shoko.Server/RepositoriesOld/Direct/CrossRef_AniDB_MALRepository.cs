@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
+using NHibernate.Util;
 using Shoko.Commons.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -67,26 +68,33 @@ namespace Shoko.Server.Repositories.Direct
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_MAL cr = session
+                IList<CrossRef_AniDB_MAL> cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_MAL))
                     .Add(Restrictions.Eq("MALID", id))
-                    .UniqueResult<CrossRef_AniDB_MAL>();
-                return cr;
+                    .List<CrossRef_AniDB_MAL>();
+                var xref = cr.FirstOrDefault(a => !string.IsNullOrEmpty(a.MALTitle));
+                if (xref != null && cr.Count > 1)
+                {
+                    cr.Remove(xref);
+                    cr.ForEach(Delete);
+                }
+
+                return xref ?? cr.FirstOrDefault();
             }
         }
 
-        public CrossRef_AniDB_MAL GetByAnimeConstraint(int animeID, int epType, int epNumber)
+        public List<CrossRef_AniDB_MAL> GetByAnimeConstraint(int animeID, int epType, int epNumber)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CrossRef_AniDB_MAL cr = session
+                List<CrossRef_AniDB_MAL> cr = session
                     .CreateCriteria(typeof(CrossRef_AniDB_MAL))
                     .Add(Restrictions.Eq("AnimeID", animeID))
                     .Add(Restrictions.Eq("StartEpisodeType", epType))
                     .Add(Restrictions.Eq("StartEpisodeNumber", epNumber))
                     .AddOrder(Order.Asc("StartEpisodeType"))
                     .AddOrder(Order.Asc("StartEpisodeNumber"))
-                    .UniqueResult<CrossRef_AniDB_MAL>();
+                    .List<CrossRef_AniDB_MAL>().ToList();
                 return cr;
             }
         }

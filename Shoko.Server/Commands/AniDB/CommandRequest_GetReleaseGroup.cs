@@ -4,13 +4,13 @@ using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReleaseGroup : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetReleaseGroup)]
+    public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
     {
         public virtual int GroupID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -31,7 +31,6 @@ namespace Shoko.Server.Commands
         {
             GroupID = grpid;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetReleaseGroup;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -74,7 +73,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -92,6 +90,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -9,12 +10,13 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktCollectionEpisode : CommandRequest
+    [Command(CommandRequestType.Trakt_EpisodeCollection)]
+    public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementation
     {
         public virtual int AnimeEpisodeID { get; set; }
         public virtual int Action { get; set; }
 
-        public virtual TraktSyncAction ActionEnum => (TraktSyncAction) Action;
+        public TraktSyncAction ActionEnum => (TraktSyncAction) Action;
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
@@ -32,7 +34,6 @@ namespace Shoko.Server.Commands
         {
             AnimeEpisodeID = animeEpisodeID;
             Action = (int) action;
-            CommandType = (int) CommandRequestType.Trakt_EpisodeCollection;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -44,14 +45,11 @@ namespace Shoko.Server.Commands
 
             try
             {
-                logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG01");
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
-                logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG02");
 
                 SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(AnimeEpisodeID);
                 if (ep != null)
                 {
-                    logger.Info("CommandRequest_TraktCollectionEpisode - DEBUG03");
                     TraktSyncType syncType = TraktSyncType.CollectionAdd;
                     if (ActionEnum == TraktSyncAction.Remove) syncType = TraktSyncType.CollectionRemove;
                     TraktTVHelper.SyncEpisodeToTrakt(ep, syncType);
@@ -78,7 +76,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -96,6 +93,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

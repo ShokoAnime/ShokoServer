@@ -120,7 +120,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             Stream s = new Stream
             {
                 Format = format,
-                StreamType = "3",
+                StreamType = 3,
                 File = file.FullName,
                 LanguageCode = SubtitleHelper.Iso639_1_TO_Iso639_3[language],
                 Language = SubtitleHelper.Iso639_1_TO_Languages[language]

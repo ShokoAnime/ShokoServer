@@ -1,9 +1,6 @@
 [submodule "Shoko.Commons"]
 	path = Shoko.Commons
-	url = https://github.com/ShokoAnime/Shoko.Commons
-[submodule "Nancy.Rest.Annotations"]
-	path = Nancy.Rest.Annotations
-	url = https://github.com/maxpiva/Nancy.Rest.Annotations
+	url = https://github.com/shokoanime/Shoko.Commons
 [submodule "CloudFileSystem"]
 	path = CloudFileSystem
 	url = https://github.com/maxpiva/CloudFileSystem

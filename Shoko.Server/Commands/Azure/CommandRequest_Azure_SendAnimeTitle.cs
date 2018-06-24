@@ -7,7 +7,8 @@ using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_Azure_SendAnimeTitle : CommandRequest
+    [Command(CommandRequestType.Azure_SendAnimeTitle)]
+    public class CommandRequest_Azure_SendAnimeTitle : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual string MainTitle { get; set; }
@@ -30,7 +31,6 @@ namespace Shoko.Server.Commands
             AnimeID = animeID;
             MainTitle = main;
             Titles = titles;
-            CommandType = (int) CommandRequestType.Azure_SendAnimeTitle;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -40,9 +40,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                bool process =
-                    ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase);
+                bool process = false;
 
                 if (!process) return;
 
@@ -70,7 +68,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -88,6 +85,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

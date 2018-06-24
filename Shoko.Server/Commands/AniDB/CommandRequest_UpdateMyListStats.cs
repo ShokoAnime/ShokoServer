@@ -5,12 +5,13 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.AniDB
 {
     [Serializable]
-    public class CommandRequest_UpdateMyListStats : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_UpdateMylistStats)]
+    public class CommandRequest_UpdateMyListStats : CommandRequestImplementation
     {
-        public virtual bool ForceRefresh { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
@@ -27,7 +28,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_UpdateMyListStats(bool forced)
         {
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_UpdateMylistStats;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -35,45 +35,54 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info("Processing CommandRequest_UpdateMylistStats");
+            logger.Info("Processing CommandRequest_UpdateMyListStats");
 
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats)))
+
+                ScheduledUpdate sched =
+                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+                if (sched == null)
                 {
-                    upd.Entity.UpdateType = (int)ScheduledUpdateType.AniDBMylistStats;
-                    upd.Entity.UpdateDetails = string.Empty;
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.AniDBMylistStats,
+                        UpdateDetails = string.Empty
+                    };
+                }
+                else
+                {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
 
                     // if we have run this in the last 24 hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
                         if (!ForceRefresh) return;
                     }
-                    upd.Entity.LastUpdate = DateTime.Now;
-                    upd.Commit();
                 }
+
+                sched.LastUpdate = DateTime.Now;
+                RepoFactory.ScheduledUpdate.Save(sched);
 
                 ShokoService.AnidbProcessor.UpdateMyListStats();
             }
             catch (Exception ex)
             {
-                logger.Error($"Error processing CommandRequest_UpdateMylistStats: {ex}");
+                logger.Error("Error processing CommandRequest_UpdateMyListStats: {0}", ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            CommandID = "CommandRequest_UpdateMylistStats";
+            CommandID = "CommandRequest_UpdateMyListStats";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -86,10 +95,25 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 ForceRefresh =
-                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMylistStats", "ForceRefresh"));
+                    bool.Parse(TryGetProperty(docCreator, "CommandRequest_UpdateMyListStats", "ForceRefresh"));
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

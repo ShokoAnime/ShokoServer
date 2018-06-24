@@ -24,12 +24,10 @@ namespace Shoko.Server.Repositories.Cached
         {
             EndDeleteCallback = (cr) =>
             {
-                lock (Changes)
-                {
-                    if (!Changes.ContainsKey(cr.JMMUserID))
-                        Changes[cr.JMMUserID] = new ChangeTracker<int>();
-                    Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
-                }
+                if (!Changes.ContainsKey(cr.JMMUserID))
+                    Changes[cr.JMMUserID] = new ChangeTracker<int>();
+                Changes[cr.JMMUserID].Remove(cr.AnimeGroupID);
+
                 logger.Trace("Updating group filter stats by animegroup from AnimeGroup_UserRepository.Delete: {0}",
                     cr.AnimeGroupID);
                 cr.DeleteFromFilters();
@@ -38,7 +36,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static AnimeGroup_UserRepository Create()
         {
-            return new AnimeGroup_UserRepository();
+            var repo = new AnimeGroup_UserRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup_User entity)
@@ -115,13 +115,11 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 }
 
-                lock (Changes)
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
-                    if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
-                    {
-                        changeTracker = new ChangeTracker<int>();
-                        Changes[groupUser.JMMUserID] = changeTracker;
-                    }
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[groupUser.JMMUserID] = changeTracker;
+
                     changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
                 }
             }
@@ -155,13 +153,11 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 }
 
-                lock (Changes)
+                if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
                 {
-                    if (!Changes.TryGetValue(groupUser.JMMUserID, out ChangeTracker<int> changeTracker))
-                    {
-                        changeTracker = new ChangeTracker<int>();
-                        Changes[groupUser.JMMUserID] = changeTracker;
-                    }
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[groupUser.JMMUserID] = changeTracker;
+
 
                     changeTracker.AddOrUpdate(groupUser.AnimeGroupID);
                 }
@@ -198,11 +194,9 @@ namespace Shoko.Server.Repositories.Cached
 
                 lock (Changes)
                 {
-                    if (!Changes.TryGetValue(jmmUserId, out ChangeTracker<int> changeTracker))
-                    {
-                        changeTracker = new ChangeTracker<int>();
-                        Changes[jmmUserId] = changeTracker;
-                    }
+                    changeTracker = new ChangeTracker<int>();
+                    Changes[jmmUserId] = changeTracker;
+
 
                     changeTracker.RemoveRange(grp);
                 }
@@ -216,7 +210,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                    return UsersGroups.GetOne(userid, groupid);
+                return UsersGroups.GetOne(userid, groupid);
             }
         }
 
@@ -224,7 +218,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                    return Users.GetMultiple(userid);
+                return Users.GetMultiple(userid);
             }
         }
 
@@ -232,17 +226,15 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                    return Groups.GetMultiple(groupid);
+                return Groups.GetMultiple(groupid);
             }
         }
 
         public ChangeTracker<int> GetChangeTracker(int userid)
         {
-            lock (Changes)
-            {
-                if (Changes.ContainsKey(userid))
-                    return Changes[userid];
-            }
+            if (Changes.ContainsKey(userid))
+                return Changes[userid];
+
             return new ChangeTracker<int>();
         }
     }

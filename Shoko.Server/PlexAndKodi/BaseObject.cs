@@ -74,7 +74,6 @@ namespace Shoko.Server.PlexAndKodi
                         }
                     }
                 }
-                ;
             });
             return MediaContainer;
         }

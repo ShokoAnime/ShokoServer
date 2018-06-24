@@ -57,13 +57,16 @@ namespace Shoko.Server.API.v2.Models
         public string rating { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public string votes { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string userrating { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<Role> roles { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public List<Tag> tags { get; set; }
+        public List<string> tags { get; set; }
 
         [DataMember(IsRequired = false)]
         public ArtCollection art { get; set; }

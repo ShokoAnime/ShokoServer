@@ -171,78 +171,6 @@ namespace Shoko.Server.Providers.Azure
 
         #endregion
 
-        #region MAL
-
-        public static void Send_CrossRefAniDBMAL(CrossRef_AniDB_MAL data)
-        {
-            if (!ServerSettings.WebCache_MAL_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL";
-
-            Azure_CrossRef_AniDB_MAL_Request input = data.ToRequest();
-            input.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                input.Username = Constants.AnonWebCacheUsername;
-            string json = JSONHelper.Serialize(input);
-
-            SendData(uri, json, "POST");
-        }
-
-        public static Azure_CrossRef_AniDB_MAL Get_CrossRefAniDBMAL(int animeID)
-        {
-            try
-            {
-                if (!ServerSettings.WebCache_MAL_Get) return null;
-
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL/{animeID}?p={username}";
-                string msg = $"Getting AniDB/MAL Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/MAL Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                Azure_CrossRef_AniDB_MAL xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_MAL>(json);
-                xref.Self = string.Format(CultureInfo.CurrentCulture, "api/crossRef_anidb_mal/{0}",
-                    xref.CrossRef_AniDB_MALID);
-                return xref;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public static void Delete_CrossRefAniDBMAL(int animeID, int epType, int epNumber)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-
-            if (!ServerSettings.WebCache_MAL_Send) return;
-
-            //localhost:50994
-            //jmm.azurewebsites.net
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_MAL/{animeID}?p={ServerSettings.AniDB_Username}&p2={
-                    epType
-                }&p3={epNumber}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
         #region Cross Ref Other
 
         public static Azure_CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
@@ -595,7 +523,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = WebUtility.HtmlDecode(output);
+                        output = HttpUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -635,7 +563,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = WebUtility.HtmlDecode(output);
+                        output = HttpUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -679,7 +607,7 @@ namespace Shoko.Server.Providers.Azure
                         StreamReader Reader = new StreamReader(responseStream, encoding);
 
                         string output = Reader.ReadToEnd();
-                        output = WebUtility.HtmlDecode(output);
+                        output = HttpUtility.HtmlDecode(output);
 
                         return output;
                     }
@@ -687,11 +615,12 @@ namespace Shoko.Server.Providers.Azure
             }
             catch (WebException webEx)
             {
-                logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
+                // Azure is broken here, just suppress it
+                // logger.Error("WebError in AzureWebAPI.GetData: {0}", webEx);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
+                logger.Error($"Error in AzureWebAPI.GetData: {ex}");
             }
 
             return string.Empty;
@@ -726,7 +655,6 @@ namespace Shoko.Server.Providers.Azure
                 uinfo.DatabaseType = ServerSettings.DatabaseType;
                 uinfo.WindowsVersion = Utils.GetOSInfo();
                 uinfo.TraktEnabled = ServerSettings.Trakt_IsEnabled ? 1 : 0;
-                uinfo.MALEnabled = string.IsNullOrEmpty(ServerSettings.MAL_Username) ? 0 : 1;
 
                 uinfo.CountryLocation = string.Empty;
 
@@ -1044,46 +972,61 @@ namespace Shoko.Server.Providers.Azure
         public static void Send_Media(List<SVR_VideoLocal> locals)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (locals == null || locals.Count == 0) return;
 
-            string uri = $@"http://{azureHostBaseAddress}/api/Media";
-
-            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
-            // send a max of 25 at a time
-            // send a max of 25 at a time
-            foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
-                                                           a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
-                                                           !string.IsNullOrEmpty(a.ED2KHash)))
+            try
             {
-                Azure_Media_Request input = v.ToMediaRequest();
-                if (inputs.Count < 25)
-                    inputs.Add(input);
-                else
+                string uri = $@"http://{azureHostBaseAddress}/api/Media";
+    
+                List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
+                // send a max of 25 at a time
+                // send a max of 25 at a time
+                foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
+                                                               a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
+                                                               !string.IsNullOrEmpty(a.ED2KHash)))
+                {
+                    Azure_Media_Request input = v.ToMediaRequest();
+                    if (inputs.Count < 25)
+                        inputs.Add(input);
+                    else
+                    {
+                        string json = JSONHelper.Serialize(inputs);
+                        //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
+                        SendData(uri, json, "POST");
+                        inputs.Clear();
+                    }
+                }
+    
+                if (inputs.Count <= 0)
                 {
                     string json = JSONHelper.Serialize(inputs);
-                    //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
                     SendData(uri, json, "POST");
-                    inputs.Clear();
                 }
             }
-
-            if (inputs.Count <= 0)
+            catch (Exception ex)
             {
-                string json = JSONHelper.Serialize(inputs);
-                SendData(uri, json, "POST");
+                logger.Warn($"There was an error sending MediaInfo to WebCache for {locals.FirstOrDefault().ED2KHash}: {ex.Message}");
             }
         }
 
         public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (string.IsNullOrEmpty(ed2k)) return;
 
-            string uri = $@"http://{azureHostBaseAddress}/api/Media";
+            try
+            {
+                string uri = $@"http://{azureHostBaseAddress}/api/Media";
 
-            List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
-            Azure_Media_Request input = media.ToMediaRequest(ed2k);
-            inputs.Add(input);
-            string json = JSONHelper.Serialize(inputs);
-            SendData(uri, json, "POST");
+                List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
+                Azure_Media_Request input = media.ToMediaRequest(ed2k);
+                inputs.Add(input);
+                string json = JSONHelper.Serialize(inputs);
+                SendData(uri, json, "POST");
+            }
+            catch (Exception ex)
+            {
+                logger.Warn($"There was an error sending MediaInfo to WebCache for {ed2k}: {ex.Message}");
+            }
         }
 
         public static List<Azure_Media> Get_Media(string ed2k)

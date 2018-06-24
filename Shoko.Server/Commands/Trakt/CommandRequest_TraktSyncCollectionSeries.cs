@@ -2,6 +2,7 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -9,7 +10,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_TraktSyncCollectionSeries : CommandRequest
+    [Command(CommandRequestType.Trakt_SyncCollectionSeries)]
+    public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation
     {
         public virtual int AnimeSeriesID { get; set; }
         public virtual string SeriesName { get; set; }
@@ -30,7 +32,6 @@ namespace Shoko.Server.Commands
         {
             AnimeSeriesID = animeSeriesID;
             SeriesName = seriesName;
-            CommandType = (int) CommandRequestType.Trakt_SyncCollectionSeries;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -72,7 +73,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -90,6 +90,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

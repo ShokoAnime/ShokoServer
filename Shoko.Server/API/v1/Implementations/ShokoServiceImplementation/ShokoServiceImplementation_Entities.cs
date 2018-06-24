@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
-using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Server.Commands;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Shoko.Server.Extensions;
+using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server
@@ -44,7 +45,7 @@ namespace Shoko.Server
                 SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(animeSeriesID);
                 if (series == null) return null;
 
-                List<AniDB_Episode> anieps = Repo.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
+                List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID,
                     (EpisodeType) epType,
                     epNum);
                 if (anieps.Count == 0) return null;
@@ -70,14 +71,14 @@ namespace Shoko.Server
                 if (series == null) return null;
 
                 //List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
-                List<AnimeEpisode> epList = new List<AnimeEpisode>();
+                List<SVR_AnimeEpisode> epList = new List<SVR_AnimeEpisode>();
                 Dictionary<int, SVR_AnimeEpisode_User> dictEpUsers = new Dictionary<int, SVR_AnimeEpisode_User>();
                 foreach (
                     SVR_AnimeEpisode_User userRecord in Repo.AnimeEpisode_User.GetByUserIDAndSeriesID(userID,
                         animeSeriesID))
                     dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                foreach (AnimeEpisode animeep in Repo.AnimeEpisode.GetBySeriesID(animeSeriesID))
+                foreach (SVR_AnimeEpisode animeep in RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID))
                 {
                     if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                     {
@@ -104,10 +105,6 @@ namespace Shoko.Server
                         if (anidbep.EpisodeType == (int) EpisodeType.Episode ||
                             anidbep.EpisodeType == (int) EpisodeType.Special)
                         {
-                            SVR_AnimeEpisode_User userRecord = null;
-                            if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-                                userRecord = dictEpUsers[ep.AnimeEpisodeID];
-
                             CL_AnimeEpisode_User epContract = ep.GetUserContract(userID);
                             if (epContract != null)
                                 candidateEps.Add(epContract);
@@ -152,78 +149,6 @@ namespace Shoko.Server
                         .OrderBy(a => a.EpisodeType)
                         .ThenBy(a => a.EpisodeNumber)
                         .ToList();
-                /*
-                AnimeEpisodeRepository repEps = new AnimeEpisodeRepository();
-				AnimeSeriesRepository repAnimeSer = new AnimeSeriesRepository();
-
-				// get all the data first
-				// we do this to reduce the amount of database calls, which makes it a lot faster
-				AnimeSeries series = repAnimeSer.GetByID(animeSeriesID);
-				if (series == null) return null;
-
-				//List<AnimeEpisode> epList = repEps.GetUnwatchedEpisodes(animeSeriesID, userID);
-				List<AnimeEpisode> epList = new List<AnimeEpisode>();
-				Dictionary<int, AnimeEpisode_User> dictEpUsers = new Dictionary<int, AnimeEpisode_User>();
-				foreach (AnimeEpisode_User userRecord in repEpUser.GetByUserIDAndSeriesID(userID, animeSeriesID))
-					dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
-
-				foreach (AnimeEpisode animeep in repEps.GetBySeriesID(animeSeriesID))
-				{
-					if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
-					{
-						epList.Add(animeep);
-						continue;
-					}
-
-					AnimeEpisode_User usrRec = dictEpUsers[animeep.AnimeEpisodeID];
-					if (usrRec.WatchedCount == 0 || !usrRec.WatchedDate.HasValue)
-						epList.Add(animeep);
-				}
-
-				AniDB_EpisodeRepository repAniEps = new AniDB_EpisodeRepository();
-				List<AniDB_Episode> aniEpList = repAniEps.GetByAnimeID(series.AniDB_ID);
-				Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
-				foreach (AniDB_Episode aniep in aniEpList)
-					dictAniEps[aniep.EpisodeID] = aniep;
-
-				List<Contract_AnimeEpisode> candidateEps = new List<Contract_AnimeEpisode>();
-				foreach (AnimeEpisode ep in epList)
-				{
-					if (dictAniEps.ContainsKey(ep.AniDB_EpisodeID))
-					{
-						AniDB_Episode anidbep = dictAniEps[ep.AniDB_EpisodeID];
-						if (anidbep.EpisodeType == (int)enEpisodeType.Episode || anidbep.EpisodeType == (int)enEpisodeType.Special)
-						{
-							AnimeEpisode_User userRecord = null;
-							if (dictEpUsers.ContainsKey(ep.AnimeEpisodeID))
-								userRecord = dictEpUsers[ep.AnimeEpisodeID];
-                            if
-							Contract_AnimeEpisode epContract = ep.ToContract(anidbep, new List<VideoLocal>(), userRecord, series.GetUserRecord(userID));
-							candidateEps.Add(epContract);
-						}
-					}
-				}
-
-				if (candidateEps.Count == 0) return null;
-
-				// sort by episode type and number to find the next episode
-				List<SortPropOrFieldAndDirection> sortCriteria = new List<SortPropOrFieldAndDirection>();
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeType", false, SortType.eInteger));
-				sortCriteria.Add(new SortPropOrFieldAndDirection("EpisodeNumber", false, SortType.eInteger));
-				candidateEps = Sorting.MultiSort<Contract_AnimeEpisode>(candidateEps, sortCriteria);
-
-				// this will generate a lot of queries when the user doesn have files
-				// for these episodes
-				foreach (Contract_AnimeEpisode canEp in candidateEps)
-				{
-					// now refresh from the database to get file count
-					AnimeEpisode epFresh = repEps.GetByID(canEp.AnimeEpisodeID);
-					if (epFresh.GetVideoLocals().Count > 0)
-						ret.Add(epFresh.ToContract(true, userID, null));
-				}
-
-				return ret;
-                */
             }
             catch (Exception ex)
             {
@@ -311,8 +236,7 @@ namespace Shoko.Server
                         {
                             if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
                             {
-                                // make sure this series is not a sequel to an existing series we have already added
-                                foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
                                 {
                                     if (rel.RelationType.ToLower().Trim().Equals("sequel") ||
                                         rel.RelationType.ToLower().Trim().Equals("prequel"))
@@ -334,8 +258,9 @@ namespace Shoko.Server
                             if (retEps.Count == maxRecords)
                                 return retEps;
 
-                            if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
-                                seriesWatching.Add(ser.AniDB_ID);
+                                if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
+                                    seriesWatching.Add(ser.AniDB_ID);
+                            }
                         }
                     }
                 }
@@ -510,8 +435,7 @@ namespace Shoko.Server
                     {
                         if (user.AllowedSeries(ep.GetAnimeSeries()))
                         {
-                            CL_AnimeEpisode_User epContract = ep.GetUserContract(jmmuserID);
-                            if (epContract != null)
+                            if (user.AllowedSeries(ep.GetAnimeSeries()))
                             {
                                 retEps.Add(epContract);
                                 numEps++;
@@ -748,13 +672,11 @@ namespace Shoko.Server
         {
             try
             {
-                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => Repo.VideoLocal.GetByID(videoLocalID)))
-                {
-                    if (upd.Original==null)
-                        return "Could not find video record";
-                    upd.Entity.IsIgnored = isIgnored ? 1 : 0;
-                    upd.Commit();
-                }
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                if (vid == null)
+                    return "Could not find video record";
+                vid.IsIgnored = isIgnored ? 1 : 0;
+                RepoFactory.VideoLocal.Save(vid, false);
                 return string.Empty;
             }
             catch (Exception ex)
@@ -768,13 +690,11 @@ namespace Shoko.Server
         {
             try
             {
-                using (var upd= Repo.VideoLocal.BeginAddOrUpdate(() => Repo.VideoLocal.GetByID(videoLocalID)))
-                {
-                    if (upd.Original==null)
-                        return "Could not find video record";
-                    upd.Entity.IsVariation = isVariation ? 1 : 0;
-                    upd.Commit();
-                }
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                if (vid == null)
+                    return "Could not find video record";
+                vid.IsVariation = isVariation ? 1 : 0;
+                RepoFactory.VideoLocal.Save(vid, false);
                 return string.Empty;
             }
             catch (Exception ex)
@@ -782,6 +702,16 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
                 return ex.Message;
             }
+        }
+
+        private void RemoveXRefsForFile(int VideoLocalID)
+        {
+            SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
         }
 
         public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
@@ -798,6 +728,7 @@ namespace Shoko.Server
                 if (ep == null)
                     return "Could not find episode record";
 
+                RemoveXRefsForFile(videoLocalID);
                 var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
                 com.Save();
                 return string.Empty;
@@ -825,22 +756,17 @@ namespace Shoko.Server
                     return "Could not find anime series record";
                 for (int i = startEpNum; i <= endEpNum; i++)
                 {
-                    List<AniDB_Episode> anieps =
-                        Repo.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i);
-                    if (anieps.Count == 0)
+                    AniDB_Episode aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
+                    if (aniep == null)
                         return "Could not find the AniDB episode record";
 
-                    AniDB_Episode aniep = anieps[0];
-
-                    
-                    List<SVR_AnimeEpisode> eps = Repo.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
-                    if (eps.Count == 0)
+                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
+                    if (ep == null)
                         return "Could not find episode record";
-                    foreach (SVR_AnimeEpisode ep in eps)
-                    {
-                        var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
-                        com.Save();
-                    }
+
+                    RemoveXRefsForFile(videoLocalID);
+                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                    com.Save();
                 }
 
                 return string.Empty;
@@ -884,7 +810,10 @@ namespace Shoko.Server
                     List<SVR_AnimeEpisode> eps = Repo.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (eps.Count==0)
                         return "Could not find episode record";
-                    foreach (SVR_AnimeEpisode ep in eps)
+
+                    RemoveXRefsForFile(videoLocalID);
+                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                    if (singleEpisode)
                     {
                         var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                         if (singleEpisode)
@@ -929,26 +858,11 @@ namespace Shoko.Server
             return string.Empty;
         }
 
-        public string UpdateEpisodeData(int episodeID)
-        {
-            try
-            {
-                CommandRequest_GetEpisode cmd = new CommandRequest_GetEpisode(episodeID);
-                cmd.Save();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return ex.Message;
-            }
-            return string.Empty;
-        }
-
         public string RescanFile(int videoLocalID)
         {
             try
             {
-                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
                 if (string.IsNullOrEmpty(vid.Hash))
                     return "Could not Update a cloud file without hash, hash it locally first";
@@ -965,11 +879,11 @@ namespace Shoko.Server
 
         public void RehashFile(int videoLocalID)
         {
-            SVR_VideoLocal vl = Repo.VideoLocal.GetByID(videoLocalID);
+            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(videoLocalID);
 
             if (vl != null)
             {
-                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace();
+                SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                 if (pl == null)
                 {
                     logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
@@ -989,11 +903,11 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal_Place place = Repo.VideoLocal_Place.GetByID(videolocalplaceid);
+                SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videolocalplaceid);
                 if (place?.VideoLocal == null)
                     return "Database entry does not exist";
 
-                return place.RemoveAndDeleteFileWithMessage();
+                return place.RemoveAndDeleteFile().Item2;
             }
             catch (Exception ex)
             {
@@ -1023,9 +937,9 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.VideoLocal.GetByAniDBAnimeID(animeID)
+                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
                     .DistinctBy(a => a.Places.FirstOrDefault()?.FullServerPath)
-                    .Select(a => SVR_VideoLocal.ToClient(a, userID).ClientVideoLocal)
+                    .Select(a => a.ToClient(userID))
                     .ToList();
             }
             catch (Exception ex)
@@ -1034,10 +948,10 @@ namespace Shoko.Server
                 try
                 {
                     // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
-                    return Repo.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                    return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
                             a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath)) != null)
                         .DistinctBy(a => a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath)
-                        .Select(a => SVR_VideoLocal.ToClient(a, userID).ClientVideoLocal)
+                        .Select(a => a.ToClient(userID))
                         .ToList();
                 }
                 catch
@@ -1139,14 +1053,14 @@ namespace Shoko.Server
             }
         }
 
-        public List<AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
+        public List<CL_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
         {
             try
             {
-                return Repo.AniDB_Episode.GetByAnimeID(animeID)
+                return RepoFactory.AniDB_Episode.GetByAnimeID(animeID)
+                    .Select(a => a.ToClient())
                     .OrderBy(a => a.EpisodeType)
                     .ThenBy(a => a.EpisodeNumber)
-                    .Cast<AniDB_Episode>()
                     .ToList();
             }
             catch (Exception ex)
@@ -1154,7 +1068,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return new List<AniDB_Episode>();
+            return new List<CL_AniDB_Episode>();
         }
 
         public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)
@@ -1387,7 +1301,7 @@ namespace Shoko.Server
                 }
 
                 ep.ToggleWatchedStatus(watchedStatus, true, DateTime.Now, false, userID, true);
-                SVR_AnimeSeries.UpdateStats(ep.GetAnimeSeries(), true, false, true);
+                ep.GetAnimeSeries().UpdateStats(true, false, true);
                 //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
                 // refresh from db
@@ -2026,6 +1940,21 @@ namespace Shoko.Server
                         return contractout;
                     }
                 }
+                else
+                {
+                    grp = new SVR_AnimeGroup
+                    {
+                        Description = string.Empty,
+                        IsManuallyNamed = 0,
+                        DateTimeCreated = DateTime.Now,
+                        DateTimeUpdated = DateTime.Now,
+                        SortName = string.Empty,
+                        MissingEpisodeCount = 0,
+                        MissingEpisodeCountGroups = 0,
+                        OverrideDescription = 0
+                    };
+                }
+
                 if (string.IsNullOrEmpty(contract.GroupName))
                 {
                     contractout.ErrorMessage = "Must specify a group name";
@@ -2076,19 +2005,15 @@ namespace Shoko.Server
                     return contractout;
                 }
 
-                int oldGroupID;
-                using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByID(animeSeriesID)))
-                {
-                    if (!upd.IsUpdate)
-                    {
-                        contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID.ToString();
-                        return contractout;
-                    }
-                    oldGroupID = upd.Entity.AnimeGroupID;
-                    upd.Entity.AnimeGroupID = newAnimeGroupID;
-                    upd.Entity.DateTimeUpdated = DateTime.Now;
-                    ser=upd.Commit((false, false, true, false));
-                }               
+                int oldGroupID = ser.AnimeGroupID;
+                ser.AnimeGroupID = newAnimeGroupID;
+                ser.DateTimeUpdated = DateTime.Now;
+
+                //              repSeries.Save(ser,false,false);
+
+                // update stats for new groups
+                //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+
                 //Update and Save
                 ser=SVR_AnimeSeries.UpdateStats(ser, true, true, true);
 
@@ -2163,12 +2088,49 @@ namespace Shoko.Server
                 }
                     
 
-                //Update and Save
-                ser=SVR_AnimeSeries.UpdateStats(ser, true, true, true);
+                    // check if we are moving a series
+                    oldGroupID = ser.AnimeGroupID;
+                }
+                else
+                {
+                    ser = new SVR_AnimeSeries
+                    {
+                        DateTimeCreated = DateTime.Now,
+                        DefaultAudioLanguage = string.Empty,
+                        DefaultSubtitleLanguage = string.Empty,
+                        MissingEpisodeCount = 0,
+                        MissingEpisodeCountGroups = 0,
+                        LatestLocalEpisodeNumber = 0,
+                        SeriesNameOverride = string.Empty
+                    };
+                }
+
+
+                ser.AnimeGroupID = contract.AnimeGroupID;
+                ser.AniDB_ID = contract.AniDB_ID;
+                ser.DefaultAudioLanguage = contract.DefaultAudioLanguage;
+                ser.DefaultSubtitleLanguage = contract.DefaultSubtitleLanguage;
+                ser.DateTimeUpdated = DateTime.Now;
+                ser.SeriesNameOverride = contract.SeriesNameOverride;
+                ser.DefaultFolder = contract.DefaultFolder;
 
                 if (oldGroupID.HasValue)
                 {
-                    SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(oldGroupID.Value);
+                    contractout.ErrorMessage = $"Could not find anime record with ID: {ser.AniDB_ID}";
+                    return contractout;
+                }
+
+
+                // update stats for groups
+                //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true ,true, true);
+
+
+                //Update and Save
+                ser.UpdateStats(true, true, true);
+
+                if (oldGroupID.HasValue)
+                {
+                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(oldGroupID.Value);
                     grp?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
                 contractout.Result = ser.GetUserContract(userID);
@@ -2191,83 +2153,75 @@ namespace Shoko.Server
             };
             try
             {
-
-
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
-                    bool animeRecentlyUpdated = false;
-
-                    if (anime != null)
-                    {
-                        TimeSpan ts = DateTime.Now - anime.DateTimeUpdated;
-                        if (ts.TotalHours < 4) animeRecentlyUpdated = true;
-                    }
-
-                    // even if we are missing episode info, don't get data  more than once every 4 hours
-                    // this is to prevent banning
-                    if (!animeRecentlyUpdated)
-                    {
-                        logger.Debug("Getting Anime record from AniDB....");
-                        anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                            ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
-                    }
-
-                    if (anime == null)
-                    {
-                        response.ErrorMessage = "Could not get anime information from AniDB";
-                        return response;
-                    }
-                    AnimeGroup grp = anime.CreateAnimeGroup(animeGroupID);
+                if (animeGroupID.HasValue && animeGroupID.Value > 0)
+                {
+                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID.Value);
                     if (grp == null)
                     {
                         response.ErrorMessage = "Could not find the specified group";
                         return response;
                     }
+                }
 
                 // make sure a series doesn't already exists for this anime
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
-                    if (ser != null && !forceOverwrite)
-                    {
-                        response.ErrorMessage = "A series already exists for this anime";
-                        return response;
-                    }
-
-                    // make sure the anime exists first
-                   
-                    logger.Debug("Creating groups, series and episodes....");
-
-                    using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByAnimeID(animeID)))
-                    {
-                        if (upd.Original != null && !forceOverwrite)
-                        {
-                            response.ErrorMessage = "A series already exists for this anime";
-                            return response;
-                        }
-                        upd.Entity.Populate_RA(anime);
-                        upd.Entity.AnimeGroupID = grp.AnimeGroupID;
-                        ser = upd.Commit();
-                    }
-
-                    ser.CreateAnimeEpisodes();
-
-                    // check if we have any group status data for this associated anime
-                    // if not we will download it now
-                    if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
-                    {
-                        CommandRequest_GetReleaseGroupStatus cmdStatus =
-                            new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                        cmdStatus.Save();
-                    }
-
-                    // update stats
-                    Repo.AnimeSeries.Touch(()=>ser,(false, false, false, false));
-    
-                    foreach (SVR_AnimeGroup grpn in ser.AllGroupsAbove)
-                    {
-                        Repo.AnimeGroup.Touch(() => grpn, (true, false, true));
-                    }
-
-                    response.Result = ser.GetUserContract(userID);
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                if (ser != null && !forceOverwrite)
+                {
+                    response.ErrorMessage = "A series already exists for this anime";
                     return response;
+                }
+
+                // make sure the anime exists first
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+
+                AniDB_AnimeUpdate update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                bool animeRecentlyUpdated = false;
+
+                if (update != null)
+                {
+                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
+                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
+                }
+
+                // even if we are missing episode info, don't get data  more than once every 4 hours
+                // this is to prevent banning
+                if (!animeRecentlyUpdated)
+                {
+                    logger.Debug("Getting Anime record from AniDB....");
+                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
+                        ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
+                }
+
+                if (anime == null)
+                {
+                    response.ErrorMessage = "Could not get anime information from AniDB";
+                    return response;
+                }
+
+                logger.Debug("Creating groups, series and episodes....");
+                if (ser == null) ser = anime.CreateAnimeSeriesAndGroup(animeGroupID);
+
+                ser.CreateAnimeEpisodes();
+
+                // check if we have any group status data for this associated anime
+                // if not we will download it now
+                if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                {
+                    CommandRequest_GetReleaseGroupStatus cmdStatus =
+                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                    cmdStatus.Save();
+                }
+
+                // update stats
+                RepoFactory.AnimeSeries.Save(ser, false, false);
+
+                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
+                {
+                    RepoFactory.AnimeGroup.Save(grp, true, false);
+                }
+
+                response.Result = ser.GetUserContract(userID);
+                return response;
             }
             catch (Exception ex)
             {
@@ -2288,8 +2242,7 @@ namespace Shoko.Server
                 // we can usually tell this if the Resolution == '0x0'
                 foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
-                    AniDB_File aniFile = vid.GetAniDBFile();
-                    if (aniFile == null) continue;
+                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, true, false, 0);
 
                     if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -2297,6 +2250,29 @@ namespace Shoko.Server
                         cmd.Save();
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return string.Empty;
+        }
+
+        public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
+        {
+            try
+            {
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                if (anime == null) return;
+
+                anime.DisableExternalLinksFlag = flags;
+                RepoFactory.AniDB_Anime.Save(anime);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+        }
 
                 // update group status information
                 CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
@@ -2358,46 +2334,6 @@ namespace Shoko.Server
                         return;
                     upd.Entity.DefaultAnimeSeriesID = null;
                     upd.Commit((false, false, true));
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
-        public CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID)
-        {
-            try
-            {
-                return Repo.AnimeSeries.GetByID(animeSeriesID)?.TopLevelAnimeGroup?.GetUserContract(userID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-
-            return null;
-        }
-
-        public void IgnoreAnime(int animeID, int ignoreType, int userID)
-        {
-            try
-            {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
-                if (anime == null) return;
-
-                SVR_JMMUser user = Repo.JMMUser.GetByID(userID);
-                if (user == null) return;
-
-                using (var upd = Repo.IgnoreAnime.BeginAddOrUpdate(() => Repo.IgnoreAnime.GetByAnimeUserType(animeID, userID, ignoreType)))
-                {
-                    if (upd.Original != null)
-                        return;
-                    upd.Entity.AnimeID = animeID;
-                    upd.Entity.IgnoreType = ignoreType;
-                    upd.Entity.JMMUserID = userID;
-                    upd.Commit();
                 }
             }
             catch (Exception ex)
@@ -2499,38 +2435,14 @@ namespace Shoko.Server
                         {
                             if (deleteFiles)
                             {
-                                logger.Info("Deleting video local record and file: {0}", place.FullServerPath);
-                                IFileSystem fileSystem = place.ImportFolder.FileSystem;
-                                if (fileSystem == null)
-                                {
-                                    logger.Error("Unable to delete file, filesystem not found");
-                                    return "Unable to delete file, filesystem not found";
-                                }
-                                IObject fr = fileSystem.Resolve(place.FullServerPath);
-                                if (fr.Status!=Status.Ok)
-                                {
-                                    logger.Error($"Unable to find file '{place.FullServerPath}'");
-                                    return $"Unable to find file '{place.FullServerPath}'";
-                                }
-                                IFile file = fr as IFile;
-                                if (file == null)
-                                {
-                                    logger.Error($"Seems '{place.FullServerPath}' is a directory");
-                                    return $"Seems '{place.FullServerPath}' is a directory";
-                                }
-                                FileSystemResult fs = file.Delete(false);
-                                if (fs .Status!=Status.Ok)
-                                {
-                                    logger.Error($"Unable to delete file '{place.FullServerPath}'");
-                                    return $"Unable to delete file '{place.FullServerPath}'";
-                                }
+                                (bool success, string result) = place.RemoveAndDeleteFile();
+                                if (!success) return result;
                             }
-                            Repo.VideoLocal_Place.Delete(place);
+                            else
+                            {
+                                place.RemoveRecord();
+                            }
                         }
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);
-                        cmdDel.Save();
-                        Repo.VideoLocal.Delete(vid);
                     }
                     Repo.AnimeEpisode.Delete(ep.AnimeEpisodeID);
                 }
@@ -2603,75 +2515,7 @@ namespace Shoko.Server
                 RatingWatchedState _watchedState = (RatingWatchedState) watchedState;
                 RatingVotedState _ratingVotedState = (RatingVotedState) ratingVotedState;
 
-                DateTime start = DateTime.Now;
-
-
-                /*
-				// build a dictionary of categories
-				AniDB_CategoryRepository repCats = new AniDB_CategoryRepository();
-				AniDB_Anime_CategoryRepository repAnimeCat = new AniDB_Anime_CategoryRepository();
-
-				List<AniDB_Category> allCatgeories = repCats.GetAll();
-				Dictionary<int, AniDB_Category> allCatgeoriesDict = new Dictionary<int, AniDB_Category>();
-				foreach (AniDB_Category cat in allCatgeories)
-					allCatgeoriesDict[cat.CategoryID] = cat;
-
-
-				List<AniDB_Anime_Category> allAnimeCatgeories = repAnimeCat.GetAll();
-				Dictionary<int, List<AniDB_Anime_Category>> allAnimeCatgeoriesDict = new Dictionary<int, List<AniDB_Anime_Category>>(); //
-				foreach (AniDB_Anime_Category aniCat in allAnimeCatgeories)
-				{
-					if (!allAnimeCatgeoriesDict.ContainsKey(aniCat.AnimeID))
-						allAnimeCatgeoriesDict[aniCat.AnimeID] = new List<AniDB_Anime_Category>();
-
-					allAnimeCatgeoriesDict[aniCat.AnimeID].Add(aniCat);
-				}
-
-				// build a dictionary of titles
-				AniDB_Anime_TitleRepository repTitles = new AniDB_Anime_TitleRepository();
-
-
-				List<AniDB_Anime_Title> allTitles = repTitles.GetAll();
-				Dictionary<int, List<AniDB_Anime_Title>> allTitlesDict = new Dictionary<int, List<AniDB_Anime_Title>>();
-				foreach (AniDB_Anime_Title title in allTitles)
-				{
-					if (!allTitlesDict.ContainsKey(title.AnimeID))
-						allTitlesDict[title.AnimeID] = new List<AniDB_Anime_Title>();
-
-					allTitlesDict[title.AnimeID].Add(title);
-				}
-
-
-				// build a dictionary of tags
-				AniDB_TagRepository repTags = new AniDB_TagRepository();
-				AniDB_Anime_TagRepository repAnimeTag = new AniDB_Anime_TagRepository();
-
-				List<AniDB_Tag> allTags = repTags.GetAll();
-				Dictionary<int, AniDB_Tag> allTagsDict = new Dictionary<int, AniDB_Tag>();
-				foreach (AniDB_Tag tag in allTags)
-					allTagsDict[tag.TagID] = tag;
-
-
-				List<AniDB_Anime_Tag> allAnimeTags = repAnimeTag.GetAll();
-				Dictionary<int, List<AniDB_Anime_Tag>> allAnimeTagsDict = new Dictionary<int, List<AniDB_Anime_Tag>>(); //
-				foreach (AniDB_Anime_Tag aniTag in allAnimeTags)
-				{
-					if (!allAnimeTagsDict.ContainsKey(aniTag.AnimeID))
-						allAnimeTagsDict[aniTag.AnimeID] = new List<AniDB_Anime_Tag>();
-
-					allAnimeTagsDict[aniTag.AnimeID].Add(aniTag);
-				}
-
-				// build a dictionary of languages
-				AdhocRepository rep = new AdhocRepository();
-				Dictionary<int, LanguageStat> dictAudioStats = rep.GetAudioLanguageStatsForAnime();
-				Dictionary<int, LanguageStat> dictSubtitleStats = rep.GetSubtitleLanguageStatsForAnime();
-
-				Dictionary<int, string> dictAnimeVideoQualStats = rep.GetAllVideoQualityByAnime();
-				Dictionary<int, AnimeVideoQualityStat> dictAnimeEpisodeVideoQualStats = rep.GetEpisodeVideoQualityStatsByAnime();
-				 * */
-
-                IReadOnlyList<SVR_AniDB_Anime> animes = Repo.AniDB_Anime.GetAll();
+                IReadOnlyList<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetAll();
 
                 // user votes
                 IReadOnlyList<AniDB_Vote> allVotes = Repo.AniDB_Vote.GetAll();
@@ -2947,7 +2791,7 @@ namespace Shoko.Server
                 SVR_JMMUser user = Repo.JMMUser.GetByID(userID);
                 if (user == null) return null;
 
-                CL_GroupFilterExtended contract = gf.ToClientExtended(user);
+                    CL_GroupFilterExtended contract = gf.ToClientExtended(user);
 
                 return contract;
             }
@@ -3029,10 +2873,11 @@ namespace Shoko.Server
                 TimeSpan ts = DateTime.Now - start;
                 logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
-                start = DateTime.Now;
-                foreach (SVR_GroupFilter gf in allGfs)
-                {
-                    gfs.Add(gf.ToClient());
+                    start = DateTime.Now;
+                    foreach (SVR_GroupFilter gf in allGfs)
+                    {
+                        gfs.Add(gf.ToClient());
+                    }
                 }
             }
             catch (Exception ex)
@@ -3055,10 +2900,11 @@ namespace Shoko.Server
                 TimeSpan ts = DateTime.Now - start;
                 logger.Info("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
 
-                start = DateTime.Now;
-                foreach (SVR_GroupFilter gf in allGfs)
-                {
-                    gfs.Add(gf.ToClient());
+                    start = DateTime.Now;
+                    foreach (SVR_GroupFilter gf in allGfs)
+                    {
+                        gfs.Add(gf.ToClient());
+                    }
                 }
 
             }
@@ -3682,6 +3528,337 @@ namespace Shoko.Server
                     response.Result = upd.Commit();
 
                 }
+                Utils.MainThreadDispatch(() =>
+                {
+                    ServerInfo.Instance.RefreshImportFolders();
+                });
+                ShokoServer.StopWatchingFiles();
+                ShokoServer.StartWatchingFiles();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                response.ErrorMessage = ex.Message;
+                return response;
+            }
+        }
+
+        public string DeleteImportFolder(int importFolderID)
+        {
+            ShokoServer.DeleteImportFolder(importFolderID);
+            return string.Empty;
+        }
+        #endregion
+
+        #region Users
+
+        public List<JMMUser> GetAllUsers()
+        {
+            try
+            {
+                return RepoFactory.JMMUser.GetAll().Cast<JMMUser>().ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return new List<JMMUser>();
+            }
+        }
+
+        public JMMUser AuthenticateUser(string username, string password)
+        {
+            try
+            {
+                return RepoFactory.JMMUser.AuthenticateUser(username, password);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return null;
+            }
+        }
+
+        public string ChangePassword(int userID, string newPassword)
+        {
+            return ChangePassword(userID, newPassword, true);
+        }
+
+        public string ChangePassword(int userID, string newPassword, bool revokeapikey)
+        {
+            try
+            {
+                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
+                if (jmmUser == null) return "User not found";
+
+                jmmUser.Password = Digest.Hash(newPassword);
+                RepoFactory.JMMUser.Save(jmmUser, false);
+                if (revokeapikey)
+                {
+                    RepoFactory.AuthTokens.DeleteAllWithUserID(jmmUser.JMMUserID);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return string.Empty;
+        }
+
+        public string SaveUser(JMMUser user)
+        {
+            try
+            {
+                bool existingUser = false;
+                bool updateStats = false;
+                bool updateGf = false;
+                SVR_JMMUser jmmUser = null;
+                if (user.JMMUserID != 0)
+                {
+                    jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
+                    if (jmmUser == null) return "User not found";
+                    existingUser = true;
+                }
+                else
+                {
+                    jmmUser = new SVR_JMMUser();
+                    updateStats = true;
+                    updateGf = true;
+                }
+
+                if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
+                    updateStats = true;
+
+                string hcat = string.Join(",", user.HideCategories);
+                if (jmmUser.HideCategories != hcat)
+                    updateGf = true;
+                jmmUser.HideCategories = hcat;
+                jmmUser.IsAniDBUser = user.IsAniDBUser;
+                jmmUser.IsTraktUser = user.IsTraktUser;
+                jmmUser.IsAdmin = user.IsAdmin;
+                jmmUser.Username = user.Username;
+                jmmUser.CanEditServerSettings = user.CanEditServerSettings;
+                jmmUser.PlexUsers = string.Join(",", user.PlexUsers);
+                jmmUser.PlexToken = user.PlexToken;
+                if (string.IsNullOrEmpty(user.Password))
+                {
+                    jmmUser.Password = string.Empty;
+                }
+                else
+                {
+                    // Additional check for hashed password, if not hashed we hash it
+                    if (user.Password.Length < 64)
+                        jmmUser.Password = Digest.Hash(user.Password);
+                    else
+                        jmmUser.Password = user.Password;
+                }
+
+                // make sure that at least one user is an admin
+                if (jmmUser.IsAdmin == 0)
+                {
+                    bool adminExists = false;
+                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    foreach (SVR_JMMUser userOld in users)
+                    {
+                        if (userOld.IsAdmin == 1)
+                        {
+                            if (existingUser)
+                            {
+                                if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
+                            }
+                            else
+                            {
+                                //one admin account is needed
+                                adminExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!adminExists) return "At least one user must be an administrator";
+                }
+
+                RepoFactory.JMMUser.Save(jmmUser, updateGf);
+
+                // update stats
+                if (updateStats)
+                {
+                    foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+                        ser.QueueUpdateStats();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return string.Empty;
+        }
+
+        public string DeleteUser(int userID)
+        {
+            try
+            {
+                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
+                if (jmmUser == null) return "User not found";
+
+                // make sure that at least one user is an admin
+                if (jmmUser.IsAdmin == 1)
+                {
+                    bool adminExists = false;
+                    IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
+                    foreach (SVR_JMMUser userOld in users)
+                    {
+                        if (userOld.IsAdmin == 1)
+                        {
+                            if (userOld.JMMUserID != jmmUser.JMMUserID) adminExists = true;
+                        }
+                    }
+
+                    if (!adminExists) return "At least one user must be an administrator";
+                }
+
+                RepoFactory.JMMUser.Delete(userID);
+
+                // delete all user records
+                RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
+                RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));
+                RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByUserID(userID));
+                RepoFactory.VideoLocalUser.Delete(RepoFactory.VideoLocalUser.GetByUserID(userID));
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+
+            return string.Empty;
+        }
+
+        #endregion
+
+        #region Import Folders
+        public List<ImportFolder> GetImportFolders()
+        {
+            try
+            {
+                return RepoFactory.ImportFolder.GetAll().Cast<ImportFolder>().ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return new List<ImportFolder>();
+        }
+
+        public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
+        {
+            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
+            {
+                ErrorMessage = string.Empty,
+                Result = null
+            };
+            try
+            {
+                SVR_ImportFolder ns = null;
+                if (contract.ImportFolderID != 0)
+                {
+                    // update
+                    ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID);
+                    if (ns == null)
+                    {
+                        response.ErrorMessage = "Could not find Import Folder ID: " +
+                                                contract.ImportFolderID.ToString();
+                        return response;
+                    }
+                }
+                else
+                {
+                    // create
+                    ns = new SVR_ImportFolder();
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderName))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder name";
+                    return response;
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder location";
+                    return response;
+                }
+
+                if (contract.CloudID == 0) contract.CloudID = null;
+
+                if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Cannot find Import Folder location";
+                    return response;
+                }
+
+                if (contract.ImportFolderID == 0)
+                {
+                    SVR_ImportFolder nsTemp =
+                        RepoFactory.ImportFolder.GetByImportLocation(contract.ImportFolderLocation);
+                    if (nsTemp != null)
+                    {
+                        response.ErrorMessage = "An entry already exists for the specified Import Folder location";
+                        return response;
+                    }
+                }
+
+                if (contract.IsDropDestination == 1 && contract.IsDropSource == 1)
+                {
+                    response.ErrorMessage = "A folder cannot be a drop source and a drop destination at the same time";
+                    return response;
+                }
+
+                // check to make sure we don't have multiple drop folders
+                IReadOnlyList<SVR_ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
+
+                if (contract.IsDropDestination == 1)
+                {
+                    foreach (SVR_ImportFolder imf in allFolders)
+                    {
+                        if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
+                            (contract.ImportFolderID == 0 || contract.ImportFolderID != imf.ImportFolderID))
+                        {
+                            imf.IsDropDestination = 0;
+                            RepoFactory.ImportFolder.Save(imf);
+                        }
+                        else if (imf.CloudID != contract.CloudID )
+                        {
+                            if (contract.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
+                            if (contract.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
+                        }
+                    }
+                }
+
+                ns.ImportFolderName = contract.ImportFolderName;
+                ns.ImportFolderLocation = contract.ImportFolderLocation;
+                ns.IsDropDestination = contract.IsDropDestination;
+                ns.IsDropSource = contract.IsDropSource;
+                ns.IsWatched = contract.IsWatched;
+                ns.ImportFolderType = contract.ImportFolderType;
+                ns.CloudID = contract.CloudID;
+
+                RepoFactory.ImportFolder.Save(ns);
+
+                response.Result = ns;
                 Utils.MainThreadDispatch(() =>
                 {
                     ServerInfo.Instance.RefreshImportFolders();

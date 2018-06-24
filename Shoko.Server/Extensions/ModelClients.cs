@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NLog;
-using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
@@ -24,7 +24,7 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static CL_AniDB_Anime ToClient(this AniDB_Anime anime)
+        public static CL_AniDB_Anime ToClient(this SVR_AniDB_Anime anime)
         {
             return new CL_AniDB_Anime
             {
@@ -49,7 +49,7 @@ namespace Shoko.Server.Extensions
                 TempVoteCount = anime.TempVoteCount,
                 AvgReviewRating = anime.AvgReviewRating,
                 ReviewCount = anime.ReviewCount,
-                DateTimeUpdated = anime.DateTimeUpdated,
+                DateTimeUpdated = anime.GetDateTimeUpdated(),
                 DateTimeDescUpdated = anime.DateTimeDescUpdated,
                 ImageEnabled = anime.ImageEnabled,
                 AwardList = anime.AwardList,
@@ -207,27 +207,24 @@ namespace Shoko.Server.Extensions
             switch (imgType)
             {
                 case ImageEntityType.TvDB_Banner:
-                    parentImage = Repo.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_Cover:
-                    parentImage = Repo.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_FanArt:
-                    parentImage = Repo.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_Poster:
-                    parentImage = Repo.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_FanArt:
-                    parentImage = Repo.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
                     break;
             }
 
             return defaultImage.ToClient(parentImage);
         }
-
-
-
 
         public static CL_AniDB_Anime_DefaultImage ToClient(this AniDB_Anime_DefaultImage defaultimage,
             IImageEntity parentImage)
@@ -336,7 +333,7 @@ namespace Shoko.Server.Extensions
                 {
                     cl.EpisodeNumber = eps[0].EpisodeNumber;
                     cl.EpisodeType = eps[0].EpisodeType;
-                    cl.EpisodeName = eps[0].RomajiName;
+                    cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
                     cl.AnimeID = eps[0].AnimeID;
                     SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(eps[0].AnimeID);
                     if (anime != null)
@@ -345,6 +342,26 @@ namespace Shoko.Server.Extensions
             }
 
             return cl;
+        }
+
+        public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
+        {
+            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
+            return new CL_AniDB_Episode
+            {
+                AniDB_EpisodeID = ep.AniDB_EpisodeID,
+                EpisodeID = ep.EpisodeID,
+                AnimeID = ep.AnimeID,
+                LengthSeconds = ep.LengthSeconds,
+                Rating = ep.Rating,
+                Votes = ep.Votes,
+                EpisodeNumber = ep.EpisodeNumber,
+                EpisodeType = ep.EpisodeType,
+                Description = ep.Description,
+                AirDate = ep.AirDate,
+                DateTimeUpdated = ep.DateTimeUpdated,
+                Titles = titles.ToDictionary(a => a.Language, a => a.Title)
+            };
         }
 
         public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlocalplace)

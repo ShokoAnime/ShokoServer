@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using NutzCode.CloudFileSystem;
+using Pri.LongPath;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.Repositories;
 using static Shoko.Models.Constants;
 
 namespace Shoko.Server.Renamer
@@ -1057,7 +1057,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(episodes[0].EnglishName))
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                        .FirstOrDefault()?.Title;
+                    if (string.IsNullOrEmpty(title))
                     {
                         return notCondition;
                     }
@@ -1072,7 +1074,9 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (string.IsNullOrEmpty(episodes[0].RomajiName))
+                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                        .FirstOrDefault()?.Title;
+                    if (string.IsNullOrEmpty(title))
                     {
                         return notCondition;
                     }
@@ -1321,7 +1325,7 @@ namespace Shoko.Server.Renamer
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
-                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
             else
@@ -1329,7 +1333,7 @@ namespace Shoko.Server.Renamer
                 episodes = aniFile.Episodes;
                 if (episodes.Count == 0) return "*Error: Unable to get episode for file";
 
-                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
 
@@ -1523,7 +1527,7 @@ namespace Shoko.Server.Renamer
                         break;
                 }
 
-                int zeroPadding = epCount.ToString().Length;
+                int zeroPadding = Math.Max(epCount.ToString().Length, 2);
 
                 // normal episode
                 string episodeNumber = prefix + episodes[0].EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
@@ -1572,8 +1576,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
             {
-                string epname = episodes[0].EnglishName;
-                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                    .FirstOrDefault()?.Title;
+                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
             }
 
@@ -1583,8 +1588,9 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
             {
-                string epname = episodes[0].RomajiName;
-                if (epname.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                    .FirstOrDefault()?.Title;
+                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
             }
 
@@ -2008,24 +2014,27 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath) is IFile sourceFile))
+            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result is IFile sourceFile))
                 return (null, "File is null");
 
             ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in Repo.ImportFolder.GetAll()
+            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
                 .Where(a => a != null && a.CloudID == video.ImportFolder.CloudID).ToList())
             {
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
                 IFileSystem fs = fldr.FileSystem;
-                IObject fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                if (fsresult.Status!=Status.Ok) continue;
+                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
+                if (fsresult == null || !fsresult.IsOk) continue;
 
                 // Continue if on a separate drive and there's no space
-                if (!fldr.CloudID.HasValue && !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                if (!fldr.CloudID.HasValue &&
+                    !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
                     var fsresultquota = fldr.BaseDirectory.Quota();
-                    if (fsresultquota.Status==Status.Ok && fsresultquota.AvailableSize < sourceFile.Size) continue;
+                    // if it's null, then we are likely on network FS, so we can't easily check
+                    if (fsresultquota != null && fsresultquota.IsOk &&
+                        fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
                 }
 
                 destFolder = fldr;
@@ -2033,11 +2042,12 @@ namespace Shoko.Server.Renamer
             }
 
             List<CrossRef_File_Episode> xrefs = video.VideoLocal.EpisodeCrossRefs;
-            if (xrefs.Count == 0 || destFolder == null) return (null, "No xrefs");
-            CrossRef_File_Episode xref = xrefs[0];
+            if (xrefs.Count == 0) return (null, "No xrefs");
+            CrossRef_File_Episode xref = xrefs.FirstOrDefault(a => a != null);
+            if (xref == null) return (null, "No xrefs");
 
             // find the series associated with this episode
-            SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
             if (series == null) return (null, "Series not Found");
 
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
@@ -2050,7 +2060,7 @@ namespace Shoko.Server.Renamer
                 // check if this episode belongs to more than one anime
                 // if it does we will ignore it
                 List<CrossRef_File_Episode> fileEpXrefs =
-                    Repo.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                 int? animeID = null;
                 bool crossOver = false;
                 foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)
@@ -2066,21 +2076,33 @@ namespace Shoko.Server.Renamer
                 if (crossOver) continue;
 
                 foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
-                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder.CloudID &&
+                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder?.CloudID &&
                                                   b.ImportFolder.IsDropSource == 0)).ToList())
                 {
                     if (vid.VideoLocalID == video.VideoLocalID) continue;
 
                     SVR_VideoLocal_Place place =
-                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder.CloudID);
+                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder?.CloudID);
                     string thisFileName = place?.FilePath;
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
 
-                    IObject dir =
-                        place.ImportFolder?.FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
+                    var dstImportFolder = place.ImportFolder;
+                    if (dstImportFolder == null) continue;
+                    // check space
+                    if (!video.ImportFolder.ImportFolderLocation.StartsWith(
+                        Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
+                    {
+                        var fsresultquota = dstImportFolder.BaseDirectory.Quota();
+                        // if it's null, then we are likely on network FS, so we can't easily check
+                        if (fsresultquota != null && fsresultquota.IsOk &&
+                            fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    }
+
+                    FileSystemResult<IObject> dir = dstImportFolder
+                        .FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
                             folderName));
-                    if (dir.Status!=Status.Ok) continue;
+                    if (dir == null || !dir.IsOk) continue;
                     // ensure we aren't moving to the current directory
                     if (Path.Combine(place.ImportFolder.ImportFolderLocation,
                         folderName).Equals(Path.Combine(video.ImportFolder.ImportFolderLocation,
@@ -2090,12 +2112,14 @@ namespace Shoko.Server.Renamer
                         continue;
                     }
                     // Not a directory
-                    if (!(dir is IDirectory)) continue;
+                    if (!(dir.Result is IDirectory)) continue;
                     destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);
                 }
             }
+
+            if (destFolder == null) return (null, "Unable to resolve a destination");
 
             return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }

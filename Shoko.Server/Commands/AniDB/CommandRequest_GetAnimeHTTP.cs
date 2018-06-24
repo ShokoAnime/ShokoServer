@@ -2,16 +2,18 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetAnimeHTTP : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetAnimeHTTP)]
+    public class CommandRequest_GetAnimeHTTP : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
-        public virtual bool DownloadRelations { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
+        public bool DownloadRelations { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority2;
 
@@ -21,17 +23,23 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
+        public int RelDepth { get; set; } = 0;
+
         public CommandRequest_GetAnimeHTTP()
         {
         }
 
-        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations)
+        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations) : this(animeid, forced, downloadRelations, 0)
+        { }
+
+
+        public CommandRequest_GetAnimeHTTP(int animeid, bool forced, bool downloadRelations, int relDepth)
         {
             AnimeID = animeid;
             DownloadRelations = downloadRelations;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetAnimeHTTP;
             Priority = (int) DefaultPriority;
+            RelDepth = relDepth;
 
             GenerateCommandID();
         }
@@ -43,7 +51,7 @@ namespace Shoko.Server.Commands
             try
             {
                 SVR_AniDB_Anime anime =
-                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations);
+                    ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations, RelDepth);
 
                 // NOTE - related anime are downloaded when the relations are created
 
@@ -71,11 +79,10 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetAnimeHTTP_{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -92,9 +99,25 @@ namespace Shoko.Server.Commands
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
                 ForceRefresh = bool.Parse(
                     TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "ForceRefresh"));
+                RelDepth = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)));
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

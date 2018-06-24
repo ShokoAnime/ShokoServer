@@ -8,7 +8,8 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequest
+    [Command(CommandRequestType.WebCache_SendXRefFileEpisode)]
+    public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequestImplementation
     {
         public virtual int CrossRef_File_EpisodeID { get; set; }
 
@@ -27,7 +28,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_WebCacheSendXRefFileEpisode(int crossRef_File_EpisodeID)
         {
             CrossRef_File_EpisodeID = crossRef_File_EpisodeID;
-            CommandType = (int) CommandRequestType.WebCache_SendXRefFileEpisode;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -59,7 +59,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -77,6 +76,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

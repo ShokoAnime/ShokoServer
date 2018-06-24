@@ -2,14 +2,20 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
+using Force.DeepCloner;
+using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
     public class CommandProcessorImages : IDisposable
     {
+        private readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         private readonly BackgroundWorker workerCommands = new BackgroundWorker();
         private bool processingCommands;
         private DateTime? pauseTime;
@@ -79,8 +85,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -93,20 +99,24 @@ namespace Shoko.Server.Commands
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
-                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
+                    queueState = value.DeepClone();
                 }
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 
+        public CommandRequest CurrentCommand { get; private set; }
+
         public bool ProcessingCommands => processingCommands;
+
+        public bool IsWorkerBusy => workerCommands.IsBusy;
 
         public CommandProcessorImages()
         {
@@ -120,17 +130,23 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            CurrentCommand = null;
             processingCommands = false;
             paused = false;
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-            QueueCount = 0;
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
+
+            if (QueueCount > 0 && !workerCommands.IsBusy)
+            {
+                processingCommands = true;
+                workerCommands.RunWorkerAsync();
+            }
         }
 
         public void Init()
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
             processingCommands = true;
 
             QueueState = new QueueStateStruct
@@ -138,7 +154,8 @@ namespace Shoko.Server.Commands
                 queueState = QueueStateEnum.StartingImages,
                 extraParams = new string[0]
             };
-            workerCommands.RunWorkerAsync();
+            if (!workerCommands.IsBusy)
+                workerCommands.RunWorkerAsync();
         }
 
         public void Stop()
@@ -151,7 +168,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public void NotifyOfNewCommand()
         {
-            QueueCount = Repo.CommandRequest.GetQueuedCommandCountImages();
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
             // if the worker is busy, it will pick up the next command from the DB
             // do not pick new command if cancellation is requested
             if (processingCommands || workerCommands.CancellationPending)
@@ -169,10 +186,7 @@ namespace Shoko.Server.Commands
             while (true)
             {
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 // if paused we will sleep for 5 seconds, and the try again
                 // we will remove the pause if it was set more than 6 hours ago
@@ -182,10 +196,7 @@ namespace Shoko.Server.Commands
                     try
                     {
                         if (workerCommands.CancellationPending)
-                        {
-                            e.Cancel = true;
                             return;
-                        }
 
                         TimeSpan ts = DateTime.Now - pauseTime.Value;
                         if (ts.TotalHours >= 6)
@@ -199,31 +210,37 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                Shoko.Models.Server.CommandRequest crdb = Repo.CommandRequest.GetNextDBCommandRequestImages();
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestImages();
                 if (crdb == null) return;
 
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
-                CommandRequest icr = CommandHelper.GetCommand(crdb);
+                ICommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
                     return;
 
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 QueueState = icr.PrettyDescription;
 
-                icr.ProcessCommand();
+                try
+                {
+                    CurrentCommand = crdb;
+                    icr.ProcessCommand();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                }
+                finally
+                {
+                    CurrentCommand = null;
+                }
 
-                Repo.CommandRequest.Delete(crdb.CommandRequestID);
-                QueueCount = Repo.CommandRequest.GetQueuedCommandCountImages();
+                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountImages();
             }
         }
 

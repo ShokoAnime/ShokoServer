@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,9 +17,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
-
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Repositories.Cached;
+using Pri.LongPath;
 using Shoko.Commons.Utils;
-using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -31,11 +32,11 @@ namespace Shoko.Server
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
 
-            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
             List<CL_AnimeSeries_User> series_list = new List<CL_AnimeSeries_User>();
             if (user == null) return series_list;
 
-            var series = Repo.AnimeSeries.GetAll()
+            var series = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
                 .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
@@ -82,7 +83,7 @@ namespace Shoko.Server
         private static string RemoveSubgroups(string value)
         {
             int originalLength = value.Length;
-            var releaseGroups = Repo.AniDB_Anime.GetAllReleaseGroups();
+            var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
             foreach (string releaseGroup in releaseGroups)
             {
                 value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);
@@ -131,11 +132,11 @@ namespace Shoko.Server
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
 
-            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
             List<CL_AniDB_Anime> series_list = new List<CL_AniDB_Anime>();
             if (user == null) return series_list;
 
-            var series = Repo.AnimeSeries.GetAll()
+            var series = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
                 .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
@@ -182,7 +183,7 @@ namespace Shoko.Server
                 bool result = true;
                 foreach (SVR_VideoLocal toDelete in videosToDelete)
                 {
-                    result &= toDelete.Places.All(a => a.RemoveAndDeleteFile());
+                    result &= toDelete.Places.All(a => a.RemoveAndDeleteFile().Item1);
                 }
                 return result;
             }
@@ -402,7 +403,7 @@ namespace Shoko.Server
                 else
                 {
                     ret.VideoLocal = null;
-                    if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace()?.FullServerPath))
+                    if (string.IsNullOrEmpty(vid?.GetBestVideoLocalPlace(true)?.FullServerPath))
                     {
                         ret.VideoLocal = null;
                         ret.Success = false;
@@ -498,124 +499,27 @@ namespace Shoko.Server
                 string errorString = string.Empty;
                 string name = vid.FileName;
 
-                ShokoServer.StopWatchingFiles();
-
-                foreach (SVR_VideoLocal_Place pl in vid.Places)
+                foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
-                    SVR_VideoLocal_Place place = pl;
-                    name = Path.GetFileName(place.FilePath);
-                    // check if the file exists
-                    string fullFileName = place.FullServerPath;
-                    IFileSystem fs = place.ImportFolder.FileSystem;
-                    IObject fileSystemResult = fs.Resolve(fullFileName);
-                    if (fileSystemResult.Status!=Status.Ok || fileSystemResult is IDirectory)
-                    {
-                        logger.Error($"Renaming file FAIL From ({fullFileName}): The file could not be accessed");
-                        errorCount++;
-                        errorString = "ERROR: Could not access the original file (it's missing or in use)";
-                        continue;
-                    }
-
                     if (move)
                     {
-                        string moveResult;
-                        (moveResult,place) = SVR_VideoLocal_Place.MoveWithResultString(place, fileSystemResult, scriptName, move);
-                        if (moveResult.StartsWith("ERROR: ")) ret.Success = false;
-
-                        ret.NewDestination = moveResult;
+                        (string, string) resultString = place.MoveWithResultString(scriptName);
+                        if (!string.IsNullOrEmpty(resultString.Item2))
+                        {
+                            errorCount++;
+                            errorString = resultString.Item2;
+                            continue;
+                        }
+                        ret.NewDestination = resultString.Item1;
                     }
 
-                    // actually rename the file
-                    string path = Path.GetDirectoryName(fullFileName);
-                    string newFullName = Path.Combine(path, ret.NewFileName);
-
-                    try
+                    (bool, string, string) output = place.RenameFile(false, scriptName);
+                    string error = output.Item3;
+                    if (string.IsNullOrEmpty(error)) name = output.Item2;
+                    else
                     {
-                        IObject r = fs?.Resolve(newFullName);
-                        if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            logger.Info(
-                                $"Renaming file SKIPPED, no change From ({fullFileName}) to ({newFullName})");
-                            errorString = "ERROR: No change in file name";
-                            continue;
-                        }
-                        if (r.Status==Status.Ok)
-                        {
-                            logger.Error($"Renaming file SKIPPED! Destination Exists ({newFullName})");
-                            errorCount++;
-                            errorString = "ERROR: Destination Exists";
-                            continue;
-                        }
-
-                        logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
-                        var result = ((IFile) fileSystemResult).Rename(ret.NewFileName);
-                        if (result.Status!=Status.Ok)
-                        {
-                            logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {result.Error}");
-                            errorCount++;
-                            errorString = $"ERROR: {result.Error}";
-                            continue;
-                        }
-                        logger.Info($"Renaming file SUCCESS From ({fullFileName}) to ({newFullName})");
-
-                        ret.NewFileName = newFullName;
-                        var tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
-                        if (tup.Item2 == null)
-                        {
-                            logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
-                            errorCount++;
-                            errorString = "ERROR: Unable to locate file in import folders";
-                            continue;
-                        }
-                        // Before we change all references, remap Duplicate Files
-                        using (var upd = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(place.FilePath, place.ImportFolderID)))
-                        {
-                            foreach (DuplicateFile dup in upd)
-                            {
-                                bool dupchanged = false;
-                                if (dup.FilePathFile1.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                    dup.ImportFolderIDFile1 == place.ImportFolderID)
-                                {
-                                    dup.FilePathFile1 = tup.Item2;
-                                    dupchanged = true;
-                                }
-                                else if (dup.FilePathFile2.Equals(place.FilePath, StringComparison.InvariantCultureIgnoreCase) &&
-                                         dup.ImportFolderIDFile2 == place.ImportFolderID)
-                                {
-                                    dup.FilePathFile2 = tup.Item2;
-                                    dupchanged = true;
-                                }
-                                if (dupchanged)
-                                    upd.Update(dup);
-                            }
-                            upd.Commit();
-                        }
-                        // Make FileNameHashes
-                        using (var upd = Repo.FileNameHash.BeginAddOrUpdate(() => Repo.FileNameHash.GetByHash(vid.Hash).FirstOrDefault(a => a.FileName.Equals(ret.NewFileName))))
-                        {
-                            if (upd.IsNew())
-                            {
-                                upd.Entity.DateTimeUpdated = DateTime.Now;
-                                upd.Entity.FileName = ret.NewFileName;
-                                upd.Entity.FileSize = vid.FileSize;
-                                upd.Entity.Hash = vid.Hash;
-                                upd.Commit();
-                            }
-                        }
-                        // Actually change the last internal references
-                        using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => Repo.VideoLocal_Place.GetByID(place.VideoLocal_Place_ID)))
-                        {
-                            upd.Entity.FilePath = tup.Item2;
-                            name = Path.GetFileName(tup.Item2);
-                            place=upd.Commit();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error($"Renaming file FAIL From ({fullFileName}) to ({newFullName}) - {ex.Message}");
-                        logger.Error(ex, ex.ToString());
                         errorCount++;
-                        errorString = $"ERROR: {ex.Message}";
+                        errorString = error;
                     }
                 }
                 if (errorCount >= vid.Places.Count) // should never be greater but shit happens
@@ -623,9 +527,13 @@ namespace Shoko.Server
                     ret.VideoLocal = null;
                     ret.Success = false;
                     ret.NewFileName = errorString;
-                    ShokoServer.StartWatchingFiles(false);
                     return ret;
                 }
+                vid.FileName = name;
+                if (ret.VideoLocal == null)
+                    ret.VideoLocal = new CL_VideoLocal() {FileName = name, VideoLocalID = videoLocalID};
+                else
+                    ret.VideoLocal.FileName = name;
             }
             catch (Exception ex)
             {
@@ -659,7 +567,7 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.RenameScript.GetAll().Where(a =>
+                return RepoFactory.RenameScript.GetAll().Where(a =>
                         !a.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName,
                             StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
@@ -680,12 +588,13 @@ namespace Shoko.Server
             };
             try
             {
-                if (string.IsNullOrEmpty(contract.ScriptName))
+                RenameScript script;
+                if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
                 {
-                    response.ErrorMessage = "Must specify a Script Name";
-                    return response;
+                    script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
+                             new RenameScript();
                 }
-                if (contract.RenameScriptID != 0)
+                else if (contract.RenameScriptID != 0)
                 {
                     // update
                     var script = Repo.RenameScript.GetByID(contract.RenameScriptID);
@@ -695,6 +604,16 @@ namespace Shoko.Server
                         return response;
                     }
                 }
+                else
+                    // create
+                    script = new RenameScript();
+
+                if (string.IsNullOrEmpty(contract.ScriptName))
+                {
+                    response.ErrorMessage = "Must specify a Script Name";
+                    return response;
+                }
+
                 // check to make sure we multiple scripts enable on import (only one can be selected)
                 if (contract.IsEnabledOnImport == 1)
                 {
@@ -714,22 +633,15 @@ namespace Shoko.Server
                     }
                 }
 
-                using (var upd = Repo.RenameScript.BeginAddOrUpdate(() =>
-                {
-                    if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
-                        return Repo.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName);
-                    if (contract.RenameScriptID != 0)
-                        return Repo.RenameScript.GetByID(contract.RenameScriptID);
-                    return null;
-                }))
-                {
-                    upd.Entity.IsEnabledOnImport = contract.IsEnabledOnImport;
-                    upd.Entity.Script = contract.Script;
-                    upd.Entity.ScriptName = contract.ScriptName;
-                    upd.Entity.RenamerType = contract.RenamerType;
-                    upd.Entity.ExtraData = contract.ExtraData;
-                    response.Result=upd.Commit();
-                }
+                script.IsEnabledOnImport = contract.IsEnabledOnImport;
+                script.Script = contract.Script;
+                script.ScriptName = contract.ScriptName;
+                script.RenamerType = contract.RenamerType;
+                script.ExtraData = contract.ExtraData;
+                RepoFactory.RenameScript.Save(script);
+
+                response.Result = script;
+
                 return response;
             }
             catch (Exception ex)
@@ -744,7 +656,10 @@ namespace Shoko.Server
         {
             try
             {
-                Repo.RenameScript.FindAndDelete(()=> Repo.RenameScript.GetByID(renameScriptID));
+                RenameScript df = RepoFactory.RenameScript.GetByID(renameScriptID);
+                if (df == null) return "Database entry does not exist";
+                RepoFactory.RenameScript.Delete(renameScriptID);
+
                 return string.Empty;
             }
             catch (Exception ex)
@@ -808,9 +723,7 @@ namespace Shoko.Server
                             res.AnimeSeriesName = anime.GetFormattedTitle();
                         }
                         else
-                        {
                             res.SeriesExists = false;
-                        }
                         retTitles.Add(res);
                     }
                 }
@@ -831,19 +744,16 @@ namespace Shoko.Server
                                 StringSplitOptions.RemoveEmptyEntries))
                         };
 
-                        // check for existing series and group details
-                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(tit.AnimeID);
-                        if (ser != null)
-                        {
-                            res.SeriesExists = true;
-                            res.AnimeSeriesID = ser.AnimeSeriesID;
-                            res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
-                        }
-                        else
-                        {
-                            res.SeriesExists = false;
-                        }
-
+                            // check for existing series and group details
+                            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                            if (ser != null)
+                            {
+                                res.SeriesExists = true;
+                                res.AnimeSeriesID = ser.AnimeSeriesID;
+                                res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
+                            }
+                            else
+                                res.SeriesExists = false;
 
                         retTitles.Add(res);
                     }
@@ -897,7 +807,7 @@ namespace Shoko.Server
 
             try
             {
-                IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
                 foreach (SVR_AnimeSeries ser in allSeries)
                 {
                     int missingEps = ser.MissingEpisodeCount;
@@ -1179,10 +1089,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetVideosWithoutEpisode())
-                {
-                    contracts.Add(SVR_VideoLocal.ToClient(vid, userID).ClientVideoLocal);
-                }
+                contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(vid => vid.ToClient(userID)));
             }
             catch (Exception ex)
             {
@@ -1262,12 +1169,12 @@ namespace Shoko.Server
                 {
                     case 1:
                         place =
-                            Repo.VideoLocal_Place.GetByFilePathAndShareID(df.FilePathFile1,
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
                                 df.ImportFolderIDFile1);
                         break;
                     case 2:
                         place =
-                            Repo.VideoLocal_Place.GetByFilePathAndShareID(df.FilePathFile2,
+                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
                                 df.ImportFolderIDFile2);
                         break;
                     default:
@@ -1276,7 +1183,7 @@ namespace Shoko.Server
                 }
                 if (place == null) return "Unable to get VideoLocal_Place";
 
-                return place.RemoveAndDeleteFileWithMessage();
+                return place.RemoveAndDeleteFile().Item2;
             }
             catch (Exception ex)
             {
@@ -1424,36 +1331,40 @@ namespace Shoko.Server
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
-                    SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
+
+                    bool sourceMatches =
+                        videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
+                        videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
+                    bool groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                        StringComparison.InvariantCultureIgnoreCase);
+                    // get the anibd file info
+                    AniDB_File aniFile = vid.GetAniDBFile();
+                    if (aniFile != null)
                     {
-                        string fileGroupName = Constants.NO_GROUP_INFO;
-
-                        bool sourceMatches =
-                            videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
-                            videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
-                        // get the anibd file info
-                        AniDB_File aniFile = vid.GetAniDBFile();
-                        if (aniFile != null)
-                        {
-                            videoSource = SimplifyVideoSource(videoSource);
-                            sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
+                        videoSource = SimplifyVideoSource(videoSource);
+                        sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
+                                            StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
+                                        aniFile.File_Source.Contains(string.Intern("unknown"),
+                                            StringComparison.InvariantCultureIgnoreCase) &&
+                                        videoSource.Equals(string.Intern("unknown"),
+                                            StringComparison.InvariantCultureIgnoreCase);
+                        groupMatches =
+                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
                                 StringComparison.InvariantCultureIgnoreCase);
-                            fileGroupName = aniFile.Anime_GroupName;
-                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
-                        }
-                        // Sometimes, especially with older files, the info doesn't quite match for resution
-                        string vidResInfo = vid.VideoResolution;
+                        if (aniFile.Anime_GroupName.Contains("unknown") ||
+                            aniFile.Anime_GroupNameShort.Contains("unknown"))
+                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                                StringComparison.InvariantCultureIgnoreCase);
+                    }
+                    // Sometimes, especially with older files, the info doesn't quite match for resution
+                    string vidResInfo = vid.VideoResolution;
 
-                        // match based on group / video sorce / video res
-                        if (relGroupName.Equals(fileGroupName, StringComparison.InvariantCultureIgnoreCase) &&
-                            sourceMatches &&
-                            resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase) &&
-                            thisBitDepth == videoBitDepth)
-                        {
-                            vids.Add(SVR_VideoLocal.ToClientDetailed(vid, userID).Item2);
-                        }
+                    // match based on group / video sorce / video res
+                    if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
+                        resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        vids.Add(vid.ToClientDetailed(userID));
                     }
                 }
                 return vids;
@@ -1478,30 +1389,30 @@ namespace Shoko.Server
                 {
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
-                    SVR_AnimeEpisode animeEp = eps[0];
-                    if (animeEp.EpisodeTypeEnum == EpisodeType.Episode ||
-                        animeEp.EpisodeTypeEnum == EpisodeType.Special)
+                    // get the anibd file info
+                    AniDB_File aniFile = vid.GetAniDBFile();
+                    if (aniFile != null)
                     {
-                        // get the anibd file info
-                        AniDB_File aniFile = vid.GetAniDBFile();
-                        if (aniFile != null)
+                        bool groupMatches =
+                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
+                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
+                                StringComparison.InvariantCultureIgnoreCase);
+                        if (aniFile.Anime_GroupName.Contains("unknown") ||
+                            aniFile.Anime_GroupNameShort.Contains("unknown"))
+                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
+                                StringComparison.InvariantCultureIgnoreCase);
+                        // match based on group / video sorce / video res
+                        if (groupMatches)
                         {
-                            string fileGroupName = aniFile.Anime_GroupName;
-                            if (fileGroupName.Equals("raw/unknown")) fileGroupName = Constants.NO_GROUP_INFO;
-                            // match based on group / video sorce / video res
-                            if (relGroupName.Equals(fileGroupName,
-                                StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                vids.Add(SVR_VideoLocal.ToClientDetailed(vid, userID).Item2);
-                            }
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
-                        else
+                    }
+                    else
+                    {
+                        if (relGroupName.Equals(Constants.NO_GROUP_INFO,
+                            StringComparison.InvariantCultureIgnoreCase))
                         {
-                            if (relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                vids.Add(SVR_VideoLocal.ToClientDetailed(vid, userID).Item2);
-                            }
+                            vids.Add(vid.ToClientDetailed(userID));
                         }
                     }
                 }

@@ -251,7 +251,27 @@ namespace Shoko.Server
             {
                 List<NamingLanguage> lans = new List<NamingLanguage>();
 
-                string[] slans = ServerSettings.LanguagePreference.Split(',');
+                string[] slans = ServerSettings.LanguagePreference?.Split(',') ?? new string[] {};
+
+                foreach (string lan in slans)
+                {
+                    if (string.IsNullOrEmpty(lan)) continue;
+                    if (lan.Trim().Length < 2) continue;
+                    NamingLanguage nlan = new NamingLanguage(lan);
+                    lans.Add(nlan);
+                }
+
+                return lans;
+            }
+        }
+
+        public static List<NamingLanguage> PreferredEpisodeNamingLanguages
+        {
+            get
+            {
+                List<NamingLanguage> lans = new List<NamingLanguage>();
+
+                string[] slans = ServerSettings.EpisodeLanguagePreference?.Split(',') ?? new string[] {};
 
                 foreach (string lan in slans)
                 {

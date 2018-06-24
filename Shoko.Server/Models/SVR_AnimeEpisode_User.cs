@@ -13,7 +13,7 @@ namespace Shoko.Server.Models
         public int ContractSize { get; set; }
 
 
-        public const int CONTRACT_VERSION = 2;
+        public const int CONTRACT_VERSION = 3;
 
 
         internal CL_AnimeEpisode_User _contract;

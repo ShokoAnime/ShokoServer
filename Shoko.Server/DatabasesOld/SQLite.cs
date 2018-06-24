@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 59;
+        public int RequiredVersion { get; } = 74;
 
 
         public void BackupDatabase(string fullfilename)
@@ -480,8 +480,103 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(58, 1, "ALTER TABLE AnimeSeries ADD AirsOn TEXT NULL"),
             new DatabaseCommand(59, 1, "DROP TABLE Trakt_ImageFanart"),
             new DatabaseCommand(59, 2, "DROP TABLE Trakt_ImagePoster"),
+            new DatabaseCommand(60, 1, "CREATE TABLE AnimeCharacter ( CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
+            new DatabaseCommand(60, 2, "CREATE TABLE AnimeStaff ( StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID INTEGER NOT NULL, Name TEXT NOT NULL, AlternateName TEXT NULL, Description TEXT NULL, ImagePath TEXT NULL )"),
+            new DatabaseCommand(60, 3, "CREATE TABLE CrossRef_Anime_Staff ( CrossRef_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_AnimeID INTEGER NOT NULL, StaffID INTEGER NOT NULL, Role TEXT NULL, RoleID INTEGER, RoleType INTEGER NOT NULL, Language TEXT NOT NULL )"),
+            new DatabaseCommand(60, 4, DatabaseFixes.PopulateCharactersAndStaff),
+            new DatabaseCommand(61, 1, "ALTER TABLE MovieDB_Movie ADD Rating INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(61, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
+            new DatabaseCommand(62, 1, "ALTER TABLE AniDB_Episode ADD Description TEXT NOT NULL DEFAULT ''"),
+            new DatabaseCommand(62, 2, DatabaseFixes.FixCharactersWithGrave),
+            new DatabaseCommand(63, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(64, 1, DatabaseFixes.MakeTagsApplyToSeries),
+            new DatabaseCommand(64, 2, Importer.UpdateAllStats),
+            new DatabaseCommand(65, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(66, 1, "CREATE TABLE AniDB_AnimeUpdate ( AniDB_AnimeUpdateID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, UpdatedAt timestamp NOT NULL )"),
+            new DatabaseCommand(66, 2, "CREATE UNIQUE INDEX UIX_AniDB_AnimeUpdate ON AniDB_AnimeUpdate(AnimeID)"),
+            new DatabaseCommand(66, 3, DatabaseFixes.MigrateAniDB_AnimeUpdates),
+            new DatabaseCommand(67, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
+            new DatabaseCommand(68, 1, DatabaseFixes.FixDuplicateTagFiltersAndUpdateSeasons),
+            new DatabaseCommand(69, 1, DatabaseFixes.RecalculateYears),
+            new DatabaseCommand(70, 1, "DROP INDEX UIX_CrossRef_AniDB_MAL_Anime;"),
+            new DatabaseCommand(70, 2, "ALTER TABLE AniDB_Anime ADD Site_JP TEXT NULL"),
+            new DatabaseCommand(70, 3, "ALTER TABLE AniDB_Anime ADD Site_EN TEXT NULL"),
+            new DatabaseCommand(70, 4, "ALTER TABLE AniDB_Anime ADD Wikipedia_ID TEXT NULL"),
+            new DatabaseCommand(70, 5, "ALTER TABLE AniDB_Anime ADD WikipediaJP_ID TEXT NULL"),
+            new DatabaseCommand(70, 6, "ALTER TABLE AniDB_Anime ADD SyoboiID INT NULL"),
+            new DatabaseCommand(70, 7, "ALTER TABLE AniDB_Anime ADD AnisonID INT NULL"),
+            new DatabaseCommand(70, 8, "ALTER TABLE AniDB_Anime ADD CrunchyrollID TEXT NULL"),
+            new DatabaseCommand(70, 9, DatabaseFixes.PopulateResourceLinks),
+            new DatabaseCommand(71, 1, "ALTER TABLE VideoLocal ADD MyListID INT NOT NULL DEFAULT 0"),
+            new DatabaseCommand(71, 2, DatabaseFixes.PopulateMyListIDs),
+            new DatabaseCommand(72, 1, DropAniDB_EpisodeTitles),
+            new DatabaseCommand(72, 2, "CREATE TABLE AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AniDB_EpisodeID int NOT NULL, Language text NOT NULL, Title text NOT NULL ); "),
+            new DatabaseCommand(72, 3, DatabaseFixes.DummyMigrationOfObsoletion),
+            new DatabaseCommand(73, 1, "DROP INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID;"),
+            // SQLite is stupid, so we need to create a new table and copy the contents to it
+            new DatabaseCommand(73, 2, RenameCrossRef_AniDB_TvDB_Episode),
+            // For some reason, this was never dropped
+            new DatabaseCommand(73, 3, "DROP TABLE CrossRef_AniDB_TvDB;"),
+            new DatabaseCommand(73, 4, "CREATE TABLE CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);"),
+            new DatabaseCommand(73, 5, "CREATE UNIQUE INDEX UIX_AniDB_TvDB_AniDBID_TvDBID ON CrossRef_AniDB_TvDB(AniDBID,TvDBID);"),
+            new DatabaseCommand(73, 6, "CREATE TABLE CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);"),
+            new DatabaseCommand(73, 7, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_TvDB_Episode_AniDBID_TvDBID ON CrossRef_AniDB_TvDB_Episode(AniDBEpisodeID,TvDBEpisodeID);"),
+            new DatabaseCommand(73, 9, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
+            // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
+            new DatabaseCommand(74, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
         };
 
+        private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
+        {
+            try
+            {
+                SQLiteConnection myConn = (SQLiteConnection) connection;
+                string createcommand =
+                    "create table AniDB_Episode ( AniDB_EpisodeID integer primary key autoincrement, EpisodeID int not null, AnimeID int not null, LengthSeconds int not null, Rating text not null, Votes text not null, EpisodeNumber int not null, EpisodeType int not null, AirDate int not null, DateTimeUpdated datetime not null, Description text default '' not null )";
+                List<string> indexcommands = new List<string>()
+                {
+                    "create index IX_AniDB_Episode_AnimeID on AniDB_Episode (AnimeID)",
+                    "create unique index UIX_AniDB_Episode_EpisodeID on AniDB_Episode (EpisodeID)"
+                };
+                ((SQLite) DatabaseFactory.Instance).DropColumns(myConn, "AniDB_Episode",
+                    new List<string>() {"EnglishName", "RomajiName"}, createcommand, indexcommands);
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
+
+        private static Tuple<bool, string> RenameCrossRef_AniDB_TvDB_Episode(object connection)
+        {
+            try
+            {
+                // I'm doing this manually to save time
+                SQLiteConnection myConn = (SQLiteConnection) connection;;
+
+                // make the new one
+                // create indexes
+                // transfer data
+                // drop old table
+                List<string> cmds = new List<string>
+                {
+                    "CREATE TABLE CrossRef_AniDB_TvDB_Episode_Override( CrossRef_AniDB_TvDB_Episode_OverrideID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL );",
+                    "CREATE UNIQUE INDEX UIX_AniDB_TvDB_Episode_Override_AniDBEpisodeID_TvDBEpisodeID ON CrossRef_AniDB_TvDB_Episode_Override(AniDBEpisodeID,TvDBEpisodeID);",
+                    "INSERT INTO CrossRef_AniDB_TvDB_Episode_Override ( AniDBEpisodeID, TvDBEpisodeID ) SELECT AniDBEpisodeID, TvDBEpisodeID FROM CrossRef_AniDB_TvDB_Episode; ",
+                    "DROP TABLE CrossRef_AniDB_TvDB_Episode;"
+                };
+                foreach (string cmdTable in cmds)
+                {
+                    ((SQLite) DatabaseFactory.Instance).Execute(myConn, cmdTable);
+                }
+                return new Tuple<bool, string>(true, null);
+            }
+            catch (Exception e)
+            {
+                return new Tuple<bool, string>(false, e.ToString());
+            }
+        }
 
         private static Tuple<bool, string> DropAniDB_AnimeAllCategories(object connection)
         {
@@ -572,6 +667,30 @@ namespace Shoko.Server.Databases
             List<string> updatedTableColumns = GetTableColumns(db, tableName);
             colsToRemove.ForEach(a => updatedTableColumns.Remove(a));
             String columnsSeperated = string.Join(",", updatedTableColumns);
+
+            // Drop indexes first. We can get them from the create commands
+            // Ignore if they don't exist
+            foreach (string indexcommand in indexcommands)
+            {
+                int position = indexcommand.IndexOf("index", StringComparison.InvariantCultureIgnoreCase) + 6;
+                string indexname = indexcommand.Substring(position);
+                position = indexname.IndexOf(' ');
+                indexname = indexname.Substring(0, position);
+                indexname = "DROP INDEX " + indexname + ";";
+                try
+                {
+                    Execute(db, indexname);
+                }
+                catch
+                {
+                }
+            }
+
+            // Rename table to old
+            // make the new one
+            // recreate indexes
+            // transfer data
+            // drop old table
             List<string> cmds = new List<string>
             {
                 "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_old;",

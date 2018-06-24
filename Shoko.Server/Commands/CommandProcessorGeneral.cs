@@ -2,9 +2,12 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
+using Force.DeepCloner;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
@@ -62,8 +65,6 @@ namespace Shoko.Server.Commands
                             extraParams = new string[0]
                         };
                         pauseTime = null;
-                        ShokoService.AnidbProcessor.IsBanned = false;
-                        ShokoService.AnidbProcessor.BanOrigin = string.Empty;
                     }
                     ServerInfo.Instance.GeneralQueuePaused = paused;
                     ServerInfo.Instance.GeneralQueueRunning = !paused;
@@ -87,8 +88,8 @@ namespace Shoko.Server.Commands
                 lock (lockQueueCount)
                 {
                     queueCount = value;
-                    OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(queueCount));
                 }
+                Task.Factory.StartNew(() => OnQueueCountChangedEvent?.Invoke(new QueueCountEventArgs(value)));
             }
         }
 
@@ -97,24 +98,29 @@ namespace Shoko.Server.Commands
 
         public QueueStateStruct QueueState
         {
+            // use copies and never return the object in use
             get
             {
                 lock (lockQueueState)
                 {
-                    return queueState;
+                    return queueState.DeepClone();
                 }
             }
             set
             {
                 lock (lockQueueState)
                 {
-                    queueState = value;
-                    OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(queueState));
+                    queueState = value.DeepClone();
                 }
+                Task.Factory.StartNew(() => OnQueueStateChangedEvent?.Invoke(new QueueStateEventArgs(value)));
             }
         }
 
+        public CommandRequest CurrentCommand { get; private set; }
+
         public bool ProcessingCommands => processingCommands;
+
+        public bool IsWorkerBusy => workerCommands.IsBusy;
 
         public CommandProcessorGeneral()
         {
@@ -130,12 +136,15 @@ namespace Shoko.Server.Commands
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            CurrentCommand = null;
             processingCommands = false;
             paused = false;
 
+            if (e.Cancelled) logger.Warn($"The General Queue was cancelled with {QueueCount} commands left");
+
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
-            QueueCount = 0;
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
         }
 
         public void Init()
@@ -148,11 +157,13 @@ namespace Shoko.Server.Commands
                 queueState = QueueStateEnum.StartingGeneral,
                 extraParams = new string[0]
             };
-            workerCommands.RunWorkerAsync();
+            if (!workerCommands.IsBusy)
+                workerCommands.RunWorkerAsync();
         }
 
         public void Stop()
         {
+            logger.Info($"{nameof(CommandProcessorGeneral)} has been stopped, {QueueCount} commands left.");
             workerCommands.CancelAsync();
         }
 
@@ -161,7 +172,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public void NotifyOfNewCommand()
         {
-            QueueCount = Repo.CommandRequest.GetQueuedCommandCountGeneral();
+            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
             // if the worker is busy, it will pick up the next command from the DB
             // do not pick new command if cancellation is requested
             if (processingCommands || workerCommands.CancellationPending)
@@ -177,10 +188,7 @@ namespace Shoko.Server.Commands
             while (true)
             {
                 if (workerCommands.CancellationPending)
-                {
-                    e.Cancel = true;
                     return;
-                }
 
                 // if paused we will sleep for 5 seconds, and the try again
                 // we will remove the pause if it was set more than 12 hours ago
@@ -190,10 +198,7 @@ namespace Shoko.Server.Commands
                     try
                     {
                         if (workerCommands.CancellationPending)
-                        {
-                            e.Cancel = true;
                             return;
-                        }
 
                         TimeSpan ts = DateTime.Now - pauseTime.Value;
                         if (ts.TotalHours >= 12)
@@ -207,16 +212,18 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                Shoko.Models.Server.CommandRequest crdb = Repo.CommandRequest.GetNextDBCommandRequestGeneral();
-                if (crdb == null) return;
-
-                if (workerCommands.CancellationPending)
+                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
+                if (crdb == null)
                 {
-                    e.Cancel = true;
+                    if (QueueCount > 0 && !ShokoService.AnidbProcessor.IsHttpBanned && !ShokoService.AnidbProcessor.IsUdpBanned)
+                        logger.Error($"No command returned from database, but there are {QueueCount} commands left");
                     return;
                 }
 
-                CommandRequest icr = CommandHelper.GetCommand(crdb);
+                if (workerCommands.CancellationPending)
+                    return;
+
+                ICommandRequest icr = CommandHelper.GetCommand(crdb);
                 if (icr == null)
                 {
                     logger.Error("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
@@ -226,19 +233,21 @@ namespace Shoko.Server.Commands
                     QueueState = icr.PrettyDescription;
 
                     if (workerCommands.CancellationPending)
-                    {
-                        e.Cancel = true;
                         return;
-                    }
 
                     logger.Trace("Processing command request: {0}", crdb.CommandID);
                     try
                     {
+                        CurrentCommand = crdb;
                         icr.ProcessCommand();
                     }
                     catch (Exception ex)
                     {
                         logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                    }
+                    finally
+                    {
+                        CurrentCommand = null;
                     }
                 }
 

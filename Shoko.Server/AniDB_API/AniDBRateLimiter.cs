@@ -50,6 +50,11 @@ namespace Shoko.Server.AniDB_API
             logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
         }
 
+        public void Reset()
+        {
+            _requestWatch.Restart();
+        }
+
         public void EnsureRate()
         {
             lock (instance)

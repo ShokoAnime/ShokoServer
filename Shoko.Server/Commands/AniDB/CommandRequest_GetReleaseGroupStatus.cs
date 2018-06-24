@@ -12,7 +12,8 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReleaseGroupStatus : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetReleaseGroupStatus)]
+    public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -33,7 +34,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = aid;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetReleaseGroupStatus;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -110,7 +110,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -128,6 +127,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

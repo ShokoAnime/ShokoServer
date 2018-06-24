@@ -5,6 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
+using Nancy.Extensions;
+using NHibernate.Util;
+using NLog;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -102,7 +106,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(subtitlesRAW))
                     return subtitlesRAW;
                 string ret = string.Empty;
-                foreach (Language lang in Subtitles)
+                foreach (Language lang in this.Subtitles)
                 {
                     if (ret.Length > 0)
                         ret += ",";
@@ -122,7 +126,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(languagesRAW))
                     return languagesRAW;
                 string ret = string.Empty;
-                foreach (Language lang in Languages)
+                foreach (Language lang in this.Languages)
                 {
                     if (ret.Length > 0)
                         ret += ",";
@@ -183,7 +187,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(subtitlesRAW))
                     return subtitlesRAW;
                 string ret = string.Empty;
-                foreach (Language lang in Subtitles)
+                foreach (Language lang in this.Subtitles)
                 {
                     if (ret.Length > 0)
                         ret += apostrophe;
@@ -205,7 +209,7 @@ namespace Shoko.Server.Models
                 if (!string.IsNullOrEmpty(languagesRAW))
                     return languagesRAW;
                 string ret = string.Empty;
-                foreach (Language lang in Languages)
+                foreach (Language lang in this.Languages)
                 {
                     if (ret.Length > 0)
                         ret += apostrophe;
@@ -378,49 +382,48 @@ namespace Shoko.Server.Models
         public void CreateCrossEpisodes(string localFileName)
         {
             if (episodesRAW == null) return;
-            using (var cepupd = Repo.CrossRef_File_Episode.BeginBatchUpdate(() => Repo.CrossRef_File_Episode.GetByHash(Hash),true))
+            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
+            fileEps = new List<CrossRef_File_Episode>();
+
+            char apostrophe = "'".ToCharArray()[0];
+            char epiSplit = ',';
+            if (episodesRAW.Contains(apostrophe))
+                epiSplit = apostrophe;
+
+            char eppSplit = ',';
+            if (episodesPercentRAW.Contains(apostrophe))
+                eppSplit = apostrophe;
+
+            string[] epi = episodesRAW.Split(epiSplit);
+            string[] epp = episodesPercentRAW.Split(eppSplit);
+            for (int x = 0; x < epi.Length; x++)
             {
-                char apostrophe = "'".ToCharArray()[0];
-                char epiSplit = ',';
-                if (episodesRAW.Contains(apostrophe))
-                    epiSplit = apostrophe;
-
-                char eppSplit = ',';
-                if (episodesPercentRAW.Contains(apostrophe))
-                    eppSplit = apostrophe;
-
-                string[] epi = episodesRAW.Split(epiSplit);
-                string[] epp = episodesPercentRAW.Split(eppSplit);
-                HashSet<string> added = new HashSet<string>();
-                int order = 0;
-                for (int x = 0; x < epi.Length; x++)
+                string epis = epi[x].Trim();
+                string epps = epp[x].Trim();
+                if (epis.Length <= 0) continue;
+                if(!int.TryParse(epis, out int epid)) continue;
+                if(!int.TryParse(epps, out int eppp)) continue;
+                if (epid == 0) continue;
+                CrossRef_File_Episode cross = new CrossRef_File_Episode
                 {
-                    string epis = epi[x].Trim();
-                    string epps = epp[x].Trim();
-                    if (epis.Length <= 0) continue;
-                    if (!int.TryParse(epis, out int epid)) continue;
-                    if (!int.TryParse(epps, out int eppp)) continue;
-                    if (epid == 0) continue;
-                    string rep = $"{Hash}-{epid}";
-                    if (!added.Contains(rep))
-                    {
-                        CrossRef_File_Episode cross = cepupd.FindOrCreate(a => a.EpisodeID == epid);
-                        order++;
-                        cross.Hash = Hash;
-                        cross.CrossRefSource = (int)CrossRefSource.AniDB;
-                        cross.AnimeID = AnimeID;
-                        cross.EpisodeID = epid;
-                        cross.Percentage = eppp;
-                        cross.EpisodeOrder = order;
-                        cross.FileName = localFileName;
-                        cross.FileSize = FileSize;                        
-                        added.Add(rep);
-                        cepupd.Update(cross);
-                    }
-                }
-
-                cepupd.Commit();
+                    Hash = Hash,
+                    CrossRefSource = (int)CrossRefSource.AniDB,
+                    AnimeID = AnimeID,
+                    EpisodeID = epid,
+                    Percentage = eppp,
+                    EpisodeOrder = x + 1,
+                    FileName = localFileName,
+                    FileSize = FileSize
+                };
+                fileEps.Add(cross);
             }
+            // There is a chance that AniDB returned a dup, however unlikely
+            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
+                .ForEach(fileEp => RepoFactory.CrossRef_File_Episode.Save(fileEp));
         }
   
         public string ToXML()

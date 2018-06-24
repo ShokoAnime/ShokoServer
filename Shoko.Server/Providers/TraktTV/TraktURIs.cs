@@ -4,6 +4,9 @@
     {
         public const string Oauth = TraktConstants.BaseAPIURL + @"/oauth/token";
 
+        public const string OAuthDeviceCode = TraktConstants.BaseAPIURL + @"/oauth/device/code";
+        public const string OAuthDeviceToken = TraktConstants.BaseAPIURL + @"/oauth/device/token";
+
 
         // Website links
         // http://docs.trakt.apiary.io/#introduction/website-media-links
@@ -30,11 +33,11 @@
 
         // http://docs.trakt.apiary.io/#reference/shows/summary/get-a-single-show
         // {0} trakt ID, trakt slug, or IMDB ID Example: game-of-thrones
-        public const string ShowSummary = TraktConstants.BaseAPIURL + @"/shows/{0}?extended=full,images";
+        public const string ShowSummary = TraktConstants.BaseAPIURL + @"/shows/{0}?extended=full";
 
         // http://docs.trakt.apiary.io/#reference/seasons/summary/get-all-seasons-for-a-show
         // {0} trakt ID, trakt slug, or IMDB ID Example: game-of-thrones
-        public const string ShowSeasons = TraktConstants.BaseAPIURL + @"/shows/{0}/seasons?extended=episodes,images";
+        public const string ShowSeasons = TraktConstants.BaseAPIURL + @"/shows/{0}/seasons?extended=episodes";
 
         // get comments for a show
         // http://docs.trakt.apiary.io/#reference/shows/watched-progress/get-all-show-comments

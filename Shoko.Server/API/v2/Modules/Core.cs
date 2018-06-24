@@ -4,26 +4,30 @@ using System.ComponentModel;
 using System.Dynamic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AniDBAPI;
 using Nancy;
 using Nancy.ModelBinding;
 using Nancy.Security;
+using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.MyAnimeList;
-using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
     public class Core : NancyModule
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
         public Core() : base("/api")
         {
             // As this module requireAuthentication all request need to have apikey in header.
@@ -45,40 +49,32 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 02.AniDB
 
-            Post("/anidb/set", async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct));
-            Get("/anidb/get", async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct));
-            Get("/anidb/test", async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct));
-            Get("/anidb/votes/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct));
-            Get("/anidb/list/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct));
-            Get("/anidb/update", async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct));
-
-            #endregion
-
-            #region 03.MyAnimeList
-
-            Post("/mal/set", async (x,ct) => await Task.Factory.StartNew(SetMAL, ct));
-            Get("/mal/get", async (x,ct) => await Task.Factory.StartNew(GetMAL, ct));
-            Get("/mal/test", async (x,ct) => await Task.Factory.StartNew(TestMAL, ct));
-            Get("/mal/update", async (x,ct) => await Task.Factory.StartNew(ScanMAL, ct));
-            Get("/mal/download", async (x,ct) => await Task.Factory.StartNew(DownloadFromMAL, ct));
-            Get("/mal/upload", async (x,ct) => await Task.Factory.StartNew(UploadToMAL, ct));
-            //Get("/mal/votes/sync", async (x,ct) => await Task.Factory.StartNew(SyncMALVotes, ct)); <-- not implemented as CommandRequest
+            Post["/anidb/set", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
+            Get["/anidb/get", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
+            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
+            Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct);
+            Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
+            Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
+            Get["/anidb/updatemissingcache", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct);
 
             #endregion
 
             #region 04.Trakt
 
-            Post("/trakt/set", async (x,ct) => await Task.Factory.StartNew(SetTraktPIN, ct));
-            Get("/trakt/get", async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct));
-            Get("/trakt/create", async (x,ct) => await Task.Factory.StartNew(CreateTrakt, ct));
-            Get("/trakt/sync", async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct));
-            Get("/trakt/update", async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct));
+            Post["/trakt/set"] = x => APIStatus.NotImplemented();
+            Get["/trakt/get", true] = async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct);
+            Get["/trakt/create"] = x => APIStatus.NotImplemented();
+            Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct);
+            Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct);
+            Get["/trakt/code", true] = async (x,ct) => await Task.Factory.StartNew(GetTraktCode, ct);
 
             #endregion
 
             #region 05.TvDB
 
-            Get("/tvdb/update", async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct));
+            Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
+            Get["/tvdb/regenlinks", true] = async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct);
+            Get["/tvdb/checklinks", true] = async (x,ct) => await Task.Factory.StartNew(CheckAllEpisodeLinksAgainstCurrent, ct);
 
             #endregion
 
@@ -128,6 +124,10 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 11. Image Actions
             Get("/images/update", async (x, ct) => await Task.Factory.StartNew(() => UpdateImages()));
+            #endregion
+
+            #region 11. Image Actions
+            Get["/images/update", true] = async (x, ct) => await Task.Factory.StartNew(() => UpdateImages());
             #endregion
         }
 
@@ -248,17 +248,17 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Settings setting = this.Bind();
+                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                 if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                Settings return_setting = new Settings
+                Setting returnSetting = new Setting
                 {
                     setting = setting.setting,
                     value = value.ToString()
                 };
-                return return_setting;
+                return returnSetting;
             }
             catch
             {
@@ -275,30 +275,75 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Settings setting = this.Bind();
-                if (string.IsNullOrEmpty(setting.setting))
-                    return APIStatus.BadRequest("An invalid setting was passed");
+                List<Setting> settings;
 
-                if (setting.value == null) return APIStatus.BadRequest("An invalid value was passed");
-
-                var property = typeof(ServerSettings).GetProperty(setting.setting);
-                if (property == null) return APIStatus.BadRequest("An invalid setting was passed");
-                if (!property.CanWrite) return APIStatus.BadRequest("An invalid setting was passed");
-                var settingType = property.PropertyType;
                 try
                 {
-                    var converter = TypeDescriptor.GetConverter(settingType);
-                    if (!converter.CanConvertFrom(typeof(string)))
-                        return APIStatus.BadRequest("An invalid value was passed");
-                    var value = converter.ConvertFromInvariantString(setting.value);
-                    if (value == null) return APIStatus.BadRequest("An invalid value was passed");
-                    property.SetValue(null, value);
+                    settings = this.Bind<List<Setting>>();
                 }
-                catch
+                catch (ModelBindingException)
                 {
+                    settings = new List<Setting> { this.Bind<Setting>() };
                 }
 
-                return APIStatus.BadRequest("An invalid value was passed");
+                List<APIMessage> errors = new List<APIMessage>();
+                for (var index = 0; index < settings.Count; index++)
+                {
+                    var setting = settings[index];
+                    if (string.IsNullOrEmpty(setting.setting))
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+
+                    if (setting.value == null)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                        continue;
+                    }
+
+                    var property = typeof(ServerSettings).GetProperty(setting.setting);
+                    if (property == null)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+
+                    if (!property.CanWrite)
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
+                        continue;
+                    }
+                    var settingType = property.PropertyType;
+                    try
+                    {
+                        var converter = TypeDescriptor.GetConverter(settingType);
+                        if (!converter.CanConvertFrom(typeof(string)))
+                        {
+                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                            continue;
+                        }
+                        var value = converter.ConvertFromInvariantString(setting.value);
+                        if (value == null)
+                        {
+                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                            continue;
+                        }
+                        property.SetValue(null, value);
+                    }
+                    catch
+                    {
+                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
+                    }
+                }
+
+                if (errors.Count > 0)
+                {
+                    Context.Response.StatusCode = HttpStatusCode.BadRequest;
+                    return errors;
+                }
+
+                return APIStatus.OK();
             }
             catch
             {
@@ -405,82 +450,42 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.OK();
         }
 
-        #endregion
-
-        #region 03.MyAnimeList
-
-        /// <summary>
-        /// Set MAL account with login, password
-        /// </summary>
-        /// <returns></returns>
-        private object SetMAL()
+        private object UpdateMissingAniDBXML()
         {
-            Credentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
-                cred.password != string.Empty)
+            try
             {
-                ServerSettings.MAL_Username = cred.login;
-                ServerSettings.MAL_Password = cred.password;
-                return APIStatus.OK();
+                var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
+                logger.Info($"Starting the check for {allAnime.Count} anime XML files");
+                int updatedAnime = 0;
+                for (var i = 0; i < allAnime.Count; i++)
+                {
+                    var animeID = allAnime[i];
+                    if (i % 10 == 1) logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
+
+                    var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                    if (xml == null)
+                    {
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        cmd.Save();
+                        updatedAnime++;
+                        continue;
+                    }
+
+                    var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
+                    if (rawAnime == null)
+                    {
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        cmd.Save();
+                        updatedAnime++;
+                    }
+                }
+                logger.Info($"Updating {updatedAnime} anime");
             }
-
-            return new APIMessage(400, "Login and Password missing");
-        }
-
-        /// <summary>
-        /// Return current used MAL Creditentials
-        /// </summary>
-        /// <returns></returns>
-        private object GetMAL()
-        {
-            Credentials cred = new Credentials
+            catch (Exception e)
             {
-                login = ServerSettings.MAL_Username,
-                password = ServerSettings.MAL_Password
-            };
-            return cred;
-        }
-
-        /// <summary>
-        /// Test MAL Creditionals against MAL
-        /// </summary>
-        /// <returns></returns>
-        private object TestMAL()
-        {
-            return MALHelper.VerifyCredentials()
-                ? APIStatus.OK()
-                : APIStatus.Unauthorized();
-        }
-
-        /// <summary>
-        /// Scan MAL
-        /// </summary>
-        /// <returns></returns>
-        private object ScanMAL()
-        {
-            Importer.RunImport_ScanMAL();
-            return APIStatus.OK();
-        }
-
-        /// <summary>
-        /// Download Watched States from MAL
-        /// </summary>
-        /// <returns></returns>
-        private object DownloadFromMAL()
-        {
-            CommandRequest_MALDownloadStatusFromMAL cmd = new CommandRequest_MALDownloadStatusFromMAL();
-            cmd.Save();
-            return APIStatus.OK();
-        }
-
-        /// <summary>
-        /// Upload Watched States to MAL
-        /// </summary>
-        /// <returns></returns>
-        private object UploadToMAL()
-        {
-            CommandRequest_MALUploadStatusToMAL cmd = new CommandRequest_MALUploadStatusToMAL();
-            cmd.Save();
+                logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
+                return APIStatus.InternalError(e.Message);
+            }
             return APIStatus.OK();
         }
 
@@ -489,30 +494,19 @@ namespace Shoko.Server.API.v2.Modules
         #region 04.Trakt
 
         /// <summary>
-        /// Set Trakt PIN
+        /// Get Trakt code and url
         /// </summary>
         /// <returns></returns>
-        private object SetTraktPIN()
+        private object GetTraktCode()
         {
-            Credentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.token) && cred.token != string.Empty)
-            {
-                ServerSettings.Trakt_PIN = cred.token;
-                return APIStatus.OK();
-            }
+            var code = new ShokoServiceImplementation().GetTraktDeviceCode();
+            if (code.UserCode == string.Empty)
+                return APIStatus.InternalError();
 
-            return new APIMessage(400, "Token missing");
-        }
-
-        /// <summary>
-        /// Create AuthToken and RefreshToken from PIN
-        /// </summary>
-        /// <returns></returns>
-        private object CreateTrakt()
-        {
-            return TraktTVHelper.EnterTraktPIN(ServerSettings.Trakt_PIN) == "Success"
-                ? APIStatus.OK()
-                : APIStatus.Unauthorized();
+            Dictionary<string, object> result = new Dictionary<string, object>();
+            result.Add("usercode", code.UserCode);
+            result.Add("url", code.VerificationUrl);
+            return result;
         }
 
         /// <summary>
@@ -542,7 +536,7 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.OK();
             }
 
-            return new APIMessage(204, "Trak is not enabled or you missing authtoken");
+            return new APIMessage(204, "Trakt is not enabled or you are missing the authtoken");
         }
 
         /// <summary>
@@ -567,6 +561,158 @@ namespace Shoko.Server.API.v2.Modules
         {
             Importer.RunImport_ScanTvDB();
             return APIStatus.OK();
+        }
+
+        private object RegenerateAllEpisodeLinks()
+        {
+            try
+            {
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+                RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
+                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                return APIStatus.InternalError(e.Message);
+            }
+
+            return APIStatus.OK();
+        }
+
+        private class EpisodeMatchComparison
+        {
+            public string Anime { get; set; }
+            public int AnimeID { get; set; }
+            public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Current { get; set; }
+            public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Calculated { get; set; }
+        }
+
+        private class AniEpSummary
+        {
+            public int AniDBEpisodeType { get; set; }
+            public int AniDBEpisodeNumber { get; set; }
+            public string AniDBEpisodeName { get; set; }
+
+            protected bool Equals(AniEpSummary other)
+            {
+                return AniDBEpisodeType == other.AniDBEpisodeType && AniDBEpisodeNumber == other.AniDBEpisodeNumber && string.Equals(AniDBEpisodeName, other.AniDBEpisodeName);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((AniEpSummary) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = AniDBEpisodeType;
+                    hashCode = (hashCode * 397) ^ AniDBEpisodeNumber;
+                    hashCode = (hashCode * 397) ^ (AniDBEpisodeName != null ? AniDBEpisodeName.GetHashCode() : 0);
+                    return hashCode;
+                }
+            }
+        }
+
+        private class TvDBEpSummary
+        {
+            public int TvDBSeason { get; set; }
+            public int TvDBEpisodeNumber { get; set; }
+            public string TvDBEpisodeName { get; set; }
+
+            protected bool Equals(TvDBEpSummary other)
+            {
+                return TvDBSeason == other.TvDBSeason && TvDBEpisodeNumber == other.TvDBEpisodeNumber && string.Equals(TvDBEpisodeName, other.TvDBEpisodeName);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((TvDBEpSummary) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = TvDBSeason;
+                    hashCode = (hashCode * 397) ^ TvDBEpisodeNumber;
+                    hashCode = (hashCode * 397) ^ (TvDBEpisodeName != null ? TvDBEpisodeName.GetHashCode() : 0);
+                    return hashCode;
+                }
+            }
+        }
+
+        private object CheckAllEpisodeLinksAgainstCurrent()
+        {
+            try
+            {
+                // This is for testing changes in the algorithm. It will be slow.
+                var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime())
+                    .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
+                var result = new List<EpisodeMatchComparison>();
+                foreach (var animeseries in list)
+                {
+                    List<CrossRef_AniDB_TvDB> tvxrefs =
+                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
+                    int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
+                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
+                        AniDB: new AniEpSummary
+                        {
+                            AniDBEpisodeType = a.AniDB.EpisodeType,
+                            AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
+                            AniDBEpisodeName = a.AniDB.GetEnglishTitle()
+                        },
+                        TvDB: a.TvDB == null ? null : new TvDBEpSummary
+                        {
+                            TvDBSeason = a.TvDB.SeasonNumber,
+                            TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
+                            TvDBEpisodeName = a.TvDB.EpisodeName
+                        })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
+                    var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                        .Select(a =>
+                        {
+                            var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
+                            var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            return (AniDB: new AniEpSummary
+                                {
+                                    AniDBEpisodeType = AniDB.EpisodeType,
+                                    AniDBEpisodeNumber = AniDB.EpisodeNumber,
+                                    AniDBEpisodeName = AniDB.GetEnglishTitle()
+                                },
+                                TvDB: TvDB == null ? null : new TvDBEpSummary
+                                {
+                                    TvDBSeason = TvDB.SeasonNumber,
+                                    TvDBEpisodeNumber = TvDB.EpisodeNumber,
+                                    TvDBEpisodeName = TvDB.EpisodeName
+                                });
+                        }).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
+                    if (!currentMatches.SequenceEqual(matches))
+                    {
+                        result.Add(new EpisodeMatchComparison
+                        {
+                            Anime = animeseries.MainTitle,
+                            AnimeID = animeseries.AnimeID,
+                            Current = currentMatches,
+                            Calculated = matches,
+                        });
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                return APIStatus.InternalError(e.Message);
+            }
         }
 
         #endregion

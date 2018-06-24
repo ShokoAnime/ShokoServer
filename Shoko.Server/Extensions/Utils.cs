@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Shoko.Commons;
+using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 
@@ -12,6 +12,7 @@ namespace Shoko.Server.Extensions
     {
         public static bool Contains(this string item, string other, StringComparison comparer)
         {
+            if (item == null || other == null) return false;
             return item.IndexOf(other, comparer) >= 0;
         }
 
@@ -25,11 +26,11 @@ namespace Shoko.Server.Extensions
                         pid.GetSetMethod().Invoke(d, new[] {pis.GetGetMethod().Invoke(s, null)});
                 }
             }
-            ;
         }
 
         public static void AddRange<K, V>(this Dictionary<K, V> dict, Dictionary<K, V> otherdict)
         {
+            if (dict == null || otherdict == null) return;
             otherdict.ForEach(a =>
             {
                 if (!dict.ContainsKey(a.Key)) dict.Add(a.Key, a.Value);
@@ -38,6 +39,7 @@ namespace Shoko.Server.Extensions
 
         public static bool FindInEnumerable(this IEnumerable<string> items, IEnumerable<string> list)
         {
+            if (items == null || list == null) return false;
             // Trim, to lower in both lists, remove null and empty strings
             HashSet<string> listhash = list.Select(a => a.ToLowerInvariant().Trim())
                 .Where(a => !string.IsNullOrWhiteSpace(a))
@@ -50,6 +52,7 @@ namespace Shoko.Server.Extensions
 
         public static bool FindInEnumerable(this IEnumerable<int> items, IEnumerable<int> list)
         {
+            if (items == null || list == null) return false;
             return list.ToHashSet().Overlaps(items.ToHashSet());
         }
 
@@ -61,6 +64,12 @@ namespace Shoko.Server.Extensions
         public static int? ParseNullableInt(this string input)
         {
             return int.TryParse(input, out int output) ? output : (int?)null;
+        }
+
+        public static bool IsWithinErrorMargin(this DateTime value1, DateTime value2, TimeSpan error)
+        {
+            if (value1 > value2) return value1 - value2 <= error;
+            return value2 - value1 <= error;
         }
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)

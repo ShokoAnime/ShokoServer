@@ -5,6 +5,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,14 +22,14 @@ namespace Shoko.Server
 
         public static IRenamer GetRenamer()
         {
-            var script = Repo.RenameScript.GetDefaultScript();
+            var script = RepoFactory.RenameScript.GetDefaultScript();
             if (script == null) return null;
             return GetRenamerFor(script);
         }
 
         public static IRenamer GetRenamerWithFallback()
         {
-            var script = Repo.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
             if (script == null) return null;
 
             return GetRenamerFor(script);
@@ -36,7 +37,7 @@ namespace Shoko.Server
 
         public static IRenamer GetRenamer(string scriptName)
         {
-            var script = Repo.RenameScript.GetByName(scriptName);
+            var script = RepoFactory.RenameScript.GetByName(scriptName);
             if (script == null) return null;
 
             return GetRenamerFor(script);
@@ -89,7 +90,7 @@ namespace Shoko.Server
                     if (key == null) continue;
                     if (ScriptImplementations.ContainsKey(key))
                     {
-                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {ScriptImplementations[key]}@{ScriptImplementations[key].Assembly.Location}");
+                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.GetAssemblyPath()} and {ScriptImplementations[key]}@{ScriptImplementations[key].GetAssemblyPath()}");
                         continue;
                     }
                     ScriptImplementations.Add(key, implementation);

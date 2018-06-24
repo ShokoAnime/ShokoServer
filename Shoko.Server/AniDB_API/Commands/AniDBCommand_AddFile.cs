@@ -2,16 +2,18 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBCommand_AddFile : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public IHash FileData = null;
-        public bool ReturnIsWatched = false;
-        public DateTime? WatchedDate = null;
-        public AniDBFile_State? State = null;
+        public IHash FileData;
+        public bool ReturnIsWatched;
+        public DateTime? WatchedDate;
+        public AniDBFile_State? State;
+        public int MyListID;
 
         public string GetKey()
         {
@@ -47,6 +49,8 @@ namespace AniDBAPI.Commands
                     if (arrResult.Length >= 2)
                     {
                         string[] arrStatus = arrResult[1].Split('|');
+                        int.TryParse(arrStatus[0], out MyListID);
+
                         int state = int.Parse(arrStatus[6]);
                         State = (AniDBFile_State) state;
 
@@ -65,8 +69,8 @@ namespace AniDBAPI.Commands
                             WatchedDate = null;
                         }
                     }
-                }
                     return enHelperActivityType.FileAlreadyExists;
+                }
                 case "311": return enHelperActivityType.UpdatingFile;
                 case "320": return enHelperActivityType.NoSuchFile;
                 case "411": return enHelperActivityType.NoSuchFile;
@@ -88,7 +92,7 @@ namespace AniDBAPI.Commands
 
             commandID = fileData.Info;
 
-            commandText = "MYLISTADD size=" + fileData.FileSize.ToString();
+            commandText = "MYLISTADD size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText += "&viewed=0";
             commandText += "&state=" + (int) fileState;
@@ -98,9 +102,9 @@ namespace AniDBAPI.Commands
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
-            commandText = "MYLISTADD aid=" + animeID.ToString();
+            commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
-            commandText += "&epno=" + episodeNumber.ToString();
+            commandText += "&epno=" + episodeNumber;
             commandText += "&viewed=0";
             commandText += "&state=" + (int) fileState;
         }

@@ -4,15 +4,19 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Xml;
+using ICSharpCode.SharpZipLib.GZip;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Commands.Azure;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetAniDBTitles : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetTitles)]
+    public class CommandRequest_GetAniDBTitles : CommandRequestImplementation
     {
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -24,7 +28,6 @@ namespace Shoko.Server.Commands
 
         public CommandRequest_GetAniDBTitles()
         {
-            CommandType = (int) CommandRequestType.AniDB_GetTitles;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -37,9 +40,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                bool process =
-                    ServerSettings.AniDB_Username.Equals("jonbaby", StringComparison.InvariantCultureIgnoreCase) ||
-                    ServerSettings.AniDB_Username.Equals("jmediamanager", StringComparison.InvariantCultureIgnoreCase);
+                bool process = false;
 
                 if (!process) return;
 
@@ -51,7 +52,8 @@ namespace Shoko.Server.Commands
                 byte[] data = new byte[bytes]; //USE OF BYTES LENGTH VALUES FOR DATA SIZE
                 StringBuilder b = new StringBuilder();
                 UTF8Encoding enc = new UTF8Encoding();
-                GZipStream zis = new GZipStream(s,CompressionMode.Decompress);
+
+                GZipInputStream zis = new GZipInputStream(s);
 
                 while ((bytes = zis.Read(data, 0, data.Length)) > 0)
                     b.Append(enc.GetString(data, 0, bytes));
@@ -128,7 +130,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -141,6 +142,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

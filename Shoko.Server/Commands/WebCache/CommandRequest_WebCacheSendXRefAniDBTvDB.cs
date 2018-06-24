@@ -3,13 +3,15 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
-    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequest
+    [Command(CommandRequestType.WebCache_SendXRefAniDBTvDB)]
+    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation
     {
         public virtual int CrossRef_AniDB_TvDBID { get; set; }
 
@@ -28,7 +30,6 @@ namespace Shoko.Server.Commands
         public CommandRequest_WebCacheSendXRefAniDBTvDB(int xrefID)
         {
             CrossRef_AniDB_TvDBID = xrefID;
-            CommandType = (int) CommandRequestType.WebCache_SendXRefAniDBTvDB;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -40,13 +41,13 @@ namespace Shoko.Server.Commands
             {
                 //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                CrossRef_AniDB_TvDBV2 xref = Repo.CrossRef_AniDB_TvDBV2.GetByID(CrossRef_AniDB_TvDBID);
+                CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                 if (anime == null) return;
 
-                AzureWebAPI.Send_CrossRefAniDBTvDB(xref, anime.MainTitle);
+                AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
             }
             catch (Exception ex)
             {
@@ -63,7 +64,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -81,6 +81,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

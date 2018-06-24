@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Nancy;
+using Pri.LongPath;
 using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
@@ -14,7 +14,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public Version()
         {
-            Get("/api/version",  async (x,ct) => await Task.Factory.StartNew(GetVersion, ct));
+            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
         }
 
         /// <summary>

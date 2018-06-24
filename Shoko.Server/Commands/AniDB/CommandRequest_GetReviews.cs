@@ -2,11 +2,13 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {
     [Serializable]
-    public class CommandRequest_GetReviews : CommandRequest_AniDBBase
+    [Command(CommandRequestType.AniDB_GetReviews)]
+    public class CommandRequest_GetReviews : CommandRequestImplementation
     {
         public virtual int AnimeID { get; set; }
         public virtual bool ForceRefresh { get; set; }
@@ -27,7 +29,6 @@ namespace Shoko.Server.Commands
         {
             AnimeID = animeid;
             ForceRefresh = forced;
-            CommandType = (int) CommandRequestType.AniDB_GetReviews;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -70,7 +71,6 @@ namespace Shoko.Server.Commands
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
-            CommandType = cq.CommandType;
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
@@ -87,6 +87,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

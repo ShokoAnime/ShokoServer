@@ -26,7 +26,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public static TvDB_ImageFanartRepository Create()
         {
-            return new TvDB_ImageFanartRepository();
+            var repo = new TvDB_ImageFanartRepository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public TvDB_ImageFanart GetByTvDBID(int id)
@@ -60,12 +62,12 @@ namespace Shoko.Server.Repositories.Cached
             lock (globalDBLock)
             {
                 var fanartByAnime = session.CreateSQLQuery(@"
-                SELECT DISTINCT crAdbTvTb.AnimeID, {tvdbFanart.*}
-                   FROM CrossRef_AniDB_TvDBV2 AS crAdbTvTb
+                SELECT DISTINCT crAdbTvTb.AniDBID, {tvdbFanart.*}
+                   FROM CrossRef_AniDB_TvDB AS crAdbTvTb
                       INNER JOIN TvDB_ImageFanart AS tvdbFanart
                          ON tvdbFanart.SeriesID = crAdbTvTb.TvDBID
-                   WHERE crAdbTvTb.AnimeID IN (:animeIds)")
-                    .AddScalar("AnimeID", NHibernateUtil.Int32)
+                   WHERE crAdbTvTb.AniDBID IN (:animeIds)")
+                    .AddScalar("AniDBID", NHibernateUtil.Int32)
                     .AddEntity("tvdbFanart", typeof(TvDB_ImageFanart))
                     .SetParameterList("animeIds", animeIds)
                     .List<object[]>()

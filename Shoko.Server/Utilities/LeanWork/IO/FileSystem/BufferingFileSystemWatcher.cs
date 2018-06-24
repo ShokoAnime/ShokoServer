@@ -76,18 +76,19 @@ namespace LeanWork.IO.FileSystem
             {
                 if (_containedFSW.EnableRaisingEvents == value)
                     return;
-
+                //always triggers cancel
                 StopRaisingBufferedEvents();
-                _cancellationTokenSource = new CancellationTokenSource();
-
                 //We EnableRaisingEvents, before NotifyExistingFiles
                 //  to prevent missing any events
                 //  accepting more duplicates (which may occure anyway).
+                if (value)
+                    _fileSystemEventBuffer = new BlockingCollection<FileSystemEventArgs>(_eventQueueSize);
                 _containedFSW.EnableRaisingEvents = value;
                 if (value)
                     RaiseBufferedEventsUntilCancelled();
             }
         }
+
 
         public string Filter
         {
@@ -261,7 +262,6 @@ namespace LeanWork.IO.FileSystem
         private void StopRaisingBufferedEvents(object _ = null, EventArgs __ = null)
         {
             _cancellationTokenSource?.Cancel();
-            _fileSystemEventBuffer = new BlockingCollection<FileSystemEventArgs>(_eventQueueSize);
         }
 
         public event ErrorEventHandler Error
@@ -289,6 +289,9 @@ namespace LeanWork.IO.FileSystem
 
         private void RaiseBufferedEventsUntilCancelled()
         {
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = new CancellationTokenSource();
+
             Task.Run(() =>
             {
                 try
@@ -400,6 +403,7 @@ namespace LeanWork.IO.FileSystem
             if (disposing)
             {
                 _cancellationTokenSource?.Cancel();
+                _cancellationTokenSource?.Dispose();
                 _containedFSW?.Dispose();
 
                 //_onExistedHandler = null;

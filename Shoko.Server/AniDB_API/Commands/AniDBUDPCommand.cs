@@ -271,16 +271,7 @@ namespace AniDBAPI.Commands
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
-            if (ResponseCode == 555)
-            {
-                ShokoService.AnidbProcessor.IsBanned = true;
-                ShokoService.AnidbProcessor.BanOrigin = "UDP";
-            }
-            else
-            {
-                ShokoService.AnidbProcessor.IsBanned = false;
-                ShokoService.AnidbProcessor.BanOrigin = string.Empty;
-            }
+            ShokoService.AnidbProcessor.IsUdpBanned = ResponseCode == 555;
 
             // 598 UNKNOWN COMMAND usually means we had connections issue
             // 506 INVALID SESSION

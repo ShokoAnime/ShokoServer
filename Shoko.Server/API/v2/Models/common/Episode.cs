@@ -4,12 +4,13 @@ using System.Globalization;
 using System.Runtime.Serialization;
 using Nancy;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -20,9 +21,6 @@ namespace Shoko.Server.API.v2.Models.common
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string season { get; set; }
-
-        [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public string votes { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int view { get; set; }
@@ -40,20 +38,20 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(ctx, Repo.AnimeEpisode.GetByID(anime_episode_id), uid,
-                    level);
+                ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+                    level, pic);
             }
 
             return ep;
         }
 
-        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level)
+        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode
             {
@@ -74,6 +72,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (cae != null)
             {
                 ep.name = cae.AniDB_EnglishName;
+                ep.summary = cae.Description;
 
                 ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture);
                 ep.air = cae.AniDB_AirDate?.ToPlexDate();
@@ -89,35 +88,42 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (tvep != null)
             {
-                ep.name = tvep.EpisodeName;
-                ep.art.thumb.Add(new Art
+                if (!string.IsNullOrEmpty(tvep.EpisodeName))
+                    ep.name = tvep.EpisodeName;
+
+                if (pic > 0)
                 {
-                    index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                        tvep.TvDB_EpisodeID)
-                });
-                var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
-                if (fanarts != null && fanarts.Count > 0)
-                {
-                    var cont_image =
-                        fanarts[new Random().Next(fanarts.Count)];
-                    ep.art.fanart.Add(new Art()
+                    if (Misc.IsImageValid(tvep.GetFullImagePath()))
+                        ep.art.thumb.Add(new Art
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
+                                tvep.TvDB_EpisodeID)
+                        });
+                    var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
+                    if (fanarts != null && fanarts.Count > 0)
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
-                            cont_image.AniDB_Anime_DefaultImageID),
-                        index = 0
-                    });
-                }
-                else
-                {
-                    ep.art.fanart.Add(new Art
+                        var cont_image =
+                            fanarts[new Random().Next(fanarts.Count)];
+                        ep.art.fanart.Add(new Art()
+                        {
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
+                                cont_image.AniDB_Anime_DefaultImageID),
+                            index = 0
+                        });
+                    }
+                    else
                     {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                            tvep.TvDB_EpisodeID)
-                    });
+                        ep.art.fanart.Add(new Art
+                        {
+                            index = 0,
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
+                                tvep.TvDB_EpisodeID)
+                        });
+                    }
                 }
-                ep.summary = tvep.Overview;
+
+                if (!string.IsNullOrEmpty(tvep.Overview)) ep.summary = tvep.Overview;
 
                 int zeroPadding = tvep.EpisodeNumber.ToString().Length;
                 string episodeNumber = tvep.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
@@ -133,7 +139,7 @@ namespace Shoko.Server.API.v2.Models.common
                 }
             }
             if (string.IsNullOrEmpty(ep.summary)) ep.summary = string.Intern("Episode Overview not Available");
-            if (ep.art.thumb.Count == 0)
+            if (pic > 0 && ep.art.thumb.Count == 0)
             {
                 ep.art.thumb.Add(
                     new Art {index = 0, url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")});
@@ -154,7 +160,7 @@ namespace Shoko.Server.API.v2.Models.common
                     ep.files = new List<RawFile>();
                     foreach (SVR_VideoLocal vl in vls)
                     {
-                        RawFile file = new RawFile(ctx, vl, (level - 1), uid);
+                        RawFile file = new RawFile(ctx, vl, (level - 1), uid, aep);
                         ep.files.Add(file);
                     }
                 }
