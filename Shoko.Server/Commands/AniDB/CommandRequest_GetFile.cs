@@ -87,9 +87,9 @@ namespace Shoko.Server.Commands
                         aniFile.CreateLanguages();
                         aniFile.CreateCrossEpisodes(localFileName);
 
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        if (anime != null) RepoFactory.AniDB_Anime.Save(anime);
-                        SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        if (anime != null) Repo.AniDB_Anime.Save(anime);
+                        SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(true, true, true);
                     }
 //                  StatsCache.Instance.UpdateUsingAniDBFile(vlocal.Hash);
@@ -127,7 +127,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
                 ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;

@@ -16,7 +16,7 @@ namespace Shoko.Server.Repositories.Cached
         public static AniDB_Anime_DefaultImageRepository Create()
         {
             var repo = new AniDB_Anime_DefaultImageRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 

@@ -84,7 +84,7 @@ namespace Shoko.Server.Commands
                     switch (EntityTypeEnum)
                     {
                         case ImageEntityType.AniDB_Cover:
-                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                             if (anime == null)
                             {
                                 logger.Warn(
@@ -98,8 +98,8 @@ namespace Shoko.Server.Commands
 
                         case ImageEntityType.AniDB_Character:
                             if (!ServerSettings.AniDB_DownloadCharacters) continue;
-                            var chrs = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                    select RepoFactory.AniDB_Character.GetByCharID(xref1.CharID))
+                            var chrs = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                                    select Repo.AniDB_Character.GetByCharID(xref1.CharID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
                                 .DistinctBy(a => a.CharID)
                                 .ToList();
@@ -122,9 +122,9 @@ namespace Shoko.Server.Commands
                         case ImageEntityType.AniDB_Creator:
                             if (!ServerSettings.AniDB_DownloadCreators) continue;
 
-                            var creators = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                    from xref2 in RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)
-                                    select RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID))
+                            var creators = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                                    from xref2 in Repo.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)
+                                    select Repo.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
                                 .DistinctBy(a => a.SeiyuuID)
                                 .ToList();

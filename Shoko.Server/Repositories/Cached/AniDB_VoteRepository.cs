@@ -24,8 +24,8 @@ namespace Shoko.Server.Repositories.Cached
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                         break;
                     case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                        RepoFactory.AnimeEpisode.Save(ep);
+                        SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(cr.EntityID);
+                        Repo.AnimeEpisode.Save(ep);
                         break;
                 }
             };
@@ -38,8 +38,8 @@ namespace Shoko.Server.Repositories.Cached
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
                         break;
                     case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                        RepoFactory.AnimeEpisode.Save(ep);
+                        SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(cr.EntityID);
+                        Repo.AnimeEpisode.Save(ep);
                         break;
                 }
             };
@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories.Cached
         public static AniDB_VoteRepository Create()
         {
             var repo = new AniDB_VoteRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 
@@ -75,7 +75,7 @@ namespace Shoko.Server.Repositories.Cached
                             }
                             using (var transact = session.BeginTransaction())
                             {
-                                RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
+                                Repo.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
                                 transact.Commit();
                             }
                         }

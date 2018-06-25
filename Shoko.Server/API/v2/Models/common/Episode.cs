@@ -44,7 +44,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+                ep = GenerateFromAnimeEpisode(ctx, Repositories.Repo.AnimeEpisode.GetByID(anime_episode_id), uid,
                     level, pic);
             }
 

@@ -20,9 +20,9 @@ namespace Shoko.Server
         {
             // wipe old links except User Verified
             if (!skipMatchClearing)
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
+                Repo.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
 
-            List<CrossRef_AniDB_TvDB> tvxrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+            List<CrossRef_AniDB_TvDB> tvxrefs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
             int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
 
             var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
@@ -31,7 +31,7 @@ namespace Shoko.Server
             foreach (var match in matches)
             {
                 if (match.AniDB == null || match.TvDB == null) continue;
-                var xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
+                var xref = Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
                     match.TvDB.Id);
                 // Don't touch User Verified links
                 if (xref?.MatchRating == MatchRating.UserVerified) continue;
@@ -39,7 +39,7 @@ namespace Shoko.Server
                 // check for duplicates only if we skip clearing the links
                 if (skipMatchClearing)
                 {
-                    xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
+                    xref = Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
                         match.TvDB.Id);
                     if (xref != null)
                     {
@@ -64,7 +64,7 @@ namespace Shoko.Server
 
             if (tosave.Count == 0) return;
 
-            tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Save);
+            tosave.Batch(50).ForEach(Repo.CrossRef_AniDB_TvDB_Episode.Save);
         }
 
         public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
@@ -82,7 +82,7 @@ namespace Shoko.Server
         public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreviewWithOverrides(int animeID, int tvdbID)
         {
             var matches = GetMatchPreview(animeID, tvdbID);
-            var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
+            var overrides = Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
             List<CrossRef_AniDB_TvDB_Episode> result = new List<CrossRef_AniDB_TvDB_Episode>();
             foreach (var match in matches)
             {
@@ -142,18 +142,18 @@ namespace Shoko.Server
             // Get TvDB first, if we can't get the episodes, then there's no valid link
             if (tvdbID == 0) return new List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)>();
 
-            List<TvDB_Episode> tveps = RepoFactory.TvDB_Episode.GetBySeriesID(tvdbID);
+            List<TvDB_Episode> tveps = Repo.TvDB_Episode.GetBySeriesID(tvdbID);
             List<TvDB_Episode> tvepsNormal = tveps.Where(a => a.SeasonNumber != 0).OrderBy(a => a.SeasonNumber)
                 .ThenBy(a => a.EpisodeNumber).ToList();
             List<TvDB_Episode> tvepsSpecial =
                 tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
 
             // Get AniDB
-            List<AniDB_Episode> anieps = RepoFactory.AniDB_Episode.GetByAnimeID(animeID);
+            List<AniDB_Episode> anieps = Repo.AniDB_Episode.GetByAnimeID(animeID);
             List<AniDB_Episode> aniepsNormal = anieps.Where(a => a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
 
-            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
 
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
@@ -414,8 +414,8 @@ namespace Shoko.Server
                         if (prequelAnimes == null)
                         {
                             // only check the relations if they have the same TvDB Series ID
-                            var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Prequel" && RepoFactory.CrossRef_AniDB_TvDB
+                            var relations = Repo.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                                .Where(a => a?.RelationType == "Prequel" && Repo.CrossRef_AniDB_TvDB
                                                 .GetByAnimeID(a.RelatedAnimeID).Any(b =>
                                                     season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
@@ -426,7 +426,7 @@ namespace Shoko.Server
                             GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allPrequels, "Prequel");
 
                             prequelAnimes = allPrequels
-                                .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Select(a => Repo.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
                                 .Where(a => a != null).OrderBy(a => a.AnimeID).ToList();
                         }
 
@@ -470,8 +470,8 @@ namespace Shoko.Server
                         if (sequelAnimes == null)
                         {
                             // only check the relations if they have the same TvDB Series ID
-                            var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Sequel" && RepoFactory.CrossRef_AniDB_TvDB
+                            var relations = Repo.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
+                                .Where(a => a?.RelationType == "Sequel" && Repo.CrossRef_AniDB_TvDB
                                                 .GetByAnimeID(a.RelatedAnimeID).Any(b =>
                                                     season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
 
@@ -482,7 +482,7 @@ namespace Shoko.Server
                             GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allSequels, "Sequel");
 
                             sequelAnimes = allSequels
-                                .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Select(a => Repo.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
                                 .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
                         }
 
@@ -530,7 +530,7 @@ namespace Shoko.Server
             foreach (var relation in allRelations)
             {
                 if (visitedNodes.Contains(relation.RelatedAnimeID)) continue;
-                var sequels = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(relation.RelatedAnimeID)
+                var sequels = Repo.AniDB_Anime_Relation.GetByAnimeID(relation.RelatedAnimeID)
                     .Where(a => a?.RelationType == type).ToList();
                 if (sequels.Count == 0) return;
 
@@ -775,7 +775,7 @@ namespace Shoko.Server
             // First, sort by AniDB type and number
             var xrefs = links.OrderBy(a => a.AniDBStartType).ThenBy(a => a.AniDBStartNumber).ToList();
             int AnimeID = xrefs.FirstOrDefault().AnimeID;
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+            var anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime == null) return new List<CrossRef_AniDB_TvDB_Episode_Override>();
 
             // Check if we have default links
@@ -793,7 +793,7 @@ namespace Shoko.Server
                     return new List<CrossRef_AniDB_TvDB_Episode_Override>();
             }
 
-            var episodes = RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID)
+            var episodes = Repo.AniDB_Episode.GetByAnimeID(AnimeID)
                 .Where(a => a.EpisodeType == (int) EpisodeType.Special || a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
 
@@ -806,7 +806,7 @@ namespace Shoko.Server
                 if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
                 // Get TvDB ep
-                var tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, xref.TvDBSeason,
+                var tvep = Repo.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, xref.TvDBSeason,
                     xref.TvDBStartNumber);
                 if (tvep == null) continue;
 
@@ -820,7 +820,7 @@ namespace Shoko.Server
                         var nextep = tvep.GetNextEpisode();
                         // continue outer loop
                         if (nextep.episodeNumber == 0) goto label0;
-                        tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, nextep.season,
+                        tvep = Repo.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, nextep.season,
                             nextep.episodeNumber);
                     }
                 }

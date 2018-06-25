@@ -45,11 +45,11 @@ namespace Shoko.Server.Models
 
         public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
-        public AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         public SVR_AnimeEpisode_User GetUserRecord(int userID)
         {
-            return RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
+            return Repo.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
         }
 
                 DateTime? airdate = aep.GetAirDateAsDate();
@@ -65,26 +65,26 @@ namespace Shoko.Server.Models
         /// </summary>
         public SVR_AnimeSeries GetAnimeSeries()
         {
-            return RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+            return Repo.AnimeSeries.GetByID(AnimeSeriesID);
         }
 
         [NotMapped]
         public double UserRating
         {
-            return RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
+            return Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
-        public List<CrossRef_File_Episode> FileCrossRefs => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        public List<CrossRef_File_Episode> FileCrossRefs => Repo.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         public TvDB_Episode TvDBEpisode
         {
             get
             {
                 // Try Overrides first, then regular
-                return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                return Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
                     .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
             }
         }
@@ -93,7 +93,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
+                AniDB_Vote vote = Repo.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
                 if (vote != null) return vote.VoteValue / 100D;
                 return -1;
             }
@@ -143,7 +143,7 @@ namespace Shoko.Server.Models
         public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
         {
             // get all the cross refs
-            return FileCrossRefs.Select(xref => RepoFactory.VideoLocal.GetByHash(xref.Hash))
+            return FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash))
                 .Where(v => v != null)
                 .Select(v => v.ToClientDetailed(userID)).ToList();
         }
@@ -165,9 +165,9 @@ namespace Shoko.Server.Models
                     .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate
             };
             if (session != null)
-                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
+                Repo.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
             else
-                RepoFactory.AnimeEpisode_User.Save(rr);
+                Repo.AnimeEpisode_User.Save(rr);
 
             return rr.Contract;
         }
@@ -196,13 +196,13 @@ namespace Shoko.Server.Models
                 foreach (var language in languages)
                 {
                     var episode_title =
-                        RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
+                        Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
                     var title = episode_title.FirstOrDefault();
                     if (string.IsNullOrEmpty(title?.Title)) continue;
                     return title?.Title;
                 }
 
-                return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
+                return Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
                     ?.Title;
             }
         }

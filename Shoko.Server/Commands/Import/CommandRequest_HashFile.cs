@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
             // check if we have already processed this file
 
             // check if we have already processed this file
-            SVR_VideoLocal_Place vlocalplace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
+            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
             SVR_VideoLocal vlocal = null;
             var filename = Path.GetFileName(filePath);
 
@@ -166,11 +166,11 @@ namespace Shoko.Server.Commands
                     {
                         if (vlocal.Places.Count == 1)
                         {
-                            RepoFactory.VideoLocal.Delete(vlocal);
+                            Repo.VideoLocal.Delete(vlocal);
                             vlocal = null;
                         }
 
-                        RepoFactory.VideoLocalPlace.Delete(vlocalplace);
+                        Repo.VideoLocalPlace.Delete(vlocalplace);
                         vlocalplace = null;
                     }
 
@@ -210,7 +210,7 @@ namespace Shoko.Server.Commands
                     ImportFolderType = folder.ImportFolderType
                 };
                 // Make sure we have an ID
-                RepoFactory.VideoLocalPlace.Save(vlocalplace);
+                Repo.VideoLocalPlace.Save(vlocalplace);
             }
 
             // check if we need to get a hash this file
@@ -221,7 +221,7 @@ namespace Shoko.Server.Commands
                 {
                     // try getting the hash from the CrossRef
                     List<CrossRef_File_Episode> crossRefs =
-                        RepoFactory.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
+                        Repo.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
                     if (crossRefs.Any())
                     {
                         local.Hash = crossRefs[0].Hash;
@@ -233,7 +233,7 @@ namespace Shoko.Server.Commands
                 if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
                 {
                     List<FileNameHash> fnhashes =
-                        RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                        Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
                     if (fnhashes != null && fnhashes.Count > 1)
                     {
                         List<FileNameHash> fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, filesize);
@@ -248,7 +248,7 @@ namespace Shoko.Server.Commands
                         }
                     }
                     // reinit this to check if we erased them
-                    fnhashes = RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                    fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
 
                         // reinit this to check if we erased them
                         fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, filesize);
@@ -270,11 +270,11 @@ namespace Shoko.Server.Commands
                 {
                     logger.Trace("No Hash found for cloud " + filename +
                                  " putting in videolocal table with empty ED2K");
-                    RepoFactory.VideoLocal.Save(vlocal, false);
+                    Repo.VideoLocal.Save(vlocal, false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                    RepoFactory.VideoLocalPlace.Save(vlocalplace);
+                    Repo.VideoLocalPlace.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
-                        RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
+                        Repo.VideoLocal.Save(vlocalplace.VideoLocal, true);
                     return;
                 }
 
@@ -344,14 +344,14 @@ namespace Shoko.Server.Commands
                         // clean up, if there is a 'duplicate file' that is invalid, remove it.
                         if (prep.FullServerPath == null)
                         {
-                            RepoFactory.VideoLocalPlace.Delete(prep);
+                            Repo.VideoLocalPlace.Delete(prep);
                         }
                         else
                         {
                             FileSystemResult dupFileSystemResult =
                                 prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
                             if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
-                                RepoFactory.VideoLocalPlace.Delete(prep);
+                                Repo.VideoLocalPlace.Delete(prep);
                         }
                     }
 
@@ -368,12 +368,12 @@ namespace Shoko.Server.Commands
                         logger.Warn("---------------------------------------------");
 
                         // check if we have a record of this in the database, if not create one
-                        List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
+                        List<DuplicateFile> dupFiles = Repo.DuplicateFile.GetByFilePathsAndImportFolder(
                             vlocalplace.FilePath,
                             dupPlace.FilePath,
                             vlocalplace.ImportFolderID, dupPlace.ImportFolderID);
                         if (dupFiles.Count == 0)
-                            dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
+                            dupFiles = Repo.DuplicateFile.GetByFilePathsAndImportFolder(dupPlace.FilePath,
                                 vlocalplace.FilePath, dupPlace.ImportFolderID, vlocalplace.ImportFolderID);
 
                         if (dupFiles.Count == 0)
@@ -387,7 +387,7 @@ namespace Shoko.Server.Commands
                                 ImportFolderIDFile2 = dupPlace.ImportFolderID,
                                 Hash = vlocal.Hash
                             };
-                            RepoFactory.DuplicateFile.Save(dup);
+                            Repo.DuplicateFile.Save(dup);
                         }
                     }
                 }
@@ -430,7 +430,7 @@ namespace Shoko.Server.Commands
                 // replace the existing records just in case it was corrupt
                 FileNameHash fnhash;
                 List<FileNameHash> fnhashes2 =
-                    RepoFactory.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                    Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
                 if (fnhashes2 != null && fnhashes2.Count > 1)
                 {
                     FileNameHash fnhash = null;
@@ -452,7 +452,7 @@ namespace Shoko.Server.Commands
                 fnhash.FileSize = vlocal.FileSize;
                 fnhash.Hash = vlocal.Hash;
                 fnhash.DateTimeUpdated = DateTime.Now;
-                RepoFactory.FileNameHash.Save(fnhash);
+                Repo.FileNameHash.Save(fnhash);
             }
             else
             {

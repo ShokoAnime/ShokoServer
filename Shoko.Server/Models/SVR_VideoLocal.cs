@@ -158,7 +158,7 @@ namespace Shoko.Server.Models
 
                 if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
 
-                RepoFactory.VideoLocalUser.Save(vidUserRecord);
+                Repo.VideoLocalUser.Save(vidUserRecord);
             }
             else
             {
@@ -232,7 +232,7 @@ namespace Shoko.Server.Models
                 };
             else
                 vuser.ResumePosition = resumeposition;
-            RepoFactory.VideoLocalUser.Save(vuser);
+            Repo.VideoLocalUser.Save(vuser);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
@@ -262,7 +262,7 @@ namespace Shoko.Server.Models
             // now lets find all the associated AniDB_File record if there is one
             if (user.IsAniDBUser == 1)
             {
-                SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHash(Hash);
+                SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHash(Hash);
                 if (aniFile != null)
                 {
                     aniFile.IsWatched = mywatched;
@@ -273,7 +273,7 @@ namespace Shoko.Server.Models
                         aniFile.WatchedDate = null;
 
 
-                    RepoFactory.AniDB_File.Save(aniFile, false);
+                    Repo.AniDB_File.Save(aniFile, false);
                 }
                 if (updateOnline)
                     if ((watched && ServerSettings.AniDB_MyList_SetWatched) ||
@@ -293,7 +293,7 @@ namespace Shoko.Server.Models
 
             SVR_AnimeSeries ser = null;
             // get all files associated with this episode
-            List<CrossRef_File_Episode> xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+            List<CrossRef_File_Episode> xrefs = Repo.CrossRef_File_Episode.GetByHash(Hash);
             Dictionary<int, SVR_AnimeSeries> toUpdateSeries = new Dictionary<int, SVR_AnimeSeries>();
             if (watched)
             {
@@ -304,7 +304,7 @@ namespace Shoko.Server.Models
                 foreach (CrossRef_File_Episode xref in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
+                    SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID);
                     // a show we don't have
                     if (ep == null) continue;
 
@@ -349,7 +349,7 @@ namespace Shoko.Server.Models
                 foreach (CrossRef_File_Episode xrefEp in xrefs)
                 {
                     // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
+                    SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByAniDBEpisodeID(xrefEp.EpisodeID);
                     // a show we don't have
                     if (ep == null) continue;
 
@@ -466,7 +466,7 @@ namespace Shoko.Server.Models
                     FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
                     if (src != null && src.IsOk && src.Result is IFile)
                         if (pl.RefreshMediaInfo())
-                            RepoFactory.VideoLocal.Save(pl.VideoLocal, true);
+                            Repo.VideoLocal.Save(pl.VideoLocal, true);
                 }
             }
             if (Media == null) return null;

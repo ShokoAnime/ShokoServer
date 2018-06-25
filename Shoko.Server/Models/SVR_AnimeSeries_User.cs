@@ -30,7 +30,7 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+                    var series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
                     return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series,
                         series.GetAnime(), JMMUserID);
                 }

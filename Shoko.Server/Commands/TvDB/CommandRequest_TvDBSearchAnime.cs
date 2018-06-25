@@ -62,7 +62,7 @@ namespace Shoko.Server.Commands
                             // check again to see if there are any links, user may have manually added links while
                             // this command was in the queue
                             List<CrossRef_AniDB_TvDB> xrefTemp =
-                                RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+                                Repo.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
                             if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                             // Add overrides for specials
@@ -75,10 +75,10 @@ namespace Shoko.Server.Commands
                                 foreach (var episodeOverride in overrides)
                                 {
                                     var exists =
-                                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                                        Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
                                             episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
                                     if (exists != null) continue;
-                                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                                    Repo.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
                                 }
                             }
                             foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
@@ -101,8 +101,8 @@ namespace Shoko.Server.Commands
                 if (!ServerSettings.TvDB_AutoLink) return;
 
                 // try to pull a link from a prequel/sequel
-                var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
-                int? tvDBID = relations.SelectMany(a => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(a))
+                var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
+                int? tvDBID = relations.SelectMany(a => Repo.CrossRef_AniDB_TvDB.GetByAnimeID(a))
                     .FirstOrDefault(a => a != null)?.TvDBID;
 
                 if (tvDBID != null)
@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // search TvDB
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 var searchCriteria = anime.MainTitle;
@@ -200,7 +200,7 @@ namespace Shoko.Server.Commands
         private static void AddCrossRef_AniDB_TvDBV2(int animeID, int tvdbID, CrossRefSource source)
         {
             CrossRef_AniDB_TvDB xref =
-                RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvdbID);
+                Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvdbID);
             if (xref != null) return;
             xref = new CrossRef_AniDB_TvDB
             {
@@ -208,7 +208,7 @@ namespace Shoko.Server.Commands
                 TvDBID = tvdbID,
                 CrossRefSource = source
             };
-            RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
+            Repo.CrossRef_AniDB_TvDB.Save(xref);
         }
 
         public override void GenerateCommandID()

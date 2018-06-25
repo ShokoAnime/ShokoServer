@@ -174,7 +174,7 @@ namespace Shoko.Server
             try
             {
                 InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+                SVR_VideoLocal loc = Repo.VideoLocal.GetByID(videolocalid);
                 if (loc == null)
                 {
                     r.Status = HttpStatusCode.NotFound;

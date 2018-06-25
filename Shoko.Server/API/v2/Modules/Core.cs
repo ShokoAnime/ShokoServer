@@ -454,7 +454,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
+                var allAnime = Repo.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
                 logger.Info($"Starting the check for {allAnime.Count} anime XML files");
                 int updatedAnime = 0;
                 for (var i = 0; i < allAnime.Count; i++)
@@ -567,8 +567,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-                RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
+                Repo.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+                Repo.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
                     TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
             }
             catch (Exception e)
@@ -655,13 +655,13 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // This is for testing changes in the algorithm. It will be slow.
-                var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime())
+                var list = Repo.AnimeSeries.GetAll().Select(a => a.GetAnime())
                     .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
                 var result = new List<EpisodeMatchComparison>();
                 foreach (var animeseries in list)
                 {
                     List<CrossRef_AniDB_TvDB> tvxrefs =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
+                        Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
                     int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
                     var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
                         AniDB: new AniEpSummary
@@ -676,11 +676,11 @@ namespace Shoko.Server.API.v2.Modules
                             TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
                             TvDBEpisodeName = a.TvDB.EpisodeName
                         })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                    var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                    var currentMatches = Repo.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
                         .Select(a =>
                         {
-                            var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
-                            var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            var AniDB = Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
+                            var TvDB = Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
                             return (AniDB: new AniEpSummary
                                 {
                                     AniDBEpisodeType = AniDB.EpisodeType,

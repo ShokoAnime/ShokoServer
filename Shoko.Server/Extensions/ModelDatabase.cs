@@ -61,9 +61,9 @@ namespace Shoko.Server.Extensions
             {
                 if (existingEp.AnimeSeriesID != animeSeriesID) existingEp.AnimeSeriesID = animeSeriesID;
                 existingEp.PlexContract = null;
-                RepoFactory.AnimeEpisode.Save(existingEp);
-                foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+                Repo.AnimeEpisode.Save(existingEp);
+                foreach (var episodeUser in Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                    Repo.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
             }
         }
 
@@ -73,7 +73,7 @@ namespace Shoko.Server.Extensions
         {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
+            return Repo.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
@@ -120,7 +120,7 @@ namespace Shoko.Server.Extensions
 
         public static string GetEnglishTitle(this AniDB_Episode ep)
         {
-            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
+            return Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
                 ?.Title;
         }
     }

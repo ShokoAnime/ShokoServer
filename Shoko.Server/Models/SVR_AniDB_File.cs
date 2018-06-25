@@ -382,10 +382,10 @@ namespace Shoko.Server.Models
         public void CreateCrossEpisodes(string localFileName)
         {
             if (episodesRAW == null) return;
-            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+            List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
 
             foreach (CrossRef_File_Episode fileEp in fileEps)
-                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+                Repo.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
 
             fileEps = new List<CrossRef_File_Episode>();
 
@@ -423,7 +423,7 @@ namespace Shoko.Server.Models
             }
             // There is a chance that AniDB returned a dup, however unlikely
             fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
-                .ForEach(fileEp => RepoFactory.CrossRef_File_Episode.Save(fileEp));
+                .ForEach(fileEp => Repo.CrossRef_File_Episode.Save(fileEp));
         }
   
         public string ToXML()

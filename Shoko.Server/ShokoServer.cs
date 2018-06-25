@@ -487,7 +487,7 @@ namespace Shoko.Server
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
                             int shareid = int.Parse(evt.Name);
-                            Importer.RunImport_ImportFolderNewFiles(RepoFactory.ImportFolder.GetByID(shareid));
+                            Importer.RunImport_ImportFolderNewFiles(Repo.ImportFolder.GetByID(shareid));
                         }
                         else
                         {
@@ -627,7 +627,7 @@ namespace Shoko.Server
         {
             try
             {
-                foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll()
+                foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll()
                     .Where(a => a.CloudID.HasValue && a.FolderIsWatched))
                 {
                     //Little hack in there to reuse the file queue
@@ -756,7 +756,7 @@ namespace Shoko.Server
 
                 DownloadAllImages();
 
-                IReadOnlyList<SVR_ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
+                IReadOnlyList<SVR_ImportFolder> folders = Repo.ImportFolder.GetAll();
 
                 if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
                 if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
@@ -785,7 +785,7 @@ namespace Shoko.Server
         void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
             // first build a list of files that we already know about, as we don't want to process them again
-            IReadOnlyList<SVR_VideoLocal> filesAll = RepoFactory.VideoLocal.GetAll();
+            IReadOnlyList<SVR_VideoLocal> filesAll = Repo.VideoLocal.GetAll();
             foreach (SVR_VideoLocal vl in filesAll)
             {
                 CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
@@ -834,7 +834,7 @@ namespace Shoko.Server
                 // get a list of unlinked files
 
 
-                List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
                 foreach (SVR_VideoLocal vid in vids.Where(a => !string.IsNullOrEmpty(a.Hash)))
@@ -870,7 +870,7 @@ namespace Shoko.Server
                             // so now we have all the needed details we can link the file to the episode
                             // as long as wehave the details in JMM
                             SVR_AniDB_Anime anime = null;
-                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID);
+                            AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(episodeID);
                             if (ep == null)
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
@@ -878,7 +878,7 @@ namespace Shoko.Server
                                     ServerSettings.AutoGroupSeries);
                             }
                             else
-                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                                anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
 
                             // create the group/series/episode records if needed
                             SVR_AnimeSeries ser = null;
@@ -886,7 +886,7 @@ namespace Shoko.Server
 
                             logger.Debug("Creating groups, series and episodes....");
                             // check if there is an AnimeSeries Record associated with this AnimeID
-                            ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                            ser = Repo.AnimeSeries.GetByAnimeID(animeID);
                             if (ser == null)
                             {
                                 // create a new AnimeSeries record
@@ -898,7 +898,7 @@ namespace Shoko.Server
 
                             // check if we have any group status data for this associated anime
                             // if not we will download it now
-                            if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                            if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                             {
                                 CommandRequest_GetReleaseGroupStatus cmdStatus =
                                     new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
@@ -907,16 +907,16 @@ namespace Shoko.Server
 
                             // update stats
                             ser.EpisodeAddedDate = DateTime.Now;
-                            RepoFactory.AnimeSeries.Save(ser, false, false);
+                            Repo.AnimeSeries.Save(ser, false, false);
 
                             foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                             {
                                 grp.EpisodeAddedDate = DateTime.Now;
-                                RepoFactory.AnimeGroup.Save(grp, false, false);
+                                Repo.AnimeGroup.Save(grp, false, false);
                             }
 
 
-                            SVR_AnimeEpisode epAnime = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
+                            SVR_AnimeEpisode epAnime = Repo.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
                             CrossRef_File_Episode xref =
                                 new CrossRef_File_Episode();
 
@@ -931,7 +931,7 @@ namespace Shoko.Server
                                 throw;
                             }
 
-                            RepoFactory.CrossRef_File_Episode.Save(xref);
+                            Repo.CrossRef_File_Episode.Save(xref);
                             vid.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
 
                             // update stats for groups and series
@@ -984,7 +984,7 @@ namespace Shoko.Server
         private void GenerateAzureList()
         {
             // get a lst of anime's that we already have
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
             Dictionary<int, int> localAnimeIDs = new Dictionary<int, int>();
             foreach (SVR_AniDB_Anime anime in allAnime)
             {
@@ -1037,7 +1037,7 @@ namespace Shoko.Server
         private void SendToAzureXML()
         {
             DateTime dt = DateTime.Now.AddYears(-2);
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
 
             int sentAnime = 0;
             foreach (SVR_AniDB_Anime anime in allAnime)
@@ -1270,7 +1270,7 @@ namespace Shoko.Server
             StopCloudWatchTimer();
             watcherVids = new List<RecoveringFileSystemWatcher>();
 
-            foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll())
             {
                 try
                 {
@@ -1553,7 +1553,7 @@ namespace Shoko.Server
 
             // get a complete list of files
             List<string> fileList = new List<string>();
-            foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll())
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
@@ -1622,7 +1622,7 @@ namespace Shoko.Server
         public bool SyncPlex()
         {
             bool flag = false;
-            foreach (SVR_JMMUser user in RepoFactory.JMMUser.GetAll())
+            foreach (SVR_JMMUser user in Repo.JMMUser.GetAll())
             {
                 if (!string.IsNullOrEmpty(user.PlexToken))
                 {
@@ -1847,7 +1847,7 @@ namespace Shoko.Server
 
         private static void UpdateStatsTest()
         {
-            foreach (SVR_AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
+            foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAllTopLevelGroups())
             {
                 grp.UpdateStatsFromTopLevel(true, true);
             }
@@ -1857,7 +1857,7 @@ namespace Shoko.Server
         {
             logger.Debug("Creating import folders...");
 
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime Test ]");
+            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime Test ]");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1866,7 +1866,7 @@ namespace Shoko.Server
                     ImportFolderType = (int)ImportFolderType.HDD,
                     ImportFolderLocation = @"M:\[ Anime Test ]"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
             logger.Debug("Complete!");
@@ -1886,7 +1886,7 @@ namespace Shoko.Server
         {
             logger.Debug("Creating shares...");
 
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime 2011 ]");
+            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime 2011 ]");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1895,10 +1895,10 @@ namespace Shoko.Server
                     ImportFolderName = "Anime 2011",
                     ImportFolderLocation = @"M:\[ Anime 2011 ]"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
+            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1907,10 +1907,10 @@ namespace Shoko.Server
                     ImportFolderName = "Anime - DVD and Bluray IN PROGRESS",
                     ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
+            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1919,10 +1919,10 @@ namespace Shoko.Server
                     ImportFolderName = "Anime - DVD and Bluray COMPLETE",
                     ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"M:\[ Anime ]");
+            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime ]");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1931,7 +1931,7 @@ namespace Shoko.Server
                     ImportFolderName = "Anime",
                     ImportFolderLocation = @"M:\[ Anime ]"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
             logger.Debug("Creating shares complete!");
@@ -1941,7 +1941,7 @@ namespace Shoko.Server
         {
             logger.Debug("Creating shares...");
 
-            SVR_ImportFolder sn = RepoFactory.ImportFolder.GetByImportLocation(@"F:\Anime1");
+            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"F:\Anime1");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1950,10 +1950,10 @@ namespace Shoko.Server
                     ImportFolderName = "Anime1",
                     ImportFolderLocation = @"F:\Anime1"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"H:\Anime2");
+            sn = Repo.ImportFolder.GetByImportLocation(@"H:\Anime2");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1962,10 +1962,10 @@ namespace Shoko.Server
                     ImportFolderName = "Anime2",
                     ImportFolderLocation = @"H:\Anime2"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
-            sn = RepoFactory.ImportFolder.GetByImportLocation(@"G:\Anime3");
+            sn = Repo.ImportFolder.GetByImportLocation(@"G:\Anime3");
             if (sn == null)
             {
                 sn = new SVR_ImportFolder
@@ -1974,7 +1974,7 @@ namespace Shoko.Server
                     ImportFolderName = "Anime3",
                     ImportFolderLocation = @"G:\Anime3"
                 };
-                RepoFactory.ImportFolder.Save(sn);
+                Repo.ImportFolder.Save(sn);
             }
 
             logger.Debug("Creating shares complete!");

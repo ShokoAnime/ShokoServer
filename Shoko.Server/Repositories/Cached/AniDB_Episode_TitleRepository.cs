@@ -26,7 +26,7 @@ namespace Shoko.Server.Repositories
         public static AniDB_Episode_TitleRepository Create()
         {
             var repo = new AniDB_Episode_TitleRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 

@@ -33,7 +33,7 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var group = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+                    var group = Repo.AnimeGroup.GetByID(AnimeGroupID);
                     return _plexContract = Helper.GenerateFromAnimeGroup(group, JMMUserID, group.GetAllSeries());
                 }
                 return _plexContract;

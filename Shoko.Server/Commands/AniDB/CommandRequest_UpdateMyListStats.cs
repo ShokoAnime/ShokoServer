@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands.AniDB
                 // we will always assume that an anime was downloaded via http first
 
                 ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate
@@ -64,7 +64,7 @@ namespace Shoko.Server.Commands.AniDB
                 }
 
                 sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                Repo.ScheduledUpdate.Save(sched);
 
                 ShokoService.AnidbProcessor.UpdateMyListStats();
             }

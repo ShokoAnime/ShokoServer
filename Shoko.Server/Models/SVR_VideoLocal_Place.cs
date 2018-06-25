@@ -50,7 +50,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        public SVR_VideoLocal VideoLocal => RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
 
         [NotMapped]
         public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
@@ -174,7 +174,7 @@ namespace Shoko.Server.Models
                     }
                     upd.Commit();
                 }
-                var filename_hash = RepoFactory.FileNameHash.GetByHash(VideoLocal.Hash);
+                var filename_hash = Repo.FileNameHash.GetByHash(VideoLocal.Hash);
                 if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
                 {
                     FileNameHash fnhash = new FileNameHash
@@ -184,7 +184,7 @@ namespace Shoko.Server.Models
                         FileSize = VideoLocal.FileSize,
                         Hash = VideoLocal.Hash
                     };
-                    RepoFactory.FileNameHash.Save(fnhash);
+                    Repo.FileNameHash.Save(fnhash);
                 }
 
 
@@ -226,7 +226,7 @@ namespace Shoko.Server.Models
             SVR_VideoLocal v = VideoLocal;
             List<DuplicateFile> dupFiles = null;
             if (!string.IsNullOrEmpty(FilePath))
-                dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                dupFiles = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -241,14 +241,14 @@ namespace Shoko.Server.Models
 
                     using (var transaction = session.BeginTransaction())
                     {
-                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                        Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 
                         episodesToUpdate.AddRange(v.GetAnimeEpisodes());
                         seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                             .Select(a => a.GetAnimeSeries()));
-                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                        Repo.VideoLocal.DeleteWithOpenTransaction(session, v);
 
-                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                        dupFiles?.ForEach(a => Repo.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                 }
@@ -256,8 +256,8 @@ namespace Shoko.Server.Models
                 {
                     using (var transaction = session.BeginTransaction())
                     {
-                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                        dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                        Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                        dupFiles?.ForEach(a => Repo.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
                 }
@@ -266,7 +266,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    RepoFactory.AnimeEpisode.Save(ep);
+                    Repo.AnimeEpisode.Save(ep);
                 }
                 catch (Exception ex)
                 {
@@ -289,7 +289,7 @@ namespace Shoko.Server.Models
 
             List<DuplicateFile> dupFiles = null;
             if (!string.IsNullOrEmpty(FilePath))
-                dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                dupFiles = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             if (v?.Places?.Count <= 1)
             {
@@ -305,9 +305,9 @@ namespace Shoko.Server.Models
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = session.BeginTransaction())
                 {
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                    Repo.VideoLocal.DeleteWithOpenTransaction(session, v);
+                    dupFiles?.ForEach(a => Repo.DuplicateFile.DeleteWithOpenTransaction(session, a));
 
                     transaction.Commit();
                 }
@@ -316,8 +316,8 @@ namespace Shoko.Server.Models
             {
                 using (var transaction = session.BeginTransaction())
                 {
-                    RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
-                    dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
+                    Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
+                    dupFiles?.ForEach(a => Repo.DuplicateFile.DeleteWithOpenTransaction(session, a));
                     transaction.Commit();
                 }
             }
@@ -794,7 +794,7 @@ namespace Shoko.Server.Models
             string originalFileName = FullServerPath;
 
             // Handle Duplicate Files
-            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+            var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
 
             foreach (var dup in dups)
             {
@@ -813,14 +813,14 @@ namespace Shoko.Server.Models
                 // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                 if (!dup.GetFullServerPath1()
                     .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                    RepoFactory.DuplicateFile.Save(dup);
+                    Repo.DuplicateFile.Save(dup);
                 else
-                    RepoFactory.DuplicateFile.Delete(dup);
+                    Repo.DuplicateFile.Delete(dup);
             }
 
             ImportFolderID = destFolder.ImportFolderID;
             FilePath = newFilePath;
-            RepoFactory.VideoLocalPlace.Save(this);
+            Repo.VideoLocalPlace.Save(this);
 
             try
             {
@@ -986,7 +986,7 @@ namespace Shoko.Server.Models
                     // Handle Duplicate Files, A duplicate file record won't exist yet,
                     // so we'll check the old fashioned way
                     logger.Trace("A file already exists at the new location, checking it for duplicate");
-                    var destVideoLocalPlace = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
+                    var destVideoLocalPlace = Repo.VideoLocalPlace.GetByFilePathAndImportFolderID(newFilePath,
                         destFolder.ImportFolderID);
                     var destVideoLocal = destVideoLocalPlace?.VideoLocal;
                     if (destVideoLocal == null)
@@ -1076,7 +1076,7 @@ namespace Shoko.Server.Models
                             string originalFileName = FullServerPath;
 
                             // Handle Duplicate Files
-                            var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+                            var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
 
                             foreach (var dup in dups)
                             {
@@ -1095,14 +1095,14 @@ namespace Shoko.Server.Models
                                 // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                                 if (!dup.GetFullServerPath1()
                                     .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                    RepoFactory.DuplicateFile.Save(dup);
+                                    Repo.DuplicateFile.Save(dup);
                                 else
-                                    RepoFactory.DuplicateFile.Delete(dup);
+                                    Repo.DuplicateFile.Delete(dup);
                             }
 
                             ImportFolderID = destFolder.ImportFolderID;
                             FilePath = newFilePath;
-                            RepoFactory.VideoLocalPlace.Save(this);
+                            Repo.VideoLocalPlace.Save(this);
 
                             try
                             {
@@ -1166,7 +1166,7 @@ namespace Shoko.Server.Models
                     string originalFileName = FullServerPath;
 
                     // Handle Duplicate Files
-                    var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
+                    var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
 
                     foreach (var dup in dups)
                     {
@@ -1185,14 +1185,14 @@ namespace Shoko.Server.Models
                         // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                         if (!dup.GetFullServerPath1()
                             .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                            RepoFactory.DuplicateFile.Save(dup);
+                            Repo.DuplicateFile.Save(dup);
                         else
-                            RepoFactory.DuplicateFile.Delete(dup);
+                            Repo.DuplicateFile.Delete(dup);
                     }
 
                     ImportFolderID = destFolder.ImportFolderID;
                     FilePath = newFilePath;
-                    RepoFactory.VideoLocalPlace.Save(this);
+                    Repo.VideoLocalPlace.Save(this);
 
                     try
                     {

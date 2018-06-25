@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_VideoLocal vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                SVR_VideoLocal vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
                 SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
                 if (place == null)
                 {

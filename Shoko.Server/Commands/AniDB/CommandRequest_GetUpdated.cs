@@ -109,7 +109,7 @@ namespace Shoko.Server.Commands
 
                     logger.Info("Updating CommandRequest_GetUpdated: {0} ", animeID);
 
-                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                    var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
                     // but only if it hasn't been recently updated
                     TimeSpan ts = DateTime.Now - update.UpdatedAt;

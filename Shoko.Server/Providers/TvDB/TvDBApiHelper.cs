@@ -64,7 +64,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(seriesID);
+                TvDB_Series tvSeries = Repo.TvDB_Series.GetByTvDBID(seriesID);
                 if (tvSeries != null && !forceRefresh)
                     return tvSeries;
                 await CheckAuthorizationAsync();
@@ -76,7 +76,7 @@ namespace Shoko.Server.Providers.TvDB
                 tvSeries = tvSeries ?? new TvDB_Series();
 
                 tvSeries.PopulateFromSeriesInfo(series);
-                RepoFactory.TvDB_Series.Save(tvSeries);
+                Repo.TvDB_Series.Save(tvSeries);
 
                 return tvSeries;
             }
@@ -162,7 +162,7 @@ namespace Shoko.Server.Providers.TvDB
 
             // check if we have this information locally
             // if not download it now
-            TvDB_Series tvSeries = RepoFactory.TvDB_Series.GetByTvDBID(tvDBID);
+            TvDB_Series tvSeries = Repo.TvDB_Series.GetByTvDBID(tvDBID);
 
             if (tvSeries != null)
             {
@@ -178,7 +178,7 @@ namespace Shoko.Server.Providers.TvDB
                 var unused = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
             }
 
-            CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID) ??
+            CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID) ??
                                        new CrossRef_AniDB_TvDB();
 
             xref.AniDBID = animeID;
@@ -187,7 +187,7 @@ namespace Shoko.Server.Providers.TvDB
 
             xref.CrossRefSource = CrossRefSource.User;
 
-            RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
+            Repo.CrossRef_AniDB_TvDB.Save(xref);
 
             logger.Info(
                 $"Adding TvDB Link: AniDB(ID:{animeID}) -> TvDB(ID:{tvDBID})");
@@ -195,10 +195,10 @@ namespace Shoko.Server.Providers.TvDB
             if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
             {
                 // check for Trakt associations
-                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TraktV2> trakt = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (trakt.Count != 0)
                     foreach (CrossRef_AniDB_TraktV2 a in trakt)
-                        RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                        Repo.CrossRef_AniDB_TraktV2.Delete(a);
 
                 var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
                 cmd2.Save();
@@ -208,17 +208,17 @@ namespace Shoko.Server.Providers.TvDB
         public static void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
         {
             // check for Trakt associations
-            List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+            List<CrossRef_AniDB_TraktV2> trakt = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
             if (trakt.Count != 0)
                 foreach (CrossRef_AniDB_TraktV2 a in trakt)
-                    RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                    Repo.CrossRef_AniDB_TraktV2.Delete(a);
 
-            List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+            List<CrossRef_AniDB_TvDB> xrefs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
             if (xrefs == null || xrefs.Count == 0) return;
 
             foreach (CrossRef_AniDB_TvDB xref in xrefs)
             {
-                RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
+                Repo.CrossRef_AniDB_TvDB.Delete(xref);
             }
 
             if (updateStats) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
@@ -374,7 +374,7 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoFanartAmount) break;
-                    TvDB_ImageFanart img = RepoFactory.TvDB_ImageFanart.GetByTvDBID(id) ?? new TvDB_ImageFanart
+                    TvDB_ImageFanart img = Repo.TvDB_ImageFanart.GetByTvDBID(id) ?? new TvDB_ImageFanart
                     {
                         Enabled = 1
                     };
@@ -386,9 +386,9 @@ namespace Shoko.Server.Providers.TvDB
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImageFanart img in RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID))
+                foreach (TvDB_ImageFanart img in Repo.TvDB_ImageFanart.GetBySeriesID(seriesID))
                     if (!validIDs.Contains(img.Id))
-                        RepoFactory.TvDB_ImageFanart.Delete(img);
+                        Repo.TvDB_ImageFanart.Delete(img);
             }
             catch (TvDbServerException exception)
             {
@@ -436,23 +436,23 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoPostersAmount) break;
-                    TvDB_ImagePoster img = RepoFactory.TvDB_ImagePoster.GetByTvDBID(id) ?? new TvDB_ImagePoster
+                    TvDB_ImagePoster img = Repo.TvDB_ImagePoster.GetByTvDBID(id) ?? new TvDB_ImagePoster
                     {
                         Enabled = 1
                     };
 
                     img.Populate(seriesID, image);
                     img.Language = client.AcceptedLanguage;
-                    RepoFactory.TvDB_ImagePoster.Save(img);
+                    Repo.TvDB_ImagePoster.Save(img);
                     validIDs.Add(id);
                     tvImages.Add(img);
                     count++;
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImagePoster img in RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID))
+                foreach (TvDB_ImagePoster img in Repo.TvDB_ImagePoster.GetBySeriesID(seriesID))
                     if (!validIDs.Contains(img.Id))
-                        RepoFactory.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
+                        Repo.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
             }
             catch (TvDbServerException exception)
             {
@@ -500,23 +500,23 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoWideBannersAmount) break;
-                    TvDB_ImageWideBanner img = RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(id) ?? new TvDB_ImageWideBanner
+                    TvDB_ImageWideBanner img = Repo.TvDB_ImageWideBanner.GetByTvDBID(id) ?? new TvDB_ImageWideBanner
                     {
                         Enabled = 1
                     };
 
                     img.Populate(seriesID, image);
                     img.Language = client.AcceptedLanguage;
-                    RepoFactory.TvDB_ImageWideBanner.Save(img);
+                    Repo.TvDB_ImageWideBanner.Save(img);
                     validIDs.Add(id);
                     tvImages.Add(img);
                     count++;
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImageWideBanner img in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
+                foreach (TvDB_ImageWideBanner img in Repo.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
                     if (!validIDs.Contains(img.Id))
-                        RepoFactory.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
+                        Repo.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
             }
             catch (TvDbServerException exception)
             {
@@ -543,7 +543,7 @@ namespace Shoko.Server.Providers.TvDB
         public static void DownloadAutomaticImages(List<TvDB_ImageFanart> images, int seriesID, bool forceDownload)
         {
             // find out how many images we already have locally
-            int imageCount = RepoFactory.TvDB_ImageFanart.GetBySeriesID(seriesID).Count(fanart =>
+            int imageCount = Repo.TvDB_ImageFanart.GetBySeriesID(seriesID).Count(fanart =>
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImageFanart img in images)
@@ -563,14 +563,14 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
+                        Repo.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
                 }
         }
 
         public static void DownloadAutomaticImages(List<TvDB_ImagePoster> images, int seriesID, bool forceDownload)
         {
             // find out how many images we already have locally
-            int imageCount = RepoFactory.TvDB_ImagePoster.GetBySeriesID(seriesID).Count(fanart =>
+            int imageCount = Repo.TvDB_ImagePoster.GetBySeriesID(seriesID).Count(fanart =>
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImagePoster img in images)
@@ -590,14 +590,14 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImagePoster.Delete(img);
+                        Repo.TvDB_ImagePoster.Delete(img);
                 }
         }
 
         public static void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
         {
             // find out how many images we already have locally
-            int imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
+            int imageCount = Repo.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
                 !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
 
             foreach (TvDB_ImageWideBanner img in images)
@@ -617,7 +617,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageWideBanner.Delete(img);
+                        Repo.TvDB_ImageWideBanner.Delete(img);
                 }
         }
 
@@ -710,7 +710,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(tvDBEpisodeID);
+                TvDB_Episode ep = Repo.TvDB_Episode.GetByTvDBID(tvDBEpisodeID);
                 if (ep == null || forceRefresh)
                 {
                     EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
@@ -719,7 +719,7 @@ namespace Shoko.Server.Providers.TvDB
 
                     if (ep == null) ep = new TvDB_Episode();
                     ep.Populate(episode);
-                    RepoFactory.TvDB_Episode.Save(ep);
+                    Repo.TvDB_Episode.Save(ep);
                 }
 
                 if (downloadImages)
@@ -789,7 +789,7 @@ namespace Shoko.Server.Providers.TvDB
                 List<TvDB_Episode> allEps = Repo.TvDB_Episode.GetBySeriesID(seriesID);
                 foreach (TvDB_Episode oldEp in allEps)
                     if (!existingEpIds.Contains(oldEp.Id))
-                        RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
+                        Repo.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
                 // Not updating stats as it will happen with the episodes
             }
             catch (Exception ex)
@@ -801,17 +801,17 @@ namespace Shoko.Server.Providers.TvDB
         public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
         {
             CrossRef_AniDB_TvDB_Episode_Override xref =
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBID, tvDBID) ??
+                Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBID, tvDBID) ??
                 new CrossRef_AniDB_TvDB_Episode_Override();
 
             xref.AniDBEpisodeID = aniDBID;
             xref.TvDBEpisodeID = tvDBID;
-            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(xref);
+            Repo.CrossRef_AniDB_TvDB_Episode_Override.Save(xref);
 
-            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
+            SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(ep.AniDB_Episode.AnimeID);
-            RepoFactory.AnimeEpisode.Save(ep);
+            Repo.AnimeEpisode.Save(ep);
 
             logger.Trace($"Changed tvdb episode association: {aniDBID}");
         }
@@ -819,17 +819,17 @@ namespace Shoko.Server.Providers.TvDB
         // Removes all TVDB information from a series, bringing it back to a blank state.
         public static void RemoveLinkAniDBTvDB(int animeID, int tvDBID)
         {
-            CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID);
+            CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID);
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
+            Repo.CrossRef_AniDB_TvDB.Delete(xref);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {
@@ -840,7 +840,7 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void UpdateAllInfo(bool force)
         {
-            IReadOnlyList<CrossRef_AniDB_TvDB> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TvDB> allCrossRefs = Repo.CrossRef_AniDB_TvDB.GetAll();
             foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
             {
                 CommandRequest_TvDBUpdateSeries cmd =

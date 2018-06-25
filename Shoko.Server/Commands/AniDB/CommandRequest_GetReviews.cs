@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
                 //Removed code as we have depreciated this effectively.
-                /*SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                /*SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)
                 {

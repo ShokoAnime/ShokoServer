@@ -429,13 +429,13 @@ namespace Shoko.Server.Providers.TraktTV
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 GetShowInfoV2(traktID);
-                traktShow = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
+                traktShow = Repo.Trakt_Show.GetByTraktSlug(traktID);
             }
 
             CrossRef_AniDB_TraktV2 xref;
             // download and update series info, episode info and episode images
 
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID,
+            CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID,
                                               seasonNumber, traktEpNumber,
                                               animeID,
                                               (int) aniEpType, aniEpNumber) ?? new CrossRef_AniDB_TraktV2();
@@ -508,7 +508,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Trakt_IsEnabled) return;
 
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
@@ -925,7 +925,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 //1.get traktid and slugid from episode id
                 if (!int.TryParse(AnimeEpisodeID, out int aep)) return 400;
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aep);
                 string slugID = string.Empty;
                 int season = 0;
                 int epNumber = 0;
@@ -1100,10 +1100,10 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // save this data to the DB for use later
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(tvshow.ids.slug) ?? new Trakt_Show();
+                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug) ?? new Trakt_Show();
 
                 show.Populate(tvshow);
-                RepoFactory.Trakt_Show.Save(show);
+                Repo.Trakt_Show.Save(show);
 
                 // save the seasons
 
@@ -1125,19 +1125,19 @@ namespace Shoko.Server.Providers.TraktTV
 
                 foreach (TraktV2Season sea in seasons)
                 {
-                    Trakt_Season season = RepoFactory.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number) ??
+                    Trakt_Season season = Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number) ??
                                           new Trakt_Season();
 
                     season.Season = sea.number;
                     season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
                     season.Trakt_ShowID = show.Trakt_ShowID;
-                    RepoFactory.Trakt_Season.Save(season);
+                    Repo.Trakt_Season.Save(season);
 
                     if (sea.episodes != null)
                     {
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            Trakt_Episode episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(
+                            Trakt_Episode episode = Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(
                                                         show.Trakt_ShowID, ep.season,
                                                         ep.number) ?? new Trakt_Episode();
 
@@ -1149,7 +1149,7 @@ namespace Shoko.Server.Providers.TraktTV
                             episode.Title = ep.title;
                             episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
                             episode.Trakt_ShowID = show.Trakt_ShowID;
-                            RepoFactory.Trakt_Episode.Save(episode);
+                            Repo.Trakt_Episode.Save(episode);
                         }
                     }
                 }
@@ -1286,7 +1286,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Trakt_IsEnabled) return;
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfo cmd = new CommandRequest_TraktUpdateInfo(xref.TraktID);
@@ -1614,7 +1614,7 @@ namespace Shoko.Server.Providers.TraktTV
                 // let's check if we can get this show on Trakt
                 int traktCode = TraktStatusCodes.Success;
                 // get all the shows from the database and make sure they are still valid Trakt Slugs
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(slug);
+                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(slug);
                 if (show == null)
                 {
                     logger.Error($"Unable to get Trakt Show for \"{slug}\". Attempting to download info, anyway.");
@@ -1624,7 +1624,7 @@ namespace Shoko.Server.Providers.TraktTV
                         logger.Error($"\"{slug}\" was not found on Trakt. Not continuing.");
                         return false;
                     }
-                    show = RepoFactory.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
+                    show = Repo.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
                 }
 
                 // note - getting extended show info also updates it as well
@@ -1657,7 +1657,7 @@ namespace Shoko.Server.Providers.TraktTV
             // 2. Delete default image links
 
             // 3. Delete episodes
-            RepoFactory.Trakt_Episode.Delete(RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
+            Repo.Trakt_Episode.Delete(Repo.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
 
             // 5. Delete seasons
             Repo.Trakt_Season.Delete(Repo.Trakt_Season.GetByShowID(show.Trakt_ShowID));

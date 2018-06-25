@@ -19,7 +19,7 @@ namespace Shoko.Server.Repositories.Cached
         public static AuthTokensRepository Create()
         {
             var repo = new AuthTokensRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 
@@ -75,7 +75,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public string ValidateUser(string username, string password, string device)
         {
-            JMMUser userrecord = RepoFactory.JMMUser.AuthenticateUser(username, password);
+            JMMUser userrecord = Repo.JMMUser.AuthenticateUser(username, password);
 
             if (userrecord == null) return string.Empty;
 

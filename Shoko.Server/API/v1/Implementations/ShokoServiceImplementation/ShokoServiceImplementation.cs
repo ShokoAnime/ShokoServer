@@ -83,7 +83,7 @@ namespace Shoko.Server
                 if (!Repo.BookmarkedAnime.FindAndDelete(()=> Repo.BookmarkedAnime.GetByID(bookmarkedAnimeID)))
                     return "Bookmarked not found";
 
-                RepoFactory.BookmarkedAnime.Delete(bookmarkedAnimeID);
+                Repo.BookmarkedAnime.Delete(bookmarkedAnimeID);
 
                 return string.Empty;
             }
@@ -127,7 +127,7 @@ namespace Shoko.Server
                 c.Filters = new CL_Changes<CL_GroupFilter>
                 {
                     ChangedItems = changes[0]
-                    .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a)?.ToClient())
+                    .ChangedItems.Select(a => Repo.GroupFilter.GetByID(a)?.ToClient())
                     .Where(a => a != null)
                     .ToList(),
                     RemovedItems = changes[0].RemovedItems.ToList(),
@@ -146,7 +146,7 @@ namespace Shoko.Server
                         if (!c.Filters.ChangedItems.Any(a => a.GroupFilterID == ag.ParentGroupFilterID.Value))
                         {
                             end = false;
-                            CL_GroupFilter cag = RepoFactory.GroupFilter.GetByID(ag.ParentGroupFilterID.Value)?
+                            CL_GroupFilter cag = Repo.GroupFilter.GetByID(ag.ParentGroupFilterID.Value)?
                                 .ToClient();
                             if (cag != null)
                                 c.Filters.ChangedItems.Add(cag);
@@ -198,8 +198,8 @@ namespace Shoko.Server
             CL_Changes<CL_GroupFilter> c = new CL_Changes<CL_GroupFilter>();
             try
             {
-                Changes<int> changes = RepoFactory.GroupFilter.GetChangeTracker().GetChanges(date);
-                c.ChangedItems = changes.ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a).ToClient())
+                Changes<int> changes = Repo.GroupFilter.GetChangeTracker().GetChanges(date);
+                c.ChangedItems = changes.ChangedItems.Select(a => Repo.GroupFilter.GetByID(a).ToClient())
                     .Where(a => a != null)
                     .ToList();
                 c.RemovedItems = changes.RemovedItems.ToList();
@@ -283,7 +283,7 @@ namespace Shoko.Server
         public List<string> GetAllYears()
         {
             List<CL_AnimeSeries_User> grps =
-                    RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                    Repo.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
             var allyears = new HashSet<string>(StringComparer.Ordinal);
             foreach (CL_AnimeSeries_User ser in grps)
             {
@@ -301,7 +301,7 @@ namespace Shoko.Server
         public List<string> GetAllSeasons()
         {
             List<CL_AnimeSeries_User> grps =
-                    RepoFactory.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                    Repo.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
             var allseasons = new SortedSet<string>(new SeasonComparator());
             foreach (CL_AnimeSeries_User ser in grps)
             {
@@ -666,7 +666,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                RepoFactory.CommandRequest.ClearHasherQueue();
+                Repo.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
             }
             catch (Exception ex)
@@ -681,7 +681,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                RepoFactory.CommandRequest.ClearImageQueue();
+                Repo.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
             }
             catch (Exception ex)
@@ -696,7 +696,7 @@ namespace Shoko.Server
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                RepoFactory.CommandRequest.ClearGeneralQueue();
+                Repo.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)
@@ -748,7 +748,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.Adhoc.GetAllVideoQuality();
+                return Repo.Adhoc.GetAllVideoQuality();
             }
             catch (Exception ex)
             {
@@ -761,7 +761,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.Adhoc.GetAllUniqueAudioLanguages();
+                return Repo.Adhoc.GetAllUniqueAudioLanguages();
             }
             catch (Exception ex)
             {
@@ -774,7 +774,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.Adhoc.GetAllUniqueSubtitleLanguages();
+                return Repo.Adhoc.GetAllUniqueSubtitleLanguages();
             }
             catch (Exception ex)
             {
@@ -787,19 +787,19 @@ namespace Shoko.Server
 
         public string LoginUrl(int userID)
         {
-            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            JMMUser user = Repo.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).LoginUrl;
         }
 
         public bool IsPlexAuthenticated(int userID)
         {
-            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            JMMUser user = Repo.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).IsAuthenticated;
         }
 
         public bool RemovePlexAuth(int userID)
         {
-            JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+            JMMUser user = Repo.JMMUser.GetByID(userID);
             PlexHelper.GetForUser(user).InvalidateToken();
             return true;
         }
@@ -815,45 +815,45 @@ namespace Shoko.Server
                 switch (imgType)
                 {
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageID);
+                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(imageID);
                         if (anime == null) return "Could not find anime";
                         anime.ImageEnabled = enabled ? 1 : 0;
-                        RepoFactory.AniDB_Anime.Save(anime);
+                        Repo.AniDB_Anime.Save(anime);
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner banner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
+                        TvDB_ImageWideBanner banner = Repo.TvDB_ImageWideBanner.GetByID(imageID);
                         if (banner == null) return "Could not find image";
                         banner.Enabled = enabled ? 1 : 0;
-                        RepoFactory.TvDB_ImageWideBanner.Save(banner);
+                        Repo.TvDB_ImageWideBanner.Save(banner);
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
+                        TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(imageID);
                         if (poster == null) return "Could not find image";
                         poster.Enabled = enabled ? 1 : 0;
-                        RepoFactory.TvDB_ImagePoster.Save(poster);
+                        Repo.TvDB_ImagePoster.Save(poster);
                         break;
 
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
+                        TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(imageID);
                         if (fanart == null) return "Could not find image";
                         fanart.Enabled = enabled ? 1 : 0;
-                        RepoFactory.TvDB_ImageFanart.Save(fanart);
+                        Repo.TvDB_ImageFanart.Save(fanart);
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
+                        MovieDB_Poster moviePoster = Repo.MovieDB_Poster.GetByID(imageID);
                         if (moviePoster == null) return "Could not find image";
                         moviePoster.Enabled = enabled ? 1 : 0;
-                        RepoFactory.MovieDB_Poster.Save(moviePoster);
+                        Repo.MovieDB_Poster.Save(moviePoster);
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
+                        MovieDB_Fanart movieFanart = Repo.MovieDB_Fanart.GetByID(imageID);
                         if (movieFanart == null) return "Could not find image";
                         movieFanart.Enabled = enabled ? 1 : 0;
-                        RepoFactory.MovieDB_Fanart.Save(movieFanart);
+                        Repo.MovieDB_Fanart.Save(movieFanart);
                         break;
                 }
 
@@ -897,15 +897,15 @@ namespace Shoko.Server
                     // which esssential means deleting the record
 
                     AniDB_Anime_DefaultImage img =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                        Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
                     if (img != null)
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
+                        Repo.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
                 }
                 else
                 {
                     // making the image the default for it's type (poster, fanart etc)
                     AniDB_Anime_DefaultImage img =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                        Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
                     if (img == null)
                         img = new AniDB_Anime_DefaultImage();
 
@@ -913,11 +913,11 @@ namespace Shoko.Server
                     img.ImageParentID = imageID;
                     img.ImageParentType = (int) imgType;
                     img.ImageType = (int) sizeType;
-                    RepoFactory.AniDB_Anime_DefaultImage.Save(img);
+                    Repo.AniDB_Anime_DefaultImage.Save(img);
                 }
 
-                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                RepoFactory.AnimeSeries.Save(series, false);
+                SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(animeID);
+                Repo.AnimeSeries.Save(series, false);
 
                 return string.Empty;
             }

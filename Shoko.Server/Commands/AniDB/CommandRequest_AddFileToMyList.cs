@@ -87,11 +87,11 @@ namespace Shoko.Server.Commands
                 if (lid != null && lid.Value > 0)
                 {
                     vid.MyListID = lid.Value;
-                    RepoFactory.VideoLocal.Save(vid);
+                    Repo.VideoLocal.Save(vid);
                 }
 
                 // do for all AniDB users
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
 
 
                 if (aniDBUsers.Count > 0)
@@ -129,7 +129,7 @@ namespace Shoko.Server.Commands
                 // if we don't have xrefs, then no series or eps.
                 if (xrefs.Count <= 0) return;
 
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID);
                 // all the eps should belong to the same anime
                 ser.QueueUpdateStats();
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
@@ -189,7 +189,7 @@ namespace Shoko.Server.Commands
             }
 
             if (Hash.Trim().Length <= 0) return false;
-            vid = RepoFactory.VideoLocal.GetByHash(Hash);
+            vid = Repo.VideoLocal.GetByHash(Hash);
             return true;
         }
 

@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands
                 // we will always assume that an anime was downloaded via http first
 
                 ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate
@@ -62,7 +62,7 @@ namespace Shoko.Server.Commands
                 }
 
                 sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                Repo.ScheduledUpdate.Save(sched);
 
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
@@ -72,8 +72,8 @@ namespace Shoko.Server.Commands
                 }
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
-                    var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(cal.AnimeID);
+                    var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
                     if (anime != null && update != null)
                     {
                         // don't update if the local data is less 2 days old
@@ -90,10 +90,10 @@ namespace Shoko.Server.Commands
                             if (anime.AirDate != cal.ReleaseDate)
                             {
                                 anime.AirDate = cal.ReleaseDate;
-                                RepoFactory.AniDB_Anime.Save(anime);
-                                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                                Repo.AniDB_Anime.Save(anime);
+                                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
-                                    RepoFactory.AnimeSeries.Save(ser, true, false);
+                                    Repo.AnimeSeries.Save(ser, true, false);
                             }
                         }
                     }

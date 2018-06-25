@@ -63,9 +63,9 @@ namespace Shoko.Server.Tasks
 
             // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
             session.Insert(tempGroup);
-            lock (RepoFactory.AnimeGroup.Cache)
+            lock (Repo.AnimeGroup.Cache)
             {
-                RepoFactory.AnimeGroup.Cache.Update(tempGroup);
+                Repo.AnimeGroup.Cache.Update(tempGroup);
             }
 
             return tempGroup;
@@ -161,13 +161,13 @@ namespace Shoko.Server.Tasks
                     {
                         filter.SeriesIds[0] = seriesForTagGroupFilter[0][filter.GroupFilterID].ToHashSet();
                         filter.GroupsIds[0] = filter.SeriesIds[0]
-                            .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                            .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                             .Where(id => id != -1).ToHashSet();
                         foreach (var user in users)
                         {
                             filter.SeriesIds[user.JMMUserID] = seriesForTagGroupFilter[user.JMMUserID][filter.GroupFilterID].ToHashSet();
                             filter.GroupsIds[user.JMMUserID] = filter.SeriesIds[user.JMMUserID]
-                                .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                                .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                                 .Where(id => id != -1).ToHashSet();
                         }
                     }
@@ -319,9 +319,9 @@ namespace Shoko.Server.Tasks
                 // Try to find an existing AnimeGroup to add the series to
                 // We basically pick the first group that any of the related series belongs to already
                 animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
-                    .Select(id => RepoFactory.AnimeSeries.GetByAnimeID(id))
+                    .Select(id => Repo.AnimeSeries.GetByAnimeID(id))
                     .Where(s => s != null)
-                    .Select(s => RepoFactory.AnimeGroup.GetByID(s.AnimeGroupID))
+                    .Select(s => Repo.AnimeGroup.GetByID(s.AnimeGroupID))
                     .FirstOrDefault(s => s != null);
 
                 if (animeGroup == null)

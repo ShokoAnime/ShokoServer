@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories
         public static AnimeCharacterRepository Create()
         {
             var repo = new AnimeCharacterRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 

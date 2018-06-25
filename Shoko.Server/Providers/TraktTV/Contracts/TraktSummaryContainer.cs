@@ -34,7 +34,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+                crossRefTraktV2 = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {

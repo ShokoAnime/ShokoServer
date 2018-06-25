@@ -207,19 +207,19 @@ namespace Shoko.Server.Extensions
             switch (imgType)
             {
                 case ImageEntityType.TvDB_Banner:
-                    parentImage = RepoFactory.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_Cover:
-                    parentImage = RepoFactory.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_FanArt:
-                    parentImage = RepoFactory.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_Poster:
-                    parentImage = RepoFactory.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_FanArt:
-                    parentImage = RepoFactory.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
                     break;
             }
 
@@ -333,7 +333,7 @@ namespace Shoko.Server.Extensions
                 {
                     cl.EpisodeNumber = eps[0].EpisodeNumber;
                     cl.EpisodeType = eps[0].EpisodeType;
-                    cl.EpisodeName = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
+                    cl.EpisodeName = Repo.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
                     cl.AnimeID = eps[0].AnimeID;
                     SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(eps[0].AnimeID);
                     if (anime != null)
@@ -346,7 +346,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
         {
-            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
+            var titles = Repo.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
             return new CL_AniDB_Episode
             {
                 AniDB_EpisodeID = ep.AniDB_EpisodeID,

@@ -263,7 +263,7 @@ namespace Shoko.Server
                 Utils.GetFilesForImportFolder(fldr.BaseDirectory, ref fileList);
 
                 // Get Ignored Files and remove them from the scan listing
-                var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+                var ignoredFiles = Repo.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
                     .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a) ).ToList();
                 fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
@@ -312,7 +312,7 @@ namespace Shoko.Server
             }
 
             // Get Ignored Files and remove them from the scan listing
-            var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
+            var ignoredFiles = Repo.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
                 .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
             fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
 
@@ -715,7 +715,7 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(chr.GetPosterPath())) continue;
                     bool fileExists = File.Exists(chr.GetPosterPath());
                     if (fileExists) continue;
-                    var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
+                    var AnimeID = Repo.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
                                       ?.AnimeID ?? 0;
                     if (AnimeID == 0) continue;
                     CommandRequest_DownloadAniDBImages cmd =
@@ -732,9 +732,9 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(seiyuu.GetPosterPath())) continue;
                     bool fileExists = File.Exists(seiyuu.GetPosterPath());
                     if (fileExists) continue;
-                    var chr = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID).FirstOrDefault();
+                    var chr = Repo.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID).FirstOrDefault();
                     if (chr == null) continue;
-                    var AnimeID = RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
+                    var AnimeID = Repo.AniDB_Anime_Character.GetByCharID(chr.CharID)?.FirstOrDefault()
                                       ?.AnimeID ?? 0;
                     if (AnimeID == 0) continue;
                     CommandRequest_DownloadAniDBImages cmd =
@@ -917,7 +917,7 @@ namespace Shoko.Server
                                 episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                                 seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                     .DistinctBy(a => a.AnimeSeriesID));
-                                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                                Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
                             }
                             transaction.Commit();
                         }
@@ -933,7 +933,7 @@ namespace Shoko.Server
                         {
                             using (var transaction = session.BeginTransaction())
                             {
-                                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                                Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
                                 transaction.Commit();
                             }
                         }
@@ -949,7 +949,7 @@ namespace Shoko.Server
                     cmdDel.Save();
                     using (var transaction = session.BeginTransaction())
                     {
-                        RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
+                        Repo.VideoLocal.DeleteWithOpenTransaction(session, v);
                         transaction.Commit();
                     }
                 }
@@ -957,13 +957,13 @@ namespace Shoko.Server
                 // Clean up failed imports
                 using (var transaction = session.BeginTransaction())
                 {
-                    var list = RepoFactory.VideoLocal.GetAll().SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
-                        .Where(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
+                    var list = Repo.VideoLocal.GetAll().SelectMany(a => Repo.CrossRef_File_Episode.GetByHash(a.Hash))
+                        .Where(a => Repo.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
                                     a.GetEpisode() == null).ToArray();
                     foreach (var xref in list)
                     {
                         // We don't need to update anything since they don't exist
-                        RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
+                        Repo.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
                     }
                     transaction.Commit();
                 }
@@ -984,7 +984,7 @@ namespace Shoko.Server
                 if (!string.IsNullOrEmpty(r))
                     return r;
             }
-            RepoFactory.CloudAccount.Delete(cloudaccountID);
+            Repo.CloudAccount.Delete(cloudaccountID);
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
             return string.Empty;
@@ -1075,7 +1075,7 @@ namespace Shoko.Server
                 gf.QueueUpdate();
             }
 
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            Repo.GroupFilter.CreateOrVerifyLockedFilters();
         }
 
 
@@ -1156,7 +1156,7 @@ namespace Shoko.Server
                 .ToList();
             foreach (SVR_GroupFilter g in evalfilters)
                 g.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(evalfilters);
+            Repo.GroupFilter.Save(evalfilters);
 
             if (sched == null)
             {
@@ -1269,7 +1269,7 @@ namespace Shoko.Server
                 };
             }
             sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
+            Repo.ScheduledUpdate.Save(sched);
 
             CommandRequest_Azure_SendUserInfo cmd =
                 new CommandRequest_Azure_SendUserInfo(ServerSettings.AniDB_Username);
@@ -1525,7 +1525,7 @@ namespace Shoko.Server
                 };
             }
             sched.LastUpdate = DateTime.Now;
-            RepoFactory.ScheduledUpdate.Save(sched);
+            Repo.ScheduledUpdate.Save(sched);
 
             }
             CommandRequest_GetAniDBTitles cmd = new CommandRequest_GetAniDBTitles();

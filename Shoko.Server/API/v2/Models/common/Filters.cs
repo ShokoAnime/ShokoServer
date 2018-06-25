@@ -35,7 +35,7 @@ namespace Shoko.Server.API.v2.Models.common
             };
 
             var _ = new List<string>();
-            var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
+            var gfs = Repo.GroupFilter.GetByParentID(f.id).AsParallel()
                 // Not invisible in clients
                 .Where(a => a.InvisibleInClients == 0 &&
                             // and Has groups or is a directory
@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (_.Count > 0)
             {
-                gfs = gfs.Concat(_.Select(tag => RepoFactory.GroupFilter.GetAll().FirstOrDefault(a =>
+                gfs = gfs.Concat(_.Select(tag => Repo.GroupFilter.GetAll().FirstOrDefault(a =>
                 {
                     if (a.FilterType != (int) GroupFilterType.Tag) return false;
                     if (tag.Equals("Original Work"))

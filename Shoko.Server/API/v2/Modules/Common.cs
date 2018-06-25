@@ -416,7 +416,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(para.id);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(para.id);
                 if (vid == null) return APIStatus.NotFound();
                 if (string.IsNullOrEmpty(vid.Hash))
                     return APIStatus.BadRequest("Could not Update a cloud file without hash, hash it locally first");
@@ -440,7 +440,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> filesWithoutEpisode = Repo.VideoLocal.GetVideosWithoutEpisode();
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -464,7 +464,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+                List<SVR_VideoLocal> filesWithoutEpisode = Repo.VideoLocal.GetManuallyLinkedVideos();
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -489,7 +489,7 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0) return APIStatus.BadRequest("missing 'id'");
-            SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByID(para.id);
+            SVR_VideoLocal vl = Repo.VideoLocal.GetByID(para.id);
             if (vl == null) return APIStatus.NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return APIStatus.NotFound("videolocal_place not found");
@@ -508,7 +508,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
+                foreach (SVR_VideoLocal vl in Repo.VideoLocal.GetVideosWithoutEpisode())
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
@@ -533,7 +533,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                foreach (SVR_VideoLocal vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vl in Repo.VideoLocal.GetManuallyLinkedVideos())
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
@@ -840,7 +840,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                RepoFactory.CommandRequest.ClearHasherQueue();
+                Repo.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
 
                 return APIStatus.OK();
@@ -861,7 +861,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                RepoFactory.CommandRequest.ClearGeneralQueue();
+                Repo.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorGeneral.Init();
 
                 return APIStatus.OK();
@@ -882,7 +882,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                RepoFactory.CommandRequest.ClearImageQueue();
+                Repo.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
 
                 return APIStatus.OK();
@@ -921,7 +921,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+            var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                 .Where(_tuple => _tuple.anidb != null)
@@ -939,7 +939,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
+            var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             Logger logger = LogManager.GetCurrentClassLogger();
             Task.Factory.StartNew(() =>
@@ -973,7 +973,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser) Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            var allvids = RepoFactory.VideoLocal.GetAll()
+            var allvids = Repo.VideoLocal.GetAll()
                 .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated == 1).ToList();
             return allvids.Select(vid => GetFileById(vid.VideoLocalID, para.level, user.JMMUserID)).ToList();
         }
@@ -991,7 +991,7 @@ namespace Shoko.Server.API.v2.Modules
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
             try
             {
-                List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
+                List<SVR_AnimeEpisode> list = Repo.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
                 foreach(SVR_AnimeEpisode ep in list)
                 {
                     Serie serie = null;
@@ -1121,7 +1121,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 return APIStatus.BadRequest("Invalid arguments");
             }
-            SVR_VideoLocal vlu = RepoFactory.VideoLocal.GetByID(para.id);
+            SVR_VideoLocal vlu = Repo.VideoLocal.GetByID(para.id);
             if (vlu != null)
             {
                 vlu.SetResumePosition(para.offset, user.JMMUserID);
@@ -1265,12 +1265,12 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
             List<object> lst = new List<object>();
 
-            List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(para.all == 1);
+            List<SVR_AnimeEpisode> eps = Repo.AnimeEpisode.GetEpisodesWithNoFiles(para.all == 1);
 
             var lookup = eps.ToLookup(a => a.AnimeSeriesID);
             foreach (var ser in lookup)
             {
-                var series = RepoFactory.AnimeSeries.GetByID(ser.Key);
+                var series = Repo.AnimeSeries.GetByID(ser.Key);
                 if (series.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false) continue;
 
                 Serie serie = Serie.GenerateFromAnimeSeries(Context, series, user.JMMUserID, true, true, 0, false,
@@ -1560,14 +1560,14 @@ namespace Shoko.Server.API.v2.Modules
             // 1. get series airing
             // 2. get eps for those series
             // 3. calculate which series have most of the files released today
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel()
+            ParallelQuery<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll().AsParallel()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
                             !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
                                 .FindInEnumerable(user.GetHideCategories()));
             DateTime now = DateTime.Now;
             List<Serie> result = allSeries.Where(ser =>
             {
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                var anime = Repo.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 // It might end today, but that's okay
                 if (anime.EndDate != null)
                 {
@@ -1598,7 +1598,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser)Context.CurrentUser;
             API_Call_Parameters para = this.Bind();
 
-            List<Serie> result = RepoFactory.BookmarkedAnime.GetAll().Select(ser => Serie.GenerateFromBookmark(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
+            List<Serie> result = Repo.BookmarkedAnime.GetAll().Select(ser => Serie.GenerateFromBookmark(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
 
             Group group = new Group
             {
@@ -1624,7 +1624,7 @@ namespace Shoko.Server.API.v2.Modules
             BookmarkedAnime ba = null;
             if (para.id != 0)
             {
-                ba = RepoFactory.BookmarkedAnime.GetByAnimeID(para.id);
+                ba = Repo.BookmarkedAnime.GetByAnimeID(para.id);
                 if (ba == null)
                 {
                     ba = new BookmarkedAnime();
@@ -1632,7 +1632,7 @@ namespace Shoko.Server.API.v2.Modules
                     ba.Priority = 1;
                     ba.Notes = "";
                     ba.Downloading = 0;
-                    RepoFactory.BookmarkedAnime.Save(ba);
+                    Repo.BookmarkedAnime.Save(ba);
                     return APIStatus.OK();
                 }
                 else
@@ -1658,10 +1658,10 @@ namespace Shoko.Server.API.v2.Modules
             BookmarkedAnime ba = null;
             if (para.id != 0)
             {
-                ba = RepoFactory.BookmarkedAnime.GetByAnimeID(para.id);
+                ba = Repo.BookmarkedAnime.GetByAnimeID(para.id);
                 if (ba != null)
                 {
-                    RepoFactory.BookmarkedAnime.Delete(ba);
+                    Repo.BookmarkedAnime.Delete(ba);
                     return APIStatus.OK();
                 }
                 else
@@ -1703,7 +1703,7 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
             DateTime now = DateTime.Now;
 
-            var allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel()
+            var allSeries = Repo.AniDB_Anime.GetAll().AsParallel()
                 .Where(a => a.AirDate != null && a.AirDate.Value > now &&
                             !a.GetAllTags().FindInEnumerable(user.GetHideCategories())).OrderBy(a => a.AirDate.Value).ToList();
             int offset_count = 0;
@@ -1929,7 +1929,7 @@ namespace Shoko.Server.API.v2.Modules
             JMMUser user = (JMMUser)Context.CurrentUser;
             if (para.id != 0)
             {
-                var anime = RepoFactory.AnimeSeries.GetByID(para.id);
+                var anime = Repo.AnimeSeries.GetByID(para.id);
                 if (anime == null) return new List<Group>();
                 return anime.AllGroupsAbove.Select(s => Group.GenerateFromAnimeGroup(Context, s, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.filter, para.allpics != 0, para.pic,
@@ -2015,7 +2015,7 @@ namespace Shoko.Server.API.v2.Modules
             long filesize = 0;
             int size = 0;
             Dictionary<int, SeriesInfo> output = new Dictionary<int, SeriesInfo>();
-            var vlps = RepoFactory.VideoLocalPlace.GetByImportFolder(id);
+            var vlps = Repo.VideoLocalPlace.GetByImportFolder(id);
             // each place counts in the filesize, so we use it
             foreach (SVR_VideoLocal_Place place in vlps)
             {
@@ -2189,7 +2189,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             Request request = Request;
             JMMUser user = (JMMUser) Context.CurrentUser;
-            var ser = RepoFactory.AnimeSeries.GetByID(series_id);
+            var ser = Repo.AnimeSeries.GetByID(series_id);
             if (ser == null) return APIStatus.NotFound("Series does not exist.");
             Serie sr = Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID,
                 nocast, notag, level, all, allpic, pic, tagfilter);
@@ -2207,7 +2207,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
                 if (ser == null) return APIStatus.BadRequest("Series not Found");
 
                 foreach (SVR_AnimeEpisode ep in ser.GetAnimeEpisodes())
@@ -2381,7 +2381,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             query = query.ToLowerInvariant();
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
@@ -2621,7 +2621,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             query = query.ToLowerInvariant();
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             if (user == null) return APIStatus.Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
@@ -2672,7 +2672,7 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("'score' value is wrong");
             }
 
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
             if (ser == null) return APIStatus.BadRequest($"Series with id {id} was not found");
             int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
                 ? (int) AniDBVoteType.Anime
@@ -2692,7 +2692,7 @@ namespace Shoko.Server.API.v2.Modules
             thisVote.VoteValue = score;
             thisVote.VoteType = voteType;
 
-            RepoFactory.AniDB_Vote.Save(thisVote);
+            Repo.AniDB_Vote.Save(thisVote);
 
             CommandRequest_VoteAnime cmdVote =
                 new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));
@@ -2795,7 +2795,7 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             // Include 'Unsort'
-            var vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+            var vids = Repo.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
             if (vids.Any())
             {
                 Filter filter = new Filter
@@ -2944,7 +2944,7 @@ namespace Shoko.Server.API.v2.Modules
             List<SVR_AnimeGroup_User> allGrps = Repo.AnimeGroup_User.GetByUserID(uid);
             foreach (SVR_AnimeGroup_User gr in allGrps)
             {
-                SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
+                SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(gr.AnimeGroupID);
                 Group grp = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, 0, allpics, pic, tagfilter);
                 grps.Add(grp);
             }
@@ -2964,7 +2964,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Group or APIStatus</returns>
         internal object GetGroup(int id, int uid, bool nocast, bool notag, int level, bool all, int filterid, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
-            SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(id);
+            SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(id);
             if (ag != null)
             {
                 Group gr = Group.GenerateFromAnimeGroup(Context, ag, uid, nocast, notag, level, all, filterid, allpics, pic, tagfilter);
@@ -3038,13 +3038,13 @@ namespace Shoko.Server.API.v2.Modules
         {
             query = query.ToLowerInvariant();
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             if (user == null) return APIStatus.Unauthorized();
 
             List<Group> group_list = new List<Group>();
             List<SVR_AnimeGroup> groups = new List<SVR_AnimeGroup>();
-            var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a =>
-                !RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Select(b => b?.Contract?.AniDBAnime?.Tags)
+            var allGroups = Repo.AnimeGroup.GetAll().Where(a =>
+                !Repo.AnimeSeries.GetByGroupID(a.AnimeGroupID).Select(b => b?.Contract?.AniDBAnime?.Tags)
                     .Where(b => b != null)
                     .Any(b => b.Select(c => c.TagName).FindInEnumerable(user.GetHideCategories())));
 
@@ -3118,17 +3118,17 @@ namespace Shoko.Server.API.v2.Modules
         {
             var ctx = Context;
             API_Call_Parameters param = this.Bind();
-            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(param.id);
+            SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(param.id);
             if (series == null) return APIStatus.BadRequest($"No Series with ID {param.id}");
             List<Role> roles = new List<Role>();
-            var xref_animestaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(series.AniDB_ID,
+            var xref_animestaff = Repo.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(series.AniDB_ID,
                 StaffRoleType.Seiyuu);
             foreach (var xref in xref_animestaff)
             {
                 if (xref.RoleID == null) continue;
-                var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
+                var character = Repo.AnimeCharacter.GetByID(xref.RoleID.Value);
                 if (character == null) continue;
-                var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
+                var staff = Repo.AnimeStaff.GetByID(xref.StaffID);
                 if (staff == null) continue;
 
                 string cdescription = character.Description;
@@ -3226,7 +3226,7 @@ namespace Shoko.Server.API.v2.Modules
 
             Dictionary<string, object> links = new Dictionary<string, object>();
 
-            var serie = RepoFactory.AnimeSeries.GetByID(para.id);
+            var serie = Repo.AnimeSeries.GetByID(para.id);
             var trakt = serie.GetTraktShow();
             links.Add("trakt", trakt?.Select(x => x.URL));
             var tvdb = serie.GetTvDBSeries();

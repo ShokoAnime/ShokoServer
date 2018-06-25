@@ -72,7 +72,7 @@ namespace Shoko.UI.Forms
                 Cursor = Cursors.Wait;
                 SVR_Scan s = (SVR_Scan) frm.SelectedScan;
                 HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
-                List<SVR_VideoLocal> vl = imp.SelectMany(a => RepoFactory.VideoLocal.GetByImportFolder(a))
+                List<SVR_VideoLocal> vl = imp.SelectMany(a => Repo.VideoLocal.GetByImportFolder(a))
                     .Distinct()
                     .ToList();
                 List<ScanFile> files = new List<ScanFile>();
@@ -91,7 +91,7 @@ namespace Shoko.UI.Forms
                         files.Add(sfile);
                     }
                 }
-                RepoFactory.ScanFile.Save(files);
+                Repo.ScanFile.Save(files);
                 this.IsEnabled = true;
                 Scanner.Instance.Scans.Add(s);
                 comboProvider.SelectedItem = s;
@@ -125,12 +125,12 @@ namespace Shoko.UI.Forms
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
                     scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    Repo.Scan.Save(scan);
                 }
                 List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
                 Scanner.Instance.ActiveErrorFiles.Clear();
                 files.ForEach(a => { a.Status = (int) ScanFileStatus.Waiting; });
-                RepoFactory.ScanFile.Save(files);
+                Repo.ScanFile.Save(files);
                 Scanner.Instance.Refresh();
             }
         }
@@ -151,10 +151,10 @@ namespace Shoko.UI.Forms
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
                     scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    Repo.Scan.Save(scan);
                 }
                 item.Status = (int) ScanFileStatus.Waiting;
-                RepoFactory.ScanFile.Save(item);
+                Repo.ScanFile.Save(item);
                 Scanner.Instance.ActiveErrorFiles.Remove(item);
                 Scanner.Instance.Refresh();
             }
@@ -175,7 +175,7 @@ namespace Shoko.UI.Forms
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
                     scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    Repo.Scan.Save(scan);
                 }
                 Scanner.Instance.DeleteAllErroredFiles();
                 Scanner.Instance.Refresh();

@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
                 ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
                 if (sched == null)
                 {
                     sched = new ScheduledUpdate
@@ -82,7 +82,7 @@ namespace Shoko.Server.Commands
 
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
-                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+                var dictAniFiles = Repo.AniDB_File.GetAll().ToLookup(a => a.Hash);
 
                 int missingFiles = 0;
                 foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetAll()
@@ -103,7 +103,7 @@ namespace Shoko.Server.Commands
                             if (vid.MyListID == 0)
                             {
                                 vid.MyListID = file.ListID;
-                                RepoFactory.VideoLocal.Save(vid);
+                                Repo.VideoLocal.Save(vid);
                             }
 
                             // Update file state if deleted
@@ -131,7 +131,7 @@ namespace Shoko.Server.Commands
                 }
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
                 LinkedHashSet<SVR_AnimeSeries> modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
 
                 // Remove Missing Files and update watched states (single loop)
@@ -145,7 +145,7 @@ namespace Shoko.Server.Commands
 
                         string hash = string.Empty;
 
-                        SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        SVR_AniDB_File anifile = Repo.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                         {
                             hash = anifile.Hash;
@@ -154,7 +154,7 @@ namespace Shoko.Server.Commands
                         {
                             // look for manually linked files
                             List<CrossRef_File_Episode> xrefs =
-                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                                Repo.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
@@ -171,7 +171,7 @@ namespace Shoko.Server.Commands
                         }
 
                         // If there's no video local, we don't have it
-                        SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
+                        SVR_VideoLocal vl = Repo.VideoLocal.GetByHash(hash);
                         if (vl == null)
                         {
                             filesToRemove.Add(myitem.ListID);

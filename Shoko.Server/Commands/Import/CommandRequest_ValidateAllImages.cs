@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands
                 ShokoService.CmdProcessorImages.QueueState = queueState;
                 int count = 0;
                 logger.Info("Scanning TvDB Episode thumbs for corrupted images");
-                var episodes = RepoFactory.TvDB_Episode.GetAll().Where(fanart =>
+                var episodes = Repo.TvDB_Episode.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBFanarts};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     logger.Info("Scanning TvDB Fanarts for corrupted images");
-                    var fanarts = RepoFactory.TvDB_ImageFanart.GetAll().Where(fanart =>
+                    var fanarts = Repo.TvDB_ImageFanart.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
@@ -92,7 +92,7 @@ namespace Shoko.Server.Commands
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBPosters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     logger.Info("Scanning TvDB Posters for corrupted images");
-                    var fanarts = RepoFactory.TvDB_ImagePoster.GetAll().Where(fanart =>
+                    var fanarts = Repo.TvDB_ImagePoster.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                             !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
@@ -118,7 +118,7 @@ namespace Shoko.Server.Commands
                     logger.Info("Scanning TvDB Banners for corrupted images");
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBBanners};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
-                    var fanarts = RepoFactory.TvDB_ImageWideBanner.GetAll().Where(fanart =>
+                    var fanarts = Repo.TvDB_ImageWideBanner.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
@@ -144,7 +144,7 @@ namespace Shoko.Server.Commands
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     count = 0;
                     logger.Info("Scanning MovieDB Posters for corrupted images");
-                    var fanarts = RepoFactory.MovieDB_Poster.GetAll().Where(fanart =>
+                    var fanarts = Repo.MovieDB_Poster.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                         !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
 
@@ -170,7 +170,7 @@ namespace Shoko.Server.Commands
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     count = 0;
                     logger.Info("Scanning MovieDB Fanarts for corrupted images");
-                    var fanarts = RepoFactory.MovieDB_Fanart.GetAll().Where(fanart =>
+                    var fanarts = Repo.MovieDB_Fanart.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
                             !Misc.IsImageValid(fanart.GetFullImagePath())).ToList();
                     logger.Info($"Found {fanarts.Count} corrupted MovieDB {(fanarts.Count == 1 ? "Fanart" : "Fanarts")}");
@@ -193,7 +193,7 @@ namespace Shoko.Server.Commands
                 ShokoService.CmdProcessorImages.QueueState = queueState;
                 count = 0;
                 logger.Info("Scanning AniDB Posters for corrupted images");
-                var posters = RepoFactory.AniDB_Anime.GetAll().Where(fanart =>
+                var posters = Repo.AniDB_Anime.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.PosterPath) && !Misc.IsImageValid(fanart.PosterPath)).ToList();
                 logger.Info($"Found {posters.Count} corrupted AniDB {(posters.Count == 1 ? "Poster" : "Posters")}");
                 foreach (var fanart in posters)
@@ -216,7 +216,7 @@ namespace Shoko.Server.Commands
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     count = 0;
                     logger.Info("Scanning AniDB Characters for corrupted images");
-                    var fanarts = RepoFactory.AniDB_Character.GetAll().Where(fanart =>
+                    var fanarts = Repo.AniDB_Character.GetAll().Where(fanart =>
                             !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath()))
                         .ToList();
                     logger.Info($"Found {fanarts.Count} corrupted AniDB Character {(fanarts.Count == 1 ? "image" : "images")}");
@@ -241,7 +241,7 @@ namespace Shoko.Server.Commands
                     ShokoService.CmdProcessorImages.QueueState = queueState;
                     count = 0;
                     logger.Info("Scanning AniDB Seiyuus for corrupted images");
-                    var fanarts = RepoFactory.AniDB_Seiyuu.GetAll().Where(fanart =>
+                    var fanarts = Repo.AniDB_Seiyuu.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetPosterPath()) && !Misc.IsImageValid(fanart.GetPosterPath())).ToList();
                     logger.Info($"Found {fanarts.Count} corrupted AniDB Seiyuu {(fanarts.Count == 1 ? "image" : "images")}");
                     foreach (var fanart in fanarts)

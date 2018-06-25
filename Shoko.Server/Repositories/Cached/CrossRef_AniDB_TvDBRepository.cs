@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
         public static CrossRef_AniDB_TvDBRepository Create()
         {
             var repo = new CrossRef_AniDB_TvDBRepository();
-            RepoFactory.CachedRepositories.Add(repo);
+            Repo.CachedRepositories.Add(repo);
             return repo;
         }
 
@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks()
         {
-            return RepoFactory.AnimeSeries.GetAll().Where(a =>
+            return Repo.AnimeSeries.GetAll().Where(a =>
             {
                 var anime = a.GetAnime();
                 if (anime == null) return false;
@@ -97,9 +97,9 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<CrossRef_AniDB_TvDBV2> GetV2LinksFromAnime(int animeID)
         {
-            List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
-                .ToLookup(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID),
-                    b => RepoFactory.TvDB_Episode.GetByTvDBID(b.TvDBEpisodeID))
+            List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = Repo.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
+                .ToLookup(a => Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID),
+                    b => Repo.TvDB_Episode.GetByTvDBID(b.TvDBEpisodeID))
                 .Select(a => (AniDB: a.Key, TvDB: a.FirstOrDefault())).Where(a => a.AniDB != null && a.TvDB != null)
                 .OrderBy(a => a.AniDB.EpisodeType).ThenBy(a => a.AniDB.EpisodeNumber).ToList();
 
@@ -148,7 +148,7 @@ namespace Shoko.Server.Repositories.Cached
                 TvDBID = a.TvDBSeries,
                 TvDBSeasonNumber = a.TvDBSeason,
                 TvDBStartEpisodeNumber = a.TvDBNumber,
-                TvDBTitle = RepoFactory.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
+                TvDBTitle = Repo.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
             }).ToList();
         }
     }

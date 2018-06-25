@@ -51,7 +51,7 @@ namespace Shoko.Server
 
         public void Init()
         {
-            Utils.MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
+            Utils.MainThreadDispatch(() => { Repo.Scan.GetAll().ForEach(a => Scans.Add(a)); });
             SVR_Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
@@ -75,8 +75,8 @@ namespace Shoko.Server
                 return;
             if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
                 CancelScan();
-            RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
-            RepoFactory.Scan.Delete(ActiveScan);
+            Repo.ScanFile.Delete(Repo.ScanFile.GetByScanID(ActiveScan.ScanID));
+            Repo.Scan.Delete(ActiveScan);
             Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
             ActiveScan = null;
         }
@@ -174,7 +174,7 @@ namespace Shoko.Server
                     upd.Process(() => ep, (epi) =>
                     {
                         LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
+                    });
                 }
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {

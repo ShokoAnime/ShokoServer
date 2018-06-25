@@ -79,7 +79,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pp != null)
                             dirs.Add(prov, pp, info);
                     }
-                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+                    List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
                     if (vids.Count > 0)
                     {
                         Directory pp = new Directory() {Type = "show"};
@@ -91,7 +91,7 @@ namespace Shoko.Server.PlexAndKodi
                         pp.ViewedLeafCount = 0;
                         dirs.Add(prov, pp, info);
                     }
-                    var playlists = RepoFactory.Playlist.GetAll();
+                    var playlists = Repo.Playlist.GetAll();
                     if (playlists.Count > 0)
                     {
                         Directory pp = new Directory() {Type = "show"};
@@ -228,7 +228,7 @@ namespace Shoko.Server.PlexAndKodi
                         var episodeID = -1;
                         if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                         {
-                            var anime = RepoFactory.AnimeEpisode.GetByID(episodeID)
+                            var anime = Repo.AnimeEpisode.GetByID(episodeID)
                                 .GetAnimeSeries()
                                 .GetAnime();
                             dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks()?.GenPoster(prov);
@@ -534,7 +534,7 @@ namespace Shoko.Server.PlexAndKodi
                             string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
                                 .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
-            //List<AniDB_Anime> animes = searchTag ? RepoFactory.AniDB_Anime.SearchByTag(query) : RepoFactory.AniDB_Anime.SearchByName(query);
+            //List<AniDB_Anime> animes = searchTag ? Repo.AniDB_Anime.SearchByTag(query) : Repo.AniDB_Anime.SearchByName(query);
             foreach (SVR_AnimeSeries ser in series)
             {
                 if (!user.AllowedSeries(ser)) continue;
@@ -1228,15 +1228,15 @@ namespace Shoko.Server.PlexAndKodi
             ServerSettings.Plex_Libraries = directories.Select(s => s.Key).ToArray();
         }
 
-        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetDirectories();
+        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).GetDirectories();
 
         public void UseDevice(int userId, MediaDevice server) =>
-            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).UseServer(server);
+            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).UseServer(server);
 
         public MediaDevice[] AvailableDevices(int userId) =>
-            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetPlexServers().ToArray();
+            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).GetPlexServers().ToArray();
 
         public MediaDevice CurrentDevice(int userId) =>
-            PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).ServerCache;
+            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).ServerCache;
     }
 }

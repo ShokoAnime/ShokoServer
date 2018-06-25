@@ -1057,7 +1057,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameEnglish.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                    var title = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
                         .FirstOrDefault()?.Title;
                     if (string.IsNullOrEmpty(title))
                     {
@@ -1074,7 +1074,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.EpisodeNameRomaji.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                    var title = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
                         .FirstOrDefault()?.Title;
                     if (string.IsNullOrEmpty(title))
                     {
@@ -1325,7 +1325,7 @@ namespace Shoko.Server.Renamer
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
             else
@@ -1333,7 +1333,7 @@ namespace Shoko.Server.Renamer
                 episodes = aniFile.Episodes;
                 if (episodes.Count == 0) return "*Error: Unable to get episode for file";
 
-                anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
 
@@ -1576,7 +1576,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
             {
-                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
+                var epname = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
                     .FirstOrDefault()?.Title;
                 if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
@@ -1588,7 +1588,7 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
             {
-                var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
+                var epname = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
                     .FirstOrDefault()?.Title;
                 if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
@@ -2018,7 +2018,7 @@ namespace Shoko.Server.Renamer
                 return (null, "File is null");
 
             ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
+            foreach (SVR_ImportFolder fldr in Repo.ImportFolder.GetAll()
                 .Where(a => a != null && a.CloudID == video.ImportFolder.CloudID).ToList())
             {
                 if (!fldr.FolderIsDropDestination) continue;
@@ -2047,7 +2047,7 @@ namespace Shoko.Server.Renamer
             if (xref == null) return (null, "No xrefs");
 
             // find the series associated with this episode
-            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+            SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
             if (series == null) return (null, "Series not Found");
 
             // sort the episodes by air date, so that we will move the file to the location of the latest episode
@@ -2060,7 +2060,7 @@ namespace Shoko.Server.Renamer
                 // check if this episode belongs to more than one anime
                 // if it does we will ignore it
                 List<CrossRef_File_Episode> fileEpXrefs =
-                    RepoFactory.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
+                    Repo.CrossRef_File_Episode.GetByEpisodeID(ep.AniDB_EpisodeID);
                 int? animeID = null;
                 bool crossOver = false;
                 foreach (CrossRef_File_Episode fileEpXref in fileEpXrefs)

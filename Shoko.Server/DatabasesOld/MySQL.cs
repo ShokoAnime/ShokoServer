@@ -922,7 +922,7 @@ namespace Shoko.Server.Databases
                 if (count == 0)
                 {
                     ExecuteWithException(myConn, updateVersionTable);
-                    AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
+                    AllVersions = Repo.Versions.GetAllByType(Constants.DatabaseTypeKey);
                 }
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)

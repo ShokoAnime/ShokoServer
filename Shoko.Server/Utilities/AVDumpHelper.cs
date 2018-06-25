@@ -86,7 +86,7 @@ namespace Shoko.Server
 
         public static string DumpFile(int vid)
         {
-            var vl = RepoFactory.VideoLocal.GetByID(vid);
+            var vl = Repo.VideoLocal.GetByID(vid);
             if (vl == null) return "Unable to get videoloocal with id: " + vid;
             string file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return "Unable to get file: " + vid;

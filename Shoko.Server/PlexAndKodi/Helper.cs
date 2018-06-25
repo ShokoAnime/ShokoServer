@@ -205,7 +205,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl?.RefreshMediaInfo() == true)
-                    RepoFactory.VideoLocal.Save(v, true);
+                    Repo.VideoLocal.Save(v, true);
                 m = v.Media;
             }
             if (m != null)
@@ -231,7 +231,7 @@ namespace Shoko.Server.PlexAndKodi
                     if (vl2.Media?.Duration != 0) continue;
                     SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
                     if (pl?.RefreshMediaInfo() == true)
-                        RepoFactory.VideoLocal.Save(vl2, true);
+                        Repo.VideoLocal.Save(vl2, true);
                 }
 
                 SVR_AnimeEpisode rep=Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(e.Key.AnimeEpisodeID));
@@ -298,7 +298,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl?.RefreshMediaInfo() == true)
-                            RepoFactory.VideoLocal.Save(v, true);
+                            Repo.VideoLocal.Save(v, true);
                     }
                     v.Media?.Parts?.Where(a => a != null)
                         ?.ToList()
@@ -314,7 +314,7 @@ namespace Shoko.Server.PlexAndKodi
                 string title = ep.Title;
                 if (!string.IsNullOrEmpty(title)) l.Title = title;
 
-                string romaji = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
+                string romaji = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
                     .FirstOrDefault()?.Title;
                 if (!string.IsNullOrEmpty(romaji)) l.OriginalTitle = romaji;
 
@@ -326,7 +326,7 @@ namespace Shoko.Server.PlexAndKodi
                     l.EpisodeType = aep.EpisodeType;
                     l.Rating = (int) float.Parse(aep.Rating, CultureInfo.InvariantCulture);
                     AniDB_Vote vote =
-                        RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
+                        Repo.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
                     if (vote != null) l.UserRating = (int) (vote.VoteValue / 100D);
 
                     if (aep.GetAirDateAsDate().HasValue)
@@ -419,7 +419,7 @@ namespace Shoko.Server.PlexAndKodi
                 pp.ViewedLeafCount = 0;
                 foreach (int grp in groups.Randomize())
                 {
-                    SVR_AnimeGroup ag = RepoFactory.AnimeGroup.GetByID(grp);
+                    SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(grp);
                     Video v = ag.GetPlexContract(userid);
                     if (v?.Art == null || v.Thumb == null) continue;
                     pp.Art = prov.ReplaceSchemeHost(v.Art);
@@ -814,8 +814,8 @@ namespace Shoko.Server.PlexAndKodi
                 //p.ChildCount = p.LeafCount;
                 p.ViewedLeafCount = ser.WatchedEpisodeCount;
                 p.Rating = (int) Math.Round((anime.Rating / 100D), 1);
-                AniDB_Vote vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime) ??
-                                  RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
+                AniDB_Vote vote = Repo.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.Anime) ??
+                                  Repo.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
                 if (vote != null) p.UserRating = (int) (vote.VoteValue / 100D);
 
                 List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;

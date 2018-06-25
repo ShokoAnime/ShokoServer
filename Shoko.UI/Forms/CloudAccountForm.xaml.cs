@@ -64,7 +64,7 @@ namespace Shoko.UI.Forms
                         SaveAccount = WorkingAccount;
                     }
                     SaveAccount.FileSystem = WorkingAccount.FileSystem;
-                    RepoFactory.CloudAccount.Save(SaveAccount);
+                    Repo.CloudAccount.Save(SaveAccount);
                     DialogResult = true;
                     Close();
                 }

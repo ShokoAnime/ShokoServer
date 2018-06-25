@@ -28,7 +28,7 @@ namespace Shoko.Server.API.v2.Modules
                     return new Response {StatusCode = HttpStatusCode.BadRequest};
 
                 //create and save new token for authenticated user or return known one
-                string apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
+                string apiKey = Repo.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
 
                 if (!string.IsNullOrEmpty(apiKey)) return Response.AsJson(new {apikey = apiKey});
 
@@ -40,7 +40,7 @@ namespace Shoko.Server.API.v2.Modules
             Delete("/", async (x,ct) => await Task.Factory.StartNew(() =>
             {
                 var apiKey = (string) Request.Query.apikey;
-                RepoFactory.AuthTokens.DeleteWithToken(apiKey);
+                Repo.AuthTokens.DeleteWithToken(apiKey);
                 return APIStatus.OK();
             }, ct));
         }
