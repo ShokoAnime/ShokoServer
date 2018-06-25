@@ -8,9 +8,11 @@ using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
+#if PRILONGPATH
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using Path = Pri.LongPath.Path;
+#endif
 
 namespace Shoko.Server
 {

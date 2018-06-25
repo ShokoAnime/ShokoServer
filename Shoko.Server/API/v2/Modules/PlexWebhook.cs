@@ -64,7 +64,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (episode == null) return;
 
-            var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+            var vl = Repo.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
@@ -85,7 +85,7 @@ namespace Shoko.Server.API.v2.Modules
 
             logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
 
-            var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+            var user = Repo.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
             {
                 logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
@@ -230,34 +230,34 @@ namespace Shoko.Server.API.v2.Modules
             }));
             Get("/sync", async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
+                new CommandRequest_PlexSyncWatched((SVR_JMMUser) this.Context.CurrentUser.Identity).Save();
                 return APIStatus.OK();
             }));
             Get("/sync/all",  async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
+                if (((SVR_JMMUser) this.Context.CurrentUser.Identity).IsAdmin != 1) return APIStatus.AdminNeeded();
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
             }));
 
             Get("/sync/{id}", async (x, ct) => await Task.Factory.StartNew(() =>
             {
-                if (((JMMUser) this.Context.CurrentUser).IsAdmin != 1) return APIStatus.AdminNeeded();
-                JMMUser user = RepoFactory.JMMUser.GetByID(x.id);
+                if (((SVR_JMMUser) this.Context.CurrentUser.Identity).IsAdmin != 1) return APIStatus.AdminNeeded();
+                JMMUser user = Repo.JMMUser.GetByID(x.id);
                 ShokoServer.Instance.SyncPlex();
                 return APIStatus.OK();
             }));
 #if DEBUG
-            Get["/test/dir"] = o => Response.AsJson(CallPlexHelper(h => h.GetDirectories()));
-            Get["/test/lib/{id}"] = o =>
+            Get("/test/dir", o => Response.AsJson(CallPlexHelper(h => h.GetDirectories())));
+            Get("/test/lib/{id}", o =>
                 Response.AsJson(CallPlexHelper(h =>
-                    ((SVR_Directory) h.GetDirectories().FirstOrDefault(d => d.Key == (int) o.id))?.GetShows()));
+                    ((SVR_Directory) h.GetDirectories().FirstOrDefault(d => d.Key == (int) o.id))?.GetShows())));
 #endif
         }
 
         private object CallPlexHelper(Func<PlexHelper, object> act)
         {
-            JMMUser user = (JMMUser) this.Context.CurrentUser;
+            JMMUser user = (SVR_JMMUser) this.Context.CurrentUser.Identity;
             return act(PlexHelper.GetForUser(user));
         }
     }

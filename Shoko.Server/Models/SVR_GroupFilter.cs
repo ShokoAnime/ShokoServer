@@ -296,7 +296,7 @@ namespace Shoko.Server.Models
         }
 
 
-        private bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
+        internal bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
         {
             if (ser == null) return false;
 
@@ -326,7 +326,7 @@ namespace Shoko.Server.Models
             return change;
         }
 
-        private bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
+        internal bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
         {
             if (grp == null) return false;
             bool change = false;

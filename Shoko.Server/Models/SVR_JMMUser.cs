@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Web.Script.Serialization;
+using System.Security.Principal;
+//using System.Web.Script.Serialization;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -8,7 +9,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_JMMUser : JMMUser, Nancy.Security.IUserIdentity
+    public class SVR_JMMUser : JMMUser, System.Security.Principal.IIdentity
     {
         public SVR_JMMUser()
         {
@@ -54,41 +55,47 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilters()
         {
-            IReadOnlyList<SVR_GroupFilter> gfs = RepoFactory.GroupFilter.GetAll();
-            List<SVR_AnimeGroup> allGrps = RepoFactory.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
-            foreach (SVR_GroupFilter gf in gfs)
+
+
+            List<SVR_AnimeGroup> allGrps = Repo.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+
+            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetAll()))
             {
-                bool change = false;
-                foreach (SVR_AnimeGroup grp in allGrps)
+
+                foreach (SVR_GroupFilter gf in upd)
                 {
-                    CL_AnimeGroup_User cgrp = grp.GetUserContract(this.JMMUserID);
-                    change |= gf.CalculateGroupFilterGroups(cgrp, this, JMMUserID);
+                    bool change = false;
+                    foreach (SVR_AnimeGroup grp in allGrps)
+                    {
+                        CL_AnimeGroup_User cgrp = grp.GetUserContract(this.JMMUserID);
+                        change |= gf.CalculateGroupFilterGroups(cgrp, this);
+                    }
+                    foreach (SVR_AnimeSeries ser in allSeries)
+                    {
+                        CL_AnimeSeries_User cser = ser.GetUserContract(this.JMMUserID);
+                        change |= gf.CalculateGroupFilterSeries(cser, this);
+                    }
+
+                    if (change)
+                        upd.Update(gf);
                 }
-                foreach (SVR_AnimeSeries ser in allSeries)
-                {
-                    CL_AnimeSeries_User cser = ser.GetUserContract(this.JMMUserID);
-                    change |= gf.CalculateGroupFilterSeries(cser, this, JMMUserID);
-                }
-                if (change)
-                    RepoFactory.GroupFilter.Save(gf);
+                upd.Commit();
             }
         }
 
-        // IUserIdentity implementation
-        [ScriptIgnore]
-        public string UserName
-        {
-            get { return Username; }
-        }
-
-        [ScriptIgnore]
+        //[ScriptIgnore]
         public IEnumerable<string> Claims { get; set; }
 
+        string IIdentity.AuthenticationType => "API";
+
+        bool IIdentity.IsAuthenticated => true;
+
+        string IIdentity.Name => Username;
 
         public SVR_JMMUser(string username)
         {
-            foreach (SVR_JMMUser us in RepoFactory.JMMUser.GetAll())
+            foreach (SVR_JMMUser us in Repo.JMMUser.GetAll())
             {
                 if (us.Username.ToLower() == username.ToLower())
                 {
@@ -101,7 +108,6 @@ namespace Shoko.Server.Models
                     HideCategories = us.HideCategories;
                     CanEditServerSettings = us.CanEditServerSettings;
                     PlexUsers = us.PlexUsers;
-                    Claims = us.Claims;
                     break;
                 }
             }

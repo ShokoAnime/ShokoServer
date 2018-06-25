@@ -15,7 +15,12 @@ using SearchOption = System.IO.SearchOption;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+#if PRILONGPATH
 using Pri.LongPath;
+#else
+using System.IO;
+#endif
+
 
 namespace LeanWork.IO.FileSystem
 {
@@ -31,7 +36,7 @@ namespace LeanWork.IO.FileSystem
     /// Notes:
     ///   We contain FilSystemWatcher to follow the prinicple composition over inheritance
     ///   and because System.IO.FileSystemWatcher is not designed to be inherited from:
-    ///   Event handlers and Dispose(disposing) are not virtual.
+    ///   Event handlers and Dispose(disposing) are  not virtual.
     /// </devdoc>
     public class BufferingFileSystemWatcher : Component
     {
