@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <Version>1.9.0.0</Version>
     <Company>ShokoAnime</Company>
     <Description>Shoko server is the core component of the Shoko suite and with it's client-server architecture which allows any program or plugin to access Shoko.</Description>
@@ -71,7 +71,6 @@
     <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
     <ProjectReference Include="$(SolutionDir)Nancy.Rest\Nancy.Rest.Module\Nancy.Rest.Module.csproj" />
     <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
     <ProjectReference Include="$(SolutionDir)TvDbSharper\TvDbSharper.csproj" />
   </ItemGroup>
   <ItemGroup>
