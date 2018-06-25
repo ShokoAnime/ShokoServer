@@ -17,9 +17,8 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Repositories.Cached;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons.Utils;
 using Shoko.Server.Utilities;
 

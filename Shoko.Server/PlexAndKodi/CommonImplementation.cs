@@ -207,16 +207,17 @@ namespace Shoko.Server.PlexAndKodi
 
             if (PlaylistID == 0)
             {
-                var ret = new BaseObject(
-                    prov.NewMediaContainer(MediaContainerTypes.Show, "Playlists", true, true, info));
-                if (!ret.Init(prov))
-                    return new MediaContainer(); //Normal
-                var retPlaylists = new List<Video>();
-                var playlists = Repo.Playlist.GetAll();
-
-                foreach (var playlist in playlists)
+                //using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    var dir = new Directory
+                    var ret = new BaseObject(
+                        prov.NewMediaContainer(MediaContainerTypes.Show, "Playlists", true, true, info));
+                    if (!ret.Init(prov))
+                        return new MediaContainer(); //Normal
+                    var retPlaylists = new List<Video>();
+                    var playlists = Repo.Playlist.GetAll();
+                    //var sessionWrapper = session.Wrap();
+
+                    foreach (var playlist in playlists)
                     {
                         var dir = new Directory
                         {
@@ -243,18 +244,10 @@ namespace Shoko.Server.PlexAndKodi
                         dir.ViewedLeafCount = 0;
                         retPlaylists.Add(prov, dir, info);
                     }
-                    else
-                    {
-                        dir.Thumb = prov.ConstructSupportImageLink("plex_404V.png");
-                    }
-                    dir.LeafCount = playlist.PlaylistItems.Split('|').Count().ToString();
-                    dir.ViewedLeafCount = "0";
-                    retPlaylists.Add(prov, dir, info);
+                    retPlaylists = retPlaylists.OrderBy(a => a.Title).ToList();
+                    ret.Childrens = retPlaylists;
+                    return ret.GetStream(prov);
                 }
-                retPlaylists = retPlaylists.OrderBy(a => a.Title).ToList();
-                ret.Childrens = retPlaylists;
-                return ret.GetStream(prov);
-
             }
             if (PlaylistID > 0)
             {
@@ -1053,32 +1046,32 @@ namespace Shoko.Server.PlexAndKodi
                             Art = nv.Art,
                             Title = ee.Name,
                             AnimeType = "AnimeType",
-                            LeafCount = ee.Count.ToString()
+                            LeafCount = ee.Count
                         };
                         v.ChildCount = v.LeafCount;
-                        v.ViewedLeafCount = "0";
+                        v.ViewedLeafCount = 0;
                         v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
                         v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
                         if ((ee.AnimeType == Shoko.Models.Enums.AnimeType.Movie) ||
                             (ee.AnimeType == Shoko.Models.Enums.AnimeType.OVA))
                         {
-                            Video v = new Directory
+                            Video v1 = new Directory
                             {
                                 Art = nv.Art,
                                 Title = ee.Name,
                                 AnimeType = "AnimeType",
                                 LeafCount = ee.Count
                             };
-                            v.ChildCount = v.LeafCount;
-                            v.ViewedLeafCount = 0;
-                            v.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
-                            v.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
+                            v1.ChildCount = v1.LeafCount;
+                            v1.ViewedLeafCount = 0;
+                            v1.Key = prov.ShortUrl(prov.ConstructSerieIdUrl(userid, ee.Type + "_" + ser.AnimeSeriesID));
+                            v1.Thumb = Helper.ConstructSupportImageLink(prov, ee.Image);
                             if ((ee.AnimeType == Shoko.Models.Enums.AnimeType.Movie) ||
                                 (ee.AnimeType == Shoko.Models.Enums.AnimeType.OVA))
                             {
-                                v = Helper.MayReplaceVideo(v, ser, cseries, userid, false, nv);
+                                v = Helper.MayReplaceVideo(v1, ser, cseries, userid, false, nv);
                             }
-                            dirs.Add(prov, v, info, false, true);
+                            dirs.Add(prov, v1, info, false, true);
                         }
                         dirs.Add(prov, v, info, false, true);
                     }
@@ -1123,11 +1116,12 @@ namespace Shoko.Server.PlexAndKodi
                         if (!hasRoles) hasRoles = true;
                     }
                 }
+                catch {} //TODO: Fix up
                 ret.Childrens = vids.OrderBy(a => a.EpisodeNumber).ToList();
                 FilterExtras(prov, ret.Childrens);
                 return ret.GetStream(prov);
             }
-            ret.Childrens = vids.OrderBy(a => int.Parse(a.EpisodeNumber)).ToList();
+            ret.Childrens = vids.OrderBy(a => a.EpisodeNumber).ToList();
             FilterExtras(prov, ret.Childrens);
             return ret.GetStream(prov);
 
