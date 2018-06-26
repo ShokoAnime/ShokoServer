@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -9,6 +8,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models
 {
@@ -40,10 +40,8 @@ namespace Shoko.Server.Models
             _plexContract = null;
         }
 
-        [NotMapped]
-        public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-        public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
+        public EpisodeType EpisodeTypeEnum => (EpisodeType)AniDB_Episode.EpisodeType;
 
         public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
@@ -52,13 +50,6 @@ namespace Shoko.Server.Models
             return Repo.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
         }
 
-                DateTime? airdate = aep.GetAirDateAsDate();
-                if (aep.EpisodeType == (int) EpisodeType.Episode && airdate != null)
-                    foreach (var xref in xref_tvdb)
-                    {
-                        tvep = Repo.TvDB_Episode.GetBySeriesIDAndDate(xref.TvDBID, airdate.Value);
-                        if (tvep != null) return tvDbEpisode = tvep;
-                    }
 
         /// <summary>
         /// Gets the AnimeSeries this episode belongs to
@@ -68,8 +59,7 @@ namespace Shoko.Server.Models
             return Repo.AnimeSeries.GetByID(AnimeSeriesID);
         }
 
-        [NotMapped]
-        public double UserRating
+        public List<SVR_VideoLocal> GetVideoLocals()
         {
             return Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
@@ -127,16 +117,15 @@ namespace Shoko.Server.Models
                     if (updateWatchedDate)
                         epUserRecord.WatchedDate = watchedDate.Value;
 
-                    if (watchedDate.HasValue && updateWatchedDate)
-                        upd.Entity.WatchedDate = watchedDate.Value;
+                if (!epUserRecord.WatchedDate.HasValue) epUserRecord.WatchedDate = DateTime.Now;
 
-                    if (!upd.Entity.WatchedDate.HasValue)
-                        upd.Entity.WatchedDate = DateTime.Now;
-                    upd.Commit();
-                }
+                Repo.AnimeEpisode_User.Save(epUserRecord);
             }
-            else if (epUserRecord != null)
-                Repo.AnimeEpisode_User.Delete(epUserRecord);
+            else
+            {
+                if (epUserRecord != null)
+                    Repo.AnimeEpisode_User.Delete(epUserRecord.AnimeEpisode_UserID);
+            }
         }
 
 
@@ -172,7 +161,8 @@ namespace Shoko.Server.Models
             return rr.Contract;
         }
 
-        public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID, bool syncTrakt)
+        public void ToggleWatchedStatus(bool watched, bool updateOnline, DateTime? watchedDate, int userID,
+            bool syncTrakt)
         {
             ToggleWatchedStatus(watched, updateOnline, watchedDate, true, userID, syncTrakt);
         }

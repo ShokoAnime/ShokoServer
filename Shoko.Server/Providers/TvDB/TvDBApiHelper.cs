@@ -4,8 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using System.IO;
 using NLog;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -72,12 +72,11 @@ namespace Shoko.Server.Providers.TvDB
                 TvDBRateLimiter.Instance.EnsureRate();
                 var response = await client.Series.GetAsync(seriesID);
                 Series series = response.Data;
-
-                tvSeries = tvSeries ?? new TvDB_Series();
-
-                tvSeries.PopulateFromSeriesInfo(series);
-                Repo.TvDB_Series.Save(tvSeries);
-
+                using (var tupd = Repo.TvDB_Series.BeginAddOrUpdate(()=> Repo.TvDB_Series.GetByTvDBID(seriesID)))
+                {
+                    tupd.Entity.PopulateFromSeriesInfo_RA(series);
+                    tvSeries=tupd.Commit();
+                }
                 return tvSeries;
             }
             catch (TvDbServerException exception)
@@ -359,7 +358,7 @@ namespace Shoko.Server.Providers.TvDB
             return Task.Run(async () => await GetFanartOnlineAsync(seriesID)).Result;
         }
 
-        public static async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
+       public static async Task<List<TvDB_ImageFanart>> GetFanartOnlineAsync(int seriesID)
         {
             List<int> validIDs = new List<int>();
             List<TvDB_ImageFanart> tvImages = new List<TvDB_ImageFanart>();
@@ -374,10 +373,14 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoFanartAmount) break;
-                    TvDB_ImageFanart img = Repo.TvDB_ImageFanart.GetByTvDBID(id) ?? new TvDB_ImageFanart
+                    TvDB_ImageFanart img;
+                    using (var repo = Repo.TvDB_ImageFanart.BeginAddOrUpdate(() => Repo.TvDB_ImageFanart.GetByTvDBID(id)))
                     {
-                        Enabled = 1
-                    };
+                        if (repo.Original == null)
+                            repo.Entity.Enabled = 1;
+                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Language = client.AcceptedLanguage;
+                        img = repo.Commit();
 
                     }
                     tvImages.Add(img);
@@ -412,6 +415,7 @@ namespace Shoko.Server.Providers.TvDB
             return tvImages;
         }
 
+
         public static List<TvDB_ImagePoster> GetPosterOnline(int seriesID)
         {
             return Task.Run(async () => await GetPosterOnlineAsync(seriesID)).Result;
@@ -436,14 +440,15 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoPostersAmount) break;
-                    TvDB_ImagePoster img = Repo.TvDB_ImagePoster.GetByTvDBID(id) ?? new TvDB_ImagePoster
+                    TvDB_ImagePoster img;
+                    using (var repo = Repo.TvDB_ImagePoster.BeginAddOrUpdate(() => Repo.TvDB_ImagePoster.GetByTvDBID(id)))
                     {
-                        Enabled = 1
-                    };
-
-                    img.Populate(seriesID, image);
-                    img.Language = client.AcceptedLanguage;
-                    Repo.TvDB_ImagePoster.Save(img);
+                        if (repo.Original == null)
+                            repo.Entity.Enabled = 1;
+                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Language = client.AcceptedLanguage;
+                        img = repo.Commit();
+                    }
                     validIDs.Add(id);
                     tvImages.Add(img);
                     count++;
@@ -500,14 +505,15 @@ namespace Shoko.Server.Providers.TvDB
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.TvDB_AutoWideBannersAmount) break;
-                    TvDB_ImageWideBanner img = Repo.TvDB_ImageWideBanner.GetByTvDBID(id) ?? new TvDB_ImageWideBanner
+                    TvDB_ImageWideBanner img;
+                    using (var repo = Repo.TvDB_ImageWideBanner.BeginAddOrUpdate(() => Repo.TvDB_ImageWideBanner.GetByTvDBID(id)))
                     {
-                        Enabled = 1
-                    };
-
-                    img.Populate(seriesID, image);
-                    img.Language = client.AcceptedLanguage;
-                    Repo.TvDB_ImageWideBanner.Save(img);
+                        if (repo.Original == null)
+                            repo.Entity.Enabled = 1;
+                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Language = client.AcceptedLanguage;
+                        img = repo.Commit();
+                    }
                     validIDs.Add(id);
                     tvImages.Add(img);
                     count++;
@@ -717,9 +723,11 @@ namespace Shoko.Server.Providers.TvDB
                     if (episode == null)
                         return null;
 
-                    if (ep == null) ep = new TvDB_Episode();
-                    ep.Populate(episode);
-                    Repo.TvDB_Episode.Save(ep);
+                    using (var eup = Repo.TvDB_Episode.BeginAddOrUpdate(()=> Repo.TvDB_Episode.GetByTvDBID(tvDBEpisodeID)))
+                    {
+                        eup.Entity.Populate_RA(episode);
+                        ep=eup.Commit();
+                    }
                 }
 
                 if (downloadImages)
