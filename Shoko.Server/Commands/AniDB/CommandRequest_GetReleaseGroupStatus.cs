@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands
                 SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago

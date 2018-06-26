@@ -70,7 +70,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 tags = Repo.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                     .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
-                    .Select(a => Repo.AniDB_Tag.GetByTagID(a.Key)?.TagName)
+                    .Select(a => Repo.AniDB_Tag.GetByID(a.Key)?.TagName)
                     .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
                 tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
@@ -87,7 +87,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 tags = Repo.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                     .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
-                    .Select(a => Repo.AniDB_Tag.GetByTagID(a.Key)?.TagName)
+                    .Select(a => Repo.AniDB_Tag.GetByID(a.Key)?.TagName)
                     .Where(a => a != null).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
                 tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();

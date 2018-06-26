@@ -8,7 +8,6 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Models
 {
@@ -95,31 +94,43 @@ namespace Shoko.Server.Models
 
             if (watched)
             {
-                // lets check if an update is actually required
-                if (epUserRecord?.WatchedDate != null && watchedDate != null &&
-                    epUserRecord.WatchedDate.Equals(watchedDate.Value) ||
-                    (epUserRecord?.WatchedDate == null && watchedDate == null))
-                    return;
+                using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
+                {
+                    // lets check if an update is actually required
+                    if (upd.Entity?.WatchedDate != null && watchedDate != null &&
+                        upd.Entity.WatchedDate.Equals(watchedDate.Value) ||
+                        (upd.Entity?.WatchedDate == null && watchedDate == null))
+                        return;
 
-                if (epUserRecord == null)
-                    epUserRecord = new SVR_AnimeEpisode_User
-                    {
-                        PlayedCount = 0,
-                        StoppedCount = 0,
-                        WatchedCount = 0
-                    };
-                epUserRecord.AnimeEpisodeID = AnimeEpisodeID;
-                epUserRecord.AnimeSeriesID = AnimeSeriesID;
-                epUserRecord.JMMUserID = userID;
-                epUserRecord.WatchedCount++;
+                    upd.Entity.AnimeEpisodeID = AnimeEpisodeID;
+                    upd.Entity.AnimeSeriesID = AnimeSeriesID;
+                    upd.Entity.JMMUserID = userID;
+                    upd.Entity.WatchedCount++;
 
-                if (watchedDate.HasValue)
-                    if (updateWatchedDate)
-                        epUserRecord.WatchedDate = watchedDate.Value;
+                    if (watchedDate.HasValue)
+                        if (updateWatchedDate)
+                            upd.Entity.WatchedDate = watchedDate.Value;
 
-                if (!epUserRecord.WatchedDate.HasValue) epUserRecord.WatchedDate = DateTime.Now;
+                    if (!upd.Entity.WatchedDate.HasValue) upd.Entity.WatchedDate = DateTime.Now;
 
-                Repo.AnimeEpisode_User.Save(epUserRecord);
+                    // lets check if an update is actually required
+                    if (upd.Entity?.WatchedDate != null && watchedDate != null &&
+                        upd.Entity.WatchedDate.Equals(watchedDate.Value) ||
+                        (upd.Entity?.WatchedDate == null && watchedDate == null))
+                        return;
+
+                    upd.Entity.AnimeEpisodeID = AnimeEpisodeID;
+                    upd.Entity.AnimeSeriesID = AnimeSeriesID;
+                    upd.Entity.JMMUserID = userID;
+                    upd.Entity.WatchedCount++;
+
+                    if (watchedDate.HasValue)
+                        if (updateWatchedDate)
+                            upd.Entity.WatchedDate = watchedDate.Value;
+
+                    if (!upd.Entity.WatchedDate.HasValue) upd.Entity.WatchedDate = DateTime.Now;
+                    epUserRecord = upd.Commit();
+                }
             }
             else
             {
@@ -137,26 +148,25 @@ namespace Shoko.Server.Models
                 .Select(v => v.ToClientDetailed(userID)).ToList();
         }
 
-        public CL_AnimeEpisode_User GetUserContract(int userid, ISessionWrapper session = null)
+        public CL_AnimeEpisode_User GetUserContract(int userid)
         {
             SVR_AnimeEpisode_User rr = GetUserRecord(userid);
             if (rr != null)
                 return rr.Contract;
-            rr = new SVR_AnimeEpisode_User
+
+            using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userid)))
             {
-                PlayedCount = 0,
-                StoppedCount = 0,
-                WatchedCount = 0,
-                AnimeEpisodeID = AnimeEpisodeID,
-                AnimeSeriesID = AnimeSeriesID,
-                JMMUserID = userid,
-                WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
-                    .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate
-            };
-            if (session != null)
-                Repo.AnimeEpisode_User.SaveWithOpenTransaction(session, rr);
-            else
-                Repo.AnimeEpisode_User.Save(rr);
+                upd.Entity.PlayedCount = 0;
+                upd.Entity.StoppedCount = 0;
+                upd.Entity.WatchedCount = 0;
+                upd.Entity.AnimeEpisodeID = AnimeEpisodeID;
+                upd.Entity.AnimeSeriesID = AnimeSeriesID;
+                upd.Entity.JMMUserID = userid;
+                upd.Entity.WatchedDate = GetVideoLocals().Select(vid => vid.GetUserRecord(userid))
+                    .FirstOrDefault(vid => vid?.WatchedDate != null)?.WatchedDate;
+
+                rr = upd.Commit();
+            }
 
             return rr.Contract;
         }

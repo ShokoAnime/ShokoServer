@@ -539,7 +539,7 @@ namespace Shoko.Server.Providers.TraktTV
             AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
-            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
+            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(aniep.AnimeID);
             if (anime == null)
                 return null;
 
@@ -1302,7 +1302,7 @@ namespace Shoko.Server.Providers.TraktTV
                 List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(series.AniDB_ID);
                 if (anime == null) return;
 
                 TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1366,7 +1366,7 @@ namespace Shoko.Server.Providers.TraktTV
                     logger.Trace("Syncing check -  local collection: {0} / {1} - {2}", counter, allSeries.Count,
                         series.GetSeriesName());
 
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(series.AniDB_ID);
                     if (anime == null) continue;
 
                     //if (anime.AnimeID != 3427) continue;

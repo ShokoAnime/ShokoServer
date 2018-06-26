@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
                 }
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(cal.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(cal.AnimeID);
                     var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
                     if (anime != null && update != null)
                     {

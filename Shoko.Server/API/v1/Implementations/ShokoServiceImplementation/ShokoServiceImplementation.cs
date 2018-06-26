@@ -815,7 +815,7 @@ namespace Shoko.Server
                 switch (imgType)
                 {
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(imageID);
+                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(imageID);
                         if (anime == null) return "Could not find anime";
                         anime.ImageEnabled = enabled ? 1 : 0;
                         Repo.AniDB_Anime.Save(anime);

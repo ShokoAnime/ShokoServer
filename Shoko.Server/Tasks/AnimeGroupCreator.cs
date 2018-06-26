@@ -284,7 +284,7 @@ namespace Shoko.Server.Tasks
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
-                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByAnimeID(mainAnimeId);
+                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByID(mainAnimeId);
 
                 animeGroup.Populate(mainAnime, now);
                 groupName = animeGroup.GroupName;

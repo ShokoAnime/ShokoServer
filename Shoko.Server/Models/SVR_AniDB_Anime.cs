@@ -206,7 +206,7 @@ namespace Shoko.Server.Models
             ref List<SVR_AniDB_Anime> relList,
             ref List<int> relListIDs, ref List<int> searchedIDs)
         {
-            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
             searchedIDs.Add(animeID);
 
             foreach (AniDB_Anime_Relation rel in anime.GetRelatedAnime(session))
@@ -217,7 +217,7 @@ namespace Shoko.Server.Models
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }
-                SVR_AniDB_Anime relAnime = Repo.AniDB_Anime.GetByAnimeID(session, rel.RelatedAnimeID);
+                SVR_AniDB_Anime relAnime = Repo.AniDB_Anime.GetByID(session, rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
                     if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower()))
@@ -955,7 +955,7 @@ namespace Shoko.Server.Models
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime.");
                     totalTimer.Stop();
-                    return null;
+                    return false;
                 }
 
                 taskTimer.Start();
@@ -975,15 +975,15 @@ namespace Shoko.Server.Models
                 logger.Trace("CreateTags in : " + taskTimer.ElapsedMilliseconds);
                 taskTimer.Restart();
 
-            CreateResources(resources);
-            taskTimer.Stop();
-            logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
-            taskTimer.Restart();
+                CreateResources(resources);
+                taskTimer.Stop();
+                logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
+                taskTimer.Restart();
 
-            CreateRelations(session, rels, downloadRelations, relDepth);
-            taskTimer.Stop();
-            logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
-            taskTimer.Restart();
+                CreateRelations(session, rels, downloadRelations, relDepth);
+                taskTimer.Stop();
+                logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
+                taskTimer.Restart();
 
                 upd.Entity.CreateRelations(rels, downloadRelations);
                 taskTimer.Stop();
@@ -994,8 +994,9 @@ namespace Shoko.Server.Models
                 taskTimer.Stop();
                 logger.Trace("CreateSimilarAnime in : " + taskTimer.ElapsedMilliseconds);
                 taskTimer.Restart();
+                upd.Commit();
+            }
 
-            Repo.AniDB_Anime.Save(this);
             totalTimer.Stop();
             logger.Trace("TOTAL TIME in : " + totalTimer.ElapsedMilliseconds);
             logger.Trace("------------------------------------------------");
@@ -1095,7 +1096,7 @@ namespace Shoko.Server.Models
             AllTags = string.Empty;
             using (var tupd = Repo.AniDB_Tag.BeginBatchUpdate(() => Repo.AniDB_Tag.GetMany(tags.Select(a => a.TagID))))
             {
-                AniDB_Tag tag = Repo.AniDB_Tag.GetByTagID(rawtag.TagID);
+                AniDB_Tag tag = Repo.AniDB_Tag.GetByID(rawtag.TagID);
 
                 if (tag == null)
                 {

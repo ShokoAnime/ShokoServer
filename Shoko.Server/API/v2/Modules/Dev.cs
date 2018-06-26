@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Modules
             foreach (var i in series)
             {
                 var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(i);
-                var anime = Repo.AniDB_Anime.GetByAnimeID(i);
+                var anime = Repo.AniDB_Anime.GetByID(i);
                 result.Add(new Relation
                 {
                     AnimeID = i,
@@ -55,7 +55,7 @@ namespace Shoko.Server.API.v2.Modules
                     Relations = relations.Select(a => new Relation
                     {
                         AnimeID = a,
-                        MainTitle = Repo.AniDB_Anime.GetByAnimeID(a)?.MainTitle
+                        MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
                     }).ToList()
                 });
             }
@@ -65,7 +65,7 @@ namespace Shoko.Server.API.v2.Modules
 
         private object GetRelationTreeForAnime(int id)
         {
-            var anime = Repo.AniDB_Anime.GetByAnimeID(id);
+            var anime = Repo.AniDB_Anime.GetByID(id);
             if (anime == null) return null;
             var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(id);
 
@@ -76,7 +76,7 @@ namespace Shoko.Server.API.v2.Modules
                 Relations = relations.Select(a => new Relation
                 {
                     AnimeID = a,
-                    MainTitle = Repo.AniDB_Anime.GetByAnimeID(a)?.MainTitle
+                    MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
                 }).ToList()
             };
         }

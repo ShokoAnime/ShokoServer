@@ -62,7 +62,7 @@ namespace Shoko.Server.API.v2.Models.common
             if (series != null)
                 return GenerateFromAnimeSeries(ctx, series, uid, nocast, notag, level, all, allpics, pic, tagfilter);
 
-            SVR_AniDB_Anime aniDB_Anime = Repo.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
+            SVR_AniDB_Anime aniDB_Anime = Repo.AniDB_Anime.GetByID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
                 Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);

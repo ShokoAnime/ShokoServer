@@ -58,6 +58,7 @@ namespace Shoko.Server.Databases
         public DbSet<AniDB_Seiyuu> AniDB_Seiyuus { get; set; } // AniDB_Seiyuu
         public DbSet<AniDB_Tag> AniDB_Tags { get; set; } // AniDB_Tag
         public DbSet<AniDB_Vote> AniDB_Votes { get; set; } // AniDB_Vote
+        public DbSet<AniDB_Episode_Title> AniDB_Episode_Title { get; set; } // AniDB_Episode_Title
         public DbSet<SVR_AnimeEpisode> AnimeEpisodes { get; set; } // AnimeEpisode
         public DbSet<SVR_AnimeEpisode_User> AnimeEpisode_Users { get; set; } // AnimeEpisode_User
         public DbSet<SVR_AnimeGroup> AnimeGroups { get; set; } // AnimeGroup

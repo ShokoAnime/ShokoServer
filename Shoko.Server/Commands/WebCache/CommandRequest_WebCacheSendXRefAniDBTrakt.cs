@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
                 Trakt_Show tvShow = Repo.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AnimeID);
                 if (anime == null) return;
 
                 string showName = string.Empty;

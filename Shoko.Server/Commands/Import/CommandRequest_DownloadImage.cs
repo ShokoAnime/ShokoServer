@@ -169,7 +169,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(EntityID);
+                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(EntityID);
                         if (anime == null)
                         {
                             logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
@@ -180,7 +180,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Character:
-                        AniDB_Character chr = Repo.AniDB_Character.GetByCharID(EntityID);
+                        AniDB_Character chr = Repo.AniDB_Character.GetByID(EntityID);
                         if (chr == null)
                         {
                             logger.Warn($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
@@ -191,7 +191,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Creator:
-                        AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
+                        AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(EntityID);
                         if (creator == null)
                         {
                             logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");

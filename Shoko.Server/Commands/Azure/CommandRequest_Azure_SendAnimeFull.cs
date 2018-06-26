@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands
 
                 if (!process) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
                 if (anime == null) return;
 
                 if (anime.AllTags.ToUpper().Contains("18 RESTRICTED")) return;

@@ -100,7 +100,7 @@ namespace Shoko.Server.Commands
                 foreach (int animeID in animeIDsToUpdate)
                 {
                     // update the anime from HTTP
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                     if (anime == null)
                     {
                         logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);

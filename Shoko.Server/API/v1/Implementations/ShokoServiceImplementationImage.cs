@@ -191,7 +191,7 @@ namespace Shoko.Server
             switch (it)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(imageId);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
                     {

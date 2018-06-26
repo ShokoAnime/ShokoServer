@@ -51,7 +51,7 @@ namespace Shoko.Server
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                     if (anime == null) return result;
 
                     var xrefs = Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
@@ -229,7 +229,7 @@ namespace Shoko.Server
                 List<CrossRef_AniDB_TvDB> xrefs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -328,7 +328,7 @@ namespace Shoko.Server
                 List<CrossRef_AniDB_TraktV2> xrefs = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -512,7 +512,7 @@ namespace Shoko.Server
                 if (xref != null && link.IsAdditive)
                 {
                     string msg = $"You have already linked Anime ID {xref.AniDBID} to this TvDB show/season/ep";
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AniDBID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AniDBID);
                     if (anime != null)
                         msg =
                             $"You have already linked Anime {anime.MainTitle} ({xref.AniDBID}) to this TvDB show/season/ep";
@@ -825,7 +825,7 @@ namespace Shoko.Server
                 {
                     string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep",
                         xref.AnimeID);
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AnimeID);
                     if (anime != null)
                     {
                         msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep",
@@ -1248,7 +1248,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
 
                 if (anime == null) return "Could not find Anime!";
 

@@ -1567,7 +1567,7 @@ namespace Shoko.Server.API.v2.Modules
             DateTime now = DateTime.Now;
             List<Serie> result = allSeries.Where(ser =>
             {
-                var anime = Repo.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                var anime = Repo.AniDB_Anime.GetByID(ser.AniDB_ID);
                 // It might end today, but that's okay
                 if (anime.EndDate != null)
                 {
@@ -1595,7 +1595,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         private object SeriesBookmark()
         {
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             List<Serie> result = Repo.BookmarkedAnime.GetAll().Select(ser => Serie.GenerateFromBookmark(Context, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
@@ -1618,7 +1618,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object SeriesBookmarkAdd()
         {
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity.Identity;
             API_Call_Parameters para = this.Bind();
 
             BookmarkedAnime ba = null;
@@ -1652,7 +1652,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object SeriesBookmarkRemove()
         {
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             BookmarkedAnime ba = null;
@@ -1699,7 +1699,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Group</returns>
         private object SeriesSoon()
         {
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             DateTime now = DateTime.Now;
 
@@ -1763,7 +1763,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesInfoByFolderId()
         {
             Request request = Request;
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1926,7 +1926,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesGroups()
         {
             API_Call_Parameters para = this.Bind();
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             if (para.id != 0)
             {
                 var anime = Repo.AnimeSeries.GetByID(para.id);
@@ -3221,7 +3221,7 @@ namespace Shoko.Server.API.v2.Modules
         public object GetLinks()
         {
             Request request = Request;
-            JMMUser user = (JMMUser)Context.CurrentUser;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             Dictionary<string, object> links = new Dictionary<string, object>();

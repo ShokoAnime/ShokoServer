@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // search TvDB
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
                 if (anime == null) return;
 
                 var searchCriteria = anime.MainTitle;

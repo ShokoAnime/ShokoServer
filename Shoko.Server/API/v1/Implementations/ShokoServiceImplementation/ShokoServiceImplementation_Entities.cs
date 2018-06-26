@@ -2185,7 +2185,7 @@ namespace Shoko.Server
                         topGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(ser.AniDB_ID);
                 if (anime == null)
                 {
                     contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
@@ -2252,7 +2252,7 @@ namespace Shoko.Server
                 ser.SeriesNameOverride = contract.SeriesNameOverride;
                 ser.DefaultFolder = contract.DefaultFolder;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(ser.AniDB_ID);
                 if (anime == null)
                 {
                     contractout.ErrorMessage = string.Format("Could not find anime record with ID: {0}", ser.AniDB_ID);
@@ -2317,7 +2317,7 @@ namespace Shoko.Server
                     }
 
                     // make sure the anime exists first
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(sessionWrapper, animeID);
                     if (anime == null)
                         anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, animeID, false, false);
 
@@ -2424,7 +2424,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return;
 
                 anime.DisableExternalLinksFlag = flags;
@@ -2489,7 +2489,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return;
 
                 SVR_JMMUser user = Repo.JMMUser.GetByID(userID);
@@ -2517,7 +2517,7 @@ namespace Shoko.Server
             List<CL_AniDB_Anime_Similar> links = new List<CL_AniDB_Anime_Similar>();
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return links;
 
                 SVR_JMMUser juser = Repo.JMMUser.GetByID(userID);
@@ -2526,7 +2526,7 @@ namespace Shoko.Server
 
                 foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime())
                 {
-                    SVR_AniDB_Anime animeLink = Repo.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
+                    SVR_AniDB_Anime animeLink = Repo.AniDB_Anime.GetByID(link.SimilarAnimeID);
                     if (animeLink != null)
                     {
                         if (!juser.AllowedAnime(animeLink)) continue;
@@ -2552,7 +2552,7 @@ namespace Shoko.Server
             List<CL_AniDB_Anime_Relation> links = new List<CL_AniDB_Anime_Relation>();
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return links;
 
                 SVR_JMMUser juser = Repo.JMMUser.GetByID(userID);
@@ -2561,7 +2561,7 @@ namespace Shoko.Server
 
                 foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
                 {
-                    SVR_AniDB_Anime animeLink = Repo.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
+                    SVR_AniDB_Anime animeLink = Repo.AniDB_Anime.GetByID(link.RelatedAnimeID);
                     if (animeLink != null)
                     {
                         if (!juser.AllowedAnime(animeLink)) continue;
@@ -2672,7 +2672,7 @@ namespace Shoko.Server
             {
                 using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(session.Wrap(), animeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(session.Wrap(), animeID);
                     return anime?.Contract.AniDBAnime;
                 }
             }
@@ -2917,7 +2917,7 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.AniDB_Anime.GetByAnimeID(animeID)?.Contract;
+                return Repo.AniDB_Anime.GetByID(animeID)?.Contract;
             }
             catch (Exception ex)
             {

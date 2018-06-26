@@ -878,7 +878,7 @@ namespace Shoko.Server
                                     ServerSettings.AutoGroupSeries);
                             }
                             else
-                                anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                                anime = Repo.AniDB_Anime.GetByID(animeID);
 
                             // create the group/series/episode records if needed
                             SVR_AnimeSeries ser = null;

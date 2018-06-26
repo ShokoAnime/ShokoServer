@@ -138,7 +138,7 @@ namespace Shoko.Server.Models
             if (animeID == 0) return false;
 
             var animes = groupingCalculator.GetIdsOfAnimeInSameGroup(animeID)
-                .Select(a => Repo.AniDB_Anime.GetByAnimeID(a)).Where(a => a != null)
+                .Select(a => Repo.AniDB_Anime.GetByID(a)).Where(a => a != null)
                 .SelectMany(a => a.GetAllTitles()).ToHashSet();
             return !animes.Contains(GroupName);
         }
@@ -372,7 +372,7 @@ namespace Shoko.Server.Models
                     }
 
                 return animeTags.OrderByDescending(a => a.Weight)
-                    .Select(animeTag => Repo.AniDB_Tag.GetByTagID(animeTag.TagID)).Where(tag => tag != null)
+                    .Select(animeTag => Repo.AniDB_Tag.GetByID(animeTag.TagID)).Where(tag => tag != null)
                     .ToList();
             }
         }

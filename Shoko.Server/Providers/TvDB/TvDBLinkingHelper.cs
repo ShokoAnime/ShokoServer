@@ -153,7 +153,7 @@ namespace Shoko.Server
             List<AniDB_Episode> aniepsNormal = anieps.Where(a => a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
 
-            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
 
             List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
                 new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
@@ -426,7 +426,7 @@ namespace Shoko.Server
                             GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allPrequels, "Prequel");
 
                             prequelAnimes = allPrequels
-                                .Select(a => Repo.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Select(a => Repo.AniDB_Anime.GetByID(a.RelatedAnimeID))
                                 .Where(a => a != null).OrderBy(a => a.AnimeID).ToList();
                         }
 
@@ -482,7 +482,7 @@ namespace Shoko.Server
                             GetAllRelationsByTypeRecursive(relations, ref visitedNodes, ref allSequels, "Sequel");
 
                             sequelAnimes = allSequels
-                                .Select(a => Repo.AniDB_Anime.GetByAnimeID(a.RelatedAnimeID))
+                                .Select(a => Repo.AniDB_Anime.GetByID(a.RelatedAnimeID))
                                 .Where(a => a != null).OrderByDescending(a => a.AnimeID).ToList();
                         }
 
@@ -775,7 +775,7 @@ namespace Shoko.Server
             // First, sort by AniDB type and number
             var xrefs = links.OrderBy(a => a.AniDBStartType).ThenBy(a => a.AniDBStartNumber).ToList();
             int AnimeID = xrefs.FirstOrDefault().AnimeID;
-            var anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+            var anime = Repo.AniDB_Anime.GetByID(AnimeID);
             if (anime == null) return new List<CrossRef_AniDB_TvDB_Episode_Override>();
 
             // Check if we have default links

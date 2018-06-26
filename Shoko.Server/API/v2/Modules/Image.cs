@@ -162,7 +162,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 // 1
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(id);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(id);
                     if (anime == null)
                         return null;
                     path = anime.PosterPath;

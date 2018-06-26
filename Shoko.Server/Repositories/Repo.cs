@@ -94,17 +94,17 @@ namespace Shoko.Server.Repositories
 
         public static ScanRepository Scan { get; private set; }
         public static ScanFileRepository ScanFile { get; private set; }
-
+        public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; internal set; }
 
 
 
         /************** Might need to be DEPRECATED **************/
         public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; private set; }
+        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; private set; }
 
         //AdHoc Repo
         public static AdhocRepository Adhoc { get; private set; }
-
-
+        
 
         private static List<IRepository> _repos;
         private static ShokoContext _db; 
@@ -139,6 +139,7 @@ namespace Shoko.Server.Repositories
             AniDB_Anime_Title = Register<AniDB_Anime_TitleRepository, AniDB_Anime_Title>(db.AniDB_Anime_Titles);
             AniDB_Anime_Tag = Register<AniDB_Anime_TagRepository, AniDB_Anime_Tag>(db.AniDB_Anime_Tags);
             AniDB_Tag = Register<AniDB_TagRepository, AniDB_Tag>(db.AniDB_Tags);
+            AniDB_Episode_Title = Register<AniDB_Episode_TitleRepository, AniDB_Episode_Title>(db.AniDB_Episode_Title);
             CustomTag = Register<CustomTagRepository, CustomTag>(db.CustomTags);
             CrossRef_CustomTag = Register<CrossRef_CustomTagRepository, CrossRef_CustomTag>(db.CrossRef_CustomTags);
             CrossRef_File_Episode = Register<CrossRef_File_EpisodeRepository, CrossRef_File_Episode>(db.CrossRef_File_Episodes);

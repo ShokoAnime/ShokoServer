@@ -744,7 +744,7 @@ namespace Shoko.Server.Providers.AniDB
                 skip = false;
             else
             {
-                anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) skip = false;
             }
 
@@ -853,7 +853,7 @@ namespace Shoko.Server.Providers.AniDB
             if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
             {
                 // update the anime with a record of the latest subbed episode
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime != null)
                 {
                     anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
@@ -991,7 +991,7 @@ namespace Shoko.Server.Providers.AniDB
 
             ISessionWrapper sessionWrapper = session.Wrap();
 
-            var anime = Repo.AniDB_Anime.GetByAnimeID(sessionWrapper, animeID);
+            var anime = Repo.AniDB_Anime.GetByID(sessionWrapper, animeID);
             var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
@@ -1045,7 +1045,7 @@ namespace Shoko.Server.Providers.AniDB
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
-            var anime = Repo.AniDB_Anime.GetByAnimeID(animeID) ?? new SVR_AniDB_Anime();
+            var anime = Repo.AniDB_Anime.GetByID(animeID) ?? new SVR_AniDB_Anime();
             if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,

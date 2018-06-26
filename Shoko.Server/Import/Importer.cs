@@ -914,7 +914,7 @@ namespace Shoko.Server
                 using (var transaction = session.BeginTransaction())
                 {
                     var list = Repo.VideoLocal.GetAll().SelectMany(a => Repo.CrossRef_File_Episode.GetByHash(a.Hash))
-                        .Where(a => Repo.AniDB_Anime.GetByAnimeID(a.AnimeID) == null ||
+                        .Where(a => Repo.AniDB_Anime.GetByID(a.AnimeID) == null ||
                                     a.GetEpisode() == null).ToArray();
                     foreach (var xref in list)
                     {

@@ -1325,7 +1325,7 @@ namespace Shoko.Server.Renamer
 
                 episodes.Add(animeEps[0].AniDB_Episode);
 
-                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
             else
@@ -1333,7 +1333,7 @@ namespace Shoko.Server.Renamer
                 episodes = aniFile.Episodes;
                 if (episodes.Count == 0) return "*Error: Unable to get episode for file";
 
-                anime = Repo.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
+                anime = Repo.AniDB_Anime.GetByID(episodes[0].AnimeID);
                 if (anime == null) return "*Error: Unable to get anime for file";
             }
 
