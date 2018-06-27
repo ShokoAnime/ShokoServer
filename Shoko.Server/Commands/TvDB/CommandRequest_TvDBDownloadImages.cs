@@ -2,6 +2,7 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.Commands
@@ -10,8 +11,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.TvDB_DownloadImages)]
     public class CommandRequest_TvDBDownloadImages : CommandRequestImplementation
     {
-        public virtual int TvDBSeriesID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int TvDBSeriesID { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
@@ -57,7 +58,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBDownloadImages_{TvDBSeriesID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

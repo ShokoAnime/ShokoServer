@@ -13,8 +13,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_SyncCollectionSeries)]
     public class CommandRequest_TraktSyncCollectionSeries : CommandRequestImplementation
     {
-        public virtual int AnimeSeriesID { get; set; }
-        public virtual string SeriesName { get; set; }
+        public int AnimeSeriesID { get; set; }
+        public string SeriesName { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
 
@@ -69,7 +69,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TraktSyncCollectionSeries_{AnimeSeriesID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

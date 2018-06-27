@@ -6,8 +6,6 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using System;
-using Shoko.Server.PlexAndKodi;
 
 namespace Shoko.Server.Models
 {
@@ -19,9 +17,6 @@ namespace Shoko.Server.Models
         public SVR_AnimeSeries_User()
         {
         }
-
-        private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract = null;
 
         public virtual Video PlexContract
         {

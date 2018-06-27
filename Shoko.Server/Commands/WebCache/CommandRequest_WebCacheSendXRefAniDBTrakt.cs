@@ -12,7 +12,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.WebCache_SendXRefAniDBTrakt)]
     public class CommandRequest_WebCacheSendXRefAniDBTrakt : CommandRequestImplementation
     {
-        public virtual int CrossRef_AniDB_TraktID { get; set; }
+        public int CrossRef_AniDB_TraktID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
                 Trakt_Show tvShow = Repo.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 string showName = string.Empty;
@@ -64,7 +64,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheSendXRefAniDBTrakt{CrossRef_AniDB_TraktID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -4,16 +4,17 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.Azure
 {
     [Command(CommandRequestType.Azure_SendAnimeXML)]
     public class CommandRequest_Azure_SendAnimeXML : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
+        public int AnimeID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -43,7 +44,7 @@ namespace Shoko.Server.Commands
 
                 if (!process) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 string filePath = ServerSettings.AnimeXmlDirectory;
@@ -83,7 +84,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_Azure_SendAnimeXML_{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

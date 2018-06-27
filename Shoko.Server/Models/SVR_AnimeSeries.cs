@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using Newtonsoft.Json;
-using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -21,7 +20,6 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models
@@ -170,36 +168,17 @@ namespace Shoko.Server.Models
 
         #region Trakt
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2()
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetCrossRefTraktV2(session);
-            }
-        }
-
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session)
-        {
-            return Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AniDB_ID);
-        }
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
 
         public List<Trakt_Show> GetTraktShow()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetTraktShow(session);
-            }
-        }
-
-        public List<Trakt_Show> GetTraktShow(ISession session)
-        {
             List<Trakt_Show> sers = new List<Trakt_Show>();
 
-            List<CrossRef_AniDB_TraktV2> xrefs = GetCrossRefTraktV2(session);
+            List<CrossRef_AniDB_TraktV2> xrefs = GetCrossRefTraktV2();
             if (xrefs == null || xrefs.Count == 0) return sers;
 
             foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
-                sers.Add(xref.GetByTraktShow(session));
+                sers.Add(xref.GetByTraktShow());
 
             return sers;
         }
@@ -275,8 +254,10 @@ namespace Shoko.Server.Models
             SVR_AnimeSeries_User rr = GetUserRecord(userid);
             if (rr != null)
                 return rr;
-            rr = new SVR_AnimeSeries_User(userid, AnimeSeriesID)
+            rr = new SVR_AnimeSeries_User
             {
+                JMMUserID = userid,
+                AnimeSeriesID = AnimeSeriesID,
                 WatchedCount = 0,
                 UnwatchedEpisodeCount = 0,
                 PlayedCount = 0,
@@ -471,7 +452,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(ISessionWrapper session,
+        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(//ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeSeries> seriesBatch, bool onlyStats = false)
         {
             if (session == null)

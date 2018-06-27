@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.CloudFileSystem;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;

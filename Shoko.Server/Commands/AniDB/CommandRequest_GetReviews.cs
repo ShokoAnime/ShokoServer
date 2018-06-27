@@ -10,8 +10,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_GetReviews)]
     public class CommandRequest_GetReviews : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
                 //Removed code as we have depreciated this effectively.
-                /*SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
+                /*SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
 
                 if (anime != null)
                 {
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetReviews_{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -12,7 +12,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_SyncCollection)]
     public class CommandRequest_TraktSyncCollection : CommandRequestImplementation
     {
-        public virtual bool ForceRefresh { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority8;
 
@@ -38,7 +38,9 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
 
-                using (var usch = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync)))
+                ScheduledUpdate sched =
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
+                if (sched == null)
                 {
                     sched = new ScheduledUpdate
                     {
@@ -54,20 +56,12 @@ namespace Shoko.Server.Commands
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
-                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
-
-                        // if we have run this in the last xxx hours then exit
-                        TimeSpan tsLastRun = DateTime.Now - usch.Entity.LastUpdate;
-                        if (tsLastRun.TotalHours < freqHours)
-                        {
-                            if (!ForceRefresh) return;
-                        }
+                        if (!ForceRefresh) return;
                     }
-                    usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktSync;
-                    usch.Entity.UpdateDetails = string.Empty;
-                    usch.Entity.LastUpdate = DateTime.Now;
-                    usch.Commit();
                 }
+                sched.LastUpdate = DateTime.Now;
+                Repo.ScheduledUpdate.Save(sched);
+
                 TraktTVHelper.SyncCollectionToTrakt();
             }
             catch (Exception ex)
@@ -85,7 +79,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_TraktSyncCollection";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

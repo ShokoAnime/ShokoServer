@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Xml;
-using Force.DeepCloner;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -12,7 +12,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.ReadMediaInfo)]
     public class CommandRequest_ReadMediaInfo : CommandRequestImplementation
     {
-        public virtual int VideoLocalID { get; set; }
+        public int VideoLocalID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -48,18 +48,8 @@ namespace Shoko.Server.Commands
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
-
-                SVR_VideoLocal local = place.VideoLocal.DeepClone();
-                place.RefreshMediaInfo(local);
-                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(()=> Repo.VideoLocal.GetByID(VideoLocalID)))
-                {
-                    if (upd.Original != null)
-                    {
-                        local.DeepCloneTo(upd.Entity);
-                        upd.Commit(true);
-                    }
-                }
-
+                if (place.RefreshMediaInfo())
+                    Repo.VideoLocal.Save(place.VideoLocal, true);
             }
             catch (Exception ex)
             {
@@ -77,7 +67,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ReadMediaInfo_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

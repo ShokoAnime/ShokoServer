@@ -1,5 +1,7 @@
-﻿using Shoko.Commons.Queue;
+﻿using System;
+using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -8,9 +10,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Refresh_GroupFilter)]
     public class CommandRequest_RefreshGroupFilter : CommandRequestImplementation
     {
-        public virtual int GroupFilterID { get; set; }
-
-        public override string CommandDetails => GroupFilterID.ToString();
+        public int GroupFilterID { get; set; }
 
         public CommandRequest_RefreshGroupFilter(int groupFilterID)
         {
@@ -37,7 +37,8 @@ namespace Shoko.Server.Commands
         {
             SVR_GroupFilter gf = Repo.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
-            SVR_GroupFilter.CalculateGroupsAndSeries(gf);
+            gf.CalculateGroupsAndSeries();
+            Repo.GroupFilter.Save(gf);
         }
 
         public override void GenerateCommandID()
@@ -45,7 +46,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshGroupFilter_{GroupFilterID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

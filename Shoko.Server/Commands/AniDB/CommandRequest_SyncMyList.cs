@@ -19,7 +19,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_SyncMyList)]
     public class CommandRequest_SyncMyList : CommandRequestImplementation
     {
-        public virtual bool ForceRefresh { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority7;
 
@@ -254,14 +254,8 @@ namespace Shoko.Server.Commands
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
-                logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync)))
-                {
-                    upd.Entity.UpdateType = (int) ScheduledUpdateType.AniDBMyListSync;
-                    upd.Entity.UpdateDetails = string.Empty;
-                    upd.Entity.LastUpdate = DateTime.Now;
-                    upd.Commit();
-                }
+                sched.LastUpdate = DateTime.Now;
+                Repo.ScheduledUpdate.Save(sched);
             }
             catch (Exception ex)
             {
@@ -274,7 +268,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_SyncMyList";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
@@ -293,6 +287,21 @@ namespace Shoko.Server.Commands
             }
 
             return true;
+        }
+
+        public override CommandRequest ToDatabaseObject()
+        {
+            GenerateCommandID();
+
+            CommandRequest cq = new CommandRequest
+            {
+                CommandID = CommandID,
+                CommandType = CommandType,
+                Priority = Priority,
+                CommandDetails = ToXML(),
+                DateTimeUpdated = DateTime.Now
+            };
+            return cq;
         }
     }
 }

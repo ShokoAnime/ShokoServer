@@ -15,11 +15,11 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_UpdateWatchedUDP)]
     public class CommandRequest_UpdateMyListFileStatus : CommandRequestImplementation
     {
-        public virtual string FullFileName { get; set; }
-        public virtual string Hash { get; set; }
-        public virtual bool Watched { get; set; }
-        public virtual bool UpdateSeriesStats { get; set; }
-        public virtual int WatchedDateAsSecs { get; set; }
+        public string FullFileName { get; set; }
+        public string Hash { get; set; }
+        public bool Watched { get; set; }
+        public bool UpdateSeriesStats { get; set; }
+        public int WatchedDateAsSecs { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -94,7 +94,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_UpdateMyListFileStatus_{Hash}_{Guid.NewGuid().ToString()}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

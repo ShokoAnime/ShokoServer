@@ -13,7 +13,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.WebCache_SendXRefAniDBTvDB)]
     public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation
     {
-        public virtual int CrossRef_AniDB_TvDBID { get; set; }
+        public int CrossRef_AniDB_TvDBID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
                 CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AniDBID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                 if (anime == null) return;
 
                 AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
@@ -60,7 +60,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheSendXRefAniDBTvDB{CrossRef_AniDB_TvDBID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

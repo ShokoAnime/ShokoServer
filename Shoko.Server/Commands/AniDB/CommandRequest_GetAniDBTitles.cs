@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Xml;
-using ICSharpCode.SharpZipLib.GZip;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -53,7 +52,7 @@ namespace Shoko.Server.Commands
                 StringBuilder b = new StringBuilder();
                 UTF8Encoding enc = new UTF8Encoding();
 
-                GZipInputStream zis = new GZipInputStream(s);
+                GZipStream zis = new GZipStream(s, CompressionMode.Decompress);
 
                 while ((bytes = zis.Read(data, 0, data.Length)) > 0)
                     b.Append(enc.GetString(data, 0, bytes));
@@ -126,7 +125,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetAniDBTitles_{DateTime.Now.ToString()}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

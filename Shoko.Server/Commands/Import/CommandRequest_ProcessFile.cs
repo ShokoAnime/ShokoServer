@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
@@ -23,8 +22,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.ProcessFile)]
     public class CommandRequest_ProcessFile : CommandRequestImplementation
     {
-        public virtual int VideoLocalID { get; set; }
-        public virtual bool ForceAniDB { get; set; }
+        public int VideoLocalID { get; set; }
+        public bool ForceAniDB { get; set; }
 
         private SVR_VideoLocal vlocal;
 
@@ -242,7 +241,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // get from DB
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                 var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
                 bool animeRecentlyUpdated = false;
 
@@ -271,8 +270,7 @@ namespace Shoko.Server.Commands
                     var ser = Repo.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
 
                     ser.CreateAnimeEpisodes();
-                    if (created_grp!=null)
-                        anime.TriggerAssociations();
+
                     // check if we have any group status data for this associated anime
                     // if not we will download it now
                     if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
@@ -282,14 +280,14 @@ namespace Shoko.Server.Commands
                         cmdStatus.Save();
                     }
 
-                    using (var gupd = Repo.AnimeGroup.BeginBatchUpdate(() => ser.AllGroupsAbove))
+                    // update stats
+                    ser.EpisodeAddedDate = DateTime.Now;
+                    Repo.AnimeSeries.Save(ser, false, false);
+
+                    foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                     {
-                        foreach (SVR_AnimeGroup grp in gupd)
-                        {
-                            grp.EpisodeAddedDate = now;
-                            gupd.Update(grp);
-                        }
-                        gupd.Commit((true, false, true));
+                        grp.EpisodeAddedDate = DateTime.Now;
+                        Repo.AnimeGroup.Save(grp, true, false);
                     }
 
                     // We do this inside, as the info will not be available as needed otherwise
@@ -363,7 +361,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_ProcessFile_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

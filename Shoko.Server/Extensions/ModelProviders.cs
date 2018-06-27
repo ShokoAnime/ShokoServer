@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using AniDBAPI;
-using NHibernate;
 using NLog;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;

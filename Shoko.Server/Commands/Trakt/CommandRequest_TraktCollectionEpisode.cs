@@ -13,8 +13,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_EpisodeCollection)]
     public class CommandRequest_TraktCollectionEpisode : CommandRequestImplementation
     {
-        public virtual int AnimeEpisodeID { get; set; }
-        public virtual int Action { get; set; }
+        public int AnimeEpisodeID { get; set; }
+        public int Action { get; set; }
 
         public TraktSyncAction ActionEnum => (TraktSyncAction) Action;
 
@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TraktCollectionEpisode{AnimeEpisodeID}-{Action}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

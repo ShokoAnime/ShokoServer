@@ -11,7 +11,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.WebCache_SendXRefFileEpisode)]
     public class CommandRequest_WebCacheSendXRefFileEpisode : CommandRequestImplementation
     {
-        public virtual int CrossRef_File_EpisodeID { get; set; }
+        public int CrossRef_File_EpisodeID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -55,7 +55,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheSendXRefFileEpisode{CrossRef_File_EpisodeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

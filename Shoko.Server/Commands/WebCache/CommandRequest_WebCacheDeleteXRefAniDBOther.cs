@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
@@ -10,8 +11,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.WebCache_DeleteXRefAniDBOther)]
     public class CommandRequest_WebCacheDeleteXRefAniDBOther : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual int CrossRefType { get; set; }
+        public int AnimeID { get; set; }
+        public int CrossRefType { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -52,7 +53,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheDeleteXRefAniDBOther_{AnimeID}_{CrossRefType}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

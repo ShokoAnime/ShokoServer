@@ -20,8 +20,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.TvDB_SearchAnime)]
     public class CommandRequest_TvDBSearchAnime : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // search TvDB
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 var searchCriteria = anime.MainTitle;
@@ -146,7 +146,6 @@ namespace Shoko.Server.Commands
                 }
                 if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
             }
-
             catch (Exception ex)
             {
                 logger.Error("Error processing CommandRequest_TvDBSearchAnime: {0} - {1}", AnimeID, ex);
@@ -216,7 +215,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_TvDBSearchAnime{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

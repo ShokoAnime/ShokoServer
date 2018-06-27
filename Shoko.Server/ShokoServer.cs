@@ -17,7 +17,6 @@ using Microsoft.Win32.TaskScheduler;
 using Nancy;
 using Nancy.Hosting.Self;
 using Nancy.Json;
-using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;

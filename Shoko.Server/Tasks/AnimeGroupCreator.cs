@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.ServiceModel.PeerResolvers;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NLog;
@@ -52,17 +51,19 @@ namespace Shoko.Server.Tasks
         private SVR_AnimeGroup CreateTempAnimeGroup()
         {
             DateTime now = DateTime.Now;
+            SVR_AnimeGroup tempGroup;
             using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => Repo.AnimeGroup.GetByID(0)))
             {
-                GroupName = TempGroupName,
-                Description = TempGroupName,
-                SortName = TempGroupName,
-                DateTimeUpdated = now,
-                DateTimeCreated = now
-            };
+                upd.Entity.GroupName = TempGroupName;
+                upd.Entity.Description = TempGroupName;
+                upd.Entity.SortName = TempGroupName;
+                upd.Entity.DateTimeUpdated = now;
+                upd.Entity.DateTimeCreated = now;
+                tempGroup = upd.Commit();
+            }
 
             // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
-            session.Insert(tempGroup);
+            //ssion.Insert(tempGroup);
             lock (Repo.AnimeGroup.Cache)
             {
                 Repo.AnimeGroup.Cache.Update(tempGroup);

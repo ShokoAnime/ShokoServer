@@ -16,7 +16,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 #if PRILONGPATH
-using Pri.LongPath;
+using System.IO;
 #else
 using System.IO;
 #endif

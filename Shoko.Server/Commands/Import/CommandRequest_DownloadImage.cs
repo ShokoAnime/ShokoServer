@@ -20,15 +20,14 @@ using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using Path = Pri.LongPath.Path;
 
-
 namespace Shoko.Server.Commands
 {
     [Command(CommandRequestType.ImageDownload)]
     public class CommandRequest_DownloadImage : CommandRequestImplementation
     {
-        public virtual int EntityID { get; set; }
-        public virtual int EntityType { get; set; }
-        public virtual bool ForceDownload { get; set; }
+        public int EntityID { get; set; }
+        public int EntityType { get; set; }
+        public bool ForceDownload { get; set; }
 
         public ImageEntityType EntityTypeEnum => (ImageEntityType) EntityType;
 
@@ -169,7 +168,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(EntityID);
+                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(EntityID);
                         if (anime == null)
                         {
                             logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
@@ -180,7 +179,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Character:
-                        AniDB_Character chr = Repo.AniDB_Character.GetByID(EntityID);
+                        AniDB_Character chr = Repo.AniDB_Character.GetByCharID(EntityID);
                         if (chr == null)
                         {
                             logger.Warn($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
@@ -191,7 +190,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Creator:
-                        AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(EntityID);
+                        AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
                         if (creator == null)
                         {
                             logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");
@@ -477,7 +476,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_DownloadImage_{EntityID}_{EntityType}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

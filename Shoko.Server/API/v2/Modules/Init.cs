@@ -12,7 +12,7 @@ using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
 using NLog;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;

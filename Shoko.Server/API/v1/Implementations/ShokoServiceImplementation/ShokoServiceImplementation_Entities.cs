@@ -17,7 +17,7 @@ using Shoko.Models.Interfaces;
 using NLog;
 using Shoko.Server.API.core;
 using NutzCode.CloudFileSystem;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.MAL;

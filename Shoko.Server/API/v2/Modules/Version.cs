@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Tasks;
 using Nancy;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;

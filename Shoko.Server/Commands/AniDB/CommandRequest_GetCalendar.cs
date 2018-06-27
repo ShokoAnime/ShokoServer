@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
                 }
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(cal.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(cal.AnimeID);
                     var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
                     if (anime != null && update != null)
                     {
@@ -89,8 +89,11 @@ namespace Shoko.Server.Commands
                             // update the release date even if we don't update the anime record
                             if (anime.AirDate != cal.ReleaseDate)
                             {
-                                anime.AirDate = cal.ReleaseDate;
-                                Repo.AniDB_Anime.Save(anime);
+                                using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime)) 
+                                {
+                                    upd.Entity.AirDate = cal.ReleaseDate;
+                                    upd.Commit();
+                                }
                                 SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
                                     Repo.AnimeSeries.Save(ser, true, false);

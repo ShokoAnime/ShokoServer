@@ -12,9 +12,9 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_VoteAnime)]
     public class CommandRequest_VoteAnime : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual int VoteType { get; set; }
-        public virtual decimal VoteValue { get; set; }
+        public int AnimeID { get; set; }
+        public int VoteType { get; set; }
+        public decimal VoteValue { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
 
@@ -62,7 +62,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_Vote_{AnimeID}_{VoteType}_{VoteValue}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

@@ -7,7 +7,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 
-namespace Shoko.Server.Commands
+namespace Shoko.Server.Commands.TvDB
 {
     [Serializable]
     [Command(CommandRequestType.LinkAniDBTvDB)]
@@ -62,7 +62,7 @@ namespace Shoko.Server.Commands
                 $"CommandRequest_LinkAniDBTvDB_{animeID}_{tvDBID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

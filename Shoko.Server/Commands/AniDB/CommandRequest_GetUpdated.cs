@@ -13,7 +13,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_GetUpdated)]
     public class CommandRequest_GetUpdated : CommandRequestImplementation
     {
-        public virtual bool ForceRefresh { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -44,7 +44,8 @@ namespace Shoko.Server.Commands
                 List<int> animeIDsToUpdate = new List<int>();
 
                 // check the automated update table to see when the last time we ran this command
-                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+                ScheduledUpdate sched =
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
@@ -52,7 +53,9 @@ namespace Shoko.Server.Commands
                     // if we have run this in the last 12 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
+                    {
                         if (!ForceRefresh) return;
+                    }
                 }
 
 
@@ -66,6 +69,10 @@ namespace Shoko.Server.Commands
                     webUpdateTime = long.Parse(Commons.Utils.AniDB.AniDBDate(utcTime));
                     webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
+                    sched = new ScheduledUpdate
+                    {
+                        UpdateType = (int)ScheduledUpdateType.AniDBUpdates
+                    };
                 }
                 else
                 {
@@ -81,13 +88,12 @@ namespace Shoko.Server.Commands
                 // startTime will contain the date/time from which the updates apply to
                 ShokoService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
 
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(()=> Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates)))
-                {
-                    upd.Entity.UpdateType = (int) ScheduledUpdateType.AniDBUpdates;
-                    upd.Entity.LastUpdate = DateTime.Now;
-                    upd.Entity.UpdateDetails = webUpdateTimeNew.ToString();
-                    sched=upd.Commit();
-                }
+                // now save the update time from AniDB
+                // we will use this next time as a starting point when querying the web cache
+                sched.LastUpdate = DateTime.Now;
+                sched.UpdateDetails = webUpdateTimeNew.ToString();
+                Repo.ScheduledUpdate.Save(sched);
+
                 if (animeIDsToUpdate.Count == 0)
                 {
                     logger.Info("No anime to be updated");
@@ -100,7 +106,7 @@ namespace Shoko.Server.Commands
                 foreach (int animeID in animeIDsToUpdate)
                 {
                     // update the anime from HTTP
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null)
                     {
                         logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);
@@ -146,7 +152,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_GetUpdated";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

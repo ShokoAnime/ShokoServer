@@ -15,8 +15,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_GetReleaseGroupStatus)]
     public class CommandRequest_GetReleaseGroupStatus : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int AnimeID { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -49,7 +49,7 @@ namespace Shoko.Server.Commands
                 SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -87,10 +87,14 @@ namespace Shoko.Server.Commands
                     grpCol.Groups.Count > 0)
                 {
                     // save in bulk to improve performance
-                    foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
+                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        CommandRequest_GetReleaseGroup cmdRelgrp = new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                        cmdRelgrp.Save();
+                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
+                        {
+                            CommandRequest_GetReleaseGroup cmdRelgrp =
+                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+                            cmdRelgrp.Save(session);
+                        }
                     }
                 }
             }
@@ -106,7 +110,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetReleaseGroupStatus_{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

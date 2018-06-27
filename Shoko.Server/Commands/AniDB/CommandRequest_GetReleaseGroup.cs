@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -12,8 +11,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_GetReleaseGroup)]
     public class CommandRequest_GetReleaseGroup : CommandRequestImplementation
     {
-        public virtual int GroupID { get; set; }
-        public virtual bool ForceRefresh { get; set; }
+        public int GroupID { get; set; }
+        public bool ForceRefresh { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority5;
 
@@ -42,20 +41,12 @@ namespace Shoko.Server.Commands
 
             try
             {
-                AniDB_ReleaseGroup relGroup = Repo.AniDB_ReleaseGroup.GetByID(GroupID);
+                AniDB_ReleaseGroup relGroup = Repo.AniDB_ReleaseGroup.GetByGroupID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {
                     // redownload anime details from http ap so we can get an update character list
-                    Raw_AniDB_Group raw=ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
-                    if (raw != null)
-                    {
-                        using (var upd = Repo.AniDB_ReleaseGroup.BeginAddOrUpdate(()=> Repo.AniDB_ReleaseGroup.GetByID(GroupID)))
-                        {
-                            upd.Entity.Populate_RA(raw);
-                            upd.Commit();
-                        }
-                    }
+                    ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
                 }
             }
             catch (Exception ex)
@@ -69,7 +60,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetReleaseGroup_{GroupID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

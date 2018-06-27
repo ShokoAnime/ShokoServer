@@ -3,6 +3,7 @@ using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Commands
 {
@@ -129,7 +130,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_DeleteFileFromMyList_{Hash}_{MyListID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

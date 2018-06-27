@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Xml;
 using AniDBAPI;
 using Shoko.Commons.Queue;
@@ -15,8 +14,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.AniDB_GetFileUDP)]
     public class CommandRequest_GetFile : CommandRequestImplementation
     {
-        public virtual int VideoLocalID { get; set; }
-        public virtual bool ForceAniDB { get; set; }
+        public int VideoLocalID { get; set; }
+        public bool ForceAniDB { get; set; }
 
         private SVR_VideoLocal vlocal;
 
@@ -68,7 +67,7 @@ namespace Shoko.Server.Commands
 
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || ForceAniDB)
-                        fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal.Hash);
+                        fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
 
                     if (fileInfo != null)
                     {
@@ -99,7 +98,6 @@ namespace Shoko.Server.Commands
             }
         }
 
-
         /// <summary>
         /// This should generate a unique key for a command
         /// It will be used to check whether the command has already been queued before adding it
@@ -109,7 +107,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_GetFile_{VideoLocalID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

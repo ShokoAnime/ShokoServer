@@ -686,7 +686,7 @@ namespace Shoko.Server.Models
             return h;
         }
 
-        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(ISessionWrapper session,
+        public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(//ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeGroup> animeGroups, bool updateStats)
         {
             if (session == null)

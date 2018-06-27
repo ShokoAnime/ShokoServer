@@ -12,7 +12,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Trakt_UpdateAllSeries)]
     public class CommandRequest_TraktUpdateAllSeries : CommandRequestImplementation
     {
-        public virtual bool ForceRefresh { get; set; }
+        public bool ForceRefresh { get; set; }
 
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority6;
@@ -36,9 +36,11 @@ namespace Shoko.Server.Commands
 
             try
             {
-                using (var usch = Repo.ScheduledUpdate.BeginAddOrUpdate(() => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate)))
+                ScheduledUpdate sched =
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
+                if (sched == null)
                 {
-                    if (usch.Original != null)
+                    sched = new ScheduledUpdate
                     {
                         UpdateType = (int)ScheduledUpdateType.TraktUpdate,
                         UpdateDetails = string.Empty
@@ -54,12 +56,9 @@ namespace Shoko.Server.Commands
                     {
                         if (!ForceRefresh) return;
                     }
-
-                    usch.Entity.UpdateType = (int) ScheduledUpdateType.TraktUpdate;
-                    usch.Entity.UpdateDetails = string.Empty;
-                    usch.Entity.LastUpdate = DateTime.Now;
-                    usch.Commit();
                 }
+                sched.LastUpdate = DateTime.Now;
+                Repo.ScheduledUpdate.Save(sched);
 
                 // update all info
                 TraktTVHelper.UpdateAllInfo();
@@ -82,7 +81,7 @@ namespace Shoko.Server.Commands
             CommandID = "CommandRequest_TraktUpdateAllSeries";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

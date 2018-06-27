@@ -75,6 +75,11 @@ namespace Shoko.Server.Repositories.Repos
             return Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate).ToList();
         }
 
+        public SVR_AniDB_Anime GetByAnimeID(int animeID)
+        {
+            return Table.FirstOrDefault(a => a.AniDB_AnimeID == animeID);
+        }
+
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
         {
             return Where(a => a.AllTitles.Contains(queryText, StringComparison.InvariantCultureIgnoreCase)).ToList();

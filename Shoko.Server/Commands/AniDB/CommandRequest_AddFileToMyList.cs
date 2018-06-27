@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -9,7 +8,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-
 
 namespace Shoko.Server.Commands
 {
@@ -86,8 +84,11 @@ namespace Shoko.Server.Commands
 
                 if (lid != null && lid.Value > 0)
                 {
-                    vid.MyListID = lid.Value;
-                    Repo.VideoLocal.Save(vid);
+                    using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vid)) //TODO: Test if this will work{
+                    {
+                        upd.Entity.MyListID = lid.Value;
+                        upd.Commit();
+                    }   
                 }
 
                 // do for all AniDB users
@@ -145,15 +146,6 @@ namespace Shoko.Server.Commands
                         cmdSyncTrakt.Save();
                     }
                 }
-
-                // sync the series on MAL
-                if (!string.IsNullOrEmpty(ServerSettings.MAL_Username) &&
-                    !string.IsNullOrEmpty(ServerSettings.MAL_Password))
-                {
-                    CommandRequest_MALUpdatedWatchedStatus cmdMAL =
-                        new CommandRequest_MALUpdatedWatchedStatus(ser.AniDB_ID);
-                    cmdMAL.Save();
-                }
             }
             catch (Exception ex)
             {
@@ -170,7 +162,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_AddFileToMyList_{Hash}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

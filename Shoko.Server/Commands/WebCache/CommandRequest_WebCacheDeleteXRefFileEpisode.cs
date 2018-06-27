@@ -2,6 +2,7 @@
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Providers.Azure;
 
 namespace Shoko.Server.Commands
@@ -9,8 +10,8 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.WebCache_DeleteXRefFileEpisode)]
     public class CommandRequest_WebCacheDeleteXRefFileEpisode : CommandRequestImplementation
     {
-        public virtual string Hash { get; set; }
-        public virtual int EpisodeID { get; set; }
+        public string Hash { get; set; }
+        public int EpisodeID { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
@@ -52,7 +53,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_WebCacheDeleteXRefFileEpisode-{Hash}-{EpisodeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;

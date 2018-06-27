@@ -10,9 +10,7 @@ namespace Shoko.Server.Commands
     [Command(CommandRequestType.Refresh_AnimeStats)]
     public class CommandRequest_RefreshAnime : CommandRequestImplementation
     {
-        public virtual int AnimeID { get; set; }
-
-        public override string CommandDetails => AnimeID.ToString();
+        public int AnimeID { get; set; }
 
         public CommandRequest_RefreshAnime(int animeID)
         {
@@ -45,7 +43,7 @@ namespace Shoko.Server.Commands
             CommandID = $"CommandRequest_RefreshAnime_{AnimeID}";
         }
 
-        public override bool InitFromDB(Shoko.Models.Server.CommandRequest cq)
+        public override bool LoadFromDBCommand(CommandRequest cq)
         {
             CommandID = cq.CommandID;
             CommandRequestID = cq.CommandRequestID;
