@@ -907,7 +907,7 @@ namespace Shoko.Server
                                     StringComparison.InvariantCultureIgnoreCase)))
                     {
                         cnt++;
-                        AniDB_Character chr = Repo.AniDB_Character.GetByCharID(animeChar.CharID);
+                        AniDB_Character chr = Repo.AniDB_Character.GetByID(animeChar.CharID);
                         if (chr != null)
                         {
                             Metro_AniDB_Character contract = new Metro_AniDB_Character();
@@ -927,7 +927,7 @@ namespace Shoko.Server
                     )
                     {
                         cnt++;
-                        AniDB_Character chr = Repo.AniDB_Character.GetByCharID(animeChar.CharID);
+                        AniDB_Character chr = Repo.AniDB_Character.GetByID(animeChar.CharID);
                         if (chr != null)
                         {
                             Metro_AniDB_Character contract = new Metro_AniDB_Character();

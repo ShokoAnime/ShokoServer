@@ -99,7 +99,7 @@ namespace Shoko.Server.Commands
                         case ImageEntityType.AniDB_Character:
                             if (!ServerSettings.AniDB_DownloadCharacters) continue;
                             var chrs = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                    select Repo.AniDB_Character.GetByCharID(xref1.CharID))
+                                    select Repo.AniDB_Character.GetByID(xref1.CharID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
                                 .DistinctBy(a => a.CharID)
                                 .ToList();

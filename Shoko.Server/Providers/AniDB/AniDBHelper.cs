@@ -815,7 +815,7 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
-            var relGroup = Repo.AniDB_ReleaseGroup.GetByGroupID(groupID) ?? new AniDB_ReleaseGroup();
+            var relGroup = Repo.AniDB_ReleaseGroup.GetByID(groupID) ?? new AniDB_ReleaseGroup();
 
             relGroup.Populate(getCmd.Group);
             Repo.AniDB_ReleaseGroup.Save(relGroup);

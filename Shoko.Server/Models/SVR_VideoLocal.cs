@@ -118,7 +118,7 @@ namespace Shoko.Server.Models
                 SVR_AniDB_File anifile = GetAniDBFile();
                 if (anifile == null) return null;
 
-                return Repo.AniDB_ReleaseGroup.GetByGroupID(anifile.GroupID);
+                return Repo.AniDB_ReleaseGroup.GetByID(anifile.GroupID);
             }
         }
 

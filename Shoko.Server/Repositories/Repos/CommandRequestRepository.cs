@@ -180,8 +180,6 @@ namespace Shoko.Server.Repositories.Repos
                     return CommandTypes.GetMultiple(1).Count;
                 return Table.Count(a => a.CommandType == 1);
             }
-
-
         }
 
         public int GetQueuedCommandCountImages()
@@ -193,6 +191,30 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Count(a => a.CommandType == 2);
             }
 
+        }
+
+        internal void ClearGeneralQueue()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                GetAllCommandRequestGeneral().ForEach(s => Delete(s));
+            }
+        }
+
+        internal void ClearHasherQueue()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                GetAllCommandRequestHasher().ForEach(s => Delete(s));
+            }
+        }
+
+        internal void ClearImageQueue()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                GetAllCommandRequestImages().ForEach(s => Delete(s));
+            }
         }
     }
 }

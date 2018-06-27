@@ -179,7 +179,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 2
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(id);
+                    AniDB_Character chr = Repo.AniDB_Character.GetByID(id);
                     if (chr == null)
                         return null;
                     path = chr.GetPosterPath();
@@ -196,7 +196,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 3
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetBySeiyuuID(id);
+                    AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(id);
                     if (creator == null)
                         return null;
                     path = creator.GetPosterPath();
@@ -447,7 +447,7 @@ namespace Shoko.Server.API.v2.Modules
                         .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
                         .SelectMany(a => a.GetAnimeCharacters())
                         .SelectMany(a => Repo.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                        .Select(a => Repo.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
+                        .Select(a => Repo.AniDB_Seiyuu.GetByID(a.SeiyuuID)).Where(a => a != null)
                         .GetRandomElement();
                     if (creator == null)
                         return null;

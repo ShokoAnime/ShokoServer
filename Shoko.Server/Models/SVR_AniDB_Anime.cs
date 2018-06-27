@@ -1201,7 +1201,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(sessionWrapper, rawchar.CharID) ??
+                    AniDB_Character chr = Repo.AniDB_Character.GetByID(sessionWrapper, rawchar.CharID) ??
                                           new AniDB_Character();
 
                     if (!chr.PopulateFromHTTP(rawchar)) continue;
@@ -1246,7 +1246,7 @@ namespace Shoko.Server.Models
                             }
 
                             // save the seiyuu
-                            AniDB_Seiyuu seiyuu = Repo.AniDB_Seiyuu.GetBySeiyuuID(session, rawSeiyuu.SeiyuuID);
+                            AniDB_Seiyuu seiyuu = Repo.AniDB_Seiyuu.GetByID(session, rawSeiyuu.SeiyuuID);
                             if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
                             seiyuu.PicName = rawSeiyuu.PicName;
                             seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;

@@ -9,7 +9,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
+    public class AniDB_VoteRepository : BaseRepository<AniDB_Vote, int>
     {
         private PocoIndex<int, AniDB_Vote, int> EntityIDs;
 
@@ -110,15 +110,11 @@ namespace Shoko.Server.Repositories.Cached
             return votesByAnime;
         }
 
-        protected override int SelectKey(AniDB_Vote entity) => entity.AniDB_VoteID;
+        internal override int SelectKey(AniDB_Vote entity) => entity.AniDB_VoteID;
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
             EntityIDs = new PocoIndex<int, AniDB_Vote, int>(Cache, a => a.EntityID);
-        }
-
-        public override void RegenerateDb()
-        {
         }
     }
 }
