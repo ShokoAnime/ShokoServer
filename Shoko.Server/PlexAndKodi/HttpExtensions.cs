@@ -4,8 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
-using System.ServiceModel;
-using System.ServiceModel.Channels;
 using Nancy;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;

@@ -149,7 +149,7 @@ namespace Shoko.Server.Models
         public static void RenameAllGroups()
         {
             logger.Info("Starting RenameAllGroups");
-            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            //using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
                 var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session.Wrap());
                 foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAll().ToList())

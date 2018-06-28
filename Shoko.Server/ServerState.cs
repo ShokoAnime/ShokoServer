@@ -3,7 +3,6 @@ using System.ComponentModel;
 using NLog;
 using Microsoft.Win32;
 using System;
-using Microsoft.Win32.TaskScheduler;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Enums;

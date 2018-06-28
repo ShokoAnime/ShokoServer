@@ -54,6 +54,11 @@ namespace Shoko.Server.Repositories.Repos
 
             return ls.ToLookup(a => a.AnimeID, a => a);
         }
+
+        internal AniDB_Character GetByCharID(int charID)
+        {
+            return Where(a => a.CharID == charID).FirstOrDefault();
+        }
     }
 
     public class AnimeCharacterAndSeiyuu

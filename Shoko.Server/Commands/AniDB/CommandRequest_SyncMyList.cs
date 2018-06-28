@@ -4,7 +4,6 @@ using System.Linq;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
-using Iesi.Collections.Generic;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;

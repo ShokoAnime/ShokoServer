@@ -24,13 +24,16 @@
   <ItemGroup>
     <Compile Remove="DatabasesOld\**" />
     <Compile Remove="Databases\Extensions\**" />
+    <Compile Remove="Mappings\**" />
     <Compile Remove="RepositoriesOld\**" />
     <EmbeddedResource Remove="DatabasesOld\**" />
     <EmbeddedResource Remove="Databases\Extensions\**" />
+    <EmbeddedResource Remove="Mappings\**" />
     <EmbeddedResource Remove="RepositoriesOld\**" />
     <None Remove="DatabasesOld\**" />
     <None Remove="Databases\Extensions\**" />
     <None Remove="RepositoriesOld\**" />
+    <None Remove="Mappings\**" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />

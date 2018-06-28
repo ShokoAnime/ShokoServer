@@ -16,8 +16,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Repositories.Repos;
 
 namespace Shoko.Server.Commands
 {
@@ -94,15 +93,13 @@ namespace Shoko.Server.Commands
             int nshareID = -1;
 
 
-            Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
-            if (tup == null)
+            (SVR_ImportFolder folder, string filePath) = VideoLocal_PlaceRepository.GetFromFullPath(FileName);
+            if (folder == null)
             {
                 logger.Error($"Unable to locate Import Folder for {FileName}");
                 return;
             }
-            SVR_ImportFolder folder = tup.Item1;
-            string filePath = tup.Item2;
-            IFileSystem f = tup.Item1.FileSystem;
+            IFileSystem f = folder.FileSystem;
             if (f == null)
             {
                 logger.Error("Unable to open filesystem for: {0}", FileName);
@@ -136,8 +133,8 @@ namespace Shoko.Server.Commands
             }
 
 
-            FileSystemResult<IObject> source = f.Resolve(FileName);
-            if (source == null || !source.IsOk || !(source.Result is IFile))
+            FileSystemResult<IObject> source = (FileSystemResult<IObject>)f.Resolve(FileName);
+            if (source == null || source.Status != Status.Ok || !(source.Result is IFile))
             {
                 logger.Error("Could not access file: " + FileName);
                 return;
@@ -149,7 +146,7 @@ namespace Shoko.Server.Commands
 
 
             // check if we have already processed this file
-            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocalPlace.GetByFilePathAndImportFolderID(filePath, nshareID);
+            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocal_Place.GetByFilePathAndImportFolderID(filePath, nshareID);
             SVR_VideoLocal vlocal = null;
             var filename = Path.GetFileName(filePath);
 
@@ -169,7 +166,7 @@ namespace Shoko.Server.Commands
                             vlocal = null;
                         }
 
-                        Repo.VideoLocalPlace.Delete(vlocalplace);
+                        Repo.VideoLocal_Place.Delete(vlocalplace);
                         vlocalplace = null;
                     }
 
@@ -209,7 +206,7 @@ namespace Shoko.Server.Commands
                     ImportFolderType = folder.ImportFolderType
                 };
                 // Make sure we have an ID
-                Repo.VideoLocalPlace.Save(vlocalplace);
+                Repo.VideoLocal_Place.Save(vlocalplace);
             }
 
             // check if we need to get a hash this file
@@ -263,7 +260,7 @@ namespace Shoko.Server.Commands
                                  " putting in videolocal table with empty ED2K");
                     Repo.VideoLocal.Save(vlocal, false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                    Repo.VideoLocalPlace.Save(vlocalplace);
+                    Repo.VideoLocal_Place.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
                         Repo.VideoLocal.Save(vlocalplace.VideoLocal, true);
                     return;
@@ -311,14 +308,14 @@ namespace Shoko.Server.Commands
                         // clean up, if there is a 'duplicate file' that is invalid, remove it.
                         if (prep.FullServerPath == null)
                         {
-                            Repo.VideoLocalPlace.Delete(prep);
+                            Repo.VideoLocal_Place.Delete(prep);
                         }
                         else
                         {
                             FileSystemResult dupFileSystemResult =
-                                prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
-                            if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
-                                Repo.VideoLocalPlace.Delete(prep);
+                                (FileSystemResult)prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
+                            if (dupFileSystemResult == null || dupFileSystemResult.Status != Status.Ok)
+                                Repo.VideoLocal_Place.Delete(prep);
                         }
                     }
 
@@ -365,7 +362,7 @@ namespace Shoko.Server.Commands
                     Repo.VideoLocal.Save(vlocal, true);
 
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                Repo.VideoLocalPlace.Save(vlocalplace);
+                Repo.VideoLocal_Place.Save(vlocalplace);
 
                 if (duplicate)
                 {

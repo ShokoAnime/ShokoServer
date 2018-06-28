@@ -82,7 +82,7 @@ namespace Shoko.Server
         private static string RemoveSubgroups(string value)
         {
             int originalLength = value.Length;
-            var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
+            var releaseGroups = Repo.AniDB_Anime.GetAllReleaseGroups();
             foreach (string releaseGroup in releaseGroups)
             {
                 value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);

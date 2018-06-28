@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Nancy.Json;
 using Newtonsoft.Json;

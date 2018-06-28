@@ -20,7 +20,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB
@@ -1037,16 +1036,16 @@ namespace Shoko.Server.Providers.AniDB
             return null;
         }
 
-        public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
+        public SVR_AniDB_Anime SaveResultsForAnimeXML(int animeID, bool downloadRelations,
             bool validateImages,
             AniDBHTTPCommand_GetFullAnime getAnimeCmd, int relDepth)
         {
-            ISessionWrapper sessionWrapper = session.Wrap();
+            
 
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
             var anime = Repo.AniDB_Anime.GetByID(animeID) ?? new SVR_AniDB_Anime();
-            if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+            if (!anime.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                 getAnimeCmd.Categories, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
                 downloadRelations, relDepth))
@@ -1067,7 +1066,7 @@ namespace Shoko.Server.Providers.AniDB
             Repo.AniDB_Anime.Save(anime);
             if (ser != null)
             {
-                ser.CreateAnimeEpisodes(session);
+                ser.CreateAnimeEpisodes();
                 Repo.AnimeSeries.Save(ser, true, false);
             }
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);

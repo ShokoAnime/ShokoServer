@@ -79,6 +79,20 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        internal IEnumerable<AniDB_Tag> GetByName(string tagName)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return GetAll().Where(s => s.TagName.Equals(tagName, StringComparison.InvariantCultureIgnoreCase));
+            }
+        }
 
+        internal AniDB_Tag GetByTagID(int tagID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return GetAll().FirstOrDefault(s => s.TagID == tagID);
+            }
+        }
     }
 }

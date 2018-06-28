@@ -9,18 +9,18 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class CrossRef_AniDB_TvDBRepository : BaseCachedRepository<CrossRef_AniDB_TvDB, int>
+    public class CrossRef_AniDB_TvDBRepository : BaseRepository<CrossRef_AniDB_TvDB, int>
     {
         private PocoIndex<int, CrossRef_AniDB_TvDB, int> TvDBIDs;
         private PocoIndex<int, CrossRef_AniDB_TvDB, int> AnimeIDs;
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
             TvDBIDs = new PocoIndex<int, CrossRef_AniDB_TvDB, int>(Cache, a => a.TvDBID);
             AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB, int>(Cache, a => a.AniDBID);
         }
 
-        private CrossRef_AniDB_TvDBRepository()
+        public CrossRef_AniDB_TvDBRepository()
         {
             EndSaveCallback +=
                 (db) => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(db.AniDBID);
@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
         public static CrossRef_AniDB_TvDBRepository Create()
         {
             var repo = new CrossRef_AniDB_TvDBRepository();
-            Repo.CachedRepositories.Add(repo);
+            
             return repo;
         }
 

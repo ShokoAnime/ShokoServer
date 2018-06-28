@@ -224,11 +224,11 @@ namespace Shoko.Server.Extensions
 
         public static void Populate_RA(this MovieDB_Movie m_ra, MovieDB_Movie_Result result)
         {
-            m.MovieId = result.MovieID;
-            m.MovieName = result.MovieName;
-            m.OriginalName = result.OriginalName;
-            m.Overview = result.Overview;
-            m.Rating = (int) Math.Round(result.Rating * 10D);
+            m_ra.MovieId = result.MovieID;
+            m_ra.MovieName = result.MovieName;
+            m_ra.OriginalName = result.OriginalName;
+            m_ra.Overview = result.Overview;
+            m_ra.Rating = (int) Math.Round(result.Rating * 10D);
         }
 
         public static void Populate_RA(this MovieDB_Poster m_ra, MovieDB_Image_Result result, int movieID)
@@ -389,7 +389,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImagePoster poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -413,7 +413,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImageWideBanner poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -425,7 +425,7 @@ namespace Shoko.Server.Extensions
                 poster_ra.SeriesID = seriesID;
                 try
                 {
-                    poster.SeasonNumber = int.Parse(image.SubKey);
+                    poster_ra.SeasonNumber = int.Parse(image.SubKey);
                 }
                 catch (FormatException)
                 {
@@ -690,7 +690,7 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static void Populate_RA(this AniDB_Episode episode_ra, Raw_AniDB_Episode epInfo)
+        public static void Populate_RA(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
         {
             episode.AirDate = epInfo.AirDate;
             episode.AnimeID = epInfo.AnimeID;
@@ -815,7 +815,7 @@ namespace Shoko.Server.Extensions
             agroup_ra.Populate_RA(series, DateTime.Now);
         }
 
-        public static void Populate_RA(this SVR_AnimeGroup agroup_ra, SVR_AnimeSeries series, DateTime now)
+        public static void Populate_RA(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
         {
             SVR_AniDB_Anime anime = series.GetAnime();
 
@@ -827,7 +827,7 @@ namespace Shoko.Server.Extensions
             agroup.DateTimeCreated = now;
         }
 
-        public static void Populate_RA(this SVR_AnimeGroup agroup_ra, SVR_AniDB_Anime anime, DateTime now)
+        public static void Populate_RA(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
         {
             agroup.Description = anime.Description;
             string name = anime.GetFormattedTitle();
@@ -860,7 +860,7 @@ namespace Shoko.Server.Extensions
             int epsInSeason = Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
             if (ep.EpisodeNumber == epsInSeason)
             {
-                int numberOfSeasons = Repo.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID);
+                int numberOfSeasons = Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID);
                 if (ep.SeasonNumber == numberOfSeasons) return (0, 0);
                 return (ep.SeasonNumber + 1, 1);
             }
@@ -885,7 +885,7 @@ namespace Shoko.Server.Extensions
         {
             if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
             int number = ep.EpisodeNumber;
-            for (int season = 1; season < Repo.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID); season++)
+            for (int season = 1; season < Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
                 number += Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
 
             return number;
