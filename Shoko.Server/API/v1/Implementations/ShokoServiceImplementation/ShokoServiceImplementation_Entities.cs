@@ -3677,7 +3677,7 @@ namespace Shoko.Server
                 Repo.AnimeSeries_User.Delete(Repo.AnimeSeries_User.GetByUserID(userID));
                 Repo.AnimeGroup_User.Delete(Repo.AnimeGroup_User.GetByUserID(userID));
                 Repo.AnimeEpisode_User.Delete(Repo.AnimeEpisode_User.GetByUserID(userID));
-                Repo.VideoLocalUser.Delete(Repo.VideoLocalUser.GetByUserID(userID));
+                Repo.VideoLocal_User.Delete(Repo.VideoLocal_User.GetByUserID(userID));
             }
             catch (Exception ex)
             {

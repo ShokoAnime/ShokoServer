@@ -60,25 +60,25 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 3. Actions
 
-            Get["/remove_missing_files", true] = async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles, ct);
-            Get["/stats_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateStats, ct);
-            Get["/mediainfo_update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct);
-            Get["/hash/sync", true] = async (x,ct) => await Task.Factory.StartNew(HashSync, ct);
-            Get["/rescan", true] = async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct);
-            Get["/rescanunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RescanUnlinked, ct);
-            Get["/rescanmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RescanManualLinks, ct);
-            Get["/rehash", true] = async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct);
-            Get["/rehashunlinked", true] = async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct);
-            Get["/rehashmanuallinks", true] = async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct);
-            Get["/avdumpmismatchedfiles", true] = async (x,ct) => await Task.Factory.StartNew(AVDumpMismatchedFiles, ct);
+            Get("/remove_missing_files", async (x,ct) => await Task.Factory.StartNew(RemoveMissingFiles, ct));
+            Get("/stats_update", async (x,ct) => await Task.Factory.StartNew(UpdateStats, ct));
+            Get("/mediainfo_update", async (x,ct) => await Task.Factory.StartNew(UpdateMediaInfo, ct));
+            Get("/hash/sync", async (x,ct) => await Task.Factory.StartNew(HashSync, ct));
+            Get("/rescan", async (x,ct) => await Task.Factory.StartNew(RescanVideoLocal, ct));
+            Get("/rescanunlinked", async (x,ct) => await Task.Factory.StartNew(RescanUnlinked, ct));
+            Get("/rescanmanuallinks", async (x,ct) => await Task.Factory.StartNew(RescanManualLinks, ct));
+            Get("/rehash", async (x,ct) => await Task.Factory.StartNew(RehashVideoLocal, ct));
+            Get("/rehashunlinked", async (x,ct) => await Task.Factory.StartNew(RehashUnlinked, ct));
+            Get("/rehashmanuallinks", async (x,ct) => await Task.Factory.StartNew(RehashManualLinks, ct));
+            Get("/avdumpmismatchedfiles", async (x,ct) => await Task.Factory.StartNew(AVDumpMismatchedFiles, ct));
 
             #endregion
 
             #region 4. Misc
 
-            Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID, ct);
-            Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct);
-            Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch, ct);
+            Get("/myid/get", async (x,ct) => await Task.Factory.StartNew(MyID, ct));
+            Get("/news/get", async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct));
+            Get("/search", async (x,ct) => await Task.Factory.StartNew(BigSearch, ct));
 
             #endregion
 
@@ -104,53 +104,53 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 6. Files
 
-            Get["/file", true] = async (x,ct) => await Task.Factory.StartNew(GetFile, ct);
-            Get["/file/count", true] = async (x,ct) => await Task.Factory.StartNew(CountFiles, ct);
-            Get["/file/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentFiles, ct);
-            Get["/file/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
-            Get["/file/multiples", true] = async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct);
-            Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
-            Get["/file/needsavdumped", true] = async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct);
-            Get["/file/deprecated", true] = async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct);
+            Get("/file", async (x,ct) => await Task.Factory.StartNew(GetFile, ct));
+            Get("/file/count", async (x,ct) => await Task.Factory.StartNew(CountFiles, ct));
+            Get("/file/recent", async (x,ct) => await Task.Factory.StartNew(GetRecentFiles, ct));
+            Get("/file/unsort", async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct));
+            Get("/file/multiples", async (x,ct) => await Task.Factory.StartNew(GetMultipleFiles, ct));
+            Post("/file/offset", async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct));
+            Get("/file/needsavdumped", async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct));
+            Get("/file/deprecated", async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct));
 
             #endregion
 
             #region 7. Episodes
 
-            Get["/ep", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisode, ct);
-            Get["/ep/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes, ct);
-            Get["/ep/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched, ct);
-            Get["/ep/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct);
-            Get["/ep/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct);
-            Get["/ep/unsort", true] = async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct);
-            Get["/ep/missing", true] = async (x,ct) => await Task.Factory.StartNew(GetMissingEpisodes, ct);
-            Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct);
-            Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct);
+            Get("/ep", async (x,ct) => await Task.Factory.StartNew(GetEpisode, ct));
+            Get("/ep/recent", async (x,ct) => await Task.Factory.StartNew(GetRecentEpisodes, ct));
+            Get("/ep/watch", async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsWatched, ct));
+            Get("/ep/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkEpisodeAsUnwatched, ct));
+            Get("/ep/vote", async (x,ct) => await Task.Factory.StartNew(VoteOnEpisode, ct));
+            Get("/ep/unsort", async (x,ct) => await Task.Factory.StartNew(GetUnsort, ct));
+            Get("/ep/missing", async (x,ct) => await Task.Factory.StartNew(GetMissingEpisodes, ct));
+            Get("/ep/scrobble", async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct));
+            Get("/ep/getbyfilename", async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct));
 
             #endregion
 
             #region 8. Series
 
-            Get["/serie", true] = async (x,ct) => await Task.Factory.StartNew(GetSerie, ct);
-            Get["/serie/count", true] = async (x,ct) => await Task.Factory.StartNew(CountSerie, ct);
-            Get["/serie/recent", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent, ct);
-            Get["/serie/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct);
-            Get["/serie/tag", true] = async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct);
-            Get["/serie/byfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct);
-            Get["/serie/infobyfolder", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesInfoByFolderId, ct);
-            Get["/serie/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct);
-            Get["/serie/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct);
-            Get["/serie/vote", true] = async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct);
-            Get["/serie/fromep", true] = async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct);
-            Get["/serie/startswith", true] = async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct);
-            Get["/serie/today", true] = async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct);
-            Get["/serie/bookmark", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmark, ct);
-            Get["/serie/bookmark/add", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkAdd, ct);
-            Get["/serie/bookmark/remove", true] = async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkRemove, ct);
-            Get["/serie/calendar", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct);
-            Get["/serie/calendar/refresh", true] = async (x, ct) => await Task.Factory.StartNew(SerieCalendarRefresh, ct);
-            Get["/serie/soon", true] = async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct); /* [deprecated] user /api/serie/calendar */
-            Get["/serie/groups", true] = async (x, ct) => await Task.Factory.StartNew(GetSeriesGroups, ct);
+            Get("/serie", async (x,ct) => await Task.Factory.StartNew(GetSerie, ct));
+            Get("/serie/count", async (x,ct) => await Task.Factory.StartNew(CountSerie, ct));
+            Get("/serie/recent", async (x,ct) => await Task.Factory.StartNew(GetSeriesRecent, ct));
+            Get("/serie/search", async (x,ct) => await Task.Factory.StartNew(SearchForSerie, ct));
+            Get("/serie/tag", async (x,ct) => await Task.Factory.StartNew(SearchForTag, ct));
+            Get("/serie/byfolder", async (x,ct) => await Task.Factory.StartNew(GetSeriesByFolderId, ct));
+            Get("/serie/infobyfolder", async (x,ct) => await Task.Factory.StartNew(GetSeriesInfoByFolderId, ct));
+            Get("/serie/watch", async (x,ct) => await Task.Factory.StartNew(MarkSerieAsWatched, ct));
+            Get("/serie/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkSerieAsUnwatched, ct));
+            Get("/serie/vote", async (x,ct) => await Task.Factory.StartNew(VoteOnSerie, ct));
+            Get("/serie/fromep", async (x,ct) => await Task.Factory.StartNew(GetSeriesFromEpisode, ct));
+            Get("/serie/startswith", async (x,ct) => await Task.Factory.StartNew(SearchStartsWith, ct));
+            Get("/serie/today", async (x,ct) => await Task.Factory.StartNew(SeriesToday, ct));
+            Get("/serie/bookmark", async (x, ct) => await Task.Factory.StartNew(SeriesBookmark, ct));
+            Get("/serie/bookmark/add", async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkAdd, ct));
+            Get("/serie/bookmark/remove", async (x, ct) => await Task.Factory.StartNew(SeriesBookmarkRemove, ct));
+            Get("/serie/calendar", async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct));
+            Get("/serie/calendar/refresh", async (x, ct) => await Task.Factory.StartNew(SerieCalendarRefresh, ct));
+            Get("/serie/soon", async (x, ct) => await Task.Factory.StartNew(SeriesSoon, ct)); /* [deprecated] user /api/serie/calendar */
+            Get("/serie/groups", async (x, ct) => await Task.Factory.StartNew(GetSeriesGroups, ct));
 
             #endregion
 
@@ -172,27 +172,23 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 11. Groups
 
-            Get["/group", true] = async (x,ct) => await Task.Factory.StartNew(GetGroups, ct);
-            Get["/group/watch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct);
-            Get["/group/unwatch", true] = async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct);
-            Get["/group/search", true] = async (x,ct) => await Task.Factory.StartNew(SearchGroup, ct);
+            Get("/group", async (x,ct) => await Task.Factory.StartNew(GetGroups, ct));
+            Get("/group/watch", async (x,ct) => await Task.Factory.StartNew(MarkGroupAsWatched, ct));
+            Get("/group/unwatch", async (x,ct) => await Task.Factory.StartNew(MarkGroupAsUnwatched, ct));
+            Get("/group/search", async (x,ct) => await Task.Factory.StartNew(SearchGroup, ct));
 
             #endregion
 
             #region 12. Cast and Staff
 
-            Get["/cast/byseries", true] = async (x, ct) => await Task.Factory.StartNew(GetCastFromSeries, ct);
-            Get["/cast/search", true] = async (x, ct) => await Task.Factory.StartNew(SearchByStaff, ct);
+            Get("/cast/byseries", async (x, ct) => await Task.Factory.StartNew(GetCastFromSeries, ct));
+            Get("/cast/search", async (x, ct) => await Task.Factory.StartNew(SearchByStaff, ct));
 
 
             #endregion
 
-            Get["/links/serie", true] = async (x, ct) => await Task.Factory.StartNew(GetLinks, ct);
-            Get["/commands/fix"] = x =>
-            {
-                new CommandRequest_Null().Save();
-                return APIStatus.OK();
-            };
+            Get("/links/serie", async (x, ct) => await Task.Factory.StartNew(GetLinks, ct));
+            Get("/commands/fix", x => { new CommandRequest_Null().Save(); return APIStatus.OK();});
         }
 
         #region 01. Import Folders
@@ -560,7 +556,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MyID()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             dynamic x = new ExpandoObject();
             if (user != null)
             {
@@ -608,7 +604,7 @@ namespace Shoko.Server.API.v2.Modules
         private object BigSearch()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             string query = para.query.ToLowerInvariant();
@@ -648,7 +644,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SearchStartsWith()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             string query = para.query.ToLowerInvariant();
@@ -904,7 +900,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetFile()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             return para.id == 0 
@@ -918,7 +914,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetFilesWithMismatchedInfo()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
@@ -936,7 +932,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object AVDumpMismatchedFiles()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             var allvids = Repo.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
@@ -970,7 +966,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetDeprecatedFiles()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             var allvids = Repo.VideoLocal.GetAll()
@@ -984,7 +980,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetMultipleFiles()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             int userID = user.JMMUserID;
@@ -1052,7 +1048,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<RawFile></returns>
         private object GetRecentFiles()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             // default 50 as that's reasonable
             if (para.limit == 0) para.limit = 50;
@@ -1076,7 +1072,7 @@ namespace Shoko.Server.API.v2.Modules
         private List<RawFile> GetUnsort()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             List<RawFile> lst = new List<RawFile>();
@@ -1113,7 +1109,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetFileOffset()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             // allow to offset be 0 to reset position
@@ -1192,7 +1188,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetEpisode()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1209,7 +1205,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetEpisodeFromName()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (String.IsNullOrEmpty(para.filename)) return APIStatus.BadRequest("missing 'filename'");
 
@@ -1228,7 +1224,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetRecentEpisodes()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1261,7 +1257,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         private object GetMissingEpisodes()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             List<object> lst = new List<object>();
 
@@ -1296,7 +1292,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkEpisodeAsWatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1312,7 +1308,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkEpisodeAsUnwatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1328,7 +1324,7 @@ namespace Shoko.Server.API.v2.Modules
         private object VoteOnEpisode()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1524,7 +1520,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSerie()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -1554,7 +1550,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie> or Serie</returns>
         private object SeriesToday()
         {
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             // 1. get series airing
@@ -1618,7 +1614,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         private object SeriesBookmarkAdd()
         {
-            JMMUser user = (JMMUser)Context.CurrentUser.Identity.Identity;
+            JMMUser user = (JMMUser)Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             BookmarkedAnime ba = null;
@@ -1627,12 +1623,14 @@ namespace Shoko.Server.API.v2.Modules
                 ba = Repo.BookmarkedAnime.GetByAnimeID(para.id);
                 if (ba == null)
                 {
-                    ba = new BookmarkedAnime();
-                    ba.AnimeID = para.id;
-                    ba.Priority = 1;
-                    ba.Notes = "";
-                    ba.Downloading = 0;
-                    Repo.BookmarkedAnime.Save(ba);
+                    using (var txn = Repo.BookmarkedAnime.BeginAdd())
+                    {
+                        txn.Entity.AnimeID = para.id;
+                        txn.Entity.Priority = 1;
+                        txn.Entity.Notes = "";
+                        txn.Entity.Downloading = 0;
+                        ba = txn.Commit();
+                    }
                     return APIStatus.OK();
                 }
                 else
@@ -1745,7 +1743,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesByFolderId()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1780,7 +1778,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesRecent()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             List<object> allseries = new List<object>();
@@ -1807,7 +1805,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkSerieAsWatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1823,7 +1821,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkSerieAsUnwatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -1839,7 +1837,7 @@ namespace Shoko.Server.API.v2.Modules
         private object VoteOnSerie()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id != 0)
@@ -1860,7 +1858,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SearchForSerie()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1883,7 +1881,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SearchForTag()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -1908,7 +1906,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetSeriesFromEpisode()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -2015,7 +2013,7 @@ namespace Shoko.Server.API.v2.Modules
             long filesize = 0;
             int size = 0;
             Dictionary<int, SeriesInfo> output = new Dictionary<int, SeriesInfo>();
-            var vlps = Repo.VideoLocalPlace.GetByImportFolder(id);
+            var vlps = Repo.VideoLocal_Place.GetByImportFolder(id);
             // each place counts in the filesize, so we use it
             foreach (SVR_VideoLocal_Place place in vlps)
             {
@@ -2074,7 +2072,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="uid">user id</param>
         /// <param name="limit"></param>
         /// <returns>List<ObjectList></returns>
-        internal object GetSeriesInfoByFolder(int id, int uid, int limit, byte tagfilter)
+        internal object GetSeriesInfoByFolder(int id, int uid, int limit, TagFilter.Filter tagfilter)
         {
             Dictionary<string, long> tmp_list = new Dictionary<string, long>();
             List<object> allseries = new List<object>();
@@ -2153,7 +2151,7 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
 
             List<Serie> allseries = new List<Serie>();
 
@@ -2188,7 +2186,7 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             var ser = Repo.AnimeSeries.GetByID(series_id);
             if (ser == null) return APIStatus.NotFound("Series does not exist.");
             Serie sr = Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID,
@@ -2229,7 +2227,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                 }
 
-                SVR_AnimeSeries.UpdateStats(ser, true, true, true);
+                ser.UpdateStats(true, true, true);
 
                 return APIStatus.OK();
             }
@@ -2675,18 +2673,26 @@ namespace Shoko.Server.API.v2.Modules
             SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
             if (ser == null) return APIStatus.BadRequest($"Series with id {id} was not found");
             int voteType = ser.Contract.AniDBAnime.AniDBAnime.GetFinishedAiring()
-                ? (int) AniDBVoteType.Anime
-                : (int) AniDBVoteType.AnimeTemp;
+                ? (int)AniDBVoteType.Anime
+                : (int)AniDBVoteType.AnimeTemp;
+
+            AniDB_Vote thisVote =
+                Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
+                Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime);
+
+
+
+            if (thisVote == null)
+            {
+                thisVote = new AniDB_Vote
+                {
+                    EntityID = ser.AniDB_ID
+                };
+            }
+
             if (score <= 10)
             {
                 score = score * 100;
-            }
-            using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(id, (AniDBVoteType)voteType)))
-            {
-                upd.Entity.EntityID = ser.AniDB_ID;
-                upd.Entity.VoteType = voteType;
-                upd.Entity.VoteValue = score;
-                upd.Commit();
             }
 
             thisVote.VoteValue = score;
@@ -2748,7 +2754,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetFilters()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -2860,7 +2866,7 @@ namespace Shoko.Server.API.v2.Modules
         public object GetGroups()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.id == 0)
@@ -2878,7 +2884,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkGroupAsWatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -2894,7 +2900,7 @@ namespace Shoko.Server.API.v2.Modules
         private object MarkGroupAsUnwatched()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
             if (para.id != 0)
             {
@@ -2910,7 +2916,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SearchGroup()
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            JMMUser user = (JMMUser) Context.CurrentUser.Identity;
             API_Call_Parameters para = this.Bind();
 
             if (para.limit == 0)
@@ -3189,7 +3195,7 @@ namespace Shoko.Server.API.v2.Modules
             API_Call_Parameters para = this.Bind();
 
             List<Serie> results = new List<Serie>();
-            var user = ctx.CurrentUser as JMMUser;
+            var user = ctx.CurrentUser?.Identity as JMMUser;
 
             Filter search_filter = new Filter
             {

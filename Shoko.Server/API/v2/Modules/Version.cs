@@ -14,7 +14,7 @@ namespace Shoko.Server.API.v2.Modules
     {
         public Version()
         {
-            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
+            Get("/api/version", async (x,ct) => await Task.Factory.StartNew(GetVersion, ct));
         }
 
         /// <summary>

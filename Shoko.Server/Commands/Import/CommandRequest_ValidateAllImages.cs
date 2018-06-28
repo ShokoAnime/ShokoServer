@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;

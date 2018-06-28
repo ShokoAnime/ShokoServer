@@ -28,18 +28,17 @@ namespace Shoko.Server.API.v2.Modules
 
         public Image() : base("/api")
         {
-            Get["/image/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetImage((int) x.type, (int) x.id), ct);
-            Get["/image/thumb/{type}/{id}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, x.ratio), ct);
-            Get["/image/thumb/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"), ct);
-            Get["/image/support/{name}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name), ct);
-            Get["/image/support/{name}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio), ct);
-            Get["/image/validateall", true] = async (x,ct) => await Task.Factory.StartNew(() =>
+            Get("/image/{type}/{id}", async (x,ct) => await Task.Factory.StartNew(() => GetImage((int) x.type, (int) x.id), ct));
+            Get("/image/thumb/{type}/{id}/{ratio}", async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, x.ratio), ct));
+            Get("/image/thumb/{type}/{id}", async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"), ct));
+            Get("/image/support/{name}", async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name), ct));
+            Get("/image/support/{name}/{ratio}", async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio), ct));
+            Get("/image/validateall", async (x,ct) => await Task.Factory.StartNew(() =>
             {
                 Importer.ValidateAllImages();
                 return APIStatus.OK();
-            }, ct);
-            Get["/image/{type}/random", true] =
-                async (x, ct) => await Task.Factory.StartNew(() => GetRandomImage((int) x.type));
+            }, ct));
+            Get("/image/{type}/random", async (x, ct) => await Task.Factory.StartNew(() => GetRandomImage((int) x.type)));
         }
 
         /// <summary>

@@ -15,7 +15,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             // Request Body (safer) { "user":"usrname", "pass":"password", "device":"device name" }
             // return apikey=yzx
-            Post["/", true] = async (x, ct) => await Task.Factory.StartNew(() =>
+            Post("/", async (x, ct) => await Task.Factory.StartNew(() =>
             {
                 //Bind POST body
                 AuthUser auth = this.Bind();
@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
                 if (!string.IsNullOrEmpty(apiKey)) return Response.AsJson(new {apikey = apiKey});
 
                 return new Response { StatusCode = HttpStatusCode.Unauthorized };
-            }, ct);
+            }, ct));
 
             //remove apikey from database
             //pass it as ?apikey=xyz

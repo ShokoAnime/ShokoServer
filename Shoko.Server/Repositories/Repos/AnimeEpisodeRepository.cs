@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
@@ -150,5 +152,36 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        public List<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials)
+        {
+            var all = GetAll().Where(a =>
+            {
+                var aniep = a.AniDB_Episode;
+                if (aniep?.GetFutureDated() != false) return false;
+                if (aniep.EpisodeType != (int)EpisodeType.Episode &&
+                    aniep.EpisodeType != (int)EpisodeType.Special)
+                    return false;
+                if (!includeSpecials &&
+                    aniep.EpisodeType == (int)EpisodeType.Special)
+                    return false;
+                return a.GetVideoLocals().Count == 0;
+            })
+                .ToList();
+            all.Sort((a1, a2) =>
+            {
+                var name1 = a1.GetAnimeSeries()?.GetSeriesName();
+                var name2 = a2.GetAnimeSeries()?.GetSeriesName();
+
+                if (!string.IsNullOrEmpty(name1) && !string.IsNullOrEmpty(name2))
+                    return string.Compare(name1, name2, StringComparison.Ordinal);
+
+                if (string.IsNullOrEmpty(name1)) return 1;
+                if (string.IsNullOrEmpty(name2)) return -1;
+
+                return a1.AnimeSeriesID.CompareTo(a2.AnimeSeriesID);
+            });
+
+            return all;
+        }
     }
 }

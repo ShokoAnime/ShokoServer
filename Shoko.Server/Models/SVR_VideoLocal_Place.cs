@@ -49,10 +49,8 @@ namespace Shoko.Server.Models
                 return Path.Combine(ImportFolder.ImportFolderLocation, FilePath);
             }
         }
-
-        public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
-
-        [NotMapped]
+        
+        //[NotMapped]
         public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
 
         // returns false if we should try again after the timer

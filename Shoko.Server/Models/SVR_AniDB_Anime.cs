@@ -7,7 +7,6 @@ using System.Linq;
 using System.Xml.Serialization;
 using AniDBAPI;
 using NLog;
-using System.IO;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -19,7 +18,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models

@@ -11,8 +11,8 @@ namespace Shoko.Server.API.v2.Modules
     {
         public Dev() : base("/api/dev")
         {
-            Get["/contracts/{entity?}"] = x => { return ExtractContracts((string) x.entity); };
-            Get["/relationtree/{id?}"] = x => { return GetRelationTree((string) x.id); };
+            Get("/contracts/{entity?}", x => { return ExtractContracts((string) x.entity); });
+            Get("/relationtree/{id?}", x => { return GetRelationTree((string) x.id); });
         }
 
         /// <summary>

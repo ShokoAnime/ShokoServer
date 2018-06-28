@@ -315,7 +315,7 @@ namespace Shoko.Server.Commands
                             userrecord.WatchedDate = watchedRecord.WatchedDate;
                             userrecord.ResumePosition = watchedRecord.ResumePosition;
 
-                            Repo.VideoLocalUser.Save(userrecord);
+                            Repo.VideoLocal_User.Save(userrecord);
                         }
 
                         if (ServerSettings.FileQualityFilterEnabled)

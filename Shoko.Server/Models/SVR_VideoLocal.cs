@@ -151,14 +151,14 @@ namespace Shoko.Server.Models
 
                 if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
 
-                Repo.VideoLocalUser.Save(vidUserRecord);
+                Repo.VideoLocal_User.Save(vidUserRecord);
             }
             else
             {
                 if (vidUserRecord != null)
                 {
                     vidUserRecord.WatchedDate = null;
-                    Repo.VideoLocalUser.Save(vidUserRecord);
+                    Repo.VideoLocal_User.Save(vidUserRecord);
                 }
             }
         }
@@ -217,7 +217,7 @@ namespace Shoko.Server.Models
                 };
             else
                 vuser.ResumePosition = resumeposition;
-            Repo.VideoLocalUser.Save(vuser);
+            Repo.VideoLocal_User.Save(vuser);
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)

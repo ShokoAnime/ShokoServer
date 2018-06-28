@@ -20,7 +20,7 @@ namespace Shoko.Server.API.v2.Modules
         public DashboardModules() : base("/api/modules")
         {
             this.RequiresAuthentication();
-            Get["/stats", true] = async (x,ct) => await Task.Factory.StartNew(GetStats, ct);
+            Get("/stats", async (x,ct) => await Task.Factory.StartNew(GetStats, ct));
 
         }
 
@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Dictionary<string, object></returns>
         private object GetStats()
         {
-            SVR_JMMUser user = Context.CurrentUser as SVR_JMMUser;
+            SVR_JMMUser user = Context.CurrentUser.Identity as SVR_JMMUser;
 
             int series_count;
             int file_count;
@@ -53,7 +53,7 @@ namespace Shoko.Server.API.v2.Modules
                 file_count = files.Count;
                 size = SizeSuffix(files.Sum(a => a.FileSize));
 
-                var watched = Repo.VideoLocalUser.GetByUserID(user.JMMUserID)
+                var watched = Repo.VideoLocal_User.GetByUserID(user.JMMUserID)
                     .Where(a => a.WatchedDate != null).ToList();
 
                 watched_files = watched.Count;

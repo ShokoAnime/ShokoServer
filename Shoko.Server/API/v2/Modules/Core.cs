@@ -49,32 +49,32 @@ namespace Shoko.Server.API.v2.Modules
 
             #region 02.AniDB
 
-            Post["/anidb/set", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
-            Get["/anidb/get", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
-            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
-            Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct);
-            Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
-            Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
-            Get["/anidb/updatemissingcache", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct);
+            Post("/anidb/set", async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct));
+            Get("/anidb/get", async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct));
+            Get("/anidb/test", async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct));
+            Get("/anidb/votes/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct));
+            Get("/anidb/list/sync", async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct));
+            Get("/anidb/update", async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct));
+            Get("/anidb/updatemissingcache", async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct));
 
             #endregion
 
             #region 04.Trakt
 
-            Post["/trakt/set"] = x => APIStatus.NotImplemented();
-            Get["/trakt/get", true] = async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct);
-            Get["/trakt/create"] = x => APIStatus.NotImplemented();
-            Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct);
-            Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct);
-            Get["/trakt/code", true] = async (x,ct) => await Task.Factory.StartNew(GetTraktCode, ct);
+            Post("/trakt/set", x => APIStatus.NotImplemented());
+            Get("/trakt/get", async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct));
+            Get("/trakt/create", x => APIStatus.NotImplemented());
+            Get("/trakt/sync", async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct));
+            Get("/trakt/update", async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct));
+            Get("/trakt/code", async (x,ct) => await Task.Factory.StartNew(GetTraktCode, ct));
 
             #endregion
 
             #region 05.TvDB
 
-            Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
-            Get["/tvdb/regenlinks", true] = async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct);
-            Get["/tvdb/checklinks", true] = async (x,ct) => await Task.Factory.StartNew(CheckAllEpisodeLinksAgainstCurrent, ct);
+            Get("/tvdb/update", async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct));
+            Get("/tvdb/regenlinks", async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct));
+            Get("/tvdb/checklinks", async (x,ct) => await Task.Factory.StartNew(CheckAllEpisodeLinksAgainstCurrent, ct));
 
             #endregion
 
@@ -127,7 +127,7 @@ namespace Shoko.Server.API.v2.Modules
             #endregion
 
             #region 11. Image Actions
-            Get["/images/update", true] = async (x, ct) => await Task.Factory.StartNew(() => UpdateImages());
+            Get("/images/update", async (x, ct) => await Task.Factory.StartNew(() => UpdateImages()));
             #endregion
         }
 
@@ -748,7 +748,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object CreateUser()
         {
-            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser.Identity;
             if (_user.IsAdmin == 1)
             {
                 JMMUser user = this.Bind();
@@ -779,7 +779,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object ChangePassword(int uid)
         {
-            SVR_JMMUser thisuser = (SVR_JMMUser) Context.CurrentUser;
+            SVR_JMMUser thisuser = (SVR_JMMUser) Context.CurrentUser.Identity;
             SVR_JMMUser user = this.Bind();
             if (thisuser.IsAdmin == 1)
                 return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
@@ -799,7 +799,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object DeleteUser()
         {
-            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
+            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser.Identity;
             if (_user.IsAdmin == 1)
             {
                 SVR_JMMUser user = this.Bind();
@@ -951,7 +951,7 @@ namespace Shoko.Server.API.v2.Modules
         private object SetRotateLogs()
         {
             Request request = Request;
-            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser.Identity;
             Logs rotator = this.Bind();
 
             if (user.IsAdmin == 1)
