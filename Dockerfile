@@ -1,4 +1,4 @@
-FROM mono:5.4
+FROM mono:5.12
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 ENV PUID=1000 \

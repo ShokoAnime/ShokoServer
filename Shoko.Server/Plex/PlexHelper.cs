@@ -94,6 +94,7 @@ namespace Shoko.Server.Plex
             {
                 if (DateTime.Now - TimeSpan.FromHours(12) < _lastCacheTime && _cachedConnection != null)
                     return _cachedConnection;
+                _cachedConnection = null;
 
                 //foreach (var connection in ServerCache.Connection)
                 Parallel.ForEach(ServerCache.Connection, (connection, state) =>
@@ -111,12 +112,12 @@ namespace Shoko.Server.Plex
                                     return;
                                 }
 
-                                _cachedConnection = connection;
-                                state.Stop();
+                                _cachedConnection = _cachedConnection ?? connection;
+                                state.Break();
                             }
                             catch (AggregateException e)
                             {
-                                Logger.Trace($"Failed connection to: {connection.Uri}");
+                                Logger.Trace($"Failed connection to: {connection.Uri} {e}");
                             }
                         }
                     );
@@ -221,6 +222,7 @@ namespace Shoko.Server.Plex
 
             configureRequest?.Invoke(req);
 
+            HttpClient.Timeout = TimeSpan.FromSeconds(60);
             var resp = await HttpClient.SendAsync(req).ConfigureAwait(false);
             Logger.Trace($"Got response: {resp.StatusCode}");
             return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -282,8 +284,7 @@ namespace Shoko.Server.Plex
             if (ServerCache == null) return new Directory[0];
             try
             {
-                var req = RequestFromPlexAsync("/library/sections");
-                var (_, data) = req.Result;
+                var (_, data) = RequestFromPlexAsync("/library/sections").Result;
                 return JsonConvert
                            .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
                            .Container.Directory ?? new Directory[0];
