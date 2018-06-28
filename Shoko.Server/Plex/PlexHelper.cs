@@ -114,7 +114,7 @@ namespace Shoko.Server.Plex
                                 _cachedConnection = connection;
                                 state.Stop();
                             }
-                            catch (AggregateException)
+                            catch (AggregateException e)
                             {
                                 Logger.Trace($"Failed connection to: {connection.Uri}");
                             }
@@ -279,11 +279,19 @@ namespace Shoko.Server.Plex
 
         public Directory[] GetDirectories()
         {
-            if (ServerCache == null) return null;
-            var (_, data) = RequestFromPlexAsync("/library/sections").Result;
-            return JsonConvert
-                .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
-                .Container.Directory ?? new Directory[0];
+            if (ServerCache == null) return new Directory[0];
+            try
+            {
+                var req = RequestFromPlexAsync("/library/sections");
+                var (_, data) = req.Result;
+                return JsonConvert
+                           .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
+                           .Container.Directory ?? new Directory[0];
+            }
+            catch (NullReferenceException)
+            {
+                return new Directory[0];
+            }
         }
 
         public async Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,
