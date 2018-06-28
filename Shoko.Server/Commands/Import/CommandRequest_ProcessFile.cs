@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
-using Pri.LongPath;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;

@@ -6,8 +6,6 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using System;
 
 namespace Shoko.Server.Models
 {

@@ -58,6 +58,7 @@
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0-preview1-25914-04" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="4.5.0-preview1-25914-04" />
     <PackageReference Include="System.ServiceModel.Web" Version="1.0.0" />
+    <PackageReference Include="TaskScheduler" Version="2.8.1" />
     <PackageReference Include="TMDbLib" Version="1.2.0-alpha" />
   </ItemGroup>
   <ItemGroup>

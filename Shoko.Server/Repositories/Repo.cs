@@ -104,15 +104,14 @@ namespace Shoko.Server.Repositories
 
         //AdHoc Repo
         public static AdhocRepository Adhoc { get; private set; }
-        
+        internal static ShokoContext Db { get; set; }
 
         private static List<IRepository> _repos;
-        private static ShokoContext _db; 
 
         private static TU Register<TU, T>(DbSet<T> table) where T : class where TU : IRepository<T>, new()
         {
             TU repo = new TU();
-            repo.SetContext(_db,table);
+            repo.SetContext(Db,table);
             repo.SwitchCache(CachedRepos.Contains(table.GetName()));
             _repos.Add(repo);
             return repo;
@@ -125,7 +124,7 @@ namespace Shoko.Server.Repositories
             _repos=new List<IRepository>();
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
-            _db = db;
+            Db = db;
 
 
 

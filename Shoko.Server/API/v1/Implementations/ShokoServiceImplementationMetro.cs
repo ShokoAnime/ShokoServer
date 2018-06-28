@@ -22,7 +22,6 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server
 {

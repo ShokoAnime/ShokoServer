@@ -18,7 +18,6 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
-using File = Pri.LongPath.File;
 
 namespace Shoko.Server.API.v2.Modules
 {

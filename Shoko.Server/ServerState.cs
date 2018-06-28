@@ -6,6 +6,7 @@ using System;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Enums;
+using Microsoft.Win32.TaskScheduler;
 
 namespace Shoko.Server
 {

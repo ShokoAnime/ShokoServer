@@ -33,13 +33,9 @@ using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.UI;
-using Trinet.Core.IO.Ntfs;
+//using Trinet.Core.IO.Ntfs;
 using UPnP;
 using Action = System.Action;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using FileInfo = Pri.LongPath.FileInfo;
-using Path = Pri.LongPath.Path;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server

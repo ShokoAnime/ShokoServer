@@ -1,4 +1,6 @@
-﻿using Shoko.Models.Server;
+﻿using System;
+using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -12,6 +14,14 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void ClearIndexes()
         {
+        }
+
+        internal AniDB_Seiyuu GetBySeiyuuID(int entityID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+
+            }
         }
     }
 }
