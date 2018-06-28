@@ -1053,7 +1053,7 @@ namespace Shoko.Server.Models
                 AniDB_Episode epNew = Repo.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID);
                 if (epNew == null) epNew = new AniDB_Episode();
 
-                epNew.Populate(epraw);
+                epNew.Populate_RA(epraw);
                 epsToSave.Add(epNew);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here

@@ -219,7 +219,7 @@ namespace Shoko.Server.Models
                                     .GetSeriesName();
                             if (hasCustomName) newTitle = grp.GroupName;
                             // reset tags, description, etc to new series
-                            grp.Populate(series);
+                            grp.Populate_RA(series);
                             grp.GroupName = newTitle;
                             grp.SortName = newTitle;
                             Repo.AnimeGroup.Save(grp, true, true);

@@ -280,14 +280,14 @@ namespace Shoko.Server.Tasks
 
             if (mainSeries != null)
             {
-                animeGroup.Populate(mainSeries, now);
+                animeGroup.Populate_RA(mainSeries, now);
                 groupName = animeGroup.GroupName;
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
                 SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByID(mainAnimeId);
 
-                animeGroup.Populate(mainAnime, now);
+                animeGroup.Populate_RA(mainAnime, now);
                 groupName = animeGroup.GroupName;
             }
 

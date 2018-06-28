@@ -817,7 +817,7 @@ namespace Shoko.Server.Providers.AniDB
             if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
             var relGroup = Repo.AniDB_ReleaseGroup.GetByID(groupID) ?? new AniDB_ReleaseGroup();
 
-            relGroup.Populate(getCmd.Group);
+            relGroup.Populate_RA(getCmd.Group);
             Repo.AniDB_ReleaseGroup.Save(relGroup);
         }
 
@@ -846,7 +846,7 @@ namespace Shoko.Server.Providers.AniDB
             foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
             {
                 AniDB_GroupStatus grpstat = new AniDB_GroupStatus();
-                grpstat.Populate(raw);
+                grpstat.Populate_RA(raw);
                 Repo.AniDB_GroupStatus.Save(grpstat);
             }
 

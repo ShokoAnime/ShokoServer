@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
@@ -121,7 +122,7 @@ namespace Shoko.Server.Commands
                         Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                         if (fileInfo != null)
                         {
-                            SVR_AniDB_File.Populate(aniFile, fileInfo);
+                            aniFile.Populate_RA(fileInfo);
                         }
                         else aniFile = null;
                     }
