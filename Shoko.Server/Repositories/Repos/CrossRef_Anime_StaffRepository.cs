@@ -5,9 +5,9 @@ using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 
-namespace Shoko.Server.Repositories.Cached
+namespace Shoko.Server.Repositories.Repos
 {
-    public class CrossRef_Anime_StaffRepository : BaseCachedRepository<CrossRef_Anime_Staff, int>
+    public class CrossRef_Anime_StaffRepository : BaseRepository<CrossRef_Anime_Staff, int>
     {
         private PocoIndex<int, CrossRef_Anime_Staff, int> AnimeIDs;
         private PocoIndex<int, CrossRef_Anime_Staff, int> StaffIDs;
@@ -23,7 +23,7 @@ namespace Shoko.Server.Repositories.Cached
                 {"cameo appearance in", CharacterAppearanceType.Cameo},
             };
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
             AnimeIDs = new PocoIndex<int, CrossRef_Anime_Staff, int>(Cache, a => a.AniDB_AnimeID);
             StaffIDs = new PocoIndex<int, CrossRef_Anime_Staff, int>(Cache, a => a.StaffID);
@@ -31,7 +31,7 @@ namespace Shoko.Server.Repositories.Cached
             RoleTypes = new PocoIndex<int, CrossRef_Anime_Staff, StaffRoleType>(Cache, a => (StaffRoleType) a.RoleType);
         }
 
-        public override void RegenerateDb()
+        public void RegenerateDb()
         {
             var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role))
                 .ToList();
@@ -48,20 +48,9 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        protected override int SelectKey(CrossRef_Anime_Staff entity)
+        internal override int SelectKey(CrossRef_Anime_Staff entity)
         {
             return entity.CrossRef_Anime_StaffID;
-        }
-
-        private CrossRef_Anime_StaffRepository()
-        {
-        }
-
-        public static CrossRef_Anime_StaffRepository Create()
-        {
-            var repo = new CrossRef_Anime_StaffRepository();
-            Repo.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)
@@ -111,6 +100,14 @@ namespace Shoko.Server.Repositories.Cached
                 return AnimeIDs.GetMultiple(AnimeID).FirstOrDefault(a =>
                     a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);
             }
+        }
+
+        internal override void ClearIndexes()
+        {
+            AnimeIDs = null;
+            StaffIDs = null;
+            RoleIDs = null;
+            RoleTypes = null;
         }
     }
 }

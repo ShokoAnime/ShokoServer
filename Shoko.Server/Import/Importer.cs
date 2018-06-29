@@ -788,7 +788,7 @@ namespace Shoko.Server
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 // remove missing files in valid import folders
-                Dictionary<SVR_ImportFolder, List<SVR_VideoLocal_Place>> filesAll = Repo.VideoLocalPlace.GetAll()
+                Dictionary<SVR_ImportFolder, List<SVR_VideoLocal_Place>> filesAll = Repo.VideoLocal_Place.GetAll()
                     .Where(a => a.ImportFolder != null)
                     .GroupBy(a => a.ImportFolder)
                     .ToDictionary(a => a.Key, a => a.ToList());
@@ -841,7 +841,7 @@ namespace Shoko.Server
                             foreach (SVR_VideoLocal_Place place in places)
                             {
                                 place.VideoLocalID = to.VideoLocalID;
-                                Repo.VideoLocalPlace.SaveWithOpenTransaction(session, place);
+                                Repo.VideoLocal_Place.SaveWithOpenTransaction(session, place);
                             }
                             transaction.Commit();
                         }
@@ -873,7 +873,7 @@ namespace Shoko.Server
                                 episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                                 seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                     .DistinctBy(a => a.AnimeSeriesID));
-                                Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                                Repo.VideoLocal_Place.DeleteWithOpenTransaction(session, place);
                             }
                             transaction.Commit();
                         }
@@ -889,7 +889,7 @@ namespace Shoko.Server
                         {
                             using (var transaction = session.BeginTransaction())
                             {
-                                Repo.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
+                                Repo.VideoLocal_Place.DeleteWithOpenTransaction(session, place);
                                 transaction.Commit();
                             }
                         }
@@ -977,7 +977,7 @@ namespace Shoko.Server
                 // first delete all the files attached  to this import folder
                 Dictionary<int, SVR_AnimeSeries> affectedSeries = new Dictionary<int, SVR_AnimeSeries>();
 
-                foreach (SVR_VideoLocal_Place vid in Repo.VideoLocalPlace.GetByImportFolder(importFolderID))
+                foreach (SVR_VideoLocal_Place vid in Repo.VideoLocal_Place.GetByImportFolder(importFolderID))
                 {
                     //Thread.Sleep(5000);
                     logger.Info("Deleting video local record: {0}", vid.FullServerPath);
@@ -994,14 +994,14 @@ namespace Shoko.Server
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v?.Places.Count == 1)
                     {
-                        Repo.VideoLocalPlace.Delete(vid);
+                        Repo.VideoLocal_Place.Delete(vid);
                         Repo.VideoLocal.Delete(v);
                         CommandRequest_DeleteFileFromMyList cmdDel =
                             new CommandRequest_DeleteFileFromMyList(v.MyListID);
                         cmdDel.Save();
                     }
                     else
-                        Repo.VideoLocalPlace.Delete(vid);
+                        Repo.VideoLocal_Place.Delete(vid);
                 }
 
                 // delete any duplicate file records which reference this folder

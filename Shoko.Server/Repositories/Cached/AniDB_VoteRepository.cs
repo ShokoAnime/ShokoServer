@@ -44,14 +44,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             };
         }
-
-        public static AniDB_VoteRepository Create()
-        {
-            var repo = new AniDB_VoteRepository();
-            Repo.CachedRepositories.Add(repo);
-            return repo;
-        }
-
+        
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             lock (Cache)

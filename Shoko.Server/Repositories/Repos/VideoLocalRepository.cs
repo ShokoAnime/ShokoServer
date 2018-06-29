@@ -120,7 +120,18 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-     
+        public IEnumerable<SVR_VideoLocal> GetVideosWithoutEpisodeUnsorted()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Cache.Values
+                        .Where(a => a.IsIgnored == 0 && !Repo.CrossRef_File_Episode.GetByHash(a.Hash).Any());
+                else
+                    return Table.Where(a => a.IsIgnored == 0 && !Repo.CrossRef_File_Episode.GetByHash(a.Hash).Any());
+            }
+        }
+
         public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
         {
             return Repo.VideoLocal_Place.GetByImportFolder(importFolderID).Select(a => a.VideoLocal)
@@ -134,7 +145,7 @@ namespace Shoko.Server.Repositories.Repos
             if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration == 0)
             {
                 SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace();
-                place?.RefreshMediaInfo(obj);
+                place?.RefreshMediaInfo();
             }
         }
 
@@ -151,10 +162,6 @@ namespace Shoko.Server.Repositories.Repos
             if (updateEpisodes)
                 Repo.AnimeEpisode.Touch(()=>entity.GetAnimeEpisodes());
         }
-
-
-
-
         public SVR_VideoLocal GetByHash(string hash)
         {
             using (RepoLock.ReaderLock())

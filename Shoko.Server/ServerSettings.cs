@@ -726,19 +726,19 @@ namespace Shoko.Server
             set => Set("DatabaseBackupDirectory", value);
         }
 
-        public static string JMMServerPort
+        public static int JMMServerPort
         {
             get
             {
                 string serverPort = Get("JMMServerPort");
-                if (string.IsNullOrEmpty(serverPort))
+                if (!int.TryParse(serverPort, out int outPort))
                 {
-                    serverPort = "8111";
-                    Set("JMMServerPort", serverPort);
+                    outPort = 8111;
+                    Set("JMMServerPort", "8111");
                 }
-                return serverPort;
+                return outPort;
             }
-            set => Set("JMMServerPort", value);
+            set => Set("JMMServerPort", value.ToString());
         }
 
 

@@ -6,8 +6,9 @@ using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
-namespace Shoko.Server.Repositories.Cached
+namespace Shoko.Server.Repositories.Repos
 {
     public class CrossRef_AniDB_TvDBRepository : BaseRepository<CrossRef_AniDB_TvDB, int>
     {
@@ -20,32 +21,28 @@ namespace Shoko.Server.Repositories.Cached
             AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB, int>(Cache, a => a.AniDBID);
         }
 
-        public CrossRef_AniDB_TvDBRepository()
+        internal override void EndSave(CrossRef_AniDB_TvDB entity, object returnFromBeginSave, object parameters)
         {
-            EndSaveCallback +=
-                (db) => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(db.AniDBID);
+            base.EndSave(entity, returnFromBeginSave, parameters);
+            TvDBLinkingHelper.GenerateTvDBEpisodeMatches(entity.AniDBID);
         }
-
-        public static CrossRef_AniDB_TvDBRepository Create()
-        {
-            var repo = new CrossRef_AniDB_TvDBRepository();
-            
-            return repo;
-        }
-
         public List<CrossRef_AniDB_TvDB> GetByAnimeID(int id)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return AnimeIDs.GetMultiple(id);
+                if (IsCached)
+                    return AnimeIDs.GetMultiple(id);
+                return Table.Where(a => a.AniDBID == id).ToList();
             }
         }
 
         public List<CrossRef_AniDB_TvDB> GetByTvDBID(int id)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return TvDBIDs.GetMultiple(id);
+                if (IsCached)
+                    return TvDBIDs.GetMultiple(id);
+                return Table.Where(a => a.TvDBID == id).ToList();
             }
         }
 
@@ -59,16 +56,16 @@ namespace Shoko.Server.Repositories.Cached
                 return EmptyLookup<int, CrossRef_AniDB_TvDB>.Instance;
             }
 
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                return animeIds.SelectMany(id => GetByAnimeID(id)) //TODO: Test for the recursion locks.
                     .ToLookup(xref => xref.AniDBID);
             }
         }
 
         public CrossRef_AniDB_TvDB GetByAniDBAndTvDBID(int animeID, int tvdbID)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
                 return TvDBIDs.GetMultiple(tvdbID).FirstOrDefault(xref => xref.AniDBID == animeID);
             }
@@ -86,11 +83,7 @@ namespace Shoko.Server.Repositories.Cached
             }).ToList();
         }
 
-        public override void RegenerateDb()
-        {
-        }
-
-        protected override int SelectKey(CrossRef_AniDB_TvDB entity)
+        internal override int SelectKey(CrossRef_AniDB_TvDB entity)
         {
             return entity.CrossRef_AniDB_TvDBID;
         }
@@ -150,6 +143,12 @@ namespace Shoko.Server.Repositories.Cached
                 TvDBStartEpisodeNumber = a.TvDBNumber,
                 TvDBTitle = Repo.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
             }).ToList();
+        }
+
+        internal override void ClearIndexes()
+        {
+            TvDBIDs = null;
+            AnimeIDs = null;
         }
     }
 }

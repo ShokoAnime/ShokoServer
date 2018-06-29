@@ -7,7 +7,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.Repositories
+namespace Shoko.Server.Repositories.Repos
 {
     public class AnimeCharacterRepository : BaseRepository<AnimeCharacter, int>
     {

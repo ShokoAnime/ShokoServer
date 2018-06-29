@@ -74,7 +74,7 @@ namespace Shoko.Server.Workers.Commands.Import
             // check if we have already processed this file
 
 
-            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocalPlace.GetByFilePathAndShareID(filePath, nshareID);
+            SVR_VideoLocal_Place vlocalplace = Repo.VideoLocal_Place.GetByFilePathAndShareID(filePath, nshareID);
             SVR_VideoLocal vlocal = null;
 
             if (vlocalplace != null)
@@ -89,7 +89,7 @@ namespace Shoko.Server.Workers.Commands.Import
                         Repo.VideoLocal.Delete(vlocal);
                         vlocal = null;
                     }
-                    Repo.VideoLocalPlace.Delete(vlocalplace);
+                    Repo.VideoLocal_Place.Delete(vlocalplace);
                     vlocalplace = null;
                 }
                 if (vlocal != null && workunit.Force)
@@ -126,7 +126,7 @@ namespace Shoko.Server.Workers.Commands.Import
                     ImportFolderType = folder.ImportFolderType
                 };
                 // Make sure we have an ID
-                Repo.VideoLocalPlace.Save(vlocalplace);
+                Repo.VideoLocal_Place.Save(vlocalplace);
             }
             // check if we need to get a hash this file
             if (string.IsNullOrEmpty(vlocal.Hash) || workunit.Force)
@@ -177,7 +177,7 @@ namespace Shoko.Server.Workers.Commands.Import
                                  " putting in videolocal table with empty ED2K");
                     Repo.VideoLocal.Save(vlocal, false);
                     vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                    Repo.VideoLocalPlace.Save(vlocalplace);
+                    Repo.VideoLocal_Place.Save(vlocalplace);
                     if (vlocalplace.RefreshMediaInfo())
                         Repo.VideoLocal.Save(vlocalplace.VideoLocal, true);
                     return new WorkResult<HashFile>(workunit);
@@ -225,14 +225,14 @@ namespace Shoko.Server.Workers.Commands.Import
                         // clean up, if there is a 'duplicate file' that is invalid, remove it.
                         if (prep.FullServerPath == null)
                         {
-                            Repo.VideoLocalPlace.Delete(prep);
+                            Repo.VideoLocal_Place.Delete(prep);
                         }
                         else
                         {
                             FileSystemResult dupFileSystemResult =
                                 prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
                             if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
-                                Repo.VideoLocalPlace.Delete(prep);
+                                Repo.VideoLocal_Place.Delete(prep);
                         }
                     }
 
@@ -280,7 +280,7 @@ namespace Shoko.Server.Workers.Commands.Import
                     Repo.VideoLocal.Save(vlocal, true);
 
                 vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                Repo.VideoLocalPlace.Save(vlocalplace);
+                Repo.VideoLocal_Place.Save(vlocalplace);
 
                 if (duplicate)
                 {

@@ -95,12 +95,21 @@ namespace Shoko.Server.Repositories
         public static ScanRepository Scan { get; private set; }
         public static ScanFileRepository ScanFile { get; private set; }
         public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; internal set; }
+        public static AnimeStaffRepository AnimeStaff { get; internal set; }
+        public static AnimeCharacterRepository AnimeCharacter { get; internal set; }
+        public static GroupFilterConditionRepository GroupFilterCondition { get; internal set; }
+        public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; internal set; }
+
+
 
 
 
         /************** Might need to be DEPRECATED **************/
         public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; private set; }
         public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; private set; }
+        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; private set; }
+        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; internal set; }
+
 
         //AdHoc Repo
         public static AdhocRepository Adhoc { get; private set; }
@@ -211,17 +220,22 @@ namespace Shoko.Server.Repositories
 
             Scan = Register<ScanRepository, SVR_Scan>(db.Scans);
             ScanFile = Register<ScanFileRepository, ScanFile>(db.ScanFiles);
-
+            AnimeStaff = Register<AnimeStaffRepository, AnimeStaff>(db.AnimeStaff);
+            AnimeCharacter = Register<AnimeCharacterRepository, AnimeCharacter>(db.AnimeCharacter);
+            AniDB_AnimeUpdate = Register<AniDB_AnimeUpdateRepository, AniDB_AnimeUpdate>(db.AniDB_AnimeUpdate);
 
 
             /************** Might need to be DEPRECATED **************/
             CrossRef_AniDB_Trakt_Episode = Register<CrossRef_AniDB_Trakt_EpisodeRepository, CrossRef_AniDB_Trakt_Episode>(db.CrossRef_AniDB_Trakt_Episodes);
+            CrossRef_AniDB_TvDB_Episode_Override = Register<CrossRef_AniDB_TvDB_Episode_OverrideRepository, CrossRef_AniDB_TvDB_Episode_Override>(db.CrossRef_AniDB_TvDB_Episode_Override);
+            CrossRef_AniDB_TvDB = Register<CrossRef_AniDB_TvDBRepository, CrossRef_AniDB_TvDB>(db.CrossRef_AniDB_TvDB);
+            CrossRef_Anime_Staff = Register<CrossRef_Anime_StaffRepository, CrossRef_Anime_Staff>(db.CrossRef_Anime_Staff);
             Adhoc = new AdhocRepository();
 
             _repos.ForEach(a => a.PreInit(progress,batchSize));
             _repos.ForEach(a => a.PostInit(progress, batchSize));
         }
-
+        
         public static void SetCache(HashSet<string> cachedRepos)
         {
             if (cachedRepos != null)

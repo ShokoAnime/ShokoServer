@@ -1028,7 +1028,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal_Place place = Repo.VideoLocalPlace.GetByID(videolocalplaceid);
+                SVR_VideoLocal_Place place = Repo.VideoLocal_Place.GetByID(videolocalplaceid);
                 if (place?.VideoLocal == null)
                     return "Database entry does not exist";
 
@@ -1748,7 +1748,7 @@ namespace Shoko.Server
 
                         //string filePath = Pri.LongPath.Path.GetDirectoryName(vi.FilePath).Replace(importLocation, "");
                         //filePath = filePath.TrimStart('\\');
-                        string filePath = Repo.VideoLocalPlace.GetByVideoLocal(vi.VideoLocalID)[0].FilePath;
+                        string filePath = Repo.VideoLocal_Place.GetByVideoLocal(vi.VideoLocalID)[0].FilePath;
                         if (!asfs.Folders.Contains(filePath))
                         {
                             asfs.Folders.Add(filePath);
@@ -2626,7 +2626,7 @@ namespace Shoko.Server
                                     return $"Unable to delete file '{place.FullServerPath}'";
                                 }
                             }
-                            Repo.VideoLocalPlace.Delete(place);
+                            Repo.VideoLocal_Place.Delete(place);
                         }
                         CommandRequest_DeleteFileFromMyList cmdDel =
                             new CommandRequest_DeleteFileFromMyList(vid.Hash, vid.FileSize);

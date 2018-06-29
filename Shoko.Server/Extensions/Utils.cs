@@ -72,6 +72,20 @@ namespace Shoko.Server.Extensions
             return value2 - value1 <= error;
         }
 
+        public static bool ContentEquals<T>(this IEnumerable<T> l, IEnumerable<T> r)
+        {
+            if (l == null && r == null) return true;
+            if (l == null || r == null) return false;
+
+            if (l.Count() != r.Count())
+                return false;
+
+            for (int i = 0; i < l.Count(); i++)
+                if (!l.ElementAt(i).Equals(r.ElementAt(i))) return false;
+
+            return true;
+        }
+
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
             CL_AnimeGroup_User contract = new CL_AnimeGroup_User(new SeasonComparator())

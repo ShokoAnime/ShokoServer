@@ -108,7 +108,11 @@ namespace Shoko.Server.Databases
         public DbSet<SVR_VideoLocal> VideoLocals { get; set; } // VideoLocal
         public DbSet<SVR_VideoLocal_Place> VideoLocal_Places { get; set; } // VideoLocal_Place
         public DbSet<VideoLocal_User> VideoLocal_Users { get; set; } // VideoLocal_User
-
-
+        public DbSet<CrossRef_AniDB_TvDB_Episode_Override> CrossRef_AniDB_TvDB_Episode_Override { get; internal set; }
+        public DbSet<CrossRef_AniDB_TvDB> CrossRef_AniDB_TvDB { get; internal set; }
+        public DbSet<CrossRef_Anime_Staff> CrossRef_Anime_Staff { get; internal set; }
+        public DbSet<AnimeStaff> AnimeStaff { get; internal set; }
+        public DbSet<AnimeCharacter> AnimeCharacter { get; internal set; }
+        public DbSet<AniDB_AnimeUpdate> AniDB_AnimeUpdate { get; internal set; }
     }
 }

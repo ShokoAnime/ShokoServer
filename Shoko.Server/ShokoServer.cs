@@ -12,10 +12,10 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using LeanWork.IO.FileSystem;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using Nancy;
-using Nancy.Hosting.Self;
 using Nancy.Json;
 using NLog;
 using NutzCode.CloudFileSystem.OAuth2;
@@ -59,7 +59,7 @@ namespace Shoko.Server
         public static string PathAddressPlex = "api/Plex";
         public static string PathAddressKodi = "Kodi";
 
-        private static NancyHost hostNancy;
+        private static IWebHost hostNancy;
 
         private static BackgroundWorker workerImport = new BackgroundWorker();
         private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -1497,35 +1497,23 @@ namespace Shoko.Server
 
             if (hostNancy != null)
                 return;
-            //nancy will rewrite localhost into http://+:port
-            HostConfiguration config = new HostConfiguration
-            {
-                // set Nancy Hosting config here
-                UnhandledExceptionCallback = exception =>
-                {
-                    if (exception is HttpListenerException)
-                    {
-                        //logger.Error($"An network serve operation took too long and timed out.");
-                    }
-                    else
-                    {
-                        logger.Error(exception);
-                    }
-                }
-            };
+
             // This requires admin, so throw an error if it fails
             // Don't let Nancy do this. We do it ourselves.
             // This needs to throw an error for our url registration to call.
 
 
-            config.UrlReservations.CreateAutomatically = false;
+            /*config.UrlReservations.CreateAutomatically = false;
             config.RewriteLocalhost = true;
-            config.AllowChunkedEncoding = false;
-            hostNancy = new NancyHost(config,
-                new Uri("http://localhost:" + ServerSettings.JMMServerPort));
-            if (ServerSettings.ExperimentalUPnP)
-                NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
-            JsonSettings.MaxJsonLength = int.MaxValue;
+            config.AllowChunkedEncoding = false;*/
+
+            hostNancy = new WebHostBuilder().UseKestrel(options =>
+            {
+                options.ListenAnyIP(ServerSettings.JMMServerPort);
+            }).UseStartup<API.Startup>().Build();
+              
+
+            //JsonSettings.MaxJsonLength = int.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
@@ -1713,7 +1701,7 @@ namespace Shoko.Server
 
             StopHost();
 
-            ServerSettings.JMMServerPort = $"{port}";
+            ServerSettings.JMMServerPort = port;
 
             bool started = NetPermissionWrapper(StartNancyHost);
             if (!started)
