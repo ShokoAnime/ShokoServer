@@ -639,7 +639,7 @@ namespace Shoko.Server
                 var match = matches[index];
                 if (match.Item1 == null || match.Item2 == null)
                 {
-                    match.Item3 = MatchRating.SarahJessicaParker;
+                    matches[index] = (match.Item1, match.Item2, MatchRating.SarahJessicaParker);
                     continue;
                 }
                 
@@ -658,7 +658,7 @@ namespace Shoko.Server
                 // this method returns false if either is null
                 bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
 
-                if (!titlesMatch) match.Item3 = MatchRating.Mkay;
+                if (!titlesMatch) matches[index] = (match.Item1, match.Item2, MatchRating.Mkay);
             }
         }
 
