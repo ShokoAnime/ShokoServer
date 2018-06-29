@@ -541,6 +541,14 @@ namespace Shoko.Commons.Utils
                 return -1;
             }
 
+            // always search the longer string for the shorter one
+            if (query.Length > inputString.Length)
+            {
+                string temp = query;
+                query = inputString;
+                inputString = temp;
+            }
+
             // Shortcut
             if (inputString.Contains(query))
             {
