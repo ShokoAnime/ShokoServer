@@ -523,6 +523,11 @@ namespace Shoko.Commons.Utils
 
         public static int BitapFuzzySearch(string text, string pattern, int k, out int dist)
         {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(pattern))
+            {
+                dist = int.MaxValue;
+                return -1;
+            }
             // This forces ASCII, because it's faster to stop caring if ss and ß are the same
             // No it's not perfect, but it works better for those who just want to do lazy searching
             string inputString = text.FilterCharacters(AllowedSearchCharacters);
@@ -565,6 +570,7 @@ namespace Shoko.Commons.Utils
 
         public static bool FuzzyMatches(this string text, string query)
         {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(query)) return false;
             int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || text.Length <= 4) k = 0;
             return BitapFuzzySearch(text, query, k, out int _) > -1;
