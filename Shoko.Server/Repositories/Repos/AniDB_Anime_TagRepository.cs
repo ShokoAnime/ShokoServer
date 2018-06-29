@@ -89,6 +89,12 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-
+        internal List<AniDB_Anime_Tag> GetByTagID(int tagID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return WhereAll().Where(a => a.TagID == tagID).ToList();
+            }
+        }
     }
 }

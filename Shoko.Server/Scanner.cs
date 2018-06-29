@@ -158,35 +158,27 @@ namespace Shoko.Server
             ActiveErrorFiles.Clear();
             HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-
             files.ForEach(file =>
             {
                 SVR_VideoLocal_Place place = Repo.VideoLocal_Place.GetByID(file.VideoLocal_Place_ID);
                 place.RemoveAndDeleteFileWithOpenTransaction(episodesToUpdate, seriesToUpdate);
             });
             // update everything we modified
-            using (var upd = Repo.AnimeEpisode.BeginBatchUpdate())
-            {
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
+            Repo.AnimeEpisode.BatchAction(episodesToUpdate, episodesToUpdate.Count, (ep, _) => {
+                if (ep.AnimeEpisodeID == 0)
                 {
-
-
-                    upd.Process(() => ep, (epi) =>
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    });
+                    ep.PlexContract = null;
                 }
-                foreach (SVR_AnimeSeries ser in seriesToUpdate)
+                try
                 {
-                    ser?.QueueUpdateStats();
+                    ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
                 }
-
-                upd.Commit();
-            }
-            foreach (SVR_AnimeSeries ser in seriesToUpdate)
-            {
-                ser.QueueUpdateStats();
-            }
+                catch (Exception ex)
+                {
+                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                }
+            });
+                
             Repo.ScanFile.Delete(files);
         }
 
@@ -204,77 +196,69 @@ namespace Shoko.Server
             {
                 bool paused = ShokoService.CmdProcessorHasher.Paused;
                 ShokoService.CmdProcessorHasher.Paused = true;
-                using (var supd = Repo.Scan.BeginAddOrUpdate(()=>Repo.Scan.GetByID(RunScan.ScanID)))
+                SVR_Scan s = RunScan;
+                using (var upd = Repo.Scan.BeginAddOrUpdate(() => s))
                 {
-                    supd.Entity.Status= (int)ScanStatus.Running;
-                    RunScan=supd.Commit();
+                    upd.Entity.Status = (int) ScanStatus.Running;
+                    s = upd.Commit();
                 }
                 Refresh();
                 List<ScanFile> files = Repo.ScanFile.GetWaiting(RunScan.ScanID);
                 int cnt = 0;
-                foreach (ScanFile sf in files)
+                foreach (ScanFile sf in files) //TODO: Fix
                 {
-                    ScanFile sfa = sf;
-                    string ed2k = null;
-                    Int16 status;
                     try
                     {
-                        if (!File.Exists(sfa.FullName))
-                            status = (int)ScanFileStatus.ErrorFileNotFound;
+                        if (!File.Exists(sf.FullName))
+                            sf.Status = (int) ScanFileStatus.ErrorFileNotFound;
                         else
                         {
-                            FileInfo f = new FileInfo(sfa.FullName);
-                            if (sfa.FileSize != f.Length)
-                                status = (int)ScanFileStatus.ErrorInvalidSize;
+                            FileInfo f = new FileInfo(sf.FullName);
+                            if (sf.FileSize != f.Length)
+                                sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
-                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct() { queueState = QueueStateEnum.HashingFile, extraParams = new[] { upd.Entity.FullName } };
-                                Hashes hashes = FileHashHelper.GetHashInfo(sfa.FullName, true, OnHashProgress, false, false, false);
+                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                                {
+                                    queueState = QueueStateEnum.HashingFile,
+                                    extraParams = new[] { sf.FullName }
+                                };
+                                Hashes hashes =
+                                    FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
                                 {
-                                    status = (int)ScanFileStatus.ErrorMissingHash;
+                                    sf.Status = (int) ScanFileStatus.ErrorMissingHash;
                                 }
                                 else
                                 {
-                                    ed2k= hashes.ED2K;
-                                    if (!sfa.Hash.Equals(ed2k, StringComparison.InvariantCultureIgnoreCase))
-                                        status = (int)ScanFileStatus.ErrorInvalidHash;
+                                    sf.HashResult = hashes.ED2K;
+                                    if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
+                                        sf.Status = (int) ScanFileStatus.ErrorInvalidHash;
                                     else
-                                        status = (int)ScanFileStatus.ProcessedOK;
+                                        sf.Status = (int) ScanFileStatus.ProcessedOK;
                                 }
                             }
                         }
                     }
                     catch (Exception)
                     {
-                        status = (int)ScanFileStatus.ErrorIOError;
+                        sf.Status = (int) ScanFileStatus.ErrorIOError;
                     }
                     cnt++;
-                    using (var upd = Repo.ScanFile.BeginAddOrUpdate(()=>Repo.ScanFile.GetByID(sfa.ScanFileID)))
-                    {
-                        upd.Entity.CheckDate = DateTime.Now;
-                        if (ed2k != null)
-                            upd.Entity.HashResult = ed2k;
-                        upd.Entity.Status = status;
-                        sfa= upd.Commit();
-
-                    }
-                    if (sfa.Status > (int)ScanFileStatus.ProcessedOK)
+                    sf.CheckDate = DateTime.Now;
+                    Repo.ScanFile.Save(sf);
+                    if (sf.Status > (int) ScanFileStatus.ProcessedOK)
                         Scanner.Instance.AddErrorScan(sf);
                     Refresh();
+
                     if (cancelIntegrityCheck)
                         break;
                 }
-
-                bool stilw = files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting);
-                using (var supd = Repo.Scan.BeginAddOrUpdate(() => Repo.Scan.GetByID(RunScan.ScanID)))
-                {
-                    if (stilw)
-                        supd.Entity.Status = (int)ScanStatus.Standby;
-                    else
-                        supd.Entity.Status = (int)ScanStatus.Finish;
-                    RunScan = supd.Commit();
-                }
+                if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
+                    s.Status = (int) ScanStatus.Standby;
+                else
+                    s.Status = (int) ScanStatus.Finish;
+                Repo.Scan.Save(s);
                 Refresh();
                 RunScan = null;
                 ShokoService.CmdProcessorHasher.Paused = paused;

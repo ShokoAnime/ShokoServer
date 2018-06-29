@@ -20,6 +20,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Repos;
 using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models

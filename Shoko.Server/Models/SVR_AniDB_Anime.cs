@@ -1313,7 +1313,7 @@ namespace Shoko.Server.Models
                     Repo.AniDB_Recommendation.GetByAnimeIDAndUserID(rawRec.AnimeID, rawRec.UserID);
                 if (rec == null)
                     rec = new AniDB_Recommendation();
-                rec.Populate(rawRec);
+                rec.Populate_RA(rawRec);
                 recsToSave.Add(rec);
             }
             Repo.AniDB_Recommendation.Save(recsToSave);

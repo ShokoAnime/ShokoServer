@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -20,7 +21,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             using (RepoLock.ReaderLock())
             {
-
+                return Table.FirstOrDefault(s => s.SeiyuuID == entityID);
             }
         }
     }

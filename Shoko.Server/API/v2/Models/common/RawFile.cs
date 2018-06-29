@@ -6,6 +6,7 @@ using System.IO;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.API.v2.Models.common
 {

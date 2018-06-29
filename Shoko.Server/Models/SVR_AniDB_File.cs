@@ -6,7 +6,6 @@ using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
 using Nancy.Extensions;
-using NHibernate.Util;
 using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;

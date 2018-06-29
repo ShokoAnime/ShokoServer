@@ -63,7 +63,7 @@ namespace Shoko.Server.Commands
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try
             {
-                xref.PopulateManually(vlocal, episode);
+                xref.PopulateManually_RA(vlocal, episode);
                 if (Percentage > 0 && Percentage <= 100)
                 {
                     xref.Percentage = Percentage;

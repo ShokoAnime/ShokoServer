@@ -55,5 +55,54 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => a.AnimeID == id).Select(a => a.AniDB_Anime_RelationID).ToList();
             }
         }
+
+        /// SELECT AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
+        /// UNION
+        /// SELECT RelatedAnimeID AS AnimeID FROM AniDB_Anime_Relation WHERE (RelationType = 'Prequel' OR RelationType = 'Sequel') AND (AnimeID = 10445 OR RelatedAnimeID = 10445)
+        public HashSet<int> GetLinearRelations(int id)
+        {
+            var cats = (from relation in Table
+                        where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                              (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                        select relation.AnimeID);
+            var cats2 = (from relation in Table
+                         where (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
+                               (relation.RelationType == "Prequel" || relation.RelationType == "Sequel")
+                         select relation.RelatedAnimeID);
+
+            return new HashSet<int>(cats.Concat(cats2));
+        }
+
+        /// <summary>
+        /// Return a list of Anime IDs in a prequel/sequel line, including the given animeID, in order
+        /// </summary>
+        /// <param name="animeID"></param>
+        /// <returns></returns>
+        public List<int> GetFullLinearRelationTree(int animeID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                var allRelations = GetLinearRelations(animeID);
+                HashSet<int> visitedNodes = new HashSet<int> { animeID };
+                HashSet<int> resultRelations = new HashSet<int>(allRelations);
+                GetAllRelationsByTypeRecursive(allRelations, ref visitedNodes, ref resultRelations);
+
+                return resultRelations.OrderBy(a => a).ToList();
+            }
+        }
+
+        private void GetAllRelationsByTypeRecursive(IEnumerable<int> allRelations, ref HashSet<int> visitedNodes, ref HashSet<int> resultRelations)
+        {
+            foreach (var relation in allRelations)
+            {
+                if (visitedNodes.Contains(relation)) continue;
+                var sequels = GetLinearRelations(relation);
+                visitedNodes.Add(relation);
+                if (sequels.Count == 0) continue;
+
+                GetAllRelationsByTypeRecursive(sequels, ref visitedNodes, ref resultRelations);
+                resultRelations.UnionWith(sequels);
+            }
+        }
     }
 }

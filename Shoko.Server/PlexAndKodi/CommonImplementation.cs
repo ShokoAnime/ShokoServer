@@ -301,7 +301,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 try
                 {
-                    (Video m, _) = Helper.VideoFromVideoLocal(prov, v, userid);
+                    Video m = Helper.VideoFromVideoLocal(prov, v, userid);
                     dirs.Add(prov, m, info);
                     m.Thumb = prov.ConstructSupportImageLink("plex_404.png");
                     m.ParentThumb = prov.ConstructSupportImageLink("plex_unsort.png");

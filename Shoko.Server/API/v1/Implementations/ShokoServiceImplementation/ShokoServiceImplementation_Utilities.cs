@@ -215,7 +215,7 @@ namespace Shoko.Server
 
                 videosToDelete.AddRange(videoLocals);
             }
-            return videosToDelete.Select(a => SVR_VideoLocal.ToClient(a, userID).ClientVideoLocal).ToList();
+            return videosToDelete.Select(a => a.ToClient(userID).ClientVideoLocal).ToList();
         }
 
         public List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID)

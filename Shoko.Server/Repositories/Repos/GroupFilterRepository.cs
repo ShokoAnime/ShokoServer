@@ -102,7 +102,7 @@ namespace Shoko.Server.Repositories.Repos
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
                     gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
-                    SVR_GroupFilter.CalculateGroupsAndSeries(gf);
+                    gf.CalculateGroupsAndSeries();
 
                 progress.Report(regen);
             });
@@ -479,7 +479,7 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
+                        b.Entity.CalculateGroupsAndSeries();
                         b.Commit();
                     }
                     if (frominit)

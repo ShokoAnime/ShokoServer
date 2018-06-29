@@ -25,14 +25,6 @@ namespace Shoko.Server.Providers.MovieDB
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private static string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
-            }
-        }
-
         public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages,
             bool isTrakt)
         {

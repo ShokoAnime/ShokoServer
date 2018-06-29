@@ -686,7 +686,7 @@ namespace Shoko.Server
                 if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
                 if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
 
-                DatabaseFactory.CloseSessionFactory();
+                //DatabaseFactory.CloseSessionFactory();
 
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_Initializing;
                 Thread.Sleep(1000);
@@ -716,7 +716,7 @@ namespace Shoko.Server
 
                 //init session factory
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingSession;
-                ISessionFactory temp = DatabaseFactory.SessionFactory;
+                //ISessionFactory temp = DatabaseFactory.SessionFactory;
 
 
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingQueue;

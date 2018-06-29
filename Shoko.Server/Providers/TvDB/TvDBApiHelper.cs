@@ -74,7 +74,7 @@ namespace Shoko.Server.Providers.TvDB
                 Series series = response.Data;
                 using (var tupd = Repo.TvDB_Series.BeginAddOrUpdate(()=> Repo.TvDB_Series.GetByTvDBID(seriesID)))
                 {
-                    tupd.Entity.PopulateFromSeriesInfo_RA(series);
+                    tupd.Entity.PopulateFromSeriesInfo(series);
                     tvSeries=tupd.Commit();
                 }
                 return tvSeries;
@@ -378,7 +378,7 @@ namespace Shoko.Server.Providers.TvDB
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
-                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Populate(seriesID, image);
                         repo.Entity.Language = client.AcceptedLanguage;
                         img = repo.Commit();
 
@@ -445,7 +445,7 @@ namespace Shoko.Server.Providers.TvDB
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
-                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Populate(seriesID, image);
                         repo.Entity.Language = client.AcceptedLanguage;
                         img = repo.Commit();
                     }
@@ -510,7 +510,7 @@ namespace Shoko.Server.Providers.TvDB
                     {
                         if (repo.Original == null)
                             repo.Entity.Enabled = 1;
-                        repo.Entity.Populate_RA(seriesID, image);
+                        repo.Entity.Populate(seriesID, image);
                         repo.Entity.Language = client.AcceptedLanguage;
                         img = repo.Commit();
                     }
