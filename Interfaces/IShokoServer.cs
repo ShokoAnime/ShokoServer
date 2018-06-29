@@ -457,6 +457,9 @@ namespace Shoko.Models.Interfaces
 
         [Rest("AniDB/Anime/Update/{animeID}", Verbs.Post)]
         string UpdateAnimeData(int animeID);
+        
+        [Rest("AniDB/Anime/GetUpdated/{animeID}", Verbs.Post)]
+        CL_AniDB_AnimeDetailed GetUpdatedAnimeData(int animeID);
 
         [Rest("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}", Verbs.Post)]
         void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags);
