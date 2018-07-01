@@ -74,7 +74,7 @@ namespace Shoko.Server.Repositories.Repos
 
         }
 
-        public List<SVR_AnimeEpisode> GetByAniDBEpisodeID(int epid)
+        public SVR_AnimeEpisode GetByAniDBEpisodeID(int epid)
         {
             //AniDB_Episode may not unique for the series, Example with Toriko Episode 1 and One Piece 492, same AniDBEpisodeID in two shows.
 
@@ -82,8 +82,8 @@ namespace Shoko.Server.Repositories.Repos
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return EpisodeIDs.GetMultiple(epid);
-                return Table.Where(a => a.AniDB_EpisodeID == epid).ToList();
+                    return EpisodeIDs.GetOne(epid);
+                return Table.FirstOrDefault(a => a.AniDB_EpisodeID == epid);
             }
 
         }

@@ -27,9 +27,9 @@ namespace Shoko.Server.PlexAndKodi
         {
             Request req = prov?.Nancy?.Request;
 
-            string host = req?.Url.HostName ?? OperationContext.Current.IncomingMessageHeaders.To.Host;
+            string host = req?.Url.HostName;// ?? OperationContext.Current.IncomingMessageHeaders.To.Host;
 
-            string scheme = req?.Url.Scheme ?? OperationContext.Current?.IncomingMessageHeaders.To.Scheme;
+            string scheme = req?.Url.Scheme;// ?? OperationContext.Current?.IncomingMessageHeaders.To.Scheme;
             if (host == null)
             {
                 var context = System.ServiceModel.OperationContext.Current;
@@ -64,12 +64,11 @@ namespace Shoko.Server.PlexAndKodi
             {
                 return prov.Nancy.Request.Query[name];
             }
-            if (OperationContext.Current == null)
+            /*
+            if (WebOperationContext.Current == null)
                 return null;
-            HttpReq
-            HttpValueCollection collection = OperationContext.Current.IncomingMessageHeaders..To.ParseQueryString();
-            if (collection.Any(a => a.Key == name))
-                return collection[name];
+            if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(name))
+                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];*/
             return null;
         }
 
@@ -90,7 +89,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (prov.Nancy.Request.Headers.Keys.Contains(name))
                     return prov.Nancy.Request.Headers[name].ElementAt(0);
             }
-            else
+            /*else
             {
                 var headers = OperationContext.Current.IncomingMessageProperties["httpRequest"];
                 if (headers!=null)
@@ -99,7 +98,7 @@ namespace Shoko.Server.PlexAndKodi
                     if (coll.AllKeys.Contains(name))
                         return coll.Get(name);
                 }
-            }            
+            } */           
             return null;
         }
 

@@ -2014,7 +2014,7 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result is IFile sourceFile))
+            if (!((video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath) as FileSystemResult<IObject>)?.Result is IFile sourceFile))
                 return (null, "File is null");
 
             ImportFolder destFolder = null;
@@ -2024,8 +2024,8 @@ namespace Shoko.Server.Renamer
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
                 IFileSystem fs = fldr.FileSystem;
-                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                if (fsresult == null || !fsresult.IsOk) continue;
+                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation) as FileSystemResult<IObject>;
+                if (fsresult == null || fsresult.Status != Status.Ok) continue;
 
                 // Continue if on a separate drive and there's no space
                 if (!fldr.CloudID.HasValue &&
@@ -2033,8 +2033,8 @@ namespace Shoko.Server.Renamer
                 {
                     var fsresultquota = fldr.BaseDirectory.Quota();
                     // if it's null, then we are likely on network FS, so we can't easily check
-                    if (fsresultquota != null && fsresultquota.IsOk &&
-                        fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    if (fsresultquota != null && fsresultquota.Status == Status.Ok &&
+                        fsresultquota.AvailableSize < sourceFile.Size) continue;
                 }
 
                 destFolder = fldr;
@@ -2095,14 +2095,14 @@ namespace Shoko.Server.Renamer
                     {
                         var fsresultquota = dstImportFolder.BaseDirectory.Quota();
                         // if it's null, then we are likely on network FS, so we can't easily check
-                        if (fsresultquota != null && fsresultquota.IsOk &&
-                            fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                        if (fsresultquota != null && fsresultquota.Status == Status.Ok &&
+                            fsresultquota.AvailableSize < sourceFile.Size) continue;
                     }
 
-                    FileSystemResult<IObject> dir = dstImportFolder
+                    IObject dir = dstImportFolder
                         .FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
                             folderName));
-                    if (dir == null || !dir.IsOk) continue;
+                    if (dir == null || dir.Status != Status.Ok) continue;
                     // ensure we aren't moving to the current directory
                     if (Path.Combine(place.ImportFolder.ImportFolderLocation,
                         folderName).Equals(Path.Combine(video.ImportFolder.ImportFolderLocation,
@@ -2112,7 +2112,7 @@ namespace Shoko.Server.Renamer
                         continue;
                     }
                     // Not a directory
-                    if (!(dir.Result is IDirectory)) continue;
+                    if (!(dir is IDirectory)) continue;
                     destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);

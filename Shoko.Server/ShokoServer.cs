@@ -927,7 +927,7 @@ namespace Shoko.Server
                             }
 
                             Repo.CrossRef_File_Episode.Save(xref);
-                            vid.Places.ForEach(a => { SVR_VideoLocal_Place.RenameAndMoveAsRequired(a); });
+                            vid.Places.ForEach(a => a.RenameAndMoveAsRequired());
 
                             // update stats for groups and series
                             if (ser != null)
@@ -1525,7 +1525,7 @@ namespace Shoko.Server
                 logger.Error(ex);
             }
         }
-
+    
 
         private static void ReadFiles()
         {

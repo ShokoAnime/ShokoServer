@@ -204,8 +204,10 @@ namespace Shoko.Server
                 }
                 Refresh();
                 List<ScanFile> files = Repo.ScanFile.GetWaiting(RunScan.ScanID);
-                int cnt = 0;
-                foreach (ScanFile sf in files) //TODO: Fix
+
+
+                //foreach (ScanFile sf in files) //TODO: Fix
+                Repo.ScanFile.BatchAction(files, files.Count, (sf, orig) => 
                 {
                     try
                     {
@@ -244,21 +246,25 @@ namespace Shoko.Server
                     {
                         sf.Status = (int) ScanFileStatus.ErrorIOError;
                     }
-                    cnt++;
                     sf.CheckDate = DateTime.Now;
-                    Repo.ScanFile.Save(sf);
+
                     if (sf.Status > (int) ScanFileStatus.ProcessedOK)
                         Scanner.Instance.AddErrorScan(sf);
                     Refresh();
 
                     if (cancelIntegrityCheck)
-                        break;
+                        return;
+                });
+
+
+                using (var upd = Repo.Scan.BeginAddOrUpdate(() => s)) 
+                {
+                    if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
+                        upd.Entity.Status = (int) ScanStatus.Standby;
+                    else
+                        upd.Entity.Status = (int) ScanStatus.Finish;
+                    s = upd.Commit();
                 }
-                if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
-                    s.Status = (int) ScanStatus.Standby;
-                else
-                    s.Status = (int) ScanStatus.Finish;
-                Repo.Scan.Save(s);
                 Refresh();
                 RunScan = null;
                 ShokoService.CmdProcessorHasher.Paused = paused;

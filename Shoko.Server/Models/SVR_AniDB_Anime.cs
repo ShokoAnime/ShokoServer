@@ -108,7 +108,6 @@ namespace Shoko.Server.Models
                 }
             }
         }
-
         public List<TvDB_Episode> GetTvDBEpisodes()
         {
             List<TvDB_Episode> results = new List<TvDB_Episode>();

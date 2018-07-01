@@ -119,5 +119,12 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        internal SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int nshareID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return Where(a => a.FilePath == filePath).FirstOrDefault(a => a.ImportFolderID == nshareID);
+            }
+        }
     }
 }

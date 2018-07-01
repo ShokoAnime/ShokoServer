@@ -8,16 +8,15 @@ using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Repositories.Repos;
 
 namespace Shoko.Server.Commands
 {
     public class CommandAttribute : Attribute
     {
-        [NotNull]
         public CommandRequestType RequestType { get; }
 
-        public CommandAttribute([NotNull] CommandRequestType requestType) => RequestType = requestType;
+        public CommandAttribute(CommandRequestType requestType) => RequestType = requestType;
     }
 
     public abstract class CommandRequestImplementation : ICommandRequest
@@ -75,37 +74,6 @@ namespace Shoko.Server.Commands
             return sb.ToString();
         }
 
-        public void Save(ISession session)
-        {
-            CommandRequest crTemp = Repo.CommandRequest.GetByCommandID(CommandID);
-            if (crTemp != null)
-            {
-                // we will always mylist watched state changes
-                // this is because the user may be toggling the status in the client, and we need to process
-                // them all in the order they were requested
-                if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                    Repo.CommandRequest.Delete(crTemp);
-                else
-                    return;
-            }
-
-            CommandRequest cri = ToDatabaseObject();
-            Repo.CommandRequest.SaveWithOpenTransaction(session, cri);
-
-            switch (CommandRequestRepository.GetQueueIndex(cri))
-            {
-                case 0:
-                    ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
-                    break;
-                case 1:
-                    ShokoService.CmdProcessorHasher.NotifyOfNewCommand();
-                    break;
-                case 2:
-                    ShokoService.CmdProcessorImages.NotifyOfNewCommand();
-                    break;
-            }
-        }
-
         public void Save()
         {
             CommandRequest crTemp = Repo.CommandRequest.GetByCommandID(CommandID);
@@ -121,8 +89,8 @@ namespace Shoko.Server.Commands
             }
 
             CommandRequest cri = ToDatabaseObject();
-            Repo.CommandRequest.Save(cri);
-
+            Repo.CommandRequest.BeginAdd(cri).Commit();
+            
             switch (CommandRequestRepository.GetQueueIndex(cri))
             {
                 case 0:

@@ -27,14 +27,14 @@ namespace Shoko.Server.Repositories.Repos
         }
 
 
-        public CrossRef_AniDB_TvDB_Episode GetByAniDBEpisodeID(int id)
+        public List<CrossRef_AniDB_TvDB_Episode> GetByAniDBEpisodeID(int id)
         {
             // TODO Change this when multiple AniDB <=> TvDB Episode mappings
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return EpisodeIDs.GetOne(id);
-                return Table.FirstOrDefault(a => a.AniDBEpisodeID==id);
+                    return EpisodeIDs.GetMultiple(id).ToList();
+                return Table.Where(a => a.AniDBEpisodeID==id).ToList();
             }
         }
 
