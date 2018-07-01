@@ -61,23 +61,14 @@ namespace Shoko.Server.Extensions
         public static void CreateAnimeEpisode(this AniDB_Episode episode, ISession session, int animeSeriesID)
         {
             // check if there is an existing episode for this EpisodeID
-            SVR_AnimeEpisode existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+            SVR_AnimeEpisode existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ??
+                                          new SVR_AnimeEpisode();
 
-            if (existingEp == null)
-            {
-                SVR_AnimeEpisode animeEp = new SVR_AnimeEpisode();
-                animeEp.Populate(episode);
-                animeEp.AnimeSeriesID = animeSeriesID;
-                RepoFactory.AnimeEpisode.Save(animeEp);
-            }
-            else
-            {
-                if (existingEp.AnimeSeriesID != animeSeriesID) existingEp.AnimeSeriesID = animeSeriesID;
-                existingEp.PlexContract = null;
-                RepoFactory.AnimeEpisode.Save(existingEp);
-                foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
-            }
+            existingEp.Populate(episode);
+            existingEp.AnimeSeriesID = animeSeriesID;
+            RepoFactory.AnimeEpisode.Save(existingEp);
+            foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
         }
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
