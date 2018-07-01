@@ -86,15 +86,11 @@ namespace Shoko.Server.Commands
                 if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
                     grpCol.Groups.Count > 0)
                 {
-                    // save in bulk to improve performance
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
                     {
-                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
-                        {
-                            CommandRequest_GetReleaseGroup cmdRelgrp =
-                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                            cmdRelgrp.Save(session);
-                        }
+                        CommandRequest_GetReleaseGroup cmdRelgrp =
+                            new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
+                        cmdRelgrp.Save();
                     }
                 }
             }

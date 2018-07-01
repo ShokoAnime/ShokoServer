@@ -206,7 +206,7 @@ namespace Shoko.Server.Commands
                     ImportFolderType = folder.ImportFolderType
                 };
                 // Make sure we have an ID
-                Repo.VideoLocal_Place.Save(vlocalplace);
+                vlocalplace = Repo.VideoLocal_Place.BeginAdd(vlocalplace).Commit();
             }
 
             // check if we need to get a hash this file

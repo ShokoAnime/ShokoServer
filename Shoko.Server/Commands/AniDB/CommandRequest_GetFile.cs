@@ -71,22 +71,22 @@ namespace Shoko.Server.Commands
 
                     if (fileInfo != null)
                     {
-                        // save to the database
-                        if (aniFile == null)
-                            aniFile = new SVR_AniDB_File();
+                        using (var upd = Repo.AniDB_File.BeginAddOrUpdate(() => aniFile))
+                        {
+                            upd.Entity.Populate_RA(fileInfo);
 
-                        aniFile.Populate_RA(fileInfo);
+                            //overwrite with local file name
+                            string localFileName = vlocal.FileName;
+                            upd.Entity.FileName = localFileName;
 
-                        //overwrite with local file name
-                        string localFileName = vlocal.FileName;
-                        aniFile.FileName = localFileName;
-
-                        Repo.AniDB_File.Save(aniFile, false);
+                            aniFile = upd.Commit();
+                        }
                         aniFile.CreateLanguages();
-                        aniFile.CreateCrossEpisodes(localFileName);
+                        aniFile.CreateCrossEpisodes(vlocal.FileName);
 
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        if (anime != null) Repo.AniDB_Anime.Save(anime);
+                        //TODO: Look at why this might be worth it?
+                        //SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        //if (anime != null) Repo.AniDB_Anime.Save(anime); 
                         SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(true, true, true);
                     }

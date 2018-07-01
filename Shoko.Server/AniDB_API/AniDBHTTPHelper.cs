@@ -40,11 +40,11 @@ namespace AniDBAPI
 
                 // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
                 var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-                if (update == null)
-                    update = new AniDB_AnimeUpdate {AnimeID = animeID, UpdatedAt = DateTime.Now};
-                else
-                    update.UpdatedAt = DateTime.Now;
-                Repo.AniDB_AnimeUpdate.Save(update);
+                using (var upd = Repo.AniDB_AnimeUpdate.BeginAddOrUpdate(() => Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID), () => new AniDB_AnimeUpdate {AnimeID = animeID}))
+                {
+                    upd.Entity.UpdatedAt = DateTime.Now;
+                    upd.Commit();
+                }
 
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;

@@ -1,4 +1,7 @@
-﻿using Shoko.Models.Server;
+﻿using System;
+using System.Linq;
+using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -12,6 +15,14 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void ClearIndexes()
         {
+        }
+
+        internal AniDB_ReleaseGroup GetByGroupID(int groupID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return Table.FirstOrDefault(s => s.GroupID == groupID);
+            }
         }
     }
 }
