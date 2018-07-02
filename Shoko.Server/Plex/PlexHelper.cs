@@ -289,7 +289,7 @@ namespace Shoko.Server.Plex
                            .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
                            .Container.Directory ?? new Directory[0];
             }
-            catch (NullReferenceException)
+            catch (Exception) //I really just don't care now.
             {
                 return new Directory[0];
             }
