@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 79;
+        public int RequiredVersion { get; } = 80;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -585,6 +585,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(78, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
+            new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

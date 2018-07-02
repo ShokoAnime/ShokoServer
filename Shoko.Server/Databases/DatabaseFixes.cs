@@ -288,6 +288,27 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public static void RegenTvDBMatches()
+        {
+            RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+
+            var list = RepoFactory.AnimeSeries.GetAll().ToList();
+            int count = 0;
+
+            list.AsParallel().ForAll(animeseries =>
+            {
+                Interlocked.Increment(ref count);
+                if (count % 50 == 0)
+                {
+                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                        Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
+                        $" {count}/{list.Count}");
+                }
+
+                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true);
+            });
+        }
+
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
             var specials = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.GetEnglishTitle()))
