@@ -851,7 +851,11 @@ namespace Shoko.UI
 
             Utils.ClearAutoUpdateCache();
 
-            ShowDatabaseSetup();
+            if (ServerSettings.FirstRun)
+            {
+                logger.Info("Initializing DB...");
+                ShokoServer.RunWorkSetupDB();
+            }
 
             ShokoServer.Instance.CheckForUpdates();
             ShokoServer.Instance.UpdateAvailable += (s, args) => new UpdateForm {Owner = Instance}.ShowDialog();
