@@ -845,7 +845,7 @@ namespace Shoko.UI
 
             if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
-            tabControl1.SelectedIndex = 6; // setup
+            tabControl1.SelectedIndex = 4; // Settings
 
             logger.Info("Clearing Cache...");
 
