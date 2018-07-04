@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands.Plex
                 var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)
                 {
-                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes();
+                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes()?.Where(s => s != null);
                     if (episodes == null) continue;
                     foreach (var ep in episodes)
                     {
