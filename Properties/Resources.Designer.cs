@@ -7009,6 +7009,15 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Please link your plex under users if you wish to use this..
+        /// </summary>
+        public static string LinkPlex {
+            get {
+                return ResourceManager.GetString("LinkPlex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loading....
         /// </summary>
         public static string Loading {
