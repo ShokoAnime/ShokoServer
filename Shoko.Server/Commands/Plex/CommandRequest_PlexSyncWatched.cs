@@ -50,8 +50,8 @@ namespace Shoko.Server.Commands.Plex
                         if (animeEpisode == null) continue;
                         var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
                         var isWatched = episode.ViewCount != null && episode.ViewCount > 0;
-                        var lastWatched = userRecord.WatchedDate;
-                        if (userRecord.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
+                        var lastWatched = userRecord?.WatchedDate;
+                        if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
                         {
                             lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }
