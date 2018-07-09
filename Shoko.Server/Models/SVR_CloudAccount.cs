@@ -75,36 +75,36 @@ namespace Shoko.Server.Models
         [XmlIgnore]
         internal bool NeedSave { get; set; } = false;
 
-        private static AuthorizationFactory _cache; //lazy init, because 
+        /*private static AuthorizationFactory _cache; //lazy init, because 
         private static AuthorizationFactory AuthInstance
         {
             get { return new AuthorizationFactory("AppGlue.dll"); }
-        }
+        }*/
 
         public IFileSystem Connect()
         {
             return Connect(null, null);
         }
+
         public IFileSystem Connect(string code, string uri)
         {
             if (string.IsNullOrEmpty(Provider))
                 throw new Exception("Empty provider supplied");
 
-            Dictionary<string, object> auth = AuthInstance.AuthorizationProvider.Get(Provider);
+            //TODO: 
+            Dictionary<string, object> auth = default;//AuthInstance.AuthorizationProvider.Get(Provider);
             if (auth == null)
                 throw new Exception("Application Authorization Not Found");
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            FileSystemResult<IFileSystem> res = _plugin.Init(Name, ShokoServer.Instance.OAuthProvider, auth, ConnectionString);
-            if (res == null || !res.IsOk)
-                throw new Exception("Unable to connect to '" + Provider + "'");
-            string userauth = res.Result.GetUserAuthorization();
-            if (ConnectionString != userauth)
+          
+            LocalUserSettings userSettings = new LocalUserSettings();
+            if (ConnectionString != string.Empty)
             {
                 userSettings = new LocalUserSettingWithCode();
                 ((LocalUserSettingWithCode) userSettings).Code = code;
-                ((LocalUserSettingWithCode) userSettings).OriginalRedirectUri = uri;                
+                ((LocalUserSettingWithCode) userSettings).OriginalRedirectUri = uri;
             }
             if (auth.ContainsKey("ClientId"))
                 userSettings.ClientId = (string)auth["ClientId"];
@@ -131,6 +131,7 @@ namespace Shoko.Server.Models
 
             return res;
         }
+
         public static SVR_CloudAccount CreateLocalFileSystemAccount()
         {
             return new SVR_CloudAccount
@@ -139,39 +140,5 @@ namespace Shoko.Server.Models
                 Provider = "Local File System"
             };
         }
-        [InheritedExport]
-        public interface IAppAuthorization
-        {
-            Dictionary<string, object> Get(string provider);
-        }
-        public class AuthorizationFactory
-        {
-            private static AuthorizationFactory _instance;
-            public static AuthorizationFactory Instance => _instance ?? (_instance = new AuthorizationFactory());
-
-
-            [Import(typeof(IAppAuthorization))]
-            public IAppAuthorization AuthorizationProvider { get; set; }
-
-
-            public AuthorizationFactory(string dll = null)
-            {
-                Assembly assembly = Assembly.GetEntryAssembly();
-                string codebase = assembly.CodeBase;
-                UriBuilder uri = new UriBuilder(codebase);
-                string dirname = Pri.LongPath.Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path)
-                    .Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"));
-                if (dirname != null)
-                {
-                    AggregateCatalog catalog = new AggregateCatalog();
-                    catalog.Catalogs.Add(new AssemblyCatalog(assembly));
-                    if (dll != null)
-                        catalog.Catalogs.Add(new DirectoryCatalog(dirname, dll));
-                    var container = new CompositionContainer(catalog);
-                    container.ComposeParts(this);
-                }
-            }
-        }
-
     }
 }

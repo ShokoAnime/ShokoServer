@@ -99,8 +99,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        private byte[] _bitmap;
-
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
@@ -129,8 +127,8 @@ namespace Shoko.Server.Models
             {
                 IObject fr = FileSystem.Resolve(ImportFolderLocation);
 
-                if (fr != null && fr.IsOk && fr.Result is IDirectory)
-                    return (IDirectory) fr.Result;
+                if (fr?.Status == Status.Ok && fr is IDirectory)
+                    return (IDirectory) fr;
                 throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
             }
         }

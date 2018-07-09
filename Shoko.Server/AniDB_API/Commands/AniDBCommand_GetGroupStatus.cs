@@ -6,26 +6,14 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_GetGroupStatus : AniDBUDPCommand, IAniDBUDPCommand
     {
-        private int animeID;
-
-        public int AnimeID
-        {
-            get { return animeID; }
-            set { animeID = value; }
-        }
+        public int AnimeID { get; set; }
 
         public string GetKey()
         {
             return "AniDBCommand_GetGroupStatus" + AnimeID.ToString();
         }
 
-        private GroupStatusCollection grpStatus = null;
-
-        public GroupStatusCollection GrpStatusCollection
-        {
-            get { return grpStatus; }
-            set { grpStatus = value; }
-        }
+        public GroupStatusCollection GrpStatusCollection { get; set; } = null;
 
         public virtual enHelperActivityType GetStartEventType()
         {
@@ -49,16 +37,13 @@ namespace AniDBAPI.Commands
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetGroupStatus.Process: Response: {0}", socketResponse);
 
             // Process Response
-            string sMsgType = socketResponse.Substring(0, 3);
-
-
-            switch (sMsgType)
+            switch (socketResponse.Substring(0, 3))
             {
                 case "225":
                 {
                     // 225 GROUPSTATUS
 
-                    grpStatus = new GroupStatusCollection(animeID, socketResponse);
+                    GrpStatusCollection = new GroupStatusCollection(AnimeID, socketResponse);
                     return enHelperActivityType.GotGroupStatus;
                 }
                 case "330": return enHelperActivityType.NoSuchAnime;
@@ -77,7 +62,7 @@ namespace AniDBAPI.Commands
 
         public void Init(int animeID)
         {
-            this.animeID = animeID;
+            this.AnimeID = animeID;
             commandText = "GROUPSTATUS aid=" + animeID.ToString();
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetGroupStatus.Process: Request: {0}", commandText);

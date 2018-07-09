@@ -126,7 +126,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AnimeGroup_User ToClient(this AnimeGroup_User g)
         {
-            return new CL_AnimeGroup_User(new SeasonComparator())
+            return new CL_AnimeGroup_User
             {
                 AnimeGroup_UserID = g.AnimeGroup_UserID,
                 JMMUserID = g.JMMUserID,

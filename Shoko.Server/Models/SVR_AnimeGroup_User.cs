@@ -14,15 +14,11 @@ namespace Shoko.Server.Models
         //private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract;
+        private Video _plexContract = null;
 
         public SVR_AnimeGroup_User()
         {
         }
-
-
-        private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract = null;
 
         public virtual Video PlexContract
         {

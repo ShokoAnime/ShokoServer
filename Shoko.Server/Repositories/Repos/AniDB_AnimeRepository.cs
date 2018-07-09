@@ -36,7 +36,7 @@ namespace Shoko.Server.Repositories.Repos
        
         internal override object BeginSave(SVR_AniDB_Anime entity, SVR_AniDB_Anime original_entity, object parameters)
         {
-            SVR_AniDB_Anime.UpdateContractDetailed(entity);
+            entity.UpdateContractDetailed();
             return null;
         }
 
@@ -101,11 +101,11 @@ namespace Shoko.Server.Repositories.Repos
             Dictionary<int, List<AniDB_Anime_DefaultImage>> defs=Repo.AniDB_Anime_DefaultImage.GetByAnimeIDs(animeIds);
             Dictionary<ImageEntityType, List<AniDB_Anime_DefaultImage>> allimages = defs.Values.SelectMany(a => a).GroupBy(a=>(ImageEntityType)a.ImageParentType).ToDictionary(a=>a.Key,a=>a.ToList());
             Dictionary<ImageEntityType, Dictionary<int, IImageEntity>> allreferences=new Dictionary<ImageEntityType, Dictionary<int, IImageEntity>>();
-            allreferences.Add(ImageEntityType.TvDB_Banner, Repo.TvDB_ImageWideBanner.GetMany(allimages.SafeGetList(ImageEntityType.TvDB_Banner).Select(a=>a.ImageParentID)).ToDictionary(a=>a.TvDB_ImageWideBannerID,a=> (IImageEntity)a));
-            allreferences.Add(ImageEntityType.TvDB_Cover, Repo.TvDB_ImagePoster.GetMany(allimages.SafeGetList(ImageEntityType.TvDB_Cover).Select(a => a.ImageParentID)).ToDictionary(a=>a.TvDB_ImagePosterID,a=> (IImageEntity)a));
-            allreferences.Add(ImageEntityType.TvDB_FanArt, Repo.TvDB_ImageFanart.GetMany(allimages.SafeGetList(ImageEntityType.TvDB_FanArt).Select(a => a.ImageParentID)).ToDictionary(a => a.TvDB_ImageFanartID, a => (IImageEntity)a));
-            allreferences.Add(ImageEntityType.MovieDB_Poster, Repo.MovieDB_Poster.GetMany(allimages.SafeGetList(ImageEntityType.MovieDB_Poster).Select(a => a.ImageParentID)).ToDictionary(a=>a.MovieDB_PosterID,a=> (IImageEntity)a));
-            allreferences.Add(ImageEntityType.MovieDB_FanArt, Repo.MovieDB_Fanart.GetMany(allimages.SafeGetList(ImageEntityType.MovieDB_FanArt).Select(a => a.ImageParentID)).ToDictionary(a=>a.MovieDB_FanartID,a=> (IImageEntity)a));
+            allreferences.Add(ImageEntityType.TvDB_Banner, Repo.TvDB_ImageWideBanner.GetMany(allimages[ImageEntityType.TvDB_Banner].Select(a=>a.ImageParentID)).ToDictionary(a=>a.TvDB_ImageWideBannerID,a=> (IImageEntity)a));
+            allreferences.Add(ImageEntityType.TvDB_Cover, Repo.TvDB_ImagePoster.GetMany(allimages[ImageEntityType.TvDB_Cover].Select(a => a.ImageParentID)).ToDictionary(a=>a.TvDB_ImagePosterID,a=> (IImageEntity)a));
+            allreferences.Add(ImageEntityType.TvDB_FanArt, Repo.TvDB_ImageFanart.GetMany(allimages[ImageEntityType.TvDB_FanArt].Select(a => a.ImageParentID)).ToDictionary(a => a.TvDB_ImageFanartID, a => (IImageEntity)a));
+            allreferences.Add(ImageEntityType.MovieDB_Poster, Repo.MovieDB_Poster.GetMany(allimages[ImageEntityType.MovieDB_Poster].Select(a => a.ImageParentID)).ToDictionary(a=>a.MovieDB_PosterID,a=> (IImageEntity)a));
+            allreferences.Add(ImageEntityType.MovieDB_FanArt, Repo.MovieDB_Fanart.GetMany(allimages[ImageEntityType.MovieDB_FanArt].Select(a => a.ImageParentID)).ToDictionary(a=>a.MovieDB_FanartID,a=> (IImageEntity)a));
 
             foreach (int aid in defs.Keys)
             {

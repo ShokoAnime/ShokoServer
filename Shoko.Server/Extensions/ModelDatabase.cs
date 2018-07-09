@@ -46,8 +46,8 @@ namespace Shoko.Server.Extensions
         public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
         {
             // check if there is an existing episode for this EpisodeID
-
-            if (Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID).Count==0)
+            SVR_AnimeEpisode existingEp = Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ;
+            if (existingEp != null)
             {
                 using (var upd = Repo.AnimeEpisode.BeginAdd())
                 {
@@ -58,11 +58,15 @@ namespace Shoko.Server.Extensions
             }
             else
             {
-                if (existingEp.AnimeSeriesID != animeSeriesID) existingEp.AnimeSeriesID = animeSeriesID;
-                existingEp.PlexContract = null;
-                Repo.AnimeEpisode.Save(existingEp);
-                foreach (var episodeUser in Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                    Repo.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+                using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => existingEp)) 
+                {
+                    if (upd.Entity.AnimeSeriesID != animeSeriesID) upd.Entity.AnimeSeriesID = animeSeriesID;
+                    upd.Entity.PlexContract = null;
+                    existingEp = upd.Commit();
+                }
+
+                var updates = Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID);
+                Repo.AnimeEpisode_User.BatchAction(updates, updates.Count, (ep, _) => {});
             }
         }
 
@@ -72,7 +76,7 @@ namespace Shoko.Server.Extensions
         {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return Repo.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
+            return Repo.MovieDb_Movie.GetByOnlineID(int.Parse(cross.CrossRefID));
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)

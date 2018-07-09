@@ -51,7 +51,7 @@ namespace Shoko.Server
                 Nancy.Request request = RestModule.CurrentModule.Request;
 
                 FileSystemResult<Stream> fr = r.File.OpenRead();
-                if (fr == null || !fr.IsOk)
+                if (fr == null || fr.Status != Status.Ok)
                 {
                     return new StreamWithResponse(HttpStatusCode.InternalServerError,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);

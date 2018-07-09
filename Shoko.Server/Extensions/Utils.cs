@@ -88,7 +88,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
-            CL_AnimeGroup_User contract = new CL_AnimeGroup_User(new SeasonComparator())
+            CL_AnimeGroup_User contract = new CL_AnimeGroup_User
             {
                 AnimeGroupID = c.AnimeGroupID,
                 AnimeGroupParentID = c.AnimeGroupParentID,

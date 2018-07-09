@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 
@@ -95,6 +96,11 @@ namespace Shoko.Server.Repositories.Repos
             {
                 return WhereAll().Where(a => a.TagID == tagID).ToList();
             }
+        }
+
+        internal List<SVR_AnimeSeries> GetAnimeWithTag(int tagID)
+        {
+            return Where(s => s.TagID == tagID).Select(s => Repo.AnimeSeries.GetByAnimeID(tagID)).Where(a => a != null).ToList();
         }
     }
 }

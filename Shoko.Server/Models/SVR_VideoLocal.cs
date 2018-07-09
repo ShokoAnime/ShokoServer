@@ -174,7 +174,7 @@ namespace Shoko.Server.Models
             try
             {
                 FileSystemResult<IObject> fobj = fs.Resolve(fullname);
-                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory) return null;
+                if (fobj == null || fobj != Status.Ok || fobj.Result is IDirectory) return null;
                 return fobj.Result as IFile;
             }
             catch (Exception)
@@ -452,7 +452,7 @@ namespace Shoko.Server.Models
                 {
                     IFileSystem f = pl.ImportFolder.FileSystem;
                     FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
-                    if (src != null && src.IsOk && src.Result is IFile)
+                    if (src != null && src.Status == Status.Ok && src.Result is IFile)
                         if (pl.RefreshMediaInfo())
                             Repo.VideoLocal.Save(pl.VideoLocal, true);
                 }

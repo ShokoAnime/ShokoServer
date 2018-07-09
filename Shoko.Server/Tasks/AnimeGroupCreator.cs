@@ -98,14 +98,17 @@ namespace Shoko.Server.Tasks
 
             // Update batches of AnimeGroup contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
             // The reason we're doing this in parallel is because updating contacts does a reasonable amount of work (including LZ4 compression)
-            Parallel.ForEach(groups.Batch(DefaultBatchSize), new ParallelOptions {MaxDegreeOfParallelism = 4},
+            Parallel.ForEach(groups.Batch(DefaultBatchSize), new ParallelOptions { MaxDegreeOfParallelism = 4 },
                 body: (groupBatch, state, localSession) =>
                 {
+                    var createdGroupUsers = new List<SVR_AnimeGroup_User>(groupBatch.Length);
+
                     // We shouldn't need to keep track of updates to AnimeGroup_Users in the below call, because they should have all been deleted,
                     // therefore they should all be new
-                    var batch=SVR_AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true);
-                    allCreatedGroupUsers.Add(batch.ToList());
-                    SVR_AnimeGroup.BatchUpdateContracts(groupBatch.ToList(), updateStats: true);                   
+                    SVR_AnimeGroup.BatchUpdateStats(groupBatch, watchedStats: true, missingEpsStats: true,
+                        createdGroupUsers: createdGroupUsers);
+                    allCreatedGroupUsers.Add(createdGroupUsers);
+                    SVR_AnimeGroup.BatchUpdateContracts(groupBatch, updateStats: true);
                 });
 
             _log.Info("AnimeGroup statistics and contracts have been updated");
@@ -144,41 +147,40 @@ namespace Shoko.Server.Tasks
         {
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
-            Dictionary<int, ILookup<int, int>> seriesForTagGroupFilter = _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
+            Dictionary<int, ILookup<int, int>> seriesForTagGroupFilter = Repo.GroupFilter.CalculateAnimeSeriesPerTagGroupFilter();
             _log.Info("Caculating All Other Filters");
-            IReadOnlyList<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session);
-            IReadOnlyList<SVR_JMMUser> users = _userRepo.GetAll();
+            IReadOnlyList<SVR_GroupFilter> grpFilters = Repo.GroupFilter.GetAll();
+            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
 
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
             // and is enough work that it can benefit from running in parallel
-            Parallel.ForEach(
-                grpFilters.Where(f => ((GroupFilterType) f.FilterType & GroupFilterType.Directory) !=
-                                      GroupFilterType.Directory), fi =>
-                {
-                    filter.SeriesIds.Clear();
+            var _toUpdate = grpFilters.Where(f => ((GroupFilterType)f.FilterType & GroupFilterType.Directory) !=
+                                     GroupFilterType.Directory);
+            Repo.GroupFilter.BatchAction(_toUpdate, _toUpdate.Count(), (filter, _) => 
+            {
+                filter.SeriesIds.Clear();
 
-                    SVR_GroupFilter filter=fi;
-                    if (filter.FilterType == (int) GroupFilterType.Tag)
+                if (filter.FilterType == (int)GroupFilterType.Tag)
+                {
+                    filter.SeriesIds[0] = seriesForTagGroupFilter[0][filter.GroupFilterID].ToHashSet();
+                    filter.GroupsIds[0] = filter.SeriesIds[0]
+                        .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                        .Where(id => id != -1).ToHashSet();
+                    foreach (var user in users)
                     {
-                        filter.SeriesIds[0] = seriesForTagGroupFilter[0][filter.GroupFilterID].ToHashSet();
-                        filter.GroupsIds[0] = filter.SeriesIds[0]
+                        filter.SeriesIds[user.JMMUserID] = seriesForTagGroupFilter[user.JMMUserID][filter.GroupFilterID].ToHashSet();
+                        filter.GroupsIds[user.JMMUserID] = filter.SeriesIds[user.JMMUserID]
                             .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                             .Where(id => id != -1).ToHashSet();
-                        foreach (var user in users)
-                        {
-                            filter.SeriesIds[user.JMMUserID] = seriesForTagGroupFilter[user.JMMUserID][filter.GroupFilterID].ToHashSet();
-                            filter.GroupsIds[user.JMMUserID] = filter.SeriesIds[user.JMMUserID]
-                                .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                                .Where(id => id != -1).ToHashSet();
-                        }
                     }
-                    else // All other group filters are to be handled normally
-                    {
-                        SVR_GroupFilter.CalculateGroupsAndSeries(filter);
-                    }
+                }
+                else // All other group filters are to be handled normally
+                {
+                    filter.CalculateGroupsAndSeries();
+                }
 
-                    filter.UpdateEntityReferenceStrings();
-                });
+                filter.UpdateEntityReferenceStrings();
+            }, parallel: true);
             _log.Info("Group Filters updated");
         }
 
@@ -306,17 +308,17 @@ namespace Shoko.Server.Tasks
         /// <param name="series">The series for which the group is to be created/retrieved (Must be initialised first).</param>
         /// <returns>The <see cref="SVR_AnimeGroup"/> to use for the specified series.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="series"/> is <c>null</c>.</exception>
-        public SVR_AnimeGroup GetOrCreateSingleGroupForSeries(SVR_AniDB_Anime anime)
+        public SVR_AnimeGroup GetOrCreateSingleGroupForSeries(SVR_AnimeSeries series)
         {
-            if (anime == null)
-                throw new ArgumentNullException(nameof(anime));
+            if (series == null)
+                throw new ArgumentNullException(nameof(series));
 
             SVR_AnimeGroup animeGroup;
 
             if (_autoGroupSeries)
             {
                 var grpCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
-                IReadOnlyList<int> grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(anime.AnimeID);
+                IReadOnlyList<int> grpAnimeIds = grpCalculator.GetIdsOfAnimeInSameGroup(series.AniDB_ID);
                 // Try to find an existing AnimeGroup to add the series to
                 // We basically pick the first group that any of the related series belongs to already
                 animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
@@ -327,18 +329,61 @@ namespace Shoko.Server.Tasks
 
                 if (animeGroup == null)
                 {
-                    int mainAnimeId = grpCalculator.GetGroupAnimeId(anime.AnimeID);
+                    // No existing group was found, so create a new one
+                    int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
                     SVR_AnimeSeries mainSeries = Repo.AnimeSeries.GetByAnimeID(mainAnimeId);
-                    CreateAnimeGroup_RA(upd.Entity, mainSeries, mainAnimeId, DateTime.Now);
-                    return upd.Commit((true, true, true));
-                }
 
+                    animeGroup = Repo.AnimeGroup.BeginAdd(CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now)).Commit((true, true, true));
+                }
             }
-            using (var upd = Repo.AnimeGroup.BeginAdd())
+            else // We're not auto grouping (e.g. we're doing group per series)
             {
-                upd.Entity.Populate_RA(anime, DateTime.Now);
-                return upd.Commit((true, true, true));
+                using (var upd = Repo.AnimeGroup.BeginAdd())
+                {
+                    upd.Entity.Populate_RA(series, DateTime.Now);
+                    animeGroup = upd.Commit((true, true, true));
+                }
             }
+
+            return animeGroup;
+        }
+
+        /// <summary>
+        /// Creates an <see cref="SVR_AnimeGroup"/> instance.
+        /// </summary>
+        /// <remarks>
+        /// This method only creates an <see cref="SVR_AnimeGroup"/> instance. It does NOT save it to the database.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="mainSeries">The <see cref="SVR_AnimeSeries"/> whose name will represent the group (Optional. Pass <c>null</c> if not available).</param>
+        /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
+        /// <param name="now">The current date/time.</param>
+        /// <returns>The created <see cref="SVR_AnimeGroup"/>.</returns>
+        private SVR_AnimeGroup CreateAnimeGroup(SVR_AnimeSeries mainSeries, int mainAnimeId,
+            DateTime now)
+        {
+            SVR_AnimeGroup animeGroup = new SVR_AnimeGroup();
+            string groupName;
+
+            if (mainSeries != null)
+            {
+                animeGroup.Populate_RA(mainSeries, now);
+                groupName = animeGroup.GroupName;
+            }
+            else // The anime chosen as the group's main anime doesn't actually have a series
+            {
+                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByAnimeID(mainAnimeId);
+
+                animeGroup.Populate_RA(mainAnime, now);
+                groupName = animeGroup.GroupName;
+            }
+
+            // If the title appears to end with a year suffix, then remove it
+            groupName = _truncateYearRegex.Replace(groupName, string.Empty);
+            animeGroup.GroupName = groupName;
+            animeGroup.SortName = groupName;
+
+            return animeGroup;
         }
 
         /// <summary>

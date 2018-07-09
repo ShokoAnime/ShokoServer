@@ -8,9 +8,7 @@ namespace Shoko.Server
 
         public bool DoMessageBox(string title, string message, bool iserror, bool yesno)
         {
-            if (OnMessageBox != null)
-                return OnMessageBox(title, message, iserror, yesno);
-            return false;
+            return OnMessageBox?.Invoke(title, message, iserror, yesno) ?? false;
         }
     }
 }

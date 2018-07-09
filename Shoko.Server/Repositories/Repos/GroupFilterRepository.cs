@@ -1,14 +1,18 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -16,7 +20,6 @@ namespace Shoko.Server.Repositories.Repos
 {
     public class GroupFilterRepository : BaseRepository<SVR_GroupFilter, int, bool>
     {
-       
         //private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private PocoIndex<int, SVR_GroupFilter, int> Parents;
@@ -67,6 +70,7 @@ namespace Shoko.Server.Repositories.Repos
             Types = new BiDictionaryManyToMany<int, GroupFilterConditionType>(Cache.Values.ToDictionary(a => a.GroupFilterID, a => a.Types));
 
         }
+
         internal override void ClearIndexes()
         {
             Parents = null;
@@ -149,7 +153,7 @@ namespace Shoko.Server.Repositories.Repos
             Delete(toremove);
         }
 
-        public void CreateOrVerifyLockedFilters(IProgress<InitProgress> progress, int batchSize)
+        public void CreateOrVerifyLockedFilters(IProgress<InitProgress> progress = null)
         {
             string t = typeof(GroupFilter).Name;
             List<SVR_GroupFilter> lockedGFs = GetLockedGroupFilters();
@@ -163,7 +167,7 @@ namespace Shoko.Server.Repositories.Repos
             regen.Title = string.Format(
                 Commons.Properties.Resources.Database_Validating, t,
                 " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
-            progress.Report(regen);
+            progress?.Report(regen);
 
 
             SVR_GroupFilter cwatching =lockedGFs.FirstOrDefault(
@@ -205,7 +209,7 @@ namespace Shoko.Server.Repositories.Repos
                         GroupFilterID = b.Entity.GroupFilterID
                     };
                     b.Entity.Conditions.Add(gfc);
-                    SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
+                    b.Entity.CalculateGroupsAndSeries();
                     b.Commit();
                 }
             }
@@ -221,7 +225,7 @@ namespace Shoko.Server.Repositories.Repos
                     b.Entity.FilterType = (int) GroupFilterType.All;
                     b.Entity.BaseCondition = 1;
                     b.Entity.SortingCriteria = "5;1";
-                    SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
+                    b.Entity.CalculateGroupsAndSeries();
                     b.Commit();
                 }
             }
@@ -304,7 +308,7 @@ namespace Shoko.Server.Repositories.Repos
                         Commons.Properties.Resources.Database_Validating, t,
                         Commons.Properties.Resources.Filter_CreatingTag + " " +
                         Commons.Properties.Resources.Filter_Filter);
-                    progress.Report(regen);
+                    progress?.Report(regen);
                 }
 
                 //AniDB Tags are in english so we use en-us culture
@@ -328,13 +332,13 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
+                        b.Entity.CalculateGroupsAndSeries();
                         b.Commit();
                     }
                     if (frominit)
                     {
                         regen.Step++;
-                        progress.Report(regen);
+                        progress?.Report(regen);
                     }
                 }
             }
@@ -380,7 +384,7 @@ namespace Shoko.Server.Repositories.Repos
                         Commons.Properties.Resources.Database_Validating, t,
                         Commons.Properties.Resources.Filter_CreatingYear + " " +
                         Commons.Properties.Resources.Filter_Filter);
-                    progress.Report(regen);
+                    progress?.Report(regen);
                 }
 
                 foreach (string s in allyears)
@@ -403,13 +407,13 @@ namespace Shoko.Server.Repositories.Repos
                             GroupFilterID = b.Entity.GroupFilterID
                         };
                         b.Entity.Conditions.Add(gfc);
-                        SVR_GroupFilter.CalculateGroupsAndSeries(b.Entity);
+                        b.Entity.CalculateGroupsAndSeries();
                         b.Commit();
                     }
                     if (frominit)
                     {
                         regen.Step++;
-                        progress.Report(regen);
+                        progress?.Report(regen);
                     }
                 }
             }
@@ -425,12 +429,8 @@ namespace Shoko.Server.Repositories.Repos
                     foreach (SVR_AnimeSeries s in grps)
                     {
                         SVR_AnimeSeries ser = s;
-                        if ((ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count ?? 0) == 0)
-                        {
-                            ser = SVR_AnimeSeries.UpdateContract(ser.AnimeSeriesID);
-                        }
-                        if (ser.Contract?.AniDBAnime?.Stat_AllSeasons == null || ser.Contract?.AniDBAnime?.Stat_AllSeasons.Count==0) 
-                            continue;
+                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons?.Count ?? 0) == 0) ser?.UpdateContract();
+                        if ((ser?.Contract?.AniDBAnime?.Stat_AllSeasons?.Count ?? 0) == 0) continue;
                         allseasons.UnionWith(ser.Contract.AniDBAnime.Stat_AllSeasons);
                     }
                 }
@@ -456,7 +456,7 @@ namespace Shoko.Server.Repositories.Repos
                         Commons.Properties.Resources.Database_Validating, t,
                         Commons.Properties.Resources.Filter_CreatingSeason + " " +
                         Commons.Properties.Resources.Filter_Filter));
-                    progress.Report(regen);
+                    progress?.Report(regen);
                 }
 
                 foreach (string s in allseasons)
@@ -489,7 +489,7 @@ namespace Shoko.Server.Repositories.Repos
                             Commons.Properties.Resources.Database_Validating, t,
                             Commons.Properties.Resources.Filter_CreatingSeason + " " +
                             Commons.Properties.Resources.Filter_Filter + " " + s));
-                       progress.Report(regen);
+                       progress?.Report(regen);
                     }
 
                  
@@ -544,18 +544,90 @@ namespace Shoko.Server.Repositories.Repos
         /// <summary>
         /// Calculates what groups should belong to tag related group filters.
         /// </summary>
-        /// <returns>A <see cref="Dictionary{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
-        public Dictionary<int, List<int>> CalculateAnimeGroupsPerTagGroupFilter()
+        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps group filter ID to anime group IDs.</returns>
+        public Dictionary<int, ILookup<int, int>> CalculateAnimeSeriesPerTagGroupFilter()
         {
-            Dictionary<string, List<int>> alltags = Repo.AniDB_Tag.GetGroupByTagName();
-            Dictionary<int, List<int>> allanimetags = Repo.AniDB_Anime_Tag.GetGroupByTagIDAnimes();
-            Dictionary<int, List<int>> allgroups = Repo.AnimeSeries.GetGroupsByAniDBIDGroups();
-            Dictionary<int, string> filters;
-            using (RepoLock.WriterLock())
+            using (RepoLock.ReaderLock())
             {
-                filters = WhereAll().Where(a => a.FilterType == (int) GroupFilterType.Tag).ToDictionary(a => a.GroupFilterID, a => a.GroupFilterName);
+                ConcurrentDictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary =
+                    new ConcurrentDictionary<int, Dictionary<int, HashSet<int>>>();
+                var filters = GetAll().Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
+                List<SVR_JMMUser> users = new List<SVR_JMMUser> { null };
+                users.AddRange(Repo.JMMUser.GetAll());
+                List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
+                var nameToFilter = filters.ToLookup(a => a?.GroupFilterName?.ToLowerInvariant());
+                var tags = Repo.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
+
+                Parallel.ForEach(tags, tag =>
+                {
+                    if (tag.Key == null) return;
+                    if (!nameToFilter.Contains(tag.Key)) return;
+                    var grpFilters = nameToFilter[tag.Key].ToList();
+                    if (grpFilters.Count <= 0) return;
+
+                    var grpFilter = grpFilters[0];
+                    if (grpFilter == null) return;
+
+                    grpFilters.RemoveAt(0);
+                    lock (toRemove)
+                    {
+                        toRemove.AddRange(grpFilters);
+                    }
+
+                    foreach (var series in tag.ToList().SelectMany(a => Repo.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
+                    {
+                        var seriesTags = series.GetAnime()?.GetAllTags();
+                        foreach (var user in users)
+                        {
+                            if (user?.GetHideCategories().FindInEnumerable(seriesTags) ?? false)
+                                continue;
+
+                            if (somethingDictionary.ContainsKey(user?.JMMUserID ?? 0))
+                            {
+                                if (somethingDictionary[user?.JMMUserID ?? 0].ContainsKey(grpFilter.GroupFilterID))
+                                {
+                                    somethingDictionary[user?.JMMUserID ?? 0][grpFilter.GroupFilterID]
+                                        .Add(series.AnimeSeriesID);
+                                }
+                                else
+                                {
+                                    somethingDictionary[user?.JMMUserID ?? 0].Add(grpFilter.GroupFilterID,
+                                        new HashSet<int> { series.AnimeSeriesID });
+                                }
+                            }
+                            else
+                            {
+                                somethingDictionary.AddOrUpdate(user?.JMMUserID ?? 0, new Dictionary<int, HashSet<int>>
+                                {
+                                    {
+                                        grpFilter.GroupFilterID, new HashSet<int> {series.AnimeSeriesID}
+                                    }
+                                }, (i, value) =>
+                                {
+                                    if (value.ContainsKey(grpFilter.GroupFilterID))
+                                    {
+                                        value[grpFilter.GroupFilterID]
+                                            .Add(series.AnimeSeriesID);
+                                    }
+                                    else
+                                    {
+                                        value.Add(grpFilter.GroupFilterID,
+                                            new HashSet<int> { series.AnimeSeriesID });
+                                    }
+
+                                    return value;
+                                });
+                            }
+                        }
+                    }
+                });
+
+                FindAndDelete(() => toRemove);
+
+                return somethingDictionary.Keys.ToDictionary(key => key, key => somethingDictionary[key]
+                    .SelectMany(p => p.Value, Tuple.Create)
+                    .ToLookup(p => p.Item1.Key, p => p.Item2));
             }
-            return filters.ToDictionary(a => a.Key, a => alltags.SafeGetList(a.Value).SelectMany(b => allanimetags.SafeGetList(b).SelectMany(c => allgroups.SafeGetList(c))).ToList());
         }
 
         public List<SVR_GroupFilter> GetLockedGroupFilters()

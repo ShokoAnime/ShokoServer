@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
@@ -55,6 +56,14 @@ namespace Shoko.Server.Repositories.Repos
             Dictionary<int, MovieDB_Movie> images = GetByMoviesIds(movids).ToDictionary(a=>a.Key,a=>a.Value.First());
             return crosses.ToDictionary(a => a.Key, a => (a.Value, images.ContainsKey(int.Parse(a.Value.CrossRefID)) ? images[int.Parse(a.Value.CrossRefID)] : null));
 
+        }
+
+        internal MovieDB_Movie GetByOnlineID(int movieId)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return Table.FirstOrDefault(s => s.MovieId == movieId);
+            }
         }
     }
 }

@@ -2607,20 +2607,19 @@ namespace Shoko.Server
                                     logger.Error("Unable to delete file, filesystem not found");
                                     return "Unable to delete file, filesystem not found";
                                 }
-                                FileSystemResult<IObject> fr = fileSystem.Resolve(place.FullServerPath);
-                                if (fr == null || !fr.IsOk)
+                                IObject fr = fileSystem.Resolve(place.FullServerPath);
+                                if (fr == null || fr.Status != Status.Ok)
                                 {
                                     logger.Error($"Unable to find file '{place.FullServerPath}'");
                                     return $"Unable to find file '{place.FullServerPath}'";
                                 }
-                                IFile file = fr.Result as IFile;
-                                if (file == null)
+                                if (!(fr is IFile file))
                                 {
                                     logger.Error($"Seems '{place.FullServerPath}' is a directory");
                                     return $"Seems '{place.FullServerPath}' is a directory";
                                 }
                                 FileSystemResult fs = file.Delete(false);
-                                if (fs == null || !fs.IsOk)
+                                if (fs == null || fs.Status != Status.Ok)
                                 {
                                     logger.Error($"Unable to delete file '{place.FullServerPath}'");
                                     return $"Unable to delete file '{place.FullServerPath}'";
@@ -2665,11 +2664,8 @@ namespace Shoko.Server
         {
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(session.Wrap(), animeID);
-                    return anime?.Contract.AniDBAnime;
-                }
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                return anime?.Contract.AniDBAnime;
             }
             catch (Exception ex)
             {

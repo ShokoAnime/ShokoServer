@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using Shoko.Models.Server;
 using NLog;
@@ -18,9 +20,9 @@ namespace Shoko.Server
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public Stream GetImage(int imageId, int imageType, bool? thumnbnailOnly)
+        public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly)
         {
-            string path = GetImagePath(imageId, imageType, thumnbnailOnly);
+            string path = GetImagePath(imageid, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 return new StreamWithResponse(HttpStatusCode.NotFound);
             return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
@@ -95,7 +97,7 @@ namespace Shoko.Server
             if (newheight < im.Height)
                 y = (im.Height - newheight) / 2;
 
-            Image im2 = ReSize(im, newwidth, newheight);
+            Image im2 = ReSize(new Bitmap(im), newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
             g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height),
                 new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
