@@ -109,5 +109,10 @@ namespace Shoko.Server.Repositories.Cached
         {
             EntityIDs = new PocoIndex<int, AniDB_Vote, int>(Cache, a => a.EntityID);
         }
+
+        internal override void ClearIndexes()
+        {
+            EntityIDs = null;
+        }
     }
 }

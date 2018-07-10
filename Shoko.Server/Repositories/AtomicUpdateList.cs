@@ -33,9 +33,6 @@ namespace Shoko.Server.Repositories
                 }
             }
         }
-
-
-
         public T GetOriginal(T obj)
         {
             if (References.ContainsKey(obj))
@@ -43,16 +40,10 @@ namespace Shoko.Server.Repositories
             return null;
         }
 
-
-
-
-
         public void Dispose()
         {
             Release();
         }
-
-
         public bool IsUpdate { get;  }
 
         public List<T> Commit(TT pars = default(TT))
@@ -69,7 +60,6 @@ namespace Shoko.Server.Repositories
             {
                 foreach (KeyValuePair<T, T> r in updates)
                 {
-                   
                     r.Key.DeepCloneTo(r.Value);   //Tried to be 100% atomic and failed miserably, so is 99%. 
                                                   //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
                                                   //So this is the best effort
@@ -93,7 +83,7 @@ namespace Shoko.Server.Repositories
         }
 
 
-        private void Release()
+        public void Release()
         {
             References.Clear();
         }

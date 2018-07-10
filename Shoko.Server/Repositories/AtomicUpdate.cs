@@ -69,7 +69,7 @@ namespace Shoko.Server.Repositories
 
        
 
-        private void Release()
+        public void Release()
         {
             Entity = null;
             Original = null;

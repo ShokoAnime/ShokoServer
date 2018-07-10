@@ -139,7 +139,7 @@ namespace Shoko.Server.Databases
             }
             {
                 var model = builder.Entity<AniDB_Episode>();
-                model.ToTable("AniDB_Episode").HasKey(x => x.AniDB_EpisodeID);
+                model.ToTable("AniDB_Episodes").HasKey(x => x.AniDB_EpisodeID);
                 model.HasIndex(x => x.AniDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Episode");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Episode_AnimeID");
                 model.HasIndex(x => x.EpisodeID).IsUnique().HasName("UIX_AniDB_Episode_EpisodeID");
@@ -151,8 +151,8 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.Votes).IsRequired();
                 model.Property(x => x.EpisodeNumber).IsRequired();
                 model.Property(x => x.EpisodeType).IsRequired();
-                model.Property(x => x.RomajiName).IsRequired();
-                model.Property(x => x.EnglishName).IsRequired();
+                //model.Property(x => x.RomajiName).IsRequired();
+                //model.Property(x => x.EnglishName).IsRequired();
                 model.Property(x => x.AirDate).IsRequired();
                 model.Property(x => x.DateTimeUpdated).IsRequired();
             }
@@ -330,8 +330,10 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.DateTimeUpdated).IsRequired();
                 model.Property(x => x.DateTimeCreated).IsRequired();
                 model.Property(x => x.DateTimeCreated).IsRequired();
-                model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0);
-                model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
+
+                //plex contracts are in-memory only now
+                //model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0);
+                //model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
             }
             {
                 var model = builder.Entity<SVR_AnimeGroup_User>();
@@ -347,8 +349,10 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.PlayedCount).IsRequired();
                 model.Property(x => x.WatchedCount).IsRequired();
                 model.Property(x => x.StoppedCount).IsRequired();
-                model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0);
-                model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
+
+                //plex contracts are in-memory only now
+                //model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0); 
+                //model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
             }
             {
                 var model = builder.Entity<SVR_AnimeGroup>();
@@ -380,8 +384,10 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.PlayedCount).IsRequired();
                 model.Property(x => x.WatchedCount).IsRequired();
                 model.Property(x => x.StoppedCount).IsRequired();
-                model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0);
-                model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
+
+                //plex contracts are in-memory only now
+                //model.Property(x => x.PlexContractVersion).IsRequired().HasDefaultValue(0);
+                //model.Property(x => x.PlexContractSize).IsRequired().HasDefaultValue(0);
             }
             {
                 var model = builder.Entity<SVR_AnimeSeries>();
@@ -498,7 +504,6 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.CrossRef_AniDB_TvDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TvDB_Episode");
                 model.HasIndex(x => x.AniDBEpisodeID).IsUnique().HasName("UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID");
                 model.Property(x => x.CrossRef_AniDB_TvDB_EpisodeID).IsRequired().SetLocalValueGenerated();
-                model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.AniDBEpisodeID).IsRequired();
                 model.Property(x => x.TvDBEpisodeID).IsRequired();
             }

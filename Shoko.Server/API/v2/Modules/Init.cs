@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using Microsoft.SqlServer.Management.Smo;
+//using Microsoft.SqlServer.Management.Smo;
 using Nancy;
 using Nancy.ModelBinding;
 using NLog;
@@ -20,6 +20,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
+using Microsoft.SqlServer.Management.Smo;
 
 namespace Shoko.Server.API.v2.Modules
 {
