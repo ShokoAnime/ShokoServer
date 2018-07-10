@@ -39,6 +39,20 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.ContractSize).IsRequired().HasDefaultValue(0);
             }
             {
+                var model = builder.Entity<AniDB_AnimeUpdate>();
+                model.ToTable("AniDB_AnimeUpdate").HasKey(x => x.AniDB_AnimeUpdateID);
+                model.HasIndex(x => x.AnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_AnimeID");
+                model.Property(x => x.AnimeID).IsRequired();
+                model.Property(x => x.UpdatedAt).IsRequired();
+            }
+            {
+                var model = builder.Entity<AniDB_Episode_Title>();
+                model.ToTable("AniDB_Episode_Title").HasKey(x => x.AniDB_Episode_TitleID);
+                model.Property(x => x.AniDB_EpisodeID);
+                model.Property(x => x.Language);
+                model.Property(x => x.Title);
+            }
+            {
                 var model = builder.Entity<AniDB_Anime_Character>();
                 model.ToTable("AniDB_Anime_Character").HasKey(x => x.AniDB_Anime_CharacterID);
                 model.HasIndex(x => x.AniDB_Anime_CharacterID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Character");
@@ -303,6 +317,16 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.VoteType).IsRequired();
             }
             {
+                var model = builder.Entity<AnimeCharacter>();
+                model.ToTable("AnimeCharacter").HasKey(x => x.CharacterID);
+                model.Property(x => x.CharacterID).IsRequired();
+                model.Property(x => x.AniDBID).IsRequired();
+                model.Property(x => x.Name).IsRequired();
+                model.Property(x => x.AlternateName).HasDefaultValue(null);
+                model.Property(x => x.Description).HasDefaultValue(string.Empty);
+                model.Property(x => x.ImagePath);
+            }
+            {
                 var model = builder.Entity<SVR_AnimeEpisode_User>();
                 model.ToTable("AnimeEpisode_User").HasKey(x => x.AnimeEpisode_UserID);
                 model.HasIndex(x => x.AnimeEpisode_UserID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeEpisode_User");
@@ -409,6 +433,17 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.ContractSize).IsRequired().HasDefaultValue(0);
             }
             {
+                var model = builder.Entity<AnimeStaff>();
+                model.ToTable("AnimeStaff");
+                model.HasIndex(x => x.StaffID).IsUnique().HasName("PK_AnimeStaff_StaffID");
+                model.HasIndex(x => x.AniDBID).HasName("UIX_AnimeStaff_AniDBID").IsUnique();
+                model.Property(x => x.AniDBID).IsRequired();
+                model.Property(x => x.Name).IsRequired();
+                model.Property(x => x.AlternateName).HasDefaultValue(null);
+                model.Property(x => x.Description).HasDefaultValue(null);
+                model.Property(x => x.ImagePath);
+            }
+            {
                 var model = builder.Entity<AuthTokens>();
                 model.ToTable("AuthTokens").HasKey(x => new { x.AuthID, x.UserID, x.DeviceName, x.Token });
                 model.HasIndex(x => new { x.AuthID, x.UserID, x.DeviceName, x.Token}).IsUnique().ForSqlServerIsClustered().HasName("PK_AuthTokens");
@@ -508,6 +543,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.TvDBEpisodeID).IsRequired();
             }
             {
+                //todo, this shouldn't be v2...?
                 var model = builder.Entity<CrossRef_AniDB_TvDBV2>();
                 model.ToTable("CrossRef_AniDB_TvDBV2").HasKey(x => x.CrossRef_AniDB_TvDBV2ID);
                 model.HasIndex(x => x.CrossRef_AniDB_TvDBV2ID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TvDBV2");
@@ -520,6 +556,26 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.TvDBSeasonNumber).IsRequired();
                 model.Property(x => x.TvDBStartEpisodeNumber).IsRequired();
                 model.Property(x => x.CrossRefSource).IsRequired();
+            }
+            {
+                var model = builder.Entity<CrossRef_AniDB_TvDB_Episode_Override>();
+                model.ToTable("CrossRef_AniDB_TvDB_Episode_Override").HasKey(x => x.CrossRef_AniDB_TvDB_Episode_OverrideID);
+                model.HasIndex(x => x.CrossRef_AniDB_TvDB_Episode_OverrideID).IsUnique().HasName("PK_CrossRef_AniDB_TvDB_Episode_Override");
+                model.Property(x => x.CrossRef_AniDB_TvDB_Episode_OverrideID).IsRequired();
+                model.Property(x => x.AniDBEpisodeID).IsRequired();
+                model.Property(x => x.TvDBEpisodeID).IsRequired();
+            }
+            {
+                var model = builder.Entity<CrossRef_Anime_Staff>();
+                model.ToTable("CrossRef_Anime_Staff").HasKey(x => x.CrossRef_Anime_StaffID);
+                model.HasIndex(x => x.CrossRef_Anime_StaffID).IsUnique().HasName("PK_CrossRef_Anime_Staff");
+                model.Property(x => x.CrossRef_Anime_StaffID).IsRequired();
+                model.Property(x => x.AniDB_AnimeID).IsRequired();
+                model.Property(x => x.StaffID).IsRequired();
+                model.Property(x => x.Role).IsRequired();
+                model.Property(x => x.RoleID).IsRequired();
+                model.Property(x => x.RoleType).IsRequired();
+                model.Property(x => x.Language).IsRequired();
             }
             {
                 var model = builder.Entity<CrossRef_CustomTag>();
@@ -606,7 +662,15 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.FileSize).IsRequired();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
                 model.Property(x => x.DateTimeUpdated).IsRequired();
-
+            }
+            {
+                var model = builder.Entity<GroupFilterCondition>();
+                model.ToTable("GroupFilterCondition");
+                model.HasIndex(x => x.GroupFilterConditionID).IsUnique().HasName("PK_GroupFilterCondition");
+                model.Property(x => x.GroupFilterID).IsRequired();
+                model.Property(x => x.ConditionType).IsRequired();
+                model.Property(x => x.ConditionOperator).IsRequired();
+                model.Property(x => x.ConditionParameter).IsRequired();
             }
             {
                 var model = builder.Entity<SVR_GroupFilter>();
@@ -657,8 +721,6 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.IsAdmin).IsRequired();
                 model.Property(x => x.IsAniDBUser).IsRequired();
                 model.Property(x => x.IsTraktUser).IsRequired();
-
-
             }
             {
                 var model = builder.Entity<Language>();
