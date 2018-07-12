@@ -23,6 +23,8 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Commands.Azure;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
@@ -904,29 +906,25 @@ namespace Shoko.Server
                             ser.EpisodeAddedDate = DateTime.Now;
                             Repo.AnimeSeries.Save(ser, false, false);
 
-                            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                            {
-                                grp.EpisodeAddedDate = DateTime.Now;
-                                Repo.AnimeGroup.Save(grp, false, false);
-                            }
-
+                            Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
                             SVR_AnimeEpisode epAnime = Repo.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
-                            CrossRef_File_Episode xref =
-                                new CrossRef_File_Episode();
 
-                            try
+                            using (var upd = Repo.CrossRef_File_Episode.BeginAdd())
                             {
-                                xref.PopulateManually_RA(vid, epAnime);
-                            }
-                            catch (Exception ex)
-                            {
-                                string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(),
-                                    ex);
-                                throw;
+                                try
+                                {
+                                    upd.Entity.PopulateManually_RA(vid, epAnime);
+                                }
+                                catch (Exception ex)
+                                {
+                                    string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(),
+                                        ex);
+                                    throw;
+                                }
+                                upd.Commit();
                             }
 
-                            Repo.CrossRef_File_Episode.Save(xref);
                             vid.Places.ForEach(a => a.RenameAndMoveAsRequired());
 
                             // update stats for groups and series
@@ -1056,8 +1054,7 @@ namespace Shoko.Server
             string line;
 
             // Read the file and display it line by line.
-            StreamReader file =
-                new StreamReader(@"e:\animetitles.txt");
+            StreamReader file = new StreamReader(@"e:\animetitles.txt");
             while ((line = file.ReadLine()) != null)
             {
                 string[] titlesArray = line.Split('|');
@@ -1730,277 +1727,5 @@ namespace Shoko.Server
 
         public static void RunMyAnime2Worker(string filename) => workerMyAnime2.RunWorkerAsync(filename);
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
-
-        #region Tests
-
-        private static void ReviewsTest()
-        {
-            CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(7525, true);
-            cmd.Save();
-
-            //CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(7727, false);
-            //cmd.Save();
-        }
-
-        private static void HashTest()
-        {
-            string fileName = @"C:\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-            //string fileName = @"M:\[ Anime Test ]\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-
-            DateTime start = DateTime.Now;
-            Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            TimeSpan ts = DateTime.Now - start;
-
-            double doubleED2k = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, true, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleCRC32 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, true, false);
-            ts = DateTime.Now - start;
-
-            double doubleMD5 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes4 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, true);
-            ts = DateTime.Now - start;
-
-            double doubleSHA1 = ts.TotalMilliseconds;
-
-            start = DateTime.Now;
-            Hashes hashes5 = Hasher.CalculateHashes(fileName, OnHashProgress, true, true, true);
-            ts = DateTime.Now - start;
-
-            double doubleAll = ts.TotalMilliseconds;
-
-            logger.Info("ED2K only took {0} ms --- {1}/{2}/{3}/{4}", doubleED2k, hashes.ED2K, hashes.CRC32, hashes.MD5,
-                hashes.SHA1);
-            logger.Info("ED2K + CRCR32 took {0} ms --- {1}/{2}/{3}/{4}", doubleCRC32, hashes2.ED2K, hashes2.CRC32,
-                hashes2.MD5,
-                hashes2.SHA1);
-            logger.Info("ED2K + MD5 took {0} ms --- {1}/{2}/{3}/{4}", doubleMD5, hashes3.ED2K, hashes3.CRC32,
-                hashes3.MD5,
-                hashes3.SHA1);
-            logger.Info("ED2K + SHA1 took {0} ms --- {1}/{2}/{3}/{4}", doubleSHA1, hashes4.ED2K, hashes4.CRC32,
-                hashes4.MD5,
-                hashes4.SHA1);
-            logger.Info("Everything took {0} ms --- {1}/{2}/{3}/{4}", doubleAll, hashes5.ED2K, hashes5.CRC32,
-                hashes5.MD5,
-                hashes5.SHA1);
-        }
-
-        private static void HashTest2()
-        {
-            string fileName = @"C:\Anime\Code_Geass_R2_Ep14_Geass_Hunt_[720p,BluRay,x264]_-_THORA.mkv";
-            FileInfo fi = new FileInfo(fileName);
-            string fileSize1 = Utils.FormatByteSize(fi.Length);
-            DateTime start = DateTime.Now;
-            Hashes hashes = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            TimeSpan ts = DateTime.Now - start;
-
-            double doubleFile1 = ts.TotalMilliseconds;
-
-            fileName = @"C:\Anime\[Coalgirls]_Bakemonogatari_01_(1280x720_Blu-Ray_FLAC)_[CA425D15].mkv";
-            fi = new FileInfo(fileName);
-            string fileSize2 = Utils.FormatByteSize(fi.Length);
-            start = DateTime.Now;
-            Hashes hashes2 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleFile2 = ts.TotalMilliseconds;
-
-
-            fileName = @"C:\Anime\Highschool_of_the_Dead_Ep01_Spring_of_the_Dead_[1080p,BluRay,x264]_-_gg-THORA.mkv";
-            fi = new FileInfo(fileName);
-            string fileSize3 = Utils.FormatByteSize(fi.Length);
-            start = DateTime.Now;
-            Hashes hashes3 = Hasher.CalculateHashes(fileName, OnHashProgress, false, false, false);
-            ts = DateTime.Now - start;
-
-            double doubleFile3 = ts.TotalMilliseconds;
-
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize1, doubleFile1, hashes.ED2K);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize2, doubleFile2, hashes2.ED2K);
-            logger.Info("Hashed {0} in {1} ms --- {2}", fileSize3, doubleFile3, hashes3.ED2K);
-        }
-
-        private static void UpdateStatsTest()
-        {
-            foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAllTopLevelGroups())
-            {
-                grp.UpdateStatsFromTopLevel(true, true);
-            }
-        }
-
-        private static void CreateImportFolders_Test()
-        {
-            logger.Debug("Creating import folders...");
-
-            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime Test ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderName = "Anime",
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderLocation = @"M:\[ Anime Test ]"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Complete!");
-        }
-
-        private static void ProcessFileTest()
-        {
-            //CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(@"M:\[ Anime Test ]\[HorribleSubs] Dragon Crisis! - 02 [720p].mkv", false);
-            //CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(@"M:\[ Anime Test ]\[Doki] Saki - 01 (720x480 h264 DVD AAC) [DC73ACB9].mkv");
-            //cr_hashfile.Save();
-
-            CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(15350, false);
-            cr_procfile.Save();
-        }
-
-        private static void CreateImportFolders()
-        {
-            logger.Debug("Creating shares...");
-
-            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime 2011 ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime 2011",
-                    ImportFolderLocation = @"M:\[ Anime 2011 ]"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray IN PROGRESS ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime - DVD and Bluray IN PROGRESS",
-                    ImportFolderLocation = @"M:\[ Anime - DVD and Bluray IN PROGRESS ]"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime - DVD and Bluray COMPLETE ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime - DVD and Bluray COMPLETE",
-                    ImportFolderLocation = @"M:\[ Anime - DVD and Bluray COMPLETE ]"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            sn = Repo.ImportFolder.GetByImportLocation(@"M:\[ Anime ]");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime",
-                    ImportFolderLocation = @"M:\[ Anime ]"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Creating shares complete!");
-        }
-
-        private static void CreateImportFolders2()
-        {
-            logger.Debug("Creating shares...");
-
-            SVR_ImportFolder sn = Repo.ImportFolder.GetByImportLocation(@"F:\Anime1");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime1",
-                    ImportFolderLocation = @"F:\Anime1"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            sn = Repo.ImportFolder.GetByImportLocation(@"H:\Anime2");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime2",
-                    ImportFolderLocation = @"H:\Anime2"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            sn = Repo.ImportFolder.GetByImportLocation(@"G:\Anime3");
-            if (sn == null)
-            {
-                sn = new SVR_ImportFolder
-                {
-                    ImportFolderType = (int)ImportFolderType.HDD,
-                    ImportFolderName = "Anime3",
-                    ImportFolderLocation = @"G:\Anime3"
-                };
-                Repo.ImportFolder.Save(sn);
-            }
-
-            logger.Debug("Creating shares complete!");
-        }
-
-        private static void CreateTestCommandRequests()
-        {
-            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true);
-            cr_anime.Save();
-
-            /*
-			cr_anime = new CommandRequest_GetAnimeHTTP(7382); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6239); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(69); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6751); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(3168); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(4196); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(634); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(2002); cr_anime.Save();
-
-
-
-			cr_anime = new CommandRequest_GetAnimeHTTP(1); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(2); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(3); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(4); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(5); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(6); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(7); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(8); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(9); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(10); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(11); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(12); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(13); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(14); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(15); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(16); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(17); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(18); cr_anime.Save();
-			cr_anime = new CommandRequest_GetAnimeHTTP(19); cr_anime.Save();*/
-        }
-
-        #endregion
     }
 }

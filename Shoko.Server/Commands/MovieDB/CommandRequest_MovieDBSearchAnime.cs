@@ -48,10 +48,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
-
                     // first check if the user wants to use the web cache
                     if (ServerSettings.WebCache_TvDB_Get)
                     {
@@ -63,11 +60,11 @@ namespace Shoko.Server.Commands
                             if (crossRef != null)
                             {
                                 int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = Repo.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
+                                MovieDB_Movie movie = Repo.MovieDb_Movie.GetByOnlineID(movieID);
                                 if (movie == null)
                                 {
                                     // update the info from online
-                                    MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+                                    MovieDBHelper.UpdateMovieInfo(movieID, true);
                                     movie = Repo.MovieDb_Movie.GetByOnlineID(movieID);
                                 }
 
@@ -88,7 +85,7 @@ namespace Shoko.Server.Commands
                     if (!ServerSettings.TvDB_AutoLink) return;
 
                     string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;
@@ -96,21 +93,21 @@ namespace Shoko.Server.Commands
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                     List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
                     logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
-                    if (ProcessSearchResults(session, results, searchCriteria)) return;
+                    if (ProcessSearchResults(results, searchCriteria)) return;
 
 
                     if (results.Count == 0)
                     {
                         foreach (AniDB_Anime_Title title in anime.GetTitles())
                         {
-                            if (title.TitleType.ToUpper() != Shoko.Models.Constants.AnimeTitleType.Official.ToUpper())
+                            if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.OrdinalIgnoreCase))
                                 continue;
 
-                            if (searchCriteria.ToUpper() == title.Title.ToUpper()) continue;
+                            if (string.Equals(searchCriteria, title.Title, StringComparison.OrdinalIgnoreCase)) continue;
 
                             results = MovieDBHelper.Search(title.Title);
                             logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
-                            if (ProcessSearchResults(session, results, title.Title)) return;
+                            if (ProcessSearchResults(results, title.Title)) return;
                         }
                     }
                 }
@@ -121,7 +118,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private bool ProcessSearchResults(ISession session, List<MovieDB_Movie_Result> results, string searchCriteria)
+        private bool ProcessSearchResults(List<MovieDB_Movie_Result> results, string searchCriteria)
         {
             if (results.Count == 1)
             {
@@ -130,7 +127,7 @@ namespace Shoko.Server.Commands
                     results[0].MovieName, results[0].MovieID);
 
                 int movieID = results[0].MovieID;
-                MovieDBHelper.UpdateMovieInfo(session, movieID, true);
+                MovieDBHelper.UpdateMovieInfo(movieID, true);
                 MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, false);
                 return true;
             }

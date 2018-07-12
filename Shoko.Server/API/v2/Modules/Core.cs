@@ -142,7 +142,7 @@ namespace Shoko.Server.API.v2.Modules
             Credentials cred = this.Bind();
             if (cred.port != 0)
             {
-                ServerSettings.JMMServerPort = cred.port.ToString();
+                ServerSettings.JMMServerPort = cred.port;
                 return APIStatus.OK();
             }
             return new APIMessage(400, "Port Missing");
@@ -155,7 +155,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetPort()
         {
             dynamic x = new ExpandoObject();
-            x.port = int.Parse(ServerSettings.JMMServerPort);
+            x.port = ServerSettings.JMMServerPort;
             return x;
         }
 

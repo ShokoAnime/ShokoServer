@@ -119,35 +119,35 @@ namespace Shoko.Server.Tasks
                 {
                     var relation = new AnimeRelation
                     {
-                        FromId = (int) r[0],
-                        ToId = (int) r[1],
-                        FromType = (AnimeType) r[2],
-                        ToType = (AnimeType) r[3],
-                        FromMainTitle = (string) r[4],
-                        ToMainTitle = (string) r[5],
-                        FromAirDate = (DateTime?) r[6],
-                        ToAirDate = (DateTime?) r[7]
+                        FromId = rel.AnimeID,
+                        ToId = rel.RelatedAnimeID,
+                        FromType = (AnimeType) from.type,
+                        ToType = (AnimeType) to.type,
+                        FromMainTitle = from.title,
+                        ToMainTitle = to.title,
+                        FromAirDate = from.airdate,
+                        ToAirDate = to.airdate
                     };
 
-                    switch (((string) r[8]).ToLowerInvariant())
+                    switch ((rel.RelationType).ToLowerInvariant())
                     {
                         case "full story":
-                            relt = AnimeRelationType.FullStory;
+                            relation.RelationType = AnimeRelationType.FullStory;
                             break;
                         case "summary":
-                            relt = AnimeRelationType.Summary;
+                            relation.RelationType = AnimeRelationType.Summary;
                             break;
                         case "parent story":
-                            relt = AnimeRelationType.ParentStory;
+                            relation.RelationType = AnimeRelationType.ParentStory;
                             break;
                         case "side story":
-                            relt = AnimeRelationType.SideStory;
+                            relation.RelationType = AnimeRelationType.SideStory;
                             break;
                         case "prequel":
-                            relt = AnimeRelationType.Prequel;
+                            relation.RelationType = AnimeRelationType.Prequel;
                             break;
                         case "sequel":
-                            relt = AnimeRelationType.Sequel;
+                            relation.RelationType = AnimeRelationType.Sequel;
                             break;
                         case "alternative setting":
                             relation.RelationType = AnimeRelationType.AlternateSetting;
@@ -156,18 +156,18 @@ namespace Shoko.Server.Tasks
                             relation.RelationType = AnimeRelationType.AlternateVersion;
                             break;
                         case "same setting":
-                            relt = AnimeRelationType.SameSetting;
+                            relation.RelationType = AnimeRelationType.SameSetting;
                             break;
                         case "character":
-                            relt = AnimeRelationType.Character;
+                            relation.RelationType = AnimeRelationType.Character;
                             break;
                         default:
-                            relt = AnimeRelationType.Other;
+                            relation.RelationType = AnimeRelationType.Other;
                             break;
                     }
                     if (!relations.ContainsKey(rel.AnimeID))
                         relations.Add(rel.AnimeID, new List<AnimeRelation>());
-                    relations[rel.AnimeID].Add(new AnimeRelation {FromId = rel.AnimeID, FromAirDate = from.airdate, FromMainTitle = from.title, FromType = (AnimeType)from.type, RelationType = relt, ToAirDate = to.airdate, ToId = rel.RelatedAnimeID, ToMainTitle = to.title, ToType = (AnimeType)to.type});
+                    relations[rel.AnimeID].Add(relation);
 
                 }
 

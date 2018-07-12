@@ -33,18 +33,21 @@ namespace Shoko.Server.Repositories.Repos
 
         public void RegenerateDb()
         {
-            var list = Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role))
-                .ToList();
             int i = 0;
-            foreach (var animeStaff in list)
+
+            using (var list = BeginBatchUpdate(() => Cache.Values.Where(animeStaff => animeStaff.RoleID != null && Roles.ContainsKey(animeStaff.Role)).ToList()))
             {
-                animeStaff.Role = Roles[animeStaff.Role].ToString().Replace("_", " ");
-                Save(animeStaff);
-                i++;
-                if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
-                        $" DbRegen - {i}/{list.Count}");
+                foreach (var animeStaff in list)
+                {
+                    animeStaff.Role = Roles[animeStaff.Role].ToString().Replace("_", " ");
+                    //Save(animeStaff);
+                    i++;
+                    if (i % 10 == 0)
+                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                            Commons.Properties.Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
+                            $" DbRegen - {i}/{list.Count()}");
+                }
+                list.Commit();
             }
         }
 

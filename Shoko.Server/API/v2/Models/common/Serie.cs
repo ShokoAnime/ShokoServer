@@ -182,7 +182,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
                 if (tags != null)
-                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList()).Select(a => new Tag {tag = a}).ToList();
+                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList());
             }
 
             if (level > 0)

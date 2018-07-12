@@ -552,24 +552,17 @@ namespace Shoko.Server
 
                 DateTime start = DateTime.Now;
 
-                string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
-                                "From VideoLocal vl " +
-                                "INNER JOIN CrossRef_File_Episode xref ON vl.Hash = xref.Hash " +
-                                "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
-                                "GROUP BY ae.AnimeSeriesID " +
-                                "ORDER BY MaxDate desc ";
-                ArrayList results = DatabaseFactory.Instance.GetData(sql);
+                var results = Repo.VideoLocal.GetEpisodesRecentlyAdded();
+
 
                 TimeSpan ts2 = DateTime.Now - start;
                 logger.Info("GetEpisodesRecentlyAddedSummary:RawData in {0} ms", ts2.TotalMilliseconds);
                 start = DateTime.Now;
 
                 int numEps = 0;
-                foreach (object[] res in results)
+                foreach (var res in results)
                 {
-                    int animeSeriesID = int.Parse(res[0].ToString());
-
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(animeSeriesID);
+                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(res.Key);
                     if (ser == null) continue;
 
                     if (!user.AllowedSeries(ser)) continue;
@@ -1130,14 +1123,14 @@ namespace Shoko.Server
             }
         }
 
-        public List<AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
+        public List<CL_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
         {
             try
             {
                 return Repo.AniDB_Episode.GetByAnimeID(animeID)
+                    .Select(a => a.ToClient())
                     .OrderBy(a => a.EpisodeType)
                     .ThenBy(a => a.EpisodeNumber)
-                    .Cast<AniDB_Episode>()
                     .ToList();
             }
             catch (Exception ex)
@@ -1145,7 +1138,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return new List<AniDB_Episode>();
+            return new List<CL_AniDB_Episode>();
         }
 
         public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)

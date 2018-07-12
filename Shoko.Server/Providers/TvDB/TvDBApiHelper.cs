@@ -725,7 +725,7 @@ namespace Shoko.Server.Providers.TvDB
 
                     using (var eup = Repo.TvDB_Episode.BeginAddOrUpdate(()=> Repo.TvDB_Episode.GetByTvDBID(tvDBEpisodeID)))
                     {
-                        eup.Entity.Populate_RA(episode);
+                        eup.Entity.Populate(episode);
                         ep=eup.Commit();
                     }
                 }

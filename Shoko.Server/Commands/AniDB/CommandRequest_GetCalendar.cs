@@ -89,14 +89,14 @@ namespace Shoko.Server.Commands
                             // update the release date even if we don't update the anime record
                             if (anime.AirDate != cal.ReleaseDate)
                             {
-                                using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime)) 
+                                using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime))
                                 {
                                     upd.Entity.AirDate = cal.ReleaseDate;
                                     upd.Commit();
                                 }
                                 SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
-                                    Repo.AnimeSeries.Save(ser, true, false);
+                                    Repo.AnimeSeries.Touch(() => ser, (true, false, false, false));
                             }
                         }
                     }

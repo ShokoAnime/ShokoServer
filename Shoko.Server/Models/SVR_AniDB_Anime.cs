@@ -730,25 +730,31 @@ namespace Shoko.Server.Models
         public SVR_AnimeSeries CreateAnimeSeriesAndGroup(int? existingGroupID = null)
         {
             // Create a new AnimeSeries record
-            SVR_AnimeSeries series = new SVR_AnimeSeries();
+            SVR_AnimeSeries series;
 
-            series.Populate(this);
-            // Populate before making a group to ensure IDs and stats are set for group filters.
-            Repo.AnimeSeries.Save(series, false, false);
-
-            if (existingGroupID == null)
+            using (var txn = Repo.AnimeSeries.BeginAdd())
             {
-                SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(this);
-                series.AnimeGroupID = grp.AnimeGroupID;
-            }
-            else
-            {
-                SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(existingGroupID.Value) ??
-                                     new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(this);
-                series.AnimeGroupID = grp.AnimeGroupID;
+                txn.Entity.Populate(this);
+                // Populate before making a group to ensure IDs and stats are set for group filters.
+                series = txn.Commit((false, false, false, false));
             }
 
-            Repo.AnimeSeries.Save(series, false, false);
+            using (var txn = Repo.AnimeSeries.BeginAddOrUpdate(() => series))
+            {
+                if (existingGroupID == null)
+                {
+                    SVR_AnimeGroup grp = new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(txn.Entity);
+                    txn.Entity.AnimeGroupID = grp.AnimeGroupID;
+                }
+                else
+                {
+                    SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(existingGroupID.Value) ??
+                                         new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(txn.Entity);
+                    txn.Entity.AnimeGroupID = grp.AnimeGroupID;
+                }
+
+                series = txn.Commit((false, false, false, false));
+            }
 
             // check for TvDB associations
             if (Restricted == 0)

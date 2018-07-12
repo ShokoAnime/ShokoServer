@@ -17,7 +17,7 @@ namespace Shoko.Server.Repositories.Repos
                 a => Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID)?.AnimeID ?? -1);
             EpisodeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode_Override, int>(Cache, a => a.AniDBEpisodeID);
         }
-        
+
         public CrossRef_AniDB_TvDB_Episode_Override GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
         {
             using (RepoLock.ReaderLock())
@@ -41,7 +41,10 @@ namespace Shoko.Server.Repositories.Repos
             using (RepoLock.ReaderLock())
             {
                 if (IsCached) return AnimeIDs.GetMultiple(id);
-                //TODO: Implement
+
+                return Table
+                    .Join(Repo.AniDB_Episode.GetAll(), s => s.AniDBEpisodeID, s => s.AniDB_EpisodeID, (xref, aniEp) => new { xref, aniEp })
+                    .Where(s => s.aniEp.AnimeID == id).Select(s => s.xref).ToList();
             }
         }
 
@@ -52,7 +55,8 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void ClearIndexes()
         {
-
+            AnimeIDs = null;
+            EpisodeIDs = null;
         }
     }
 }

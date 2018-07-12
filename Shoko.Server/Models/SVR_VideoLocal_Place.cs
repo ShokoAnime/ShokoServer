@@ -149,23 +149,20 @@ namespace Shoko.Server.Models
                 List<DuplicateFile> dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
                 if (dups != null && dups.Count > 0)
                 {
-                    foreach (var dup in dups)
+
+                    Repo.DuplicateFile.BatchAction(dups, dups.Count, (dup, _) =>
                     {
-                        bool dupchanged = false;
                         if (dup.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
                             dup.ImportFolderIDFile1 == ImportFolderID)
                         {
                             dup.FilePathFile1 = tup.Item2;
-                            dupchanged = true;
                         }
                         else if (dup.FilePathFile2.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
                                  dup.ImportFolderIDFile2 == ImportFolderID)
                         {
                             dup.FilePathFile2 = tup.Item2;
-                            dupchanged = true;
                         }
-                        if (dupchanged) Repo.DuplicateFile.Save(dup);
-                    }
+                    }, parallel: true);//todo: test parallel
                 }
                 var filename_hash = Repo.FileNameHash.GetByHash(VideoLocal.Hash);
                 if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
@@ -177,11 +174,14 @@ namespace Shoko.Server.Models
                         FileSize = VideoLocal.FileSize,
                         Hash = VideoLocal.Hash
                     };
-                    Repo.FileNameHash.Save(fnhash);
+                    Repo.FileNameHash.BeginAdd(fnhash).Commit();
                 }
 
-                FilePath = tup.Item2;
-                Repo.VideoLocal_Place.Save(this);
+                using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                {
+                    FilePath = upd.Entity.FilePath = tup.Item2; //Also update this, as we can't 
+                    upd.Commit();
+                }
             }
             catch (Exception ex)
             {
@@ -238,7 +238,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    Repo.AnimeEpisode.Save(ep);
+                    Repo.AnimeEpisode.Touch(() => ep);
                 }
                 catch (Exception ex)
                 {
@@ -624,15 +624,14 @@ namespace Shoko.Server.Models
                 return (string.Empty, "ERROR: Source filesystem is null");
             }
 
-            FileSystemResult<IObject> fileSystemResult = (FileSystemResult<IObject>) sourcefs.Resolve(FullServerPath);
+            IObject fileSystemResult = sourcefs.Resolve(FullServerPath);
             if (fileSystemResult == null || fileSystemResult.Status != Status.Ok)
             {
                 logger.Error("Could not find or access the file to move: {0}", FullServerPath);
                 // this can happen due to file locks, so retry
                 return (string.Empty, "ERROR: Could not access the file");
             }
-            IFile source_file = fileSystemResult.Result as IFile;
-            if (source_file == null)
+            if (!(fileSystemResult is IFile source_file))
             {
                 logger.Error("Could not move the file (it isn't a file): {0}", FullServerPath);
                 // this means it isn't a file, but something else, so don't retry
@@ -673,7 +672,7 @@ namespace Shoko.Server.Models
             fileSystemResult = destFolder.FileSystem.Resolve(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
             if (fileSystemResult != null && fileSystemResult.Status != Status.Ok)
             {
-                destination = fileSystemResult.Result as IDirectory;
+                destination = fileSystemResult as IDirectory;
             }
             else
             {
@@ -760,9 +759,12 @@ namespace Shoko.Server.Models
                     Repo.DuplicateFile.Delete(dup);
             }
 
-            ImportFolderID = destFolder.ImportFolderID;
-            FilePath = newFilePath;
-            Repo.VideoLocal_Place.Save(this);
+            using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+            {
+                upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
+                upd.Entity.FilePath = FilePath = newFilePath;
+                upd.Commit();
+            }
 
             try
             {
@@ -839,15 +841,14 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                FileSystemResult<IObject> fsrresult = f.Resolve(FullServerPath);
+                IObject fsrresult = f.Resolve(FullServerPath);
                 if (fsrresult == null || fsrresult.Status != Status.Ok)
                 {
                     logger.Error("Could not find or access the file to move: {0}", FullServerPath);
                     // this can happen due to file locks, so retry
                     return false;
                 }
-                IFile source_file = fsrresult.Result as IFile;
-                if (source_file == null)
+                if (!(fsrresult is IFile source_file))
                 {
                     logger.Error("Could not move the file (it isn't a file): {0}", FullServerPath);
                     // this means it isn't a file, but something else, so don't retry
@@ -882,7 +883,7 @@ namespace Shoko.Server.Models
                 fsrresult = destFolder.FileSystem.Resolve(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
                 if (fsrresult != null && fsrresult.Status == Status.Ok)
                 {
-                    destination = fsrresult.Result as IDirectory;
+                    destination = fsrresult as IDirectory;
                 }
                 else
                 {
@@ -920,7 +921,7 @@ namespace Shoko.Server.Models
                     return true;
                 }
 
-                FileSystemResult<IObject> dst = f.Resolve(newFullServerPath);
+                IObject dst = f.Resolve(newFullServerPath);
                 if (dst != null && dst.Status == Status.Ok)
                 {
                     // A file with the same name exists at the destination.
@@ -1041,23 +1042,26 @@ namespace Shoko.Server.Models
                                     Repo.DuplicateFile.Delete(dup);
                             }
 
-                            ImportFolderID = destFolder.ImportFolderID;
-                            FilePath = newFilePath;
-                            Repo.VideoLocal_Place.Save(this);
+                            using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                            {
+                                upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
+                                upd.Entity.FilePath = FilePath = newFilePath;
+                                upd.Commit();
+                            }
 
                             try
                             {
                                 // move any subtitle files
                                 foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                                 {
-                                    FileSystemResult<IObject> src = f.Resolve(subtitleFile);
-                                    if (src == null || src.Status != Status.Ok || !(src.Result is IFile)) continue;
+                                    IObject src = f.Resolve(subtitleFile);
+                                    if (src == null || src.Status != Status.Ok || !(src is IFile file)) continue;
                                     string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
-                                        ((IFile)src.Result).Name);
+                                        (file).Name);
                                     dst = f.Resolve(newSubPath);
-                                    if (dst != null && dst.Status == Status.Ok && dst.Result is IFile)
+                                    if (dst != null && dst.Status == Status.Ok && dst is IFile)
                                     {
-                                        FileSystemResult fr2 = src.Result.Delete(false);
+                                        FileSystemResult fr2 = src.Delete(false);
                                         if (fr2 == null || fr2.Status != Status.Ok)
                                         {
                                             logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
@@ -1066,7 +1070,7 @@ namespace Shoko.Server.Models
                                     }
                                     else
                                     {
-                                        FileSystemResult fr2 = ((IFile)src.Result).Move(destination);
+                                        FileSystemResult fr2 = ((IFile)src).Move(destination);
                                         if (fr2 == null || fr2.Status != Status.Ok)
                                         {
                                             logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile,
@@ -1084,9 +1088,9 @@ namespace Shoko.Server.Models
                             // only for the drop folder
                             if (dropFolder.IsDropSource == 1)
                             {
-                                FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                                if (dd != null && dd.Status == Status.Ok && dd.Result is IDirectory)
-                                    RecursiveDeleteEmptyDirectories((IDirectory)dd.Result, true);
+                                IObject dd = f.Resolve(dropFolder.ImportFolderLocation);
+                                if (dd != null && dd.Status == Status.Ok && dd is IDirectory dir)
+                                    RecursiveDeleteEmptyDirectories(dir, true);
                             }
                         }
                     }
@@ -1131,23 +1135,26 @@ namespace Shoko.Server.Models
                             Repo.DuplicateFile.Delete(dup);
                     }
 
-                    ImportFolderID = destFolder.ImportFolderID;
-                    FilePath = newFilePath;
-                    Repo.VideoLocal_Place.Save(this);
+                    using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                    {
+                        upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
+                        upd.Entity.FilePath = FilePath = newFilePath;
+                        upd.Commit();
+                    }
 
                     try
                     {
                         // move any subtitle files
                         foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
                         {
-                            FileSystemResult<IObject> src = f.Resolve(subtitleFile);
-                            if (src == null || src.Status != Status.Ok || !(src.Result is IFile)) continue;
+                            IObject src = f.Resolve(subtitleFile);
+                            if (src == null || src.Status != Status.Ok || !(src is IFile)) continue;
                             string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
-                                ((IFile)src.Result).Name);
+                                ((IFile)src).Name);
                             dst = f.Resolve(newSubPath);
-                            if (dst != null && dst.Status == Status.Ok && dst.Result is IFile)
+                            if (dst != null && dst.Status == Status.Ok && dst is IFile)
                             {
-                                FileSystemResult fr2 = src.Result.Delete(false);
+                                FileSystemResult fr2 = src.Delete(false);
                                 if (fr2 == null || fr2.Status != Status.Ok)
                                 {
                                     logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile,
@@ -1156,7 +1163,7 @@ namespace Shoko.Server.Models
                             }
                             else
                             {
-                                FileSystemResult fr2 = ((IFile)src.Result).Move(destination);
+                                FileSystemResult fr2 = ((IFile)src).Move(destination);
                                 if (fr2 == null || fr2.Status != Status.Ok)
                                 {
                                     logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile,
@@ -1174,9 +1181,9 @@ namespace Shoko.Server.Models
                     // only for the drop folder
                     if (dropFolder.IsDropSource == 1)
                     {
-                        FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                        if (dd != null && dd.Status == Status.Ok && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory)dd.Result, true);
+                        IObject dd = f.Resolve(dropFolder.ImportFolderLocation);
+                        if (dd != null && dd.Status == Status.Ok && dd is IDirectory d)
+                            RecursiveDeleteEmptyDirectories(d, true);
                     }
                 }
             }
@@ -1195,7 +1202,8 @@ namespace Shoko.Server.Models
             {
                 FileSystemResult fr = dir.Populate();
                 if (fr.Status != Status.Ok) return;
-                if (dir.IsEmpty)
+
+                if ((dir.Files.Count + dir.Directories.Count) <= 0)
                 {
                     if (importfolder)
                         return;

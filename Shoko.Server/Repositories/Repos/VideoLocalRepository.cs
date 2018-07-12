@@ -180,6 +180,25 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => a.Hash == hash && a.VideoLocalID!=id).ToList();
             }
         }
+
+        internal IDictionary<int, DateTime> GetEpisodesRecentlyAdded()
+        {
+            using (RepoLock.ReaderLock())
+            using (Repo.CrossRef_File_Episode.RepoLock.ReaderLock()) //TODO: Test, this will probably lock.
+            using (Repo.AnimeEpisode.RepoLock.ReaderLock())
+            {
+                return Table
+                        .Join(Repo.CrossRef_File_Episode.Table, vl => vl.Hash, xref => xref.Hash, (vl, xref) => new { vl, xref })
+                        .Join(Repo.AnimeEpisode.Table, x => x.xref.EpisodeID, ae => ae.AniDB_EpisodeID, (jn, ae) => new { jn.vl, jn.xref, ae })
+                        .GroupBy(jn => jn.ae.AnimeSeriesID, (_, group) => group.OrderByDescending(x => x.vl.DateTimeCreated).First())
+                        .OrderByDescending(s => s.vl.DateTimeCreated)
+                        .Select(grp => new { grp.ae.AnimeSeriesID, grp.vl.DateTimeCreated }).ToList()
+
+                        .OrderByDescending(s => s.DateTimeCreated)
+                        .ToDictionary(a => a.AnimeSeriesID, b => b.DateTimeCreated);
+            }
+        }
+
         public SVR_VideoLocal GetByMD5(string hash)
         {
             using (RepoLock.ReaderLock())

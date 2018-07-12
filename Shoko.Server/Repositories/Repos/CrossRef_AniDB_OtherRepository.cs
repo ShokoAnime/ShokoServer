@@ -48,17 +48,19 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => animeIds.Contains(a.AnimeID) && types.Contains(a.CrossRefType)).GroupBy(a=>a.AnimeID).ToDictionary(a=>a.Key,a=>a.ToList());
             }
         }
-        public Dictionary<int, List<string>> GetByAnimeIDsAndType(IEnumerable<int> animeIds, CrossRefType type)
+
+        public Dictionary<int, List<CrossRef_AniDB_Other>> GetByAnimeIDsAndType(IEnumerable<int> animeIds, CrossRefType type)
         {
             if (animeIds == null)
-                return new Dictionary<int, List<string>>();
+                return new Dictionary<int, List<CrossRef_AniDB_Other>>();
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return animeIds.ToDictionary(a=>a, a => Animes.GetMultiple(a).Where(b => b.CrossRefType==(int)type).Select(b=>b.CrossRefID).ToList());
-                return Table.Where(a => animeIds.Contains(a.AnimeID) && a.CrossRefType==(int)type).GroupBy(a=>a.AnimeID).ToDictionary(a=>a.Key, a=>a.Select(b=>b.CrossRefID).ToList());
+                    return animeIds.ToDictionary(a=>a, a => Animes.GetMultiple(a).Where(b => b.CrossRefType==(int)type).Select(b=>b).ToList());
+                return Table.Where(a => animeIds.Contains(a.AnimeID) && a.CrossRefType==(int)type).GroupBy(a=>a.AnimeID).ToDictionary(a=>a.Key, a=>a.Select(b=>b).ToList());
             }
         }
+
         public List<CrossRef_AniDB_Other> GetByType(CrossRefType xrefType)
         {
             using (RepoLock.ReaderLock())

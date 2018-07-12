@@ -32,7 +32,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginSave(SVR_GroupFilter entity, SVR_GroupFilter original_entity, bool onlyconditions)
         {
             if (!onlyconditions)
-                entity.UpdateEntityReferenceStrings_RA();
+                entity.UpdateEntityReferenceStrings();
             entity.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(entity._conditions);
             entity.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
             return null;

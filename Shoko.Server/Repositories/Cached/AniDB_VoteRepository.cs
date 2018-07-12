@@ -6,6 +6,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -54,36 +55,30 @@ namespace Shoko.Server.Repositories.Cached
                 if (cr == null) return null;
                 if (cr.Count <= 1) return cr.FirstOrDefault();
 
-                lock (globalDBLock)
                 {
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    bool first = true;
+                    foreach (AniDB_Vote dbVote in cr)
                     {
-                        bool first = true;
-                        foreach (AniDB_Vote dbVote in cr)
+                        if (first)
                         {
-                            if (first)
-                            {
-                                first = false;
-                                continue;
-                            }
-                            using (var transact = session.BeginTransaction())
-                            {
-                                Repo.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
-                                transact.Commit();
-                            }
+                            first = false;
+                            continue;
                         }
-
-                        return cr.FirstOrDefault();
+                        Repo.AniDB_Vote.Delete(dbVote);
                     }
+
+                    return cr.FirstOrDefault();
                 }
             }
         }
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            lock (Cache)
+            lock (RepoLock.ReaderLock())
             {
-                return EntityIDs.GetMultiple(entID)?.ToList();
+                if (IsCached)
+                    return EntityIDs.GetMultiple(entID)?.ToList();
+                return Table.Where(s => s.EntityID == entID).ToList();
             }
         }
 

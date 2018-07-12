@@ -3005,7 +3005,7 @@ namespace Shoko.Server.API.v2.Modules
 
                         ep?.ToggleWatchedStatus(watchedstatus, true, DateTime.Now, false, userid, true);
                     }
-                    SVR_AnimeSeries.UpdateStats(series, true, false, false);
+                    series.UpdateStats(true, false, false);
                 }
                 group.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
 

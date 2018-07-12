@@ -181,19 +181,19 @@ namespace Shoko.Server
                     SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
-                    string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
+                    /*string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
                                  "From VideoLocal vl " +
                                  "INNER JOIN CrossRef_File_Episode xref ON vl.Hash = xref.Hash " +
                                  "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
                                  "GROUP BY ae.AnimeSeriesID " +
                                  "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseFactory.Instance.GetData(sql);
+                    */
+
+                    var results = Repo.VideoLocal.GetEpisodesRecentlyAdded();
 
                     int numEps = 0;
-                    foreach (object[] res in results)
+                    foreach ((int animeSeriesID, DateTime lastUpdated) in results)
                     {
-                        int animeSeriesID = int.Parse(res[0].ToString());
-
                         SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
@@ -232,24 +232,16 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                {
+                { 
                     SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     //todo, turn this into linq to sql
-                    string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
-                                 "From VideoLocal vl " +
-                                 "INNER JOIN CrossRef_File_Episode xref ON vl.Hash = xref.Hash " +
-                                 "INNER JOIN AnimeEpisode ae ON ae.AniDB_EpisodeID = xref.EpisodeID " +
-                                 "GROUP BY ae.AnimeSeriesID " +
-                                 "ORDER BY MaxDate desc ";
-                    ArrayList results = DatabaseFactory.Instance.GetData(sql);
+                    IDictionary<int, DateTime> results = Repo.VideoLocal.GetEpisodesRecentlyAdded();
 
                     int numEps = 0;
-                    foreach (object[] res in results)
+                    foreach ((int animeSeriesID, DateTime lastUpdated) in results)
                     {
-                        int animeSeriesID = int.Parse(res[0].ToString());
-
                         SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
@@ -1023,7 +1015,7 @@ namespace Shoko.Server
                     if (animeLink == null)
                     {
                         // try getting it from anidb now
-                        animeLink = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(session, link.RelatedAnimeID,
+                        animeLink = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(link.RelatedAnimeID,
                             false,
                             false);
                     }

@@ -78,8 +78,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download the posters
             if (ServerSettings.MovieDB_AutoPosters || isTrakt)
             {
-                foreach (MovieDB_Poster poster in Repo.MovieDB_Poster.GetByMovieID(movie.MovieId)
-                )
+                foreach (MovieDB_Poster poster in Repo.MovieDB_Poster.GetByMovieID(movie.MovieId))
                 {
                     if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
                     {
@@ -88,7 +87,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
                                 ImageEntityType.MovieDB_Poster, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numPostersDownloaded++;
                         }
                     }
@@ -108,8 +107,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download the fanart
             if (ServerSettings.MovieDB_AutoFanart || isTrakt)
             {
-                foreach (MovieDB_Fanart fanart in Repo.MovieDB_Fanart.GetByMovieID( movie.MovieId)
-                )
+                foreach (MovieDB_Fanart fanart in Repo.MovieDB_Fanart.GetByMovieID(movie.MovieId))
                 {
                     if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
                     {
@@ -118,7 +116,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
                                 ImageEntityType.MovieDB_FanArt, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numFanartDownloaded++;
                         }
                     }

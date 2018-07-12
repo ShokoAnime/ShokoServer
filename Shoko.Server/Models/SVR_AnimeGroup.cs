@@ -151,7 +151,7 @@ namespace Shoko.Server.Models
             logger.Info("Starting RenameAllGroups");
             //using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
-                var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings(session.Wrap());
+                var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
                 foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAll().ToList())
                 {
                     List<SVR_AnimeSeries> list = grp.GetSeries();
@@ -689,8 +689,6 @@ namespace Shoko.Server.Models
         public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(//ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeGroup> animeGroups, bool updateStats)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
             if (animeGroups == null)
                 throw new ArgumentNullException(nameof(animeGroups));
 
@@ -706,19 +704,18 @@ namespace Shoko.Server.Models
             var allGroupIds = new Lazy<int[]>(
                 () => animeGroups.Select(grp => grp.AnimeGroupID).ToArray(), isThreadSafe: false);
             var audioLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
-                () => Repo.Adhoc.GetAudioLanguageStatsByAnime(session, allAnimeIds.Value), isThreadSafe: false);
+                () => Repo.Adhoc.GetAudioLanguageStatsByAnime(allAnimeIds.Value), isThreadSafe: false);
             var subLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
-                () => Repo.Adhoc.GetSubtitleLanguageStatsByAnime(session, allAnimeIds.Value),
+                () => Repo.Adhoc.GetSubtitleLanguageStatsByAnime(allAnimeIds.Value),
                 isThreadSafe: false);
-            var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
+            var tvDbXrefByAnime = new Lazy<Dictionary<int, CrossRef_AniDB_TvDB>>(
                 () => Repo.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
-            var allVidQualByGroup = new Lazy<ILookup<int, string>>(
-                () => Repo.Adhoc.GetAllVideoQualityByGroup(session, allGroupIds.Value), isThreadSafe: false);
-            var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
-                () => Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session, allAnimeIds.Value,
-                    CrossRefType.MovieDB), isThreadSafe: false);
-            var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
-                () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(session, allAnimeIds.Value), isThreadSafe: false);
+            var allVidQualByGroup = new Lazy<Dictionary<int, HashSet<string>>>(
+                () => Repo.Adhoc.GetAllVideoQualityByGroup(allGroupIds.Value), isThreadSafe: false);
+            var movieDbXRefByAnime = new Lazy<Dictionary<int, List<CrossRef_AniDB_Other>>>(
+                () => Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(allAnimeIds.Value, CrossRefType.MovieDB), isThreadSafe: false);
+            var malXRefByAnime = new Lazy<Dictionary<int, CrossRef_AniDB_MAL>>(
+                () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var votesByGroup = BatchGetVotes(animeGroups);
             DateTime now = DateTime.Now;
 
@@ -980,9 +977,9 @@ namespace Shoko.Server.Models
             return grpFilterCondTypesByGroup;
         }
 
-        public HashSet<GroupFilterConditionType> UpdateContract(ISessionWrapper session, bool updatestats)
+        public HashSet<GroupFilterConditionType> UpdateContract(bool updatestats)
         {
-            var grpFilterCondTypesByGroup = BatchUpdateContracts(session, new[] {this}, updatestats);
+            var grpFilterCondTypesByGroup = BatchUpdateContracts(new[] {this}, updatestats);
 
             return grpFilterCondTypesByGroup[AnimeGroupID];
         }

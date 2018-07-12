@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
@@ -16,7 +17,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void PopulateIndexes()
         {
-            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => a.AnimeID);
+            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID)?.AnimeID ?? -1);
             EpisodeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => a.AniDBEpisodeID);
         }
 
@@ -44,8 +45,16 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return AnimeIDs.GetMultiple(id);
-                return Table.Where(a => a.AnimeID==id).ToList();
+
+                return Table
+                    .Join(Repo.AniDB_Episode.GetAll(), a => a.AniDBEpisodeID, b => b.AniDB_EpisodeID, (xref, ae) => new { xref, ae })
+                    .Where(jn => jn.ae.AnimeID == id).Select(jn => jn.xref).ToList();
             }
+        }
+
+        internal void DeleteAllUnverifiedLinksForAnime(int animeID)
+        {
+            throw new NotImplementedException();
         }
     }
 }

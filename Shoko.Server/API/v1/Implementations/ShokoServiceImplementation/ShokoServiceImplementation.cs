@@ -817,43 +817,61 @@ namespace Shoko.Server
                     case ImageEntityType.AniDB_Cover:
                         SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(imageID);
                         if (anime == null) return "Could not find anime";
-                        anime.ImageEnabled = enabled ? 1 : 0;
-                        Repo.AniDB_Anime.Save(anime);
+                        using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                        {
+                            upd.Entity.ImageEnabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
 
                     case ImageEntityType.TvDB_Banner:
                         TvDB_ImageWideBanner banner = Repo.TvDB_ImageWideBanner.GetByID(imageID);
                         if (banner == null) return "Could not find image";
-                        banner.Enabled = enabled ? 1 : 0;
-                        Repo.TvDB_ImageWideBanner.Save(banner);
+                        using (var upd = Repo.TvDB_ImageWideBanner.BeginAddOrUpdate(() => banner))
+                        {
+                            upd.Entity.Enabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
 
                     case ImageEntityType.TvDB_Cover:
                         TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(imageID);
                         if (poster == null) return "Could not find image";
-                        poster.Enabled = enabled ? 1 : 0;
-                        Repo.TvDB_ImagePoster.Save(poster);
+                        using (var upd = Repo.TvDB_ImagePoster.BeginAddOrUpdate(() => poster))
+                        {
+                            upd.Entity.Enabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
 
                     case ImageEntityType.TvDB_FanArt:
                         TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(imageID);
                         if (fanart == null) return "Could not find image";
-                        fanart.Enabled = enabled ? 1 : 0;
-                        Repo.TvDB_ImageFanart.Save(fanart);
+                        using (var upd = Repo.TvDB_ImageFanart.BeginAddOrUpdate(() => fanart))
+                        {
+                            upd.Entity.Enabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
                         MovieDB_Poster moviePoster = Repo.MovieDB_Poster.GetByID(imageID);
                         if (moviePoster == null) return "Could not find image";
-                        moviePoster.Enabled = enabled ? 1 : 0;
-                        Repo.MovieDB_Poster.Save(moviePoster);
+                        using (var upd = Repo.MovieDB_Poster.BeginAddOrUpdate(() => moviePoster))
+                        {
+                            upd.Entity.Enabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
                         MovieDB_Fanart movieFanart = Repo.MovieDB_Fanart.GetByID(imageID);
                         if (movieFanart == null) return "Could not find image";
-                        movieFanart.Enabled = enabled ? 1 : 0;
-                        Repo.MovieDB_Fanart.Save(movieFanart);
+                        using (var upd = Repo.MovieDB_Fanart.BeginAddOrUpdate(() => movieFanart))
+                        {
+                            upd.Entity.Enabled = enabled ? 1 : 0;
+                            upd.Commit();
+                        }
                         break;
                 }
 
@@ -904,20 +922,18 @@ namespace Shoko.Server
                 else
                 {
                     // making the image the default for it's type (poster, fanart etc)
-                    AniDB_Anime_DefaultImage img =
-                        Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
-                    if (img == null)
-                        img = new AniDB_Anime_DefaultImage();
-
-                    img.AnimeID = animeID;
-                    img.ImageParentID = imageID;
-                    img.ImageParentType = (int) imgType;
-                    img.ImageType = (int) sizeType;
-                    Repo.AniDB_Anime_DefaultImage.Save(img);
+                    using (var txn = Repo.AniDB_Anime_DefaultImage.BeginAddOrUpdate(() => Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int)sizeType)))
+                    {
+                        txn.Entity.AnimeID = animeID;
+                        txn.Entity.ImageParentID = imageID;
+                        txn.Entity.ImageParentType = (int)imgType;
+                        txn.Entity.ImageType = (int)sizeType;
+                        txn.Commit();
+                    }
                 }
 
                 SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(animeID);
-                Repo.AnimeSeries.Save(series, false);
+                Repo.AnimeSeries.Touch(() => series, (false, false, false, false));
 
                 return string.Empty;
             }
