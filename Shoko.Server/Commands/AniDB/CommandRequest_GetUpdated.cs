@@ -69,10 +69,7 @@ namespace Shoko.Server.Commands
                     webUpdateTime = long.Parse(Commons.Utils.AniDB.AniDBDate(utcTime));
                     webUpdateTimeNew = long.Parse(Commons.Utils.AniDB.AniDBDate(DateTime.Now.ToUniversalTime()));
 
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBUpdates
-                    };
+                    //sched = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
                 }
                 else
                 {
@@ -90,9 +87,12 @@ namespace Shoko.Server.Commands
 
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache
-                sched.LastUpdate = DateTime.Now;
-                sched.UpdateDetails = webUpdateTimeNew.ToString();
-                Repo.ScheduledUpdate.Save(sched);
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates }))
+                {
+                    upd.Entity.LastUpdate = DateTime.Now;
+                    upd.Entity.UpdateDetails = webUpdateTimeNew.ToString();
+                    upd.Commit();
+                }
 
                 if (animeIDsToUpdate.Count == 0)
                 {

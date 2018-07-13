@@ -2676,29 +2676,22 @@ namespace Shoko.Server.API.v2.Modules
                 ? (int)AniDBVoteType.Anime
                 : (int)AniDBVoteType.AnimeTemp;
 
-            AniDB_Vote thisVote =
-                Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
-                Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime);
-
-
-
-            if (thisVote == null)
+            using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(
+                () => Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.AnimeTemp) ??
+                      Repo.AniDB_Vote.GetByEntityAndType(id, AniDBVoteType.Anime),
+                () => new AniDB_Vote { EntityID = ser.AniDB_ID }))
             {
-                thisVote = new AniDB_Vote
+
+                if (score <= 10)
                 {
-                    EntityID = ser.AniDB_ID
-                };
+                    score = score * 100;
+                }
+
+                upd.Entity.VoteValue = score;
+                upd.Entity.VoteType = voteType;
+
+                upd.Commit();
             }
-
-            if (score <= 10)
-            {
-                score = score * 100;
-            }
-
-            thisVote.VoteValue = score;
-            thisVote.VoteType = voteType;
-
-            Repo.AniDB_Vote.Save(thisVote);
 
             CommandRequest_VoteAnime cmdVote =
                 new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, Convert.ToDecimal(score / 100));

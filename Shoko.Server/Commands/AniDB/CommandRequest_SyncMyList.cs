@@ -45,15 +45,8 @@ namespace Shoko.Server.Commands
                 // we will always assume that an anime was downloaded via http first
                 ScheduledUpdate sched =
                     Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
+
+                if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyList_UpdateFrequency);
 
@@ -101,8 +94,10 @@ namespace Shoko.Server.Commands
                         {
                             if (vid.MyListID == 0)
                             {
-                                vid.MyListID = file.ListID;
-                                Repo.VideoLocal.Save(vid);
+                                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vid))
+                                {
+                                    vid.MyListID = file.ListID;
+                                }
                             }
 
                             // Update file state if deleted
@@ -131,7 +126,7 @@ namespace Shoko.Server.Commands
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
                 List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
-                LinkedHashSet<SVR_AnimeSeries> modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
+                HashSet<SVR_AnimeSeries> modifiedSeries = new HashSet<SVR_AnimeSeries>();
 
                 // Remove Missing Files and update watched states (single loop)
                 List<int> filesToRemove = new List<int>();
@@ -253,8 +248,11 @@ namespace Shoko.Server.Commands
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
-                sched.LastUpdate = DateTime.Now;
-                Repo.ScheduledUpdate.Save(sched);
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty }))
+                {
+                    sched.LastUpdate = DateTime.Now;
+                    upd.Commit();
+                }
             }
             catch (Exception ex)
             {

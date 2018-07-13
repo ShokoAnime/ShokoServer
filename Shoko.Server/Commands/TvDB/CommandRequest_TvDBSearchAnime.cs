@@ -71,8 +71,7 @@ namespace Shoko.Server.Commands
                                 .ToList();
                             if (specialXRefs.Count != 0)
                             {
-                                var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
-                                foreach (var episodeOverride in overrides)
+                                foreach (var episodeOverride in TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs))
                                 {
                                     var exists =
                                         Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(

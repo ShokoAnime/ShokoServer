@@ -74,7 +74,7 @@ namespace Shoko.Server.Commands
                 logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
                 throw;
             }
-            Repo.CrossRef_File_Episode.Save(xref);
+            Repo.CrossRef_File_Episode.BeginAdd(xref).Commit();
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
@@ -99,19 +99,17 @@ namespace Shoko.Server.Commands
 
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
-            SVR_AnimeSeries ser = episode.GetAnimeSeries();
-            ser.EpisodeAddedDate = DateTime.Now;
-            Repo.AnimeSeries.Save(ser, false, true);
+            SVR_AnimeSeries ser;
+            using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => episode.GetAnimeSeries()))
+            {
+                upd.Entity.EpisodeAddedDate = DateTime.Now;
+                ser = upd.Commit((false, true, false, false));
+            }
 
             //Update will re-save
             ser.QueueUpdateStats();
 
-
-            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-            {
-                grp.EpisodeAddedDate = DateTime.Now;
-                Repo.AnimeGroup.Save(grp, false, false);
-            }
+            Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
             if (ServerSettings.AniDB_MyList_AddFiles)
             {

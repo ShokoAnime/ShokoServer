@@ -735,28 +735,27 @@ namespace Shoko.Server.Models
             string originalFileName = FullServerPath;
 
             // Handle Duplicate Files
-            var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-            foreach (var dup in dups)
+            using (var dups = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
             {
-                // Move source
-                if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                foreach (var dup in dups)
                 {
-                    dup.FilePathFile1 = newFilePath;
-                    dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                    // Move source
+                    if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                    {
+                        dup.FilePathFile1 = newFilePath;
+                        dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                    }
+                    else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                    {
+                        dup.FilePathFile2 = newFilePath;
+                        dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                    }
+                    // validate the dup file
+                    // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                    if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                        Repo.DuplicateFile.Delete(dup);
                 }
-                else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                {
-                    dup.FilePathFile2 = newFilePath;
-                    dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                }
-                // validate the dup file
-                // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                if (!dup.GetFullServerPath1()
-                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                    Repo.DuplicateFile.Save(dup);
-                else
-                    Repo.DuplicateFile.Delete(dup);
+                dups.Commit();
             }
 
             using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
@@ -960,7 +959,7 @@ namespace Shoko.Server.Models
                             // check for any empty folders in drop folder
                             // only for the drop folder
                             if (dropFolder.IsDropSource != 1) return true;
-                            FileSystemResult<IObject> dd = (FileSystemResult <IObject>)f.Resolve(dropFolder.ImportFolderLocation);
+                            FileSystemResult<IObject> dd = (FileSystemResult<IObject>)f.Resolve(dropFolder.ImportFolderLocation);
                             if (dd != null && dd.Status == Status.Ok && dd.Result is IDirectory)
                             {
                                 RecursiveDeleteEmptyDirectories((IDirectory)dd.Result, true);
@@ -1018,28 +1017,28 @@ namespace Shoko.Server.Models
                             string originalFileName = FullServerPath;
 
                             // Handle Duplicate Files
-                            var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-                            foreach (var dup in dups)
+                            using (var upd = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
                             {
-                                // Move source
-                                if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                                foreach (var dup in upd)
                                 {
-                                    dup.FilePathFile1 = newFilePath;
-                                    dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                                    // Move source
+                                    if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                                    {
+                                        dup.FilePathFile1 = newFilePath;
+                                        dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                                    }
+                                    else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                                    {
+                                        dup.FilePathFile2 = newFilePath;
+                                        dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                                    }
+                                    // validate the dup file
+                                    // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                                    if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                                        Repo.DuplicateFile.Delete(dup);
                                 }
-                                else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                                {
-                                    dup.FilePathFile2 = newFilePath;
-                                    dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                                }
-                                // validate the dup file
-                                // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                                if (!dup.GetFullServerPath1()
-                                    .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                    Repo.DuplicateFile.Save(dup);
-                                else
-                                    Repo.DuplicateFile.Delete(dup);
+
+                                upd.Commit();
                             }
 
                             using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
@@ -1111,28 +1110,27 @@ namespace Shoko.Server.Models
                     string originalFileName = FullServerPath;
 
                     // Handle Duplicate Files
-                    var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
-
-                    foreach (var dup in dups)
+                    using (var dups = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
                     {
-                        // Move source
-                        if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                        foreach (var dup in dups)
                         {
-                            dup.FilePathFile1 = newFilePath;
-                            dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                            // Move source
+                            if (dup.FilePathFile1.Equals(FilePath) && dup.ImportFolderIDFile1 == ImportFolderID)
+                            {
+                                dup.FilePathFile1 = newFilePath;
+                                dup.ImportFolderIDFile1 = destFolder.ImportFolderID;
+                            }
+                            else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
+                            {
+                                dup.FilePathFile2 = newFilePath;
+                                dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
+                            }
+                            // validate the dup file
+                            // There are cases where a dup file was not cleaned up before, so we'll do it here, too
+                            if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                                Repo.DuplicateFile.Delete(dup);
                         }
-                        else if (dup.FilePathFile2.Equals(FilePath) && dup.ImportFolderIDFile2 == ImportFolderID)
-                        {
-                            dup.FilePathFile2 = newFilePath;
-                            dup.ImportFolderIDFile2 = destFolder.ImportFolderID;
-                        }
-                        // validate the dup file
-                        // There are cases where a dup file was not cleaned up before, so we'll do it here, too
-                        if (!dup.GetFullServerPath1()
-                            .Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                            Repo.DuplicateFile.Save(dup);
-                        else
-                            Repo.DuplicateFile.Delete(dup);
+                        dups.Commit();
                     }
 
                     using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))

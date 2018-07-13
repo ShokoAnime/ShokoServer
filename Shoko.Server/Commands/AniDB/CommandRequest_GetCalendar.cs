@@ -41,15 +41,8 @@ namespace Shoko.Server.Commands
 
                 ScheduledUpdate sched =
                     Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
-                if (sched == null)
-                {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
+
+                if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Calendar_UpdateFrequency);
 
@@ -61,8 +54,16 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                sched.LastUpdate = DateTime.Now;
-                Repo.ScheduledUpdate.Save(sched);
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate
+                {
+                    UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
+                    UpdateDetails = string.Empty
+                }))
+                {
+                    upd.Entity.LastUpdate = DateTime.Now;
+                    sched = upd.Commit();
+                }
+                
 
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)

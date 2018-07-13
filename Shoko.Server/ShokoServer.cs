@@ -883,28 +883,23 @@ namespace Shoko.Server
 
                             logger.Debug("Creating groups, series and episodes....");
                             // check if there is an AnimeSeries Record associated with this AnimeID
-                            ser = Repo.AnimeSeries.GetByAnimeID(animeID);
-                            if (ser == null)
+                            using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByAnimeID(animeID), () => anime.CreateAnimeSeriesAndGroup()))
                             {
-                                // create a new AnimeSeries record
-                                ser = anime.CreateAnimeSeriesAndGroup();
+                                upd.Entity.CreateAnimeEpisodes();
+
+                                // check if we have any group status data for this associated anime
+                                // if not we will download it now
+                                if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                                {
+                                    CommandRequest_GetReleaseGroupStatus cmdStatus =
+                                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
+                                    cmdStatus.Save();
+                                }
+
+                                // update stats
+                                upd.Entity.EpisodeAddedDate = DateTime.Now;
+                                ser = upd.Commit();
                             }
-
-
-                            ser.CreateAnimeEpisodes();
-
-                            // check if we have any group status data for this associated anime
-                            // if not we will download it now
-                            if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
-                            {
-                                CommandRequest_GetReleaseGroupStatus cmdStatus =
-                                    new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                                cmdStatus.Save();
-                            }
-
-                            // update stats
-                            ser.EpisodeAddedDate = DateTime.Now;
-                            Repo.AnimeSeries.Save(ser, false, false);
 
                             Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 

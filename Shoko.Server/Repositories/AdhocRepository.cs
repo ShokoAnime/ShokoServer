@@ -89,7 +89,7 @@ namespace Shoko.Server.Repositories
             Dictionary<int, List<int>> series = Repo.AniDB_Episode.GetGroupByAnimeIDEpisodes();
             Dictionary<int, List<string>> ephashes = Repo.CrossRef_File_Episode.GetGroupByEpisodeIDHashes();
             Dictionary<string, List<string>> hashesfiles = Repo.AniDB_File.GetGroupByHashFileSource();
-            return series.ToDictionary(a => a.Key, a => new HashSet<string>(a.Value.SelectMany(b => ephashes.SafeGetList(b)).SelectMany(b => hashesfiles.SafeGetList(b)).Distinct()));
+            return series.ToDictionary(a => a.Key, a => new HashSet<string>(a.Value.SelectMany(b => ephashes[b]).SelectMany(b => hashesfiles[b]).Distinct()));
 
 
          /*

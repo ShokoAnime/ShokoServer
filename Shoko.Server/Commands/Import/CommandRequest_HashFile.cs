@@ -351,7 +351,7 @@ namespace Shoko.Server.Commands
                                 ImportFolderIDFile2 = dupPlace.ImportFolderID,
                                 Hash = vlocal.Hash
                             };
-                            Repo.DuplicateFile.Save(dup);
+                            Repo.DuplicateFile.BeginAdd(dup).Commit();
                         }
                         //Notify duplicate, don't delete
                         duplicate = true;
@@ -361,8 +361,11 @@ namespace Shoko.Server.Commands
                 if (!duplicate || changed)
                     Repo.VideoLocal.Save(vlocal, true);
 
-                vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                Repo.VideoLocal_Place.Save(vlocalplace);
+                using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => vlocalplace))
+                {
+                    upd.Entity.VideoLocalID = vlocal.VideoLocalID;
+                    upd.Commit();
+                }
 
                 if (duplicate)
                 {

@@ -142,8 +142,13 @@ namespace Shoko.Server.Models
         {
             if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
-                Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
-                Repo.GroupFilter.Save(this);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
+                    upd.Entity.Conditions = Conditions;
+
+                    upd.Commit();
+                }
             }
             CL_GroupFilter contract = new CL_GroupFilter
             {
@@ -1319,13 +1324,19 @@ namespace Shoko.Server.Models
             if (other.SortingCriteria != SortingCriteria) return false;
             if (Conditions == null || Conditions.Count == 0)
             {
-                Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
-                Repo.GroupFilter.Save(this);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    upd.Entity.Conditions = Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
+                    upd.Commit();
+                }
             }
             if (other.Conditions == null || other.Conditions.Count == 0)
             {
-                other.Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
-                Repo.GroupFilter.Save(other);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    upd.Entity.Conditions = other.Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
+                    upd.Commit();
+                }
             }
             if (Conditions != null && other.Conditions != null)
             {

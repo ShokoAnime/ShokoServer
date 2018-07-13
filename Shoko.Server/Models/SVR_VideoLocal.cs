@@ -21,6 +21,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Repos;
 using Shoko.Server.Security;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
@@ -144,38 +145,37 @@ namespace Shoko.Server.Models
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
-                if (vidUserRecord == null)
-                    vidUserRecord = new VideoLocal_User();
-                vidUserRecord.WatchedDate = DateTime.Now;
-                vidUserRecord.JMMUserID = userID;
-                vidUserRecord.VideoLocalID = VideoLocalID;
-
-                if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
-
-                Repo.VideoLocal_User.Save(vidUserRecord);
-            }
-            else
-            {
-                if (vidUserRecord != null)
+                using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
                 {
-                    vidUserRecord.WatchedDate = null;
-                    Repo.VideoLocal_User.Save(vidUserRecord);
+                    upd.Entity.WatchedDate = DateTime.Now;
+                    upd.Entity.JMMUserID = userID;
+                    upd.Entity.VideoLocalID = VideoLocalID;
+
+                    if (watchedDate.HasValue && updateWatchedDate) upd.Entity.WatchedDate = watchedDate.Value;
+
+                    vidUserRecord = upd.Commit();
                 }
             }
+            else if (vidUserRecord != null)
+                using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
+                {
+                    upd.Entity.WatchedDate = null;
+                    upd.Commit();
+                }
         }
 
         public static IFile ResolveFile(string fullname)
         {
             if (string.IsNullOrEmpty(fullname)) return null;
-            Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1?.FileSystem;
+            (SVR_ImportFolder folder, string _) = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
+            IFileSystem fs = folder?.FileSystem;
             if (fs == null)
                 return null;
             try
             {
-                FileSystemResult<IObject> fobj = fs.Resolve(fullname);
-                if (fobj == null || fobj != Status.Ok || fobj.Result is IDirectory) return null;
-                return fobj.Result as IFile;
+                IObject fobj = fs.Resolve(fullname);
+                if (fobj == null || fobj.Status != Status.Ok || fobj is IDirectory) return null;
+                return fobj as IFile;
             }
             catch (Exception)
             {
@@ -208,17 +208,14 @@ namespace Shoko.Server.Models
 
         public void SetResumePosition(long resumeposition, int userID)
         {
-            VideoLocal_User vuser = GetUserRecord(userID);
-            if (vuser == null)
-                vuser = new VideoLocal_User
-                {
-                    JMMUserID = userID,
-                    VideoLocalID = VideoLocalID,
-                    ResumePosition = resumeposition
-                };
-            else
-                vuser.ResumePosition = resumeposition;
-            Repo.VideoLocal_User.Save(vuser);
+            using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(
+                () => GetUserRecord(userID),
+                () => new VideoLocal_User { JMMUserID = userID, VideoLocalID = VideoLocalID }
+                ))
+            {
+                upd.Entity.ResumePosition = resumeposition;
+                upd.Commit();
+            }
         }
 
         public void ToggleWatchedStatus(bool watched, int userID)
@@ -251,15 +248,17 @@ namespace Shoko.Server.Models
                 SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHash(Hash);
                 if (aniFile != null)
                 {
-                    aniFile.IsWatched = mywatched;
+                    using (var upd = Repo.AniDB_File.BeginAddOrUpdate(() => aniFile))
+                    {
+                        upd.Entity.IsWatched = mywatched;
 
-                    if (watched)
-                        aniFile.WatchedDate = watchedDate ?? DateTime.Now;
-                    else
-                        aniFile.WatchedDate = null;
+                        if (watched)
+                            upd.Entity.WatchedDate = watchedDate ?? DateTime.Now;
+                        else
+                            upd.Entity.WatchedDate = null;
 
-
-                    Repo.AniDB_File.Save(aniFile, false);
+                        aniFile = upd.Commit();
+                    }
                 }
 
                 if (updateOnline)
@@ -450,11 +449,15 @@ namespace Shoko.Server.Models
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl?.FullServerPath != null)
                 {
-                    IFileSystem f = pl.ImportFolder.FileSystem;
-                    FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
-                    if (src != null && src.Status == Status.Ok && src.Result is IFile)
-                        if (pl.RefreshMediaInfo())
-                            Repo.VideoLocal.Save(pl.VideoLocal, true);
+                    using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => pl.VideoLocal))
+                    {
+                        IFileSystem f = pl.ImportFolder.FileSystem;
+                        IObject src = f?.Resolve(pl.FullServerPath);
+                        if (src?.Status == Status.Ok
+                            && src is IFile
+                            && pl.RefreshMediaInfo())
+                            upd.Commit(true);
+                    }
                 }
             }
             if (Media == null) return null;

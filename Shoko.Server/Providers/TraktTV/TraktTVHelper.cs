@@ -421,28 +421,27 @@ namespace Shoko.Server.Providers.TraktTV
             }
 
             // download and update series info, episode info and episode images
+            CrossRef_AniDB_TraktV2 xref;
+            using (var upd = Repo.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(
+                () => Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int)aniEpType, aniEpNumber)))
+            {
+                upd.Entity.AnimeID = animeID;
+                upd.Entity.AniDBStartEpisodeType = (int)aniEpType;
+                upd.Entity.AniDBStartEpisodeNumber = aniEpNumber;
 
-            CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID,
-                                              seasonNumber, traktEpNumber,
-                                              animeID,
-                                              (int)aniEpType, aniEpNumber) ?? new CrossRef_AniDB_TraktV2();
+                upd.Entity.TraktID = traktID;
+                upd.Entity.TraktSeasonNumber = seasonNumber;
+                upd.Entity.TraktStartEpisodeNumber = traktEpNumber;
+                if (traktShow != null)
+                    upd.Entity.TraktTitle = traktShow.Title;
 
-            xref.AnimeID = animeID;
-            xref.AniDBStartEpisodeType = (int)aniEpType;
-            xref.AniDBStartEpisodeNumber = aniEpNumber;
+                if (excludeFromWebCache)
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
+                else
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
 
-            xref.TraktID = traktID;
-            xref.TraktSeasonNumber = seasonNumber;
-            xref.TraktStartEpisodeNumber = traktEpNumber;
-            if (traktShow != null)
-                xref.TraktTitle = traktShow.Title;
-
-            if (excludeFromWebCache)
-                xref.CrossRefSource = (int)CrossRefSource.WebCache;
-            else
-                xref.CrossRefSource = (int)CrossRefSource.User;
-
-            Repo.CrossRef_AniDB_TraktV2.Save(xref);
+                xref = upd.Commit();
+            }
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -1077,10 +1076,14 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // save this data to the DB for use later
-                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug) ?? new Trakt_Show();
+                Trakt_Show show;
 
-                show.Populate_RA(tvshow);
-                Repo.Trakt_Show.Save(show);
+
+                using (var upd = Repo.Trakt_Show.BeginAddOrUpdate(() => Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
+                {
+                    upd.Entity.Populate_RA(tvshow);
+                    show = upd.Commit();
+                }
 
                 // save the seasons
 
@@ -1102,31 +1105,33 @@ namespace Shoko.Server.Providers.TraktTV
 
                 foreach (TraktV2Season sea in seasons)
                 {
-                    Trakt_Season season = Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number) ??
-                                          new Trakt_Season();
+                    using (var upd = Repo.Trakt_Season.BeginAddOrUpdate(() => Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
+                    {
 
-                    season.Season = sea.number;
-                    season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
-                    season.Trakt_ShowID = show.Trakt_ShowID;
-                    Repo.Trakt_Season.Save(season);
+                        upd.Entity.Season = sea.number;
+                        upd.Entity.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
+                        upd.Entity.Trakt_ShowID = show.Trakt_ShowID;
+                        upd.Commit();
+                    }
 
                     if (sea.episodes != null)
                     {
+
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            Trakt_Episode episode = Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(
-                                                        show.Trakt_ShowID, ep.season,
-                                                        ep.number) ?? new Trakt_Episode();
+                            using (var upd = Repo.Trakt_Episode.BeginAddOrUpdate(() => Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
+                            {
 
-                            episode.TraktID = ep.ids.TraktID;
-                            episode.EpisodeNumber = ep.number;
-                            episode.Overview = string.Empty;
-                            // this is now part of a separate API call for V2, we get this info from TvDB anyway
-                            episode.Season = ep.season;
-                            episode.Title = ep.title;
-                            episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
-                            episode.Trakt_ShowID = show.Trakt_ShowID;
-                            Repo.Trakt_Episode.Save(episode);
+                                upd.Entity.TraktID = ep.ids.TraktID;
+                                upd.Entity.EpisodeNumber = ep.number;
+                                upd.Entity.Overview = string.Empty;
+                                // this is now part of a separate API call for V2, we get this info from TvDB anyway
+                                upd.Entity.Season = ep.season;
+                                upd.Entity.Title = ep.title;
+                                upd.Entity.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
+                                upd.Entity.Trakt_ShowID = show.Trakt_ShowID;
+                                upd.Commit();
+                            }
                         }
                     }
                 }

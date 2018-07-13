@@ -143,7 +143,7 @@ namespace Shoko.Server.Repositories.Repos
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
             CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
-            SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
+            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
             AniDB_Episode aniEp = ep.AniDB_Episode;
@@ -155,18 +155,23 @@ namespace Shoko.Server.Repositories.Repos
             caep.StoppedCount = aeu.StoppedCount;
             caep.WatchedCount = aeu.WatchedCount;
             caep.WatchedDate = aeu.WatchedDate;
+            var englishTitle = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "EN")
+                .FirstOrDefault()?.Title;
+            var romajiTitle = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
+                .FirstOrDefault()?.Title;
+            caep.AniDB_EnglishName = englishTitle;
+            caep.AniDB_RomajiName = romajiTitle;
+            caep.EpisodeNameEnglish = englishTitle;
+            caep.EpisodeNameRomaji = romajiTitle;
             if (aniEp != null)
             {
                 caep.AniDB_AirDate = aniEp.GetAirDateAsDate();
-                caep.AniDB_EnglishName = aniEp.EnglishName;
                 caep.AniDB_LengthSeconds = aniEp.LengthSeconds;
                 caep.AniDB_Rating = aniEp.Rating;
-                caep.AniDB_RomajiName = aniEp.RomajiName;
                 caep.AniDB_Votes = aniEp.Votes;
 
                 caep.EpisodeNumber = aniEp.EpisodeNumber;
-                caep.EpisodeNameRomaji = aniEp.RomajiName;
-                caep.EpisodeNameEnglish = aniEp.EnglishName;
+                caep.Description = aniEp.Description;
                 caep.EpisodeType = aniEp.EpisodeType;
             }
 

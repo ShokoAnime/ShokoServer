@@ -198,8 +198,7 @@ namespace Shoko.Server.Models
                 if (contract == null)
                 {
                     logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
-                    Repo.AnimeSeries.Save(this, false, false, true);
-                    contract = _contract?.DeepClone();
+                    _contract = Repo.AnimeSeries.Touch(() => this, (false, false, true, false))._contract?.DeepClone();
                 }
 
                 if (contract == null)
@@ -266,7 +265,7 @@ namespace Shoko.Server.Models
                 WatchedEpisodeCount = 0,
                 WatchedDate = null
             };
-            Repo.AnimeSeries_User.Save(rr);
+            Repo.AnimeSeries_User.BeginAdd(rr).Commit();
             return rr;
         }
 
@@ -431,18 +430,14 @@ namespace Shoko.Server.Models
 
         public void DeleteFromFilters()
         {
-            foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
+            //foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
+            var gfs = Repo.GroupFilter.GetAll();
+            Repo.GroupFilter.BatchAction(gfs, gfs.Count, (gf, _) =>
             {
-                bool change = false;
                 foreach (int k in gf.SeriesIds.Keys)
                     if (gf.SeriesIds[k].Contains(AnimeSeriesID))
-                    {
                         gf.SeriesIds[k].Remove(AnimeSeriesID);
-                        change = true;
-                    }
-                if (change)
-                    Repo.GroupFilter.Save(gf);
-            }
+            });
         }
 
         public static Dictionary<int, HashSet<GroupFilterConditionType>> BatchUpdateContracts(//ISessionWrapper session,
@@ -457,11 +452,11 @@ namespace Shoko.Server.Models
                 return grpFilterCondTypesPerSeries;
 
             var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
-            var tvDbByAnime = new Lazy<ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>>(
+            var tvDbByAnime = new Lazy<Dictionary<int, (CrossRef_AniDB_TvDB, TvDB_Series)>>(
                 () => Repo.TvDB_Series.GetByAnimeIDs(animeIds.Value), false);
-            var movieByAnime = new Lazy<Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>>(
+            var movieByAnime = new Lazy<Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>>(
                 () => Repo.MovieDb_Movie.GetByAnimeIDs(animeIds.Value), false);
-            var malXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
+            var malXrefByAnime = new Lazy<ILookup<int, List<CrossRef_AniDB_MAL>>>(
                 () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(animeIds.Value), false);
             var defImagesByAnime = new Lazy<Dictionary<int, DefaultAnimeImages>>(
                 () => Repo.AniDB_Anime.GetDefaultImagesByAnime(animeIds.Value), false);
@@ -533,7 +528,7 @@ namespace Shoko.Server.Models
 
                     // MovieDB contracts
 
-                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out Tuple<CrossRef_AniDB_Other, MovieDB_Movie> movieDbInfo))
+                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out (CrossRef_AniDB_Other, MovieDB_Movie) movieDbInfo))
                     {
                         contract.CrossRefAniDBMovieDB = movieDbInfo.Item1;
                         contract.MovieDB_Movie = movieDbInfo.Item2;
@@ -615,7 +610,7 @@ namespace Shoko.Server.Models
                 if (animeRec != null)
                 {
                     if (animeRec.Contract == null)
-                        Repo.AniDB_Anime.Save(animeRec);
+                        animeRec = Repo.AniDB_Anime.Touch(() => animeRec);
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)

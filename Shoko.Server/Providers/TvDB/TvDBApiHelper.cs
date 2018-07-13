@@ -177,16 +177,14 @@ namespace Shoko.Server.Providers.TvDB
                 var unused = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
             }
 
-            CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID) ??
-                                       new CrossRef_AniDB_TvDB();
+            using (var upd = Repo.CrossRef_AniDB_TvDB.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID)))
+            {
+                upd.Entity.AniDBID = animeID;
+                upd.Entity.TvDBID = tvDBID;
+                upd.Entity.CrossRefSource = CrossRefSource.User;
 
-            xref.AniDBID = animeID;
-
-            xref.TvDBID = tvDBID;
-
-            xref.CrossRefSource = CrossRefSource.User;
-
-            Repo.CrossRef_AniDB_TvDB.Save(xref);
+                upd.Commit();
+            }
 
             logger.Info(
                 $"Adding TvDB Link: AniDB(ID:{animeID}) -> TvDB(ID:{tvDBID})");
@@ -808,18 +806,19 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
         {
-            CrossRef_AniDB_TvDB_Episode_Override xref =
-                Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBID, tvDBID) ??
-                new CrossRef_AniDB_TvDB_Episode_Override();
-
-            xref.AniDBEpisodeID = aniDBID;
-            xref.TvDBEpisodeID = tvDBID;
-            Repo.CrossRef_AniDB_TvDB_Episode_Override.Save(xref);
+            using (var upd = Repo.CrossRef_AniDB_TvDB_Episode_Override.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBID, tvDBID)))
+            {
+                upd.Entity.AniDBEpisodeID = aniDBID;
+                upd.Entity.TvDBEpisodeID = tvDBID;
+                upd.Commit();
+            }
 
             SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
-
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(ep.AniDB_Episode.AnimeID);
-            Repo.AnimeEpisode.Save(ep);
+            using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => Repo.AnimeEpisode.GetByAniDBEpisodeID(aniDBID)))
+            {
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(ep.AniDB_Episode.AnimeID);
+                upd.Commit();
+            }
 
             logger.Trace($"Changed tvdb episode association: {aniDBID}");
         }

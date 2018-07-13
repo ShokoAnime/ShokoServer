@@ -30,21 +30,22 @@ namespace Shoko.Server.Repositories.Repos
 
         public override void PreInit(IProgress<InitProgress> progress, int batchSize)
         {
-            List<AniDB_Episode> episodes = Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
+            /*List<AniDB_Episode> episodes = Where(episode => episode.EnglishName.Contains('`') || episode.RomajiName.Contains('`')).ToList();
             InitProgress regen = new InitProgress();
             regen.Title = "Fixing Episode Titles";
             regen.Step = 0;
             regen.Total = episodes.Count;
             progress.Report(regen);
+            /* this isn't in the repo anymore.
             BatchAction(episodes, batchSize, (episode, original) =>
             {
                 episode.EnglishName = episode.EnglishName.Replace('`', '\'');
                 episode.RomajiName = episode.RomajiName.Replace('`', '\'');
                 regen.Step++;
                 progress.Report(regen);
-            });
+            });* /
             regen.Step = regen.Total;
-            progress.Report(regen);
+            progress.Report(regen);*/
         }
 
 

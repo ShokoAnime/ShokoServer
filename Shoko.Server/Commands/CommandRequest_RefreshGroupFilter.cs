@@ -37,8 +37,11 @@ namespace Shoko.Server.Commands
         {
             SVR_GroupFilter gf = Repo.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
-            SVR_GroupFilter.CalculateGroupsAndSeries(gf);
-            Repo.GroupFilter.Save(gf);
+            using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => gf))
+            {
+                upd.Entity.CalculateGroupsAndSeries();
+                upd.Commit();
+            }
         }
 
         public override void GenerateCommandID()

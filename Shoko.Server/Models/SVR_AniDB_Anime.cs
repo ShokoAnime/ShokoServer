@@ -1814,7 +1814,8 @@ namespace Shoko.Server.Models
         {
             SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByAnimeID(id);
             if (an != null)
-                Repo.AniDB_Anime.Save(an);
+                Repo.AniDB_Anime.Touch(() => an);
+
             SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(id);
             if (series != null)
             {

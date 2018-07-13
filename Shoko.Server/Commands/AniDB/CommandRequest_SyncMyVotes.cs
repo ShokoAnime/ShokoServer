@@ -50,11 +50,9 @@ namespace Shoko.Server.Commands
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
                             // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == AniDBVoteType.Anime ||
-                                myVote.VoteType == AniDBVoteType.AnimeTemp)
+                            if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                             {
-                                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
+                                if (dbVote.VoteType == (int) AniDBVoteType.Anime || dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
                                 {
                                     thisVote = dbVote;
                                 }
@@ -65,17 +63,16 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        if (thisVote == null)
+                        using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(
+                            () => thisVote,
+                            () => new AniDB_Vote { EntityID = myVote.EntityID }
+                            ))
                         {
-                            thisVote = new AniDB_Vote
-                            {
-                                EntityID = myVote.EntityID
-                            };
-                        }
-                        thisVote.VoteType = (int) myVote.VoteType;
-                        thisVote.VoteValue = myVote.VoteValue;
+                            upd.Entity.VoteType = (int)myVote.VoteType;
+                            upd.Entity.VoteValue = myVote.VoteValue;
 
-                        Repo.AniDB_Vote.Save(thisVote);
+                            upd.Commit();
+                        }
 
                         if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                         {
