@@ -23,28 +23,35 @@ namespace AniDBAPI
 
         public const string VotesURL = @"http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={0}&pass={1}";
 
-        public static XmlDocument GetAnimeXMLFromAPI(int animeID, ref string rawXML)
+        public static XmlDocument GetAnimeXMLFromAPI(int animeID)
         {
             try
             {
+                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                {
+                    logger.Info("GetAnimeXMLFromAPI: banned, not getting");
+                    return null;
+                }
+                ShokoService.LastAniDBMessage = DateTime.Now;
+                ShokoService.LastAniDBHTTPMessage = DateTime.Now;
+
+                var anime = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                DateTime? prevUpdate = anime?.UpdatedAt;
+
                 string uri = string.Format(AnimeURL, animeID);
-                //APIUtils.WriteToLog("GetAnimeXMLFromAPI: " + uri);
-
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
-
                 DateTime start = DateTime.Now;
-                string msg = string.Format(Resources.AniDB_GettingAnimeXML, animeID);
+                string msg = string.Format(Resources.AniDB_GettingAnimeXML, animeID)+"; prevUpdate: "+prevUpdate;
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
-                rawXML = APIUtils.DownloadWebPage(uri);
+                string rawXML = APIUtils.DownloadWebPage(uri);
 
                 // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
-                var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-                if (update == null)
-                    update = new AniDB_AnimeUpdate {AnimeID = animeID, UpdatedAt = DateTime.Now};
+                if (anime == null)
+                    anime = new AniDB_AnimeUpdate {AnimeID = animeID, UpdatedAt = DateTime.Now};
                 else
-                    update.UpdatedAt = DateTime.Now;
-                RepoFactory.AniDB_AnimeUpdate.Save(update);
+                    anime.UpdatedAt = DateTime.Now;
+                RepoFactory.AniDB_AnimeUpdate.Save(anime);
 
                 TimeSpan ts = DateTime.Now - start;
                 string content = rawXML;
@@ -53,12 +60,14 @@ namespace AniDBAPI
                     content);
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
-                //APIUtils.WriteToLog("GetAnimeXMLFromAPI result: " + rawXML);
+                XmlDocument docAnime = null;
+                if (0 < rawXML.Trim().Length && !CheckForBan(rawXML))
+                {
+                    APIUtils.WriteAnimeHTTPToFile(animeID, rawXML);
 
-                if (rawXML.Trim().Length == 0) return null;
-
-                XmlDocument docAnime = new XmlDocument();
-                docAnime.LoadXml(rawXML);
+                    docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXML);
+                }
 
                 return docAnime;
             }
@@ -69,24 +78,25 @@ namespace AniDBAPI
             }
         }
 
-        public static XmlDocument GetMyListXMLFromAPI(string username, string password, ref string rawXML)
+        public static string GetMyListXMLFromAPI(string username, string password)
         {
             try
             {
-                //string fileName = @"C:\Projects\SVN\mylist.xml";
-                //StreamReader re = File.OpenText(fileName);
-                //rawXML = re.ReadToEnd();
-                //re.Close();
+                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                {
+                    logger.Info("GetMyListXMLFromAPI: banned, not getting");
+                    return null;
+                }
+                ShokoService.LastAniDBMessage = DateTime.Now;
+                ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
                 string uri = string.Format(MyListURL, username, password);
-                rawXML = APIUtils.DownloadWebPage(uri);
+                string rawXML = APIUtils.DownloadWebPage(uri);
 
-                if (rawXML.Trim().Length == 0) return null;
+                if (0 == rawXML.Trim().Length || CheckForBan(rawXML))
+                    rawXML = null;
 
-                XmlDocument docAnime = new XmlDocument();
-                docAnime.LoadXml(rawXML);
-
-                return docAnime;
+                return rawXML;
             }
             catch (Exception ex)
             {
@@ -95,18 +105,26 @@ namespace AniDBAPI
             }
         }
 
-        public static XmlDocument GetVotesXMLFromAPI(string username, string password, ref string rawXML)
+        public static XmlDocument GetVotesXMLFromAPI(string username, string password)
         {
             try
             {
+                if (ShokoService.AnidbProcessor.IsHttpBanned)
+                {
+                    logger.Info("GetVotesXMLFromAPI: banned, not getting");
+                    return null;
+                }
+                ShokoService.LastAniDBMessage = DateTime.Now;
+                ShokoService.LastAniDBHTTPMessage = DateTime.Now;
+
                 string uri = string.Format(VotesURL, username, password);
-                rawXML = APIUtils.DownloadWebPage(uri);
-
-                if (rawXML.Trim().Length == 0) return null;
-
-                XmlDocument docAnime = new XmlDocument();
-                docAnime.LoadXml(rawXML);
-
+                string rawXML = APIUtils.DownloadWebPage(uri);
+                XmlDocument docAnime = null;
+                if (0 < rawXML.Trim().Length && !CheckForBan(rawXML))
+                {
+                    docAnime = new XmlDocument();
+                    docAnime.LoadXml(rawXML);
+                }
                 return docAnime;
             }
             catch
@@ -114,6 +132,21 @@ namespace AniDBAPI
                 //BaseConfig.MyAnimeLog.Write("Error in AniDBHTTPHelper.GetAnimeXMLFromAPI: {0}", ex);
                 return null;
             }
+        }
+
+        public static bool CheckForBan(string xmlresult)
+        {
+            bool result = false;
+            if (!string.IsNullOrEmpty(xmlresult))
+            {
+                int index = xmlresult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
+                if (-1 < index)
+                {
+                    ShokoService.AnidbProcessor.IsHttpBanned = true;
+                    result = true;
+                }
+            }
+            return result;
         }
 
         public static Raw_AniDB_Anime ProcessAnimeDetails(XmlDocument docAnime, int animeID)
@@ -305,8 +338,7 @@ namespace AniDBAPI
 
         public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
         {
-            string xmlResult = string.Empty;
-            XmlDocument docAnime = GetAnimeXMLFromAPI(animeID, ref xmlResult);
+            XmlDocument docAnime = GetAnimeXMLFromAPI(animeID);
             if (docAnime == null)
                 return null;
             return ProcessEpisodes(docAnime, animeID);

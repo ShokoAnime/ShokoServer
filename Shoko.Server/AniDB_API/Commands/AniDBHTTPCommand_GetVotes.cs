@@ -32,14 +32,6 @@ namespace Shoko.Server.AniDB_API.Commands
             set { password = value; }
         }
 
-        private string xmlResult = string.Empty;
-
-        public string XmlResult
-        {
-            get { return xmlResult; }
-            set { xmlResult = value; }
-        }
-
         public string GetKey()
         {
             return "AniDBHTTPCommand_GetVotes";
@@ -52,9 +44,7 @@ namespace Shoko.Server.AniDB_API.Commands
 
         public virtual enHelperActivityType Process()
         {
-            XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password, ref xmlResult);
-
-            if (CheckForBan(xmlResult)) return enHelperActivityType.NoSuchAnime;
+            XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password);
 
             //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
             if (docAnime != null)
