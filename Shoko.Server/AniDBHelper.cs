@@ -61,19 +61,32 @@ namespace Shoko.Server
             set
             {
                 _isHttpBanned = value;
-                HttpBanTime = DateTime.Now;
                 if (value)
                 {
+                    HttpBanTime = DateTime.Now;
                     ServerInfo.Instance.IsBanned = true;
                     ServerInfo.Instance.BanOrigin = @"HTTP";
                     ServerInfo.Instance.BanReason = HttpBanTime.ToString();
+                    if (httpBanResetTimer.Enabled)
+                    {
+                        logger.Warn("HTTP ban timer was already running, ban time extending");
+                        httpBanResetTimer.Stop(); //re-start implies stop
+                    }
                     httpBanResetTimer.Start();
                 }
-                else if (!IsUdpBanned)
+                else
                 {
-                    ServerInfo.Instance.IsBanned = false;
-                    ServerInfo.Instance.BanOrigin = string.Empty;
-                    ServerInfo.Instance.BanReason = string.Empty;
+                    if (httpBanResetTimer.Enabled)
+                    {
+                        httpBanResetTimer.Stop();
+                        logger.Info("HTTP ban timer stopped");
+                    }
+                    if (!IsUdpBanned)
+                    {
+                        ServerInfo.Instance.IsBanned = false;
+                        ServerInfo.Instance.BanOrigin = string.Empty;
+                        ServerInfo.Instance.BanReason = string.Empty;
+                  }
                 }
             }
         }
@@ -84,19 +97,32 @@ namespace Shoko.Server
             set
             {
                 _isUdpBanned = value;
-                UdpBanTime = DateTime.Now;
                 if (value)
                 {
+                    UdpBanTime = DateTime.Now;
                     ServerInfo.Instance.IsBanned = true;
                     ServerInfo.Instance.BanOrigin = @"UDP";
                     ServerInfo.Instance.BanReason = UdpBanTime.ToString();
+                    if (udpBanResetTimer.Enabled)
+                    {
+                        logger.Warn("UDP ban timer was already running, ban time extending");
+                        udpBanResetTimer.Stop(); // re-start implies stop
+                    }
                     udpBanResetTimer.Start();
                 }
-                else if (!IsHttpBanned)
+                else
                 {
-                    ServerInfo.Instance.IsBanned = false;
-                    ServerInfo.Instance.BanOrigin = string.Empty;
-                    ServerInfo.Instance.BanReason = string.Empty;
+                    if (udpBanResetTimer.Enabled)
+                    {
+                        udpBanResetTimer.Stop();
+                        logger.Info("UDP ban timer stopped");
+                    }
+                    if (!IsHttpBanned)
+                    {
+                        ServerInfo.Instance.IsBanned = false;
+                        ServerInfo.Instance.BanOrigin = string.Empty;
+                        ServerInfo.Instance.BanReason = string.Empty;
+                    }
                 }
             }
         }
@@ -179,10 +205,12 @@ namespace Shoko.Server
             logoutTimer.Start();
 
             httpBanResetTimer = new Timer();
+            httpBanResetTimer.AutoReset = false;
             httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
             httpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
 
             udpBanResetTimer = new Timer();
+            udpBanResetTimer.AutoReset = false;
             udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
             udpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
         }
@@ -276,11 +304,13 @@ namespace Shoko.Server
 
         private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
+            logger.Info("HTTP ban (12h) is over");
             IsHttpBanned = false;
         }
 
         private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
+            logger.Info("UDP ban (12h) is over");
             IsUdpBanned = false;
         }
 
