@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
@@ -49,15 +50,34 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        public Dictionary<int, List<CrossRef_AniDB_Other>> GetByAnimeIDsAndType(IEnumerable<int> animeIds, CrossRefType type)
+        /// <summary>
+        /// Gets other cross references by anime ID.
+        /// </summary>
+        /// <param name="animeIds">An optional list of anime IDs whose cross references are to be retrieved.
+        /// Can be <c>null</c> to get cross references for ALL anime.</param>
+        /// <param name="xrefTypes">The types of cross references to find.</param>
+        /// <returns>A <see cref="ILookup{TKey,TElement}"/> that maps anime ID to their associated other cross references.</returns>
+        public ILookup<int, CrossRef_AniDB_Other> GetByAnimeIDsAndType(IReadOnlyCollection<int> animeIds,
+            params CrossRefType[] xrefTypes)
         {
-            if (animeIds == null)
-                return new Dictionary<int, List<CrossRef_AniDB_Other>>();
+            if (xrefTypes == null || xrefTypes.Length == 0 || animeIds?.Count == 0)
+            {
+                return EmptyLookup<int, CrossRef_AniDB_Other>.Instance;
+            }
+
             using (RepoLock.ReaderLock())
             {
+
                 if (IsCached)
-                    return animeIds.ToDictionary(a=>a, a => Animes.GetMultiple(a).Where(b => b.CrossRefType==(int)type).Select(b=>b).ToList());
-                return Table.Where(a => animeIds.Contains(a.AnimeID) && a.CrossRefType==(int)type).GroupBy(a=>a.AnimeID).ToDictionary(a=>a.Key, a=>a.Select(b=>b).ToList());
+                    return GetAll()
+                    .Where(a => xrefTypes.Any(s => (int)s == a.CrossRefType))
+                    .Where(a => animeIds?.Contains(a.AnimeID) != false)
+                    .ToLookup(s => s.AnimeID);
+
+                return Table
+                    .Where(a => xrefTypes.Any(s => (int)s == a.CrossRefType))
+                    .Where(a => animeIds == null || animeIds.Contains(a.AnimeID))
+                    .ToLookup(s => s.AnimeID);
             }
         }
 

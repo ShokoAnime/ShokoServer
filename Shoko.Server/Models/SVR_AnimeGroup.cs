@@ -712,9 +712,9 @@ namespace Shoko.Server.Models
                 () => Repo.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var allVidQualByGroup = new Lazy<Dictionary<int, HashSet<string>>>(
                 () => Repo.Adhoc.GetAllVideoQualityByGroup(allGroupIds.Value), isThreadSafe: false);
-            var movieDbXRefByAnime = new Lazy<Dictionary<int, List<CrossRef_AniDB_Other>>>(
+            var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
                 () => Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(allAnimeIds.Value, CrossRefType.MovieDB), isThreadSafe: false);
-            var malXRefByAnime = new Lazy<Dictionary<int, CrossRef_AniDB_MAL>>(
+            var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
                 () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var votesByGroup = BatchGetVotes(animeGroups);
             DateTime now = DateTime.Now;

@@ -456,7 +456,7 @@ namespace Shoko.Server.Models
                 () => Repo.TvDB_Series.GetByAnimeIDs(animeIds.Value), false);
             var movieByAnime = new Lazy<Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>>(
                 () => Repo.MovieDb_Movie.GetByAnimeIDs(animeIds.Value), false);
-            var malXrefByAnime = new Lazy<ILookup<int, List<CrossRef_AniDB_MAL>>>(
+            var malXrefByAnime = new Lazy<Dictionary<int, List<CrossRef_AniDB_MAL>>>(
                 () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(animeIds.Value), false);
             var defImagesByAnime = new Lazy<Dictionary<int, DefaultAnimeImages>>(
                 () => Repo.AniDB_Anime.GetDefaultImagesByAnime(animeIds.Value), false);
@@ -540,8 +540,7 @@ namespace Shoko.Server.Models
                     }
 
                     // MAL contracts
-                    contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID]
-                        .ToList();
+                    contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID];
                 }
 
                 HashSet<GroupFilterConditionType> typesChanged = GetConditionTypesChanged(series.Contract, contract);

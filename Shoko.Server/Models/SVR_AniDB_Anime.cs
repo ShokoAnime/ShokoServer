@@ -1678,9 +1678,9 @@ namespace Shoko.Server.Models
             //logger.Trace(" XXXX 07");
 
             // subtitle languages
-            Dictionary<int, LanguageStat> dicSubtitle =
+            var dicSubtitle =
                 Repo.Adhoc.GetSubtitleLanguageStatsByAnime(AnimeID);
-            foreach (KeyValuePair<int, LanguageStat> kvp in dicSubtitle)
+            foreach (LanguageStat kvp in dicSubtitle)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
                 {

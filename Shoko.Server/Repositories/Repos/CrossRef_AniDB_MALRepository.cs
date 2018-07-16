@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -36,16 +37,19 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-
-        public ILookup<int, List<CrossRef_AniDB_MAL>> GetByAnimeIDs(IEnumerable<int> animeIds)
+        public ILookup<int, CrossRef_AniDB_MAL> GetByAnimeIDs(IEnumerable<int> animeIds)
         {
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
+
+            if (!animeIds.Any())
+                return EmptyLookup<int, CrossRef_AniDB_MAL>.Instance;
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return animeIds.ToLookup(a=>a, a => Animes.GetMultiple(a).OrderBy(b => b.StartEpisodeType).ThenBy(b => b.StartEpisodeNumber).ToList());
-                return Table.Where(a => animeIds.Contains(a.AnimeID)).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).GroupBy(a=>a.AnimeID).ToLookup(a=>a.Key,a=>a.ToList());
+                    return GetAll().Where(a => animeIds.Contains(a.AnimeID)).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToLookup(s => s.AnimeID);
+
+                return Table.Where(a => animeIds.Contains(a.AnimeID)).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToLookup(s => s.AnimeID);
             }
         }
 

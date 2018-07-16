@@ -88,14 +88,15 @@ namespace Shoko.Server.PlexAndKodi
             Size = int.MaxValue;
             if (prov.Nancy == null)
             {
-                if (OperationContext.Current != null)
+                //TODO: Fix
+                /*if (OperationContext.Current != null)
                 {
                     if (OperationContext.Current.IncomingMessageHeaders.Action == "OPTIONS")
                     {
                         prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
                         return false;
                     }
-                }
+                }*/
             }
             string nsize = prov.RequestHeader("X-Plex-Container-Size");
             if (nsize != null)
