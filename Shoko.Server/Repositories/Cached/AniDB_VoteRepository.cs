@@ -16,36 +16,9 @@ namespace Shoko.Server.Repositories.Cached
 
         private AniDB_VoteRepository()
         {
-            EndSaveCallback = (cr) =>
-            {
-                switch (cr.VoteType)
-                {
-                    case (int) AniDBVoteType.Anime:
-                    case (int) AniDBVoteType.AnimeTemp:
-                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
-                        break;
-                    case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(cr.EntityID);
-                        Repo.AnimeEpisode.Save(ep);
-                        break;
-                }
-            };
-            EndDeleteCallback = (cr) =>
-            {
-                switch (cr.VoteType)
-                {
-                    case (int) AniDBVoteType.Anime:
-                    case (int) AniDBVoteType.AnimeTemp:
-                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
-                        break;
-                    case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(cr.EntityID);
-                        Repo.AnimeEpisode.Save(ep);
-                        break;
-                }
-            };
+
         }
-        
+                
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             lock (Cache)
@@ -108,6 +81,38 @@ namespace Shoko.Server.Repositories.Cached
         internal override void ClearIndexes()
         {
             EntityIDs = null;
+        }
+
+        internal override void EndSave(AniDB_Vote entity, object returnFromBeginSave, object parameters)
+        {
+            base.EndSave(entity, returnFromBeginSave, parameters);
+
+            switch (entity.VoteType)
+            {
+                case (int)AniDBVoteType.Anime:
+                case (int)AniDBVoteType.AnimeTemp:
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
+                    break;
+                case (int)AniDBVoteType.Episode:
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    break;
+            }
+        }
+
+        internal override void EndDelete(AniDB_Vote entity, object returnFromBeginDelete, object parameters)
+        {
+            base.EndDelete(entity, returnFromBeginDelete, parameters);
+
+            switch (entity.VoteType)
+            {
+                case (int)AniDBVoteType.Anime:
+                case (int)AniDBVoteType.AnimeTemp:
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
+                    break;
+                case (int)AniDBVoteType.Episode:
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    break;
+            }
         }
     }
 }

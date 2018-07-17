@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -54,7 +55,17 @@ namespace Shoko.Server.Repositories.Repos
 
         internal void DeleteAllUnverifiedLinksForAnime(int animeID)
         {
-            throw new NotImplementedException();
+            using (RepoLock.WriterLock())
+            {
+                FindAndDelete(() => GetByAnimeID(animeID).Where(a => a.MatchRating != MatchRating.UserVerified)
+                            .ToList());
+            }
+        }
+
+        internal void DeleteAllUnverifiedLinks()
+        {
+            using (RepoLock.WriterLock())
+                FindAndDelete(() => Where(s => s.MatchRating == MatchRating.UserVerified).ToList());
         }
     }
 }

@@ -206,7 +206,7 @@ namespace Shoko.Server.Commands
                 TvDBID = tvdbID,
                 CrossRefSource = source
             };
-            Repo.CrossRef_AniDB_TvDB.Save(xref);
+            Repo.CrossRef_AniDB_TvDB.BeginAdd(xref).Commit();
         }
 
         public override void GenerateCommandID()

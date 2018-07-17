@@ -46,20 +46,20 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        public Dictionary<int, CrossRef_AniDB_TvDB> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
+        public ILookup<int, CrossRef_AniDB_TvDB> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
         {
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
 
             if (animeIds.Count == 0)
             {
-                return new Dictionary<int, CrossRef_AniDB_TvDB>();
+                return EmptyLookup<int, CrossRef_AniDB_TvDB>.Instance;
             }
 
             using (RepoLock.ReaderLock())
             {
                 return animeIds.SelectMany(GetByAnimeID) //TODO: Test for the recursion locks.
-                    .ToDictionary(xref => xref.AniDBID);
+                    .ToLookup(xref => xref.AniDBID);
             }
         }
 

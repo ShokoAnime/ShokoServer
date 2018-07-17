@@ -61,7 +61,7 @@ namespace Shoko.Server.Commands
                     {
                         // Save
                         if ((episode.TvDBEpisode?.Id ?? TvDBEpisodeID) != TvDBEpisodeID) continue;
-                        Repo.AnimeEpisode.Save(episode);
+                        Repo.AnimeEpisode.Touch(() => episode);
                     }
                     anime.QueueUpdateStats();
                 }

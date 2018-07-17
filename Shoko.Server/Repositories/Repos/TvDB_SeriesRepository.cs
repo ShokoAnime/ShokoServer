@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Collections;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -51,7 +52,7 @@ namespace Shoko.Server.Repositories.Repos
             return animetvdb.ToDictionary(a => a.Key, a => a.Value.Select(b => (b, GetByTvDBID(b.TvDBID))).ToList());
         }
 
-        internal Dictionary<int, (CrossRef_AniDB_TvDB, TvDB_Series)> GetByAnimeIDs(int[] animeIds)
+        internal ILookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)> GetByAnimeIDs(int[] animeIds)
         {
             /*
             var tvDbSeriesByAnime = session.CreateSQLQuery(@"
@@ -72,10 +73,10 @@ namespace Shoko.Server.Repositories.Repos
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
             if (animeIds.Length == 0)
-                return new Dictionary<int, (CrossRef_AniDB_TvDB, TvDB_Series)>();
+                return EmptyLookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)>.Instance;
 
             using (RepoLock.ReaderLock())
-                return GetAll().Join(Repo.CrossRef_AniDB_TvDB.GetAll(), s => s.SeriesID, x => x.AniDBID, (series, xref) => (xref, series)).ToDictionary(a => a.xref.AniDBID);
+                return GetAll().Join(Repo.CrossRef_AniDB_TvDB.GetAll(), s => s.SeriesID, x => x.AniDBID, (series, xref) => (xref, series)).ToLookup(a => a.xref.AniDBID);
         }
     }
 }

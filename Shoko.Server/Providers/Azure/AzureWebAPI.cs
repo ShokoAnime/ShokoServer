@@ -668,7 +668,7 @@ namespace Shoko.Server.Providers.Azure
                 SVR_AnimeEpisode_User rec = Repo.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
-                    uinfo.LastEpisodeWatched = AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
+                    uinfo.LastEpisodeWatched = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }
@@ -981,9 +981,9 @@ namespace Shoko.Server.Providers.Azure
                 List<Azure_Media_Request> inputs = new List<Azure_Media_Request>();
                 // send a max of 25 at a time
                 // send a max of 25 at a time
-                foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob != null && a.MediaBlob.Length > 0 &&
-                                                               a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION &&
-                                                               !string.IsNullOrEmpty(a.ED2KHash)))
+                foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob?.Length > 0
+                                                               && a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION
+                                                               && !string.IsNullOrEmpty(a.ED2KHash)))
                 {
                     Azure_Media_Request input = v.ToMediaRequest();
                     if (inputs.Count < 25)

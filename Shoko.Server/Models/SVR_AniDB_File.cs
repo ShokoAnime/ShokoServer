@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
-using Nancy.Extensions;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -421,8 +421,7 @@ namespace Shoko.Server.Models
                 fileEps.Add(cross);
             }
             // There is a chance that AniDB returned a dup, however unlikely
-            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
-                .ForEach(fileEp => Repo.CrossRef_File_Episode.Save(fileEp));
+            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ForEach(fileEp => Repo.CrossRef_File_Episode.Touch(() => fileEp));
         }
   
         public string ToXML()

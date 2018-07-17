@@ -26,9 +26,7 @@ namespace Shoko.Server.Repositories.Repos
         }
 
         internal override int SelectKey(SVR_AnimeEpisode_User entity) => entity.AnimeEpisode_UserID;
-
-
-
+        
         internal override void PopulateIndexes()
         {
             Series = Cache.CreateIndex(a => a.AnimeSeriesID);
@@ -143,7 +141,7 @@ namespace Shoko.Server.Repositories.Repos
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
             CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
-            SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
+            SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
             AniDB_Episode aniEp = ep.AniDB_Episode;
