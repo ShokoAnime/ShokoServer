@@ -16,6 +16,8 @@ namespace Shoko.Server.Commands
     public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     {
         public string Hash { get; set; }
+        public bool ReadStates { get; set; } = true;
+
 
         [NonSerialized]
         private SVR_VideoLocal vid;
@@ -44,9 +46,10 @@ namespace Shoko.Server.Commands
         {
         }
 
-        public CommandRequest_AddFileToMyList(string hash)
+        public CommandRequest_AddFileToMyList(string hash, bool readstate = true)
         {
             Hash = hash;
+            ReadStates = readstate;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -54,7 +57,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid.FileName} - {vid.Hash}");
+            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid?.FileName} - {Hash} - {ReadStates}");
 
 
             try
@@ -105,16 +108,19 @@ namespace Shoko.Server.Commands
                     bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
                     bool watchedChanged = watched != watchedLocally;
 
-                    // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
-                    if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                    if (ReadStates)
                     {
-                        vid.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID,
-                            false, false);
-                    }
-                    else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
-                    {
-                        vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
-                            false, false);
+                        // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
+                        if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                        {
+                            vid.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID,
+                                false, false);
+                        }
+                        else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
+                        {
+                            vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
+                                false, false);
+                        }
                     }
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
@@ -175,6 +181,9 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 Hash = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "Hash");
+                string read = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "ReadStates");
+                if (!bool.TryParse(read, out bool read_states)) read_states = true;
+                ReadStates = read_states;
             }
 
             if (Hash.Trim().Length <= 0) return false;

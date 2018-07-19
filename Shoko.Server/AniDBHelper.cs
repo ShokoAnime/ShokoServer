@@ -543,20 +543,7 @@ namespace Shoko.Server
                 if (watched && watchedDate == null) watchedDate = DateTime.Now;
 
                 enHelperActivityType ev;
-                if (hash.MyListID == 0)
-                {
-                    logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
-                    // Run sychronously, but still do all of the stuff with watched state settings
-                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash);
-                    // Initialize private parts
-                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
-                    addcmd.ProcessCommand();
-
-                    SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(hash.ED2KHash);
-                    if (vid == null) return;
-                    hash.MyListID = vid.MyListID;
-                }
-
+                // We have the ID, so update it
                 if (hash.MyListID > 0)
                 {
                     cmdUpdateFile.Init(hash, watched, watchedDate);
@@ -567,7 +554,19 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    logger.Trace($"File still has no MyListID: {hash.ED2KHash}");
+                    logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
+                    // We don't have the MyListID, so we'll act like it's not there, and AniDB will tell us
+                    ev = enHelperActivityType.NoSuchMyListFile;
+                }
+
+                if (ev == enHelperActivityType.NoSuchMyListFile)
+                {
+                    // Run synchronously, but still do all of the stuff with Trakt and whatnot
+                    // We are skipping the watched state settings, as we are setting them here
+                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
+                    // Initialize private parts
+                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
+                    addcmd.ProcessCommand();
                 }
             }
         }
