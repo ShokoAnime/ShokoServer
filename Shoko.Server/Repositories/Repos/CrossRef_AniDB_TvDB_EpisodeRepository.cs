@@ -53,6 +53,15 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
+        internal CrossRef_AniDB_TvDB_Episode GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)  return EpisodeIDs.GetMultiple(anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID);
+                return Where(a => a.AniDBEpisodeID == anidbID).FirstOrDefault(a => a.TvDBEpisodeID == tvdbID);
+            }
+        }
+
         internal void DeleteAllUnverifiedLinksForAnime(int animeID)
         {
             using (RepoLock.WriterLock())

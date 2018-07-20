@@ -1081,7 +1081,7 @@ namespace Shoko.Server.Models
                             ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
                         };
                         // we need an ID for xref
-                        Repo.AnimeCharacter.Save(character);
+                        Repo.AnimeCharacter.BeginAdd(character).Commit();
                     }
 
                     // create cross ref's between anime and character, but don't actually download anything
@@ -1351,7 +1351,7 @@ namespace Shoko.Server.Models
                                 AnimeID = AnimeID,
                                 ReviewID = rev
                             };
-                            Repo.AniDB_Anime_Review.Save(csr);
+                            Repo.AniDB_Anime_Review.BeginAdd(csr).Commit();
                         }
                     }
                 }
