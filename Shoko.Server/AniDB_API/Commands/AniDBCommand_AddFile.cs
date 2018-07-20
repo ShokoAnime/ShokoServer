@@ -41,9 +41,24 @@ namespace AniDBAPI.Commands
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "210": return enHelperActivityType.FileAdded;
+                case "210":
+                {
+                    /* Response Format
+                     * {int4 mylist id of new entry}
+                     */
+                    // parse the MyList ID
+                    string[] arrResult = socketResponse.Split('\n');
+                    if (arrResult.Length >= 2)
+                    {
+                        int.TryParse(arrResult[1], out MyListID);
+                    }
+                    return enHelperActivityType.FileAdded;
+                }
                 case "310":
                 {
+                    /* Response Format
+                     * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
+                     */
                     //file already exists: read 'watched' status
                     string[] arrResult = socketResponse.Split('\n');
                     if (arrResult.Length >= 2)
