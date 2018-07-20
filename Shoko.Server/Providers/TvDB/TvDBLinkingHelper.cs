@@ -28,7 +28,6 @@ namespace Shoko.Server
             var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
 
             List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
-            using (var txn = Repo.)
             foreach (var match in matches)
             {
                 if (match.AniDB == null || match.TvDB == null) continue;

@@ -67,10 +67,10 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 return new Dictionary<int, List<MovieDB_Fanart>>();
-            Dictionary<int, List<CrossRef_AniDB_Other>> crosses = Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(animeIds, CrossRefType.MovieDB);
-            List<int> movids = crosses.SelectMany(a => a.Value).Distinct().Select(s => s.CrossRefID).Select(int.Parse).ToList();
+            ILookup<int, CrossRef_AniDB_Other> crosses = Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(animeIds.ToList(), CrossRefType.MovieDB);
+            List<int> movids = crosses.SelectMany(a => a).Distinct().Select(s => s.CrossRefID).Select(int.Parse).ToList();
             Dictionary<int, List<MovieDB_Fanart>> images = GetByMoviesIds(movids);
-            return crosses.ToDictionary(a => a.Key, a => a.Value.SelectMany(b => images.ContainsKey(int.Parse(b.CrossRefID)) ? images[int.Parse(b.CrossRefID)] : new List<MovieDB_Fanart>()).ToList());
+            return crosses.ToDictionary(a => a.Key, a => a.SelectMany(b => images.ContainsKey(int.Parse(b.CrossRefID)) ? images[int.Parse(b.CrossRefID)] : new List<MovieDB_Fanart>()).ToList());
         }
 
         public List<MovieDB_Fanart> GetAllOriginal()
