@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -59,7 +60,6 @@ namespace Shoko.Server.Commands
         {
             logger.Info($"Processing CommandRequest_AddFileToMyList: {vid?.FileName} - {Hash} - {ReadStates}");
 
-
             try
             {
                 if (vid == null) return;
@@ -73,17 +73,23 @@ namespace Shoko.Server.Commands
                     isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
                 // mark the video file as watched
-                DateTime? watchedDate = null;
+                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                SVR_JMMUser juser = aniDBUsers.FirstOrDefault();
+                DateTime? originalWatchedDate = null;
+                if (juser != null)
+                    originalWatchedDate = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate;
+                
+                DateTime? watchedDate = originalWatchedDate;
                 bool? newWatchedStatus;
                 int? lid;
                 AniDBFile_State? state = null;
 
                 if (isManualLink)
                     (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
-                        xrefs[0].GetEpisode().EpisodeNumber,
-                        ref watchedDate);
+                        xrefs[0].GetEpisode().EpisodeNumber, ref watchedDate);
                 else
-                    (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
+                    (lid, newWatchedStatus) =
+                        ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
 
                 if (lid != null && lid.Value > 0)
                 {
@@ -91,11 +97,7 @@ namespace Shoko.Server.Commands
                     RepoFactory.VideoLocal.Save(vid);
                 }
 
-                // do for all AniDB users
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
-
-
-                if (aniDBUsers.Count > 0)
+                if (juser != null)
                 {
                     string datemessage = watchedDate?.ToShortDateString() ?? "Not Watched";
                     if (watchedDate?.Equals(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime()) ?? false)
@@ -104,8 +106,8 @@ namespace Shoko.Server.Commands
                     bool watched = watchedDate != null;
                     if (newWatchedStatus != null) watched = newWatchedStatus.Value;
 
-                    SVR_JMMUser juser = aniDBUsers[0];
-                    bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
+                    
+                    bool watchedLocally = originalWatchedDate != null;
                     bool watchedChanged = watched != watchedLocally;
 
                     if (ReadStates)

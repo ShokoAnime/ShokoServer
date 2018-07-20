@@ -583,7 +583,7 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState);
+                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -613,7 +613,7 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
+                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));

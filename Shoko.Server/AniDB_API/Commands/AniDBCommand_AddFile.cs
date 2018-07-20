@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 
@@ -101,7 +102,7 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.AddFile;
         }
 
-        public void Init(IHash fileData, AniDBFile_State fileState)
+        public void Init(IHash fileData, AniDBFile_State fileState, DateTime? watchedDate = null)
         {
             FileData = fileData;
 
@@ -109,18 +110,30 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
-            commandText += "&viewed=0";
+            if (watchedDate == null)
+                commandText += "&viewed=0";
+            else
+            {
+                commandText += "&viewed=1";
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
+            }
             commandText += "&state=" + (int) fileState;
         }
 
-        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState)
+        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState, DateTime? watchedDate = null)
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
             commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
             commandText += "&epno=" + episodeNumber;
-            commandText += "&viewed=0";
+            if (watchedDate == null)
+                commandText += "&viewed=0";
+            else
+            {
+                commandText += "&viewed=1";
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
+            }
             commandText += "&state=" + (int) fileState;
         }
     }
