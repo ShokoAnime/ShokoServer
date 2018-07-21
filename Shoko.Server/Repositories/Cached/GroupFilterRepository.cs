@@ -12,6 +12,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
@@ -548,6 +549,36 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
         }
+        
+        /// <summary>
+        /// Inserts a batch of <see cref="SVR_GroupFilter"/>s.
+        /// </summary>
+        /// <remarks>
+        /// This method ONLY updates existing <see cref="SVR_GroupFilter"/>s. It will not insert any that don't already exist.
+        /// </remarks>
+        /// <param name="session">The NHibernate session.</param>
+        /// <param name="groupFilters">The batch of <see cref="SVR_GroupFilter"/>s to update.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupFilters"/> is <c>null</c>.</exception>
+        public void BatchInsert(ISessionWrapper session, IEnumerable<SVR_GroupFilter> groupFilters)
+        {
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+            if (groupFilters == null)
+                throw new ArgumentNullException(nameof(groupFilters));
+
+            lock (globalDBLock)
+            {
+                lock (Cache)
+                {
+                    foreach (SVR_GroupFilter groupFilter in groupFilters)
+                        lock (groupFilter)
+                        {
+                            session.Insert(groupFilter);
+                            Cache.Update(groupFilter);
+                        }
+                }
+            }
+        }
 
         public void BatchDelete(ISessionWrapper session, IEnumerable<SVR_GroupFilter> groupFilters)
         {
@@ -607,12 +638,13 @@ namespace Shoko.Server.Repositories.Cached
 
             lock (globalDBLock)
             {
+                DropAndCreateAllTagFilters(session);
+                
                 ConcurrentDictionary<int, Dictionary<int, HashSet<int>>> somethingDictionary =
                     new ConcurrentDictionary<int, Dictionary<int, HashSet<int>>>();
                 var filters = GetAll(session).Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
                 users.AddRange(RepoFactory.JMMUser.GetAll(session));
-                List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
                 var nameToFilter = filters.ToLookup(a => a?.GroupFilterName?.ToLowerInvariant());
                 var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
 
@@ -625,12 +657,6 @@ namespace Shoko.Server.Repositories.Cached
 
                     var grpFilter = grpFilters[0];
                     if (grpFilter == null) return;
-
-                    grpFilters.RemoveAt(0);
-                    lock (toRemove)
-                    {
-                        toRemove.AddRange(grpFilters);
-                    }
 
                     foreach (var series in tag.ToList().SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
                     {
@@ -680,11 +706,53 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 });
 
-                BatchDelete(session, toRemove);
-
                 return somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key => somethingDictionary[key]
                     .SelectMany(p => p.Value, Tuple.Create)
                     .ToLookup(p => p.Item1.Key, p => p.Item2));
+            }
+        }
+
+        private void DropAndCreateAllTagFilters(ISessionWrapper session)
+        {
+            var locked = GetLockedGroupFilters();
+            SVR_GroupFilter tagsdirec = locked.FirstOrDefault(
+                a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
+            var tagFilters = locked.Where(a => a.FilterType == 16).ToList();
+            BatchDelete(session, tagFilters);
+
+            if (tagsdirec != null)
+            {
+                HashSet<string> alltags = new HashSet<string>(
+                    RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')),
+                    StringComparer.InvariantCultureIgnoreCase);
+                List<SVR_GroupFilter> toAdd = new List<SVR_GroupFilter>(alltags.Count);
+               
+                //AniDB Tags are in english so we use en-us culture
+                TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
+                foreach (string s in alltags)
+                {
+                    SVR_GroupFilter yf = new SVR_GroupFilter
+                    {
+                        ParentGroupFilterID = tagsdirec.GroupFilterID,
+                        InvisibleInClients = 0,
+                        ApplyToSeries = 1,
+                        GroupFilterName = tinfo.ToTitleCase(s),
+                        BaseCondition = 1,
+                        Locked = 1,
+                        SortingCriteria = "5;1",
+                        FilterType = (int) GroupFilterType.Tag
+                    };
+                    GroupFilterCondition gfc = new GroupFilterCondition
+                    {
+                        ConditionType = (int) GroupFilterConditionType.Tag,
+                        ConditionOperator = (int) GroupFilterOperator.In,
+                        ConditionParameter = s,
+                        GroupFilterID = yf.GroupFilterID
+                    };
+                    yf.Conditions.Add(gfc);
+                    toAdd.Add(yf);
+                }
+                BatchInsert(session, toAdd);
             }
         }
 
