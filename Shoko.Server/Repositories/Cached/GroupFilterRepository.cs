@@ -682,7 +682,7 @@ namespace Shoko.Server.Repositories.Cached
 
                 BatchDelete(session, toRemove);
 
-                return somethingDictionary.Keys.ToDictionary(key => key, key => somethingDictionary[key]
+                return somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key => somethingDictionary[key]
                     .SelectMany(p => p.Value, Tuple.Create)
                     .ToLookup(p => p.Item1.Key, p => p.Item2));
             }
