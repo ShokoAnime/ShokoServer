@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Nito.AsyncEx;
 using NutzCode.InMemoryIndex;
@@ -242,19 +243,29 @@ namespace Shoko.Server.Repositories
                 return upd.Commit(pars);
             }
         }
-        internal void BatchAction(IEnumerable<T> items, int batchSize, Action<T, T> peritemaction, TT pars=default(TT))
+
+        internal void BatchAction(IEnumerable<T> items, int batchSize, Action<T, T> peritemaction, TT pars = default(TT), bool parallel = false)
         {
             foreach (T[] batch in items.Batch(batchSize))
             {
                 using (IAtomicList<T, TT> update = BeginUpdate(batch))
                 {
-                    foreach(T t in update.EntityList)
-                        peritemaction(t, update.GetOriginal(t));
+                    if (parallel)
+                    {
+                        Parallel.ForEach(update.EntityList, t => peritemaction(t, update.GetOriginal(t)));
+                    }
+                    else
+                    {
+                        foreach (T t in update.EntityList)
+                            peritemaction(t, update.GetOriginal(t));
+                    }
+
                     update.Commit(pars);
                 }
             }
         }
-        
+
+
         public virtual void PopulateCache()
         {
             Cache = new PocoCache<TS, T>(Table, SelectKey);

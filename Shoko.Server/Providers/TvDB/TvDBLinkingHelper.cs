@@ -27,44 +27,28 @@ namespace Shoko.Server
 
             var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
 
-            List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
             foreach (var match in matches)
             {
                 if (match.AniDB == null || match.TvDB == null) continue;
-                var xref = Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
-                    match.TvDB.Id);
-                // Don't touch User Verified links
-                if (xref?.MatchRating == MatchRating.UserVerified) continue;
-
-                // check for duplicates only if we skip clearing the links
-                if (skipMatchClearing)
+                using (var upd = Repo.CrossRef_AniDB_TvDB_Episode.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID, match.TvDB.Id)))
                 {
-                    xref = Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
-                        match.TvDB.Id);
-                    if (xref != null)
+                    // Don't touch User Verified links
+                    if (upd.Entity?.MatchRating == MatchRating.UserVerified) continue;
+
+                    // check for duplicates only if we skip clearing the links
+                    if (skipMatchClearing && upd.IsUpdate)
                     {
-                        if (xref.MatchRating != match.Rating)
-                        {
-                            xref.MatchRating = match.Rating;
-                            tosave.Add(xref);
-                        }
+                        if (upd.Entity.MatchRating != match.Rating)
+                            upd.Entity.MatchRating = match.Rating;
+                        upd.Commit();
                         continue;
                     }
+
+                    upd.Entity.AniDBEpisodeID = match.AniDB.EpisodeID;
+                    upd.Entity.TvDBEpisodeID = match.TvDB.Id;
+                    upd.Entity.MatchRating = match.Rating;
                 }
-
-                xref = new CrossRef_AniDB_TvDB_Episode
-                {
-                    AniDBEpisodeID = match.AniDB.EpisodeID,
-                    TvDBEpisodeID = match.TvDB.Id,
-                    MatchRating = match.Rating
-                };
-
-                tosave.Add(xref);
             }
-
-            if (tosave.Count == 0) return;
-
-            tosave.Batch(50).ForEach(Repo.CrossRef_AniDB_TvDB_Episode.Save);
         }
 
         public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)

@@ -377,7 +377,6 @@ namespace Shoko.Server.Commands
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
-                FileNameHash fnhash;
                 List<FileNameHash> fnhashes2 =
                     Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
                 if (fnhashes2 != null && fnhashes2.Count > 1)
@@ -389,17 +388,14 @@ namespace Shoko.Server.Commands
                         Repo.FileNameHash.Delete(fnh.FileNameHashID);
                     }
                 }
-
-                if (fnhashes2 != null && fnhashes2.Count == 1)
-                    fnhash = fnhashes2[0];
-                else
-                    fnhash = new FileNameHash();
-
-                fnhash.FileName = filename;
-                fnhash.FileSize = vlocal.FileSize;
-                fnhash.Hash = vlocal.Hash;
-                fnhash.DateTimeUpdated = DateTime.Now;
-                Repo.FileNameHash.Save(fnhash);
+                using (var upd = Repo.FileNameHash.BeginAddOrUpdate(() => fnhashes2?.Count == 1 ? fnhashes2[0] : null))
+                {
+                    upd.Entity.FileName = filename;
+                    upd.Entity.FileSize = vlocal.FileSize;
+                    upd.Entity.Hash = vlocal.Hash;
+                    upd.Entity.DateTimeUpdated = DateTime.Now;
+                    upd.Commit();
+                }
             }
             else
             {
@@ -410,7 +406,8 @@ namespace Shoko.Server.Commands
             if ((vlocal.Media == null) || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration == 0)
             {
                 if (vlocalplace.RefreshMediaInfo())
-                    Repo.VideoLocal.Save(vlocalplace.VideoLocal, true);
+                    using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vlocalplace.VideoLocal))
+                        upd.Commit(true);
             }
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);

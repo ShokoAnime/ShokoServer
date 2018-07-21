@@ -77,7 +77,7 @@ namespace Shoko.Server.Commands
                                         Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
                                             episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
                                     if (exists != null) continue;
-                                    Repo.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                                    Repo.CrossRef_AniDB_TvDB_Episode_Override.Touch(() => episodeOverride);
                                 }
                             }
                             foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)

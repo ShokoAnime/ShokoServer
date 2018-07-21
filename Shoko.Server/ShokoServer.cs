@@ -1646,7 +1646,8 @@ namespace Shoko.Server
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add("\"" + Assembly.GetEntryAssembly().Location + "\"");
+                //needs to have the "path:" else it fails
+                td.Actions.Add(path: "\"" + Assembly.GetEntryAssembly().Location + "\"");
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();

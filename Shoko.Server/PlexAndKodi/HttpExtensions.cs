@@ -30,7 +30,7 @@ namespace Shoko.Server.PlexAndKodi
             string host = req?.Url.HostName;// ?? OperationContext.Current.IncomingMessageHeaders.To.Host;
 
             string scheme = req?.Url.Scheme;// ?? OperationContext.Current?.IncomingMessageHeaders.To.Scheme;
-            if (host == null)
+            /*if (host == null)
             {
                 var context = System.ServiceModel.OperationContext.Current;
                 if (context != null && context.IncomingMessageHeaders?.To != null)
@@ -39,7 +39,7 @@ namespace Shoko.Server.PlexAndKodi
                     host = ur.Host;
                     scheme = ur.Scheme;
                 }
-            }
+            }*/
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {

@@ -156,7 +156,7 @@ namespace Shoko.Server.Tasks
             // and is enough work that it can benefit from running in parallel
             var _toUpdate = grpFilters.Where(f => ((GroupFilterType)f.FilterType & GroupFilterType.Directory) !=
                                      GroupFilterType.Directory);
-            Repo.GroupFilter.BatchAction(_toUpdate, _toUpdate.Count(), (filter, _) => 
+            Repo.GroupFilter.BatchAction(_toUpdate, _toUpdate.Count(), (filter, _) =>
             {
                 filter.SeriesIds.Clear();
 

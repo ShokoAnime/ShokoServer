@@ -551,124 +551,6 @@ namespace Shoko.Server.Repositories
             return null;
         }
 
-        public Dictionary<int, LanguageStat> GetAudioLanguageStatsForAnime()
-        {
-            return Repo.AniDB_Anime.GetIds().ToDictionary(a => a, GetAudioLanguageStatByAnime).Where(a => a.Value != null).ToDictionary(a => a.Key, a => a.Value);
-
-            /*
-            Dictionary<int, List<int>> series = Repo.AniDB_Episode.WhereAll().GroupBy(a => a.AnimeID).ToDictionary(a => a.Key, a => a.Select(b => b.AniDB_EpisodeID).ToList());
-            Dictionary<int, List<string>> ephashes = Repo.CrossRef_File_Episode.WhereAll().GroupBy(a => a.EpisodeID).ToDictionary(a => a.Key, a => a.Select(b => b.Hash).ToList());
-            Dictionary<string, List<int>> hashesfiles = Repo.AniDB_File.WhereAll().GroupBy(a => a.Hash).ToDictionary(a => a.Key, a => a.Select(b => b.FileID).ToList());
-            Dictionary<int, int> filescrosslang = Repo.CrossRef_Languages_AniDB_File.WhereAll().ToDictionary(a => a.FileID, a => a.LanguageID);
-            Dictionary<int, string> animes = Repo.AniDB_Anime.WhereAll().ToDictionary(a => a.AnimeID, a => a.MainTitle);
-
-            return series.ToDictionary(a => a.Key, new LanguageStat { }
-                
-                a => Repo.Language.WhereMany(Repo.CrossRef_Subtitles_AniDB_File.WhereAll(z=>
-                a.Value.SelectMany(b => ephashes.SafeGetList(b)).SelectMany(b => hashesfiles.SafeGetList(b)).Distinct().ToList().Contains(z)).Select(z => z.LanguageID).Distinct()).Select(a => a.LanguageName).ToList();
-
-
-            ;
-
-
-
-
-            Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
-
-
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
-                command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
-                command.CommandText += "FROM AnimeSeries ser  ";
-                command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
-                command.CommandText += "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID ";
-                command.CommandText += "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID ";
-                command.CommandText += "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID ";
-                command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
-                command.CommandText +=
-                    "INNER JOIN CrossRef_Languages_AniDB_File audio on audio.FileID = anifile.FileID ";
-                command.CommandText += "INNER JOIN Language lan on audio.LanguageID = lan.LanguageID ";
-                command.CommandText += "GROUP BY anime.AnimeID, anime.MainTitle, lan.LanguageName ";
-
-                using (IDataReader rdr = command.ExecuteReader())
-                {
-                    while (rdr.Read())
-                    {
-                        int animeID = int.Parse(rdr[0].ToString());
-                        string mainTitle = rdr[1].ToString().Trim();
-                        string lanName = rdr[2].ToString().Trim();
-
-
-                        if (animeID == 7656)
-                        {
-                            Debug.Print("");
-                        }
-
-                        if (!dictStats.ContainsKey(animeID))
-                        {
-                            LanguageStat stat = new LanguageStat
-                            {
-                                AnimeID = animeID,
-                                MainTitle = mainTitle,
-                                LanguageNames = new List<string>()
-                            };
-                            stat.LanguageNames.Add(lanName);
-                            dictStats[animeID] = stat;
-                        }
-                        else
-                            dictStats[animeID].LanguageNames.Add(lanName);
-                    }
-                }
-            }
-
-            return dictStats;*/
-        }
-
-        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsForAnime()
-        {
-            return Repo.AniDB_Anime.GetIds().ToDictionary(a => a, GetSubtitleLanguageStatsByAnime).Where(a => a.Value != null).ToDictionary(a => a.Key, a => a.Value);
-            /*
-            Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
-            const string query = "SELECT DISTINCT anime.AnimeID, anime.MainTitle, lan.LanguageName "
-                                 + "FROM AnimeSeries ser  "
-                                 + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
-                                 + "INNER JOIN AnimeEpisode ep on ep.AnimeSeriesID = ser.AnimeSeriesID "
-                                 + "INNER JOIN AniDB_Episode aniep on ep.AniDB_EpisodeID = aniep.EpisodeID "
-                                 + "INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID "
-                                 + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
-                                 + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID "
-                                 + "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID";
-
-            var rows = session.CreateSQLQuery(query)
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .AddScalar("MainTitle", NHibernateUtil.String)
-                .AddScalar("LanguageName", NHibernateUtil.String)
-                .List<object[]>();
-
-            foreach (object[] cols in rows)
-            {
-                int animeID = Convert.ToInt32(cols[0]);
-                string mainTitle = cols[1].ToString().Trim();
-                string lanName = cols[2].ToString().Trim();
-
-                if (!dictStats.TryGetValue(animeID, out LanguageStat stat))
-                {
-                    stat = new LanguageStat
-                    {
-                        AnimeID = animeID,
-                        MainTitle = mainTitle,
-                        LanguageNames = new List<string>()
-                    };
-                    dictStats.Add(animeID, stat);
-                }
-
-                stat.LanguageNames.Add(lanName);
-            }
-
-            return dictStats;*/
-        }
-
         internal Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(int animeId) => GetAudioLanguageStatsByAnime(new int[] { animeId });
 
         internal Dictionary<int, LanguageStat> GetAudioLanguageStatsByAnime(ICollection<int> animeIds)
@@ -711,33 +593,46 @@ namespace Shoko.Server.Repositories
             return dictStats;
         }
 
+        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(int aID) => GetAudioLanguageStatsByAnime(new int[] { aID });
 
-
-        public LanguageStat GetSubtitleLanguageStatsByAnime(int aID)
+        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(IEnumerable<int> animeIds)
         {
-            AniDB_Anime an = Repo.AniDB_Anime.GetByID(aID);
-            if (an != null)
+            if (!animeIds.Any())
             {
-                return new LanguageStat
-                {
-                    AnimeID = aID,
-                    MainTitle = an.MainTitle,
-                    LanguageNames = Repo.Language.GetMany(Repo.CrossRef_Subtitles_AniDB_File.GetIdsByFilesIDs(
-                        Repo.AniDB_File.GetFileIdsFromHashes(
-                            Repo.CrossRef_File_Episode.GetHashesByEpisodeIds(
-                                Repo.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(aID))))).Select(a => a.LanguageName).ToList()
-                };
+                return new Dictionary<int, LanguageStat>();
             }
-            return null;
 
+            var rows = Repo.AnimeSeries.GetAll()
+                .Join(Repo.AniDB_Anime.GetAll(), s => s.AniDB_ID, j => j.AnimeID, (ser, anime) => new { ser, anime })
+                .Join(Repo.AnimeEpisode.GetAll(), s => s.ser.AnimeSeriesID, j => j.AnimeSeriesID, (cmb, ep) => new { cmb.ser, cmb.anime, ep })
+                .Join(Repo.AniDB_Episode.GetAll(), s => s.ep.AniDB_EpisodeID, aniep => aniep.EpisodeID, (cmb, aniep) => new { cmb.ser, cmb.anime, cmb.ep, aniep })
+                .Join(Repo.CrossRef_File_Episode.GetAll(), s => s.aniep.EpisodeID, xref => xref.EpisodeID, (cmb, xref) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, xref })
+                .Join(Repo.AniDB_File.GetAll(), s => s.xref.Hash, anifile => anifile.Hash, (cmb, anifile) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, anifile })
+                .Join(Repo.CrossRef_Subtitles_AniDB_File.GetAll(), s => s.anifile.FileID, audio => audio.FileID, (cmb, audio) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, audio })
+                .Join(Repo.Language.GetAll(), s => s.audio.LanguageID, lan => lan.LanguageID, (cmb, lan) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, cmb.audio, lan })
+                .Where(s => animeIds.Contains(s.anime.AnimeID))
+                .Select(s => (s.anime.AnimeID, s.anime.MainTitle, s.lan.LanguageName))
+                .Distinct();
 
-        }
+            Dictionary<int, LanguageStat> dictStats = new Dictionary<int, LanguageStat>();
 
+            foreach ((int animeID, string mainTitle, string lanName) in rows)
+            {
+                if (!dictStats.TryGetValue(animeID, out LanguageStat stat))
+                {
+                    stat = new LanguageStat
+                    {
+                        AnimeID = animeID,
+                        MainTitle = mainTitle,
+                        LanguageNames = new List<string>()
+                    };
+                    dictStats.Add(animeID, stat);
+                }
 
-        public Dictionary<int, LanguageStat> GetSubtitleLanguageStatsByAnime(IEnumerable<int> aIDs)
-        {
-            return aIDs.ToDictionary(a => a, GetSubtitleLanguageStatsByAnime).Where(a => a.Value != null).ToDictionary(a => a.Key, a => a.Value);
+                stat.LanguageNames.Add(lanName);
+            }
 
+            return dictStats;
         }
 
         #endregion

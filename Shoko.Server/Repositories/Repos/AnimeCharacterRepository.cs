@@ -6,6 +6,7 @@ using Shoko.Server.Repositories.Cached;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -23,6 +24,14 @@ namespace Shoko.Server.Repositories.Repos
         internal override void ClearIndexes()
         {
             AniDBIDs = null;
+        }
+
+        internal AnimeCharacter GetByAniDBID(int charID)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                return Where(s => s.AniDBID == charID).FirstOrDefault();
+            }
         }
     }
 }
