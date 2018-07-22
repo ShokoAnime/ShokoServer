@@ -2313,7 +2313,7 @@ namespace Shoko.Server
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     AniDB_File aniFile = vid.GetAniDBFile();
                     if (aniFile == null) continue;
@@ -2369,7 +2369,6 @@ namespace Shoko.Server
             {
                 logger.Error(ex, ex.ToString());
             }
-            return "";
             return null;
         }
 

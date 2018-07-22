@@ -35,7 +35,7 @@ namespace AniDBAPI
                 ShokoService.LastAniDBMessage = DateTime.Now;
                 ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
-                var anime = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                var anime = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
                 DateTime? prevUpdate = anime?.UpdatedAt;
 
                 string uri = string.Format(AnimeURL, animeID);

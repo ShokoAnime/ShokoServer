@@ -73,7 +73,7 @@ namespace Shoko.Server.Commands
                     isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
                 // mark the video file as watched
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
                 SVR_JMMUser juser = aniDBUsers.FirstOrDefault();
                 DateTime? originalWatchedDate = null;
                 if (juser != null)

@@ -45,24 +45,16 @@ namespace Shoko.Server.Extensions
 
         public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
         {
+            SVR_AnimeEpisode existingEp;
             // check if there is an existing episode for this EpisodeID
-            using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)))
+            using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)))
             {
-                upd.Entity.Populate(episode);
+                upd.Entity.Populate_RA(episode);
                 upd.Entity.AnimeSeriesID = animeSeriesID;
                 existingEp = upd.Commit();
             }
-                
-            foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+            Repo.AnimeEpisode_User.Touch(() => Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
         }
-
-                var updates = Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID);
-                Repo.AnimeEpisode_User.BatchAction(updates, updates.Count, (ep, _) => {});
-            }
-        }
-
-
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
         {
