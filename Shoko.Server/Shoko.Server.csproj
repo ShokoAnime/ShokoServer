@@ -44,30 +44,29 @@
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.2" />
     <PackageReference Include="Microsoft.AspNetCore.Owin" Version="2.1.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.1" />
-    <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0-preview1-25914-04" />
-    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.1.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0" />
     <PackageReference Include="MimeTypes" Version="1.0.6" />
-    <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.10-rc" />
+    <PackageReference Include="MySql.Data.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Nancy" Version="2.0.0-clinteastwood" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="NLog" Version="5.0.0-beta11" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
-    <PackageReference Include="SharpCompress" Version="0.19.2" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0-preview1-25914-04" />
+    <PackageReference Include="SharpCompress" Version="0.22.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="4.5.0-preview1-25914-04" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
     <PackageReference Include="System.ServiceModel.Web" Version="1.0.0" />
-    <PackageReference Include="TaskScheduler" Version="2.8.1" />
+    <PackageReference Include="TaskScheduler" Version="2.8.4" />
     <PackageReference Include="TMDbLib" Version="1.2.0-alpha" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\Views\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Repositories\Direct\" />
     <Folder Include="Workers\WorkUnits\Import\" />
   </ItemGroup>
   <ItemGroup>

@@ -1885,6 +1885,15 @@ namespace Shoko.Server
             set { Set(nameof(AniDB_MaxRelationDepth), value.ToString()); }
         }
 
+        public static bool TraceLog {
+            get
+            {
+                if (!bool.TryParse(Get(nameof(TraceLog)), out bool val)) return false;
+                return val;
+            }
+            set { Set(nameof(TraceLog), value.ToString()); }
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings

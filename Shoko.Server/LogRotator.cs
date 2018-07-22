@@ -17,6 +17,18 @@ namespace Shoko.Server
 
         public void Start()
         {
+            LogManager.Configuration = new NLog.Config.LoggingConfiguration();
+            ColoredConsoleTarget conTarget = new ColoredConsoleTarget("console") { Layout = "${date:format=HH\\:mm\\:ss}| --- ${message}" };
+            FileTarget fileTarget = new FileTarget("file") {
+                Layout = "[${shortdate} ${date:format=HH\\:mm\\:ss\\:fff}] ${level}|${stacktrace} ${message}",
+                FileName = "${basedir}/logs/${shortdate}.txt"
+            };
+            LogManager.Configuration.AddTarget(conTarget);
+            LogManager.Configuration.AddTarget(fileTarget);
+            LogManager.Configuration.AddRuleForAllLevels(conTarget);
+
+            LogManager.Configuration.AddRule(ServerSettings.TraceLog ? LogLevel.Trace : LogLevel.Info, LogLevel.Fatal, fileTarget);
+
             if (ServerSettings.RotateLogs)
             {
                 Delete_Logs();
@@ -41,6 +53,8 @@ namespace Shoko.Server
         {
             List<string> list = new List<string>();
             DirectoryInfo di = new DirectoryInfo(GetDirectory());
+            if (!di.Exists) di.Create();
+
             if (di != null)
             {
                 foreach (FileInfo fi in di.GetFiles())
