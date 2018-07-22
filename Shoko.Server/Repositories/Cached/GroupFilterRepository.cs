@@ -488,34 +488,10 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public override void Delete(SVR_GroupFilter cr)
-        {
-            if (cr.FilterType == (int) GroupFilterType.Season)
-                logger.Warn($"Season filter {cr.GroupFilterName} is being deleted");
-            base.Delete(cr);
-        }
-
-        public override void Delete(int id)
-        {
-            var filter = GetByID(id);
-            if (filter.FilterType == (int) GroupFilterType.Season)
-                logger.Warn($"Season filter {filter.GroupFilterName} is being deleted by ID");
-            base.Delete(id);
-        }
-
-        public override void DeleteWithOpenTransaction(ISession session, SVR_GroupFilter cr)
-        {
-            if (cr.FilterType == (int) GroupFilterType.Season)
-                logger.Warn($"Season filter {cr.GroupFilterName} is being deleted with Open Transaction");
-            base.DeleteWithOpenTransaction(session, cr);
-        }
-
         public override void Delete(IReadOnlyCollection<SVR_GroupFilter> objs)
         {
             foreach (var cr in objs)
             {
-                if (cr.FilterType == (int) GroupFilterType.Season)
-                    logger.Warn($"Season filter {cr.GroupFilterName} is being deleted");
                 base.Delete(cr);
             }
         }
@@ -706,19 +682,24 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 });
 
-                return somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key => somethingDictionary[key]
-                    .SelectMany(p => p.Value, Tuple.Create)
-                    .ToLookup(p => p.Item1.Key, p => p.Item2));
+                return somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key => 
+                    somethingDictionary[key].Where(a => a.Value != null)
+                    .SelectMany(p => p.Value.Select(a => Tuple.Create(p.Key, a)))
+                    .ToLookup(p => p.Item1, p => p.Item2));
             }
         }
 
         private void DropAndCreateAllTagFilters(ISessionWrapper session)
         {
-            var locked = GetLockedGroupFilters();
+            var locked = GetAll(session);
             SVR_GroupFilter tagsdirec = locked.FirstOrDefault(
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
-            var tagFilters = locked.Where(a => a.FilterType == 16).ToList();
-            BatchDelete(session, tagFilters);
+            var tagFilters = locked.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
+            using (ITransaction trans = session.BeginTransaction())
+            {
+                BatchDelete(session, tagFilters);
+                trans.Commit();
+            }
 
             if (tagsdirec != null)
             {
@@ -752,7 +733,12 @@ namespace Shoko.Server.Repositories.Cached
                     yf.Conditions.Add(gfc);
                     toAdd.Add(yf);
                 }
-                BatchInsert(session, toAdd);
+
+                using (ITransaction trans = session.BeginTransaction())
+                {
+                    BatchInsert(session, toAdd);
+                    trans.Commit();
+                }
             }
         }
 
