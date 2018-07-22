@@ -16,11 +16,13 @@ namespace Shoko.Server.Databases
             _type = type;
             _connectionString = connectionstring;
         }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             Mappings.Map(modelBuilder);
             base.OnModelCreating(modelBuilder);
         }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             switch (_type)

@@ -696,7 +696,9 @@ namespace Shoko.Server
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
-                if (!DatabaseFactory.InitDB(out string errorMessage))
+                //Repo.Init(new ShokoContext(ServerSettings.DatabaseType, ))
+                if (Repo.Start())
+                //if (!DatabaseFactory.InitDB(out string errorMessage))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 

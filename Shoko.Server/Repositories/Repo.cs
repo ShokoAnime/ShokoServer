@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -126,7 +127,46 @@ namespace Shoko.Server.Repositories
             return repo;
         }
 
-        public static HashSet<string> CachedRepos = new HashSet<string>(); //TODO Set Default
+        public static HashSet<string> CachedRepos = new HashSet<string>()
+        {
+            nameof(AniDB_Anime_DefaultImage),
+            nameof(AniDB_Anime_Tag),
+            nameof(AniDB_Anime_Title),
+            nameof(AniDB_Anime),
+            nameof(AniDB_Episode_Title),
+            nameof(AniDB_Episode),
+            nameof(AniDB_File),
+            nameof(AniDB_Tag),
+            nameof(AniDB_Vote),
+            nameof(AnimeCharacter),
+            nameof(AnimeEpisode_User),
+            nameof(AnimeEpisode),
+            nameof(AnimeGroup_User),
+            nameof(AnimeGroup),
+            nameof(AnimeSeries_User),
+            nameof(AnimeSeries),
+            nameof(AnimeStaff),
+            nameof(AuthTokens),
+            nameof(CloudAccount),
+            nameof(CrossRef_AniDB_TvDB_Episode_Override),
+            nameof(CrossRef_AniDB_TvDB_Episode),
+            nameof(CrossRef_AniDB_TvDB),
+            nameof(CrossRef_Anime_Staff),
+            nameof(CrossRef_CustomTag),
+            nameof(CrossRef_File_Episode),
+            nameof(CustomTag),
+            nameof(GroupFilter),
+            nameof(ImportFolder),
+            nameof(JMMUser),
+            nameof(TvDB_Episode),
+            nameof(TvDB_ImageFanart),
+            nameof(TvDB_ImagePoster),
+            nameof(TvDB_ImageWideBanner),
+            nameof(TvDB_Series),
+            nameof(VideoLocal_Place),
+            nameof(VideoLocal_User),
+            nameof(VideoLocal),
+        }; //TODO Set Default
 
         public static void Init(ShokoContext db, HashSet<string> cachedRepos, IProgress<InitProgress> progress, int batchSize=20)
         {
@@ -134,9 +174,7 @@ namespace Shoko.Server.Repositories
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
             Db = db;
-
-
-
+            
             JMMUser = Register<JMMUserRepository, SVR_JMMUser>(db.JMMUsers);
             AuthTokens = Register<AuthTokensRepository, AuthTokens>(db.AuthTokens);
             CloudAccount = Register<CloudAccountRepository, SVR_CloudAccount>(db.CloudAccounts);
@@ -241,6 +279,40 @@ namespace Shoko.Server.Repositories
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
             _repos.ForEach(r=>r.SwitchCache(CachedRepos.Contains(r.Name)));
+        }
+
+        internal static bool Start()
+        {
+            DatabaseTypes type;
+            string connStr;
+            switch(ServerSettings.DatabaseType.ToLowerInvariant())
+            {
+                case "mysql":
+                    type = DatabaseTypes.MySql;
+                    connStr = $"Server={ServerSettings.MySQL_Hostname};Database={ServerSettings.MySQL_SchemaName};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password};Default Command Timeout=3600";
+                    break;
+                case "sqlserver":
+                    type = DatabaseTypes.SqlServer;
+                    connStr = $"Server={ServerSettings.DatabaseServer};Database={ServerSettings.DatabaseName};UID={ServerSettings.DatabaseUsername};PWD={ServerSettings.DatabasePassword};";
+                    break;
+                case "sqlite":
+                default:
+                    type = DatabaseTypes.Sqlite;
+                    connStr = $"data source={Path.Combine(ServerSettings.MySqliteDirectory, "JMMServer.db3")};useutf16encoding=True";
+                    break;
+
+            }
+
+            Init(new ShokoContext(type, connStr), CachedRepos, new ProgressShit());
+            return true;
+        }
+
+        public class ProgressShit : IProgress<InitProgress>
+        {
+            public void Report(InitProgress value)
+            {
+                //noop
+            }
         }
     }
 }
