@@ -64,7 +64,7 @@ namespace Shoko.UI.Forms
                 CreationTIme = DateTime.Now,
                 ImportFolders = string.Join(",", ids.Select(a => a.ToString()))
             };
-            Repo.Scan.Save(s);
+            s = Repo.Scan.BeginAdd(s).Commit();
             SelectedScan = s;
             this.DialogResult = true;
             this.Close();

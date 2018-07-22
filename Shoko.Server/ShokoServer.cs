@@ -35,6 +35,7 @@ using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.UI;
+using Trinet.Core.IO.Ntfs;
 //using Trinet.Core.IO.Ntfs;
 using UPnP;
 using Action = System.Action;
@@ -68,7 +69,7 @@ namespace Shoko.Server
         private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
         private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
         private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
-        private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
+        //private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
         private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
@@ -90,7 +91,7 @@ namespace Shoko.Server
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
         public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
-        
+
         private Mutex mutex;
 
         internal static ManualResetEvent _pauseFileWatchDog = new ManualResetEvent(true);
@@ -187,10 +188,10 @@ namespace Shoko.Server
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
-            workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
+            /*workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
             workerMyAnime2.RunWorkerCompleted += WorkerMyAnime2_RunWorkerCompleted;
             workerMyAnime2.ProgressChanged += WorkerMyAnime2_ProgressChanged;
-            workerMyAnime2.WorkerReportsProgress = true;
+            workerMyAnime2.WorkerReportsProgress = true;*/
 
             workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
 
@@ -707,7 +708,7 @@ namespace Shoko.Server
                             Resources.Server_DatabaseConfig;
                     e.Result = false;
                     ServerState.Instance.StartupFailed = true;
-                    ServerState.Instance.StartupFailedMessage = errorMessage;
+                    ServerState.Instance.StartupFailedMessage = "An error occured";//errorMessage;
                     return;
                 }
 
@@ -800,10 +801,11 @@ namespace Shoko.Server
 
         #endregion
 
+        
         #region MyAnime2 Migration
-
+        /*
         public event EventHandler<ProgressChangedEventArgs> MyAnime2ProgressChanged;
-
+        
         void WorkerMyAnime2_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             MyAnime2ProgressChanged?.Invoke(Instance, e);
@@ -968,7 +970,7 @@ namespace Shoko.Server
         private void ImportLinksFromMA2(string databasePath)
         {
         }
-
+        */
         #endregion
 
         private void GenerateAzureList()
@@ -1471,7 +1473,7 @@ namespace Shoko.Server
         /// </summary>
         private static void StartNancyHost()
         {
-            foreach (string ext in SubtitleHelper.Extensions.Keys)
+            /*foreach (string ext in SubtitleHelper.Extensions.Keys)
             {
                 if (!MimeTypes.GetMimeType("file." + ext)
                     .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
@@ -1487,7 +1489,7 @@ namespace Shoko.Server
                 MimeTypes.AddType("mk3d", "video/x-matroska-3d");
                 MimeTypes.AddType("ogm", "video/ogg");
                 MimeTypes.AddType("flv", "video/x-flv");
-            }
+            }*/
 
             if (hostNancy != null)
                 return;
@@ -1505,7 +1507,6 @@ namespace Shoko.Server
             {
                 options.ListenAnyIP(ServerSettings.JMMServerPort);
             }).UseStartup<API.Startup>().Build();
-              
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 
@@ -1519,7 +1520,6 @@ namespace Shoko.Server
                 logger.Error(ex);
             }
         }
-    
 
         private static void ReadFiles()
         {
@@ -1535,8 +1535,7 @@ namespace Shoko.Server
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
             }
-
-
+            
             // get a list of all the shares we are looking at
             int filesFound = 0, videosFound = 0;
             int i = 0;
@@ -1721,9 +1720,9 @@ namespace Shoko.Server
             CheckForUpdatesNew(false);
         }
 
-        public static bool IsMyAnime2WorkerBusy() => workerMyAnime2.IsBusy;
+        //public static bool IsMyAnime2WorkerBusy() => workerMyAnime2.IsBusy;
 
-        public static void RunMyAnime2Worker(string filename) => workerMyAnime2.RunWorkerAsync(filename);
+        //public static void RunMyAnime2Worker(string filename) => workerMyAnime2.RunWorkerAsync(filename);
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
     }
 }

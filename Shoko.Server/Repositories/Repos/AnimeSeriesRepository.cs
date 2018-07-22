@@ -42,12 +42,13 @@ namespace Shoko.Server.Repositories.Repos
             }
             else
                 newSeries = true;
-            (CL_AnimeSeries_User contract, HashSet<GroupFilterConditionType> types) = entity.GenerateContract(parameters.onlyupdatestats);
+            //TODO: Probably @maxpiva: not sure what this GenerateContract was
+            /*(CL_AnimeSeries_User contract, HashSet<GroupFilterConditionType> types) = entity.GenerateContract(parameters.onlyupdatestats);
             if (newSeries && !isMigrating)
                 entity.Contract = null;
             else
-                entity.Contract = contract;
-            return (isMigrating, oldGroup, types);
+                entity.Contract = contract;*/
+            return (isMigrating, oldGroup, new HashSet<GroupFilterConditionType>());//types);
         }
 
         internal override void EndSave(SVR_AnimeSeries entity, object returnFromBeginSave,

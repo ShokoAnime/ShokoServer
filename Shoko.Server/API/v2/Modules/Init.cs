@@ -20,7 +20,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
-using Microsoft.SqlServer.Management.Smo;
+//using Microsoft.SqlServer.Management.Smo;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -461,8 +461,9 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
+            return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
+            /*if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
                     StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
                 return APIStatus.OK();
 
@@ -472,9 +473,9 @@ namespace Shoko.Server.API.v2.Modules
 
             if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
                 StringComparison.InvariantCultureIgnoreCase))
-                return APIStatus.OK();
+                return APIStatus.OK();*/
 
-            return APIStatus.BadRequest("Failed to Connect");
+            //return APIStatus.BadRequest("Failed to Connect");
         }
 
         /// <summary>
@@ -488,8 +489,8 @@ namespace Shoko.Server.API.v2.Modules
 
             List<string> instances = new List<string>();
 
-            DataTable dt = SmoApplication.EnumAvailableSqlServers();
-            if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
+            //DataTable dt = SmoApplication.EnumAvailableSqlServers();
+            //if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
 
             return instances;
         }

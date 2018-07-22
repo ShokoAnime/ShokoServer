@@ -11,6 +11,8 @@ namespace Shoko.Server.Models
 {
     public class SVR_Scan : Scan
     {
+        public DateTime CreationTIme;
+
         public string TitleText
         {
             get

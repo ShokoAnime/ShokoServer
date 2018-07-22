@@ -128,14 +128,12 @@ namespace Shoko.Server.Repositories
             {
                 if (IntAutoGen == -1)
                 {
-
                     IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
                 }
                 IntAutoGen++;
             }
             return IntAutoGen;
         }
-
         
         public IAtomic<T, TT> BeginAdd()
         {
@@ -205,8 +203,7 @@ namespace Shoko.Server.Repositories
                 return new AtomicUpdateList<T, TS, TT>(this, objs.ToList(),false);
             }
         }
-
-
+        
         private IAtomicList<T,TT> BeginUpdate(IEnumerable<T> objs)
         {
             if (objs == null)
@@ -216,9 +213,7 @@ namespace Shoko.Server.Repositories
                 return new AtomicUpdateList<T, TS,TT>(this, objs.ToList());
             }
         }
-
-
-
+        
         //The idea of this method, is returning a class, capable of autodealing with an update of a collection, mantaining, which objects to delete, update or add.
         //The input is the original collection before the update
         public IBatchAtomic<T, TT> BeginBatchUpdate(Func<List<T>> find_original_items_function = null, bool delete_not_updated = false)
@@ -235,6 +230,7 @@ namespace Shoko.Server.Repositories
                 return upd.Commit(pars);
             }
         }
+
         public List<T> Touch(Func<List<T>> find_function, TT pars = default(TT))
         {
             using (var upd = new AtomicLockBatchUpdate<T, TS, TT>(this, find_function))
@@ -265,12 +261,12 @@ namespace Shoko.Server.Repositories
             }
         }
 
-
         public virtual void PopulateCache()
         {
             Cache = new PocoCache<TS, T>(Table, SelectKey);
             PopulateIndexes();
         }
+
         internal virtual void ClearCache()
         {
             ClearIndexes();
@@ -282,6 +278,7 @@ namespace Shoko.Server.Repositories
         {
             return RepositoryCache.SupportsCache | RepositoryCache.SupportsDirectAccess;
         }
+
         public void SwitchCache(bool cache)
         {
             RepositoryCache supports = Supports();
@@ -315,7 +312,7 @@ namespace Shoko.Server.Repositories
                 ClearCache();
             }
         }
-        
+
         protected IQueryable<T> Where(Expression<Func<T, bool>> predicate)
         {
             if (IsCached)
@@ -329,6 +326,7 @@ namespace Shoko.Server.Repositories
                 return Cache.Values.AsQueryable();
             return Table;
         }
+
         protected IQueryable<T> WhereMany(IEnumerable<TS> ids)
         {
             return IsCached ? Cache.GetMany(ids).AsQueryable() : Table.Where(a => ids.Contains(SelectKey(a)));
@@ -338,11 +336,9 @@ namespace Shoko.Server.Repositories
 
         internal abstract void ClearIndexes();
 
-
-
         internal virtual void PostProcess()
         {
-           
+
         }
 
         internal virtual object BeginSave(T entity, T original_entity, TT parameters)
@@ -372,12 +368,14 @@ namespace Shoko.Server.Repositories
 
         public virtual void PreInit(IProgress<InitProgress> progress, int batchSize)
         {
-            
+
         }
+
         public virtual void PostInit(IProgress<InitProgress> progress, int batchSize)
         {
 
         }
+
         public string Name => Table.GetName();
     }
 }

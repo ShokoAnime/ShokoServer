@@ -193,7 +193,7 @@ namespace Shoko.Server.Repositories.Repos
 
         }
 
-        internal void ClearGeneralQueue()
+        public void ClearGeneralQueue()
         {
             using (RepoLock.ReaderLock())
             {
@@ -201,7 +201,7 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        internal void ClearHasherQueue()
+        public void ClearHasherQueue()
         {
             using (RepoLock.ReaderLock())
             {
@@ -209,7 +209,7 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        internal void ClearImageQueue()
+        public void ClearImageQueue()
         {
             using (RepoLock.ReaderLock())
             {

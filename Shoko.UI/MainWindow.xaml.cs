@@ -16,7 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Infralution.Localization.Wpf;
+//using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using NLog;
@@ -26,6 +26,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.UI.Forms;
@@ -119,7 +120,7 @@ namespace Shoko.UI
 
             Loaded += MainWindow_Loaded;
 
-            txtServerPort.Text = ServerSettings.JMMServerPort;
+            txtServerPort.Text = ServerSettings.JMMServerPort.ToString(CultureInfo.InvariantCulture);
 
             btnToolbarHelp.Click += btnToolbarHelp_Click;
             btnApplyServerPort.Click += btnApplyServerPort_Click;
@@ -506,7 +507,7 @@ namespace Shoko.UI
             {
                 CultureInfo ci = new CultureInfo(ul.Culture);
                 CultureInfo.DefaultThreadCurrentUICulture = ci;
-                CultureManager.UICulture = ci;
+                //CultureManager.UICulture = ci;
                 ServerSettings.Culture = ul.Culture;
                 if (isLanguageChanged)
                 {
@@ -767,7 +768,8 @@ namespace Shoko.UI
         #region MyAnime2 Migration
         void btnImportManualLinks_Click(object sender, RoutedEventArgs e)
         {
-            if (ShokoServer.IsMyAnime2WorkerBusy())
+            //TODO: Work out if we need MyAnime2
+            if (/*ShokoServer.IsMyAnime2WorkerBusy()*/ true)
             {
                 MessageBox.Show(Commons.Properties.Resources.Server_Import,
                     Commons.Properties.Resources.Error,
@@ -783,7 +785,7 @@ namespace Shoko.UI
             ofd.ShowDialog();
             if (!string.IsNullOrEmpty(ofd.FileName))
             {
-                ShokoServer.RunMyAnime2Worker(ofd.FileName);
+                //ShokoServer.RunMyAnime2Worker(ofd.FileName);
             }
         }
 

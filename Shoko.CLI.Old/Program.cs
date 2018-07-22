@@ -1,5 +1,10 @@
 ﻿using Shoko.Server;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Shoko.Server.Commands;
 
 namespace Shoko.CLI
 {
@@ -17,7 +22,7 @@ namespace Shoko.CLI
                     }
                 }
             }
-
+            
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
             ShokoServer.Instance.StartUpServer();

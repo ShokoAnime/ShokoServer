@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml;
+using Force.DeepCloner;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -48,8 +49,14 @@ namespace Shoko.Server.Commands
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
-                if (place.RefreshMediaInfo())
-                    Repo.VideoLocal.Save(place.VideoLocal, true);
+                using (var txn = Repo.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
+                {
+                    if (place.RefreshMediaInfo())
+                    {
+                        place.VideoLocal.DeepCloneTo(txn.Entity);
+                        txn.Commit();
+                    }
+                }
             }
             catch (Exception ex)
             {
