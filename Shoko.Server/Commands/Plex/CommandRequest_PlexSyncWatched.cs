@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands.Plex
                 var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)
                 {
-                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes();
+                    var episodes = ((SVR_PlexLibrary) series)?.GetEpisodes()?.Where(s => s != null);
                     if (episodes == null) continue;
                     foreach (var ep in episodes)
                     {
@@ -49,9 +49,9 @@ namespace Shoko.Server.Commands.Plex
                         var animeEpisode = episode.AnimeEpisode;
                         if (animeEpisode == null) continue;
                         var userRecord = animeEpisode.GetUserRecord(_jmmuser.JMMUserID);
-                        var isWatched = episode.ViewCount > 0;
-                        var lastWatched = userRecord.WatchedDate;
-                        if (userRecord.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
+                        var isWatched = episode.ViewCount != null && episode.ViewCount > 0;
+                        var lastWatched = userRecord?.WatchedDate;
+                        if (userRecord?.WatchedCount == 0 && isWatched && episode.LastViewedAt != null)
                         {
                             lastWatched = FromUnixTime((long) episode.LastViewedAt);
                         }

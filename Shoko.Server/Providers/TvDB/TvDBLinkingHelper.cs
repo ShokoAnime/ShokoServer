@@ -252,7 +252,10 @@ namespace Shoko.Server
                 TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
 
                 if (!hasNumberedTitles)
+                {
                     TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches);
+                    CorrectMatchRatings(ref matches);
+                }
 
                 FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
             }
@@ -281,6 +284,7 @@ namespace Shoko.Server
             TryToMatchEpisodes1To1ByTitle(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             TryToMatchEpisodes1To1ByAirDate(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             FillUnmatchedEpisodes1To1(ref aniepsSpecial, ref tvepsSpecial, ref matches);
+            CorrectMatchRatings(ref matches);
         }
 
         private static readonly char[] separators = " /.,<>?;':\"\\!@#$%^&*()-=_+|`~".ToCharArray();
@@ -335,8 +339,8 @@ namespace Shoko.Server
              * d.gray-man s1---------------------------------------------w1 s2-----------------------w2
              *
              *
-             * calc     s1'--------------------------e1'                 s3'---------------------------e3'
-             *                                   s2'------------------------e2'
+             * ^ calc'd   s1'-------------------e1'                          s3'---------------------e3'
+             *                                     s2'--------------------e2'
              *
              * Aldoah.Zero
              * tvdb long    ss-----------------------------------------------------------------------se
@@ -612,6 +616,36 @@ namespace Shoko.Server
             }
         }
 
+        private static void CorrectMatchRatings(ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        {
+            for (int index = 0; index < matches.Count; index++)
+            {
+                var match = matches[index];
+                if (match.Item1 == null || match.Item2 == null)
+                {
+                    matches[index] = (match.Item1, match.Item2, MatchRating.SarahJessicaParker);
+                    continue;
+                }
+                
+                DateTime? aniair = match.Item1.GetAirDateAsDate();
+                DateTime? tvair = match.Item2.AirDate;
+                bool datesMatch = aniair != null && tvair != null;
+
+                if (datesMatch) datesMatch = aniair.Value.IsWithinErrorMargin(tvair.Value, TimeSpan.FromDays(1.5));
+                
+                if (!datesMatch) continue;
+                
+                // if the dates match, then they would have filled with Good, so the fuzzy search is only being done once
+
+                var aniTitle = match.Item1.GetEnglishTitle();
+                var tvTitle = match.Item2.EpisodeName;
+                // this method returns false if either is null
+                bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
+
+                if (!titlesMatch) matches[index] = (match.Item1, match.Item2, MatchRating.Mkay);
+            }
+        }
+
         private static void FillUnmatchedEpisodes1To1(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal,
             ref List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Match)> matches)
@@ -705,7 +739,7 @@ namespace Shoko.Server
                 if (ep == null) break;
 
                 // It goes against the initial rules for Good rating, but this is a very specific case
-                matches.Add((aniep, ep, MatchRating.Good));
+                matches.Add((aniep, ep, MatchRating.Mkay));
                 aniepsNormal.Remove(aniep);
                 count++;
             }

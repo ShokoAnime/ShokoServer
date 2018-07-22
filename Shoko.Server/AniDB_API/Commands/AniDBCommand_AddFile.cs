@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 
@@ -41,9 +42,24 @@ namespace AniDBAPI.Commands
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "210": return enHelperActivityType.FileAdded;
+                case "210":
+                {
+                    /* Response Format
+                     * {int4 mylist id of new entry}
+                     */
+                    // parse the MyList ID
+                    string[] arrResult = socketResponse.Split('\n');
+                    if (arrResult.Length >= 2)
+                    {
+                        int.TryParse(arrResult[1], out MyListID);
+                    }
+                    return enHelperActivityType.FileAdded;
+                }
                 case "310":
                 {
+                    /* Response Format
+                     * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
+                     */
                     //file already exists: read 'watched' status
                     string[] arrResult = socketResponse.Split('\n');
                     if (arrResult.Length >= 2)
@@ -86,7 +102,7 @@ namespace AniDBAPI.Commands
             commandType = enAniDBCommandType.AddFile;
         }
 
-        public void Init(IHash fileData, AniDBFile_State fileState)
+        public void Init(IHash fileData, AniDBFile_State fileState, DateTime? watchedDate = null)
         {
             FileData = fileData;
 
@@ -94,18 +110,30 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
-            commandText += "&viewed=0";
+            if (watchedDate == null)
+                commandText += "&viewed=0";
+            else
+            {
+                commandText += "&viewed=1";
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
+            }
             commandText += "&state=" + (int) fileState;
         }
 
-        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState)
+        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState, DateTime? watchedDate = null)
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
             commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
             commandText += "&epno=" + episodeNumber;
-            commandText += "&viewed=0";
+            if (watchedDate == null)
+                commandText += "&viewed=0";
+            else
+            {
+                commandText += "&viewed=1";
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
+            }
             commandText += "&state=" + (int) fileState;
         }
     }

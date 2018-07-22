@@ -45,14 +45,7 @@ namespace Shoko.Server.Plex
 
         static PlexHelper()
         {
-            HttpClient.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
-            HttpClient.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
-            HttpClient.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
-            HttpClient.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
-            HttpClient.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
-            HttpClient.DefaultRequestHeaders.Add("User-Agent",
-                $"{Assembly.GetEntryAssembly().GetName().Name} v${Assembly.GetEntryAssembly().GetName().Version}");
-            HttpClient.Timeout = TimeSpan.FromSeconds(3);
+            SetupHttpClient(HttpClient, TimeSpan.FromSeconds(3));
         }
 
         private PlexHelper(JMMUser user)
@@ -157,6 +150,18 @@ namespace Shoko.Server.Plex
                                   $"&context%5Bdevice%5D%5BplatformVersion%5D={WebUtility.UrlEncode(Environment.OSVersion.VersionString)}" +
                                   $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";
 
+        private static void SetupHttpClient(HttpClient client, TimeSpan timeout)
+        {
+            client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
+            client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
+            client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
+            client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
+            client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
+            client.DefaultRequestHeaders.Add("User-Agent",
+                $"{Assembly.GetEntryAssembly().GetName().Name} v${Assembly.GetEntryAssembly().GetName().Version}");
+            client.Timeout = TimeSpan.FromSeconds(3);
+        }
+
         private PlexKey GetPlexKey()
         {
             if (_key != null)
@@ -222,8 +227,9 @@ namespace Shoko.Server.Plex
 
             configureRequest?.Invoke(req);
 
-            HttpClient.Timeout = TimeSpan.FromSeconds(60);
-            var resp = await HttpClient.SendAsync(req).ConfigureAwait(false);
+            var client = new HttpClient();
+            SetupHttpClient(client, TimeSpan.FromSeconds(60));
+            var resp = await client.SendAsync(req).ConfigureAwait(false);
             Logger.Trace($"Got response: {resp.StatusCode}");
             return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
         }
@@ -281,11 +287,18 @@ namespace Shoko.Server.Plex
 
         public Directory[] GetDirectories()
         {
-            if (ServerCache == null) return null;
-            var (_, data) = RequestFromPlexAsync("/library/sections").Result;
-            return JsonConvert
-                .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
-                ?.Container?.Directory ?? new Directory[0];
+            if (ServerCache == null) return new Directory[0];
+            try
+            {
+                var (_, data) = RequestFromPlexAsync("/library/sections").Result;
+                return JsonConvert
+                           .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
+                           .Container.Directory ?? new Directory[0];
+            }
+            catch (Exception) //I really just don't care now.
+            {
+                return new Directory[0];
+            }
         }
 
         public async Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,

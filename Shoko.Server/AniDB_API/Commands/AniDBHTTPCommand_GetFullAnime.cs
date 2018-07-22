@@ -112,14 +112,6 @@ namespace AniDBAPI.Commands
             set => createAnimeSeriesRecord = value;
         }
 
-        private string xmlResult = string.Empty;
-
-        public string XmlResult
-        {
-            get => xmlResult;
-            set => xmlResult = value;
-        }
-
         public string GetKey()
         {
             return "AniDBHTTPCommand_GetFullAnime_" + AnimeID.ToString();
@@ -132,27 +124,11 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            if (!CacheOnly)
-            {
-                ShokoService.LastAniDBMessage = DateTime.Now;
-                ShokoService.LastAniDBHTTPMessage = DateTime.Now;
-            }
-
             XmlDocument docAnime = null;
 
             if (CacheOnly)
             {
-                // This just throws 404s
-                //xmlResult = AzureWebAPI.Get_AnimeXML(animeID);
-                //if (!string.IsNullOrEmpty(xmlResult))
-                //{
-                //    docAnime = new XmlDocument();
-                //    docAnime.LoadXml(xmlResult);
-                //}
-                //else
-                //{
                 docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-                //}
             }
 
             if (!ForceFromAniDB)
@@ -162,17 +138,13 @@ namespace AniDBAPI.Commands
                 if (docAnime == null && !CacheOnly)
                 {
                     //logger.Info("No Anime HTTP info found in cache file, loading from HTTP API");
-                    docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+                    docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
                 }
             }
             else if (!CacheOnly)
             {
-                docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID, ref xmlResult);
+                docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
             }
-
-            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
-
-            if (xmlResult.Trim().Length > 0) APIUtils.WriteAnimeHTTPToFile(animeID, xmlResult);
 
             if (docAnime != null)
             {

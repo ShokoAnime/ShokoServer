@@ -32,14 +32,6 @@ namespace AniDBAPI.Commands
             set { password = value; }
         }
 
-        private string xmlResult = string.Empty;
-
-        public string XmlResult
-        {
-            get { return xmlResult; }
-            set { xmlResult = value; }
-        }
-
         public string GetKey()
         {
             return "AniDBHTTPCommand_GetMyList";
@@ -93,23 +85,19 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            ShokoService.LastAniDBMessage = DateTime.Now;
-            ShokoService.LastAniDBHTTPMessage = DateTime.Now;
-
-            XmlDocument docAnime = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password, ref xmlResult);
-            //XmlDocument docAnime = LoadAnimeMyListFromFile();
-            //APIUtils.WriteToLog("AniDBHTTPCommand_GetFullAnime: " + xmlResult);
-
-            if (CheckForBan(xmlResult)) return enHelperActivityType.Banned_555;
-
-            if (xmlResult.Trim().Length > 0)
+            string xmlResult = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password);
+            XmlDocument docAnime = null;
+            if (0 < xmlResult.Trim().Length)
+            {
                 WriteAnimeMyListToFile(xmlResult);
-
-            if (docAnime != null)
+                docAnime = new XmlDocument();
+                docAnime.LoadXml(xmlResult);
+            }
+            if (null != docAnime)
             {
                 myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
-                if (myListItems == null) return  enHelperActivityType.NoSuchAnime;
-                return enHelperActivityType.GotMyListHTTP;
+                if (myListItems != null)
+                	return enHelperActivityType.GotMyListHTTP;
             }
 
             return enHelperActivityType.NoSuchAnime;

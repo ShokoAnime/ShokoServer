@@ -2308,7 +2308,41 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+                
+                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
+
+                // also find any files for this anime which don't have proper media info data
+                // we can usually tell this if the Resolution == '0x0'
+                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                {
+                    AniDB_File aniFile = vid.GetAniDBFile();
+                    if (aniFile == null) continue;
+
+                    if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
+                        continue;
+
+                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+                    cmd.Save();
+                }
+
+                // update group status information
+                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
+                    true);
+                cmdStatus.Save();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+            return string.Empty;
+        }
+
+        public CL_AniDB_AnimeDetailed GetUpdatedAnimeData(int animeID)
+        {
+            try
+            {
+                
+                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, false);
 
                 // also find any files for this anime which don't have proper media info data
                 // we can usually tell this if the Resolution == '0x0'
@@ -2317,22 +2351,26 @@ namespace Shoko.Server
                     AniDB_File aniFile = vid.GetAniDBFile();
                     if (aniFile == null) continue;
 
-                    if (aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                        cmd.Save();
-                    }
+                    if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
+                        continue;
+
+                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
+                    cmd.Save();
                 }
 
                 // update group status information
-                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID, true);
+                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
+                    true);
                 cmdStatus.Save();
+
+                return anime?.Contract;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
             return "";
+            return null;
         }
 
         public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)

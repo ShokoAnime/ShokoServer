@@ -277,7 +277,7 @@ namespace AniDBAPI.Commands
             // 506 INVALID SESSION
             // 505 ILLEGAL INPUT OR ACCESS DENIED
             // reset login status to start again
-            if (ResponseCode == 598 || ResponseCode == 506 || ResponseCode == 506)
+            if (ResponseCode == 598 || ResponseCode == 506 || ResponseCode == 505)
             {
                 ShokoService.AnidbProcessor.IsInvalidSession = true;
                 logger.Trace("FORCING Logout because of invalid session");

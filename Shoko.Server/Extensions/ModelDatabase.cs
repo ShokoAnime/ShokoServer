@@ -46,24 +46,16 @@ namespace Shoko.Server.Extensions
         public static void CreateAnimeEpisode(this AniDB_Episode episode, int animeSeriesID)
         {
             // check if there is an existing episode for this EpisodeID
-            SVR_AnimeEpisode existingEp = Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID) ;
-            if (existingEp != null)
+            using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)))
             {
-                using (var upd = Repo.AnimeEpisode.BeginAdd())
-                {
-                    upd.Entity.Populate_RA(episode);
-                    upd.Entity.AnimeSeriesID = animeSeriesID;
-                    upd.Commit();
-                }
+                upd.Entity.Populate(episode);
+                upd.Entity.AnimeSeriesID = animeSeriesID;
+                existingEp = upd.Commit();
             }
-            else
-            {
-                using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => existingEp)) 
-                {
-                    if (upd.Entity.AnimeSeriesID != animeSeriesID) upd.Entity.AnimeSeriesID = animeSeriesID;
-                    upd.Entity.PlexContract = null;
-                    existingEp = upd.Commit();
-                }
+                
+            foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+        }
 
                 var updates = Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID);
                 Repo.AnimeEpisode_User.BatchAction(updates, updates.Count, (ep, _) => {});

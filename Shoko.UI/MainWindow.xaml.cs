@@ -847,13 +847,17 @@ namespace Shoko.UI
 
             if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
 
-            tabControl1.SelectedIndex = 6; // setup
+            tabControl1.SelectedIndex = 4; // Settings
 
             logger.Info("Clearing Cache...");
 
             Utils.ClearAutoUpdateCache();
 
-            ShowDatabaseSetup();
+            if (ServerSettings.FirstRun)
+            {
+                logger.Info("Initializing DB...");
+                ShokoServer.RunWorkSetupDB();
+            }
 
             ShokoServer.Instance.CheckForUpdates();
             ShokoServer.Instance.UpdateAvailable += (s, args) => new UpdateForm {Owner = Instance}.ShowDialog();

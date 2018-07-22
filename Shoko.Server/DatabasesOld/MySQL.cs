@@ -16,7 +16,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 85;
+        public int RequiredVersion { get; } = 86;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -621,6 +621,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(84, 11, DatabaseFixes.MigrateTvDBLinks_v2_to_V3),
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
+            new DatabaseCommand(86, 1, DatabaseFixes.RegenTvDBMatches),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

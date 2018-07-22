@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -16,6 +17,8 @@ namespace Shoko.Server.Commands
     public class CommandRequest_AddFileToMyList : CommandRequestImplementation
     {
         public string Hash { get; set; }
+        public bool ReadStates { get; set; } = true;
+
 
         [NonSerialized]
         private SVR_VideoLocal vid;
@@ -44,9 +47,10 @@ namespace Shoko.Server.Commands
         {
         }
 
-        public CommandRequest_AddFileToMyList(string hash)
+        public CommandRequest_AddFileToMyList(string hash, bool readstate = true)
         {
             Hash = hash;
+            ReadStates = readstate;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -54,8 +58,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid.FileName} - {vid.Hash}");
-
+            logger.Info($"Processing CommandRequest_AddFileToMyList: {vid?.FileName} - {Hash} - {ReadStates}");
 
             try
             {
@@ -70,17 +73,22 @@ namespace Shoko.Server.Commands
                     isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
                 // mark the video file as watched
-                DateTime? watchedDate = null;
-                bool? newWatchedStatus;
+                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
+                SVR_JMMUser juser = aniDBUsers.FirstOrDefault();
+                DateTime? originalWatchedDate = null;
+                if (juser != null)
+                    originalWatchedDate = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate;
+
+                DateTime? newWatchedDate;
                 int? lid;
                 AniDBFile_State? state = null;
 
                 if (isManualLink)
-                    (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
-                        xrefs[0].GetEpisode().EpisodeNumber,
-                        ref watchedDate);
+                    (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
+                        xrefs[0].GetEpisode().EpisodeNumber, originalWatchedDate);
                 else
-                    (lid, newWatchedStatus) = ShokoService.AnidbProcessor.AddFileToMyList(vid, ref watchedDate, ref state);
+                    (lid, newWatchedDate) =
+                        ShokoService.AnidbProcessor.AddFileToMyList(vid, originalWatchedDate, ref state);
 
                 if (lid != null && lid.Value > 0)
                 {
@@ -91,39 +99,37 @@ namespace Shoko.Server.Commands
                     }   
                 }
 
-                // do for all AniDB users
-                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
-
-
-                if (aniDBUsers.Count > 0)
+                if (juser != null)
                 {
-                    string datemessage = watchedDate?.ToShortDateString() ?? "Not Watched";
-                    if (watchedDate?.Equals(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime()) ?? false)
+                    string datemessage = newWatchedDate?.ToShortDateString() ?? "Not Watched";
+                    if (newWatchedDate?.Equals(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToLocalTime()) ?? false)
                         datemessage = "No Watch Date Specified";
                     logger.Info($"Adding file to list: {vid.FileName} - {datemessage}");
-                    bool watched = watchedDate != null;
-                    if (newWatchedStatus != null) watched = newWatchedStatus.Value;
+                    bool watched = newWatchedDate != null;
 
-                    SVR_JMMUser juser = aniDBUsers[0];
-                    bool watchedLocally = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate != null;
+                    
+                    bool watchedLocally = originalWatchedDate != null;
                     bool watchedChanged = watched != watchedLocally;
 
-                    // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
-                    if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                    if (ReadStates)
                     {
-                        vid.ToggleWatchedStatus(true, false, watchedDate, false, juser.JMMUserID,
-                            false, false);
-                    }
-                    else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
-                    {
-                        vid.ToggleWatchedStatus(false, false, watchedDate, false, juser.JMMUserID,
-                            false, false);
+                        // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
+                        if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                        {
+                            vid.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
+                                false, false);
+                        }
+                        else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
+                        {
+                            vid.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
+                                false, false);
+                        }
                     }
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
                     if (vid.MyListID > 0 && (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState))
                     {
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, watched, watchedDate);
+                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, watched, newWatchedDate);
                     }
                 }
 
@@ -178,6 +184,9 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 Hash = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "Hash");
+                string read = TryGetProperty(docCreator, "CommandRequest_AddFileToMyList", "ReadStates");
+                if (!bool.TryParse(read, out bool read_states)) read_states = true;
+                ReadStates = read_states;
             }
 
             if (Hash.Trim().Length <= 0) return false;

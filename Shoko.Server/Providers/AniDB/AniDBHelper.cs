@@ -59,19 +59,32 @@ namespace Shoko.Server.Providers.AniDB
             set
             {
                 _isHttpBanned = value;
-                HttpBanTime = DateTime.Now;
                 if (value)
                 {
+                    HttpBanTime = DateTime.Now;
                     ServerInfo.Instance.IsBanned = true;
                     ServerInfo.Instance.BanOrigin = @"HTTP";
                     ServerInfo.Instance.BanReason = HttpBanTime.ToString();
+                    if (httpBanResetTimer.Enabled)
+                    {
+                        logger.Warn("HTTP ban timer was already running, ban time extending");
+                        httpBanResetTimer.Stop(); //re-start implies stop
+                    }
                     httpBanResetTimer.Start();
                 }
-                else if (!IsUdpBanned)
+                else
                 {
-                    ServerInfo.Instance.IsBanned = false;
-                    ServerInfo.Instance.BanOrigin = string.Empty;
-                    ServerInfo.Instance.BanReason = string.Empty;
+                    if (httpBanResetTimer.Enabled)
+                    {
+                        httpBanResetTimer.Stop();
+                        logger.Info("HTTP ban timer stopped");
+                    }
+                    if (!IsUdpBanned)
+                    {
+                        ServerInfo.Instance.IsBanned = false;
+                        ServerInfo.Instance.BanOrigin = string.Empty;
+                        ServerInfo.Instance.BanReason = string.Empty;
+                  }
                 }
             }
         }
@@ -82,19 +95,32 @@ namespace Shoko.Server.Providers.AniDB
             set
             {
                 _isUdpBanned = value;
-                UdpBanTime = DateTime.Now;
                 if (value)
                 {
+                    UdpBanTime = DateTime.Now;
                     ServerInfo.Instance.IsBanned = true;
                     ServerInfo.Instance.BanOrigin = @"UDP";
                     ServerInfo.Instance.BanReason = UdpBanTime.ToString();
+                    if (udpBanResetTimer.Enabled)
+                    {
+                        logger.Warn("UDP ban timer was already running, ban time extending");
+                        udpBanResetTimer.Stop(); // re-start implies stop
+                    }
                     udpBanResetTimer.Start();
                 }
-                else if (!IsHttpBanned)
+                else
                 {
-                    ServerInfo.Instance.IsBanned = false;
-                    ServerInfo.Instance.BanOrigin = string.Empty;
-                    ServerInfo.Instance.BanReason = string.Empty;
+                    if (udpBanResetTimer.Enabled)
+                    {
+                        udpBanResetTimer.Stop();
+                        logger.Info("UDP ban timer stopped");
+                    }
+                    if (!IsHttpBanned)
+                    {
+                        ServerInfo.Instance.IsBanned = false;
+                        ServerInfo.Instance.BanOrigin = string.Empty;
+                        ServerInfo.Instance.BanReason = string.Empty;
+                    }
                 }
             }
         }
@@ -177,10 +203,12 @@ namespace Shoko.Server.Providers.AniDB
             logoutTimer.Start();
 
             httpBanResetTimer = new Timer();
+            httpBanResetTimer.AutoReset = false;
             httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
             httpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
 
             udpBanResetTimer = new Timer();
+            udpBanResetTimer.AutoReset = false;
             udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
             udpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
         }
@@ -274,11 +302,13 @@ namespace Shoko.Server.Providers.AniDB
 
         private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
+            logger.Info("HTTP ban (12h) is over");
             IsHttpBanned = false;
         }
 
         private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
+            logger.Info("UDP ban (12h) is over");
             IsUdpBanned = false;
         }
 
@@ -503,12 +533,13 @@ namespace Shoko.Server.Providers.AniDB
 
             lock (lockAniDBConnections)
             {
-                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                 if (watched && watchedDate == null) watchedDate = DateTime.Now;
 
                 enHelperActivityType ev;
+                // We have the ID, so update it
                 if (hash.MyListID > 0)
                 {
+                    AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                     cmdUpdateFile.Init(hash, watched, watchedDate);
                     SetWaitingOnResponse(true);
                     ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
@@ -518,13 +549,15 @@ namespace Shoko.Server.Providers.AniDB
                 else
                 {
                     logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
+                    // We don't have the MyListID, so we'll act like it's not there, and AniDB will tell us
                     ev = enHelperActivityType.NoSuchMyListFile;
                 }
 
                 if (ev == enHelperActivityType.NoSuchMyListFile)
                 {
-                    // Run sychronously, but still do all of the stuff with watched state settings
-                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash);
+                    // Run synchronously, but still do all of the stuff with Trakt and whatnot
+                    // We are skipping the watched state settings, as we are setting them here
+                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
                     // Initialize private parts
                     addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
                     addcmd.ProcessCommand();
@@ -532,11 +565,11 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public (int?, bool?) AddFileToMyList(IHash fileDataLocal, ref DateTime? watchedDate, ref AniDBFile_State? state)
+        public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, false);
+            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, null);
 
-            if (!Login()) return (null, false);
+            if (!Login()) return (null, null);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -544,7 +577,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState);
+                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -554,17 +587,16 @@ namespace Shoko.Server.Providers.AniDB
             // if the user already has this file on
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
             {
-                watchedDate = cmdAddFile.WatchedDate;
                 state = cmdAddFile.State;
-                return (cmdAddFile.MyListID, cmdAddFile.ReturnIsWatched);
+                return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
 
-            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, false);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, null);
 
-            return (null, false);
+            return (null, null);
         }
 
-        public (int?, bool?) AddFileToMyList(int animeID, int episodeNumber, ref DateTime? watchedDate)
+        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate)
         {
             if (!Login()) return (null, null);
 
@@ -574,7 +606,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState);
+                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -584,10 +616,9 @@ namespace Shoko.Server.Providers.AniDB
             // if the user already has this file on
             if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
             {
-                watchedDate = cmdAddFile.WatchedDate;
-                return (cmdAddFile.MyListID, cmdAddFile.ReturnIsWatched);
+                return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
-            if (ServerSettings.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, false);
+            if (ServerSettings.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, null);
 
             if (cmdAddFile.MyListID > 0)
                 return (cmdAddFile.MyListID, null);
