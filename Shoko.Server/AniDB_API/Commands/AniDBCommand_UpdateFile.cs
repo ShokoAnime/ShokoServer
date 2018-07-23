@@ -68,7 +68,7 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD lid=" + fileData.MyListID;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
+            commandText += "&state=" + (int) ServerSettings.Instance.AniDB_MyList_StorageState;
             if (watchedDate.HasValue)
                 commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
             commandText += "&edit=1";

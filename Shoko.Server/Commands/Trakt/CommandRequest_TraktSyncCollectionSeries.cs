@@ -43,7 +43,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken)) return;
 
                 SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)

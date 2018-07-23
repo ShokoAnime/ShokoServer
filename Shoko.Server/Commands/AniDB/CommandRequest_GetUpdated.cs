@@ -48,7 +48,7 @@ namespace Shoko.Server.Commands
                     Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_Anime_UpdateFrequency);
 
                     // if we have run this in the last 12 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

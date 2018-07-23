@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -37,8 +38,9 @@ namespace Shoko.Server.Models
 
         #region Properties and fields
 
+        [NotMapped]
         private CL_AniDB_AnimeDetailed _contract;
-
+        [NotMapped]
         public virtual CL_AniDB_AnimeDetailed Contract
         {
             get
@@ -623,7 +625,7 @@ namespace Shoko.Server.Models
                 }
 
                 // try synonyms
-                if (ServerSettings.LanguageUseSynonyms)
+                if (ServerSettings.Instance.LanguageUseSynonyms)
                 {
                     foreach (AniDB_Anime_Title title in titles)
                     {
@@ -763,7 +765,7 @@ namespace Shoko.Server.Models
                 cmd.Save();
 
                 // check for Trakt associations
-                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 {
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                     cmd2.Save();
@@ -790,7 +792,7 @@ namespace Shoko.Server.Models
             using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => this))
             {
                 logger.Trace("------------------------------------------------");
-                logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.AniDB_MaxRelationDepth}");
+                logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDB_MaxRelationDepth}");
                 logger.Trace("------------------------------------------------");
 
                 Stopwatch taskTimer = new Stopwatch();
@@ -1249,7 +1251,7 @@ namespace Shoko.Server.Models
                 {
                     if (!upd.Entity.Populate(rawrel)) continue;
 
-                    if (downloadRelations && relDepth < ServerSettings.AniDB_MaxRelationDepth)
+                    if (downloadRelations && relDepth < ServerSettings.Instance.AniDB_MaxRelationDepth)
                     {
                         logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                             MainTitle, AnimeID, upd.Entity.RelatedAnimeID);

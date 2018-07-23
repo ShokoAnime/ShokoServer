@@ -203,7 +203,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             Dictionary<string, string> headers = new Dictionary<string, string>
             {
-                {"Authorization", $"Bearer {ServerSettings.Trakt_AuthToken}"},
+                {"Authorization", $"Bearer {ServerSettings.Instance.Trakt_AuthToken}"},
                 {"trakt-api-key", TraktConstants.ClientID},
                 {"trakt-api-version", "2"}
             };
@@ -220,20 +220,20 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled ||
-                    string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken) ||
-                    string.IsNullOrEmpty(ServerSettings.Trakt_RefreshToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled ||
+                    string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken) ||
+                    string.IsNullOrEmpty(ServerSettings.Instance.Trakt_RefreshToken))
                 {
-                    ServerSettings.Trakt_AuthToken = string.Empty;
-                    ServerSettings.Trakt_RefreshToken = string.Empty;
-                    ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                    ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                    ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                    ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
 
                     return;
                 }
 
                 TraktV2RefreshToken token = new TraktV2RefreshToken
                 {
-                    refresh_token = ServerSettings.Trakt_RefreshToken
+                    refresh_token = ServerSettings.Instance.Trakt_RefreshToken
                 };
                 string json = JSONHelper.Serialize(token);
                 Dictionary<string, string> headers = new Dictionary<string, string>();
@@ -245,26 +245,26 @@ namespace Shoko.Server.Providers.TraktTV
                     var loginResponse = retData.FromJSON<TraktAuthToken>();
 
                     // save the token to the config file to use for subsequent API calls
-                    ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
-                    ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
+                    ServerSettings.Instance.Trakt_AuthToken = loginResponse.AccessToken;
+                    ServerSettings.Instance.Trakt_RefreshToken = loginResponse.RefreshToken;
 
                     long.TryParse(loginResponse.CreatedAt, out long createdAt);
                     long.TryParse(loginResponse.ExpiresIn, out long validity);
                     long expireDate = createdAt + validity;
 
-                    ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
+                    ServerSettings.Instance.Trakt_TokenExpirationDate = expireDate.ToString();
 
                     return;
                 }
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
             }
             catch (Exception ex)
             {
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
 
                 logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex);
             }
@@ -361,14 +361,14 @@ namespace Shoko.Server.Providers.TraktTV
                     if (response == TraktStatusCodes.Success)
                     {
                         var tokenResponse = retData.FromJSON<TraktAuthToken>();
-                        ServerSettings.Trakt_AuthToken = tokenResponse.AccessToken;
-                        ServerSettings.Trakt_RefreshToken = tokenResponse.RefreshToken;
+                        ServerSettings.Instance.Trakt_AuthToken = tokenResponse.AccessToken;
+                        ServerSettings.Instance.Trakt_RefreshToken = tokenResponse.RefreshToken;
 
                         long.TryParse(tokenResponse.CreatedAt, out long createdAt);
                         long.TryParse(tokenResponse.ExpiresIn, out long validity);
                         long expireDate = createdAt + validity;
 
-                        ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
+                        ServerSettings.Instance.Trakt_TokenExpirationDate = expireDate.ToString();
                         break;
                     }
                     if (response == TraktStatusCodes.Rate_Limit_Exceeded)
@@ -447,7 +447,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache && ServerSettings.WebCache_Trakt_Send)
+            if (!excludeFromWebCache && ServerSettings.Instance.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheSendXRefAniDBTrakt req =
                     new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
@@ -470,7 +470,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            if (ServerSettings.Trakt_IsEnabled && ServerSettings.WebCache_Trakt_Send)
+            if (ServerSettings.Instance.Trakt_IsEnabled && ServerSettings.Instance.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
                     new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,
@@ -482,7 +482,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void ScanForMatches()
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
 
             IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
@@ -696,13 +696,13 @@ namespace Shoko.Server.Providers.TraktTV
             CL_Response<bool> ret = new CL_Response<bool>();
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled)
+                if (!ServerSettings.Instance.Trakt_IsEnabled)
                 {
                     ret.ErrorMessage = "Trakt has not been enabled";
                     ret.Result = false;
                     return ret;
                 }
-                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 {
                     ret.ErrorMessage = "Trakt has not been authorized";
                     ret.Result = false;
@@ -802,7 +802,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return;
 
                 string traktShowID = string.Empty;
@@ -828,7 +828,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return;
 
                 string json;
@@ -878,7 +878,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return 401;
 
                 string json = string.Empty;
@@ -953,7 +953,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             List<TraktV2SearchShowResult> results = new List<TraktV2SearchShowResult>();
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return results;
 
             try
@@ -991,7 +991,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             List<TraktV2SearchTvDBIDShowResult> results = new List<TraktV2SearchTvDBIDShowResult>();
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return results;
 
             try
@@ -1030,7 +1030,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             TraktV2ShowExtended resultShow;
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return null;
 
             try
@@ -1147,7 +1147,7 @@ namespace Shoko.Server.Providers.TraktTV
             List<TraktV2Comment> ret = new List<TraktV2Comment>();
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return ret;
 
                 List<CrossRef_AniDB_TraktV2> traktXRefs =
@@ -1204,7 +1204,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static List<TraktV2ShowWatchedResult> GetWatchedShows(ref int traktCode)
         {
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return new List<TraktV2ShowWatchedResult>();
 
             try
@@ -1233,7 +1233,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
         {
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return new List<TraktV2ShowCollectedResult>();
 
             try
@@ -1265,7 +1265,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
 
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
@@ -1314,7 +1314,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken)) return;
 
                 // check that we have at least one user nominated for Trakt
                 List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
@@ -1782,7 +1782,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return false;
 
                 // check that we have at least one user nominated for Trakt

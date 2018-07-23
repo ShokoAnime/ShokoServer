@@ -78,7 +78,7 @@ namespace Shoko.Server.Commands
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
-            if (ServerSettings.FileQualityFilterEnabled)
+            if (ServerSettings.Instance.FileQualityFilterEnabled)
             {
                 List<SVR_VideoLocal> videoLocals = episode.GetVideoLocals();
                 if (videoLocals != null)
@@ -111,7 +111,7 @@ namespace Shoko.Server.Commands
 
             Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
-            if (ServerSettings.AniDB_MyList_AddFiles)
+            if (ServerSettings.Instance.AniDB_MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
                 cmdAddFile.Save();

@@ -111,7 +111,7 @@ namespace Shoko.Server
                     b.Language.Equals("x-jat",
                         StringComparison.InvariantCultureIgnoreCase) ||
                     b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals(ServerSettings.LanguagePreference, StringComparison.InvariantCultureIgnoreCase))
+                    b.Language.Equals(string.Join(",", ServerSettings.Instance.LanguagePreference), StringComparison.InvariantCultureIgnoreCase))
                 .Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -695,7 +695,7 @@ namespace Shoko.Server
                     // try the local database first
                     // if not download the data from AniDB now
                     SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
-                        ServerSettings.AniDB_DownloadRelatedAnime);
+                        ServerSettings.Instance.AniDB_DownloadRelatedAnime);
                     if (anime != null)
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
@@ -885,7 +885,7 @@ namespace Shoko.Server
             try
             {
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotMyListHTTP)
                 {

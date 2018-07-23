@@ -292,12 +292,12 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetWebUIConfig()
         {
-            if (!String.IsNullOrEmpty(ServerSettings.WebUI_Settings))
+            if (!String.IsNullOrEmpty(ServerSettings.Instance.WebUI_Settings))
             {
                 try
                 {
                     WebUI_Settings settings =
-                        JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
+                        JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.Instance.WebUI_Settings);
                     return settings;
                 }
                 catch
@@ -320,7 +320,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 try
                 {
-                    ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
+                    ServerSettings.Instance.WebUI_Settings = JsonConvert.SerializeObject(settings);
                     return APIStatus.OK();
                 }
                 catch

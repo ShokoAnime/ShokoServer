@@ -300,7 +300,7 @@ namespace Shoko.Server
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 waitingOnResponseAniDBUDPString = Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;

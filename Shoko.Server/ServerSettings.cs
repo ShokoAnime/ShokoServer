@@ -27,7 +27,7 @@ using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server
 {
-    public static class ServerSettings
+    public static class ServerSettings_Legacy
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -99,10 +99,12 @@ namespace Shoko.Server
                 try
                 {
                     //Reconfigure log file to applicationpath
-                    var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-                    target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
-                    LogManager.ReconfigExistingLoggers();
-
+                    var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
+                    if (target != null)
+                    {
+                        target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
+                        LogManager.ReconfigExistingLoggers();
+                    }
 
                     disabledSave = true;
                     bool startedWithFreshConfig = false;

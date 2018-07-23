@@ -64,7 +64,7 @@ namespace Shoko.Server.Commands
         {
             logger.Trace($"Processing File: {VideoLocalID}");
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             try
             {
@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
-                        if (ServerSettings.WebCache_XRefFileEpisode_Get)
+                        if (ServerSettings.Instance.WebCache_XRefFileEpisode_Get)
                         {
                             List<Azure_CrossRef_File_Episode> xrefs =
                                 AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
@@ -256,7 +256,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Debug("Getting Anime record from AniDB....");
                     anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                        ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
+                        ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDB_DownloadRelatedAnime);
                 }
 
                 // create the group/series/episode records if needed
@@ -316,7 +316,7 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        if (ServerSettings.FileQualityFilterEnabled)
+                        if (ServerSettings.Instance.FileQualityFilterEnabled)
                         {
                             videoLocals.Sort(FileQualityFilter.CompareTo);
                             List<SVR_VideoLocal> keep = videoLocals
@@ -342,7 +342,7 @@ namespace Shoko.Server.Commands
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 // Add this file to the users list
-                if (ServerSettings.AniDB_MyList_AddFiles)
+                if (ServerSettings.Instance.AniDB_MyList_AddFiles)
                 {
                     CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vidLocal.ED2KHash);
                     cmd.Save();

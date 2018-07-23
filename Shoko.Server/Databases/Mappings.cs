@@ -1,6 +1,7 @@
 ﻿using Shoko.Server.Models;
 using Shoko.Models.Server;
 using Microsoft.EntityFrameworkCore;
+using Shoko.Models.Client;
 
 namespace Shoko.Server.Databases
 {
@@ -8,6 +9,10 @@ namespace Shoko.Server.Databases
     {
         public static void Map(ModelBuilder builder)
         {
+            {
+                builder.Ignore<CL_AniDB_AnimeDetailed>();
+                builder.Ignore<CL_AnimeGroup_User>();
+            }
             {
                 var model = builder.Entity<SVR_AniDB_Anime>();
                 model.ToTable("AniDB_Anime").HasKey(x => x.AnimeID);
@@ -37,6 +42,8 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.DisableExternalLinksFlag).IsRequired();
                 model.Property(x => x.ContractVersion).IsRequired().HasDefaultValue(0);
                 model.Property(x => x.ContractSize).IsRequired().HasDefaultValue(0);
+                model.Property(x => x.ContractBlob);
+                model.Ignore(x => x.Contract);
             }
             {
                 var model = builder.Entity<AniDB_AnimeUpdate>();

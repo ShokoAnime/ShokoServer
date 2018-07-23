@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Principal;
 //using System.Web.Script.Serialization;
 using Shoko.Commons.Extensions;
@@ -85,19 +86,19 @@ namespace Shoko.Server.Models
         }
 
         //[ScriptIgnore]
-        public IEnumerable<string> Claims { get; set; }
+        [NotMapped] public IEnumerable<string> Claims { get; set; }
 
-        string IIdentity.AuthenticationType => "API";
+        [NotMapped] string IIdentity.AuthenticationType => "API";
 
-        bool IIdentity.IsAuthenticated => true;
+        [NotMapped] bool IIdentity.IsAuthenticated => true;
 
-        string IIdentity.Name => Username;
+        [NotMapped] string IIdentity.Name => Username;
 
         public SVR_JMMUser(string username)
         {
             foreach (SVR_JMMUser us in Repo.JMMUser.GetAll())
             {
-                if (us.Username.ToLower() == username.ToLower())
+                if (string.Equals(us.Username, username, System.StringComparison.CurrentCultureIgnoreCase))
                 {
                     JMMUserID = us.JMMUserID;
                     Username = us.Username;

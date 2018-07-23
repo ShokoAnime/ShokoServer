@@ -39,7 +39,7 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
+                //if (string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey)) return;
 
                 CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null) return;

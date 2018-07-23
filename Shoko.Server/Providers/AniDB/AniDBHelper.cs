@@ -39,8 +39,8 @@ namespace Shoko.Server.Providers.AniDB
         private string userName = string.Empty;
         private string password = string.Empty;
         private string serverName = string.Empty;
-        private string serverPort = string.Empty;
-        private string clientPort = string.Empty;
+        private ushort serverPort = 0;
+        private ushort clientPort = 0;
 
         private Timer logoutTimer;
 
@@ -160,7 +160,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void ExtendPause(int secsToPause, string pauseReason)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
@@ -178,7 +178,7 @@ namespace Shoko.Server.Providers.AniDB
             ServerInfo.Instance.HasExtendedPause = false;
         }
 
-        public void Init(string userName, string password, string serverName, string serverPort, string clientPort)
+        public void Init(string userName, string password, string serverName, ushort serverPort, ushort clientPort)
         {
             soUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
@@ -257,7 +257,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     if (WaitingOnResponseTime.HasValue)
                     {
-                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -288,7 +288,7 @@ namespace Shoko.Server.Providers.AniDB
                     ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 }
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 string msg = string.Format(Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
@@ -317,7 +317,7 @@ namespace Shoko.Server.Providers.AniDB
             WaitingOnResponse = isWaiting;
             ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -413,7 +413,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo);
 
-                    if (ServerSettings.AniDB_DownloadReleaseGroups)
+                    if (ServerSettings.Instance.AniDB_DownloadReleaseGroups)
                     {
                         CommandRequest_GetReleaseGroup cmdRelgrp =
                             new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
@@ -435,7 +435,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void GetMyListFileStatus(int aniDBFileID)
         {
-            if (!ServerSettings.AniDB_MyList_ReadWatched) return;
+            if (!ServerSettings.Instance.AniDB_MyList_ReadWatched) return;
 
             if (!Login()) return;
 
@@ -527,7 +527,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -567,7 +567,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, null);
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, null);
 
             if (!Login()) return (null, null);
 
@@ -577,7 +577,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(fileDataLocal, ServerSettings.Instance.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -606,7 +606,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDB_MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -614,11 +614,11 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             // if the user already has this file on
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
+            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.Instance.AniDB_MyList_ReadWatched)
             {
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
-            if (ServerSettings.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, null);
+            if (ServerSettings.Instance.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, null);
 
             if (cmdAddFile.MyListID > 0)
                 return (cmdAddFile.MyListID, null);
@@ -733,7 +733,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void DeleteFileFromMyList(string hash, long fileSize)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -750,7 +750,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void DeleteFileFromMyList(int fileID)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -1041,7 +1041,7 @@ namespace Shoko.Server.Providers.AniDB
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(animeID, downloadRelations || ServerSettings.AutoGroupSeries, true, getAnimeCmd, relDepth);
+                return SaveResultsForAnimeXML(animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)
@@ -1102,7 +1102,7 @@ namespace Shoko.Server.Providers.AniDB
         {
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password) ||
                 string.IsNullOrEmpty(serverName)
-                || string.IsNullOrEmpty(serverPort) || string.IsNullOrEmpty(clientPort))
+                || serverPort == 0 || clientPort == 0)
             {
                 //OnAniDBStatusEvent(new AniDBStatusEventArgs(enHelperActivityType.OtherError, "ERROR: Please enter valid AniDB credentials via Configuration first"));
                 return false;

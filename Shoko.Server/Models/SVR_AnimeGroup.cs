@@ -113,7 +113,7 @@ namespace Shoko.Server.Models
 
         public static bool IsRelationTypeInExclusions(string type)
         {
-            string[] list = ServerSettings.AutoGroupSeriesRelationExclusions.Split('|');
+            string[] list = ServerSettings.Instance.AutoGroupSeriesRelationExclusions.Split('|');
             return list.Any(a => a.Equals(type, StringComparison.InvariantCultureIgnoreCase));
         }
 

@@ -229,7 +229,7 @@ namespace Shoko.Server
 
                 #region Cleanup Default Ports
 
-                if (ServerSettings.JMMServerPort != 8111.ToString())
+                if (ServerSettings.Instance.JMMServerPort != 8111.ToString())
                 {
                     BatchFileStream.WriteLine(string.Format(
                         @"netsh http delete urlacl url=http://+:{0}/JMMServerImage", 8111));
@@ -253,7 +253,7 @@ namespace Shoko.Server
                             8111));
                 }
 
-                if (ServerSettings.JMMServerFilePort != 8112.ToString())
+                if (ServerSettings.Instance.JMMServerFilePort != 8112.ToString())
                 {
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMFilePort",
                         8112));
@@ -1072,7 +1072,7 @@ namespace Shoko.Server
                 }
 
                 proc.Start();
-                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());         
+                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
                 Environment.Exit(0);
             }
             catch (Exception ex)

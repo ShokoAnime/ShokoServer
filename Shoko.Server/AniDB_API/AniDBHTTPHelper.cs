@@ -39,7 +39,7 @@ namespace AniDBAPI
                 DateTime? prevUpdate = anime?.UpdatedAt;
 
                 string uri = string.Format(AnimeURL, animeID);
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
                 DateTime start = DateTime.Now;
                 string msg = string.Format(Resources.AniDB_GettingAnimeXML, animeID)+"; prevUpdate: "+prevUpdate;
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);

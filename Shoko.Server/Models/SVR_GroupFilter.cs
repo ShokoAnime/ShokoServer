@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
@@ -35,7 +36,7 @@ namespace Shoko.Server.Models
         internal Dictionary<int, HashSet<int>> _seriesId = new Dictionary<int, HashSet<int>>();
         internal List<GroupFilterCondition> _conditions = new List<GroupFilterCondition>();
 
-
+        [NotMapped]
         public virtual HashSet<GroupFilterConditionType> Types
         {
             get
@@ -46,6 +47,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public virtual Dictionary<int, HashSet<int>> GroupsIds
         {
             get
@@ -62,6 +64,7 @@ namespace Shoko.Server.Models
             set => _groupsId = value;
         }
 
+        [NotMapped]
         public virtual Dictionary<int, HashSet<int>> SeriesIds
         {
             get
@@ -78,6 +81,7 @@ namespace Shoko.Server.Models
             set => _seriesId = value;
         }
 
+        [NotMapped]
         public virtual List<GroupFilterCondition> Conditions
         {
             get
@@ -104,6 +108,7 @@ namespace Shoko.Server.Models
             return $"{GroupFilterID} - {GroupFilterName}";
         }
 
+        [NotMapped]
         public List<GroupFilterSortingCriteria> SortCriteriaList
         {
             get

@@ -464,7 +464,7 @@ namespace Shoko.Server
             }
 
             // TvDB Posters
-            if (ServerSettings.TvDB_AutoPosters)
+            if (ServerSettings.Instance.TvDB_AutoPosters)
             {
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
@@ -493,7 +493,7 @@ namespace Shoko.Server
                     if (postersCount.ContainsKey(tvPoster.SeriesID))
                         postersAvailable = postersCount[tvPoster.SeriesID];
 
-                    if (!fileExists && postersAvailable < ServerSettings.TvDB_AutoPostersAmount)
+                    if (!fileExists && postersAvailable < ServerSettings.Instance.TvDB_AutoPostersAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvPoster.TvDB_ImagePosterID,
                             ImageEntityType.TvDB_Cover, false);
@@ -508,7 +508,7 @@ namespace Shoko.Server
             }
 
             // TvDB Fanart
-            if (ServerSettings.TvDB_AutoFanart)
+            if (ServerSettings.Instance.TvDB_AutoFanart)
             {
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
                 IReadOnlyList<TvDB_ImageFanart> allFanart = Repo.TvDB_ImageFanart.GetAll();
@@ -536,7 +536,7 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(tvFanart.SeriesID))
                         fanartAvailable = fanartCount[tvFanart.SeriesID];
 
-                    if (!fileExists && fanartAvailable < ServerSettings.TvDB_AutoFanartAmount)
+                    if (!fileExists && fanartAvailable < ServerSettings.Instance.TvDB_AutoFanartAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(tvFanart.TvDB_ImageFanartID,
                             ImageEntityType.TvDB_FanArt, false);
@@ -551,7 +551,7 @@ namespace Shoko.Server
             }
 
             // TvDB Wide Banners
-            if (ServerSettings.TvDB_AutoWideBanners)
+            if (ServerSettings.Instance.TvDB_AutoWideBanners)
             {
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
@@ -580,7 +580,7 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(tvBanner.SeriesID))
                         bannersAvailable = fanartCount[tvBanner.SeriesID];
 
-                    if (!fileExists && bannersAvailable < ServerSettings.TvDB_AutoWideBannersAmount)
+                    if (!fileExists && bannersAvailable < ServerSettings.Instance.TvDB_AutoWideBannersAmount)
                     {
                         CommandRequest_DownloadImage cmd =
                             new CommandRequest_DownloadImage(tvBanner.TvDB_ImageWideBannerID,
@@ -610,7 +610,7 @@ namespace Shoko.Server
             }
 
             // MovieDB Posters
-            if (ServerSettings.MovieDB_AutoPosters)
+            if (ServerSettings.Instance.MovieDB_AutoPosters)
             {
                 Dictionary<int, int> postersCount = new Dictionary<int, int>();
 
@@ -639,7 +639,7 @@ namespace Shoko.Server
                     if (postersCount.ContainsKey(moviePoster.MovieId))
                         postersAvailable = postersCount[moviePoster.MovieId];
 
-                    if (!fileExists && postersAvailable < ServerSettings.MovieDB_AutoPostersAmount)
+                    if (!fileExists && postersAvailable < ServerSettings.Instance.MovieDB_AutoPostersAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
                             moviePoster.MovieDB_PosterID,
@@ -655,7 +655,7 @@ namespace Shoko.Server
             }
 
             // MovieDB Fanart
-            if (ServerSettings.MovieDB_AutoFanart)
+            if (ServerSettings.Instance.MovieDB_AutoFanart)
             {
                 Dictionary<int, int> fanartCount = new Dictionary<int, int>();
 
@@ -684,7 +684,7 @@ namespace Shoko.Server
                     if (fanartCount.ContainsKey(movieFanart.MovieId))
                         fanartAvailable = fanartCount[movieFanart.MovieId];
 
-                    if (!fileExists && fanartAvailable < ServerSettings.MovieDB_AutoFanartAmount)
+                    if (!fileExists && fanartAvailable < ServerSettings.Instance.MovieDB_AutoFanartAmount)
                     {
                         CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(
                             movieFanart.MovieDB_FanartID,
@@ -700,7 +700,7 @@ namespace Shoko.Server
             }
 
             // AniDB Characters
-            if (ServerSettings.AniDB_DownloadCharacters)
+            if (ServerSettings.Instance.AniDB_DownloadCharacters)
             {
                 foreach (AniDB_Character chr in Repo.AniDB_Character.GetAll())
                 {
@@ -717,7 +717,7 @@ namespace Shoko.Server
             }
 
             // AniDB Creators
-            if (ServerSettings.AniDB_DownloadCreators)
+            if (ServerSettings.Instance.AniDB_DownloadCreators)
             {
                 foreach (AniDB_Seiyuu seiyuu in Repo.AniDB_Seiyuu.GetAll())
                 {
@@ -749,7 +749,7 @@ namespace Shoko.Server
 
         public static void RunImport_ScanTrakt()
         {
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 TraktTVHelper.ScanForMatches();
         }
 
@@ -1095,8 +1095,8 @@ namespace Shoko.Server
 
         public static void CheckForTvDBUpdates(bool forceRefresh)
         {
-            if (ServerSettings.TvDB_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.TvDB_UpdateFrequency);
+            if (ServerSettings.Instance.TvDB_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB_UpdateFrequency);
 
             // update tvdb info every 12 hours
 
@@ -1146,9 +1146,9 @@ namespace Shoko.Server
 
         public static void CheckForCalendarUpdate(bool forceRefresh)
         {
-            if (ServerSettings.AniDB_Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+            if (ServerSettings.Instance.AniDB_Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
                 return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Calendar_UpdateFrequency);
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_Calendar_UpdateFrequency);
 
             // update the calendar every 12 hours
             // we will always assume that an anime was downloaded via http first
@@ -1200,14 +1200,14 @@ namespace Shoko.Server
             }
 
             CommandRequest_Azure_SendUserInfo cmd =
-                new CommandRequest_Azure_SendUserInfo(ServerSettings.AniDB_Username);
+                new CommandRequest_Azure_SendUserInfo(ServerSettings.Instance.AniDB_Username);
             cmd.Save();
         }
 
         public static void CheckForAnimeUpdate(bool forceRefresh)
         {
-            if (ServerSettings.AniDB_Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
+            if (ServerSettings.Instance.AniDB_Anime_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_Anime_UpdateFrequency);
 
             // check for any updated anime info every 12 hours
 
@@ -1228,9 +1228,9 @@ namespace Shoko.Server
 
         public static void CheckForMyListStatsUpdate(bool forceRefresh)
         {
-            if (ServerSettings.AniDB_MyListStats_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
+            if (ServerSettings.Instance.AniDB_MyListStats_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
                 return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyListStats_UpdateFrequency);
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_MyListStats_UpdateFrequency);
 
             ScheduledUpdate sched =
                 Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
@@ -1251,8 +1251,8 @@ namespace Shoko.Server
 
         public static void CheckForMyListSyncUpdate(bool forceRefresh)
         {
-            if (ServerSettings.AniDB_MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyList_UpdateFrequency);
+            if (ServerSettings.Instance.AniDB_MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_MyList_UpdateFrequency);
 
             // update the calendar every 24 hours
 
@@ -1275,9 +1275,9 @@ namespace Shoko.Server
 
         public static void CheckForTraktSyncUpdate(bool forceRefresh)
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
-            if (ServerSettings.Trakt_SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
+            if (ServerSettings.Instance.Trakt_SyncFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_SyncFrequency);
 
             // update the calendar every xxx hours
 
@@ -1293,7 +1293,7 @@ namespace Shoko.Server
                 }
             }
 
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(false);
                 cmd.Save();
@@ -1302,9 +1302,9 @@ namespace Shoko.Server
 
         public static void CheckForTraktAllSeriesUpdate(bool forceRefresh)
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
-            if (ServerSettings.Trakt_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
+            if (ServerSettings.Instance.Trakt_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_UpdateFrequency);
 
             // update the calendar every xxx hours
             ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
@@ -1327,7 +1327,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled) return;
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 int freqHours = 24; // we need to update this daily
 
@@ -1367,8 +1367,8 @@ namespace Shoko.Server
 
         public static void CheckForAniDBFileUpdate(bool forceRefresh)
         {
-            if (ServerSettings.AniDB_File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-            int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_File_UpdateFrequency);
+            if (ServerSettings.Instance.AniDB_File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
+            int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_File_UpdateFrequency);
 
             // check for any updated anime info every 12 hours
 

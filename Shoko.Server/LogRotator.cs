@@ -17,19 +17,7 @@ namespace Shoko.Server
 
         public void Start()
         {
-            LogManager.Configuration = new NLog.Config.LoggingConfiguration();
-            ColoredConsoleTarget conTarget = new ColoredConsoleTarget("console") { Layout = "${date:format=HH\\:mm\\:ss}| --- ${message}" };
-            FileTarget fileTarget = new FileTarget("file") {
-                Layout = "[${shortdate} ${date:format=HH\\:mm\\:ss\\:fff}] ${level}|${stacktrace} ${message}",
-                FileName = "${basedir}/logs/${shortdate}.txt"
-            };
-            LogManager.Configuration.AddTarget(conTarget);
-            LogManager.Configuration.AddTarget(fileTarget);
-            LogManager.Configuration.AddRuleForAllLevels(conTarget);
-
-            LogManager.Configuration.AddRule(ServerSettings.TraceLog ? LogLevel.Trace : LogLevel.Info, LogLevel.Fatal, fileTarget);
-
-            if (ServerSettings.RotateLogs)
+            if (ServerSettings.Instance.RotateLogs)
             {
                 Delete_Logs();
                 Compress_Logs();
@@ -78,7 +66,7 @@ namespace Shoko.Server
 
         private void Compress_Logs()
         {
-            if (ServerSettings.RotateLogs_Zip)
+            if (ServerSettings.Instance.RotateLogs_Zip)
             {
                 //compress
                 List<string> compress = new List<string>();
@@ -115,14 +103,14 @@ namespace Shoko.Server
 
         private void Delete_Logs()
         {
-            if (ServerSettings.RotateLogs_Delete)
+            if (ServerSettings.Instance.RotateLogs_Delete)
             {
-                if (!string.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
+                if (!string.IsNullOrEmpty(ServerSettings.Instance.RotateLogs_Delete_Days))
                 {
                     //delete
                     DateTime now = DateTime.Now;
                     List<string> delete = new List<string>();
-                    if (int.TryParse(ServerSettings.RotateLogs_Delete_Days, out int days))
+                    if (int.TryParse(ServerSettings.Instance.RotateLogs_Delete_Days, out int days))
                     {
                         double dec = (-1 * days);
                         now = now.AddDays(dec);

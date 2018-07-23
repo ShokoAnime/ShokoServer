@@ -9,7 +9,7 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         //public const string MediaTagVersion = "1420942002";
 
         public string ServiceAddress => ShokoServer.PathAddressKodi;
-        public int ServicePort => ServerSettings.JMMServerPort;
+        public int ServicePort => ServerSettings.Instance.JMMServerPort;
         public bool UseBreadCrumbs => false; // turn off breadcrumbs navigation (plex)
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)

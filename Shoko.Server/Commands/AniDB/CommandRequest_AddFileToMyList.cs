@@ -114,12 +114,12 @@ namespace Shoko.Server.Commands
                     if (ReadStates)
                     {
                         // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
-                        if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                        if (ServerSettings.Instance.AniDB_MyList_ReadWatched && watched && !watchedLocally)
                         {
                             vid.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
                                 false, false);
                         }
-                        else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
+                        else if (ServerSettings.Instance.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
                         {
                             vid.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
                                 false, false);
@@ -127,7 +127,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
-                    if (vid.MyListID > 0 && (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState))
+                    if (vid.MyListID > 0 && (watchedChanged || state != ServerSettings.Instance.AniDB_MyList_StorageState))
                     {
                         ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, watched, newWatchedDate);
                     }
@@ -142,8 +142,8 @@ namespace Shoko.Server.Commands
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 
                 // lets also try adding to the users trakt collecion
-                if (ServerSettings.Trakt_IsEnabled &&
-                    !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (ServerSettings.Instance.Trakt_IsEnabled &&
+                    !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 {
                     foreach (SVR_AnimeEpisode aep in vid.GetAnimeEpisodes())
                     {

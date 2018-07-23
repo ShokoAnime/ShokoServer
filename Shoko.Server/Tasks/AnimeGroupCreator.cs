@@ -39,7 +39,7 @@ namespace Shoko.Server.Tasks
         /// Uses the current server configuration to determine if auto grouping series is enabled.
         /// </remarks>
         public AnimeGroupCreator()
-            : this(ServerSettings.AutoGroupSeries)
+            : this(ServerSettings.Instance.AutoGroupSeries)
         {
         }
 

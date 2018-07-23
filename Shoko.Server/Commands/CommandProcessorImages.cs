@@ -47,7 +47,7 @@ namespace Shoko.Server.Commands
             {
                 lock (lockPaused)
                 {
-                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                     paused = value;
                     if (paused)
@@ -128,7 +128,7 @@ namespace Shoko.Server.Commands
 
         void WorkerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             CurrentCommand = null;
             processingCommands = false;
@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
 
         public void Init()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
             processingCommands = true;
 
             QueueState = new QueueStateStruct

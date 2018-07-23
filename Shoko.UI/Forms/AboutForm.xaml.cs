@@ -19,7 +19,7 @@ namespace Shoko.UI.Forms
             cbUpdateChannel.Items.Add("Stable");
             cbUpdateChannel.Items.Add("Beta");
             cbUpdateChannel.Items.Add("Alpha");
-            cbUpdateChannel.Text = ServerSettings.UpdateChannel;
+            cbUpdateChannel.Text = ServerSettings.Instance.UpdateChannel;
         }
 
         void btnUpdates_Click(object sender, RoutedEventArgs e)
@@ -35,14 +35,14 @@ namespace Shoko.UI.Forms
         private void cbUpdateChannel_DropDownClosed(object sender, System.EventArgs e)
         {
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
-                ServerSettings.UpdateChannel = cbUpdateChannel.Text;
+                ServerSettings.Instance.UpdateChannel = cbUpdateChannel.Text;
         }
 
         private void cbUpdateChannel_SelectionChanged(object sender,
             System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
-                ServerSettings.UpdateChannel = cbUpdateChannel.Text;
+                ServerSettings.Instance.UpdateChannel = cbUpdateChannel.Text;
         }
 
         private void CommandBinding_SelectTextAndCopy(object sender, ExecutedRoutedEventArgs e)

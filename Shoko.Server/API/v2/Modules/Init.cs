@@ -212,7 +212,7 @@ namespace Shoko.Server.API.v2.Modules
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.CurrentSetupStatus,
                 server_uptime = uptimemsg,
-                first_run = ServerSettings.FirstRun,
+                first_run = ServerSettings.Instance.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage
             };
@@ -225,13 +225,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object GetDefaultUserCredentials()
         {
-            if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+            if (!ServerSettings.Instance.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only request the default user's credentials on first run");
 
             return new Credentials
             {
-                login = ServerSettings.DefaultUserUsername,
-                password = ServerSettings.DefaultUserPassword
+                login = ServerSettings.Instance.DefaultUserUsername,
+                password = ServerSettings.Instance.DefaultUserPassword
             };
         }
 
@@ -241,14 +241,14 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SetDefaultUserCredentials()
         {
-            if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+            if (!ServerSettings.Instance.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only set the default user's credentials on first run");
 
             try
             {
                 Credentials credentials = this.Bind();
-                ServerSettings.DefaultUserUsername = credentials.login;
-                ServerSettings.DefaultUserPassword = credentials.password;
+                ServerSettings.Instance.DefaultUserUsername = credentials.login;
+                ServerSettings.Instance.DefaultUserPassword = credentials.password;
                 return APIStatus.OK();
             }
             catch
@@ -296,14 +296,14 @@ namespace Shoko.Server.API.v2.Modules
                 details.Add(("password", "Password missing"));
             if (details.Count > 0) return new APIMessage(400, "Login or Password missing", details);
 
-            ServerSettings.AniDB_Username = cred.login;
-            ServerSettings.AniDB_Password = cred.password;
+            ServerSettings.Instance.AniDB_Username = cred.login;
+            ServerSettings.Instance.AniDB_Password = cred.password;
             if (cred.port != 0)
-                ServerSettings.AniDB_ClientPort = cred.port.ToString();
+                ServerSettings.Instance.AniDB_ClientPort = cred.port;
             if (!string.IsNullOrEmpty(cred.apikey))
-                ServerSettings.AniDB_AVDumpKey = cred.apikey;
+                ServerSettings.Instance.AniDB_AVDumpKey = cred.apikey;
             if (cred.apiport != 0)
-                ServerSettings.AniDB_AVDumpClientPort = cred.apiport.ToString();
+                ServerSettings.Instance.AniDB_AVDumpClientPort = cred.apiport;
 
             return APIStatus.OK();
         }
@@ -322,11 +322,11 @@ namespace Shoko.Server.API.v2.Modules
 
             Thread.Sleep(1000);
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                ServerSettings.Instance.AniDB_ServerAddress,
+                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
 
             if (!ShokoService.AnidbProcessor.Login()) return APIStatus.Unauthorized();
             ShokoService.AnidbProcessor.ForceLogout();
@@ -345,13 +345,12 @@ namespace Shoko.Server.API.v2.Modules
 
             try
             {
-                Credentials cred = new Credentials
+                return new Credentials
                 {
-                    login = ServerSettings.AniDB_Username,
-                    port = int.Parse(ServerSettings.AniDB_ClientPort),
-                    apiport = int.Parse(ServerSettings.AniDB_AVDumpClientPort)
+                    login = ServerSettings.Instance.AniDB_Username,
+                    port = ServerSettings.Instance.AniDB_ClientPort,
+                    apiport = ServerSettings.Instance.AniDB_AVDumpClientPort
                 };
-                return cred;
             }
             catch
             {
@@ -375,16 +374,16 @@ namespace Shoko.Server.API.v2.Modules
 
             var settings = new DatabaseSettings
             {
-                db_type = ServerSettings.DatabaseType,
-                mysql_hostname = ServerSettings.MySQL_Hostname,
-                mysql_password = ServerSettings.MySQL_Password,
-                mysql_schemaname = ServerSettings.MySQL_SchemaName,
-                mysql_username = ServerSettings.MySQL_Username,
-                sqlite_databasefile = ServerSettings.DatabaseFile,
-                sqlserver_databasename = ServerSettings.DatabaseName,
-                sqlserver_databaseserver = ServerSettings.DatabaseServer,
-                sqlserver_password = ServerSettings.DatabasePassword,
-                sqlserver_username = ServerSettings.DatabaseUsername
+                db_type = ServerSettings.Instance.DatabaseType,
+                mysql_hostname = ServerSettings.Instance.MySQL_Hostname,
+                mysql_password = ServerSettings.Instance.MySQL_Password,
+                mysql_schemaname = ServerSettings.Instance.MySQL_SchemaName,
+                mysql_username = ServerSettings.Instance.MySQL_Username,
+                sqlite_databasefile = ServerSettings.Instance.DatabaseFile,
+                sqlserver_databasename = ServerSettings.Instance.DatabaseName,
+                sqlserver_databaseserver = ServerSettings.Instance.DatabaseServer,
+                sqlserver_password = ServerSettings.Instance.DatabasePassword,
+                sqlserver_username = ServerSettings.Instance.DatabaseUsername
             };
 
             return settings;
@@ -400,10 +399,10 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You may only do this before server init");
 
             DatabaseSettings settings = this.Bind();
-            string dbtype = settings?.db_type?.Trim();
-            if (string.IsNullOrEmpty(dbtype))
+            DatabaseTypes? dbtype = settings?.db_type;
+            if (dbtype == null)
                 return APIStatus.BadRequest("You must specify database type and use valid xml or json.");
-            if (dbtype.Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.MySql)
             {
                 var details = new List<(string, string)>();
                 if (string.IsNullOrEmpty(settings.mysql_hostname))
@@ -416,14 +415,14 @@ namespace Shoko.Server.API.v2.Modules
                     details.Add(("mysql_password", "Must not be empty"));
                 if (details.Count > 0)
                     return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-                ServerSettings.DatabaseType = Constants.DatabaseType.MySQL;
-                ServerSettings.MySQL_Hostname = settings.mysql_hostname;
-                ServerSettings.MySQL_Password = settings.mysql_password;
-                ServerSettings.MySQL_SchemaName = settings.mysql_schemaname;
-                ServerSettings.MySQL_Username = settings.mysql_username;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.MySql;
+                ServerSettings.Instance.MySQL_Hostname = settings.mysql_hostname;
+                ServerSettings.Instance.MySQL_Password = settings.mysql_password;
+                ServerSettings.Instance.MySQL_SchemaName = settings.mysql_schemaname;
+                ServerSettings.Instance.MySQL_Username = settings.mysql_username;
                 return APIStatus.OK();
             }
-            if (dbtype.Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.SqlServer)
             {
                 var details = new List<(string, string)>();
                 if (string.IsNullOrEmpty(settings.sqlserver_databaseserver))
@@ -436,18 +435,18 @@ namespace Shoko.Server.API.v2.Modules
                     details.Add(("sqlserver_password", "Must not be empty"));
                 if (details.Count > 0)
                     return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-                ServerSettings.DatabaseType = Constants.DatabaseType.SqlServer;
-                ServerSettings.DatabaseServer = settings.sqlserver_databaseserver;
-                ServerSettings.DatabaseName = settings.sqlserver_databasename;
-                ServerSettings.DatabaseUsername = settings.sqlserver_username;
-                ServerSettings.DatabasePassword = settings.sqlserver_password;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.SqlServer;
+                ServerSettings.Instance.DatabaseServer = settings.sqlserver_databaseserver;
+                ServerSettings.Instance.DatabaseName = settings.sqlserver_databasename;
+                ServerSettings.Instance.DatabaseUsername = settings.sqlserver_username;
+                ServerSettings.Instance.DatabasePassword = settings.sqlserver_password;
                 return APIStatus.OK();
             }
-            if (dbtype.Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.Sqlite)
             {
-                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.Sqlite;
                 if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
-                    ServerSettings.DatabaseFile = settings.sqlite_databasefile;
+                    ServerSettings.Instance.DatabaseFile = settings.sqlite_databasefile;
                 return APIStatus.OK();
             }
             return APIStatus.BadRequest("An invalid setting was passed");
@@ -463,15 +462,15 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You may only do this before server init");
             return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
 
-            /*if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
+            /*if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.MySQL,
                     StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
                 return APIStatus.OK();
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
+            if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
                     StringComparison.InvariantCultureIgnoreCase) && new SQLServer().TestConnection())
                 return APIStatus.OK();
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
+            if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
                 StringComparison.InvariantCultureIgnoreCase))
                 return APIStatus.OK();*/
 
@@ -509,7 +508,7 @@ namespace Shoko.Server.API.v2.Modules
 
             try
             {
-                return ServerSettings.appSettings;
+                return ServerSettings.Instance;
             }
             catch
             {

@@ -18,6 +18,7 @@ using Microsoft.Win32.TaskScheduler;
 using Nancy;
 using Nancy.Json;
 using NLog;
+using NLog.Targets;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -110,7 +111,7 @@ namespace Shoko.Server
 
         public bool StartUpServer()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             // Check if any of the DLL are blocked, common issue with daily builds
             if (!CheckBlockedFiles())
@@ -163,7 +164,7 @@ namespace Shoko.Server
                 Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
-            ServerSettings.DebugSettingsToLog();
+            ServerSettings.Instance.DebugSettingsToLog();
             RenameFileHelper.InitialiseRenamers();
 
             workerFileEvents.WorkerReportsProgress = false;
@@ -229,6 +230,23 @@ namespace Shoko.Server
             workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
             workerSetupDB.DoWork += WorkerSetupDB_DoWork;
             workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
+
+#if false
+#region LoggingConfig
+            LogManager.Configuration = new NLog.Config.LoggingConfiguration();
+            ColoredConsoleTarget conTarget = new ColoredConsoleTarget("console") { Layout = "${date:format=HH\\:mm\\:ss}| --- ${message}" };
+            FileTarget fileTarget = new FileTarget("file")
+            {
+                Layout = "[${shortdate} ${date:format=HH\\:mm\\:ss\\:fff}] ${level}|${stacktrace} ${message}",
+                FileName = "${basedir}/logs/${shortdate}.txt"
+            };
+            LogManager.Configuration.AddTarget(conTarget);
+            LogManager.Configuration.AddTarget(fileTarget);
+            LogManager.Configuration.AddRuleForAllLevels(conTarget);
+
+            LogManager.Configuration.AddRule(ServerSettings.Instance.TraceLog ? LogLevel.Trace : LogLevel.Info, LogLevel.Fatal, fileTarget);
+#endregion
+#endif
 
             ServerState.Instance.LoadSettings();
 
@@ -547,7 +565,7 @@ namespace Shoko.Server
         }
 
 
-        #region Database settings and initial start up
+#region Database settings and initial start up
 
         public event EventHandler LoginFormNeeded;
         public event EventHandler DatabaseSetup;
@@ -559,8 +577,8 @@ namespace Shoko.Server
             if (!setupComplete)
             {
                 ServerState.Instance.ServerOnline = false;
-                if (!string.IsNullOrEmpty(ServerSettings.DatabaseType)) return;
-                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                //if (!string.IsNullOrEmpty(ServerSettings.Instance.DatabaseType)) return;
+                //ServerSettings.Instance.DatabaseType = Constants.DatabaseType.Sqlite;
                 ShowDatabaseSetup();
             }
         }
@@ -572,10 +590,10 @@ namespace Shoko.Server
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
-            ServerSettings.FirstRun = false;
-            ServerSettings.SaveSettings();
-            if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
-                string.IsNullOrEmpty(ServerSettings.AniDB_Password))
+            ServerSettings.Instance.FirstRun = false;
+            ServerSettings.Instance.SaveSettings();
+            if (string.IsNullOrEmpty(ServerSettings.Instance.AniDB_Username) ||
+                string.IsNullOrEmpty(ServerSettings.Instance.AniDB_Password))
                 LoginFormNeeded?.Invoke(Instance, null);
             DBSetupCompleted?.Invoke(Instance, null);
         }
@@ -593,7 +611,7 @@ namespace Shoko.Server
             cloudWatchTimer = new Timer
             {
                 AutoReset = true,
-                Interval = ServerSettings.CloudWatcherTime * 60 * 1000
+                Interval = ServerSettings.Instance.CloudWatcherTime * 60 * 1000
             };
             cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
             cloudWatchTimer.Start();
@@ -656,7 +674,7 @@ namespace Shoko.Server
 
         void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             try
             {
@@ -697,15 +715,15 @@ namespace Shoko.Server
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
-                //Repo.Init(new ShokoContext(ServerSettings.DatabaseType, ))
+                //Repo.Init(new ShokoContext(ServerSettings.Instance.DatabaseType, ))
                 if (Repo.Start())
                 //if (!DatabaseFactory.InitDB(out string errorMessage))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
-                    if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
+                    /*if (string.IsNullOrEmpty(ServerSettings.Instance.DatabaseType))
                         ServerState.Instance.CurrentSetupStatus =
-                            Resources.Server_DatabaseConfig;
+                            Resources.Server_DatabaseConfig;*/
                     e.Result = false;
                     ServerState.Instance.StartupFailed = true;
                     ServerState.Instance.StartupFailedMessage = "An error occured";//errorMessage;
@@ -758,8 +776,8 @@ namespace Shoko.Server
 
                 IReadOnlyList<SVR_ImportFolder> folders = Repo.ImportFolder.GetAll();
 
-                if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
-                if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
+                if (ServerSettings.Instance.ScanDropFoldersOnStart) ScanDropFolders();
+                if (ServerSettings.Instance.RunImportOnStart && folders.Count > 0) RunImport();
 
                 ServerState.Instance.ServerOnline = true;
                 workerSetupDB.ReportProgress(100);
@@ -778,9 +796,9 @@ namespace Shoko.Server
             }
         }
 
-        #endregion
+#endregion
 
-        #region Update all media info
+#region Update all media info
 
         void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -799,10 +817,10 @@ namespace Shoko.Server
             workerMediaInfo.RunWorkerAsync();
         }
 
-        #endregion
+#endregion
 
         
-        #region MyAnime2 Migration
+#region MyAnime2 Migration
         /*
         public event EventHandler<ProgressChangedEventArgs> MyAnime2ProgressChanged;
         
@@ -876,7 +894,7 @@ namespace Shoko.Server
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
                                 anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                                    ServerSettings.AutoGroupSeries);
+                                    ServerSettings.Instance.AutoGroupSeries);
                             }
                             else
                                 anime = Repo.AniDB_Anime.GetByID(animeID);
@@ -936,7 +954,7 @@ namespace Shoko.Server
 
 
                             // Add this file to the users list
-                            if (ServerSettings.AniDB_MyList_AddFiles)
+                            if (ServerSettings.Instance.AniDB_MyList_AddFiles)
                             {
                                 CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
                                 cmd.Save();
@@ -971,7 +989,7 @@ namespace Shoko.Server
         {
         }
         */
-        #endregion
+#endregion
 
         private void GenerateAzureList()
         {
@@ -1138,7 +1156,7 @@ namespace Shoko.Server
 
                 verNew =
                     JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
-                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
+                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.Instance.UpdateChannel))
                     ;
                 verCurrent = an.Version.Revision * 100 +
                              an.Version.Build * 100 * 100 +
@@ -1156,7 +1174,7 @@ namespace Shoko.Server
             }
         }
 
-        #region UI events and methods
+#region UI events and methods
 
         internal static string GetLocalIPv4(NetworkInterfaceType _type)
         {
@@ -1196,7 +1214,7 @@ namespace Shoko.Server
             ServerRestart?.Invoke(this, null);
         }
 
-        #endregion
+#endregion
 
         void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -1228,7 +1246,7 @@ namespace Shoko.Server
             }
         }
 
-        #region Tray Minimize
+#region Tray Minimize
 
         private void ShutDown()
         {
@@ -1238,7 +1256,7 @@ namespace Shoko.Server
             ServerShutdown?.Invoke(this, null);
         }
 
-        #endregion
+#endregion
 
         static void AutoUpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -1505,7 +1523,7 @@ namespace Shoko.Server
 
             hostNancy = new WebHostBuilder().UseKestrel(options =>
             {
-                options.ListenAnyIP(ServerSettings.JMMServerPort);
+                options.ListenAnyIP(ServerSettings.Instance.JMMServerPort);
             }).UseStartup<API.Startup>().Build();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
@@ -1567,9 +1585,9 @@ namespace Shoko.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                ServerSettings.Instance.AniDB_ServerAddress,
+                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
         }
 
         public static void AniDBDispose()
@@ -1695,7 +1713,7 @@ namespace Shoko.Server
 
             StopHost();
 
-            ServerSettings.JMMServerPort = port;
+            ServerSettings.Instance.JMMServerPort = port;
 
             bool started = NetPermissionWrapper(StartNancyHost);
             if (!started)

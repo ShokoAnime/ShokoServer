@@ -68,7 +68,7 @@ namespace Shoko.Server
 
             try
             {
-                return ServerSettings.ToContract();
+                return ServerSettings.Instance.ToContract();
             }
             catch (Exception ex)
             {

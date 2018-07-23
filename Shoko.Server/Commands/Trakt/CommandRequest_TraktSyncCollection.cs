@@ -36,7 +36,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken)) return;
 
                 using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(
                     () => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync),
@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
                 {
                     if (upd.IsUpdate)
                     {
-                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_SyncFrequency);
 
                         // if we have run this in the last xxx hours then exit
                         TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;

@@ -142,7 +142,7 @@ namespace Shoko.Server.API.v2.Modules
             Credentials cred = this.Bind();
             if (cred.port != 0)
             {
-                ServerSettings.JMMServerPort = cred.port;
+                ServerSettings.Instance.JMMServerPort = cred.port;
                 return APIStatus.OK();
             }
             return new APIMessage(400, "Port Missing");
@@ -155,7 +155,7 @@ namespace Shoko.Server.API.v2.Modules
         private object GetPort()
         {
             dynamic x = new ExpandoObject();
-            x.port = ServerSettings.JMMServerPort;
+            x.port = ServerSettings.Instance.JMMServerPort;
             return x;
         }
 
@@ -168,14 +168,14 @@ namespace Shoko.Server.API.v2.Modules
             ImagePath imagepath = this.Bind();
             if (imagepath.isdefault)
             {
-                ServerSettings.ImagesPath = ServerSettings.DefaultImagePath;
+                ServerSettings.Instance.ImagesPath = ServerSettings.DefaultImagePath;
                 return APIStatus.OK();
             }
             if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
             {
                 if (Directory.Exists(imagepath.path))
                 {
-                    ServerSettings.ImagesPath = imagepath.path;
+                    ServerSettings.Instance.ImagesPath = imagepath.path;
                     return APIStatus.OK();
                 }
                 return new APIMessage(404, "Directory Not Found on Host");
@@ -191,8 +191,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             ImagePath imagepath = new ImagePath
             {
-                path = ServerSettings.ImagesPath,
-                isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath
+                path = ServerSettings.Instance.ImagesPath,
+                isdefault = ServerSettings.Instance.ImagesPath == ServerSettings.DefaultImagePath
             };
             return imagepath;
         }
@@ -205,7 +205,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                return ServerSettings.appSettings;
+                return ServerSettings.Instance;
             }
             catch
             {
@@ -365,11 +365,11 @@ namespace Shoko.Server.API.v2.Modules
             if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
                 cred.password != string.Empty)
             {
-                ServerSettings.AniDB_Username = cred.login;
-                ServerSettings.AniDB_Password = cred.password;
+                ServerSettings.Instance.AniDB_Username = cred.login;
+                ServerSettings.Instance.AniDB_Password = cred.password;
                 if (cred.port != 0)
                 {
-                    ServerSettings.AniDB_ClientPort = cred.port.ToString();
+                    ServerSettings.Instance.AniDB_ClientPort = cred.port;
                 }
                 return APIStatus.OK();
             }
@@ -388,11 +388,11 @@ namespace Shoko.Server.API.v2.Modules
 
             Thread.Sleep(1000);
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                ServerSettings.Instance.AniDB_ServerAddress,
+                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
 
             if (ShokoService.AnidbProcessor.Login())
             {
@@ -411,9 +411,9 @@ namespace Shoko.Server.API.v2.Modules
         {
             Credentials cred = new Credentials
             {
-                login = ServerSettings.AniDB_Username,
-                password = ServerSettings.AniDB_Password,
-                port = int.Parse(ServerSettings.AniDB_ClientPort)
+                login = ServerSettings.Instance.AniDB_Username,
+                password = ServerSettings.Instance.AniDB_Password,
+                port = ServerSettings.Instance.AniDB_ClientPort
             };
             return cred;
         }
@@ -517,8 +517,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             Credentials cred = new Credentials
             {
-                token = ServerSettings.Trakt_AuthToken,
-                refresh_token = ServerSettings.Trakt_RefreshToken
+                token = ServerSettings.Instance.Trakt_AuthToken,
+                refresh_token = ServerSettings.Instance.Trakt_RefreshToken
             };
             return cred;
         }
@@ -529,7 +529,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         private object SyncTrakt()
         {
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
@@ -956,10 +956,10 @@ namespace Shoko.Server.API.v2.Modules
 
             if (user.IsAdmin == 1)
             {
-                ServerSettings.RotateLogs = rotator.rotate;
-                ServerSettings.RotateLogs_Zip = rotator.zip;
-                ServerSettings.RotateLogs_Delete = rotator.delete;
-                ServerSettings.RotateLogs_Delete_Days = rotator.days.ToString();
+                ServerSettings.Instance.RotateLogs = rotator.rotate;
+                ServerSettings.Instance.RotateLogs_Zip = rotator.zip;
+                ServerSettings.Instance.RotateLogs_Delete = rotator.delete;
+                ServerSettings.Instance.RotateLogs_Delete_Days = rotator.days.ToString();
 
                 return APIStatus.OK();
             }
@@ -975,14 +975,14 @@ namespace Shoko.Server.API.v2.Modules
         {
             Logs rotator = new Logs
             {
-                rotate = ServerSettings.RotateLogs,
-                zip = ServerSettings.RotateLogs_Zip,
-                delete = ServerSettings.RotateLogs_Delete
+                rotate = ServerSettings.Instance.RotateLogs,
+                zip = ServerSettings.Instance.RotateLogs_Zip,
+                delete = ServerSettings.Instance.RotateLogs_Delete
             };
             int day = 0;
-            if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
+            if (!String.IsNullOrEmpty(ServerSettings.Instance.RotateLogs_Delete_Days))
             {
-                int.TryParse(ServerSettings.RotateLogs_Delete_Days, out day);
+                int.TryParse(ServerSettings.Instance.RotateLogs_Delete_Days, out day);
             }
             rotator.days = day;
 

@@ -246,7 +246,7 @@ namespace Shoko.Server.Commands
                         }
                         catch (Exception ex)
                         {
-                            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                             logger.Warn(Resources.Command_DeleteError, fileName, ex.Message);
                             return;

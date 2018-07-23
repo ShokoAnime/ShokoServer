@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
                     
                     if (!txn.IsUpdate)
                     {
-                        int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_UpdateFrequency);
 
                         // if we have run this in the last xxx hours then exit
                         TimeSpan tsLastRun = DateTime.Now - txn.Entity.LastUpdate;

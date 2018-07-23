@@ -76,11 +76,11 @@ namespace Shoko.Server.Providers.MovieDB
             }
 
             // download the posters
-            if (ServerSettings.MovieDB_AutoPosters || isTrakt)
+            if (ServerSettings.Instance.MovieDB_AutoPosters || isTrakt)
             {
                 foreach (MovieDB_Poster poster in Repo.MovieDB_Poster.GetByMovieID(movie.MovieId))
                 {
-                    if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
+                    if (numPostersDownloaded < ServerSettings.Instance.MovieDB_AutoPostersAmount)
                     {
                         // download the image
                         if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
@@ -105,11 +105,11 @@ namespace Shoko.Server.Providers.MovieDB
             }
 
             // download the fanart
-            if (ServerSettings.MovieDB_AutoFanart || isTrakt)
+            if (ServerSettings.Instance.MovieDB_AutoFanart || isTrakt)
             {
                 foreach (MovieDB_Fanart fanart in Repo.MovieDB_Fanart.GetByMovieID(movie.MovieId))
                 {
-                    if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
+                    if (numFanartDownloaded < ServerSettings.Instance.MovieDB_AutoFanartAmount)
                     {
                         // download the image
                         if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))

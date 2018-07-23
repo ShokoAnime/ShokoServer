@@ -62,10 +62,10 @@ namespace Shoko.Server.Tasks
         /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
         public static AutoAnimeGroupCalculator CreateFromServerSettings()
         {
-            string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
+            string exclusionsSetting = ServerSettings.Instance.AutoGroupSeriesRelationExclusions;
             AutoGroupExclude exclusions = AutoGroupExclude.None;
             AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.None;
-            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.AutoGroupSeriesUseScoreAlgorithm
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm
                 ? MainAnimeSelectionStrategy.Weighted
                 : MainAnimeSelectionStrategy.MinAirDate;
 

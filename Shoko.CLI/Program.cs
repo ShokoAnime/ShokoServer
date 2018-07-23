@@ -32,6 +32,14 @@ namespace Shoko.CLI
                 e.Cancel = true;
             };
 
+            ServerState.Instance.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+                {
+                    Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+                }
+            };
+
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
                 ev => Console.WriteLine($"Queue state change: {ev.QueueState.formatMessage()}");
 

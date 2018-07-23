@@ -42,15 +42,14 @@ namespace Shoko.Server.FileHelper
 
             try
             {
-                string exts = ServerSettings.VideoExtensions;
+                string[] extArray = ServerSettings.Instance.VideoExtensions;
 
-                if (exts == null || exts.Trim().Length == 0)
+                if (extArray == null || extArray.Length == 0)
                 {
                     logger.Error("Could not find VideoExtensions app setting in config file");
                     return extList;
                 }
 
-                string[] extArray = exts.Split(',');
                 foreach (string ext in extArray)
                 {
                     extList.Add(ext.Trim().ToUpper());

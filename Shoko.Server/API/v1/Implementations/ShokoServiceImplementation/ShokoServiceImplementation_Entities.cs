@@ -2264,7 +2264,7 @@ namespace Shoko.Server
                 {
                     logger.Debug("Getting Anime record from AniDB....");
                     anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                        ServerSettings.AutoGroupSeries || ServerSettings.AniDB_DownloadRelatedAnime);
+                        ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDB_DownloadRelatedAnime);
                 }
 
                 if (anime == null)

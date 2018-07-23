@@ -44,10 +44,10 @@ namespace Shoko.Server.Providers.Azure
             //jmm.azurewebsites.net
             string uri =
                 $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB/{animeID}?p={
-                    ServerSettings.AniDB_Username
+                    ServerSettings.Instance.AniDB_Username
                 }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={tvDBID}&p5={tvDBSeasonNumber}&p6={
                     tvDBStartEpisodeNumber
-                }&p7={ServerSettings.WebCacheAuthKey}";
+                }&p7={ServerSettings.Instance.WebCacheAuthKey}";
 
 
             DeleteDataJson(uri);
@@ -55,7 +55,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB";
 
@@ -68,8 +68,8 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
 
@@ -103,8 +103,8 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
                 string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={username}";
@@ -131,7 +131,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
         {
-            if (!ServerSettings.WebCache_Trakt_Send) return;
+            if (!ServerSettings.Instance.WebCache_Trakt_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt";
 
@@ -154,16 +154,16 @@ namespace Shoko.Server.Providers.Azure
             // p6 = traktStartEpisodeNumber
             // p7 = auth key
 
-            if (!ServerSettings.WebCache_Trakt_Send) return;
+            if (!ServerSettings.Instance.WebCache_Trakt_Send) return;
 
             //localhost:50994
             //jmm.azurewebsites.net
             string uri =
                 $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={
-                    ServerSettings.AniDB_Username
+                    ServerSettings.Instance.AniDB_Username
                 }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={traktID}&p5={traktSeasonNumber}&p6={
                     traktStartEpisodeNumber
-                }&p7={ServerSettings.WebCacheAuthKey}";
+                }&p7={ServerSettings.Instance.WebCacheAuthKey}";
 
 
             DeleteDataJson(uri);
@@ -177,10 +177,10 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                if (!ServerSettings.WebCache_TvDB_Get) return null;
+                if (!ServerSettings.Instance.WebCache_TvDB_Get) return null;
 
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
                 string uri =
@@ -210,7 +210,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_CrossRefAniDBOther(CrossRef_AniDB_Other data)
         {
-            if (!ServerSettings.WebCache_TvDB_Send) return;
+            if (!ServerSettings.Instance.WebCache_TvDB_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other";
 
@@ -227,10 +227,10 @@ namespace Shoko.Server.Providers.Azure
             // p2 = AniDBStartEpisodeType
             // p3 = AniDBStartEpisodeNumber
 
-            if (!ServerSettings.WebCache_TvDB_Send) return;
+            if (!ServerSettings.Instance.WebCache_TvDB_Send) return;
 
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri =
@@ -249,10 +249,10 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                if (!ServerSettings.WebCache_XRefFileEpisode_Get) return new List<Azure_CrossRef_File_Episode>();
+                if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Get) return new List<Azure_CrossRef_File_Episode>();
 
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
                 string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode/{vid.Hash}?p={username}";
@@ -280,7 +280,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_CrossRefFileEpisode(CrossRef_File_Episode data)
         {
-            if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode";
 
@@ -292,10 +292,10 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Delete_CrossRefFileEpisode(string hash)
         {
-            if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode/{hash}?p={username}";
@@ -312,7 +312,7 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+                //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
                 string uri = $@"http://{azureHostBaseAddress}/api/animexml/{animeID}";
 
@@ -346,7 +346,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_AnimeFull(SVR_AniDB_Anime data)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/animefull";
             Azure_AnimeFull obj = data.ToAzure();
@@ -356,7 +356,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_AnimeXML(Azure_AnimeXML data)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/animexml";
             string json = JSONHelper.Serialize(data);
@@ -369,7 +369,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_AnimeTitle(Azure_AnimeIDTitle data)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle";
             string json = JSONHelper.Serialize(data);
@@ -380,7 +380,7 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+                //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
                 string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle/{query}";
                 string msg = $"Getting Anime Title Data From Cache: {query}";
 
@@ -432,7 +432,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_UserInfo()
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             Azure_UserInfo uinfo = GetUserInfoData();
             if (uinfo == null) return;
@@ -630,7 +630,7 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                if (string.IsNullOrEmpty(ServerSettings.AniDB_Username)) return null;
+                if (string.IsNullOrEmpty(ServerSettings.Instance.AniDB_Username)) return null;
 
                 Azure_UserInfo uinfo = new Azure_UserInfo
                 {
@@ -651,10 +651,10 @@ namespace Shoko.Server.Providers.Azure
                     // ignored
                 }
 
-                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.AniDB_Username);
-                uinfo.DatabaseType = ServerSettings.DatabaseType;
+                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.Instance.AniDB_Username);
+                uinfo.DatabaseType = ServerSettings.Instance.DatabaseType.ToString();
                 uinfo.WindowsVersion = Utils.GetOSInfo();
-                uinfo.TraktEnabled = ServerSettings.Trakt_IsEnabled ? 1 : 0;
+                uinfo.TraktEnabled = ServerSettings.Instance.Trakt_IsEnabled ? 1 : 0;
 
                 uinfo.CountryLocation = string.Empty;
 
@@ -685,11 +685,11 @@ namespace Shoko.Server.Providers.Azure
 
         public static string Admin_AuthUser()
         {
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
-            string uri = $@"http://{azureHostBaseAddress}/api/Admin/{username}?p={ServerSettings.WebCacheAuthKey}";
+            string uri = $@"http://{azureHostBaseAddress}/api/Admin/{username}?p={ServerSettings.Instance.WebCacheAuthKey}";
             //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, string.Empty);
             string json = string.Empty;
 
@@ -704,14 +704,14 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
 
                 string uri =
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{animeID}?p={username}&p2={
-                            ServerSettings.WebCacheAuthKey
+                            ServerSettings.Instance.WebCacheAuthKey
                         }";
 
                 string json = GetDataJson(uri);
@@ -728,13 +728,13 @@ namespace Shoko.Server.Providers.Azure
 
         public static string Admin_Approve_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
         {
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri =
                 $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{crossRef_AniDB_TvDBId}?p={username}&p2={
-                    ServerSettings.WebCacheAuthKey
+                    ServerSettings.Instance.WebCacheAuthKey
                 }";
             string json = string.Empty;
 
@@ -743,13 +743,13 @@ namespace Shoko.Server.Providers.Azure
 
         public static string Admin_Revoke_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
         {
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri =
                 $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{crossRef_AniDB_TvDBId}?p={username}&p2={
-                    ServerSettings.WebCacheAuthKey
+                    ServerSettings.Instance.WebCacheAuthKey
                 }";
             string json = string.Empty;
 
@@ -760,14 +760,14 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
                 string uri =
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{(int) AzureLinkType.TvDB}?p={
                             username
-                        }&p2={ServerSettings.WebCacheAuthKey}&p3=dummy";
+                        }&p2={ServerSettings.Instance.WebCacheAuthKey}&p3=dummy";
                 string json = GetDataJson(uri);
 
                 return JSONHelper.Deserialize<Azure_AnimeLink>(json);
@@ -786,14 +786,14 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
 
                 string uri =
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{animeID}?p={username}&p2={
-                            ServerSettings.WebCacheAuthKey
+                            ServerSettings.Instance.WebCacheAuthKey
                         }";
 
                 string json = GetDataJson(uri);
@@ -810,14 +810,14 @@ namespace Shoko.Server.Providers.Azure
 
         public static string Admin_Approve_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
         {
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri =
                 $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{
                     crossRef_AniDB_TraktId
-                }?p={username}&p2={ServerSettings.WebCacheAuthKey}";
+                }?p={username}&p2={ServerSettings.Instance.WebCacheAuthKey}";
             string json = string.Empty;
 
             return SendData(uri, json, "POST");
@@ -825,14 +825,14 @@ namespace Shoko.Server.Providers.Azure
 
         public static string Admin_Revoke_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
         {
-            string username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            string username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 username = Constants.AnonWebCacheUsername;
 
             string uri =
                 $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{
                     crossRef_AniDB_TraktId
-                }?p={username}&p2={ServerSettings.WebCacheAuthKey}";
+                }?p={username}&p2={ServerSettings.Instance.WebCacheAuthKey}";
             string json = string.Empty;
 
             return SendData(uri, json, "PUT");
@@ -842,14 +842,14 @@ namespace Shoko.Server.Providers.Azure
         {
             try
             {
-                string username = ServerSettings.AniDB_Username;
-                if (ServerSettings.WebCache_Anonymous)
+                string username = ServerSettings.Instance.AniDB_Username;
+                if (ServerSettings.Instance.WebCache_Anonymous)
                     username = Constants.AnonWebCacheUsername;
 
                 string uri =
                     $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{(int) AzureLinkType.Trakt}?p={
                             username
-                        }&p2={ServerSettings.WebCacheAuthKey}&p3=dummy";
+                        }&p2={ServerSettings.Instance.WebCacheAuthKey}&p3=dummy";
                 string json = GetDataJson(uri);
 
                 return JSONHelper.Deserialize<Azure_AnimeLink>(json);
@@ -867,7 +867,7 @@ namespace Shoko.Server.Providers.Azure
         // ReSharper disable once UnusedMember.Global
         public static void Send_FileHash(List<SVR_AniDB_File> aniFiles)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/FileHash";
 
@@ -895,7 +895,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_FileHash(List<SVR_VideoLocal> locals)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/FileHash";
 
@@ -971,7 +971,7 @@ namespace Shoko.Server.Providers.Azure
 
         public static void Send_Media(List<SVR_VideoLocal> locals)
         {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
+            //if (!ServerSettings.Instance.WebCache_XRefFileEpisode_Send) return;
             if (locals == null || locals.Count == 0) return;
 
             try

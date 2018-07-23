@@ -75,7 +75,7 @@ namespace Shoko.Server.Models
                 seriesName = SeriesNameOverride;
             else
             {
-                if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
+                if (ServerSettings.Instance.SeriesNameSource == DataSourceType.AniDB)
                     seriesName = GetAnime().GetFormattedTitle();
                 else
                 {

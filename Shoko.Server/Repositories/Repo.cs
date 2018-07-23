@@ -283,27 +283,23 @@ namespace Shoko.Server.Repositories
 
         internal static bool Start()
         {
-            DatabaseTypes type;
             string connStr;
-            switch(ServerSettings.DatabaseType.ToLowerInvariant())
+            switch(ServerSettings.Instance.DatabaseType)
             {
-                case "mysql":
-                    type = DatabaseTypes.MySql;
-                    connStr = $"Server={ServerSettings.MySQL_Hostname};Database={ServerSettings.MySQL_SchemaName};User ID={ServerSettings.MySQL_Username};Password={ServerSettings.MySQL_Password};Default Command Timeout=3600";
+                case DatabaseTypes.MySql:
+                    connStr = $"Server={ServerSettings.Instance.MySQL_Hostname};Database={ServerSettings.Instance.MySQL_SchemaName};User ID={ServerSettings.Instance.MySQL_Username};Password={ServerSettings.Instance.MySQL_Password};Default Command Timeout=3600";
                     break;
-                case "sqlserver":
-                    type = DatabaseTypes.SqlServer;
-                    connStr = $"Server={ServerSettings.DatabaseServer};Database={ServerSettings.DatabaseName};UID={ServerSettings.DatabaseUsername};PWD={ServerSettings.DatabasePassword};";
+                case DatabaseTypes.SqlServer:
+                    connStr = $"Server={ServerSettings.Instance.DatabaseServer};Database={ServerSettings.Instance.DatabaseName};UID={ServerSettings.Instance.DatabaseUsername};PWD={ServerSettings.Instance.DatabasePassword};";
                     break;
-                case "sqlite":
+                case DatabaseTypes.Sqlite:
                 default:
-                    type = DatabaseTypes.Sqlite;
-                    connStr = $"data source={Path.Combine(ServerSettings.MySqliteDirectory, "JMMServer.db3")};useutf16encoding=True";
+                    connStr = $"data source={Path.Combine(ServerSettings.Instance.MySqliteDirectory, "JMMServer.db3")};useutf16encoding=True";
                     break;
 
             }
 
-            Init(new ShokoContext(type, connStr), CachedRepos, new ProgressShit());
+            Init(new ShokoContext(ServerSettings.Instance.DatabaseType, connStr), CachedRepos, new ProgressShit());
             return true;
         }
 

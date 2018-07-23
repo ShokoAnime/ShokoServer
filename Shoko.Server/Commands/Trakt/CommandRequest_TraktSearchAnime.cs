@@ -53,7 +53,7 @@ namespace Shoko.Server.Commands
                 bool doReturn = false;
 
                 // first check if the user wants to use the web cache
-                if (ServerSettings.WebCache_Trakt_Get)
+                if (ServerSettings.Instance.WebCache_Trakt_Get)
                 {
                     try
                     {
@@ -137,7 +137,7 @@ namespace Shoko.Server.Commands
                 }
 
                 // Use TvDB setting due to similarity
-                if (!ServerSettings.TvDB_AutoLink) return;
+                if (!ServerSettings.Instance.TvDB_AutoLink) return;
 
                 // finally lets try searching Trakt directly
                 SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);

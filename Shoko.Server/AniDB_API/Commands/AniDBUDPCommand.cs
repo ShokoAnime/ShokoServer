@@ -326,9 +326,9 @@ namespace AniDBAPI.Commands
                     ShokoService.AnidbProcessor.Dispose();
                     AniDbRateLimiter.Instance.EnsureRate();
 
-                    ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                        ServerSettings.AniDB_ServerAddress,
-                        ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                        ServerSettings.Instance.AniDB_ServerAddress,
+                        ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
                 }
             }
             catch (Exception ex)

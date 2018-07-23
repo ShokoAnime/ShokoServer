@@ -5,7 +5,7 @@
     "tasks": [
         {
             "label": "build",
-            "command": "dotnet build",
+            "command": "dotnet build -c CLI",
             "type": "shell",
             "group": "build",
             "presentation": {
@@ -14,4 +14,3 @@
             "problemMatcher": "$msCompile"
         }
     ]
-}

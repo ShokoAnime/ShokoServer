@@ -60,12 +60,12 @@ namespace Shoko.UI.Forms
                 ShokoService.AnidbProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.Server_Initializing);
-                ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                    ServerSettings.AniDB_ServerAddress,
-                    ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                    ServerSettings.Instance.AniDB_ServerAddress,
+                    ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Login);
                 if (ShokoService.AnidbProcessor.Login())
@@ -131,17 +131,18 @@ namespace Shoko.UI.Forms
 
         void txtClientPort_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ServerSettings.AniDB_ClientPort = txtClientPort.Text.Trim();
+            if(ushort.TryParse(txtClientPort.Text.Trim(), out ushort port))
+                ServerSettings.Instance.AniDB_ClientPort = port;
         }
 
         void txtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            ServerSettings.AniDB_Password = txtPassword.Password;
+            ServerSettings.Instance.AniDB_Password = txtPassword.Password;
         }
 
         void txtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ServerSettings.AniDB_Username = txtUsername.Text.Trim();
+            ServerSettings.Instance.AniDB_Username = txtUsername.Text.Trim();
         }
 
         void btnClose_Click(object sender, RoutedEventArgs e)
