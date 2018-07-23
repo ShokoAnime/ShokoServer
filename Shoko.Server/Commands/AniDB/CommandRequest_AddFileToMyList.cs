@@ -104,7 +104,6 @@ namespace Shoko.Server.Commands
                     logger.Info($"Adding file to list: {vid.FileName} - {datemessage}");
                     bool watched = newWatchedDate != null;
 
-                    
                     bool watchedLocally = originalWatchedDate != null;
                     bool watchedChanged = watched != watchedLocally;
 
@@ -126,7 +125,10 @@ namespace Shoko.Server.Commands
                     // We should have a MyListID at this point, so hopefully this will prevent looping
                     if (vid.MyListID > 0 && (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState))
                     {
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, watched, newWatchedDate);
+                        if (ServerSettings.AniDB_MyList_SetWatched && watchedLocally)
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, true, originalWatchedDate);
+                        else if (ServerSettings.AniDB_MyList_SetUnwatched && !watchedLocally)
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, false);
                     }
                 }
 
