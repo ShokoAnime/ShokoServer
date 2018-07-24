@@ -66,6 +66,7 @@ namespace Shoko.Server.Models
         }
 
 
+        [NotMapped]
         public string Year => GetAnime().GetYear();
 
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -94,6 +95,7 @@ namespace Shoko.Server.Models
             return seriesName;
         }
 
+        [NotMapped]
         public string GenresRaw
         {
             get
@@ -188,8 +190,10 @@ namespace Shoko.Server.Models
 
         #endregion
 
+        [NotMapped]
         public CrossRef_AniDB_Other CrossRefMovieDB => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
 
+        [NotMapped]
         public List<CrossRef_AniDB_MAL> CrossRefMAL => Repo.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
@@ -308,6 +312,7 @@ namespace Shoko.Server.Models
             return Repo.AniDB_Anime.GetByAnimeID(AniDB_ID);
         }
 
+        [NotMapped]
         public DateTime AirDate
         {
             get
@@ -325,6 +330,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public DateTime? EndDate
         {
             get
@@ -356,11 +362,13 @@ namespace Shoko.Server.Models
         /// <summary>
         /// Gets the direct parent AnimeGroup this series belongs to
         /// </summary>
+        [NotMapped]
         public SVR_AnimeGroup AnimeGroup => Repo.AnimeGroup.GetByID(AnimeGroupID);
 
         /// <summary>
         /// Gets the very top level AnimeGroup which this series belongs to
         /// </summary>
+        [NotMapped]
         public SVR_AnimeGroup TopLevelAnimeGroup
         {
             get
@@ -373,6 +381,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public List<SVR_AnimeGroup> AllGroupsAbove
         {
             get

@@ -48,7 +48,11 @@ namespace Shoko.Server.API
 
             app.Use((ctx, next) =>
             {
-                ctx.User = new System.Security.Claims.ClaimsPrincipal(GetRequestUser(ctx));
+
+                SVR_JMMUser identity = GetRequestUser(ctx);
+                if (identity != null)
+                    ctx.User = new System.Security.Claims.ClaimsPrincipal(identity);
+
                 return next();
             });
 

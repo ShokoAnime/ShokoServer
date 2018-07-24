@@ -184,8 +184,8 @@ namespace Shoko.Server.Repositories.Repos
         internal IDictionary<int, DateTime> GetEpisodesRecentlyAdded()
         {
             using (RepoLock.ReaderLock())
-            using (Repo.CrossRef_File_Episode.RepoLock.ReaderLock()) //TODO: Test, this will probably lock.
-            using (Repo.AnimeEpisode.RepoLock.ReaderLock())
+            //using (Repo.CrossRef_File_Episode.RepoLock.ReaderLock()) //TODO: Test, this will probably lock.
+            //using (Repo.AnimeEpisode.RepoLock.ReaderLock())
             {
                 return Table
                         .Join(Repo.CrossRef_File_Episode.Table, vl => vl.Hash, xref => xref.Hash, (vl, xref) => new { vl, xref })

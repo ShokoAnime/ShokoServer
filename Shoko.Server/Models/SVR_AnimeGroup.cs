@@ -33,6 +33,7 @@ namespace Shoko.Server.Models
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
 
+        [NotMapped]
         internal CL_AnimeGroup_User _contract;
 
         [NotMapped]
@@ -243,9 +244,11 @@ namespace Shoko.Server.Models
         }
 
 
+        [NotMapped]
         public List<SVR_AniDB_Anime> Anime =>
             GetSeries().Select(serie => serie.GetAnime()).Where(anime => anime != null).ToList();
 
+        [NotMapped]
         public decimal AniDBRating
         {
             get
@@ -365,6 +368,7 @@ namespace Shoko.Server.Models
             return votesByGroup;
         }
 
+        [NotMapped]
         public List<AniDB_Tag> Tags
         {
             get
@@ -386,6 +390,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public List<CustomTag> CustomTags
         {
             get
@@ -407,6 +412,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public List<AniDB_Anime_Title> Titles
         {
             get
@@ -1067,6 +1073,7 @@ namespace Shoko.Server.Models
                 GetAnimeSeriesRecursive(childGroup.AnimeGroupID, ref seriesList);
         }
 
+        [NotMapped]
         public SVR_AnimeGroup TopLevelAnimeGroup
         {
             get

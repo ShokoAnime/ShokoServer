@@ -29,6 +29,7 @@ namespace Shoko.Server.Repositories
         public static VideoLocal_PlaceRepository VideoLocal_Place { get; private set; }
         public static VideoLocalRepository VideoLocal { get; private set; }
         public static VideoLocal_UserRepository VideoLocal_User { get; private set; }
+        public static GroupFilterConditionRepository GroupFilterCondition { get; internal set; }
         public static GroupFilterRepository GroupFilter { get; private set; }
         public static AnimeEpisodeRepository AnimeEpisode { get; private set; }
         public static AnimeEpisode_UserRepository AnimeEpisode_User { get; private set; }
@@ -98,7 +99,6 @@ namespace Shoko.Server.Repositories
         public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; internal set; }
         public static AnimeStaffRepository AnimeStaff { get; internal set; }
         public static AnimeCharacterRepository AnimeCharacter { get; internal set; }
-        public static GroupFilterConditionRepository GroupFilterCondition { get; internal set; }
         public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; internal set; }
 
 
@@ -129,43 +129,17 @@ namespace Shoko.Server.Repositories
 
         public static HashSet<string> CachedRepos = new HashSet<string>()
         {
-            nameof(AniDB_Anime_DefaultImage),
-            nameof(AniDB_Anime_Tag),
-            nameof(AniDB_Anime_Title),
-            nameof(AniDB_Anime),
-            nameof(AniDB_Episode_Title),
-            nameof(AniDB_Episode),
-            nameof(AniDB_File),
-            nameof(AniDB_Tag),
-            nameof(AniDB_Vote),
-            nameof(AnimeCharacter),
-            nameof(AnimeEpisode_User),
-            nameof(AnimeEpisode),
-            nameof(AnimeGroup_User),
-            nameof(AnimeGroup),
-            nameof(AnimeSeries_User),
-            nameof(AnimeSeries),
-            nameof(AnimeStaff),
-            nameof(AuthTokens),
-            nameof(CloudAccount),
-            nameof(CrossRef_AniDB_TvDB_Episode_Override),
-            nameof(CrossRef_AniDB_TvDB_Episode),
-            nameof(CrossRef_AniDB_TvDB),
-            nameof(CrossRef_Anime_Staff),
-            nameof(CrossRef_CustomTag),
-            nameof(CrossRef_File_Episode),
-            nameof(CustomTag),
-            nameof(GroupFilter),
-            nameof(ImportFolder),
-            nameof(JMMUser),
-            nameof(TvDB_Episode),
-            nameof(TvDB_ImageFanart),
-            nameof(TvDB_ImagePoster),
-            nameof(TvDB_ImageWideBanner),
-            nameof(TvDB_Series),
-            nameof(VideoLocal_Place),
-            nameof(VideoLocal_User),
-            nameof(VideoLocal),
+            nameof(AniDB_Anime_DefaultImage), nameof(AniDB_Anime_Tag), nameof(AniDB_Anime_Title),
+            nameof(AniDB_Anime), nameof(AniDB_Episode_Title), nameof(AniDB_Episode),
+            nameof(AniDB_File), nameof(AniDB_Tag), nameof(AniDB_Vote), nameof(AnimeCharacter),
+            nameof(AnimeEpisode_User), nameof(AnimeEpisode), nameof(AnimeGroup_User),
+            nameof(AnimeGroup), nameof(AnimeSeries_User), nameof(AnimeSeries), nameof(AnimeStaff),
+            nameof(AuthTokens), nameof(CloudAccount), nameof(CrossRef_AniDB_TvDB_Episode_Override),
+            nameof(CrossRef_AniDB_TvDB_Episode), nameof(CrossRef_AniDB_TvDB), nameof(CrossRef_Anime_Staff),
+            nameof(CrossRef_CustomTag), nameof(CrossRef_File_Episode), nameof(CustomTag),
+            nameof(GroupFilter), nameof(ImportFolder), nameof(JMMUser), nameof(TvDB_Episode),
+            nameof(TvDB_ImageFanart), nameof(TvDB_ImagePoster), nameof(TvDB_ImageWideBanner),
+            nameof(TvDB_Series), nameof(VideoLocal_Place), nameof(VideoLocal_User), nameof(VideoLocal),
         }; //TODO Set Default
 
         public static void Init(ShokoContext db, HashSet<string> cachedRepos, IProgress<InitProgress> progress, int batchSize=20)
@@ -174,7 +148,7 @@ namespace Shoko.Server.Repositories
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
             Db = db;
-            
+
             JMMUser = Register<JMMUserRepository, SVR_JMMUser>(db.JMMUsers);
             AuthTokens = Register<AuthTokensRepository, AuthTokens>(db.AuthTokens);
             CloudAccount = Register<CloudAccountRepository, SVR_CloudAccount>(db.CloudAccounts);
@@ -193,11 +167,12 @@ namespace Shoko.Server.Repositories
             VideoLocal_Place = Register<VideoLocal_PlaceRepository, SVR_VideoLocal_Place>(db.VideoLocal_Places);
             VideoLocal = Register<VideoLocalRepository, SVR_VideoLocal>(db.VideoLocals);
             VideoLocal_User = Register<VideoLocal_UserRepository, VideoLocal_User>(db.VideoLocal_Users);
+            GroupFilterCondition = Register<GroupFilterConditionRepository, GroupFilterCondition>(db.GroupFilterConditions);
             GroupFilter = Register<GroupFilterRepository, SVR_GroupFilter>(db.GroupFilters);
             AnimeEpisode = Register<AnimeEpisodeRepository, SVR_AnimeEpisode>(db.AnimeEpisodes);
             AnimeEpisode_User = Register<AnimeEpisode_UserRepository, SVR_AnimeEpisode_User>(db.AnimeEpisode_Users);
             AnimeSeries = Register<AnimeSeriesRepository, SVR_AnimeSeries>(db.AnimeSeries);
-            AnimeSeries_User = Register<AnimeSeries_UserRepository, SVR_AnimeSeries_User>(db.AnimeSeries_Users);
+            AnimeSeries_User = Register<AnimeSeries_UserRepository, SVR_AnimeSeries_User>(db.AnimeSeries_Users );
             AnimeGroup = Register<AnimeGroupRepository, SVR_AnimeGroup>(db.AnimeGroups);
             AnimeGroup_User = Register<AnimeGroup_UserRepository, SVR_AnimeGroup_User>(db.AnimeGroup_Users);
             AniDB_Vote = Register<AniDB_VoteRepository, AniDB_Vote>(db.AniDB_Votes);
@@ -270,14 +245,15 @@ namespace Shoko.Server.Repositories
             CrossRef_Anime_Staff = Register<CrossRef_Anime_StaffRepository, CrossRef_Anime_Staff>(db.CrossRef_Anime_Staff);
             Adhoc = new AdhocRepository();
 
+            db.Database.Migrate(); //run any migrations.
+
             _repos.ForEach(a => a.PreInit(progress,batchSize));
             _repos.ForEach(a => a.PostInit(progress, batchSize));
         }
         
         public static void SetCache(HashSet<string> cachedRepos)
         {
-            if (cachedRepos != null)
-                CachedRepos = cachedRepos;
+            CachedRepos = cachedRepos != null ? cachedRepos : new HashSet<string>();
             _repos.ForEach(r=>r.SwitchCache(CachedRepos.Contains(r.Name)));
         }
 
@@ -290,17 +266,17 @@ namespace Shoko.Server.Repositories
                     connStr = $"Server={ServerSettings.Instance.MySQL_Hostname};Database={ServerSettings.Instance.MySQL_SchemaName};User ID={ServerSettings.Instance.MySQL_Username};Password={ServerSettings.Instance.MySQL_Password};Default Command Timeout=3600";
                     break;
                 case DatabaseTypes.SqlServer:
-                    connStr = $"Server={ServerSettings.Instance.DatabaseServer};Database={ServerSettings.Instance.DatabaseName};UID={ServerSettings.Instance.DatabaseUsername};PWD={ServerSettings.Instance.DatabasePassword};";
+                    connStr = $"Server={ServerSettings.Instance.SQLServer_DatabaseServer};Database={ServerSettings.Instance.SQLServer_DatabaseName};UID={ServerSettings.Instance.DatabaseUsername};PWD={ServerSettings.Instance.DatabasePassword};";
                     break;
                 case DatabaseTypes.Sqlite:
                 default:
                     if (!Directory.Exists(ServerSettings.Instance.MySqliteDirectory)) Directory.CreateDirectory(ServerSettings.Instance.MySqliteDirectory);
                     connStr = $"data source={Path.Combine(ServerSettings.Instance.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
                     break;
-
             }
 
             Init(new ShokoContext(ServerSettings.Instance.DatabaseType, connStr), CachedRepos, new ProgressShit());
+
             return true;
         }
 

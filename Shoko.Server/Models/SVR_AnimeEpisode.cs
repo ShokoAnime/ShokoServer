@@ -42,6 +42,7 @@ namespace Shoko.Server.Models
         }
 
 
+        [NotMapped]
         public EpisodeType EpisodeTypeEnum => (EpisodeType)AniDB_Episode.EpisodeType;
 
         public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
@@ -65,8 +66,10 @@ namespace Shoko.Server.Models
             return Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
+        [NotMapped]
         public List<CrossRef_File_Episode> FileCrossRefs => Repo.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
+        [NotMapped]
         public TvDB_Episode TvDBEpisode
         {
             get
@@ -80,6 +83,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public double UserRating
         {
             get
@@ -190,6 +194,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public string Title
         {
             get

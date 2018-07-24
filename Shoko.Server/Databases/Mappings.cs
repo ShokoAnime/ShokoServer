@@ -44,6 +44,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.ContractVersion).IsRequired().HasDefaultValue(0);
                 model.Property(x => x.ContractSize).IsRequired().HasDefaultValue(0);
                 model.Property(x => x.ContractBlob);
+                //model.Ignore("SVR_AnimeGroupAnimeGroupID"); //
                 model.Ignore(x => x.Contract);
             }
             {
@@ -161,7 +162,7 @@ namespace Shoko.Server.Databases
             }
             {
                 var model = builder.Entity<AniDB_Episode>();
-                model.ToTable("AniDB_Episodes").HasKey(x => x.AniDB_EpisodeID);
+                model.ToTable("AniDB_Episode").HasKey(x => x.AniDB_EpisodeID);
                 model.HasIndex(x => x.AniDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Episode");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Episode_AnimeID");
                 model.HasIndex(x => x.EpisodeID).IsUnique().HasName("UIX_AniDB_Episode_EpisodeID");
@@ -388,7 +389,8 @@ namespace Shoko.Server.Databases
             }
             {
                 var model = builder.Entity<SVR_AnimeGroup>();
-                model.ToTable("AnimeGroup").HasKey(x => x.AnimeGroupID);
+                model.ToTable("AnimeGroup");
+                model.HasKey(x => x.AnimeGroupID);
                 model.HasIndex(x => x.AnimeGroupID).IsUnique().ForSqlServerIsClustered().HasName("PK_AnimeGroup");
                 model.HasIndex(x => x.AnimeGroupParentID).HasName("IX_AnimeGroup_AnimeGroupParentID");
                 model.Property(x => x.AnimeGroupID).IsRequired().SetLocalValueGenerated();
@@ -471,7 +473,7 @@ namespace Shoko.Server.Databases
 
             }
             {
-                var model = builder.Entity<CloudAccount>();
+                var model = builder.Entity<SVR_CloudAccount>();
                 model.ToTable("CloudAccount").HasKey(x => x.CloudID);
                 model.HasIndex(x => x.CloudID).IsUnique().ForSqlServerIsClustered().HasName("PK_CloudAccount");
                 model.Property(x => x.CloudID).IsRequired().SetLocalValueGenerated();
@@ -933,7 +935,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.Lastupdated).HasMaxLength(100);
             }
             {
-                var model = builder.Entity<VideoLocal_Place>();
+                var model = builder.Entity<SVR_VideoLocal_Place>();
                 model.ToTable("VideoLocal_Place").HasKey(x => x.VideoLocal_Place_ID);
                 model.HasIndex(x => x.VideoLocal_Place_ID).IsUnique().ForSqlServerIsClustered().HasName("PK_VideoLocal_Place");
                 model.Property(x => x.VideoLocal_Place_ID).IsRequired().SetLocalValueGenerated();

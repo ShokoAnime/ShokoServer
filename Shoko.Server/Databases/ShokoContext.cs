@@ -123,5 +123,6 @@ namespace Shoko.Server.Databases
         public DbSet<AnimeStaff> AnimeStaff { get; internal set; }
         public DbSet<AnimeCharacter> AnimeCharacter { get; internal set; }
         public DbSet<AniDB_AnimeUpdate> AniDB_AnimeUpdate { get; internal set; }
+        public DbSet<GroupFilterCondition> GroupFilterConditions { get; internal set; }
     }
 }

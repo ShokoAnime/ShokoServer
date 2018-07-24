@@ -355,7 +355,7 @@ namespace Shoko.Server
         public int AniDB_MaxRelationDepth { get; set; } = 3;
         public bool TraceLog { get; set; } = false;
 
-        public static ServerSettings Instance { get; private set; }
+        public static ServerSettings Instance { get; private set; } = new ServerSettings();
 
         public static void LoadSettings() => LoadSettingsFromFile(Path.Combine(ApplicationPath, SettingsFilename), false);
 

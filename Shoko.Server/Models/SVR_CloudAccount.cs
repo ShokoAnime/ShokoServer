@@ -17,7 +17,7 @@ namespace Shoko.Server.Models
         private ICloudPlugin _plugin;
 
 
-        
+        [NotMapped]
         public new string Provider
         {
             get { return base.Provider; }
@@ -33,6 +33,7 @@ namespace Shoko.Server.Models
 
         [JsonIgnore]
         [XmlIgnore]
+        [NotMapped]
         public byte[] Bitmap => _plugin?.Icon;
 
         [JsonIgnore]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -51,6 +52,7 @@ namespace Shoko.Server.Models
 
         internal Media _media;
 
+        [NotMapped]
         public virtual Media Media
         {
             get
@@ -68,7 +70,7 @@ namespace Shoko.Server.Models
             }
         }
 
-
+        [NotMapped]
         public List<SVR_VideoLocal_Place> Places => Repo.VideoLocal_Place.GetByVideoLocal(VideoLocalID);
 
 
@@ -94,6 +96,7 @@ namespace Shoko.Server.Models
         }
 
         [ScriptIgnore]
+        [NotMapped]
         public string ED2KHash
         {
             get => Hash;
@@ -129,7 +132,7 @@ namespace Shoko.Server.Models
             return Repo.AnimeEpisode.GetByHash(Hash);
         }
 
-
+        [NotMapped]
         public List<CrossRef_File_Episode> EpisodeCrossRefs
         {
             get
