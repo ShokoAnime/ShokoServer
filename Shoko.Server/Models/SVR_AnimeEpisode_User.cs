@@ -2,6 +2,7 @@
 using Shoko.Models.Server;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Shoko.Server.Models
 {
@@ -15,9 +16,10 @@ namespace Shoko.Server.Models
 
         public const int CONTRACT_VERSION = 3;
 
-
+        [NotMapped]
         internal CL_AnimeEpisode_User _contract;
 
+        [NotMapped]
         internal virtual CL_AnimeEpisode_User Contract
         {
             get

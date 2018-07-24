@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -16,6 +17,7 @@ namespace Shoko.Server.Models
         private DateTime _lastPlexRegen = DateTime.MinValue;
         private Video _plexContract;
 
+        [NotMapped]
         public virtual Video PlexContract
         {
             get

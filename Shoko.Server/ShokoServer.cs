@@ -784,6 +784,7 @@ namespace Shoko.Server
 
                 StartTime = DateTime.Now;
 
+                ServerSettings.Instance.SaveSettings();
                 e.Result = true;
             }
             catch (Exception ex)

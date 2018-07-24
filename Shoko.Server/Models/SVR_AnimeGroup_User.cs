@@ -19,7 +19,7 @@ namespace Shoko.Server.Models
         public SVR_AnimeGroup_User()
         {
         }
-
+        [NotMapped]
         public virtual Video PlexContract
         {
             get

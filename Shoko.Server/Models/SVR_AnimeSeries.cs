@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -40,6 +41,7 @@ namespace Shoko.Server.Models
 
         private CL_AnimeSeries_User _contract;
 
+        [NotMapped]
         public virtual CL_AnimeSeries_User Contract
         {
             get

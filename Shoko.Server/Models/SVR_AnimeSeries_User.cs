@@ -18,6 +18,7 @@ namespace Shoko.Server.Models
         {
         }
 
+        [NotMapped]
         public virtual Video PlexContract
         {
             get

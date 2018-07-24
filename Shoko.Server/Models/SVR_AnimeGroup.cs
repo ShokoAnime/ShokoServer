@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -34,6 +35,7 @@ namespace Shoko.Server.Models
 
         internal CL_AnimeGroup_User _contract;
 
+        [NotMapped]
         public virtual CL_AnimeGroup_User Contract
         {
             get

@@ -10,8 +10,9 @@ namespace Shoko.Server.Databases
         public static void Map(ModelBuilder builder)
         {
             {
-                builder.Ignore<CL_AniDB_AnimeDetailed>();
-                builder.Ignore<CL_AnimeGroup_User>();
+                //builder.Ignore<CL_AniDB_AnimeDetailed>();
+                //builder.Ignore<CL_AnimeGroup_User>();
+                //builder.Ignore<CL_AnimeSeries_User>();
             }
             {
                 var model = builder.Entity<SVR_AniDB_Anime>();
@@ -441,7 +442,7 @@ namespace Shoko.Server.Databases
             }
             {
                 var model = builder.Entity<AnimeStaff>();
-                model.ToTable("AnimeStaff");
+                model.ToTable("AnimeStaff").HasKey(x => x.StaffID);
                 model.HasIndex(x => x.StaffID).IsUnique().HasName("PK_AnimeStaff_StaffID");
                 model.HasIndex(x => x.AniDBID).HasName("UIX_AnimeStaff_AniDBID").IsUnique();
                 model.Property(x => x.AniDBID).IsRequired();

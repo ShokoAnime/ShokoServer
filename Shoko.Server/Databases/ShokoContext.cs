@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
@@ -8,6 +11,8 @@ namespace Shoko.Server.Databases
     {
         //TODO DBContext is not be thread safe, and we might have concurrency or locking problems, 
         //We may need to change it to support one different context per thread, and InBetween Factory might be created to support this.
+
+        public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((_, __) => true, true) });
 
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;
@@ -37,8 +42,10 @@ namespace Shoko.Server.Databases
                     optionsBuilder.UseSqlite(_connectionString);
                     break;
             }
+            #if DEBUG
+            optionsBuilder.UseLoggerFactory(MyLoggerFactory);
+            #endif
         }
-
 
         public DbSet<SVR_AniDB_Anime> AniDB_Animes { get; set; } // AniDB_Anime
         public DbSet<AniDB_Anime_Character> AniDB_Anime_Characters { get; set; } // AniDB_Anime_Character

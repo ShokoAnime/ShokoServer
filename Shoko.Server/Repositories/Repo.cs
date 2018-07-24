@@ -294,7 +294,8 @@ namespace Shoko.Server.Repositories
                     break;
                 case DatabaseTypes.Sqlite:
                 default:
-                    connStr = $"data source={Path.Combine(ServerSettings.Instance.MySqliteDirectory, "JMMServer.db3")};useutf16encoding=True";
+                    if (!Directory.Exists(ServerSettings.Instance.MySqliteDirectory)) Directory.CreateDirectory(ServerSettings.Instance.MySqliteDirectory);
+                    connStr = $"data source={Path.Combine(ServerSettings.Instance.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
                     break;
 
             }
