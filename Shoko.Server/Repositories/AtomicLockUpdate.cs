@@ -13,8 +13,8 @@ namespace Shoko.Server.Repositories
 
         internal AtomicLockUpdate(BaseRepository<T, TS, TT> repo, Func<T> function, Func<T> default_function = null)
         {
-            _lock = _repo.RepoLock.WriterLock();
             _repo = repo;
+            _lock = _repo.RepoLock.WriterLock();
             Original = function();
             if (Original == null)
             {
