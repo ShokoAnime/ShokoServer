@@ -699,7 +699,7 @@ namespace Shoko.Server.Repositories.Cached
                     locked.Where(a => a.FilterType == (int) GroupFilterType.Tag).ForEach(Cache.Remove);
                 }
 
-                session.CreateQuery("DELETE FROM GroupFilter WHERE FilterType = 16").ExecuteUpdate();
+                session.CreateQuery("DELETE FROM " + nameof(SVR_GroupFilter) + " WHERE FilterType = 16").ExecuteUpdate();
             }
 
             if (tagsdirec != null)
