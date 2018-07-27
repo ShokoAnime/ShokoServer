@@ -695,10 +695,13 @@ namespace Shoko.Server.Repositories.Cached
             SVR_GroupFilter tagsdirec = locked.FirstOrDefault(
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
             var tagFilters = locked.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
-            using (ITransaction trans = session.BeginTransaction())
+            foreach (var filters in tagFilters.Batch(100))
             {
-                BatchDelete(session, tagFilters);
-                trans.Commit();
+                using (ITransaction trans = session.BeginTransaction())
+                {
+                    BatchDelete(session, filters);
+                    trans.Commit();
+                }
             }
 
             if (tagsdirec != null)
@@ -734,10 +737,13 @@ namespace Shoko.Server.Repositories.Cached
                     toAdd.Add(yf);
                 }
 
-                using (ITransaction trans = session.BeginTransaction())
+                foreach (var filters in toAdd.Batch(50))
                 {
-                    BatchInsert(session, toAdd);
-                    trans.Commit();
+                    using (ITransaction trans = session.BeginTransaction())
+                    {
+                        BatchInsert(session, filters);
+                        trans.Commit();
+                    }
                 }
             }
         }
