@@ -688,17 +688,18 @@ namespace Shoko.Server.Repositories.Cached
 
         private void DropAndCreateAllTagFilters(ISessionWrapper session)
         {
-            var locked = GetAll(session);
+            var locked = GetAll(session).ToList();
             SVR_GroupFilter tagsdirec = locked.FirstOrDefault(
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
-            var tagFilters = locked.Where(a => a.FilterType == (int) GroupFilterType.Tag).ToList();
-            foreach (var filters in tagFilters.Batch(100))
+
+            lock (globalDBLock)
             {
-                using (ITransaction trans = session.BeginTransaction())
+                lock (Cache)
                 {
-                    BatchDelete(session, filters);
-                    trans.Commit();
+                    locked.Where(a => a.FilterType == (int) GroupFilterType.Tag).ForEach(Cache.Remove);
                 }
+
+                session.CreateQuery("DELETE FROM GroupFilter WHERE FilterType = 16").ExecuteUpdate();
             }
 
             if (tagsdirec != null)
