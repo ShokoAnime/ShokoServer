@@ -794,18 +794,18 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return true;
         }
 
-        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(int? existingGroupID = null)
+        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return CreateAnimeSeriesAndGroup(session.Wrap(), existingGroupID);
+                return CreateAnimeSeriesAndGroup(session.Wrap(), existingSeries, existingGroupID);
             }
         }
 
-        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, int? existingGroupID = null)
+        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(ISessionWrapper session, SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
         {
             // Create a new AnimeSeries record
-            SVR_AnimeSeries series = new SVR_AnimeSeries();
+            SVR_AnimeSeries series = existingSeries ?? new SVR_AnimeSeries();
 
             series.Populate(this);
             // Populate before making a group to ensure IDs and stats are set for group filters.

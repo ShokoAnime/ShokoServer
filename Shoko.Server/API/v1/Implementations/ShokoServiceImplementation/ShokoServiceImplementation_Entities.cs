@@ -2249,7 +2249,7 @@ namespace Shoko.Server
                 }
 
                 logger.Debug("Creating groups, series and episodes....");
-                if (ser == null) ser = anime.CreateAnimeSeriesAndGroup(animeGroupID);
+                ser = anime.CreateAnimeSeriesAndGroup(ser, animeGroupID);
 
                 ser.CreateAnimeEpisodes();
 
