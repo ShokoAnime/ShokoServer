@@ -187,34 +187,20 @@ namespace Shoko.Server.Tasks
         {
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
-            Dictionary<int, ILookup<int, int>> seriesForTagGroupFilter = _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
+            _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
             _log.Info("Caculating All Other Filters");
-            IReadOnlyList<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session);
-            IReadOnlyList<SVR_JMMUser> users = _userRepo.GetAll();
+            IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
+                a.FilterType != (int) GroupFilterType.Tag &&
+                ((GroupFilterType) a.FilterType & GroupFilterType.Directory) == 0).ToList();
 
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
             // and is enough work that it can benefit from running in parallel
             Parallel.ForEach(
-                grpFilters.Where(f => ((GroupFilterType) f.FilterType & GroupFilterType.Directory) == 0), filter =>
+                grpFilters, filter =>
                 {
-                    filter.SeriesIds.Clear();
-
-                    if (filter.FilterType == (int) GroupFilterType.Tag)
+                    if (filter.FilterType != (int) GroupFilterType.Tag)
                     {
-                        filter.SeriesIds[0] = seriesForTagGroupFilter[0][filter.GroupFilterID].ToHashSet();
-                        filter.GroupsIds[0] = filter.SeriesIds[0]
-                            .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                            .Where(id => id != -1).ToHashSet();
-                        foreach (var user in users)
-                        {
-                            filter.SeriesIds[user.JMMUserID] = seriesForTagGroupFilter[user.JMMUserID][filter.GroupFilterID].ToHashSet();
-                            filter.GroupsIds[user.JMMUserID] = filter.SeriesIds[user.JMMUserID]
-                                .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                                .Where(id => id != -1).ToHashSet();
-                        }
-                    }
-                    else // All other group filters are to be handled normally
-                    {
+                        filter.SeriesIds.Clear();
                         filter.CalculateGroupsAndSeries();
                     }
 
