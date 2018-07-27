@@ -43,6 +43,7 @@ namespace Shoko.Server.Plex
         private MediaDevice[] _plexMediaDevices = null;
 
         private MediaDevice _mediaDevice;
+        private bool? isAuthenticated = null;
 
         static PlexHelper()
         {
@@ -131,11 +132,13 @@ namespace Shoko.Server.Plex
         {
             get
             {
+                if (isAuthenticated != null) return (bool)isAuthenticated;
                 try
                 {
-                    return RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
+                    isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,
                                    AuthenticationHeaders).ConfigureAwait(false)
                                .GetAwaiter().GetResult().status == HttpStatusCode.OK;
+                    return (bool)isAuthenticated;
                 }
                 catch (Exception)
                 {
