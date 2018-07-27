@@ -40,6 +40,7 @@ namespace Shoko.Server.Plex
         private DateTime _lastCacheTime = DateTime.MinValue;
         private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
+        private MediaDevice[] _plexMediaDevices = null;
 
         private MediaDevice _mediaDevice;
 
@@ -236,7 +237,16 @@ namespace Shoko.Server.Plex
 
         private MediaDevice[] GetPlexDevices()
         {
-            if (!IsAuthenticated) return new MediaDevice[0];
+            if (_plexMediaDevices != null)
+            {
+                return _plexMediaDevices;
+            }
+
+            if (!IsAuthenticated)
+            {
+                _plexMediaDevices = new MediaDevice[0];
+                return _plexMediaDevices;
+            }
             var (_, content) = RequestAsync("https://plex.tv/api/resources?includeHttps=1", HttpMethod.Get,
                 AuthenticationHeaders).Result;
             var serializer = new XmlSerializer(typeof(MediaContainer));
@@ -244,7 +254,8 @@ namespace Shoko.Server.Plex
             {
                 try
                 {
-                    return ((MediaContainer) serializer.Deserialize(reader)).Device;
+                    _plexMediaDevices = ((MediaContainer) serializer.Deserialize(reader)).Device;
+                    return _plexMediaDevices;
                 }
                 catch
                 {
