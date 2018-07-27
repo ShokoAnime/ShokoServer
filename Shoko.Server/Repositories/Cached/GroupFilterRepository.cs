@@ -517,11 +517,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (Cache)
                 {
                     foreach (SVR_GroupFilter groupFilter in groupFilters)
-                        lock (groupFilter)
-                        {
-                            session.Update(groupFilter);
-                            Cache.Update(groupFilter);
-                        }
+                    {
+                        session.Update(groupFilter);
+                        Cache.Update(groupFilter);
+                    }
                 }
             }
         }
@@ -547,11 +546,10 @@ namespace Shoko.Server.Repositories.Cached
                 lock (Cache)
                 {
                     foreach (SVR_GroupFilter groupFilter in groupFilters)
-                        lock (groupFilter)
-                        {
-                            session.Insert(groupFilter);
-                            Cache.Update(groupFilter);
-                        }
+                    {
+                        session.Insert(groupFilter);
+                        Cache.Update(groupFilter);
+                    }
                 }
             }
         }
@@ -567,20 +565,19 @@ namespace Shoko.Server.Repositories.Cached
             {
                 lock (Cache)
                 {
-                    foreach (SVR_GroupFilter groupFilter in groupFilters)
-                        lock (groupFilter)
+                    foreach (SVR_GroupFilter groupFilter in groupFilters)    
+                    {
+                        try
                         {
-                            try
-                            {
-                                session.Delete(groupFilter);
-                                Cache.Remove(groupFilter);
-                            }
-                            catch (Exception e)
-                            {
-                                logger.Error(
-                                    $"Unable to delete group filter: {groupFilter.GroupFilterName}|{groupFilter.GroupFilterID}");
-                            }
+                            session.Delete(groupFilter);
+                            Cache.Remove(groupFilter);
                         }
+                        catch (Exception e)
+                        {
+                            logger.Error(
+                                $"Unable to delete group filter: {groupFilter.GroupFilterName}|{groupFilter.GroupFilterID}");
+                        }
+                    }
                 }
             }
         }

@@ -195,8 +195,7 @@ namespace Shoko.Server.Tasks
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
             // and is enough work that it can benefit from running in parallel
             Parallel.ForEach(
-                grpFilters.Where(f => ((GroupFilterType) f.FilterType & GroupFilterType.Directory) !=
-                                      GroupFilterType.Directory), filter =>
+                grpFilters.Where(f => ((GroupFilterType) f.FilterType & GroupFilterType.Directory) == 0), filter =>
                 {
                     filter.SeriesIds.Clear();
 
@@ -222,7 +221,12 @@ namespace Shoko.Server.Tasks
                     filter.UpdateEntityReferenceStrings();
                 });
 
-            _groupFilterRepo.BatchUpdate(session, grpFilters);
+            using (ITransaction trans = session.BeginTransaction())
+            {
+                _groupFilterRepo.BatchUpdate(session, grpFilters);
+                trans.Commit();
+            }
+
             _log.Info("Group Filters updated");
         }
 
@@ -482,11 +486,7 @@ namespace Shoko.Server.Tasks
                 _animeGroupUserRepo.Populate(session, displayname: false);
                 _groupFilterRepo.Populate(session, displayname: false);
 
-                using (ITransaction trans = session.BeginTransaction())
-                {
-                    UpdateGroupFilters(session);
-                    trans.Commit();
-                }
+                UpdateGroupFilters(session);
 
                 _log.Info("Successfuly completed re-creating all groups");
             }
