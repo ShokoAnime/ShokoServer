@@ -198,11 +198,8 @@ namespace Shoko.Server.Tasks
             Parallel.ForEach(
                 grpFilters, filter =>
                 {
-                    if (filter.FilterType != (int) GroupFilterType.Tag)
-                    {
-                        filter.SeriesIds.Clear();
-                        filter.CalculateGroupsAndSeries();
-                    }
+                    filter.SeriesIds.Clear();
+                    filter.CalculateGroupsAndSeries();
 
                     filter.UpdateEntityReferenceStrings();
                 });

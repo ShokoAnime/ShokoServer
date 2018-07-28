@@ -525,35 +525,6 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
         }
-        
-        /// <summary>
-        /// Inserts a batch of <see cref="SVR_GroupFilter"/>s.
-        /// </summary>
-        /// <remarks>
-        /// This method ONLY updates existing <see cref="SVR_GroupFilter"/>s. It will not insert any that don't already exist.
-        /// </remarks>
-        /// <param name="session">The NHibernate session.</param>
-        /// <param name="groupFilters">The batch of <see cref="SVR_GroupFilter"/>s to update.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="session"/> or <paramref name="groupFilters"/> is <c>null</c>.</exception>
-        public void BatchInsert(ISessionWrapper session, IEnumerable<SVR_GroupFilter> groupFilters)
-        {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
-            if (groupFilters == null)
-                throw new ArgumentNullException(nameof(groupFilters));
-
-            lock (globalDBLock)
-            {
-                lock (Cache)
-                {
-                    foreach (SVR_GroupFilter groupFilter in groupFilters)
-                    {
-                        session.Insert(groupFilter);
-                        Changes.AddOrUpdate(groupFilter.GroupFilterID);
-                    }
-                }
-            }
-        }
 
         public List<SVR_GroupFilter> GetByParentID(int parentid)
         {
@@ -586,7 +557,7 @@ namespace Shoko.Server.Repositories.Cached
                 a => a.FilterType == (int) (GroupFilterType.Directory | GroupFilterType.Tag));
 
             DropAllTagFilters(session);
-            
+
             // user -> tag -> series
             ConcurrentDictionary<int, Dictionary<string, HashSet<int>>> somethingDictionary =
                 new ConcurrentDictionary<int, Dictionary<string, HashSet<int>>>();
@@ -650,7 +621,7 @@ namespace Shoko.Server.Repositories.Cached
                 somethingDictionary[key].Where(a => a.Value != null)
                 .SelectMany(p => p.Value.Select(a => Tuple.Create(p.Key, a)))
                 .ToLookup(p => p.Item1, p => p.Item2));
-            
+
             CreateAllTagFilters(session, tagsdirec, lookup);
         }
 
@@ -683,7 +654,7 @@ namespace Shoko.Server.Repositories.Cached
             List<SVR_GroupFilter> toAdd = new List<SVR_GroupFilter>(alltags.Count);
 
             var users = RepoFactory.JMMUser.GetAll().ToList();
-               
+
             //AniDB Tags are in english so we use en-us culture
             TextInfo tinfo = new CultureInfo("en-US", false).TextInfo;
             foreach (string s in alltags)
@@ -697,17 +668,8 @@ namespace Shoko.Server.Repositories.Cached
                     BaseCondition = 1,
                     Locked = 1,
                     SortingCriteria = "5;1",
-                    FilterType = (int) GroupFilterType.Tag
+                    FilterType = (int) GroupFilterType.Tag,
                 };
-                GroupFilterCondition gfc = new GroupFilterCondition
-                {
-                    ConditionType = (int) GroupFilterConditionType.Tag,
-                    ConditionOperator = (int) GroupFilterOperator.In,
-                    ConditionParameter = s,
-                    GroupFilterID = yf.GroupFilterID
-                };
-                yf.Conditions.Add(gfc);
-                    
                 yf.SeriesIds[0] = lookup[0][s].ToHashSet();
                 yf.GroupsIds[0] = yf.SeriesIds[0]
                     .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
@@ -719,23 +681,40 @@ namespace Shoko.Server.Repositories.Cached
                         .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(id => id != -1).ToHashSet();
                 }
+
+                using (var trans = session.BeginTransaction())
+                {
+                    // get an ID
+                    session.Insert(yf);
+                    trans.Commit();
+                }
+
+                GroupFilterCondition gfc = new GroupFilterCondition
+                {
+                    ConditionType = (int) GroupFilterConditionType.Tag,
+                    ConditionOperator = (int) GroupFilterOperator.In,
+                    ConditionParameter = s,
+                    GroupFilterID = yf.GroupFilterID
+                };
+                yf.Conditions.Add(gfc);
+                yf.UpdateEntityReferenceStrings();
                 toAdd.Add(yf);
             }
 
             lock (Cache)
             {
+                Populate(session, false);
                 lock (globalDBLock)
                 {
                     foreach (var filters in toAdd.Batch(50))
                     {
                         using (ITransaction trans = session.BeginTransaction())
                         {
-                            BatchInsert(session, filters);
+                            BatchUpdate(session, filters);
                             trans.Commit();
                         }
                     }
                 }
-                Populate(session, false);
             }
         }
 
