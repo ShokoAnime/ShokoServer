@@ -617,7 +617,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             });
 
-            var lookup = somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key => 
+            var lookup = somethingDictionary.Keys.Where(a => somethingDictionary[a] != null).ToDictionary(key => key, key =>
                 somethingDictionary[key].Where(a => a.Value != null)
                 .SelectMany(p => p.Value.Select(a => Tuple.Create(p.Key, a)))
                 .ToLookup(p => p.Item1, p => p.Item2));
@@ -670,13 +670,13 @@ namespace Shoko.Server.Repositories.Cached
                     SortingCriteria = "5;1",
                     FilterType = (int) GroupFilterType.Tag,
                 };
-                yf.SeriesIds[0] = lookup[0][s].ToHashSet();
+                yf.SeriesIds[0] = lookup[0][s.ToLowerInvariant()].ToHashSet();
                 yf.GroupsIds[0] = yf.SeriesIds[0]
                     .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                     .Where(id => id != -1).ToHashSet();
                 foreach (var user in users)
                 {
-                    yf.SeriesIds[user.JMMUserID] = lookup[user.JMMUserID][s].ToHashSet();
+                    yf.SeriesIds[user.JMMUserID] = lookup[user.JMMUserID][s.ToLowerInvariant()].ToHashSet();
                     yf.GroupsIds[user.JMMUserID] = yf.SeriesIds[user.JMMUserID]
                         .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(id => id != -1).ToHashSet();
@@ -698,6 +698,8 @@ namespace Shoko.Server.Repositories.Cached
                 };
                 yf.Conditions.Add(gfc);
                 yf.UpdateEntityReferenceStrings();
+                yf.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(yf._conditions);
+                yf.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
                 toAdd.Add(yf);
             }
 
