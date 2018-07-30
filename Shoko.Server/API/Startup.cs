@@ -1,12 +1,21 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Nancy.Rest.Annotations.Atributes;
 using Shoko.Models.Server;
+using Shoko.Server.API.MVCRouter;
+using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Swashbuckle.AspNetCore.Swagger;
+using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Shoko.Server.API
 {
@@ -34,6 +43,11 @@ namespace Shoko.Server.API
             {
                 auth.AddPolicy("admin", policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             });
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info { Title = "My API", Version = "v1" });
+            });
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -41,14 +55,25 @@ namespace Shoko.Server.API
             //var appConfig = new AppConfiguration();
             //ConfigurationBinder.Bind(config, appConfig);
 
-            if (env.IsDevelopment())
+#if DEBUG
+            app.UseDeveloperExceptionPage();
+#endif
+
+            string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+            UriBuilder uri = new UriBuilder(codeBase);
+            string path = Uri.UnescapeDataString(uri.Path);
+
+            var dir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(path), "webui"));
+            if (!dir.Exists) dir.Create();
+
+            app.UseStaticFiles(new StaticFileOptions()
             {
-                app.UseDeveloperExceptionPage();
-            }
+                FileProvider = new PhysicalFileProvider(dir.FullName),
+                RequestPath  = "/webui"
+            });
 
             app.Use((ctx, next) =>
             {
-
                 SVR_JMMUser identity = GetRequestUser(ctx);
                 if (identity != null)
                     ctx.User = new System.Security.Claims.ClaimsPrincipal(identity);
@@ -56,10 +81,22 @@ namespace Shoko.Server.API
                 return next();
             });
 
-            app.UseMvc(routes =>
+            app.UseRouter(routes =>
             {
-                //nothing as of yet.
+                routes
+                    .RouteFor(new ShokoServiceImplementation())
+                    .RouteFor(new ShokoServiceImplementationImage())
+                    .RouteFor(new ShokoServiceImplementationKodi())
+                    .RouteFor(new ShokoServiceImplementationMetro())
+                    .RouteFor(new ShokoServiceImplementationPlex())
+                    .RouteFor(new ShokoServiceImplementationStream());
             });
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
+
+            app.UseMvc();
+            //app.UseRouter(new ApiV1Router())
 
             /*app.UseOwin(x => {
                 x.UseNancy(opt => {
@@ -68,7 +105,6 @@ namespace Shoko.Server.API
                 });
             });*/
         }
-
 
         private static SVR_JMMUser GetRequestUser(HttpContext ctx)
         {

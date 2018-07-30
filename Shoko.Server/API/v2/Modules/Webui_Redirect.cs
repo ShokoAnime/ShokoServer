@@ -1,13 +1,13 @@
 ﻿using System.Threading.Tasks;
-using Nancy;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Webui_Redirect : Nancy.NancyModule
+    [Route("/")]
+
+    public class Webui_Redirect : Controller
     {
-        public Webui_Redirect()
-        {
-            Get("/", async (x,ct) => await Task.Factory.StartNew(() => Response.AsRedirect("/webui/index.html"), ct));
-        }
+        [HttpGet]
+        public ActionResult Index() => Redirect("/webui/index.html");
     }
 }

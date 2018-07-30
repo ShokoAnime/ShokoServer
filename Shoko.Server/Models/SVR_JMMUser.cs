@@ -85,7 +85,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        //[ScriptIgnore]
+        //[JsonIgnore]
         [NotMapped] public IEnumerable<string> Claims { get; set; }
 
         [NotMapped] string IIdentity.AuthenticationType => "API";

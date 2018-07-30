@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Xml.Serialization;
-using Nancy.Json;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
@@ -69,7 +68,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         [NotMapped]
@@ -99,7 +97,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public byte[] Bitmap
@@ -117,7 +114,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         [NotMapped]
@@ -140,19 +136,16 @@ namespace Shoko.Server.Models
         [NotMapped]
         public string CloudAccountName => CloudID.HasValue ? CloudAccount.Name : "Local FileSystem";
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         [NotMapped]
         public bool FolderIsWatched => IsWatched == 1;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         [NotMapped]
         public bool FolderIsDropSource => IsDropSource == 1;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         [NotMapped]

@@ -1,6 +1,6 @@
 ﻿using Shoko.Models.PlexAndKodi;
 using System;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.PlexAndKodi.Kodi
 {
@@ -60,6 +60,6 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         public bool AddPlexPrefsItem { get; } = false;
         public bool RemoveFileAttribute { get; } = false;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = false;
-        public NancyModule Nancy { get; set; }
+        public HttpContext Nancy { get; set; }
     }
 }

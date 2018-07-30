@@ -20,9 +20,13 @@ namespace Shoko.CLI
 
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
-            ShokoServer.Instance.StartUpServer();
+            ShokoServer.Instance.SetupNetHosts();
 
-            ShokoServer.RunWorkSetupDB();
+            if (!ServerSettings.Instance.FirstRun)
+            {
+                ShokoServer.Instance.StartUpServer();
+                ShokoServer.RunWorkSetupDB();
+            }
 
             bool running = true;
 

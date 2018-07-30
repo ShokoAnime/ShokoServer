@@ -19,11 +19,15 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plex;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server
 {
-    public partial class ShokoServiceImplementation : IShokoServer
+    public partial class ShokoServiceImplementation : IShokoServer, IHttpContextAccessor
     {
+        HttpContext _ctx;
+        public HttpContext HttpContext { get => _ctx; set => _ctx = value; }
+
         //TODO Split this file into subfiles with partial class, Move #region funcionality from the interface to those subfiles. Also move this to API folder
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -359,7 +363,7 @@ namespace Shoko.Server
                 if (n != null)
                 {
                     IObject dirr;
-                    if ((n as LocalFileSystem) != null && path.Equals("null"))
+                    if (n is LocalFileSystem && path.Equals("null"))
                     {
                         if (n.Directories == null) return result;
                         return n.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();

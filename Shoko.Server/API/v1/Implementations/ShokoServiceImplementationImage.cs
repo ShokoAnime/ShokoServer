@@ -5,19 +5,22 @@ using System.Drawing.Imaging;
 using System.IO;
 using Shoko.Models.Server;
 using NLog;
-using Nancy;
-using Nancy.Rest.Module;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Resources = Shoko.Server.Properties.Resources;
+using Shoko.Server.API.v1;
+using System.Net;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server
 {
-    public class ShokoServiceImplementationImage : IShokoServerImage
+    public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly)

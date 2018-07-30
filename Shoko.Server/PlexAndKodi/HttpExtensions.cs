@@ -25,21 +25,12 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-            Request req = prov?.Nancy?.Request;
+            var req = prov?.Nancy?.Request;
 
-            string host = req?.Url.HostName;// ?? OperationContext.Current.IncomingMessageHeaders.To.Host;
+            string host = req?.Host.Host;
 
-            string scheme = req?.Url.Scheme;// ?? OperationContext.Current?.IncomingMessageHeaders.To.Scheme;
-            /*if (host == null)
-            {
-                var context = System.ServiceModel.OperationContext.Current;
-                if (context != null && context.IncomingMessageHeaders?.To != null)
-                {
-                    Uri ur = context.IncomingMessageHeaders?.To;
-                    host = ur.Host;
-                    scheme = ur.Scheme;
-                }
-            }*/
+            string scheme = req?.Scheme;
+
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
@@ -110,36 +101,6 @@ namespace Shoko.Server.PlexAndKodi
             string version = prov.RequestHeader("X-Plex-Version");
             string platform = prov.RequestHeader("X-Plex-Platform");
             return new PlexDeviceInfo(device, product, version, platform);
-        }
-
-        public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers,
-            string contentype = null)
-        {
-            if (prov?.Nancy?.After != null)
-            {
-                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value))
-                    .ToList();
-                prov.Nancy.After.AddItemToEndOfPipeline((ctx) =>
-                {
-                    ctx.Response.WithHeaders(tps.ToArray());
-                    if (contentype != null)
-                        ctx.Response.ContentType = contentype;
-                });
-            }
-
-            //else if (OperationContext.Current != null)
-            //{
-                //TODO, donno how to do it in .NET CORE
-
-                /*
-                            httpRequestProperty.Headers.Add(HttpRequestHeader.Cookie, "CookieTestValue"); 
-                                HttpRequestMessageProperty requestMessage = new HttpRequestMessageProperty();
-                                foreach (string n in headers.Keys)
-                                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
-                                if (contentype != null)
-                                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
-                                    */
-            //}
         }
 
         public static Dictionary<string, string> GetOptions()

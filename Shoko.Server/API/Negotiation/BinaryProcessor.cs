@@ -1,4 +1,5 @@
-﻿using Nancy;
+﻿#if false
+using Nancy;
 using Nancy.Responses;
 using Nancy.Responses.Negotiation;
 using NLog;
@@ -60,3 +61,4 @@ namespace Shoko.Server.API
         }
     }
 }
+#endif

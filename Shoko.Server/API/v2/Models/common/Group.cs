@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -29,7 +29,7 @@ namespace Shoko.Server.API.v2.Models.common
             roles = new List<Role>();
         }
 
-        public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
+        public static Group GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
             bool all, int filterid, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Group g = new Group
@@ -86,7 +86,12 @@ namespace Shoko.Server.API.v2.Models.common
 
                 g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
                 g.summary = anime.Description ?? string.Empty;
-                g.titles = anime.GetTitles().ToAPIContract();
+                g.titles = anime.GetTitles().Select(s => new Shoko.Models.PlexAndKodi.AnimeTitle()
+                {
+                    Type = s.TitleType,
+                    Language = s.Language,
+                    Title = s.Language
+                }).ToList();//.ToAPIContract();
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
@@ -138,7 +143,7 @@ namespace Shoko.Server.API.v2.Models.common
             return g;
         }
 
-        public static void PopulateArtFromAniDBAnime(NancyContext ctx, IEnumerable<SVR_AniDB_Anime> animes, Group grp, bool allpics, int pic)
+        public static void PopulateArtFromAniDBAnime(HttpContext ctx, IEnumerable<SVR_AniDB_Anime> animes, Group grp, bool allpics, int pic)
         {
             Random rand = new Random();
 

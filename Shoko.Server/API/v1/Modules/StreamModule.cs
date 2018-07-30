@@ -1,4 +1,5 @@
-﻿using Nancy.Rest.Module;
+﻿#if false
+using Nancy.Rest.Module;
 using Shoko.Server.API.v1.Implementations;
 
 namespace Shoko.Server.API.v1.Modules
@@ -11,3 +12,4 @@ namespace Shoko.Server.API.v1.Modules
         }
     }
 }
+#endif

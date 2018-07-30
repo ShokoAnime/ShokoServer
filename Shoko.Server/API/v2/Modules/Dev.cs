@@ -1,21 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Nancy;
-using Nancy.Responses;
+using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Repositories;
-using Shoko.Server.Tasks;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Dev : Nancy.NancyModule
+    [ApiController]
+    [Route("/api/dev")]
+    public class Dev : Controller
     {
-        public Dev() : base("/api/dev")
+        /*public Dev() : base("")
         {
             //Get("/contracts/{entity?}", x => { return ExtractContracts((string) x.entity); }); //ContractExtractor was removed.
-            Get("/relationtree/{id?}", x => { return GetRelationTree((string) x.id); });
+            //Get("/relationtree/{id?}", x => { return GetRelationTree((string) x.id); });
         }
 
-        /*/// <summary>
+        /// <summary>
         /// Dumps the contracts as JSON files embedded in a zip file.
         /// </summary>
         /// <param name="entityType">The type of the entity to dump (can be <see cref="string.Empty"/> or <c>null</c> to dump all).</param>
@@ -33,14 +33,8 @@ namespace Shoko.Server.API.v2.Modules
             public List<Relation> Relations { get; set; }
         }
 
-        private object GetRelationTree(string id)
-        {
-            if (string.IsNullOrEmpty(id)) return GetRelationTreeForAll();
-            if (!int.TryParse(id, out int anime)) return GetRelationTreeForAll();
-            return GetRelationTreeForAnime(anime);
-        }
-
-        private object GetRelationTreeForAll()
+        [HttpGet("relationtree")]
+        private List<Relation> GetRelationTreeForAll()
         {
             var series = Repo.AnimeSeries.GetAll().Select(a => a.AniDB_ID).OrderBy(a => a).ToArray();
             List<Relation> result = new List<Relation>(series.Length);
@@ -63,7 +57,8 @@ namespace Shoko.Server.API.v2.Modules
             return result;
         }
 
-        private object GetRelationTreeForAnime(int id)
+        [HttpGet("relationtree/{id}")]
+        private Relation GetRelationTreeForAnime(int id)
         {
             var anime = Repo.AniDB_Anime.GetByID(id);
             if (anime == null) return null;

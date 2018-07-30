@@ -1,13 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Nancy;
-using Nancy.Rest.Module;
+using Microsoft.AspNetCore.Http;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.v1;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
@@ -16,8 +17,10 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
-    public class ShokoServiceImplementationStream : IShokoServerStream
+    public class ShokoServiceImplementationStream : IShokoServerStream, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         //89% Should be enough to not touch matroska offsets and give us some margin
         private double WatchedThreshold = 0.89;
 
@@ -48,7 +51,7 @@ namespace Shoko.Server
         {
             try
             {
-                Nancy.Request request = RestModule.CurrentModule.Request;
+                var request = HttpContext.Request;
 
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || fr.Status != Status.Ok)

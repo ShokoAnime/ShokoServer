@@ -2,6 +2,7 @@
 using System.Text;
 using Shoko.Models.PlexAndKodi;
 using Nancy;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.PlexAndKodi.Plex
 {
@@ -97,7 +98,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
         public bool AddPlexPrefsItem { get; } = true;
         public bool RemoveFileAttribute { get; } = true;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = true;
-        public NancyModule Nancy { get; set; }
+        public HttpContext Nancy { get; set; }
 
         //public void AddResponseHeaders()
         //{

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using AniDBAPI;
-using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -24,6 +23,7 @@ using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Repositories;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
+using Shoko.Server.API.v1;
 
 // ReSharper disable FunctionComplexityOverflow
 

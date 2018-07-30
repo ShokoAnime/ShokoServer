@@ -8,7 +8,7 @@ using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using Google.Protobuf.WellKnownTypes;
-using Nancy.Json;
+using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
@@ -43,7 +43,7 @@ namespace Shoko.Server.Models
 
         public int MyListID { get; set; }
 
-        [ScriptIgnore]
+        [JsonIgnore]
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
@@ -95,7 +95,7 @@ namespace Shoko.Server.Models
             return sb.ToString();
         }
 
-        [ScriptIgnore]
+        [JsonIgnore]
         [NotMapped]
         public string ED2KHash
         {

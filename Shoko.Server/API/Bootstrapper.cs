@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if false
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Claims;
@@ -222,3 +223,4 @@ namespace Shoko.Server.API
         }
     }
 }
+#endif

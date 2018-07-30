@@ -21,11 +21,14 @@ using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server
 {
-    public class ShokoServiceImplementationMetro : IShokoServerMetro
+    public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public CL_ServerStatus GetServerStatus()

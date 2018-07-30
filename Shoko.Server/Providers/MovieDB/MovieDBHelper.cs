@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Nancy.Session;
 using Shoko.Models.Server;
 using NLog;
 using Shoko.Commons.Extensions;

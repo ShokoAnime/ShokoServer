@@ -15,8 +15,6 @@ using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
-using Nancy;
-using Nancy.Json;
 using NLog;
 using NLog.Targets;
 using NutzCode.CloudFileSystem.OAuth2;
@@ -1220,7 +1218,7 @@ namespace Shoko.Server
         void AutoUpdateTimerShort_Elapsed(object sender, ElapsedEventArgs e)
         {
             autoUpdateTimerShort.Enabled = false;
-            ShokoService.CmdProcessorImages.NotifyOfNewCommand();
+            //ShokoService.CmdProcessorImages.NotifyOfNewCommand();
 
             CheckForAdminMesages();
 
