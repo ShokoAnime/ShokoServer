@@ -1,21 +1,24 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using Nito.AsyncEx;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Language = TvDbSharper.Dto.Language;
 
 namespace Shoko.Server.Databases
 {
     public class ShokoContext : DbContext
     {
-        //TODO DBContext is not be thread safe, and we might have concurrency or locking problems, 
-        //We may need to change it to support one different context per thread, and InBetween Factory might be created to support this.
-
         public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((_, __) => true, true) });
 
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;
+        private AsyncLock _saveLock=new AsyncLock();
+
         public ShokoContext(DatabaseTypes type, string connectionstring)
         {
             _type = type;
@@ -26,6 +29,141 @@ namespace Shoko.Server.Databases
         {
             Mappings.Map(modelBuilder);
             base.OnModelCreating(modelBuilder);
+        }
+
+
+        //
+        // Summary:
+        //     Saves all changes made in this context to the database.
+        //
+        // Parameters:
+        //   acceptAllChangesOnSuccess:
+        //     Indicates whether Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AcceptAllChanges
+        //     is called after the changes have been sent successfully to the database.
+        //
+        // Returns:
+        //     The number of state entries written to the database.
+        //
+        // Exceptions:
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+        //     An error is encountered while saving to the database.
+        //
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+        //     A concurrency violation is encountered while saving to the database. A concurrency
+        //     violation occurs when an unexpected number of rows are affected during save.
+        //     This is usually because the data in the database has been modified since it was
+        //     loaded into memory.
+        //
+        // Remarks:
+        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+        //     to discover any changes to entity instances before saving to the underlying database.
+        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            using (_saveLock.Lock())
+                return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        //
+        // Summary:
+        //     Saves all changes made in this context to the database.
+        //
+        // Returns:
+        //     The number of state entries written to the database.
+        //
+        // Exceptions:
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+        //     An error is encountered while saving to the database.
+        //
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+        //     A concurrency violation is encountered while saving to the database. A concurrency
+        //     violation occurs when an unexpected number of rows are affected during save.
+        //     This is usually because the data in the database has been modified since it was
+        //     loaded into memory.
+        //
+        // Remarks:
+        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+        //     to discover any changes to entity instances before saving to the underlying database.
+        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        public override int SaveChanges()
+        {
+            using (_saveLock.Lock())
+                return base.SaveChanges();
+        }
+        //
+        // Summary:
+        //     Asynchronously saves all changes made in this context to the database.
+        //
+        // Parameters:
+        //   acceptAllChangesOnSuccess:
+        //     Indicates whether Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AcceptAllChanges
+        //     is called after the changes have been sent successfully to the database.
+        //
+        //   cancellationToken:
+        //     A System.Threading.CancellationToken to observe while waiting for the task to
+        //     complete.
+        //
+        // Returns:
+        //     A task that represents the asynchronous save operation. The task result contains
+        //     the number of state entries written to the database.
+        //
+        // Exceptions:
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+        //     An error is encountered while saving to the database.
+        //
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+        //     A concurrency violation is encountered while saving to the database. A concurrency
+        //     violation occurs when an unexpected number of rows are affected during save.
+        //     This is usually because the data in the database has been modified since it was
+        //     loaded into memory.
+        //
+        // Remarks:
+        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+        //     to discover any changes to entity instances before saving to the underlying database.
+        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        //     Multiple active operations on the same context instance are not supported. Use
+        //     'await' to ensure that any asynchronous operations have completed before calling
+        //     another method on this context.
+
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            using (await _saveLock.LockAsync())
+                return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        //
+        // Summary:
+        //     Asynchronously saves all changes made in this context to the database.
+        //
+        // Parameters:
+        //   cancellationToken:
+        //     A System.Threading.CancellationToken to observe while waiting for the task to
+        //     complete.
+        //
+        // Returns:
+        //     A task that represents the asynchronous save operation. The task result contains
+        //     the number of state entries written to the database.
+        //
+        // Exceptions:
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+        //     An error is encountered while saving to the database.
+        //
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+        //     A concurrency violation is encountered while saving to the database. A concurrency
+        //     violation occurs when an unexpected number of rows are affected during save.
+        //     This is usually because the data in the database has been modified since it was
+        //     loaded into memory.
+        //
+        // Remarks:
+        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+        //     to discover any changes to entity instances before saving to the underlying database.
+        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        //     Multiple active operations on the same context instance are not supported. Use
+        //     'await' to ensure that any asynchronous operations have completed before calling
+        //     another method on this context.
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            using (await _saveLock.LockAsync())
+                return await base.SaveChangesAsync(cancellationToken);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
