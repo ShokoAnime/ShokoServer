@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging.Console;
 using Nito.AsyncEx;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
-using Language = TvDbSharper.Dto.Language;
 
 namespace Shoko.Server.Databases
 {

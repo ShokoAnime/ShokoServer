@@ -27,7 +27,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [Authorize]
     [ApiController]// As this module requireAuthentication all request need to have apikey in header.
-    [Route("/api")]
+    [Route("/api/core")]
     public class Core : Controller
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -172,7 +172,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Set given setting
         /// </summary>
         /// <returns></returns>
-        [HttpPost("config/set")]
+        [HttpPost("config/setmultiple")]
         public ActionResult<List<APIMessage>> SetSetting(List<Setting> settings)
         {
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
@@ -441,7 +441,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Scan Trakt
         /// </summary>
         /// <returns></returns>
-        [HttpGet("trakt/get")]
+        [HttpGet("trakt/scan")]
         public ActionResult ScanTrakt()
         {
             Importer.RunImport_ScanTrakt();
@@ -805,28 +805,28 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.NotImplemented();
         }
 
-        [HttpGet("/cloud/count")]
+        [HttpGet("cloud/count")]
         public ActionResult GetCloudAccountsCount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        [HttpPost("/cloud/add")]
+        [HttpPost("cloud/add")]
         public ActionResult AddCloudAccount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        [HttpPost("/cloud/delete")]
+        [HttpPost("cloud/delete")]
         public ActionResult DeleteCloudAccount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        [HttpGet("/cloud/import")]
+        [HttpGet("cloud/import")]
         public ActionResult RunCloudImport()
         {
             ShokoServer.RunImport();

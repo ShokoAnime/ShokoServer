@@ -53,6 +53,7 @@ namespace Shoko.Server.API.v2.Modules
         }
         #region Plex events
 
+        [NonAction]
         private static void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
         {
             PlexEvent.PlexMetadata metadata = evt.Metadata;
@@ -69,6 +70,7 @@ namespace Shoko.Server.API.v2.Modules
             TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
         }
 
+        [NonAction]
         private void Scrobble(PlexEvent data)
         {
             PlexEvent.PlexMetadata metadata = data.Metadata;
@@ -95,6 +97,7 @@ namespace Shoko.Server.API.v2.Modules
 
         #endregion
 
+        [NonAction]
         private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
         {
             if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
@@ -140,6 +143,7 @@ namespace Shoko.Server.API.v2.Modules
                 .FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series), anime);
         }
 
+        [NonAction]
         public DateTime FromUnixTime(long unixTime)
         {
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(unixTime);
@@ -193,6 +197,7 @@ namespace Shoko.Server.API.v2.Modules
         public PlexLibrary[] GetShowsForDirectory(int id) => CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == id))?.GetShows());
 #endif
 
+        [NonAction]
         private T CallPlexHelper<T>(Func<PlexHelper, T> act)
         {
             JMMUser user = (JMMUser)HttpContext.User.Identity;
