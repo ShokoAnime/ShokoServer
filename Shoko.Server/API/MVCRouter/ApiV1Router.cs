@@ -65,8 +65,69 @@ namespace Shoko.Server.API
 
                     List<object> paramList = new List<object>();
 
-                    foreach (var param in result.@params)
-                        paramList.Add(routeData.Values[param.Name]);
+                    bool bodyprocessed = false;
+                    foreach (var param in method.GetParameters())
+                    {
+                        string val = "";
+                        object o;
+                        if (routeData.Values.ContainsKey(param.Name))
+                        {
+                            val = routeData.Values[param.Name].ToString();
+                        }
+                        else if (request.Query.ContainsKey(param.Name))
+                        {
+                            val = request.Query[param.Name].FirstOrDefault();
+                        }
+                        else if (request.HasFormContentType && request.Form.ContainsKey(param.Name))
+                        {
+                            val = request.Form[param.Name].FirstOrDefault();
+                        }
+                        else if (param.HasDefaultValue)
+                        {
+                            paramList.Add(param.DefaultValue);
+                            continue;
+                        }
+
+                        if (param.ParameterType == typeof(int) || param.ParameterType == typeof(Int32))
+                        {
+                            if (int.TryParse(val, out int i))
+                                o = i;
+                            else if (param.HasDefaultValue)
+                                o = param.DefaultValue;
+                            else throw new Exception($"{param.Name} failed to parse");
+                        }
+                        else if (param.ParameterType == typeof(float))
+                        {
+                            if (float.TryParse(val, out float f))
+                                o = f;
+                            else if (param.HasDefaultValue)
+                                o = param.DefaultValue;
+                            else throw new Exception($"{param.Name} failed to parse");
+                        }
+                        else if (param.ParameterType == typeof(string))
+                        {
+                            o = val;
+                        }
+                        else if (param.ParameterType == typeof(DateTime))
+                        {
+                            if (DateTime.TryParse(val, out DateTime f))
+                                o = f;
+                            else if (param.HasDefaultValue)
+                                o = param.DefaultValue;
+                            else throw new Exception($"{param.Name} failed to parse");
+                        }
+                        else if (request.ContentType.Equals("application/json", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            using (StreamReader reader = new StreamReader(request.Body))
+                            {
+                                bodyprocessed = true;
+                                o = JsonConvert.DeserializeObject(reader.ReadToEnd(), param.ParameterType);
+                            }
+                        }
+                        else throw new Exception($"{param.ParameterType} is not known to be parsed!");
+
+                        paramList.Add(o);
+                    }
 
                     var invocation = method.Invoke(obj, paramList.ToArray());
 
