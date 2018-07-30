@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Nancy.Rest.Annotations.Atributes;
 using Shoko.Models.Server;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.API.MVCRouter;
 using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.Models;
@@ -38,7 +39,13 @@ namespace Shoko.Server.API
         {
             services.AddMvc()
                 .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
-            services.AddAuthenticationCore();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
+                options.DefaultChallengeScheme = CustomAuthOptions.DefaultScheme;
+            }).AddScheme<CustomAuthOptions, CustomAuthHandler>(CustomAuthOptions.DefaultScheme, _ => { });
+
             services.AddAuthorization(auth =>
             {
                 auth.AddPolicy("admin", policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
@@ -46,7 +53,7 @@ namespace Shoko.Server.API
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "My API", Version = "v1" });
+                c.SwaggerDoc("v1", new Info { Title = "Shoko Server API", Version = "v1" });
             });
         }
 
@@ -72,14 +79,14 @@ namespace Shoko.Server.API
                 RequestPath  = "/webui"
             });
 
-            app.Use((ctx, next) =>
+            /*app.Use((ctx, next) =>
             {
                 SVR_JMMUser identity = GetRequestUser(ctx);
                 if (identity != null)
                     ctx.User = new System.Security.Claims.ClaimsPrincipal(identity);
 
                 return next();
-            });
+            });*/
 
             app.UseRouter(routes =>
             {
