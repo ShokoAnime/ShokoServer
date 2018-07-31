@@ -87,6 +87,27 @@ namespace Shoko.Server.Commands
             }
         }
 
+        //Used to check if file has been modified within the last X seconds.
+        private bool FileModified(string FileName, int Seconds)
+        {
+            try
+            {
+                if (System.IO.File.GetLastWriteTime(FileName).AddSeconds(Seconds) >= DateTime.Now)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+                return false;
+            }
+        }
+
         private void ProcessFile_LocalInfo()
         {
             // hash and read media info for file
@@ -129,6 +150,13 @@ namespace Shoko.Server.Commands
                 {
                     logger.Error("Could not access file: " + FileName);
                     return;
+                }
+
+                //For systems with no locking
+                while (FileModified(FileName, 3))
+                {
+                    Thread.Sleep(1000);
+                    logger.Error($@"An external process is modifying the file, {FileName}");
                 }
             }
 

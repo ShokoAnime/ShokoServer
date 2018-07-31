@@ -147,40 +147,25 @@ namespace Shoko.Server.Tasks
         {
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
-            Dictionary<int, ILookup<int, int>> seriesForTagGroupFilter = Repo.GroupFilter.CalculateAnimeSeriesPerTagGroupFilter();
+            Repo.GroupFilter.CalculateAnimeSeriesPerTagGroupFilter();
             _log.Info("Caculating All Other Filters");
-            IReadOnlyList<SVR_GroupFilter> grpFilters = Repo.GroupFilter.GetAll();
-            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
+            IEnumerable<SVR_GroupFilter> grpFilters = Repo.GroupFilter.GetAll().Where(a =>
+                a.FilterType != (int) GroupFilterType.Tag &&
+                ((GroupFilterType) a.FilterType & GroupFilterType.Directory) == 0).ToList();
 
             // The main reason for doing this in parallel is because UpdateEntityReferenceStrings does JSON encoding
             // and is enough work that it can benefit from running in parallel
-            var _toUpdate = grpFilters.Where(f => ((GroupFilterType)f.FilterType & GroupFilterType.Directory) !=
-                                     GroupFilterType.Directory);
-            Repo.GroupFilter.BatchAction(_toUpdate, _toUpdate.Count(), (filter, _) =>
-            {
-                filter.SeriesIds.Clear();
-
-                if (filter.FilterType == (int)GroupFilterType.Tag)
+            Parallel.ForEach(
+                grpFilters, filter =>
                 {
-                    filter.SeriesIds[0] = seriesForTagGroupFilter[0][filter.GroupFilterID].ToHashSet();
-                    filter.GroupsIds[0] = filter.SeriesIds[0]
-                        .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                        .Where(id => id != -1).ToHashSet();
-                    foreach (var user in users)
-                    {
-                        filter.SeriesIds[user.JMMUserID] = seriesForTagGroupFilter[user.JMMUserID][filter.GroupFilterID].ToHashSet();
-                        filter.GroupsIds[user.JMMUserID] = filter.SeriesIds[user.JMMUserID]
-                            .Select(id => Repo.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
-                            .Where(id => id != -1).ToHashSet();
-                    }
-                }
-                else // All other group filters are to be handled normally
-                {
+                    filter.SeriesIds.Clear();
                     filter.CalculateGroupsAndSeries();
-                }
 
-                filter.UpdateEntityReferenceStrings();
-            }, parallel: true);
+                    filter.UpdateEntityReferenceStrings();
+                });
+
+            Repo.GroupFilter.BatchAction(grpFilters, grpFilters.Count(), (_, __) => { });
+
             _log.Info("Group Filters updated");
         }
 
@@ -429,10 +414,27 @@ namespace Shoko.Server.Tasks
                 }
                 else // Standard group re-create
                 {
-                    createdGroups = CreateGroupPerSeries(animeSeries);
+                    createdGroups = CreateGroupPerSeries(animeSeries)
+                        .AsReadOnlyCollection();
                 }
+
                 UpdateAnimeSeriesContractsAndSave(animeSeries);
-                Repo.AnimeGroup.Delete(0); // We should no longer need the temporary group we created earlier
+                Repo.AnimeGroup.Delete(tempGroup); // We should no longer need the temporary group we created earlier
+
+                // We need groups and series cached for updating of AnimeGroup contracts to work
+                Repo.AnimeGroup.PopulateCache();
+                Repo.AnimeSeries.PopulateCache();
+
+                UpdateAnimeGroupsAndTheirContracts(createdGroups);
+                
+
+                // We need to update the AnimeGroups cache again now that the contracts have been saved
+                // (Otherwise updating Group Filters won't get the correct results)
+                Repo.AnimeGroup.PopulateCache();
+                Repo.AnimeGroup_User.PopulateCache();
+                Repo.GroupFilter.PopulateCache();
+
+                UpdateGroupFilters();
 
                 UpdateAnimeGroupsAndTheirContracts(createdGroups);
                 UpdateGroupFilters();

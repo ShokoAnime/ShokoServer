@@ -729,7 +729,7 @@ namespace Shoko.Server.Models
             return true;
         }
 
-        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(int? existingGroupID = null)
+        public SVR_AnimeSeries CreateAnimeSeriesAndGroup(SVR_AnimeSeries existingSeries = null, int? existingGroupID = null)
         {
             // Create a new AnimeSeries record
             SVR_AnimeSeries series;
