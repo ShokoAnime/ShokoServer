@@ -542,7 +542,7 @@ namespace Shoko.Commons.Utils
 
             if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(inputString))
             {
-                dist = text.Length;
+                dist = int.MaxValue;
                 return -1;
             }
 
@@ -561,11 +561,9 @@ namespace Shoko.Commons.Utils
                 return 0;
             }
 
-            if (IntPtr.Size > 4)
-            {
-                return BitapFuzzySearch64(inputString, query, k, out dist);
-            }
-            return BitapFuzzySearch32(inputString, query, k, out dist);
+            return IntPtr.Size > 4
+                ? BitapFuzzySearch64(inputString, query, k, out dist)
+                : BitapFuzzySearch32(inputString, query, k, out dist);
         }
 
         public static bool FuzzyMatches(this string text, string query)
@@ -575,6 +573,7 @@ namespace Shoko.Commons.Utils
             if (query.Length <= 4 || text.Length <= 4) k = 0;
             return BitapFuzzySearch(text, query, k, out int _) > -1;
         }
+
         private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
         public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
         {
