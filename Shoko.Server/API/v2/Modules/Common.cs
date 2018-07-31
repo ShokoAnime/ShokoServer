@@ -2244,14 +2244,24 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     match = title;
                     dist = newDist;
+                } else if (newDist == dist)
+                {
+                    if (title.Length < match.Length) match = title;
                 }
             }
-            // Keep the lowest distance
+            // Keep the lowest distance, then by shortest title
             if (dist < int.MaxValue)
                 distLevenshtein.AddOrUpdate(a, new Tuple<int, string>(dist, match),
-                    (key, oldValue) => Math.Min(oldValue.Item1, dist) == dist
-                        ? new Tuple<int, string>(dist, match)
-                        : oldValue);
+                    (key, oldValue) =>
+                    {
+                        if (oldValue.Item1 < dist) return oldValue;
+                        if (oldValue.Item1 == dist)
+                            return oldValue.Item2.Length < match.Length
+                                ? oldValue
+                                : new Tuple<int, string>(dist, match);
+
+                        return new Tuple<int, string>(dist, match);
+                    });
         }
 
         /// <summary>
