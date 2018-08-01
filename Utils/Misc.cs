@@ -546,14 +546,6 @@ namespace Shoko.Commons.Utils
                 return -1;
             }
 
-            // always search the longer string for the shorter one
-            if (query.Length > inputString.Length)
-            {
-                string temp = query;
-                query = inputString;
-                inputString = temp;
-            }
-
             // Shortcut
             if (inputString.Contains(query))
             {
@@ -561,8 +553,16 @@ namespace Shoko.Commons.Utils
                 // a lower score is better, since the distance is 0 when they are equal, adding to int.MinValue with give
                 // an inverse relationship, while still giving meaningful data
                 dist = Math.Abs(inputString.Length - query.Length) + int.MinValue;
-                
+
                 return 0;
+            }
+
+            // always search the longer string for the shorter one
+            if (query.Length > inputString.Length)
+            {
+                string temp = query;
+                query = inputString;
+                inputString = temp;
             }
 
             return IntPtr.Size > 4
