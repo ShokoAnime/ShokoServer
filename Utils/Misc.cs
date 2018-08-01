@@ -557,7 +557,9 @@ namespace Shoko.Commons.Utils
             // Shortcut
             if (inputString.Contains(query))
             {
-                dist = int.MinValue;
+                dist = -1;
+                // they are equal if the lengths are equal and one contains the other
+                if (inputString.Length == query.Length) dist = int.MinValue;
                 return 0;
             }
 
