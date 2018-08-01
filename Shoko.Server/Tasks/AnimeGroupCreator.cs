@@ -188,7 +188,7 @@ namespace Shoko.Server.Tasks
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
             _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
-            _log.Info("Caculating All Other Filters");
+            _log.Info("Calculating All Other Filters");
             IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
                 a.FilterType != (int) GroupFilterType.Tag &&
                 ((GroupFilterType) a.FilterType & GroupFilterType.Directory) == 0).ToList();
