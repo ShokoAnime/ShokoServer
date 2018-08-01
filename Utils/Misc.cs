@@ -557,9 +557,11 @@ namespace Shoko.Commons.Utils
             // Shortcut
             if (inputString.Contains(query))
             {
-                dist = -1;
                 // they are equal if the lengths are equal and one contains the other
-                if (inputString.Length == query.Length) dist = int.MinValue;
+                // a lower score is better, since the distance is 0 when they are equal, adding to int.MinValue with give
+                // an inverse relationship, while still giving meaningful data
+                dist = Math.Abs(inputString.Length - query.Length) + int.MinValue;
+                
                 return 0;
             }
 
