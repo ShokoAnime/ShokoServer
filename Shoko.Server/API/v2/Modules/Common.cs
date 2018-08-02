@@ -2327,6 +2327,10 @@ namespace Shoko.Server.API.v2.Modules
         class SearchGrouping
         {
             public List<SVR_AnimeSeries> Series { get; set; }
+            public bool exact_match { get; set; }
+            public int distance { get; set; }
+            public int index { get; set; }
+            public string match { get; set; }
         }
         
         /// <summary>
@@ -2457,11 +2461,19 @@ namespace Shoko.Server.API.v2.Modules
                                 if (title2 == null) return -1;
                                 return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
                             });
-                            return Tuple.Create(a.Key, tempSeries);
+                            var result = new SearchGrouping
+                            {
+                                Series = a.OrderBy(b => b.AirDate).ToList(),
+                                exact_match = distLevenshtein[tempSeries[0]].Item1.exact_match,
+                                distance = distLevenshtein[tempSeries[0]].Item1.distance,
+                                index = distLevenshtein[tempSeries[0]].Item1.index,
+                                match = distLevenshtein[tempSeries[0]].Item2
+                            };
+                            return result;
                         });
 
-                        series = tempListToSort.OrderBy(a => distLevenshtein[a.Item2[0]].Item1.distance)
-                            .SelectMany(a => a.Item2).ToDictionary(a => a, a => distLevenshtein[a].Item2);
+                        series = tempListToSort.OrderBy(a => a.distance)
+                            .SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a].Item2);
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
@@ -2518,7 +2530,7 @@ namespace Shoko.Server.API.v2.Modules
                         var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
                         allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, realLimit));
 
-                        series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
+                        series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1.distance)
                             .ThenBy(a => distLevenshtein[a].Item2.Length)
                             .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                             .ToDictionary(a => a, a => distLevenshtein[a].Item2);
@@ -2649,11 +2661,19 @@ namespace Shoko.Server.API.v2.Modules
                                 if (title2 == null) return -1;
                                 return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
                             });
-                            return Tuple.Create(a.Key, tempSeries);
+                            var result = new SearchGrouping
+                            {
+                                Series = a.OrderBy(b => b.AirDate).ToList(),
+                                exact_match = distLevenshtein[tempSeries[0]].Item1.exact_match,
+                                distance = distLevenshtein[tempSeries[0]].Item1.distance,
+                                index = distLevenshtein[tempSeries[0]].Item1.index,
+                                match = distLevenshtein[tempSeries[0]].Item2
+                            };
+                            return result;
                         });
 
-                        series = tempListToSort.OrderBy(a => distLevenshtein[a.Item2[0]].Item1.distance)
-                            .SelectMany(a => a.Item2).ToDictionary(a => a, a => distLevenshtein[a].Item2);
+                        series = tempListToSort.OrderBy(a => a.distance)
+                            .SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a].Item2);
 
                         distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
 
@@ -2663,7 +2683,7 @@ namespace Shoko.Server.API.v2.Modules
                         if (tag_limit > 0)
                         {
                             allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, tag_limit));
-                            series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
+                            series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1.distance)
                                 .ThenBy(a => distLevenshtein[a].Item2.Length)
                                 .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
                                 .ToDictionary(a => a, a => distLevenshtein[a].Item2));
