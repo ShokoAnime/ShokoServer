@@ -179,6 +179,22 @@ namespace Shoko.Commons.Extensions
             comparer = comparer ?? Comparer<TKey>.Default;
             return ExtremaBy(source, selector, (x, y) => comparer.Compare(x, y));
         }
+        
+        public static IEnumerable<TSource> MinBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector)
+        {
+            return source.MinBy(selector, null);
+        }
+
+        public static IEnumerable<TSource> MinBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector, IComparer<TKey> comparer)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+
+            comparer = comparer ?? Comparer<TKey>.Default;
+            return ExtremaBy(source, selector, (x, y) => comparer.Compare(y, x));
+        }
 
         static IEnumerable<TSource> ExtremaBy<TSource, TKey>(IEnumerable<TSource> source,
             Func<TSource, TKey> selector, Func<TKey, TKey, int> comparer)
