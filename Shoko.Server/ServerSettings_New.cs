@@ -33,7 +33,7 @@ namespace Shoko.Server
         {
             get
             {
-                if (Utils.IsRunningOnMono())
+                if (Utils.IsLinux)
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko", DefaultInstance);
 
                 return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), DefaultInstance);
@@ -357,7 +357,18 @@ namespace Shoko.Server
 
         public static ServerSettings Instance { get; private set; } = new ServerSettings();
 
-        public static void LoadSettings() => LoadSettingsFromFile(Path.Combine(ApplicationPath, SettingsFilename), false);
+        public static void LoadSettings()
+        {
+            if (!Directory.Exists(ApplicationPath)) Directory.CreateDirectory(ApplicationPath);
+            var path = Path.Combine(ApplicationPath, SettingsFilename);
+            if (!File.Exists(path))
+            {
+                Instance = new ServerSettings();
+                Instance.SaveSettings();
+                return;
+            }
+            LoadSettingsFromFile(path, false);
+        }
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
