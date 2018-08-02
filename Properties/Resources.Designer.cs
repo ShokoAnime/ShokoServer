@@ -79,15 +79,6 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MediaPortal Forum.
-        /// </summary>
-        public static string About_MediaPortal {
-            get {
-                return ResourceManager.GetString("About_MediaPortal", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Project Page.
         /// </summary>
         public static string About_Project {
@@ -6721,7 +6712,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html#anidb-ban.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html.
         /// </summary>
         public static string Link_AniDBBan {
             get {
@@ -6730,7 +6721,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html#anidb-ban.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html.
         /// </summary>
         public static string Link_AniDBBanned {
             get {
@@ -6766,7 +6757,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/cloud.html.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/config.html#supported-hosts.
         /// </summary>
         public static string Link_CloudAccounts {
             get {
@@ -6775,7 +6766,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html#community-recommendations.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html.
         /// </summary>
         public static string Link_CommunityRecommendation {
             get {
@@ -6811,7 +6802,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://shokoanime.com/Shoko-desktop/downloads/.
+        ///   Looks up a localized string similar to https://shokoanime.com/downloads/.
         /// </summary>
         public static string Link_Downloads {
             get {
@@ -6838,7 +6829,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://github.com/japanesemediamanager.
+        ///   Looks up a localized string similar to https://github.com/ShokoAnime/.
         /// </summary>
         public static string Link_GitHub {
             get {
@@ -6856,7 +6847,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/index.html.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com.
         /// </summary>
         public static string Link_Help {
             get {
@@ -6874,7 +6865,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/import.html.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/config.html#import-folders.
         /// </summary>
         public static string Link_ImportFolders {
             get {
@@ -6883,7 +6874,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/integrity.html.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/server/config.html#integrity-check.
         /// </summary>
         public static string Link_Integrity {
             get {
@@ -6892,7 +6883,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html#community-links.
+        ///   Looks up a localized string similar to https://docs.shokoanime.com/faq.html.
         /// </summary>
         public static string Link_Linking {
             get {
@@ -6937,7 +6928,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to https://shokoanime.com/faq/#Shoko-shared-drive.
+        ///   Looks up a localized string similar to https://shokoanime.com/faq/.
         /// </summary>
         public static string Link_SharedDrive {
             get {

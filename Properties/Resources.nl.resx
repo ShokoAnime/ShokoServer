@@ -123,9 +123,6 @@
   <data name="About_Home" xml:space="preserve">
     <value>Home Page</value>
   </data>
-  <data name="About_MediaPortal" xml:space="preserve">
-    <value>MediaPortal Forum</value>
-  </data>
   <data name="About_Project" xml:space="preserve">
     <value>Projectpagina</value>
   </data>
@@ -1764,9 +1761,6 @@
   <data name="LearnMore_WebCache" xml:space="preserve">
     <value>Meer informatie over de webcache</value>
   </data>
-  <data name="Link_AniDBBanned" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html#anidb-ban</value>
-  </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#anidb</value>
   </data>
@@ -1777,13 +1771,13 @@
     <value>https://docs.shokoanime.com/changelog.html</value>
   </data>
   <data name="Link_CommunityRecommendation" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html#community-recommendations</value>
+    <value>https://docs.shokoanime.com/faq.html</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
     <value>https://shokoanime.com/downloads</value>
   </data>
   <data name="Link_Downloads" xml:space="preserve">
-    <value>https://shokoanime.com/Shoko-desktop/downloads/</value>
+    <value>https://shokoanime.com/downloads/</value>
   </data>
   <data name="Link_EnableStreaming" xml:space="preserve">
     <value>https://shokoanime.com/streaming/</value>
@@ -1794,14 +1788,8 @@
   <data name="Link_GroupFilters" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/collection.html#filters</value>
   </data>
-  <data name="Link_Help" xml:space="preserve">
-    <value>https://docs.shokoanime.com/index.html</value>
-  </data>
-  <data name="Link_ImportFolders" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/import.html</value>
-  </data>
   <data name="Link_Linking" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html#community-links</value>
+    <value>https://docs.shokoanime.com/faq.html</value>
   </data>
   <data name="Link_MAL" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#mal</value>
@@ -4683,28 +4671,22 @@ Mark Unknown - laat het bestand op uw lijst, maar wijzigt de status unkown.</val
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html#anidb-ban</value>
-  </data>
-  <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/cloud.html</value>
+    <value>https://docs.shokoanime.com/faq.html</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>https://shokoanime.com/contribute/</value>
-  </data>
-  <data name="Link_GitHub" xml:space="preserve">
-    <value>https://github.com/japanesemediamanager</value>
   </data>
   <data name="Link_Home" xml:space="preserve">
     <value>https://shokoanime.com/</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/integrity.html</value>
+    <value>https://docs.shokoanime.com/server/config.html#integrity-check</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
     <value>https://docs.shokoanime.com/server/mysql.html</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
-    <value>https://shokoanime.com/faq/#Shoko-shared-drive</value>
+    <value>https://shokoanime.com/faq/</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
     <value>https://docs.shokoanime.com/server/sqlserver.html</value>
@@ -5268,5 +5250,20 @@ Gelieve te verbinden met plex via Desktop onder instellingen-&gt; gebruikers geb
   </data>
   <data name="LearnMore_CommunitySites" xml:space="preserve">
     <value>Leer meer over community-sites!</value>
+  </data>
+  <data name="Link_AniDBBanned" xml:space="preserve">
+    <value>https://docs.shokoanime.com/faq.html</value>
+  </data>
+  <data name="Link_Help" xml:space="preserve">
+    <value>https://docs.shokoanime.com</value>
+  </data>
+  <data name="Link_ImportFolders" xml:space="preserve">
+    <value>https://docs.shokoanime.com/server/config.html#import-folders</value>
+  </data>
+  <data name="Link_CloudAccounts" xml:space="preserve">
+    <value>https://docs.shokoanime.com/server/config.html#supported-hosts</value>
+  </data>
+  <data name="Link_GitHub" xml:space="preserve">
+    <value>https://github.com/ShokoAnime/</value>
   </data>
 </root>
