@@ -2413,26 +2413,35 @@ namespace Shoko.Server.API.v2.Modules
                                     if (!startsWith1)
                                     {
                                         char startChar1 = result1.Item2[result1.Item1.index - 1];
-                                        startsWith1 = Char.IsWhiteSpace(startChar1) || Char.IsPunctuation(startChar1) ||
-                                                      Char.IsSeparator(startChar1);
+                                        startsWith1 = char.IsWhiteSpace(startChar1) || char.IsPunctuation(startChar1) ||
+                                                      char.IsSeparator(startChar1);
                                     }
 
                                     bool startsWith2 = result2.Item1.index == 0;
                                     if (!startsWith2)
                                     {
                                         char startChar2 = result2.Item2[result2.Item1.index - 1];
-                                        startsWith2 = Char.IsWhiteSpace(startChar2) || Char.IsPunctuation(startChar2) ||
-                                                      Char.IsSeparator(startChar2);
+                                        startsWith2 = char.IsWhiteSpace(startChar2) || char.IsPunctuation(startChar2) ||
+                                                      char.IsSeparator(startChar2);
                                     }
 
                                     int index1 = result1.Item2.Length + result1.Item1.index;
-                                    char endChar1 = result1.Item2[index1];
-                                    bool endsWith1 = Char.IsWhiteSpace(endChar1) || Char.IsPunctuation(endChar1) ||
-                                                     Char.IsSeparator(endChar1);
+                                    bool endsWith1 = result1.Item2.Length <= index1;
+                                    if (!endsWith1)
+                                    {
+                                        char endChar1 = result1.Item2[index1];
+                                        endsWith1 = char.IsWhiteSpace(endChar1) || char.IsPunctuation(endChar1) ||
+                                                    char.IsSeparator(endChar1);
+                                    }
+
                                     int index2 = result2.Item2.Length + result2.Item1.index;
-                                    char endChar2 = result2.Item2[index2];
-                                    bool endsWith2 = Char.IsWhiteSpace(endChar2) || Char.IsPunctuation(endChar2) ||
-                                                     Char.IsSeparator(endChar2);
+                                    bool endsWith2 = result2.Item2.Length <= index2;
+                                    if (!endsWith2)
+                                    {
+                                        char endChar2 = result2.Item2[index2];
+                                        endsWith2 = char.IsWhiteSpace(endChar2) || char.IsPunctuation(endChar2) ||
+                                                    char.IsSeparator(endChar2);
+                                    }
                                     int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
                                     if (word != 0) return word;
                                     int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
@@ -2441,8 +2450,12 @@ namespace Shoko.Server.API.v2.Modules
 
                                 var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
                                 if (distance != 0) return distance;
-                                return String.Compare(j.GetSeriesName(), k.GetSeriesName(),
-                                    StringComparison.InvariantCultureIgnoreCase);
+                                string title1 = j.GetSeriesName();
+                                string title2 = k.GetSeriesName();
+                                if (title1 == null && title2 == null) return 0;
+                                if (title1 == null) return 1;
+                                if (title2 == null) return -1;
+                                return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
                             });
                             return Tuple.Create(a.Key, tempSeries);
                         });
@@ -2592,26 +2605,35 @@ namespace Shoko.Server.API.v2.Modules
                                     if (!startsWith1)
                                     {
                                         char startChar1 = result1.Item2[result1.Item1.index - 1];
-                                        startsWith1 = Char.IsWhiteSpace(startChar1) || Char.IsPunctuation(startChar1) ||
-                                                      Char.IsSeparator(startChar1);
+                                        startsWith1 = char.IsWhiteSpace(startChar1) || char.IsPunctuation(startChar1) ||
+                                                      char.IsSeparator(startChar1);
                                     }
 
                                     bool startsWith2 = result2.Item1.index == 0;
                                     if (!startsWith2)
                                     {
                                         char startChar2 = result2.Item2[result2.Item1.index - 1];
-                                        startsWith2 = Char.IsWhiteSpace(startChar2) || Char.IsPunctuation(startChar2) ||
-                                                      Char.IsSeparator(startChar2);
+                                        startsWith2 = char.IsWhiteSpace(startChar2) || char.IsPunctuation(startChar2) ||
+                                                      char.IsSeparator(startChar2);
                                     }
 
                                     int index1 = result1.Item2.Length + result1.Item1.index;
-                                    char endChar1 = result1.Item2[index1];
-                                    bool endsWith1 = Char.IsWhiteSpace(endChar1) || Char.IsPunctuation(endChar1) ||
-                                                     Char.IsSeparator(endChar1);
+                                    bool endsWith1 = result1.Item2.Length <= index1;
+                                    if (!endsWith1)
+                                    {
+                                        char endChar1 = result1.Item2[index1];
+                                        endsWith1 = char.IsWhiteSpace(endChar1) || char.IsPunctuation(endChar1) ||
+                                                    char.IsSeparator(endChar1);
+                                    }
+
                                     int index2 = result2.Item2.Length + result2.Item1.index;
-                                    char endChar2 = result2.Item2[index2];
-                                    bool endsWith2 = Char.IsWhiteSpace(endChar2) || Char.IsPunctuation(endChar2) ||
-                                                     Char.IsSeparator(endChar2);
+                                    bool endsWith2 = result2.Item2.Length <= index2;
+                                    if (!endsWith2)
+                                    {
+                                        char endChar2 = result2.Item2[index2];
+                                        endsWith2 = char.IsWhiteSpace(endChar2) || char.IsPunctuation(endChar2) ||
+                                                    char.IsSeparator(endChar2);
+                                    }
                                     int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
                                     if (word != 0) return word;
                                     int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
@@ -2620,8 +2642,12 @@ namespace Shoko.Server.API.v2.Modules
 
                                 var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
                                 if (distance != 0) return distance;
-                                return String.Compare(j.GetSeriesName(), k.GetSeriesName(),
-                                    StringComparison.InvariantCultureIgnoreCase);
+                                string title1 = j.GetSeriesName();
+                                string title2 = k.GetSeriesName();
+                                if (title1 == null && title2 == null) return 0;
+                                if (title1 == null) return 1;
+                                if (title2 == null) return -1;
+                                return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
                             });
                             return Tuple.Create(a.Key, tempSeries);
                         });
