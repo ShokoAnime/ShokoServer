@@ -2228,39 +2228,40 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="distLevenshtein"></param>
         /// <param name="limit"></param>
         private static void CheckTitlesFuzzy(SVR_AnimeSeries a, string query,
-            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
+            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
-            int dist = int.MaxValue;
+            var dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
             string match = string.Empty;
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
                 int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
                 if (query.Length <= 4 || title.Length <= 4) k = 0;
-                if (Misc.BitapFuzzySearch(title, query, k, out int newDist) == -1) continue;
-                if (newDist < dist)
+                var result = Misc.BitapFuzzySearch(title, query, k);
+                if (result.index == -1) continue;
+                if (result.distance < dist.distance)
                 {
                     match = title;
-                    dist = newDist;
-                } else if (newDist == dist)
+                    dist = result;
+                } else if (result.distance == dist.distance)
                 {
                     if (title.Length < match.Length) match = title;
                 }
             }
             // Keep the lowest distance, then by shortest title
-            if (dist < int.MaxValue)
-                distLevenshtein.AddOrUpdate(a, new Tuple<int, string>(dist, match),
+            if (dist.distance < int.MaxValue)
+                distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
                     (key, oldValue) =>
                     {
-                        if (oldValue.Item1 < dist) return oldValue;
-                        if (oldValue.Item1 == dist)
+                        if (oldValue.Item1.distance < dist.distance) return oldValue;
+                        if (oldValue.Item1.distance == dist.distance)
                             return oldValue.Item2.Length < match.Length
                                 ? oldValue
-                                : new Tuple<int, string>(dist, match);
+                                : new Tuple<Misc.SearchInfo, string>(dist, match);
 
-                        return new Tuple<int, string>(dist, match);
+                        return new Tuple<Misc.SearchInfo, string>(dist, match);
                     });
         }
 
@@ -2272,10 +2273,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="distLevenshtein"></param>
         /// <param name="limit"></param>
         private static void CheckTagsFuzzy(SVR_AnimeSeries a, string query,
-            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>> distLevenshtein, int limit)
+            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
-            int dist = int.MaxValue;
+            Misc.SearchInfo dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
             string match = string.Empty;
             if (a?.Contract?.AniDBAnime?.Tags != null &&
                 a.Contract.AniDBAnime.Tags.Count > 0)
@@ -2284,43 +2285,50 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
                     int k = Math.Min((int)(tag.Length / 6D), (int)(query.Length / 6D));
-                    if (Misc.BitapFuzzySearch(tag, query, k, out int newDist) == -1) continue;
-                    if (newDist < dist)
+                    var result = Misc.BitapFuzzySearch(tag, query, k);
+                    if (result.index == -1) continue;
+                    if (result.distance < dist.distance)
                     {
                         match = tag;
-                        dist = newDist;
+                        dist = result;
                     }
                 }
-                if (dist < int.MaxValue)
-                    distLevenshtein.AddOrUpdate(a, new Tuple<int, string>(dist, match),
-                        (key, oldValue) => Math.Min(oldValue.Item1, dist) == dist
-                            ? new Tuple<int, string>(dist, match)
+                if (dist.distance < int.MaxValue)
+                    distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
+                        (key, oldValue) => Math.Min(oldValue.Item1.distance, dist.distance) == dist.distance
+                            ? new Tuple<Misc.SearchInfo, string>(dist, match)
                             : oldValue);
             }
 
             if (distLevenshtein.Count >= limit || a?.Contract?.AniDBAnime?.CustomTags == null ||
                 a.Contract.AniDBAnime.CustomTags.Count <= 0) return;
 
-            dist = int.MaxValue;
+            dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
             match = string.Empty;
             foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName).ToList())
             {
                 if (string.IsNullOrEmpty(customTag)) continue;
                 int k = Math.Min((int)(customTag.Length / 6D), (int)(query.Length / 6D));
-                if (Misc.BitapFuzzySearch(customTag, query, k, out int newDist) == -1) continue;
-                if (newDist < dist)
+                var result = Misc.BitapFuzzySearch(customTag, query, k);
+                if (result.index == -1) continue;
+                if (result.distance < dist.distance)
                 {
                     match = customTag;
-                    dist = newDist;
+                    dist = result;
                 }
             }
-            if (dist < int.MaxValue)
-                distLevenshtein.AddOrUpdate(a, new Tuple<int, string>(dist, match),
-                    (key, oldValue) => Math.Min(oldValue.Item1, dist) == dist
-                        ? new Tuple<int, string>(dist, match)
+            if (dist.distance < int.MaxValue)
+                distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
+                    (key, oldValue) => Math.Min(oldValue.Item1.distance, dist.distance) == dist.distance
+                        ? new Tuple<Misc.SearchInfo, string>(dist, match)
                         : oldValue);
         }
 
+        class SearchGrouping
+        {
+            public List<SVR_AnimeSeries> Series { get; set; }
+        }
+        
         /// <summary>
         /// Search for serie with given query in name or tag
         /// </summary>
@@ -2385,13 +2393,62 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
                         allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
-                        series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
-                            .ThenBy(a => distLevenshtein[a].Item2.Length)
-                            .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => distLevenshtein[a].Item2);
+                        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
+                        {
+                            var tempSeries = a.ToList();
+                            tempSeries.Sort((j, k) =>
+                            {
+                                var result1 = distLevenshtein[j];
+                                var result2 = distLevenshtein[k];
+                                var exactMatch = result2.Item1.exact_match.CompareTo(result1.Item1.exact_match);
+                                if (exactMatch != 0) return exactMatch;
+                                // calculate word boundaries
+                                // we already know that they are equal to each other here
+                                if (result1.Item1.exact_match && result2.Item1.exact_match)
+                                {
+                                    bool startsWith1 = result1.Item1.index == 0;
+                                    if (!startsWith1)
+                                    {
+                                        char startChar1 = result1.Item2[result1.Item1.index - 1];
+                                        startsWith1 = Char.IsWhiteSpace(startChar1) || Char.IsPunctuation(startChar1) ||
+                                                      Char.IsSeparator(startChar1);
+                                    }
+
+                                    bool startsWith2 = result2.Item1.index == 0;
+                                    if (!startsWith2)
+                                    {
+                                        char startChar2 = result2.Item2[result2.Item1.index - 1];
+                                        startsWith2 = Char.IsWhiteSpace(startChar2) || Char.IsPunctuation(startChar2) ||
+                                                      Char.IsSeparator(startChar2);
+                                    }
+
+                                    int index1 = result1.Item2.Length + result1.Item1.index;
+                                    char endChar1 = result1.Item2[index1];
+                                    bool endsWith1 = Char.IsWhiteSpace(endChar1) || Char.IsPunctuation(endChar1) ||
+                                                     Char.IsSeparator(endChar1);
+                                    int index2 = result2.Item2.Length + result2.Item1.index;
+                                    char endChar2 = result2.Item2[index2];
+                                    bool endsWith2 = Char.IsWhiteSpace(endChar2) || Char.IsPunctuation(endChar2) ||
+                                                     Char.IsSeparator(endChar2);
+                                    int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
+                                    if (word != 0) return word;
+                                    int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
+                                    if (indexComp != 0) return indexComp;
+                                }
+
+                                var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
+                                if (distance != 0) return distance;
+                                return String.Compare(j.GetSeriesName(), k.GetSeriesName(),
+                                    StringComparison.InvariantCultureIgnoreCase);
+                            });
+                            return Tuple.Create(a.Key, tempSeries);
+                        });
+
+                        series = tempListToSort.OrderBy(a => distLevenshtein[a.Item2[0]].Item1.distance)
+                            .SelectMany(a => a.Item2).ToDictionary(a => a, a => distLevenshtein[a].Item2);
                         foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
                         {
                             if (offset == 0)
@@ -2445,7 +2502,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
                         allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, realLimit));
 
                         series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
@@ -2515,14 +2572,64 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
                         allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
 
-                        series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1)
-                            .ThenBy(a => distLevenshtein[a].Item2.Length)
-                            .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => distLevenshtein[a].Item2));
-                        distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<int, string>>();
+                        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
+                        {
+                            var tempSeries = a.ToList();
+                            tempSeries.Sort((j, k) =>
+                            {
+                                var result1 = distLevenshtein[j];
+                                var result2 = distLevenshtein[k];
+                                var exactMatch = result2.Item1.exact_match.CompareTo(result1.Item1.exact_match);
+                                if (exactMatch != 0) return exactMatch;
+                                // calculate word boundaries
+                                // we already know that they are equal to each other here
+                                if (result1.Item1.exact_match && result2.Item1.exact_match)
+                                {
+                                    bool startsWith1 = result1.Item1.index == 0;
+                                    if (!startsWith1)
+                                    {
+                                        char startChar1 = result1.Item2[result1.Item1.index - 1];
+                                        startsWith1 = Char.IsWhiteSpace(startChar1) || Char.IsPunctuation(startChar1) ||
+                                                      Char.IsSeparator(startChar1);
+                                    }
+
+                                    bool startsWith2 = result2.Item1.index == 0;
+                                    if (!startsWith2)
+                                    {
+                                        char startChar2 = result2.Item2[result2.Item1.index - 1];
+                                        startsWith2 = Char.IsWhiteSpace(startChar2) || Char.IsPunctuation(startChar2) ||
+                                                      Char.IsSeparator(startChar2);
+                                    }
+
+                                    int index1 = result1.Item2.Length + result1.Item1.index;
+                                    char endChar1 = result1.Item2[index1];
+                                    bool endsWith1 = Char.IsWhiteSpace(endChar1) || Char.IsPunctuation(endChar1) ||
+                                                     Char.IsSeparator(endChar1);
+                                    int index2 = result2.Item2.Length + result2.Item1.index;
+                                    char endChar2 = result2.Item2[index2];
+                                    bool endsWith2 = Char.IsWhiteSpace(endChar2) || Char.IsPunctuation(endChar2) ||
+                                                     Char.IsSeparator(endChar2);
+                                    int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
+                                    if (word != 0) return word;
+                                    int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
+                                    if (indexComp != 0) return indexComp;
+                                }
+
+                                var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
+                                if (distance != 0) return distance;
+                                return String.Compare(j.GetSeriesName(), k.GetSeriesName(),
+                                    StringComparison.InvariantCultureIgnoreCase);
+                            });
+                            return Tuple.Create(a.Key, tempSeries);
+                        });
+
+                        series = tempListToSort.OrderBy(a => distLevenshtein[a.Item2[0]].Item1.distance)
+                            .SelectMany(a => a.Item2).ToDictionary(a => a, a => distLevenshtein[a].Item2);
+
+                        distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
 
                         int tag_limit = use_extra ? limit_tag : limit - series.Count;
                         if (tag_limit < 0) tag_limit = 0;
@@ -2988,10 +3095,11 @@ namespace Shoko.Server.API.v2.Modules
             if (string.IsNullOrEmpty(a.GroupName)) return;
             int k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || a.GroupName.Length <= 4) k = 0;
-            if (Misc.BitapFuzzySearch(a.GroupName, query, k, out int newDist) == -1) return;
-            if (newDist < dist)
+            var result = Misc.BitapFuzzySearch(a.GroupName, query, k);
+            if (result.index == -1) return;
+            if (result.distance < dist)
             {
-                dist = newDist;
+                dist = result.distance;
             }
             // Keep the lowest distance
             if (dist < int.MaxValue)
