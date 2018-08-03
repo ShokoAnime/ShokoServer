@@ -965,10 +965,13 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID)
-                    .DistinctBy(a => a.Places.FirstOrDefault()?.FullServerPath)
-                    .Select(a => a.ToClient(userID))
+                // Try sorted first, then try unsorted if failed
+                var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                        a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
+                    .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
                     .ToList();
+                list.Sort(FileQualityFilter.CompareTo);
+                return list.Select(a => a.ToClient(userID)).ToList();
             }
             catch (Exception ex)
             {
@@ -976,11 +979,12 @@ namespace Shoko.Server
                 try
                 {
                     // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
-                    return RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
-                            a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath)) != null)
-                        .DistinctBy(a => a.Places.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath)
+                    var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                            a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
+                        .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
                         .Select(a => a.ToClient(userID))
                         .ToList();
+                    return list;
                 }
                 catch
                 {
