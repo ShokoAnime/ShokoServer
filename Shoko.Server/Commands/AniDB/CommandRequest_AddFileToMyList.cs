@@ -85,7 +85,7 @@ namespace Shoko.Server.Commands
 
                 if (isManualLink)
                     (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(xrefs[0].AnimeID,
-                        xrefs[0].GetEpisode().EpisodeNumber, originalWatchedDate);
+                        xrefs[0].GetEpisode().EpisodeNumber, originalWatchedDate, ref state);
                 else
                     (lid, newWatchedDate) =
                         ShokoService.AnidbProcessor.AddFileToMyList(vid, originalWatchedDate, ref state);

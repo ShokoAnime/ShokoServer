@@ -602,7 +602,7 @@ namespace Shoko.Server
             return (null, null);
         }
 
-        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate)
+        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             if (!Login()) return (null, null);
 
@@ -620,14 +620,13 @@ namespace Shoko.Server
             }
 
             // if the user already has this file on
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.AniDB_MyList_ReadWatched)
+            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
             {
+                state = cmdAddFile.State;
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
-            if (ServerSettings.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, null);
 
-            if (cmdAddFile.MyListID > 0)
-                return (cmdAddFile.MyListID, null);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, null);
 
             return (null, null);
         }
