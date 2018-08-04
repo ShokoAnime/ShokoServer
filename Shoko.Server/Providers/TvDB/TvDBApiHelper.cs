@@ -825,6 +825,10 @@ namespace Shoko.Server.Providers.TvDB
             if (xref == null) return;
 
             RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
+            RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(
+                RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID));
+            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(
+                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID));
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
