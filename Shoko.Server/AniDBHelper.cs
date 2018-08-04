@@ -526,7 +526,7 @@ namespace Shoko.Server
         }
 
         /// <summary>
-        /// This is for generic files (manually linked)
+        /// This is not for generic files (manually linked)
         /// </summary>
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
@@ -558,6 +558,41 @@ namespace Shoko.Server
                     // We don't have the MyListID, so we'll act like it's not there, and AniDB will tell us
                     ev = enHelperActivityType.NoSuchMyListFile;
                 }
+
+                if (ev == enHelperActivityType.NoSuchMyListFile)
+                {
+                    // Run synchronously, but still do all of the stuff with Trakt and whatnot
+                    // We are skipping the watched state settings, as we are setting them here
+                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
+                    // Initialize private parts
+                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
+                    addcmd.ProcessCommand();
+                }
+            }
+        }
+
+        /// <summary>
+        /// This is for generic files (manually linked)
+        /// </summary>
+        /// <param name="animeID"></param>
+        /// <param name="episodeNumber"></param>
+        /// <param name="watched"></param>
+        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
+        {
+            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                if (watched && watchedDate == null) watchedDate = DateTime.Now;
+
+                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
+                cmdUpdateFile.Init(hash, animeID, episodeNumber, watched, watchedDate);
+                SetWaitingOnResponse(true);
+                var ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
 
                 if (ev == enHelperActivityType.NoSuchMyListFile)
                 {

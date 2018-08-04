@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -57,13 +58,36 @@ namespace Shoko.Server.Commands
                 SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHash(Hash);
                 if (vid != null)
                 {
-                    if (WatchedDateAsSecs > 0)
+                    if (vid.GetAniDBFile() != null)
                     {
-                        DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
+                        if (WatchedDateAsSecs > 0)
+                        {
+                            DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched, watchedDate);
+                        }
+                        else
+                            ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched);
                     }
                     else
-                        ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, Watched);
+                    {
+                        // we have a manual link, so get the xrefs and add the episodes instead as generic files
+                        var xrefs = vid.EpisodeCrossRefs;
+                        foreach (var xref in xrefs)
+                        {
+                            var episode = xref.GetEpisode();
+                            if (episode == null) continue;
+                            if (WatchedDateAsSecs > 0)
+                            {
+                                DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
+                                ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
+                                    episode.EpisodeNumber, Watched, watchedDate);
+                            }
+                            else
+                                ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
+                                    episode.EpisodeNumber, Watched);
+                        }
+                    }
+
                     logger.Info("Updating file list status: {0} - {1}", vid, Watched);
 
                     if (UpdateSeriesStats)
@@ -72,9 +96,7 @@ namespace Shoko.Server.Commands
                         List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetByHash(vid.ED2KHash);
                         if (eps.Count > 0)
                         {
-                            // all the eps should belong to the same anime
-                            eps[0].GetAnimeSeries().QueueUpdateStats();
-                            //eps[0].AnimeSeries.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, false);
+                            eps.DistinctBy(a => a.AnimeSeriesID).ForEach(a => a.GetAnimeSeries().QueueUpdateStats());
                         }
                     }
                 }

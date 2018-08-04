@@ -73,5 +73,22 @@ namespace AniDBAPI.Commands
                 commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
             commandText += "&edit=1";
         }
+        
+        public void Init(IHash fileData, int animeID, int epnumber, bool watched, DateTime? watchedDate)
+        {
+            FileData = fileData;
+            IsWatched = watched;
+
+            commandID = fileData.Info;
+
+            commandText = "MYLISTADD aid=" + animeID;
+            commandText += "&generic=1";
+            commandText += "&epno=" + epnumber;
+            commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
+            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
+            if (watchedDate.HasValue)
+                commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
+            commandText += "&edit=1";
+        }
     }
 }

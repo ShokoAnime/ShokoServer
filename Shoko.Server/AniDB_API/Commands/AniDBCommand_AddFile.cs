@@ -15,6 +15,8 @@ namespace AniDBAPI.Commands
         public DateTime? WatchedDate;
         public AniDBFile_State? State;
         public int MyListID;
+        public int AnimeID;
+        public int EpisodeNumber;
 
         public string GetKey()
         {
@@ -124,6 +126,8 @@ namespace AniDBAPI.Commands
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
+            AnimeID = animeID;
+            EpisodeNumber = episodeNumber;
             commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
             commandText += "&epno=" + episodeNumber;
