@@ -81,7 +81,7 @@ namespace Shoko.Server.Commands
             CommandRequest crTemp = RepoFactory.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
             {
-                // we will always mylist watched state changes
+                // we will always save mylist watched state changes
                 // this is because the user may be toggling the status in the client, and we need to process
                 // them all in the order they were requested
                 if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)

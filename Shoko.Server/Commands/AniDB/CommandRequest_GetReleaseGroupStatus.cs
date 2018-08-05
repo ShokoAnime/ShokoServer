@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
@@ -86,16 +88,8 @@ namespace Shoko.Server.Commands
                 if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
                     grpCol.Groups.Count > 0)
                 {
-                    // save in bulk to improve performance
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                    {
-                        foreach (Raw_AniDB_GroupStatus grpStatus in grpCol.Groups)
-                        {
-                            CommandRequest_GetReleaseGroup cmdRelgrp =
-                                new CommandRequest_GetReleaseGroup(grpStatus.GroupID, false);
-                            cmdRelgrp.Save(session);
-                        }
-                    }
+                    grpCol.Groups.DistinctBy(a => a.GroupID)
+                        .Select(a => new CommandRequest_GetReleaseGroup(a.GroupID, false)).ForEach(a => a.Save());
                 }
             }
             catch (Exception ex)
