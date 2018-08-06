@@ -608,9 +608,10 @@ namespace Shoko.Server
 
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, null);
+            // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
+            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
 
-            if (!Login()) return (null, null);
+            if (!Login()) return (null, watchedDate);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -632,14 +633,16 @@ namespace Shoko.Server
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
 
-            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, null);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, watchedDate);
 
-            return (null, null);
+            return (null, watchedDate);
         }
 
         public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!Login()) return (null, null);
+            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
+            // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
+            if (!Login()) return (null, watchedDate);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -661,9 +664,9 @@ namespace Shoko.Server
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
 
-            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, null);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, watchedDate);
 
-            return (null, null);
+            return (null, watchedDate);
         }
 
         internal void MarkFileAsRemote(int myListID)
