@@ -1897,7 +1897,7 @@ namespace Shoko.Server.API.v2.Modules
                 //hardcoded
                 para.limit = 100;
             }
-            if (para.query != string.Empty)
+            if (!string.IsNullOrEmpty(para.query))
             {
                 return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
