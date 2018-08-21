@@ -269,11 +269,11 @@ namespace Shoko.Server
 
         public void LoadSettings()
         {
-            AniDB_Username = ServerSettings.Instance.AniDB_Username;
-            AniDB_Password = ServerSettings.Instance.AniDB_Password;
-            AniDB_ServerAddress = ServerSettings.Instance.AniDB_ServerAddress;
-            AniDB_ServerPort = ServerSettings.Instance.AniDB_ServerPort.ToString();
-            AniDB_ClientPort = ServerSettings.Instance.AniDB_ClientPort.ToString();
+            AniDB_Username = ServerSettings.Instance.AniDb.Username;
+            AniDB_Password = ServerSettings.Instance.AniDb.Password;
+            AniDB_ServerAddress = ServerSettings.Instance.AniDb.ServerAddress;
+            AniDB_ServerPort = ServerSettings.Instance.AniDb.ServerPort.ToString();
+            AniDB_ClientPort = ServerSettings.Instance.AniDb.ClientPort.ToString();
 
             MinOnStartup = ServerSettings.Instance.MinimizeOnStartup;
             MaxOnStartup = !ServerSettings.Instance.MinimizeOnStartup;

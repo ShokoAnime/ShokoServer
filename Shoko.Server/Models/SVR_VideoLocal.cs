@@ -265,8 +265,8 @@ namespace Shoko.Server.Models
                 }
 
                 if (updateOnline)
-                    if ((watched && ServerSettings.Instance.AniDB_MyList_SetWatched) ||
-                        (!watched && ServerSettings.Instance.AniDB_MyList_SetUnwatched))
+                    if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
+                        (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
                             Hash, watched, false,
@@ -322,8 +322,8 @@ namespace Shoko.Server.Models
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
 
-                        if (syncTrakt && ServerSettings.Instance.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+                        if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
                             CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
                                 new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
@@ -368,8 +368,8 @@ namespace Shoko.Server.Models
                         if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                             toUpdateSeries.Add(ser.AnimeSeriesID, ser);
 
-                        if (syncTrakt && ServerSettings.Instance.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+                        if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
                             CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
                                 new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);

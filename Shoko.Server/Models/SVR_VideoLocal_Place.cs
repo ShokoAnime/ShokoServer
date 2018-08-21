@@ -584,7 +584,7 @@ namespace Shoko.Server.Models
                 }
             }
 
-            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Instance.Linux_UID, ServerSettings.Instance.Linux_GID, ServerSettings.Instance.Linux_Permission);
+            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Instance.Linux.UID, ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
         }
 
         // returns false if we should retry

@@ -111,7 +111,7 @@ namespace Shoko.Server.Commands
 
             Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
-            if (ServerSettings.Instance.AniDB_MyList_AddFiles)
+            if (ServerSettings.Instance.AniDb.MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
                 cmdAddFile.Save();

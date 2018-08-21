@@ -237,7 +237,7 @@ namespace Shoko.Server
                 {
                     foreach (Azure_CrossRef_AniDB_TvDB xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             foundLinks = true;
@@ -261,7 +261,7 @@ namespace Shoko.Server
                         new List<Azure_CrossRef_AniDB_TvDB>();
                     foreach (Azure_CrossRef_AniDB_TvDB xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
@@ -336,7 +336,7 @@ namespace Shoko.Server
                 {
                     foreach (Azure_CrossRef_AniDB_Trakt xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             foundLinks = true;
@@ -360,7 +360,7 @@ namespace Shoko.Server
                         new List<Azure_CrossRef_AniDB_Trakt>();
                     foreach (Azure_CrossRef_AniDB_Trakt xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
@@ -1075,7 +1075,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Instance.Trakt_IsEnabled) return string.Empty;
+                if (!ServerSettings.Instance.TraktTv.Enabled) return string.Empty;
 
                 SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";

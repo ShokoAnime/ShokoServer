@@ -413,7 +413,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo);
 
-                    if (ServerSettings.Instance.AniDB_DownloadReleaseGroups)
+                    if (ServerSettings.Instance.AniDb.DownloadReleaseGroups)
                     {
                         CommandRequest_GetReleaseGroup cmdRelgrp =
                             new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
@@ -435,7 +435,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void GetMyListFileStatus(int aniDBFileID)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_ReadWatched) return;
+            if (!ServerSettings.Instance.AniDb.MyList_ReadWatched) return;
 
             if (!Login()) return;
 
@@ -527,7 +527,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -573,7 +573,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -603,7 +603,7 @@ namespace Shoko.Server.Providers.AniDB
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, watchedDate);
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
 
             if (!Login()) return (null, watchedDate);
 
@@ -613,7 +613,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.Instance.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(fileDataLocal, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -634,7 +634,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, watchedDate);
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
             if (!Login()) return (null, watchedDate);
 
@@ -644,7 +644,7 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -770,7 +770,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void DeleteFileFromMyList(string hash, long fileSize)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -787,7 +787,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void DeleteFileFromMyList(int fileID)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 

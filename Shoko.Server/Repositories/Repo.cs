@@ -260,22 +260,22 @@ namespace Shoko.Server.Repositories
         internal static bool Start()
         {
             string connStr;
-            switch(ServerSettings.Instance.DatabaseType)
+            switch(ServerSettings.Instance.Database.Type)
             {
                 case DatabaseTypes.MySql:
-                    connStr = $"Server={ServerSettings.Instance.MySQL_Hostname};Database={ServerSettings.Instance.MySQL_SchemaName};User ID={ServerSettings.Instance.MySQL_Username};Password={ServerSettings.Instance.MySQL_Password};Default Command Timeout=3600";
+                    connStr = $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};Default Command Timeout=3600";
                     break;
                 case DatabaseTypes.SqlServer:
-                    connStr = $"Server={ServerSettings.Instance.SQLServer_DatabaseServer};Database={ServerSettings.Instance.SQLServer_DatabaseName};UID={ServerSettings.Instance.DatabaseUsername};PWD={ServerSettings.Instance.DatabasePassword};";
+                    connStr = $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};UID={ServerSettings.Instance.Database.Username};PWD={ServerSettings.Instance.Database.Password};";
                     break;
                 case DatabaseTypes.Sqlite:
                 default:
-                    if (!Directory.Exists(ServerSettings.Instance.MySqliteDirectory)) Directory.CreateDirectory(ServerSettings.Instance.MySqliteDirectory);
-                    connStr = $"data source={Path.Combine(ServerSettings.Instance.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
+                    if (!Directory.Exists(ServerSettings.Instance.Database.MySqliteDirectory)) Directory.CreateDirectory(ServerSettings.Instance.Database.MySqliteDirectory);
+                    connStr = $"data source={Path.Combine(ServerSettings.Instance.Database.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
                     break;
             }
 
-            Init(new ShokoContext(ServerSettings.Instance.DatabaseType, connStr), CachedRepos, new ProgressShit());
+            Init(new ShokoContext(ServerSettings.Instance.Database.Type, connStr), CachedRepos, new ProgressShit());
 
             return true;
         }

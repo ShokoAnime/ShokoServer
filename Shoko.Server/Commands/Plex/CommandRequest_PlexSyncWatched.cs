@@ -35,7 +35,7 @@ namespace Shoko.Server.Commands.Plex
 
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
-                if (!ServerSettings.Instance.Plex_Libraries.Contains(section.Key)) continue;
+                if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key)) continue;
 
                 var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)

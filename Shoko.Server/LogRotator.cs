@@ -17,7 +17,7 @@ namespace Shoko.Server
 
         public void Start()
         {
-            if (ServerSettings.Instance.RotateLogs)
+            if (ServerSettings.Instance.LogRotator.Enabled)
             {
                 Delete_Logs();
                 Compress_Logs();
@@ -66,7 +66,7 @@ namespace Shoko.Server
 
         private void Compress_Logs()
         {
-            if (ServerSettings.Instance.RotateLogs_Zip)
+            if (ServerSettings.Instance.LogRotator.Zip)
             {
                 //compress
                 List<string> compress = new List<string>();
@@ -103,14 +103,14 @@ namespace Shoko.Server
 
         private void Delete_Logs()
         {
-            if (ServerSettings.Instance.RotateLogs_Delete)
+            if (ServerSettings.Instance.LogRotator.Delete)
             {
-                if (!string.IsNullOrEmpty(ServerSettings.Instance.RotateLogs_Delete_Days))
+                if (!string.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
                 {
                     //delete
                     DateTime now = DateTime.Now;
                     List<string> delete = new List<string>();
-                    if (int.TryParse(ServerSettings.Instance.RotateLogs_Delete_Days, out int days))
+                    if (int.TryParse(ServerSettings.Instance.LogRotator.Delete_Days, out int days))
                     {
                         double dec = (-1 * days);
                         now = now.AddDays(dec);

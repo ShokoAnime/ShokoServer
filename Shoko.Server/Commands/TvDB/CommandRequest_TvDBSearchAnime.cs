@@ -51,7 +51,7 @@ namespace Shoko.Server.Commands
             try
             {
                 // first check if the user wants to use the web cache
-                if (ServerSettings.Instance.WebCache_TvDB_Get)
+                if (ServerSettings.Instance.WebCache.TvDB_Get)
                 {
                     try
                     {
@@ -97,7 +97,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (!ServerSettings.Instance.TvDB_AutoLink) return;
+                if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                 // try to pull a link from a prequel/sequel
                 var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);

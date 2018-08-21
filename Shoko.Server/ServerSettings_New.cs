@@ -6,6 +6,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Settings;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,12 +15,13 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Legacy = Shoko.Server.ServerSettings_Legacy;
 
 namespace Shoko.Server
 {
     public class ServerSettings
     {
-        private const string SettingsFilename = "settings.json";
+        private const string SettingsFilename = "settings-server.json";
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         //in this way, we could host two ShokoServers int the same machine
@@ -44,32 +46,11 @@ namespace Shoko.Server
 
         public string MyListDirectory { get; set; } = Path.Combine(ApplicationPath, "MyList");
 
-        public string MySqliteDirectory { get; set; } = Path.Combine(ApplicationPath, "SQLite");
-        public string DatabaseBackupDirectory { get; set; } = Path.Combine(ApplicationPath, "DatabaseBackup");
-
-        public ushort JMMServerPort { get; set; } = 8111;
-
+        public ushort ServerPort { get; set; } = 8111;
 
         public double PluginAutoWatchThreshold { get; set; } = 0.89;
 
-        public string PlexThumbnailAspects { get; set; } = "Default, 0.6667, IOS, 1.0, Android, 1.3333";
-
         public string Culture { get; set; } = "en";
-
-
-        #region LogRotator
-
-        public bool RotateLogs { get; set; } = true;
-
-        public bool RotateLogs_Zip { get; set; } = true;
-
-        public bool RotateLogs_Delete { get; set; } = true;
-
-        public string RotateLogs_Delete_Days { get; set; } = "";
-
-        #endregion
-
-        #region WebUI
 
         /// <summary>
         /// Store json settings inside string
@@ -81,177 +62,21 @@ namespace Shoko.Server
         /// </summary>
         public bool FirstRun { get; set; } = true;
 
-        #endregion
+        public LogRotatorSettings LogRotator { get; set; } = new LogRotatorSettings();
 
-        #region Database
+        public DatabaseSettings Database { get; set; } = new DatabaseSettings();
+       
+        public AniDbSettings AniDb { get; set; } = new AniDbSettings();
 
-        public string DefaultUserUsername { get; set; } = "Default";
-        public string DefaultUserPassword { get; set; } = string.Empty;
+        public WebCacheSettings WebCache { get; set; } = new WebCacheSettings();
 
-        public DatabaseTypes DatabaseType { get; set; } = DatabaseTypes.Sqlite;
+        public TvDBSettings TvDB { get; set; } = new TvDBSettings();
 
-        //Legacy wrapper.
-        [JsonIgnore]
-        [Obsolete("Use SQLServer_DatabaseServer")]
-        public string DatabaseServer { get => SQLServer_DatabaseServer; set => SQLServer_DatabaseServer = value; }
+        public MovieDbSettings MovieDb { get; set; } = new MovieDbSettings();
 
-        public string SQLServer_DatabaseServer { get; set; } = string.Empty;
+        public ImportSettings Import { get; set; } = new ImportSettings();
 
-        [JsonIgnore]
-        [Obsolete("Use SQLServer_DatabaseName")]
-        public string DatabaseName { get => SQLServer_DatabaseName; set => SQLServer_DatabaseName = value; }
-
-        public string SQLServer_DatabaseName { get; set; } = string.Empty;
-
-        public string DatabaseUsername { get => SQLServer_Username; set => SQLServer_Username = value; }
-
-        public string SQLServer_Username { get; set; } = string.Empty;
-
-        public string DatabasePassword { get => SQLServer_Password; set => SQLServer_Password = value; }
-        public string SQLServer_Password { get; set; } = string.Empty;
-
-        [JsonIgnore]
-        [Obsolete("Use SQLite_DatabaseFile")]
-        public string DatabaseFile { get => SQLite_DatabaseFile; set => SQLite_DatabaseFile = value; }
-
-        public string SQLite_DatabaseFile { get; set; } = "JMMServer.db3";
-
-        public string MySQL_Hostname { get; set; } = "localhost";
-
-        public string MySQL_SchemaName { get; set; } = string.Empty;
-
-        public string MySQL_Username { get; set; } = string.Empty;
-
-        public string MySQL_Password { get; set; } = string.Empty;
-
-        #endregion
-
-        #region AniDB
-
-        public string AniDB_Username { get; set; }
-        public string AniDB_Password { get; set; }
-
-        public string AniDB_ServerAddress { get; set; } = "api.anidb.info";
-
-        public ushort AniDB_ServerPort { get; set; } = 9000;
-
-        public ushort AniDB_ClientPort { get; set; } = 4556;
-
-        public string AniDB_AVDumpKey { get; set; }
-
-        public ushort AniDB_AVDumpClientPort { get; set; } = 4557;
-
-        public bool AniDB_DownloadRelatedAnime { get; set; } = true;
-
-        public bool AniDB_DownloadSimilarAnime { get; set; } = true;
-
-        public bool AniDB_DownloadReviews { get; set; } = false;
-
-        public bool AniDB_DownloadReleaseGroups { get; set; } = false;
-
-        public bool AniDB_MyList_AddFiles { get; set; } = true;
-
-        public AniDBFile_State AniDB_MyList_StorageState { get; set; } = AniDBFile_State.Disk;
-
-        public AniDBFileDeleteType AniDB_MyList_DeleteType { get; set; } = AniDBFileDeleteType.MarkUnknown;
-
-        public bool AniDB_MyList_ReadUnwatched { get; set; } = true;
-
-        public bool AniDB_MyList_ReadWatched { get; set; } = true;
-
-        public bool AniDB_MyList_SetWatched { get; set; } = true;
-
-        public bool AniDB_MyList_SetUnwatched { get; set; } = true;
-        public ScheduledUpdateFrequency AniDB_MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-        public ScheduledUpdateFrequency AniDB_Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
-
-        public ScheduledUpdateFrequency AniDB_Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
-
-        public ScheduledUpdateFrequency AniDB_MyListStats_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-        public ScheduledUpdateFrequency AniDB_File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-
-        public bool AniDB_DownloadCharacters { get; set; } = true;
-
-        public bool AniDB_DownloadCreators { get; set; } = true;
-
-        #endregion
-
-        #region Web Cache
-
-        public string WebCache_Address { get; set; } = "omm.hobbydb.net.leaf.arvixe.com";
-
-        public bool WebCache_Anonymous { get; set; } = false;
-
-        public bool WebCache_XRefFileEpisode_Get { get; set; } = true;
-
-        public bool WebCache_XRefFileEpisode_Send { get; set; } = true;
-
-        public bool WebCache_TvDB_Get { get; set; } = true;
-
-        public bool WebCache_TvDB_Send { get; set; } = true;
-
-        public bool WebCache_Trakt_Get { get; set; } = true;
-
-        public bool WebCache_Trakt_Send { get; set; } = true;
-
-        public bool WebCache_UserInfo { get; set; } = true;
-
-        #endregion
-
-        #region TvDB
-
-        public bool TvDB_AutoLink { get; set; } = false;
-
-        public bool TvDB_AutoFanart { get; set; } = true;
-
-        public int TvDB_AutoFanartAmount { get; set; } = 10;
-
-        public bool TvDB_AutoWideBanners { get; set; } = true;
-
-        public int TvDB_AutoWideBannersAmount { get; set; } = 10;
-
-        public bool TvDB_AutoPosters { get; set; } = true;
-
-        public int TvDB_AutoPostersAmount { get; set; } = 10;
-
-        public ScheduledUpdateFrequency TvDB_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
-
-        public string TvDB_Language { get; set; } = "en";
-
-        #endregion
-
-        #region MovieDB
-
-        public bool MovieDB_AutoFanart { get; set; } = true;
-
-        public int MovieDB_AutoFanartAmount { get; set; } = 10;
-
-        public bool MovieDB_AutoPosters { get; set; } = true;
-
-        public int MovieDB_AutoPostersAmount { get; set; } = 10;
-
-        #endregion
-
-        #region Import Settings
-
-        public string[] VideoExtensions { get; set; } = new[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
-
-        public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
-
-        public RenamingLanguage DefaultEpisodeLanguage { get; set; } = RenamingLanguage.Romaji;
-
-        public bool RunImportOnStart { get; set; } = false;
-
-        public bool ScanDropFoldersOnStart { get; set; } = false;
-
-        public bool Hash_CRC32 { get; set; } = false;
-        public bool Hash_MD5 { get; set; } = false;
-        public bool Hash_SHA1 { get; set; } = false;
-
-        public bool Import_UseExistingFileWatchedStatus { get; set; } = true;
-        #endregion
+        public PlexSettings Plex { get; set; } = new PlexSettings();
 
         public bool AutoGroupSeries { get; set; } = false;
 
@@ -261,30 +86,7 @@ namespace Shoko.Server
 
         public bool FileQualityFilterEnabled { get; set; } = false;
 
-
-        string _FileQualityFilterPreferences;
-        public string FileQualityFilterPreferences
-        {
-            get
-            {
-                return _FileQualityFilterPreferences ?? JsonConvert.SerializeObject(FileQualityFilter.Settings, Formatting.None, new StringEnumConverter());
-            }
-            set
-            {
-                try
-                {
-                    FileQualityPreferences prefs = JsonConvert.DeserializeObject<FileQualityPreferences>(
-                        value, new StringEnumConverter());
-                    FileQualityFilter.Settings = prefs;
-                    _FileQualityFilterPreferences = value;
-                }
-                catch
-                {
-                    logger.Error("Error Deserializing json into FileQualityPreferences. json was :" + value);
-                }
-
-            }
-        }
+        public FileQualityPreferences FileQualityFilterPreferences { get; set; } = new FileQualityPreferences();
 
         public string[] LanguagePreference { get; set; } = new[] { "x-jat", "en" };
 
@@ -316,46 +118,18 @@ namespace Shoko.Server
         public string VLCLocation { get; set; } = string.Empty;
 
         public bool MinimizeOnStartup { get; set; } = false;
-        #region Trakt
-
-        public bool Trakt_IsEnabled { get; set; } = false;
-
-        public string Trakt_PIN { get; set; } = string.Empty;
-
-        public string Trakt_AuthToken { get; set; } = string.Empty;
-
-        public string Trakt_RefreshToken { get; set; } = string.Empty;
-
-        public string Trakt_TokenExpirationDate { get; set; } = string.Empty;
-
-        public ScheduledUpdateFrequency Trakt_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-
-        public ScheduledUpdateFrequency Trakt_SyncFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-
-        #endregion
+        
+        public TraktSettings TraktTv { get; set; } = new TraktSettings();
 
         public string UpdateChannel { get; set; } = "Stable";
 
-        public string WebCacheAuthKey { get; set; } = string.Empty;
+        public LinuxSettings Linux { get; set; } = new LinuxSettings();
 
-        #region plex
-
-        //plex
-        public int[] Plex_Libraries { get; set; } = new int[0];
-
-        public string Plex_Token { get; set; } = string.Empty;
-
-        public string Plex_Server { get; set; } = string.Empty;
-
-        #endregion
-
-        public int Linux_UID { get; set; } = -1;
-        public int Linux_GID { get; set; } = -1;
-        public int Linux_Permission { get; set; } = 0;
-        public int AniDB_MaxRelationDepth { get; set; } = 3;
         public bool TraceLog { get; set; } = false;
 
         public static ServerSettings Instance { get; private set; } = new ServerSettings();
+
+
 
         public static void LoadSettings()
         {
@@ -363,11 +137,180 @@ namespace Shoko.Server
             var path = Path.Combine(ApplicationPath, SettingsFilename);
             if (!File.Exists(path))
             {
+
+                var oldPath = Path.Combine(ApplicationPath, "settings.json");
+                if (File.Exists(Path.Combine(ApplicationPath, "settings.json"))) 
+                {
+                    
+                }
                 Instance = new ServerSettings();
                 Instance.SaveSettings();
                 return;
             }
             LoadSettingsFromFile(path, false);
+        }
+
+        private static ServerSettings LoadLegacySettings()
+        {
+            ServerSettings_Legacy.LoadSettings();
+            var settings = new ServerSettings()
+            {
+                ImagesPath = Legacy.ImagesPath,
+                AnimeXmlDirectory = Legacy.AnimeXmlDirectory,
+                MyListDirectory = Legacy.MyListDirectory,
+                ServerPort = (ushort)Legacy.JMMServerPort,
+                PluginAutoWatchThreshold = double.Parse(Legacy.PluginAutoWatchThreshold),
+                Culture = Legacy.Culture,
+                WebUI_Settings = Legacy.WebUI_Settings,
+                FirstRun = Legacy.FirstRun,
+                LogRotator = new LogRotatorSettings()
+                {
+                    Enabled = Legacy.RotateLogs,
+                    Zip = Legacy.RotateLogs_Zip,
+                    Delete = Legacy.RotateLogs_Delete,
+                    Delete_Days = Legacy.RotateLogs_Delete_Days
+                },
+                AniDb = new AniDbSettings()
+                {
+                    Username = Legacy.AniDB_Username,
+                    Password = Legacy.AniDB_Password,
+                    ServerAddress = Legacy.AniDB_ServerAddress,
+                    ServerPort = ushort.Parse(Legacy.AniDB_ServerPort),
+                    ClientPort = ushort.Parse(Legacy.AniDB_ClientPort),
+                    AVDumpKey = Legacy.AniDB_AVDumpKey,
+                    AVDumpClientPort = ushort.Parse(Legacy.AniDB_AVDumpClientPort),
+                    DownloadRelatedAnime = Legacy.AniDB_DownloadRelatedAnime,
+                    DownloadSimilarAnime = Legacy.AniDB_DownloadSimilarAnime,
+                    DownloadReviews = Legacy.AniDB_DownloadReviews,
+                    DownloadReleaseGroups = Legacy.AniDB_DownloadReleaseGroups,
+                    MyList_AddFiles = Legacy.AniDB_MyList_AddFiles,
+                    MyList_StorageState = Legacy.AniDB_MyList_StorageState,
+                    MyList_DeleteType = Legacy.AniDB_MyList_DeleteType,
+                    MyList_ReadUnwatched = Legacy.AniDB_MyList_ReadUnwatched,
+                    MyList_ReadWatched = Legacy.AniDB_MyList_ReadWatched,
+                    MyList_SetWatched = Legacy.AniDB_MyList_SetWatched,
+                    MyList_SetUnwatched = Legacy.AniDB_MyList_SetUnwatched,
+                    MyList_UpdateFrequency = Legacy.AniDB_MyList_UpdateFrequency,
+                    Calendar_UpdateFrequency = Legacy.AniDB_Calendar_UpdateFrequency,
+                    Anime_UpdateFrequency = Legacy.AniDB_Anime_UpdateFrequency,
+                    MyListStats_UpdateFrequency = Legacy.AniDB_MyListStats_UpdateFrequency,
+                    File_UpdateFrequency = Legacy.AniDB_File_UpdateFrequency,
+                    DownloadCharacters = Legacy.AniDB_DownloadCharacters,
+                    DownloadCreators = Legacy.AniDB_DownloadCreators,
+                    MaxRelationDepth = Legacy.AniDB_MaxRelationDepth
+                },
+                WebCache = new WebCacheSettings()
+                {
+                    Address = Legacy.WebCache_Address,
+                    Anonymous = Legacy.WebCache_Anonymous,
+                    AuthKey = Legacy.WebCacheAuthKey,
+                    XRefFileEpisode_Get = Legacy.WebCache_XRefFileEpisode_Get,
+                    XRefFileEpisode_Send = Legacy.WebCache_XRefFileEpisode_Send,
+                    TvDB_Get = Legacy.WebCache_TvDB_Get,
+                    TvDB_Send = Legacy.WebCache_TvDB_Send,
+                    Trakt_Get = Legacy.WebCache_Trakt_Get,
+                    Trakt_Send = Legacy.WebCache_Trakt_Send,
+                    UserInfo = Legacy.WebCache_UserInfo,
+                },
+                TvDB = new TvDBSettings()
+                {
+                    AutoLink = Legacy.TvDB_AutoLink,
+                    AutoFanart = Legacy.TvDB_AutoFanart,
+                    AutoFanartAmount = Legacy.TvDB_AutoFanartAmount,
+                    AutoWideBanners = Legacy.TvDB_AutoWideBanners,
+                    AutoWideBannersAmount = Legacy.TvDB_AutoWideBannersAmount,
+                    AutoPosters = Legacy.TvDB_AutoPosters,
+                    AutoPostersAmount = Legacy.TvDB_AutoPostersAmount,
+                    UpdateFrequency = Legacy.TvDB_UpdateFrequency,
+                    Language = Legacy.TvDB_Language
+                },
+                MovieDb = new MovieDbSettings()
+                {
+                    AutoFanart = Legacy.MovieDB_AutoFanart,
+                    AutoFanartAmount = Legacy.MovieDB_AutoFanartAmount,
+                    AutoPosters = Legacy.MovieDB_AutoPosters,
+                    AutoPostersAmount = Legacy.MovieDB_AutoPostersAmount
+                },
+                Import = new ImportSettings()
+                {
+                    VideoExtensions = Legacy.VideoExtensions.Split(','),
+                    DefaultSeriesLanguage = Legacy.DefaultSeriesLanguage,
+                    DefaultEpisodeLanguage = Legacy.DefaultEpisodeLanguage,
+                    RunOnStart = Legacy.RunImportOnStart,
+                    ScanDropFoldersOnStart = Legacy.ScanDropFoldersOnStart,
+                    Hash_CRC32 = Legacy.Hash_CRC32,
+                    Hash_MD5 = Legacy.Hash_MD5,
+                    Hash_SHA1 = Legacy.Hash_SHA1,
+                    UseExistingFileWatchedStatus = Legacy.Import_UseExistingFileWatchedStatus
+                },
+                Plex = new PlexSettings()
+                {
+                    ThumbnailAspects = Legacy.PlexThumbnailAspects,
+                    Libraries = Legacy.Plex_Libraries,
+                    Token = Legacy.Plex_Token,
+                    Server = Legacy.Plex_Server
+                },
+                AutoGroupSeries = Legacy.AutoGroupSeries,
+                AutoGroupSeriesRelationExclusions = Legacy.AutoGroupSeriesRelationExclusions,
+                AutoGroupSeriesUseScoreAlgorithm = Legacy.AutoGroupSeriesUseScoreAlgorithm,
+                FileQualityFilterEnabled = Legacy.FileQualityFilterEnabled,
+                FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(Legacy.FileQualityFilterPreferences),
+                LanguagePreference = Legacy.LanguagePreference.Split(','),
+                EpisodeLanguagePreference = Legacy.EpisodeLanguagePreference,
+                LanguageUseSynonyms = Legacy.LanguageUseSynonyms,
+                CloudWatcherTime = Legacy.CloudWatcherTime,
+                EpisodeTitleSource = Legacy.EpisodeTitleSource,
+                SeriesDescriptionSource = Legacy.SeriesDescriptionSource,
+                SeriesNameSource = Legacy.SeriesNameSource,
+                VLCLocation = Legacy.VLCLocation,
+                MinimizeOnStartup = Legacy.MinimizeOnStartup,
+                TraktTv = new TraktSettings()
+                {
+                    Enabled = Legacy.Trakt_IsEnabled,
+                    PIN = Legacy.Trakt_PIN,
+                    AuthToken = Legacy.Trakt_AuthToken,
+                    RefreshToken = Legacy.Trakt_RefreshToken,
+                    TokenExpirationDate = Legacy.Trakt_TokenExpirationDate,
+                    UpdateFrequency = Legacy.Trakt_UpdateFrequency,
+                    SyncFrequency = Legacy.Trakt_SyncFrequency
+                },
+                UpdateChannel = Legacy.UpdateChannel,
+                Linux = new LinuxSettings()
+                {
+                    UID = Legacy.Linux_UID,
+                    GID = Legacy.Linux_GID,
+                    Permission = Legacy.Linux_Permission
+                },
+                TraceLog = Legacy.TraceLog
+            };
+
+            settings.Database = new DatabaseSettings()
+            {
+                MySqliteDirectory = Legacy.MySqliteDirectory,
+                DatabaseBackupDirectory = Legacy.DatabaseBackupDirectory
+            };
+            switch (Legacy.DatabaseType)
+            {
+                case Constants.DatabaseType.MySQL:
+                    settings.Database.Type = DatabaseTypes.MySql;
+                    settings.Database.Username = Legacy.MySQL_Username;
+                    settings.Database.Password = Legacy.MySQL_Password;
+                    settings.Database.Schema = Legacy.MySQL_SchemaName;
+                    settings.Database.Hostname = Legacy.MySQL_Hostname;
+                    break;
+                case Constants.DatabaseType.SqlServer:
+                    settings.Database.Type = DatabaseTypes.SqlServer;
+                    settings.Database.Username = Legacy.DatabaseUsername;
+                    settings.Database.Password = Legacy.DatabasePassword;
+                    settings.Database.Schema = Legacy.DatabaseName;
+                    settings.Database.Hostname = Legacy.DatabaseServer;
+                    break;
+                default:
+                    settings.Database.Type = DatabaseTypes.Sqlite;
+                    break;
+            }
+
+            return settings;
         }
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
@@ -388,78 +331,78 @@ namespace Shoko.Server
         {
             return new CL_ServerSettings
             {
-                AniDB_Username = AniDB_Username,
-                AniDB_Password = AniDB_Password,
-                AniDB_ServerAddress = AniDB_ServerAddress,
-                AniDB_ServerPort = AniDB_ServerPort.ToString(),
-                AniDB_ClientPort = AniDB_ClientPort.ToString(),
-                AniDB_AVDumpClientPort = AniDB_AVDumpClientPort.ToString(),
-                AniDB_AVDumpKey = AniDB_AVDumpKey,
+                AniDB_Username = AniDb.Username,
+                AniDB_Password = AniDb.Password,
+                AniDB_ServerAddress = AniDb.ServerAddress,
+                AniDB_ServerPort = AniDb.ServerPort.ToString(),
+                AniDB_ClientPort = AniDb.ClientPort.ToString(),
+                AniDB_AVDumpClientPort = AniDb.AVDumpClientPort.ToString(),
+                AniDB_AVDumpKey = AniDb.AVDumpKey,
 
-                AniDB_DownloadRelatedAnime = AniDB_DownloadRelatedAnime,
-                AniDB_DownloadSimilarAnime = AniDB_DownloadSimilarAnime,
-                AniDB_DownloadReviews = AniDB_DownloadReviews,
-                AniDB_DownloadReleaseGroups = AniDB_DownloadReleaseGroups,
+                AniDB_DownloadRelatedAnime = AniDb.DownloadRelatedAnime,
+                AniDB_DownloadSimilarAnime = AniDb.DownloadSimilarAnime,
+                AniDB_DownloadReviews = AniDb.DownloadReviews,
+                AniDB_DownloadReleaseGroups = AniDb.DownloadReleaseGroups,
 
-                AniDB_MyList_AddFiles = AniDB_MyList_AddFiles,
-                AniDB_MyList_StorageState = (int)AniDB_MyList_StorageState,
-                AniDB_MyList_DeleteType = (int)AniDB_MyList_DeleteType,
-                AniDB_MyList_ReadWatched = AniDB_MyList_ReadWatched,
-                AniDB_MyList_ReadUnwatched = AniDB_MyList_ReadUnwatched,
-                AniDB_MyList_SetWatched = AniDB_MyList_SetWatched,
-                AniDB_MyList_SetUnwatched = AniDB_MyList_SetUnwatched,
+                AniDB_MyList_AddFiles = AniDb.MyList_AddFiles,
+                AniDB_MyList_StorageState = (int)AniDb.MyList_StorageState,
+                AniDB_MyList_DeleteType = (int)AniDb.MyList_DeleteType,
+                AniDB_MyList_ReadWatched = AniDb.MyList_ReadWatched,
+                AniDB_MyList_ReadUnwatched = AniDb.MyList_ReadUnwatched,
+                AniDB_MyList_SetWatched = AniDb.MyList_SetWatched,
+                AniDB_MyList_SetUnwatched = AniDb.MyList_SetUnwatched,
 
-                AniDB_MyList_UpdateFrequency = (int)AniDB_MyList_UpdateFrequency,
-                AniDB_Calendar_UpdateFrequency = (int)AniDB_Calendar_UpdateFrequency,
-                AniDB_Anime_UpdateFrequency = (int)AniDB_Anime_UpdateFrequency,
-                AniDB_MyListStats_UpdateFrequency = (int)AniDB_MyListStats_UpdateFrequency,
-                AniDB_File_UpdateFrequency = (int)AniDB_File_UpdateFrequency,
+                AniDB_MyList_UpdateFrequency = (int)AniDb.MyList_UpdateFrequency,
+                AniDB_Calendar_UpdateFrequency = (int)AniDb.Calendar_UpdateFrequency,
+                AniDB_Anime_UpdateFrequency = (int)AniDb.Anime_UpdateFrequency,
+                AniDB_MyListStats_UpdateFrequency = (int)AniDb.MyListStats_UpdateFrequency,
+                AniDB_File_UpdateFrequency = (int)AniDb.File_UpdateFrequency,
 
-                AniDB_DownloadCharacters = AniDB_DownloadCharacters,
-                AniDB_DownloadCreators = AniDB_DownloadCreators,
-                AniDB_MaxRelationDepth = AniDB_MaxRelationDepth,
+                AniDB_DownloadCharacters = AniDb.DownloadCharacters,
+                AniDB_DownloadCreators = AniDb.DownloadCreators,
+                AniDB_MaxRelationDepth = AniDb.MaxRelationDepth,
 
                 // Web Cache
-                WebCache_Address = WebCache_Address,
-                WebCache_Anonymous = WebCache_Anonymous,
-                WebCache_XRefFileEpisode_Get = WebCache_XRefFileEpisode_Get,
-                WebCache_XRefFileEpisode_Send = WebCache_XRefFileEpisode_Send,
-                WebCache_TvDB_Get = WebCache_TvDB_Get,
-                WebCache_TvDB_Send = WebCache_TvDB_Send,
-                WebCache_Trakt_Get = WebCache_Trakt_Get,
-                WebCache_Trakt_Send = WebCache_Trakt_Send,
-                WebCache_UserInfo = WebCache_UserInfo,
+                WebCache_Address = WebCache.Address,
+                WebCache_Anonymous = WebCache.Anonymous,
+                WebCache_XRefFileEpisode_Get = WebCache.XRefFileEpisode_Get,
+                WebCache_XRefFileEpisode_Send = WebCache.XRefFileEpisode_Send,
+                WebCache_TvDB_Get = WebCache.TvDB_Get,
+                WebCache_TvDB_Send = WebCache.TvDB_Send,
+                WebCache_Trakt_Get = WebCache.Trakt_Get,
+                WebCache_Trakt_Send = WebCache.Trakt_Send,
+                WebCache_UserInfo = WebCache.UserInfo,
 
                 // TvDB
-                TvDB_AutoLink = TvDB_AutoLink,
-                TvDB_AutoFanart = TvDB_AutoFanart,
-                TvDB_AutoFanartAmount = TvDB_AutoFanartAmount,
-                TvDB_AutoPosters = TvDB_AutoPosters,
-                TvDB_AutoPostersAmount = TvDB_AutoPostersAmount,
-                TvDB_AutoWideBanners = TvDB_AutoWideBanners,
-                TvDB_AutoWideBannersAmount = TvDB_AutoWideBannersAmount,
-                TvDB_UpdateFrequency = (int)TvDB_UpdateFrequency,
-                TvDB_Language = TvDB_Language,
+                TvDB_AutoLink = TvDB.AutoLink,
+                TvDB_AutoFanart = TvDB.AutoFanart,
+                TvDB_AutoFanartAmount = TvDB.AutoFanartAmount,
+                TvDB_AutoPosters = TvDB.AutoPosters,
+                TvDB_AutoPostersAmount = TvDB.AutoPostersAmount,
+                TvDB_AutoWideBanners = TvDB.AutoWideBanners,
+                TvDB_AutoWideBannersAmount = TvDB.AutoWideBannersAmount,
+                TvDB_UpdateFrequency = (int)TvDB.UpdateFrequency,
+                TvDB_Language = TvDB.Language,
 
                 // MovieDB
-                MovieDB_AutoFanart = MovieDB_AutoFanart,
-                MovieDB_AutoFanartAmount = MovieDB_AutoFanartAmount,
-                MovieDB_AutoPosters = MovieDB_AutoPosters,
-                MovieDB_AutoPostersAmount = MovieDB_AutoPostersAmount,
+                MovieDB_AutoFanart = MovieDb.AutoFanart,
+                MovieDB_AutoFanartAmount = MovieDb.AutoFanartAmount,
+                MovieDB_AutoPosters = MovieDb.AutoPosters,
+                MovieDB_AutoPostersAmount = MovieDb.AutoPostersAmount,
 
                 // Import settings
-                VideoExtensions = string.Join(",", VideoExtensions),
+                VideoExtensions = string.Join(",", Import.VideoExtensions),
                 AutoGroupSeries = AutoGroupSeries,
                 AutoGroupSeriesUseScoreAlgorithm = AutoGroupSeriesUseScoreAlgorithm,
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
-                FileQualityFilterPreferences = FileQualityFilterPreferences,
-                Import_UseExistingFileWatchedStatus = Import_UseExistingFileWatchedStatus,
-                RunImportOnStart = RunImportOnStart,
-                ScanDropFoldersOnStart = ScanDropFoldersOnStart,
-                Hash_CRC32 = Hash_CRC32,
-                Hash_MD5 = Hash_MD5,
-                Hash_SHA1 = Hash_SHA1,
+                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityFilterPreferences),
+                Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
+                RunImportOnStart = Import.RunOnStart,
+                ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,
+                Hash_CRC32 = Import.Hash_CRC32,
+                Hash_MD5 = Import.Hash_MD5,
+                Hash_SHA1 = Import.Hash_SHA1,
 
                 // Language
                 LanguagePreference = string.Join(",", LanguagePreference),
@@ -469,25 +412,25 @@ namespace Shoko.Server
                 SeriesNameSource = (int)SeriesNameSource,
 
                 // trakt
-                Trakt_IsEnabled = Trakt_IsEnabled,
-                Trakt_AuthToken = Trakt_AuthToken,
-                Trakt_RefreshToken = Trakt_RefreshToken,
-                Trakt_TokenExpirationDate = Trakt_TokenExpirationDate,
-                Trakt_UpdateFrequency = (int)Trakt_UpdateFrequency,
-                Trakt_SyncFrequency = (int)Trakt_SyncFrequency,
+                Trakt_IsEnabled = TraktTv.Enabled,
+                Trakt_AuthToken = TraktTv.AuthToken,
+                Trakt_RefreshToken = TraktTv.RefreshToken,
+                Trakt_TokenExpirationDate = TraktTv.TokenExpirationDate,
+                Trakt_UpdateFrequency = (int)TraktTv.UpdateFrequency,
+                Trakt_SyncFrequency = (int)TraktTv.SyncFrequency,
 
                 // LogRotator
-                RotateLogs = RotateLogs,
-                RotateLogs_Delete = RotateLogs_Delete,
-                RotateLogs_Delete_Days = RotateLogs_Delete_Days,
-                RotateLogs_Zip = RotateLogs_Zip,
+                RotateLogs = LogRotator.Enabled,
+                RotateLogs_Delete = LogRotator.Delete,
+                RotateLogs_Delete_Days = LogRotator.Delete_Days,
+                RotateLogs_Zip = LogRotator.Zip,
 
                 //WebUI
                 WebUI_Settings = WebUI_Settings,
 
                 //Plex
-                Plex_Sections = string.Join(",", Plex_Libraries),
-                Plex_ServerHost = Plex_Server
+                Plex_Sections = string.Join(",", Plex.Libraries),
+                Plex_ServerHost = Plex.Server
             };
         }
 
@@ -560,77 +503,77 @@ namespace Shoko.Server
 
             logger.Info("----------------- SERVER SETTINGS ----------------------");
 
-            logger.Info("DatabaseType: {0}", DatabaseType);
-            logger.Info("MSSQL DatabaseServer: {0}", DatabaseServer);
-            logger.Info("MSSQL DatabaseName: {0}", DatabaseName);
+            logger.Info("DatabaseType: {0}", Database.Type);
+            logger.Info("MSSQL DatabaseServer: {0}", Database.Hostname);
+            logger.Info("MSSQL DatabaseName: {0}", Database.Schema);
             logger.Info("MSSQL DatabaseUsername: {0}",
-                string.IsNullOrEmpty(DatabaseUsername) ? "NOT SET" : "***HIDDEN***");
+                string.IsNullOrEmpty(Database.Username) ? "NOT SET" : "***HIDDEN***");
             logger.Info("MSSQL DatabasePassword: {0}",
-                string.IsNullOrEmpty(DatabasePassword) ? "NOT SET" : "***HIDDEN***");
+                string.IsNullOrEmpty(Database.Password) ? "NOT SET" : "***HIDDEN***");
 
-            logger.Info("SQLITE DatabaseFile: {0}", DatabaseFile);
+            logger.Info("SQLITE DatabaseFile: {0}", Database.SQLite_DatabaseFile);
 
-            logger.Info("MySQL_Hostname: {0}", MySQL_Hostname);
-            logger.Info("MySQL_SchemaName: {0}", MySQL_SchemaName);
-            logger.Info("MySQL_Username: {0}", string.IsNullOrEmpty(MySQL_Username) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("MySQL_Password: {0}", string.IsNullOrEmpty(MySQL_Password) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("MySQL_Hostname: {0}", Database.Hostname);
+            logger.Info("MySQL_SchemaName: {0}", Database.Schema);
+            logger.Info("MySQL_Username: {0}", string.IsNullOrEmpty(Database.Username) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("MySQL_Password: {0}", string.IsNullOrEmpty(Database.Password) ? "NOT SET" : "***HIDDEN***");
 
-            logger.Info("AniDB_Username: {0}", string.IsNullOrEmpty(AniDB_Username) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_Password: {0}", string.IsNullOrEmpty(AniDB_Password) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_ServerAddress: {0}", AniDB_ServerAddress);
-            logger.Info("AniDB_ServerPort: {0}", AniDB_ServerPort);
-            logger.Info("AniDB_ClientPort: {0}", AniDB_ClientPort);
-            logger.Info("AniDB_AVDumpKey: {0}", string.IsNullOrEmpty(AniDB_AVDumpKey) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_AVDumpClientPort: {0}", AniDB_AVDumpClientPort);
-            logger.Info("AniDB_DownloadRelatedAnime: {0}", AniDB_DownloadRelatedAnime);
-            logger.Info("AniDB_DownloadSimilarAnime: {0}", AniDB_DownloadSimilarAnime);
-            logger.Info("AniDB_DownloadReviews: {0}", AniDB_DownloadReviews);
-            logger.Info("AniDB_DownloadReleaseGroups: {0}", AniDB_DownloadReleaseGroups);
-            logger.Info("AniDB_MyList_AddFiles: {0}", AniDB_MyList_AddFiles);
-            logger.Info("AniDB_MyList_StorageState: {0}", AniDB_MyList_StorageState);
-            logger.Info("AniDB_MyList_ReadUnwatched: {0}", AniDB_MyList_ReadUnwatched);
-            logger.Info("AniDB_MyList_ReadWatched: {0}", AniDB_MyList_ReadWatched);
-            logger.Info("AniDB_MyList_SetWatched: {0}", AniDB_MyList_SetWatched);
-            logger.Info("AniDB_MyList_SetUnwatched: {0}", AniDB_MyList_SetUnwatched);
-            logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDB_MyList_UpdateFrequency);
-            logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDB_Calendar_UpdateFrequency);
-            logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDB_Anime_UpdateFrequency);
-            logger.Info($"{nameof(AniDB_MaxRelationDepth)}: {AniDB_MaxRelationDepth}");
+            logger.Info("AniDB_Username: {0}", string.IsNullOrEmpty(AniDb.Username) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("AniDB_Password: {0}", string.IsNullOrEmpty(AniDb.Password) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("AniDB_ServerAddress: {0}", AniDb.ServerAddress);
+            logger.Info("AniDB_ServerPort: {0}", AniDb.ServerPort);
+            logger.Info("AniDB_ClientPort: {0}", AniDb.ClientPort);
+            logger.Info("AniDB_AVDumpKey: {0}", string.IsNullOrEmpty(AniDb.AVDumpKey) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("AniDB_AVDumpClientPort: {0}", AniDb.AVDumpClientPort);
+            logger.Info("AniDB_DownloadRelatedAnime: {0}", AniDb.DownloadRelatedAnime);
+            logger.Info("AniDB_DownloadSimilarAnime: {0}", AniDb.DownloadSimilarAnime);
+            logger.Info("AniDB_DownloadReviews: {0}", AniDb.DownloadReviews);
+            logger.Info("AniDB_DownloadReleaseGroups: {0}", AniDb.DownloadReleaseGroups);
+            logger.Info("AniDB_MyList_AddFiles: {0}", AniDb.MyList_AddFiles);
+            logger.Info("AniDB_MyList_StorageState: {0}", AniDb.MyList_StorageState);
+            logger.Info("AniDB_MyList_ReadUnwatched: {0}", AniDb.MyList_ReadUnwatched);
+            logger.Info("AniDB_MyList_ReadWatched: {0}", AniDb.MyList_ReadWatched);
+            logger.Info("AniDB_MyList_SetWatched: {0}", AniDb.MyList_SetWatched);
+            logger.Info("AniDB_MyList_SetUnwatched: {0}", AniDb.MyList_SetUnwatched);
+            logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDb.MyList_UpdateFrequency);
+            logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDb.Calendar_UpdateFrequency);
+            logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDb.Anime_UpdateFrequency);
+            logger.Info($"{nameof(AniDb.MaxRelationDepth)}: {AniDb.MaxRelationDepth}");
 
 
-            logger.Info("WebCache_Address: {0}", WebCache_Address);
-            logger.Info("WebCache_Anonymous: {0}", WebCache_Anonymous);
-            logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache_XRefFileEpisode_Get);
-            logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache_XRefFileEpisode_Send);
-            logger.Info("WebCache_TvDB_Get: {0}", WebCache_TvDB_Get);
-            logger.Info("WebCache_TvDB_Send: {0}", WebCache_TvDB_Send);
+            logger.Info("WebCache_Address: {0}", WebCache.Address);
+            logger.Info("WebCache_Anonymous: {0}", WebCache.Anonymous);
+            logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache.XRefFileEpisode_Get);
+            logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache.XRefFileEpisode_Send);
+            logger.Info("WebCache_TvDB_Get: {0}", WebCache.TvDB_Get);
+            logger.Info("WebCache_TvDB_Send: {0}", WebCache.TvDB_Send);
 
-            logger.Info("TvDB_AutoFanart: {0}", TvDB_AutoFanart);
-            logger.Info("TvDB_AutoFanartAmount: {0}", TvDB_AutoFanartAmount);
-            logger.Info("TvDB_AutoWideBanners: {0}", TvDB_AutoWideBanners);
-            logger.Info("TvDB_AutoPosters: {0}", TvDB_AutoPosters);
-            logger.Info("TvDB_UpdateFrequency: {0}", TvDB_UpdateFrequency);
-            logger.Info("TvDB_Language: {0}", TvDB_Language);
+            logger.Info("TvDB_AutoFanart: {0}", TvDB.AutoFanart);
+            logger.Info("TvDB_AutoFanartAmount: {0}", TvDB.AutoFanartAmount);
+            logger.Info("TvDB_AutoWideBanners: {0}", TvDB.AutoWideBanners);
+            logger.Info("TvDB_AutoPosters: {0}", TvDB.AutoPosters);
+            logger.Info("TvDB_UpdateFrequency: {0}", TvDB.UpdateFrequency);
+            logger.Info("TvDB_Language: {0}", TvDB.Language);
 
-            logger.Info("MovieDB_AutoFanart: {0}", MovieDB_AutoFanart);
-            logger.Info("MovieDB_AutoFanartAmount: {0}", MovieDB_AutoFanartAmount);
-            logger.Info("MovieDB_AutoPosters: {0}", MovieDB_AutoPosters);
+            logger.Info("MovieDB_AutoFanart: {0}", MovieDb.AutoFanart);
+            logger.Info("MovieDB_AutoFanartAmount: {0}", MovieDb.AutoFanartAmount);
+            logger.Info("MovieDB_AutoPosters: {0}", MovieDb.AutoPosters);
 
-            logger.Info("VideoExtensions: {0}", VideoExtensions);
-            logger.Info("DefaultSeriesLanguage: {0}", DefaultSeriesLanguage);
-            logger.Info("DefaultEpisodeLanguage: {0}", DefaultEpisodeLanguage);
-            logger.Info("RunImportOnStart: {0}", RunImportOnStart);
-            logger.Info("Hash_CRC32: {0}", Hash_CRC32);
-            logger.Info("Hash_MD5: {0}", Hash_MD5);
-            logger.Info("Hash_SHA1: {0}", Hash_SHA1);
-            logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import_UseExistingFileWatchedStatus);
+            logger.Info("VideoExtensions: {0}", Import.VideoExtensions);
+            logger.Info("DefaultSeriesLanguage: {0}", Import.DefaultSeriesLanguage);
+            logger.Info("DefaultEpisodeLanguage: {0}", Import.DefaultEpisodeLanguage);
+            logger.Info("RunImportOnStart: {0}", Import.RunOnStart);
+            logger.Info("Hash_CRC32: {0}", Import.Hash_CRC32);
+            logger.Info("Hash_MD5: {0}", Import.Hash_MD5);
+            logger.Info("Hash_SHA1: {0}", Import.Hash_SHA1);
+            logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import.UseExistingFileWatchedStatus);
 
-            logger.Info("Trakt_IsEnabled: {0}", Trakt_IsEnabled);
-            logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(Trakt_AuthToken) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("Trakt_IsEnabled: {0}", TraktTv.Enabled);
+            logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(TraktTv.AuthToken) ? "NOT SET" : "***HIDDEN***");
             logger.Info("Trakt_RefreshToken: {0}",
-                string.IsNullOrEmpty(Trakt_RefreshToken) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("Trakt_UpdateFrequency: {0}", Trakt_UpdateFrequency);
-            logger.Info("Trakt_SyncFrequency: {0}", Trakt_SyncFrequency);
+                string.IsNullOrEmpty(TraktTv.RefreshToken) ? "NOT SET" : "***HIDDEN***");
+            logger.Info("Trakt_UpdateFrequency: {0}", TraktTv.UpdateFrequency);
+            logger.Info("Trakt_SyncFrequency: {0}", TraktTv.SyncFrequency);
 
             logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
             logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);

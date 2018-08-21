@@ -50,7 +50,7 @@ namespace Shoko.Server.Commands
             {
                 {
                     // first check if the user wants to use the web cache
-                    if (ServerSettings.Instance.WebCache_TvDB_Get)
+                    if (ServerSettings.Instance.WebCache.TvDB_Get)
                     {
                         try
                         {
@@ -82,7 +82,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // Use TvDB setting
-                    if (!ServerSettings.Instance.TvDB_AutoLink) return;
+                    if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                     string searchCriteria = string.Empty;
                     SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);

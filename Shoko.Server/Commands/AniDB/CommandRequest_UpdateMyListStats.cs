@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands.AniDB
 
                 if (sched != null)
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_MyListStats_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency);
 
                     // if we have run this in the last 24 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

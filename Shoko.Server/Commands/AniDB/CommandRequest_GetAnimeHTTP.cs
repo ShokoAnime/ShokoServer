@@ -60,7 +60,7 @@ namespace Shoko.Server.Commands
 
 
                 // download reviews
-                if (ServerSettings.Instance.AniDB_DownloadReviews)
+                if (ServerSettings.Instance.AniDb.DownloadReviews)
                 {
                     CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(AnimeID, ForceRefresh);
                     cmd.Save();

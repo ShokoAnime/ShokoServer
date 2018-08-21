@@ -1176,11 +1176,11 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (directories == null)
             {
-                ServerSettings.Instance.Plex_Libraries = new int[0];
+                ServerSettings.Instance.Plex.Libraries = new int[0];
                 return;
             }
 
-            ServerSettings.Instance.Plex_Libraries = directories.Select(s => s.Key).ToArray();
+            ServerSettings.Instance.Plex.Libraries = directories.Select(s => s.Key).ToArray();
         }
 
         public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).GetDirectories();

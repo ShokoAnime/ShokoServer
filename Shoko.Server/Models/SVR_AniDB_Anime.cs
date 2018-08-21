@@ -765,7 +765,7 @@ namespace Shoko.Server.Models
                 cmd.Save();
 
                 // check for Trakt associations
-                if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+                if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                     cmd2.Save();
@@ -792,7 +792,7 @@ namespace Shoko.Server.Models
             using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => this))
             {
                 logger.Trace("------------------------------------------------");
-                logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDB_MaxRelationDepth}");
+                logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
                 logger.Trace("------------------------------------------------");
 
                 Stopwatch taskTimer = new Stopwatch();
@@ -1251,7 +1251,7 @@ namespace Shoko.Server.Models
                 {
                     if (!upd.Entity.Populate(rawrel)) continue;
 
-                    if (downloadRelations && relDepth < ServerSettings.Instance.AniDB_MaxRelationDepth)
+                    if (downloadRelations && relDepth < ServerSettings.Instance.AniDb.MaxRelationDepth)
                     {
                         logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                             MainTitle, AnimeID, upd.Entity.RelatedAnimeID);

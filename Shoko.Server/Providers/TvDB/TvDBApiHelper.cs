@@ -39,7 +39,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                client.AcceptedLanguage = ServerSettings.Instance.TvDB_Language;
+                client.AcceptedLanguage = ServerSettings.Instance.TvDB.Language;
                 if (string.IsNullOrEmpty(client.Authentication.Token))
                 {
                     TvDBRateLimiter.Instance.EnsureRate();
@@ -189,7 +189,7 @@ namespace Shoko.Server.Providers.TvDB
             logger.Info(
                 $"Adding TvDB Link: AniDB(ID:{animeID}) -> TvDB(ID:{tvDBID})");
 
-            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+            if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
                 // check for Trakt associations
                 List<CrossRef_AniDB_TraktV2> trakt = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -370,7 +370,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.Instance.TvDB_AutoFanartAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoFanartAmount) break;
                     TvDB_ImageFanart img;
                     using (var repo = Repo.TvDB_ImageFanart.BeginAddOrUpdate(() => Repo.TvDB_ImageFanart.GetByTvDBID(id)))
                     {
@@ -437,7 +437,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.Instance.TvDB_AutoPostersAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoPostersAmount) break;
                     TvDB_ImagePoster img;
                     using (var repo = Repo.TvDB_ImagePoster.BeginAddOrUpdate(() => Repo.TvDB_ImagePoster.GetByTvDBID(id)))
                     {
@@ -502,7 +502,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.Instance.TvDB_AutoWideBannersAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoWideBannersAmount) break;
                     TvDB_ImageWideBanner img;
                     using (var repo = Repo.TvDB_ImageWideBanner.BeginAddOrUpdate(() => Repo.TvDB_ImageWideBanner.GetByTvDBID(id)))
                     {
@@ -551,7 +551,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImageFanart img in images)
-                if (ServerSettings.Instance.TvDB_AutoFanart && imageCount < ServerSettings.Instance.TvDB_AutoFanartAmount &&
+                if (ServerSettings.Instance.TvDB.AutoFanart && imageCount < ServerSettings.Instance.TvDB.AutoFanartAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
@@ -578,7 +578,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImagePoster img in images)
-                if (ServerSettings.Instance.TvDB_AutoPosters && imageCount < ServerSettings.Instance.TvDB_AutoPostersAmount &&
+                if (ServerSettings.Instance.TvDB.AutoPosters && imageCount < ServerSettings.Instance.TvDB.AutoPostersAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
@@ -605,7 +605,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
 
             foreach (TvDB_ImageWideBanner img in images)
-                if (ServerSettings.Instance.TvDB_AutoWideBanners && imageCount < ServerSettings.Instance.TvDB_AutoWideBannersAmount &&
+                if (ServerSettings.Instance.TvDB.AutoWideBanners && imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());

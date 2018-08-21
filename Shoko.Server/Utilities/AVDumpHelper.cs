@@ -116,8 +116,8 @@ namespace Shoko.Server
                     {
                         FileName = avdumpDestination,
                         Arguments =
-                            $@" --Auth={ServerSettings.Instance.AniDB_Username}:{ServerSettings.Instance.AniDB_AVDumpKey} --LPort={
-                                    ServerSettings.Instance.AniDB_AVDumpClientPort
+                            $@" --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey} --LPort={
+                                    ServerSettings.Instance.AniDb.AVDumpClientPort
                                 } --PrintEd2kLink -t {fileName}",
                         UseShellExecute = false,
                         WindowStyle = ProcessWindowStyle.Hidden,
@@ -158,7 +158,7 @@ namespace Shoko.Server
             string fileName = (char)34 + file + (char)34;
 
             pProcess.StartInfo.Arguments =
-                $@"{avdumpDestination} --Auth={ServerSettings.Instance.AniDB_Username}:{ServerSettings.Instance.AniDB_AVDumpKey} --LPort={ServerSettings.Instance.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+                $@"{avdumpDestination} --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey} --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;

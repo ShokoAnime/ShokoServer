@@ -27,56 +27,56 @@ namespace Shoko.Server.PlexAndKodi
         public static string ConstructVideoLocalStream(this IProvider prov, int userid, int vid, string name,
             bool autowatch)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 "Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name, prov.IsExternalRequest());
         }
 
         public static string ConstructFileStream(this IProvider prov, int userid, string file, bool autowatch)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 "Stream/Filename/" + Base64EncodeUrl(file) + "/" + userid + "/" + autowatch, prov.IsExternalRequest());
         }
 
         public static string ConstructImageLink(this IProvider prov, int type, int id)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 ShokoServer.PathAddressREST + "/" + type + "/" + id);
         }
 
         public static string ConstructSupportImageLink(this IProvider prov, string name)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 ShokoServer.PathAddressREST + "/Support/" + name + "/" + relation);
         }
 
         public static string ConstructSupportImageLinkTV(this IProvider prov, string name)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 ShokoServer.PathAddressREST + "/Support/" + name);
         }
 
         public static string ConstructThumbLink(this IProvider prov, int type, int id)
         {
             string relation = prov.GetRelation().ToString(CultureInfo.InvariantCulture);
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/" + relation);
         }
 
         public static string ConstructTVThumbLink(this IProvider prov, int type, int id)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort,
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort,
                 ShokoServer.PathAddressREST + "/Thumb/" + type + "/" + id + "/1.3333");
         }
 
         public static string ConstructCharacterImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort, ShokoServer.PathAddressREST + "/2/" + id);
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort, ShokoServer.PathAddressREST + "/2/" + id);
         }
 
         public static string ConstructSeiyuuImage(this IProvider prov, int id)
         {
-            return prov.ServerUrl(ServerSettings.Instance.JMMServerPort, ShokoServer.PathAddressREST + "/3/" + id);
+            return prov.ServerUrl(ServerSettings.Instance.ServerPort, ShokoServer.PathAddressREST + "/3/" + id);
         }
 
         public static readonly Lazy<Dictionary<string, double>> _relations =
@@ -102,7 +102,7 @@ namespace Shoko.Server.PlexAndKodi
         private static Dictionary<string, double> CreateRelationsMap()
         {
             var relations = new Dictionary<string, double>();
-            string[] aspects = ServerSettings.Instance.PlexThumbnailAspects.Split(',');
+            string[] aspects = ServerSettings.Instance.Plex.ThumbnailAspects.Split(',');
 
             for (int x = 0; x < aspects.Length; x += 2)
             {

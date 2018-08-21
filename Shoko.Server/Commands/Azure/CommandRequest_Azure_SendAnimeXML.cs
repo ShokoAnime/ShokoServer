@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands.Azure
                     AnimeID = AnimeID,
                     AnimeName = anime.MainTitle,
                     DateDownloaded = 0,
-                    Username = ServerSettings.Instance.AniDB_Username,
+                    Username = ServerSettings.Instance.AniDb.Username,
                     XMLContent = rawXML
                 };
                 AzureWebAPI.Send_AnimeXML(xml);
