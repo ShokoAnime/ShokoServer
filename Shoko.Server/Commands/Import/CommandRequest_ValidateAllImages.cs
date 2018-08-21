@@ -60,7 +60,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.TvDB_AutoFanart)
+                if (ServerSettings.Instance.TvDB.AutoFanart)
                 {
                     count = 0;
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBFanarts};
@@ -86,7 +86,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.TvDB_AutoPosters)
+                if (ServerSettings.Instance.TvDB.AutoPosters)
                 {
                     count = 0;
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBPosters};
@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.TvDB_AutoWideBanners)
+                if (ServerSettings.Instance.TvDB.AutoWideBanners)
                 {
                     count = 0;
                     logger.Info("Scanning TvDB Banners for corrupted images");
@@ -138,7 +138,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.MovieDB_AutoPosters)
+                if (ServerSettings.Instance.MovieDb.AutoPosters)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBPosters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -164,7 +164,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.MovieDB_AutoFanart)
+                if (ServerSettings.Instance.MovieDb.AutoFanart)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBFanarts};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -210,7 +210,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.AniDB_DownloadCharacters)
+                if (ServerSettings.Instance.AniDb.DownloadCharacters)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBCharacters};
                     ShokoService.CmdProcessorImages.QueueState = queueState;
@@ -235,7 +235,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (ServerSettings.Instance.AniDB_DownloadCreators)
+                if (ServerSettings.Instance.AniDb.DownloadCreators)
                 {
                     queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBSeiyuus};
                     ShokoService.CmdProcessorImages.QueueState = queueState;

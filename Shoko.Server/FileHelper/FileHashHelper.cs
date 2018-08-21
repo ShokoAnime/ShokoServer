@@ -42,7 +42,7 @@ namespace Shoko.Server.FileHelper
 
             try
             {
-                string[] extArray = ServerSettings.Instance.VideoExtensions;
+                string[] extArray = ServerSettings.Instance.Import.VideoExtensions;
 
                 if (extArray == null || extArray.Length == 0)
                 {

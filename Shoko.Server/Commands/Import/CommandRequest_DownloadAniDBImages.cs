@@ -94,7 +94,7 @@ namespace Shoko.Server.Commands
                             break;
 
                         case ImageEntityType.AniDB_Character:
-                            if (!ServerSettings.Instance.AniDB_DownloadCharacters) continue;
+                            if (!ServerSettings.Instance.AniDb.DownloadCharacters) continue;
                             var chrs = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
                                     select Repo.AniDB_Character.GetByCharID(xref1.CharID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
@@ -117,7 +117,7 @@ namespace Shoko.Server.Commands
                             break;
 
                         case ImageEntityType.AniDB_Creator:
-                            if (!ServerSettings.Instance.AniDB_DownloadCreators) continue;
+                            if (!ServerSettings.Instance.AniDb.DownloadCreators) continue;
 
                             var creators = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
                                     from xref2 in Repo.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)

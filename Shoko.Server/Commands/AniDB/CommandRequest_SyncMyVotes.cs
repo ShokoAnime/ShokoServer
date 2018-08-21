@@ -39,7 +39,7 @@ namespace Shoko.Server.Commands
             try
             {
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
-                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotVotesHTTP)
                 {

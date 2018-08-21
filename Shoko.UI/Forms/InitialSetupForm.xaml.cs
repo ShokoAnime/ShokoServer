@@ -63,9 +63,9 @@ namespace Shoko.UI.Forms
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.Server_Initializing);
-                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
-                    ServerSettings.Instance.AniDB_ServerAddress,
-                    ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
+                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                    ServerSettings.Instance.AniDb.ServerAddress,
+                    ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Login);
                 if (ShokoService.AnidbProcessor.Login())
@@ -132,17 +132,17 @@ namespace Shoko.UI.Forms
         void txtClientPort_TextChanged(object sender, TextChangedEventArgs e)
         {
             if(ushort.TryParse(txtClientPort.Text.Trim(), out ushort port))
-                ServerSettings.Instance.AniDB_ClientPort = port;
+                ServerSettings.Instance.AniDb.ClientPort = port;
         }
 
         void txtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            ServerSettings.Instance.AniDB_Password = txtPassword.Password;
+            ServerSettings.Instance.AniDb.Password = txtPassword.Password;
         }
 
         void txtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ServerSettings.Instance.AniDB_Username = txtUsername.Text.Trim();
+            ServerSettings.Instance.AniDb.Username = txtUsername.Text.Trim();
         }
 
         void btnClose_Click(object sender, RoutedEventArgs e)

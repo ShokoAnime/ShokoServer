@@ -120,7 +120,7 @@ namespace Shoko.UI
 
             Loaded += MainWindow_Loaded;
 
-            txtServerPort.Text = ServerSettings.Instance.JMMServerPort.ToString(CultureInfo.InvariantCulture);
+            txtServerPort.Text = ServerSettings.Instance.ServerPort.ToString(CultureInfo.InvariantCulture);
 
             btnToolbarHelp.Click += btnToolbarHelp_Click;
             btnApplyServerPort.Click += btnApplyServerPort_Click;
@@ -575,7 +575,7 @@ namespace Shoko.UI
 
                 if (ServerState.Instance.DatabaseIsSQLite)
                 {
-                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.Sqlite;
+                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.Sqlite;
                 }
                 else if (ServerState.Instance.DatabaseIsSQLServer)
                 {
@@ -591,11 +591,11 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.SqlServer;
-                    ServerSettings.Instance.DatabaseName = txtMSSQL_DatabaseName.Text;
-                    ServerSettings.Instance.DatabasePassword = txtMSSQL_Password.Password;
-                    ServerSettings.Instance.DatabaseServer = cboMSSQLServerList.Text;
-                    ServerSettings.Instance.DatabaseUsername = txtMSSQL_Username.Text;
+                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.SqlServer;
+                    ServerSettings.Instance.Database.Schema = txtMSSQL_DatabaseName.Text;
+                    ServerSettings.Instance.Database.Password = txtMSSQL_Password.Password;
+                    ServerSettings.Instance.Database.Hostname = cboMSSQLServerList.Text;
+                    ServerSettings.Instance.Database.Username = txtMSSQL_Username.Text;
                 }
                 else if (ServerState.Instance.DatabaseIsMySQL)
                 {
@@ -611,11 +611,11 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.MySql;
-                    ServerSettings.Instance.MySQL_SchemaName = txtMySQL_DatabaseName.Text;
-                    ServerSettings.Instance.MySQL_Password = txtMySQL_Password.Password;
-                    ServerSettings.Instance.MySQL_Hostname = txtMySQL_ServerAddress.Text;
-                    ServerSettings.Instance.MySQL_Username = txtMySQL_Username.Text;
+                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.MySql;
+                    ServerSettings.Instance.Database.Schema = txtMySQL_DatabaseName.Text;
+                    ServerSettings.Instance.Database.Password = txtMySQL_Password.Password;
+                    ServerSettings.Instance.Database.Hostname = txtMySQL_ServerAddress.Text;
+                    ServerSettings.Instance.Database.Username = txtMySQL_Username.Text;
                 }
 
                 logger.Info("Initializing DB...");
@@ -640,17 +640,17 @@ namespace Shoko.UI
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 1:
-                    bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseName) ||
-                                            !string.IsNullOrEmpty(ServerSettings.Instance.DatabasePassword)
-                                            || !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseServer) ||
-                                            !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseUsername);
+                    bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.Instance.Database.Schema) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.Database.Password)
+                                            || !string.IsNullOrEmpty(ServerSettings.Instance.Database.Hostname) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.Database.Username);
                     if (anySettingsMSSQL)
                     {
-                        txtMSSQL_DatabaseName.Text = ServerSettings.Instance.DatabaseName;
-                        txtMSSQL_Password.Password = ServerSettings.Instance.DatabasePassword;
+                        txtMSSQL_DatabaseName.Text = ServerSettings.Instance.Database.Schema;
+                        txtMSSQL_Password.Password = ServerSettings.Instance.Database.Password;
 
-                        cboMSSQLServerList.Text = ServerSettings.Instance.DatabaseServer;
-                        txtMSSQL_Username.Text = ServerSettings.Instance.DatabaseUsername;
+                        cboMSSQLServerList.Text = ServerSettings.Instance.Database.Hostname;
+                        txtMSSQL_Username.Text = ServerSettings.Instance.Database.Username;
                     }
                     else
                     {
@@ -664,16 +664,16 @@ namespace Shoko.UI
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 2:
-                    bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_SchemaName) ||
-                                            !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Password)
-                                            || !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Hostname) ||
-                                            !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Username);
+                    bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.Instance.Database.Schema) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.Database.Password)
+                                            || !string.IsNullOrEmpty(ServerSettings.Instance.Database.Hostname) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.Database.Username);
                     if (anySettingsMySQL)
                     {
-                        txtMySQL_DatabaseName.Text = ServerSettings.Instance.MySQL_SchemaName;
-                        txtMySQL_Password.Password = ServerSettings.Instance.MySQL_Password;
-                        txtMySQL_ServerAddress.Text = ServerSettings.Instance.MySQL_Hostname;
-                        txtMySQL_Username.Text = ServerSettings.Instance.MySQL_Username;
+                        txtMySQL_DatabaseName.Text = ServerSettings.Instance.Database.Schema;
+                        txtMySQL_Password.Password = ServerSettings.Instance.Database.Password;
+                        txtMySQL_ServerAddress.Text = ServerSettings.Instance.Database.Hostname;
+                        txtMySQL_Username.Text = ServerSettings.Instance.Database.Username;
                     }
                     else
                     {
@@ -731,11 +731,11 @@ namespace Shoko.UI
 
         private void ShowDatabaseSetup()
         {
-            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.Sqlite)
+            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.Sqlite)
                 cboDatabaseType.SelectedIndex = 0;
-            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.SqlServer)
+            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.SqlServer)
                 cboDatabaseType.SelectedIndex = 1;
-            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.MySql)
+            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.MySql)
                 cboDatabaseType.SelectedIndex = 2;
             cboDatabaseType.IsEnabled = true;
             btnSaveDatabaseSettings.IsEnabled = true;
@@ -887,7 +887,7 @@ namespace Shoko.UI
                 if (string.IsNullOrEmpty(IP))
                     IP = "127.0.0.1";
 
-                string url = $"http://{IP}:{ServerSettings.Instance.JMMServerPort}";
+                string url = $"http://{IP}:{ServerSettings.Instance.ServerPort}";
                 Process.Start(url);
             }
             catch (Exception ex)
@@ -1003,7 +1003,7 @@ namespace Shoko.UI
         void btnSyncTrakt_Click(object sender, RoutedEventArgs e)
         {
             Cursor = Cursors.Wait;
-            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+            if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
@@ -1141,7 +1141,7 @@ namespace Shoko.UI
                 if (string.IsNullOrEmpty(IP))
                     IP = "127.0.0.1";
 
-                string url = $"http://{IP}:{ServerSettings.Instance.JMMServerPort}";
+                string url = $"http://{IP}:{ServerSettings.Instance.ServerPort}";
                 Process.Start(url);
             }
             catch (Exception ex)

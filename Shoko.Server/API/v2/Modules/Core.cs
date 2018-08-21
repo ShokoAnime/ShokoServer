@@ -41,7 +41,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("config/port/set")]
         public object SetPort(ushort port)
         {
-            ServerSettings.Instance.JMMServerPort = port;
+            ServerSettings.Instance.ServerPort = port;
             return APIStatus.OK();
         }
 
@@ -53,7 +53,7 @@ namespace Shoko.Server.API.v2.Modules
         public object GetPort()
         {
             dynamic x = new ExpandoObject();
-            x.port = ServerSettings.Instance.JMMServerPort;
+            x.port = ServerSettings.Instance.ServerPort;
             return x;
         }
 
@@ -256,11 +256,11 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (!string.IsNullOrEmpty(cred.login) && !string.IsNullOrEmpty(cred.password))
             {
-                ServerSettings.Instance.AniDB_Username = cred.login;
-                ServerSettings.Instance.AniDB_Password = cred.password;
+                ServerSettings.Instance.AniDb.Username = cred.login;
+                ServerSettings.Instance.AniDb.Password = cred.password;
                 if (cred.port != 0)
                 {
-                    ServerSettings.Instance.AniDB_ClientPort = cred.port;
+                    ServerSettings.Instance.AniDb.ClientPort = cred.port;
                 }
                 return APIStatus.OK();
             }
@@ -282,9 +282,9 @@ namespace Shoko.Server.API.v2.Modules
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
-                ServerSettings.Instance.AniDB_ServerAddress,
-                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                ServerSettings.Instance.AniDb.ServerAddress,
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
             if (ShokoService.AnidbProcessor.Login())
             {
@@ -304,9 +304,9 @@ namespace Shoko.Server.API.v2.Modules
         {
             return new Credentials
             {
-                login = ServerSettings.Instance.AniDB_Username,
-                password = ServerSettings.Instance.AniDB_Password,
-                port = ServerSettings.Instance.AniDB_ClientPort
+                login = ServerSettings.Instance.AniDb.Username,
+                password = ServerSettings.Instance.AniDb.Password,
+                port = ServerSettings.Instance.AniDb.ClientPort
             };
         }
 
@@ -415,8 +415,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             return new Credentials
             {
-                token = ServerSettings.Instance.Trakt_AuthToken,
-                refresh_token = ServerSettings.Instance.Trakt_RefreshToken
+                token = ServerSettings.Instance.TraktTv.AuthToken,
+                refresh_token = ServerSettings.Instance.TraktTv.RefreshToken
             };
         }
 
@@ -427,7 +427,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("trakt/sync")]
         public ActionResult SyncTrakt()
         {
-            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
+            if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
@@ -856,10 +856,10 @@ namespace Shoko.Server.API.v2.Modules
         [Authorize("admin")]
         public ActionResult SetRotateLogs([FromBody] Logs rotator)
         {
-            ServerSettings.Instance.RotateLogs = rotator.rotate;
-            ServerSettings.Instance.RotateLogs_Zip = rotator.zip;
-            ServerSettings.Instance.RotateLogs_Delete = rotator.delete;
-            ServerSettings.Instance.RotateLogs_Delete_Days = rotator.days.ToString();
+            ServerSettings.Instance.LogRotator.Enabled = rotator.rotate;
+            ServerSettings.Instance.LogRotator.Zip = rotator.zip;
+            ServerSettings.Instance.LogRotator.Delete = rotator.delete;
+            ServerSettings.Instance.LogRotator.Delete_Days = rotator.days.ToString();
 
             return APIStatus.OK();
         }
@@ -873,14 +873,14 @@ namespace Shoko.Server.API.v2.Modules
         {
             Logs rotator = new Logs
             {
-                rotate = ServerSettings.Instance.RotateLogs,
-                zip = ServerSettings.Instance.RotateLogs_Zip,
-                delete = ServerSettings.Instance.RotateLogs_Delete
+                rotate = ServerSettings.Instance.LogRotator.Enabled,
+                zip = ServerSettings.Instance.LogRotator.Zip,
+                delete = ServerSettings.Instance.LogRotator.Delete
             };
             int day = 0;
-            if (!String.IsNullOrEmpty(ServerSettings.Instance.RotateLogs_Delete_Days))
+            if (!String.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
             {
-                int.TryParse(ServerSettings.Instance.RotateLogs_Delete_Days, out day);
+                int.TryParse(ServerSettings.Instance.LogRotator.Delete_Days, out day);
             }
             rotator.days = day;
 

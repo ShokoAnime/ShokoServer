@@ -575,8 +575,8 @@ namespace Shoko.Server
             if (!setupComplete)
             {
                 ServerState.Instance.ServerOnline = false;
-                //if (!string.IsNullOrEmpty(ServerSettings.Instance.DatabaseType)) return;
-                //ServerSettings.Instance.DatabaseType = Constants.DatabaseType.Sqlite;
+                //if (!string.IsNullOrEmpty(ServerSettings.Instance.Database.Type)) return;
+                //ServerSettings.Instance.Database.Type = Constants.DatabaseType.Sqlite;
                 ShowDatabaseSetup();
             }
         }
@@ -590,8 +590,8 @@ namespace Shoko.Server
             ServerState.Instance.ServerOnline = true;
             ServerSettings.Instance.FirstRun = false;
             ServerSettings.Instance.SaveSettings();
-            if (string.IsNullOrEmpty(ServerSettings.Instance.AniDB_Username) ||
-                string.IsNullOrEmpty(ServerSettings.Instance.AniDB_Password))
+            if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username) ||
+                string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Password))
                 LoginFormNeeded?.Invoke(Instance, null);
             DBSetupCompleted?.Invoke(Instance, null);
         }
@@ -713,13 +713,13 @@ namespace Shoko.Server
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
-                //Repo.Init(new ShokoContext(ServerSettings.Instance.DatabaseType, ))
+                //Repo.Init(new ShokoContext(ServerSettings.Instance.Database.Type, ))
                 if (!Repo.Start())
                 //if (!DatabaseFactory.InitDB(out string errorMessage))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
-                    /*if (string.IsNullOrEmpty(ServerSettings.Instance.DatabaseType))
+                    /*if (string.IsNullOrEmpty(ServerSettings.Instance.Database.Type))
                         ServerState.Instance.CurrentSetupStatus =
                             Resources.Server_DatabaseConfig;*/
                     e.Result = false;
@@ -774,8 +774,8 @@ namespace Shoko.Server
 
                 IReadOnlyList<SVR_ImportFolder> folders = Repo.ImportFolder.GetAll();
 
-                if (ServerSettings.Instance.ScanDropFoldersOnStart) ScanDropFolders();
-                if (ServerSettings.Instance.RunImportOnStart && folders.Count > 0) RunImport();
+                if (ServerSettings.Instance.Import.ScanDropFoldersOnStart) ScanDropFolders();
+                if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0) RunImport();
 
                 ServerState.Instance.ServerOnline = true;
                 workerSetupDB.ReportProgress(100);
@@ -953,7 +953,7 @@ namespace Shoko.Server
 
 
                             // Add this file to the users list
-                            if (ServerSettings.Instance.AniDB_MyList_AddFiles)
+                            if (ServerSettings.Instance.AniDb.MyList_AddFiles)
                             {
                                 CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
                                 cmd.Save();
@@ -1522,7 +1522,7 @@ namespace Shoko.Server
 
             hostNancy = new WebHostBuilder().UseKestrel(options =>
             {
-                options.ListenAnyIP(ServerSettings.Instance.JMMServerPort);
+                options.ListenAnyIP(ServerSettings.Instance.ServerPort);
             }).UseStartup<API.Startup>().Build();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
@@ -1584,9 +1584,9 @@ namespace Shoko.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
-                ServerSettings.Instance.AniDB_ServerAddress,
-                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                ServerSettings.Instance.AniDb.ServerAddress,
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
         }
 
         public static void AniDBDispose()
@@ -1712,7 +1712,7 @@ namespace Shoko.Server
 
             StopHost();
 
-            ServerSettings.Instance.JMMServerPort = port;
+            ServerSettings.Instance.ServerPort = port;
 
             bool started = NetPermissionWrapper(StartNancyHost);
             if (!started)

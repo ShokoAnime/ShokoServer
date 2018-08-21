@@ -695,7 +695,7 @@ namespace Shoko.Server
                     // try the local database first
                     // if not download the data from AniDB now
                     SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
-                        ServerSettings.Instance.AniDB_DownloadRelatedAnime);
+                        ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                     if (anime != null)
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
@@ -885,7 +885,7 @@ namespace Shoko.Server
             try
             {
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotMyListHTTP)
                 {
