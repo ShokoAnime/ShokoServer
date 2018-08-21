@@ -573,7 +573,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -634,7 +634,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
             if (!Login()) return (null, watchedDate);
 
