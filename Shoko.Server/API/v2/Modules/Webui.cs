@@ -53,6 +53,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls11 | System.Net.SecurityProtocolType.Tls12;
                 var client = new System.Net.WebClient();
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");

@@ -578,8 +578,8 @@ namespace Shoko.Server.Repositories.Cached
             DropAllTagFilters(session);
 
             // user -> tag -> series
-            ConcurrentDictionary<int, Dictionary<string, HashSet<int>>> somethingDictionary =
-                new ConcurrentDictionary<int, Dictionary<string, HashSet<int>>>();
+            ConcurrentDictionary<int, ConcurrentDictionary<string, HashSet<int>>> somethingDictionary =
+                new ConcurrentDictionary<int, ConcurrentDictionary<string, HashSet<int>>>();
             List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
             users.AddRange(RepoFactory.JMMUser.GetAll(session));
             var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
@@ -605,18 +605,27 @@ namespace Shoko.Server.Repositories.Cached
                             }
                             else
                             {
-                                somethingDictionary[user?.JMMUserID ?? 0].Add(tag.Key,
-                                    new HashSet<int> {series.AnimeSeriesID});
+                                somethingDictionary[user?.JMMUserID ?? 0].AddOrUpdate(tag.Key,
+                                    new HashSet<int> {series.AnimeSeriesID}, (oldTag, oldIDs) =>
+                                    {
+                                        lock (oldIDs) oldIDs.Add(series.AnimeSeriesID);
+                                        return oldIDs;
+                                    });
                             }
                         }
                         else
                         {
-                            somethingDictionary.AddOrUpdate(user?.JMMUserID ?? 0, new Dictionary<string, HashSet<int>>
-                            {
-                                {
-                                    tag.Key, new HashSet<int> {series.AnimeSeriesID}
-                                }
-                            }, (i, value) =>
+                            somethingDictionary.AddOrUpdate(user?.JMMUserID ?? 0, id => {
+                                var newdict = new ConcurrentDictionary<string, HashSet<int>>();
+                                    newdict.AddOrUpdate(tag.Key, new HashSet<int> {series.AnimeSeriesID},
+                                        (oldTag, oldIDs) =>
+                                        {
+                                            lock (oldIDs) oldIDs.Add(series.AnimeSeriesID);
+                                            return oldIDs;
+                                        });
+                                return newdict;
+                            },
+                            (i, value) =>
                             {
                                 if (value.ContainsKey(tag.Key))
                                 {
@@ -625,8 +634,12 @@ namespace Shoko.Server.Repositories.Cached
                                 }
                                 else
                                 {
-                                    value.Add(tag.Key,
-                                        new HashSet<int> {series.AnimeSeriesID});
+                                    value.AddOrUpdate(tag.Key,
+                                        new HashSet<int> {series.AnimeSeriesID}, (oldTag, oldIDs) =>
+                                        {
+                                            lock (oldIDs) oldIDs.Add(series.AnimeSeriesID);
+                                            return oldIDs;
+                                        });
                                 }
 
                                 return value;

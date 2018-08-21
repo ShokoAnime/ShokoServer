@@ -233,14 +233,8 @@ JMMServer.VC.opendb
 JMMServer.VC.db
 JMMServer.VC.VC.opendb
 JMMServer/Images/Unused/
-/Installers/Output/
+/Installer/Output/
 
 # Jetbrains
 /.idea/
 /Shoko.Server.VC.db
-
-Installers/Advanced Installer/Shoko Server-cache/
-
-Installers/Advanced Installer/Shoko Server/Setup Files/
-
-Installers/Inno Script/Output/

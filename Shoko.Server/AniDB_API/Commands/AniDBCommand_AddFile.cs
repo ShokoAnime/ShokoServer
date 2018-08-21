@@ -52,6 +52,7 @@ namespace AniDBAPI.Commands
                     if (arrResult.Length >= 2)
                     {
                         int.TryParse(arrResult[1], out MyListID);
+                        if (FileData == null) MyListID = 0;
                     }
                     return enHelperActivityType.FileAdded;
                 }

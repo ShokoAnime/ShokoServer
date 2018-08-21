@@ -186,17 +186,12 @@ namespace Shoko.Server.Commands
                     return;
 
                 // if paused we will sleep for 5 seconds, and the try again
-                // we will remove the pause if it was set more than 6 hours ago
-                // the pause is initiated when banned from AniDB or manually by the user
                 if (Paused)
                 {
                     try
                     {
                         if (workerCommands.CancellationPending)
                             return;
-                        TimeSpan ts = DateTime.Now - pauseTime.Value;
-                        if (ts.TotalHours >= 6)
-                            Paused = false;
                     }
                     catch
                     {

@@ -1015,14 +1015,31 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.VideoLocal.GetByAniDBAnimeID(animeID)
-                    .DistinctBy(a => a.Places.First().FilePath)
-                    .Select(a => a.ToClient(userID))
+                // Try sorted first, then try unsorted if failed
+                var list = Repo.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                        a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
+                    .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
                     .ToList();
+                list.Sort(FileQualityFilter.CompareTo);
+                return list.Select(a => a.ToClient(userID)).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
+                try
+                {
+                    // Two checks because the Where doesn't guarantee that First will not be null, only that a not-null value exists
+                    var list = Repo.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+                            a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.FullServerPath))?.FullServerPath != null)
+                        .DistinctBy(a => a?.Places?.FirstOrDefault()?.FullServerPath)
+                        .Select(a => a.ToClient(userID))
+                        .ToList();
+                    return list;
+                }
+                catch
+                {
+                    // Ignore
+                }
             }
             return new List<CL_VideoLocal>();
         }

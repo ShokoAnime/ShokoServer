@@ -520,7 +520,7 @@ namespace Shoko.Server.Providers.AniDB
         }
 
         /// <summary>
-        /// This is for generic files (manually linked)
+        /// This is not for generic files (manually linked)
         /// </summary>
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
@@ -565,11 +565,47 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
+        /// <summary>
+        /// This is for generic files (manually linked)
+        /// </summary>
+        /// <param name="animeID"></param>
+        /// <param name="episodeNumber"></param>
+        /// <param name="watched"></param>
+        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
+        {
+            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+
+            if (!Login()) return;
+
+            lock (lockAniDBConnections)
+            {
+                if (watched && watchedDate == null) watchedDate = DateTime.Now;
+
+                AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
+                cmdUpdateFile.Init(hash, animeID, episodeNumber, watched, watchedDate);
+                SetWaitingOnResponse(true);
+                var ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                    new UnicodeEncoding(true, false));
+                SetWaitingOnResponse(false);
+
+                if (ev == enHelperActivityType.NoSuchMyListFile)
+                {
+                    // Run synchronously, but still do all of the stuff with Trakt and whatnot
+                    // We are skipping the watched state settings, as we are setting them here
+                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
+                    // Initialize private parts
+                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
+                    addcmd.ProcessCommand();
+                }
+            }
+        }
+
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, null);
+            // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
+            if (!ServerSettings.Instance.AniDB_MyList_AddFiles) return (null, watchedDate);
 
-            if (!Login()) return (null, null);
+            if (!Login()) return (null, watchedDate);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -591,14 +627,16 @@ namespace Shoko.Server.Providers.AniDB
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
 
-            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, null);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, watchedDate);
 
-            return (null, null);
+            return (null, watchedDate);
         }
 
-        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate)
+        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!Login()) return (null, null);
+            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
+            // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
+            if (!Login()) return (null, watchedDate);
 
             enHelperActivityType ev;
             AniDBCommand_AddFile cmdAddFile;
@@ -614,16 +652,15 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             // if the user already has this file on
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null && ServerSettings.Instance.AniDB_MyList_ReadWatched)
+            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
             {
+                state = cmdAddFile.State;
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
             }
-            if (ServerSettings.Instance.AniDB_MyList_ReadUnwatched) return (cmdAddFile.MyListID, null);
 
-            if (cmdAddFile.MyListID > 0)
-                return (cmdAddFile.MyListID, null);
+            if (cmdAddFile.MyListID > 0) return (cmdAddFile.MyListID, watchedDate);
 
-            return (null, null);
+            return (null, watchedDate);
         }
 
         internal void MarkFileAsRemote(int myListID)

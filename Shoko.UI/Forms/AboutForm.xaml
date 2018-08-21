@@ -119,12 +119,6 @@
                 <forms:HyperLinkStandard Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="5,4.864,5,5"
                                          DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_GitHub}"
                                          URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Github}" />
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Margin="5,2,5,5" Text="MediaPortal Forum"
-                           VerticalAlignment="Center" />
-                <forms:HyperLinkStandard Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="5,2,5,5"
-                                         DisplayText="http://forum.team-mediaportal.com/threads/my-anime-3.107475/"
-                                         URL="http://forum.team-mediaportal.com/threads/my-anime-3.107475/" />
             </Grid>
         </Border>
 
