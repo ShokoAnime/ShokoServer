@@ -15,7 +15,7 @@ namespace Shoko.Server.Plex.TVShow
         }
 
         public SVR_AnimeEpisode AnimeEpisode =>
-            RepoFactory.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File));
+            Repo.AnimeEpisode.GetByFilename(Path.GetFileName(Media[0].Part[0].File));
 
         public void Unscrobble()
         {

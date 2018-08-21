@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Models.Server;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
     public class SVR_CloudAccount : CloudAccount
     {
-        public SVR_CloudAccount()
-        {
-        }
+        //private static AuthorizationFactory _cache; //lazy init, because 
+        private ICloudPlugin _plugin;
 
+
+        [NotMapped]
         public new string Provider
         {
             get { return base.Provider; }
@@ -31,18 +31,17 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
+        [NotMapped]
         public byte[] Bitmap => _plugin?.Icon;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
+        [NotMapped]
         public byte[] Icon => _plugin?.Icon;
-        private ICloudPlugin _plugin;
 
-        [ScriptIgnore]
+        [NotMapped]
         [JsonIgnore]
         [XmlIgnore]
         public IFileSystem FileSystem
@@ -53,8 +52,9 @@ namespace Shoko.Server.Models
                 {
                     ServerState.Instance.ConnectedFileSystems[Name] = Connect();
                     if (NeedSave)
-                        RepoFactory.CloudAccount.Save(this);
+                        Repo.CloudAccount.Touch(() => this);
                 }
+
                 return ServerState.Instance.ConnectedFileSystems[Name];
             }
             set
@@ -71,38 +71,66 @@ namespace Shoko.Server.Models
             get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
         }
 
-        [ScriptIgnore]
+        [NotMapped]
         [JsonIgnore]
         [XmlIgnore]
         internal bool NeedSave { get; set; } = false;
 
-        private static AuthorizationFactory _cache; //lazy init, because 
+        /*private static AuthorizationFactory _cache; //lazy init, because 
         private static AuthorizationFactory AuthInstance
         {
             get { return new AuthorizationFactory("AppGlue.dll"); }
-        }
+        }*/
 
         public IFileSystem Connect()
+        {
+            return Connect(null, null);
+        }
+
+        public IFileSystem Connect(string code, string uri)
         {
             if (string.IsNullOrEmpty(Provider))
                 throw new Exception("Empty provider supplied");
 
-            Dictionary<string, object> auth = AuthInstance.AuthorizationProvider.Get(Provider);
+            //TODO: 
+            Dictionary<string, object> auth = default;//AuthInstance.AuthorizationProvider.Get(Provider);
             if (auth == null)
                 throw new Exception("Application Authorization Not Found");
             _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
-            FileSystemResult<IFileSystem> res = _plugin.Init(Name, ShokoServer.Instance.OAuthProvider, auth, ConnectionString);
-            if (res == null || !res.IsOk)
-                throw new Exception("Unable to connect to '" + Provider + "'");
-            string userauth = res.Result.GetUserAuthorization();
-            if (ConnectionString != userauth)
+          
+            LocalUserSettings userSettings = new LocalUserSettings();
+            if (ConnectionString != string.Empty)
             {
-                NeedSave = true;
-                ConnectionString = userauth;
+                userSettings = new LocalUserSettingWithCode();
+                ((LocalUserSettingWithCode) userSettings).Code = code;
+                ((LocalUserSettingWithCode) userSettings).OriginalRedirectUri = uri;
             }
-            return res.Result;
+            if (auth.ContainsKey("ClientId"))
+                userSettings.ClientId = (string)auth["ClientId"];
+            if (auth.ContainsKey("ClientSecret"))
+                userSettings.ClientSecret = (string)auth["ClientSecret"];
+            if (auth.ContainsKey("Scopes"))
+                userSettings.Scopes = (List<string>)auth["Scopes"];
+            if (auth.ContainsKey("UserAgent"))
+                userSettings.UserAgent = (string)auth["UserAgent"];
+            if (auth.ContainsKey("AcknowledgeAbuse"))
+                userSettings.AcknowledgeAbuse = (bool)auth["AcknowledgeAbuse"];
+            if (auth.ContainsKey("ClientAppFriendlyName"))
+                userSettings.ClientAppFriendlyName = (string)auth["ClientAppFriendlyName"];
+            IFileSystem res = _plugin.Init(Name, userSettings, ConnectionString);
+            if (res.Status == Status.Ok)
+            {
+                string userauth = res.GetUserAuthorization();
+                if (ConnectionString != userauth)
+                {
+                    NeedSave = true;
+                    ConnectionString = userauth;
+                }
+            }
+
+            return res;
         }
 
         public static SVR_CloudAccount CreateLocalFileSystemAccount()

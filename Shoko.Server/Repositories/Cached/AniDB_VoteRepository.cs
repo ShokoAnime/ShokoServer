@@ -6,52 +6,19 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class AniDB_VoteRepository : BaseCachedRepository<AniDB_Vote, int>
+    public class AniDB_VoteRepository : BaseRepository<AniDB_Vote, int>
     {
         private PocoIndex<int, AniDB_Vote, int> EntityIDs;
 
         private AniDB_VoteRepository()
         {
-            EndSaveCallback = (cr) =>
-            {
-                switch (cr.VoteType)
-                {
-                    case (int) AniDBVoteType.Anime:
-                    case (int) AniDBVoteType.AnimeTemp:
-                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
-                        break;
-                    case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                        RepoFactory.AnimeEpisode.Save(ep);
-                        break;
-                }
-            };
-            EndDeleteCallback = (cr) =>
-            {
-                switch (cr.VoteType)
-                {
-                    case (int) AniDBVoteType.Anime:
-                    case (int) AniDBVoteType.AnimeTemp:
-                        SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.EntityID);
-                        break;
-                    case (int) AniDBVoteType.Episode:
-                        SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(cr.EntityID);
-                        RepoFactory.AnimeEpisode.Save(ep);
-                        break;
-                }
-            };
-        }
 
-        public static AniDB_VoteRepository Create()
-        {
-            var repo = new AniDB_VoteRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
-
+                
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)
         {
             lock (Cache)
@@ -61,36 +28,30 @@ namespace Shoko.Server.Repositories.Cached
                 if (cr == null) return null;
                 if (cr.Count <= 1) return cr.FirstOrDefault();
 
-                lock (globalDBLock)
                 {
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    bool first = true;
+                    foreach (AniDB_Vote dbVote in cr)
                     {
-                        bool first = true;
-                        foreach (AniDB_Vote dbVote in cr)
+                        if (first)
                         {
-                            if (first)
-                            {
-                                first = false;
-                                continue;
-                            }
-                            using (var transact = session.BeginTransaction())
-                            {
-                                RepoFactory.AniDB_Vote.DeleteWithOpenTransaction(session, dbVote);
-                                transact.Commit();
-                            }
+                            first = false;
+                            continue;
                         }
-
-                        return cr.FirstOrDefault();
+                        Repo.AniDB_Vote.Delete(dbVote);
                     }
+
+                    return cr.FirstOrDefault();
                 }
             }
         }
 
         public List<AniDB_Vote> GetByEntity(int entID)
         {
-            lock (Cache)
+            lock (RepoLock.ReaderLock())
             {
-                return EntityIDs.GetMultiple(entID)?.ToList();
+                if (IsCached)
+                    return EntityIDs.GetMultiple(entID)?.ToList();
+                return Table.Where(s => s.EntityID == entID).ToList();
             }
         }
 
@@ -110,15 +71,48 @@ namespace Shoko.Server.Repositories.Cached
             return votesByAnime;
         }
 
-        protected override int SelectKey(AniDB_Vote entity) => entity.AniDB_VoteID;
+        internal override int SelectKey(AniDB_Vote entity) => entity.AniDB_VoteID;
 
-        public override void PopulateIndexes()
+        internal override void PopulateIndexes()
         {
             EntityIDs = new PocoIndex<int, AniDB_Vote, int>(Cache, a => a.EntityID);
         }
 
-        public override void RegenerateDb()
+        internal override void ClearIndexes()
         {
+            EntityIDs = null;
+        }
+
+        internal override void EndSave(AniDB_Vote entity, object returnFromBeginSave, object parameters)
+        {
+            base.EndSave(entity, returnFromBeginSave, parameters);
+
+            switch (entity.VoteType)
+            {
+                case (int)AniDBVoteType.Anime:
+                case (int)AniDBVoteType.AnimeTemp:
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
+                    break;
+                case (int)AniDBVoteType.Episode:
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    break;
+            }
+        }
+
+        internal override void EndDelete(AniDB_Vote entity, object returnFromBeginDelete, object parameters)
+        {
+            base.EndDelete(entity, returnFromBeginDelete, parameters);
+
+            switch (entity.VoteType)
+            {
+                case (int)AniDBVoteType.Anime:
+                case (int)AniDBVoteType.AnimeTemp:
+                    SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
+                    break;
+                case (int)AniDBVoteType.Episode:
+                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    break;
+            }
         }
     }
 }

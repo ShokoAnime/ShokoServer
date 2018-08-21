@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.Serialization;
+using Microsoft.AspNetCore.Http;
 using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -38,20 +39,20 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        internal static Episode GenerateFromAnimeEpisodeID(NancyContext ctx, int anime_episode_id, int uid, int level, int pic = 1)
+        internal static Episode GenerateFromAnimeEpisodeID(HttpContext ctx, int anime_episode_id, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode();
 
             if (anime_episode_id > 0)
             {
-                ep = GenerateFromAnimeEpisode(ctx, Repositories.RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+                ep = GenerateFromAnimeEpisode(ctx, Repositories.Repo.AnimeEpisode.GetByID(anime_episode_id), uid,
                     level, pic);
             }
 
             return ep;
         }
 
-        internal static Episode GenerateFromAnimeEpisode(NancyContext ctx, SVR_AnimeEpisode aep, int uid, int level, int pic = 1)
+        internal static Episode GenerateFromAnimeEpisode(HttpContext ctx, SVR_AnimeEpisode aep, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode
             {

@@ -5,11 +5,9 @@ using System.Linq;
 using System.Net;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
-using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 
@@ -202,7 +200,7 @@ namespace Shoko.Server.PlexAndKodi
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
-                        VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(a.Id))
+                        VideoLocal_User vl = v.Medias.Select(a => Repo.VideoLocal.GetByID(a.Id))
                             .Where(a => a != null)
                             .Select(a => a.GetUserRecord(userid))
                             .Where(a => a != null)
@@ -217,7 +215,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
-                    VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
+                    VideoLocal_User vl2 = Repo.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
                         v.ViewOffset = vl2.ResumePosition;

@@ -1,8 +1,9 @@
 ﻿using System;
+using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using ICSharpCode.SharpZipLib.Zip.Compression;
 using Shoko.Server;
 using NLog;
 using Shoko.Server.AniDB_API;
@@ -135,14 +136,15 @@ namespace AniDBAPI.Commands
                         if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
                         {
                             //deflate
-                            Byte[] buff = new byte[65536];
                             Byte[] input = new byte[received - 2];
                             Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
-                            Inflater inf = new Inflater(false);
-                            inf.SetInput(input);
-                            inf.Inflate(buff);
-                            byReceivedAdd = buff;
-                            received = (int) inf.TotalOut;
+                            MemoryStream mstream=new MemoryStream(input);
+                            MemoryStream output=new MemoryStream();
+                            mstream.Position = 0;
+                            DeflateStream stream = new DeflateStream(mstream, CompressionMode.Decompress);
+                            stream.CopyTo(output);
+                            byReceivedAdd = output.ToArray();
+                            received = (int) byReceivedAdd.Length;
                         }
                     }
                     catch (SocketException sex)
@@ -324,9 +326,9 @@ namespace AniDBAPI.Commands
                     ShokoService.AnidbProcessor.Dispose();
                     AniDbRateLimiter.Instance.EnsureRate();
 
-                    ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                        ServerSettings.AniDB_ServerAddress,
-                        ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                        ServerSettings.Instance.AniDB_ServerAddress,
+                        ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
                 }
             }
             catch (Exception ex)

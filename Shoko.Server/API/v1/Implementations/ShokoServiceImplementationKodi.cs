@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net;
-using Nancy.Rest.Module;
+using Microsoft.AspNetCore.Http;
 using NLog;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
@@ -10,8 +10,10 @@ using Stream = System.IO.Stream;
 
 namespace Shoko.Server.API.v1.Implementations
 {
-    public class ShokoServiceImplementationKodi : IShokoServerKodi
+    public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         CommonImplementation _impl = new CommonImplementation();
         ShokoServiceImplementation service = new ShokoServiceImplementation();
         public static Logger logger = LogManager.GetCurrentClassLogger();
@@ -24,18 +26,18 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaContainer GetFilters(string userId)
         {
-            return _impl.GetFilters(new KodiProvider {Nancy = RestModule.CurrentModule}, userId);
+            return _impl.GetFilters(new KodiProvider {Nancy = HttpContext}, userId);
         }
 
         public MediaContainer GetMetadata(string userId, int type, string id, int? filterid)
         {
-            return _impl.GetMetadata(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, type, id, null, false,
+            return _impl.GetMetadata(new KodiProvider {Nancy = HttpContext}, userId, type, id, null, false,
                 filterid);
         }
 
         public PlexContract_Users GetUsers()
         {
-            return _impl.GetUsers(new KodiProvider {Nancy = RestModule.CurrentModule});
+            return _impl.GetUsers(new KodiProvider {Nancy = HttpContext});
         }
 
         public Response Version()
@@ -45,41 +47,41 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaContainer Search(string userId, int limit, string query)
         {
-            return _impl.Search(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, limit, query, false);
+            return _impl.Search(new KodiProvider {Nancy = HttpContext}, userId, limit, query, false);
         }
 
         public MediaContainer SearchTag(string userId, int limit, string query)
         {
-            return _impl.Search(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, limit, query, true);
+            return _impl.Search(new KodiProvider {Nancy = HttpContext}, userId, limit, query, true);
         }
 
         public Response ToggleWatchedStatusOnGroup(string userId, int groupid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnGroup(new KodiProvider {Nancy = RestModule.CurrentModule}, userId,
+            return _impl.ToggleWatchedStatusOnGroup(new KodiProvider {Nancy = HttpContext}, userId,
                 groupid, status);
         }
 
         public Response ToggleWatchedStatusOnSeries(string userId, int serieid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnSeries(new KodiProvider {Nancy = RestModule.CurrentModule}, userId,
+            return _impl.ToggleWatchedStatusOnSeries(new KodiProvider {Nancy = HttpContext}, userId,
                 serieid, status);
         }
 
         public Response ToggleWatchedStatusOnEpisode(string userId, int epid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, epid,
+            return _impl.ToggleWatchedStatusOnEpisode(new KodiProvider {Nancy = HttpContext}, userId, epid,
                 status);
         }
 
         public Response Vote(string userId, int id, float votevalue, int votetype)
         {
-            return _impl.VoteAnime(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
+            return _impl.VoteAnime(new KodiProvider {Nancy = HttpContext}, userId, id, votevalue,
                 votetype);
         }
 
         public Response TraktScrobble(string userId, int type, float progress, int status)
         {
-            return _impl.TraktScrobble(new KodiProvider {Nancy = RestModule.CurrentModule}, userId, type, progress,
+            return _impl.TraktScrobble(new KodiProvider {Nancy = HttpContext}, userId, type, progress,
                 status);
         }
 

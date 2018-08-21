@@ -36,29 +36,24 @@ namespace Shoko.Server.Commands
 
             try
             {
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktUpdate);
-                if (sched == null)
+                using (var txn = Repo.ScheduledUpdate.BeginAddOrUpdate(
+                    () => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate),
+                    () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty }
+                    ))
                 {
-                    sched = new ScheduledUpdate
+                    
+                    if (!txn.IsUpdate)
                     {
-                        UpdateType = (int)ScheduledUpdateType.TraktUpdate,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
-                {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_UpdateFrequency);
 
-                    // if we have run this in the last xxx hours then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!ForceRefresh) return;
+                        // if we have run this in the last xxx hours then exit
+                        TimeSpan tsLastRun = DateTime.Now - txn.Entity.LastUpdate;
+                        if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
+                            return;
                     }
+                    txn.Entity.LastUpdate = DateTime.Now;
+                    txn.Commit();
                 }
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
 
                 // update all info
                 TraktTVHelper.UpdateAllInfo();

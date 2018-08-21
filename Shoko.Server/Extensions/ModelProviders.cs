@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using AniDBAPI;
-using NHibernate;
 using NLog;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -47,10 +46,10 @@ namespace Shoko.Server.Extensions
                 SHA1 = anifile.SHA1,
                 FileSize = anifile.FileSize
             };
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            r.Username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
 
             return r;
         }
@@ -65,10 +64,10 @@ namespace Shoko.Server.Extensions
                 SHA1 = vl.SHA1,
                 FileSize = vl.FileSize
             };
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            r.Username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
 
             return r;
         }
@@ -114,10 +113,10 @@ namespace Shoko.Server.Extensions
             r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            r.Username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
 
             return r;
         }
@@ -134,10 +133,10 @@ namespace Shoko.Server.Extensions
             r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
             r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
+            r.Username = ServerSettings.Instance.AniDB_Username;
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
             return r;
         }
 
@@ -155,12 +154,12 @@ namespace Shoko.Server.Extensions
                 TraktTitle = xref.TraktTitle,
                 CrossRefSource = xref.CrossRefSource,
 
-                Username = ServerSettings.AniDB_Username
+                Username = ServerSettings.Instance.AniDB_Username
             };
-            if (ServerSettings.WebCache_Anonymous)
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
 
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
             return r;
         }
 
@@ -177,11 +176,11 @@ namespace Shoko.Server.Extensions
                 TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber,
                 TvDBTitle = xref.TvDBTitle,
                 CrossRefSource = xref.CrossRefSource,
-                Username = ServerSettings.AniDB_Username
+                Username = ServerSettings.Instance.AniDB_Username
             };
-            if (ServerSettings.WebCache_Anonymous)
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCacheAuthKey) ? string.Empty : ServerSettings.Instance.WebCacheAuthKey;
             return r;
         }
 
@@ -195,9 +194,9 @@ namespace Shoko.Server.Extensions
                 Percentage = xref.Percentage,
                 EpisodeOrder = xref.EpisodeOrder,
 
-                Username = ServerSettings.AniDB_Username
+                Username = ServerSettings.Instance.AniDB_Username
             };
-            if (ServerSettings.WebCache_Anonymous)
+            if (ServerSettings.Instance.WebCache_Anonymous)
                 r.Username = Constants.AnonWebCacheUsername;
             return r;
         }
@@ -213,63 +212,62 @@ namespace Shoko.Server.Extensions
             };
         }
 
-        public static void Populate(this MovieDB_Fanart m, MovieDB_Image_Result result, int movieID)
+        public static void Populate_RA(this MovieDB_Fanart m_ra, MovieDB_Image_Result result, int movieID)
         {
-            m.MovieId = movieID;
-            m.ImageID = result.ImageID;
-            m.ImageType = result.ImageType;
-            m.ImageSize = result.ImageSize;
-            m.ImageWidth = result.ImageWidth;
-            m.ImageHeight = result.ImageHeight;
-            m.Enabled = 1;
+            m_ra.MovieId = movieID;
+            m_ra.ImageType = result.ImageType;
+            m_ra.ImageSize = result.ImageSize;
+            m_ra.ImageWidth = result.ImageWidth;
+            m_ra.ImageHeight = result.ImageHeight;
+            m_ra.Enabled = 1;
         }
 
-        public static void Populate(this MovieDB_Movie m, MovieDB_Movie_Result result)
+        public static void Populate_RA(this MovieDB_Movie m_ra, MovieDB_Movie_Result result)
         {
-            m.MovieId = result.MovieID;
-            m.MovieName = result.MovieName;
-            m.OriginalName = result.OriginalName;
-            m.Overview = result.Overview;
-            m.Rating = (int) Math.Round(result.Rating * 10D);
+            m_ra.MovieId = result.MovieID;
+            m_ra.MovieName = result.MovieName;
+            m_ra.OriginalName = result.OriginalName;
+            m_ra.Overview = result.Overview;
+            m_ra.Rating = (int) Math.Round(result.Rating * 10D);
         }
 
-        public static void Populate(this MovieDB_Poster m, MovieDB_Image_Result result, int movieID)
+        public static void Populate_RA(this MovieDB_Poster m_ra, MovieDB_Image_Result result, int movieID)
         {
-            m.MovieId = movieID;
-            m.ImageID = result.ImageID;
-            m.ImageType = result.ImageType;
-            m.ImageSize = result.ImageSize;
-            m.URL = result.URL;
-            m.ImageWidth = result.ImageWidth;
-            m.ImageHeight = result.ImageHeight;
-            m.Enabled = 1;
+            m_ra.MovieId = movieID;
+            m_ra.ImageID = result.ImageID;
+            m_ra.ImageType = result.ImageType;
+            m_ra.ImageSize = result.ImageSize;
+            m_ra.URL = result.URL;
+            m_ra.ImageWidth = result.ImageWidth;
+            m_ra.ImageHeight = result.ImageHeight;
+            m_ra.Enabled = 1;
         }
 
-        public static void Populate(this Trakt_Friend friend, TraktV2User user)
+        public static void Populate_RA(this Trakt_Friend friend_ra, TraktV2User user)
         {
-            friend.Username = user.username;
-            friend.FullName = user.name;
-            friend.LastAvatarUpdate = DateTime.Now;
+            friend_ra.Username = user.username;
+            friend_ra.FullName = user.name;
+            friend_ra.LastAvatarUpdate = DateTime.Now;
         }
 
-        public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvshow)
+        public static void Populate_RA(this Trakt_Show show_ra, TraktV2ShowExtended tvshow)
         {
-            show.Overview = tvshow.overview;
-            show.Title = tvshow.title;
-            show.TraktID = tvshow.ids.slug;
-            show.TvDB_ID = tvshow.ids.tvdb;
-            show.URL = tvshow.ShowURL;
-            show.Year = tvshow.year.ToString();
+            show_ra.Overview = tvshow.overview;
+            show_ra.Title = tvshow.title;
+            show_ra.TraktID = tvshow.ids.slug;
+            show_ra.TvDB_ID = tvshow.ids.tvdb;
+            show_ra.URL = tvshow.ShowURL;
+            show_ra.Year = tvshow.year.ToString();
         }
 
-        public static void Populate(this Trakt_Show show, TraktV2Show tvshow)
+        public static void Populate_RA(this Trakt_Show show_ra, TraktV2Show tvshow)
         {
-            show.Overview = tvshow.Overview;
-            show.Title = tvshow.Title;
-            show.TraktID = tvshow.ids.slug;
-            show.TvDB_ID = tvshow.ids.tvdb;
-            show.URL = tvshow.ShowURL;
-            show.Year = tvshow.Year.ToString();
+            show_ra.Overview = tvshow.Overview;
+            show_ra.Title = tvshow.Title;
+            show_ra.TraktID = tvshow.ids.slug;
+            show_ra.TvDB_ID = tvshow.ids.tvdb;
+            show_ra.URL = tvshow.ShowURL;
+            show_ra.Year = tvshow.Year.ToString();
         }
 
         public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
@@ -391,7 +389,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImagePoster poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -400,12 +398,12 @@ namespace Shoko.Server.Extensions
             }
             try
             {
-                poster.SeriesID = seriesID;
-                poster.SeasonNumber = null;
-                poster.Id = image.Id ?? 0;
-                poster.BannerPath = image.FileName;
-                poster.BannerType = image.KeyType;
-                poster.BannerType2 = image.Resolution;
+                poster_ra.SeriesID = seriesID;
+                poster_ra.SeasonNumber = null;
+                poster_ra.Id = image.Id ?? 0;
+                poster_ra.BannerPath = image.FileName;
+                poster_ra.BannerType = image.KeyType;
+                poster_ra.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -415,7 +413,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImageWideBanner poster_ra, int seriesID, TvDbSharper.Dto.Image image)
         {
             if (image.Id == null)
             {
@@ -424,20 +422,20 @@ namespace Shoko.Server.Extensions
             }
             try
             {
-                poster.SeriesID = seriesID;
+                poster_ra.SeriesID = seriesID;
                 try
                 {
-                    poster.SeasonNumber = int.Parse(image.SubKey);
+                    poster_ra.SeasonNumber = int.Parse(image.SubKey);
                 }
                 catch (FormatException)
                 {
-                    poster.SeasonNumber = null;
+                    poster_ra.SeasonNumber = null;
                 }
 
-                poster.Id = image.Id ?? 0;
-                poster.BannerPath = image.FileName;
-                poster.BannerType = image.KeyType;
-                poster.BannerType2 = image.Resolution;
+                poster_ra.Id = image.Id ?? 0;
+                poster_ra.BannerPath = image.FileName;
+                poster_ra.BannerType = image.KeyType;
+                poster_ra.BannerType2 = image.Resolution;
                 return true;
             }
             catch (Exception ex)
@@ -643,12 +641,10 @@ namespace Shoko.Server.Extensions
             return character.Populate(rawChar);
         }
 
-        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,
-            AniDB_Anime_Character charRel)
+        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, AniDB_Anime_Character charRel)
         {
             Metro_AniDB_Character contract = new Metro_AniDB_Character
             {
-                AniDB_CharacterID = character.AniDB_CharacterID,
                 CharID = character.CharID,
                 CharName = character.CharName,
                 CharKanjiName = character.CharKanjiName,
@@ -659,10 +655,10 @@ namespace Shoko.Server.Extensions
                 ImageType = (int)ImageEntityType.AniDB_Character,
                 ImageID = character.AniDB_CharacterID
             };
-            AniDB_Seiyuu seiyuu = character.GetSeiyuu(session);
+            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
-                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuID = seiyuu.SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
                 contract.SeiyuuImageType = (int) ImageEntityType.AniDB_Creator;
                 contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
@@ -686,7 +682,7 @@ namespace Shoko.Server.Extensions
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
-                contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuID = seiyuu.SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
                 contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
             }
@@ -694,7 +690,7 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static void Populate(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
+        public static void Populate_RA(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
         {
             episode.AirDate = epInfo.AirDate;
             episode.AnimeID = epInfo.AnimeID;
@@ -708,58 +704,58 @@ namespace Shoko.Server.Extensions
             episode.Description = epInfo.Description ?? string.Empty;
         }
 
-        public static void Populate(this AniDB_GroupStatus grpstatus, Raw_AniDB_GroupStatus raw)
+        public static void Populate_RA(this AniDB_GroupStatus grpstatus_ra, Raw_AniDB_GroupStatus raw)
         {
-            grpstatus.AnimeID = raw.AnimeID;
-            grpstatus.GroupID = raw.GroupID;
-            grpstatus.GroupName = raw.GroupName;
-            grpstatus.CompletionState = raw.CompletionState;
-            grpstatus.LastEpisodeNumber = raw.LastEpisodeNumber;
-            grpstatus.Rating = raw.Rating;
-            grpstatus.Votes = raw.Votes;
-            grpstatus.EpisodeRange = raw.EpisodeRange;
+            grpstatus_ra.AnimeID = raw.AnimeID;
+            grpstatus_ra.GroupID = raw.GroupID;
+            grpstatus_ra.GroupName = raw.GroupName;
+            grpstatus_ra.CompletionState = raw.CompletionState;
+            grpstatus_ra.LastEpisodeNumber = raw.LastEpisodeNumber;
+            grpstatus_ra.Rating = raw.Rating;
+            grpstatus_ra.Votes = raw.Votes;
+            grpstatus_ra.EpisodeRange = raw.EpisodeRange;
         }
 
-        public static void Populate(this AniDB_MylistStats stats, Raw_AniDB_MyListStats raw)
+        public static void Populate_RA(this AniDB_MylistStats stats_ra, Raw_AniDB_MyListStats raw)
         {
-            stats.Animes = raw.Animes;
-            stats.Episodes = raw.Episodes;
-            stats.Files = raw.Files;
-            stats.SizeOfFiles = raw.SizeOfFiles;
-            stats.AddedAnimes = raw.AddedAnimes;
-            stats.AddedEpisodes = raw.AddedEpisodes;
-            stats.AddedFiles = raw.AddedFiles;
-            stats.AddedGroups = raw.AddedGroups;
-            stats.LeechPct = raw.LeechPct;
-            stats.GloryPct = raw.GloryPct;
-            stats.ViewedPct = raw.ViewedPct;
-            stats.MylistPct = raw.MylistPct;
-            stats.ViewedMylistPct = raw.ViewedMylistPct;
-            stats.EpisodesViewed = raw.EpisodesViewed;
-            stats.Votes = raw.Votes;
-            stats.Reviews = raw.Reviews;
-            stats.ViewiedLength = raw.ViewiedLength;
+            stats_ra.Animes = raw.Animes;
+            stats_ra.Episodes = raw.Episodes;
+            stats_ra.Files = raw.Files;
+            stats_ra.SizeOfFiles = raw.SizeOfFiles;
+            stats_ra.AddedAnimes = raw.AddedAnimes;
+            stats_ra.AddedEpisodes = raw.AddedEpisodes;
+            stats_ra.AddedFiles = raw.AddedFiles;
+            stats_ra.AddedGroups = raw.AddedGroups;
+            stats_ra.LeechPct = raw.LeechPct;
+            stats_ra.GloryPct = raw.GloryPct;
+            stats_ra.ViewedPct = raw.ViewedPct;
+            stats_ra.MylistPct = raw.MylistPct;
+            stats_ra.ViewedMylistPct = raw.ViewedMylistPct;
+            stats_ra.EpisodesViewed = raw.EpisodesViewed;
+            stats_ra.Votes = raw.Votes;
+            stats_ra.Reviews = raw.Reviews;
+            stats_ra.ViewiedLength = raw.ViewiedLength;
         }
 
-        public static void Populate(this AniDB_Recommendation recommendation, Raw_AniDB_Recommendation rawRec)
+        public static void Populate_RA(this AniDB_Recommendation recommendation_ra, Raw_AniDB_Recommendation rawRec)
         {
-            recommendation.AnimeID = rawRec.AnimeID;
-            recommendation.UserID = rawRec.UserID;
-            recommendation.RecommendationText = rawRec.RecommendationText;
+            recommendation_ra.AnimeID = rawRec.AnimeID;
+            recommendation_ra.UserID = rawRec.UserID;
+            recommendation_ra.RecommendationText = rawRec.RecommendationText;
 
-            recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
+            recommendation_ra.RecommendationType = (int) AniDBRecommendationType.Recommended;
 
             if (rawRec.RecommendationTypeText.Equals("recommended", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.Recommended;
+                recommendation_ra.RecommendationType = (int) AniDBRecommendationType.Recommended;
 
             if (rawRec.RecommendationTypeText.Equals("for fans", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.ForFans;
+                recommendation_ra.RecommendationType = (int) AniDBRecommendationType.ForFans;
 
             if (rawRec.RecommendationTypeText.Equals("must see", StringComparison.InvariantCultureIgnoreCase))
-                recommendation.RecommendationType = (int) AniDBRecommendationType.MustSee;
+                recommendation_ra.RecommendationType = (int) AniDBRecommendationType.MustSee;
         }
 
-        public static void Populate(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
+        public static void Populate_RA(this AniDB_ReleaseGroup releasegroup, Raw_AniDB_Group raw)
         {
             releasegroup.GroupID = raw.GroupID;
             releasegroup.Rating = raw.Rating;
@@ -774,17 +770,17 @@ namespace Shoko.Server.Extensions
             releasegroup.Picname = raw.Picname;
         }
 
-        public static void Populate(this AniDB_Review review, Raw_AniDB_Review rawReview)
+        public static void Populate_RA(this AniDB_Review review_ra, Raw_AniDB_Review rawReview)
         {
-            review.ReviewID = rawReview.ReviewID;
-            review.AuthorID = rawReview.AuthorID;
-            review.RatingAnimation = rawReview.RatingAnimation;
-            review.RatingSound = rawReview.RatingSound;
-            review.RatingStory = rawReview.RatingStory;
-            review.RatingCharacter = rawReview.RatingCharacter;
-            review.RatingValue = rawReview.RatingValue;
-            review.RatingEnjoyment = rawReview.RatingEnjoyment;
-            review.ReviewText = rawReview.ReviewText;
+            review_ra.ReviewID = rawReview.ReviewID;
+            review_ra.AuthorID = rawReview.AuthorID;
+            review_ra.RatingAnimation = rawReview.RatingAnimation;
+            review_ra.RatingSound = rawReview.RatingSound;
+            review_ra.RatingStory = rawReview.RatingStory;
+            review_ra.RatingCharacter = rawReview.RatingCharacter;
+            review_ra.RatingValue = rawReview.RatingValue;
+            review_ra.RatingEnjoyment = rawReview.RatingEnjoyment;
+            review_ra.ReviewText = rawReview.ReviewText;
         }
 
         public static bool Populate(this AniDB_Tag tag, Raw_AniDB_Tag rawTag)
@@ -802,7 +798,7 @@ namespace Shoko.Server.Extensions
             return true;
         }
 
-        public static void PopulateManually(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
+        public static void PopulateManually_RA(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
         {
             cross.Hash = vid.ED2KHash;
             cross.FileName = vid.FileName;
@@ -814,12 +810,12 @@ namespace Shoko.Server.Extensions
             cross.EpisodeOrder = 1;
         }
 
-        public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series)
+        public static void Populate_RA(this SVR_AnimeGroup agroup_ra, SVR_AnimeSeries series)
         {
-            agroup.Populate(series, DateTime.Now);
+            agroup_ra.Populate_RA(series, DateTime.Now);
         }
 
-        public static void Populate(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
+        public static void Populate_RA(this SVR_AnimeGroup agroup, SVR_AnimeSeries series, DateTime now)
         {
             SVR_AniDB_Anime anime = series.GetAnime();
 
@@ -831,7 +827,7 @@ namespace Shoko.Server.Extensions
             agroup.DateTimeCreated = now;
         }
 
-        public static void Populate(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
+        public static void Populate_RA(this SVR_AnimeGroup agroup, SVR_AniDB_Anime anime, DateTime now)
         {
             agroup.Description = anime.Description;
             string name = anime.GetFormattedTitle();
@@ -841,11 +837,11 @@ namespace Shoko.Server.Extensions
             agroup.DateTimeCreated = now;
         }
 
-        public static void Populate(this SVR_AnimeEpisode animeep, AniDB_Episode anidbEp)
+        public static void Populate_RA(this SVR_AnimeEpisode animeep_ra, AniDB_Episode anidbEp)
         {
-            animeep.AniDB_EpisodeID = anidbEp.EpisodeID;
-            animeep.DateTimeUpdated = DateTime.Now;
-            animeep.DateTimeCreated = DateTime.Now;
+            animeep_ra.AniDB_EpisodeID = anidbEp.EpisodeID;
+            animeep_ra.DateTimeUpdated = DateTime.Now;
+            animeep_ra.DateTimeCreated = DateTime.Now;
         }
 
         public static CrossRef_AniDB_TvDBV2 ToV2Model(this CrossRef_AniDB_TvDB xref)
@@ -861,10 +857,10 @@ namespace Shoko.Server.Extensions
         public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
         {
             if (ep == null) return (0, 0);
-            int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+            int epsInSeason = Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
             if (ep.EpisodeNumber == epsInSeason)
             {
-                int numberOfSeasons = RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID);
+                int numberOfSeasons = Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID);
                 if (ep.SeasonNumber == numberOfSeasons) return (0, 0);
                 return (ep.SeasonNumber + 1, 1);
             }
@@ -881,7 +877,7 @@ namespace Shoko.Server.Extensions
 
             // episode number is 1
             // get the last episode of last season
-            int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
+            int epsInSeason = Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
             return (ep.SeasonNumber - 1, epsInSeason);
         }
 
@@ -889,8 +885,8 @@ namespace Shoko.Server.Extensions
         {
             if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
             int number = ep.EpisodeNumber;
-            for (int season = 1; season < RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID); season++)
-                number += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+            for (int season = 1; season < Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
+                number += Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
 
             return number;
         }

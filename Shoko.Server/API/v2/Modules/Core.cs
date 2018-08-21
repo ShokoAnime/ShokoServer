@@ -5,13 +5,13 @@ using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AniDBAPI;
-using Nancy;
-using Nancy.ModelBinding;
-using Nancy.Security;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -25,107 +25,12 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Core : NancyModule
+    [Authorize]
+    [ApiController]// As this module requireAuthentication all request need to have apikey in header.
+    [Route("/api/core")]
+    public class Core : Controller
     {
-        private Logger logger = LogManager.GetCurrentClassLogger();
-        public Core() : base("/api")
-        {
-            // As this module requireAuthentication all request need to have apikey in header.
-
-            this.RequiresAuthentication();
-
-            #region 01.Settings
-
-            Post["/config/port/set", true] = async (x,ct) => await Task.Factory.StartNew(SetPort, ct);
-            Get["/config/port/get", true] = async (x,ct) => await Task.Factory.StartNew(GetPort, ct);
-            Post["/config/imagepath/set", true] = async (x,ct) => await Task.Factory.StartNew(SetImagepath, ct);
-            Get["/config/imagepath/get", true] = async (x,ct) => await Task.Factory.StartNew(GetImagepath, ct);
-            Get["/config/export", true] = async (x,ct) => await Task.Factory.StartNew(ExportConfig, ct);
-            Post["/config/import", true] = async (x,ct) => await Task.Factory.StartNew(ImportConfig, ct);
-            Post["/config/set", true] = async (x, ct) => await Task.Factory.StartNew(SetSetting, ct);
-            Post["/config/get", true] = async (x, ct) => await Task.Factory.StartNew(GetSetting, ct);
-
-            #endregion
-
-            #region 02.AniDB
-
-            Post["/anidb/set", true] = async (x,ct) => await Task.Factory.StartNew(SetAniDB, ct);
-            Get["/anidb/get", true] = async (x,ct) => await Task.Factory.StartNew(GetAniDB, ct);
-            Get["/anidb/test", true] = async (x,ct) => await Task.Factory.StartNew(TestAniDB, ct);
-            Get["/anidb/votes/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBVotes, ct);
-            Get["/anidb/list/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncAniDBList, ct);
-            Get["/anidb/update", true] = async (x,ct) => await Task.Factory.StartNew(UpdateAllAniDB, ct);
-            Get["/anidb/updatemissingcache", true] = async (x,ct) => await Task.Factory.StartNew(UpdateMissingAniDBXML, ct);
-
-            #endregion
-
-            #region 04.Trakt
-
-            Post["/trakt/set"] = x => APIStatus.NotImplemented();
-            Get["/trakt/get", true] = async (x,ct) => await Task.Factory.StartNew(GetTrakt, ct);
-            Get["/trakt/create"] = x => APIStatus.NotImplemented();
-            Get["/trakt/sync", true] = async (x,ct) => await Task.Factory.StartNew(SyncTrakt, ct);
-            Get["/trakt/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTrakt, ct);
-            Get["/trakt/code", true] = async (x,ct) => await Task.Factory.StartNew(GetTraktCode, ct);
-
-            #endregion
-
-            #region 05.TvDB
-
-            Get["/tvdb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanTvDB, ct);
-            Get["/tvdb/regenlinks", true] = async (x,ct) => await Task.Factory.StartNew(RegenerateAllEpisodeLinks, ct);
-            Get["/tvdb/checklinks", true] = async (x,ct) => await Task.Factory.StartNew(CheckAllEpisodeLinksAgainstCurrent, ct);
-
-            #endregion
-
-            #region 06.MovieDB
-
-            Get["/moviedb/update", true] = async (x,ct) => await Task.Factory.StartNew(ScanMovieDB, ct);
-
-            #endregion
-
-            #region 07.User
-
-            Get["/user/list", true] = async (x,ct) => await Task.Factory.StartNew(GetUsers, ct);
-            Post["/user/create", true] = async (x,ct) => await Task.Factory.StartNew(CreateUser, ct);
-            Post["/user/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteUser, ct);
-            Post["/user/password", true] = async (x,ct) => await Task.Factory.StartNew(ChangePassword, ct);
-            Post["/user/password/{uid}", true] = async (x,ct) => await Task.Factory.StartNew(() => ChangePassword(x.uid), ct);
-
-            #endregion
-
-            #region 08.OS-based operations
-
-            Get["/os/folder/base", true] = async (x,ct) => await Task.Factory.StartNew(GetOSBaseFolder, ct);
-            Post["/os/folder", true] = async (x,ct) => await Task.Factory.StartNew(() => GetOSFolder(x.folder), ct);
-            Get["/os/drives", true] = async (x,ct) => await Task.Factory.StartNew(GetOSDrives, ct);
-
-            #endregion
-
-            #region 09.Cloud accounts
-
-            Get["/cloud/list", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccounts, ct);
-            Get["/cloud/count", true] = async (x,ct) => await Task.Factory.StartNew(GetCloudAccountsCount, ct);
-            Post["/cloud/add", true] = async (x,ct) => await Task.Factory.StartNew(AddCloudAccount, ct);
-            Post["/cloud/delete", true] = async (x,ct) => await Task.Factory.StartNew(DeleteCloudAccount, ct);
-            Get["/cloud/import", true] = async (x,ct) => await Task.Factory.StartNew(RunCloudImport, ct);
-
-            #endregion
-
-            #region 10.Logs
-
-            Get["/log/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog(10, 0), ct);
-            Get["/log/get/{max}/{position}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetLog((int) x.max, (int) x.position), ct);
-            Post["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(SetRotateLogs, ct);
-            Get["/log/rotate", true] = async (x,ct) => await Task.Factory.StartNew(GetRotateLogs, ct);
-            Get["/log/rotate/start", true] = async (x,ct) => await Task.Factory.StartNew(StartRotateLogs, ct);
-
-            #endregion
-
-            #region 11. Image Actions
-            Get["/images/update", true] = async (x, ct) => await Task.Factory.StartNew(() => UpdateImages());
-            #endregion
-        }
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         #region 01.Settings
 
@@ -133,25 +38,22 @@ namespace Shoko.Server.API.v2.Modules
         /// Set JMMServer Port
         /// </summary>
         /// <returns></returns>
-        private object SetPort()
+        [HttpPost("config/port/set")]
+        public object SetPort(ushort port)
         {
-            Credentials cred = this.Bind();
-            if (cred.port != 0)
-            {
-                ServerSettings.JMMServerPort = cred.port.ToString();
-                return APIStatus.OK();
-            }
-            return new APIMessage(400, "Port Missing");
+            ServerSettings.Instance.JMMServerPort = port;
+            return APIStatus.OK();
         }
 
         /// <summary>
         /// Get JMMServer Port
         /// </summary>
-        /// <returns></returns>
-        private object GetPort()
+        /// <returns>A dynamic object of x.port == port</returns>
+        [HttpGet("config/port/get")]
+        public object GetPort()
         {
             dynamic x = new ExpandoObject();
-            x.port = int.Parse(ServerSettings.JMMServerPort);
+            x.port = ServerSettings.Instance.JMMServerPort;
             return x;
         }
 
@@ -159,19 +61,19 @@ namespace Shoko.Server.API.v2.Modules
         /// Set Imagepath as default or custom
         /// </summary>
         /// <returns></returns>
-        private object SetImagepath()
+        [HttpPost("config/imagepath/set")]
+        public ActionResult SetImagepath([FromBody] ImagePath imagepath)
         {
-            ImagePath imagepath = this.Bind();
             if (imagepath.isdefault)
             {
-                ServerSettings.ImagesPath = ServerSettings.DefaultImagePath;
+                ServerSettings.Instance.ImagesPath = ServerSettings.DefaultImagePath;
                 return APIStatus.OK();
             }
-            if (!String.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
+            if (!string.IsNullOrEmpty(imagepath.path) && imagepath.path != string.Empty)
             {
                 if (Directory.Exists(imagepath.path))
                 {
-                    ServerSettings.ImagesPath = imagepath.path;
+                    ServerSettings.Instance.ImagesPath = imagepath.path;
                     return APIStatus.OK();
                 }
                 return new APIMessage(404, "Directory Not Found on Host");
@@ -183,12 +85,13 @@ namespace Shoko.Server.API.v2.Modules
         /// Return ImagePath object
         /// </summary>
         /// <returns></returns>
-        private object GetImagepath()
+        [HttpGet("config/imagepath/get")]
+        public object GetImagepath()
         {
             ImagePath imagepath = new ImagePath
             {
-                path = ServerSettings.ImagesPath,
-                isdefault = ServerSettings.ImagesPath == ServerSettings.DefaultImagePath
+                path = ServerSettings.Instance.ImagesPath,
+                isdefault = ServerSettings.Instance.ImagesPath == ServerSettings.DefaultImagePath
             };
             return imagepath;
         }
@@ -196,12 +99,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return body of current working settings.json - this could act as backup
         /// </summary>
-        /// <returns></returns>
-        private object ExportConfig()
+        /// <returns>Server settings</returns>
+        [HttpGet("config/export")]
+        public ActionResult<ServerSettings> ExportConfig()
         {
             try
             {
-                return ServerSettings.appSettings;
+                return ServerSettings.Instance;
             }
             catch
             {
@@ -213,15 +117,15 @@ namespace Shoko.Server.API.v2.Modules
         /// Import config file that was sent to in API body - this act as import from backup
         /// </summary>
         /// <returns>APIStatus</returns>
-        private object ImportConfig()
+        [HttpPost("config/import")]
+        public ActionResult ImportConfig([FromBody] CL_ServerSettings settings)
         {
-            CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
 
             if (raw_settings.Length != new CL_ServerSettings().ToJSON().Length)
             {
                 string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-                File.WriteAllText(path, raw_settings, Encoding.UTF8);
+                System.IO.File.WriteAllText(path, raw_settings, Encoding.UTF8);
                 try
                 {
                     ServerSettings.LoadSettingsFromFile(path, true);
@@ -239,22 +143,21 @@ namespace Shoko.Server.API.v2.Modules
         /// Return given setting
         /// </summary>
         /// <returns></returns>
-        private object GetSetting()
+        [HttpPost("config/get")]
+        public ActionResult<Setting> GetSetting([FromBody] Setting setting)
         {
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                 if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                Setting returnSetting = new Setting
+                return new Setting
                 {
                     setting = setting.setting,
                     value = value.ToString()
                 };
-                return returnSetting;
             }
             catch
             {
@@ -262,26 +165,19 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
+        [HttpPost("config/set")]
+        public ActionResult<List<APIMessage>> SetSetting(Setting setting) => SetSetting(new List<Setting> { setting });
+
         /// <summary>
         /// Set given setting
         /// </summary>
         /// <returns></returns>
-        private object SetSetting()
+        [HttpPost("config/setmultiple")]
+        public ActionResult<List<APIMessage>> SetSetting(List<Setting> settings)
         {
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                List<Setting> settings;
-
-                try
-                {
-                    settings = this.Bind<List<Setting>>();
-                }
-                catch (ModelBindingException)
-                {
-                    settings = new List<Setting> { this.Bind<Setting>() };
-                }
-
                 List<APIMessage> errors = new List<APIMessage>();
                 for (var index = 0; index < settings.Count; index++)
                 {
@@ -335,7 +231,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 if (errors.Count > 0)
                 {
-                    Context.Response.StatusCode = HttpStatusCode.BadRequest;
+                    HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                     return errors;
                 }
 
@@ -355,17 +251,16 @@ namespace Shoko.Server.API.v2.Modules
         /// Set AniDB account with login, password and client port
         /// </summary>
         /// <returns></returns>
-        private object SetAniDB()
+        [HttpPost("anidb/set")]
+        public ActionResult SetAniDB([FromBody] Credentials cred)
         {
-            Credentials cred = this.Bind();
-            if (!String.IsNullOrEmpty(cred.login) && cred.login != string.Empty && !String.IsNullOrEmpty(cred.password) &&
-                cred.password != string.Empty)
+            if (!string.IsNullOrEmpty(cred.login) && !string.IsNullOrEmpty(cred.password))
             {
-                ServerSettings.AniDB_Username = cred.login;
-                ServerSettings.AniDB_Password = cred.password;
+                ServerSettings.Instance.AniDB_Username = cred.login;
+                ServerSettings.Instance.AniDB_Password = cred.password;
                 if (cred.port != 0)
                 {
-                    ServerSettings.AniDB_ClientPort = cred.port.ToString();
+                    ServerSettings.Instance.AniDB_ClientPort = cred.port;
                 }
                 return APIStatus.OK();
             }
@@ -377,18 +272,19 @@ namespace Shoko.Server.API.v2.Modules
         /// Test AniDB Creditentials
         /// </summary>
         /// <returns></returns>
-        private object TestAniDB()
+        [HttpGet("anidb/test")]
+        public ActionResult TestAniDB()
         {
             ShokoService.AnidbProcessor.ForceLogout();
             ShokoService.AnidbProcessor.CloseConnections();
 
             Thread.Sleep(1000);
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                ServerSettings.Instance.AniDB_ServerAddress,
+                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
 
             if (ShokoService.AnidbProcessor.Login())
             {
@@ -403,22 +299,23 @@ namespace Shoko.Server.API.v2.Modules
         /// Return login/password/port of used AniDB
         /// </summary>
         /// <returns></returns>
-        private object GetAniDB()
+        [HttpGet("anidb/get")]
+        public Credentials GetAniDB()
         {
-            Credentials cred = new Credentials
+            return new Credentials
             {
-                login = ServerSettings.AniDB_Username,
-                password = ServerSettings.AniDB_Password,
-                port = int.Parse(ServerSettings.AniDB_ClientPort)
+                login = ServerSettings.Instance.AniDB_Username,
+                password = ServerSettings.Instance.AniDB_Password,
+                port = ServerSettings.Instance.AniDB_ClientPort
             };
-            return cred;
         }
 
         /// <summary>
         /// Sync votes bettween Local and AniDB and only upload to MAL
         /// </summary>
         /// <returns></returns>
-        private object SyncAniDBVotes()
+        [HttpGet("anidb/votes/sync")]
+        public ActionResult SyncAniDBVotes()
         {
             //TODO APIv2: Command should be split into AniDb/MAL sepereate
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
@@ -430,7 +327,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Sync AniDB List
         /// </summary>
         /// <returns></returns>
-        private object SyncAniDBList()
+        [HttpGet("anidb/list/sync")]
+        public ActionResult SyncAniDBList()
         {
             ShokoServer.SyncMyList();
             return APIStatus.OK();
@@ -440,17 +338,19 @@ namespace Shoko.Server.API.v2.Modules
         /// Update all series infromation from AniDB
         /// </summary>
         /// <returns></returns>
-        private object UpdateAllAniDB()
+        [HttpGet("anidb/update")]
+        public ActionResult UpdateAllAniDB()
         {
             Importer.RunImport_UpdateAllAniDB();
             return APIStatus.OK();
         }
 
-        private object UpdateMissingAniDBXML()
+        [HttpGet("anidb/updatemissingcache")]
+        public ActionResult UpdateMissingAniDBXML()
         {
             try
             {
-                var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
+                var allAnime = Repo.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
                 logger.Info($"Starting the check for {allAnime.Count} anime XML files");
                 int updatedAnime = 0;
                 for (var i = 0; i < allAnime.Count; i++)
@@ -493,11 +393,12 @@ namespace Shoko.Server.API.v2.Modules
         /// Get Trakt code and url
         /// </summary>
         /// <returns></returns>
-        private object GetTraktCode()
+        [HttpGet("trakt/code")]
+        public ActionResult<Dictionary<string, object>> GetTraktCode()
         {
             var code = new ShokoServiceImplementation().GetTraktDeviceCode();
             if (code.UserCode == string.Empty)
-                return APIStatus.InternalError();
+                return APIStatus.InternalError("Trakt code doesn't exist on the server");
 
             Dictionary<string, object> result = new Dictionary<string, object>();
             result.Add("usercode", code.UserCode);
@@ -509,23 +410,24 @@ namespace Shoko.Server.API.v2.Modules
         /// Return trakt authtoken
         /// </summary>
         /// <returns></returns>
-        private object GetTrakt()
+        [HttpGet("trakt/get")]
+        public ActionResult<Credentials> GetTrakt()
         {
-            Credentials cred = new Credentials
+            return new Credentials
             {
-                token = ServerSettings.Trakt_AuthToken,
-                refresh_token = ServerSettings.Trakt_RefreshToken
+                token = ServerSettings.Instance.Trakt_AuthToken,
+                refresh_token = ServerSettings.Instance.Trakt_RefreshToken
             };
-            return cred;
         }
 
         /// <summary>
         /// Sync Trakt Collection
         /// </summary>
         /// <returns></returns>
-        private object SyncTrakt()
+        [HttpGet("trakt/sync")]
+        public ActionResult SyncTrakt()
         {
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
@@ -539,11 +441,16 @@ namespace Shoko.Server.API.v2.Modules
         /// Scan Trakt
         /// </summary>
         /// <returns></returns>
-        private object ScanTrakt()
+        [HttpGet("trakt/scan")]
+        public ActionResult ScanTrakt()
         {
             Importer.RunImport_ScanTrakt();
             return APIStatus.OK();
         }
+
+        [HttpPost("trakt/set")]
+        [HttpGet("trakt/create")]
+        public ActionResult TraktNotImplemented() => APIStatus.NotImplemented();
 
         #endregion
 
@@ -553,18 +460,20 @@ namespace Shoko.Server.API.v2.Modules
         /// Scan TvDB
         /// </summary>
         /// <returns></returns>
-        private object ScanTvDB()
+        [HttpGet("tvdb/update")]
+        public ActionResult ScanTvDB()
         {
             Importer.RunImport_ScanTvDB();
             return APIStatus.OK();
         }
 
-        private object RegenerateAllEpisodeLinks()
+        [HttpGet("tvdb/regenlinks")]
+        public ActionResult RegenerateAllEpisodeLinks()
         {
             try
             {
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-                RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
+                Repo.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+                Repo.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
                     TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
             }
             catch (Exception e)
@@ -576,7 +485,7 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.OK();
         }
 
-        private class EpisodeMatchComparison
+        public class EpisodeMatchComparison
         {
             public string Anime { get; set; }
             public int AnimeID { get; set; }
@@ -584,7 +493,7 @@ namespace Shoko.Server.API.v2.Modules
             public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Calculated { get; set; }
         }
 
-        private class AniEpSummary
+        public class AniEpSummary
         {
             public int AniDBEpisodeType { get; set; }
             public int AniDBEpisodeNumber { get; set; }
@@ -615,7 +524,7 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
-        private class TvDBEpSummary
+        public class TvDBEpSummary
         {
             public int TvDBSeason { get; set; }
             public int TvDBEpisodeNumber { get; set; }
@@ -646,18 +555,19 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
-        private object CheckAllEpisodeLinksAgainstCurrent()
+        [HttpGet("tvdb/checklinks")]
+        public ActionResult<List<EpisodeMatchComparison>> CheckAllEpisodeLinksAgainstCurrent()
         {
             try
             {
                 // This is for testing changes in the algorithm. It will be slow.
-                var list = RepoFactory.AnimeSeries.GetAll().Select(a => a.GetAnime())
+                var list = Repo.AnimeSeries.GetAll().Select(a => a.GetAnime())
                     .Where(a => !string.IsNullOrEmpty(a?.MainTitle)).OrderBy(a => a.MainTitle).ToList();
                 var result = new List<EpisodeMatchComparison>();
                 foreach (var animeseries in list)
                 {
                     List<CrossRef_AniDB_TvDB> tvxrefs =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
+                        Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
                     int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
                     var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
                         AniDB: new AniEpSummary
@@ -672,11 +582,11 @@ namespace Shoko.Server.API.v2.Modules
                             TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
                             TvDBEpisodeName = a.TvDB.EpisodeName
                         })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                    var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                    var currentMatches = Repo.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
                         .Select(a =>
                         {
-                            var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
-                            var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            var AniDB = Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
+                            var TvDB = Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
                             return (AniDB: new AniEpSummary
                                 {
                                     AniDBEpisodeType = AniDB.EpisodeType,
@@ -719,7 +629,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Scan MovieDB
         /// </summary>
         /// <returns></returns>
-        private object ScanMovieDB()
+        [HttpGet("moviedb/update")]
+        public ActionResult ScanMovieDB()
         {
             Importer.RunImport_ScanMovieDB();
             return APIStatus.OK();
@@ -733,7 +644,8 @@ namespace Shoko.Server.API.v2.Modules
         /// return Dictionary int = id, string = username
         /// </summary>
         /// <returns></returns>
-        private object GetUsers()
+        [HttpGet("user/list")]
+        public ActionResult<Dictionary<int, string>> GetUsers()
         {
             return new CommonImplementation().GetUsers();
         }
@@ -742,69 +654,57 @@ namespace Shoko.Server.API.v2.Modules
         /// Create user from Contract_JMMUser
         /// </summary>
         /// <returns></returns>
-        private object CreateUser()
+        [Authorize("admin")]
+        [HttpPost("user/create")]
+        public ActionResult CreateUser([FromBody] JMMUser user)
         {
-            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
-            if (_user.IsAdmin == 1)
-            {
-                JMMUser user = this.Bind();
-                user.Password = Digest.Hash(user.Password);
-                user.HideCategories = string.Empty;
-                user.PlexUsers = string.Empty;
-                return new ShokoServiceImplementation().SaveUser(user) == string.Empty
-                    ? APIStatus.OK()
-                    : APIStatus.InternalError();
-            }
-
-            return APIStatus.AdminNeeded();
+            user.Password = Digest.Hash(user.Password);
+            user.HideCategories = string.Empty;
+            user.PlexUsers = string.Empty;
+            return new ShokoServiceImplementation().SaveUser(user) == string.Empty
+                ? APIStatus.OK()
+                : APIStatus.InternalError();
         }
 
         /// <summary>
         ///  change current user password
         /// </summary>
         /// <returns></returns>
-        private object ChangePassword()
+        [HttpPost("user/password")]
+        public ActionResult ChangePassword([FromBody] JMMUser user)
         {
-            SVR_JMMUser user = this.Bind();
-            return ChangePassword(user.JMMUserID);
+            SVR_JMMUser thisuser = (SVR_JMMUser)HttpContext.User.Identity;
+
+            return new ShokoServiceImplementation().ChangePassword(thisuser.JMMUserID, user.Password) == string.Empty
+                    ? APIStatus.OK()
+                    : APIStatus.InternalError();
         }
 
         /// <summary>
         /// change given user (by uid) password
         /// </summary>
         /// <returns></returns>
-        private object ChangePassword(int uid)
+        [HttpPost("user/password/{uid}")]
+        [Authorize("admin")]
+        public ActionResult ChangePassword(int uid, [FromBody] JMMUser user)
         {
-            SVR_JMMUser thisuser = (SVR_JMMUser) Context.CurrentUser;
-            SVR_JMMUser user = this.Bind();
-            if (thisuser.IsAdmin == 1)
-                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
-                    ? APIStatus.OK()
-                    : APIStatus.InternalError();
-            if (thisuser.JMMUserID == user.JMMUserID)
-                return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
-                    ? APIStatus.OK()
-                    : APIStatus.InternalError();
-
-            return APIStatus.AdminNeeded();
+            SVR_JMMUser thisuser = (SVR_JMMUser) HttpContext.User.Identity;
+            return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
+                ? APIStatus.OK()
+                : APIStatus.InternalError();
         }
 
         /// <summary>
         /// Delete user from his ID
         /// </summary>
         /// <returns></returns>
-        private object DeleteUser()
+        [HttpPost("user/delete")]
+        [Authorize("admin")]
+        public ActionResult DeleteUser([FromBody] JMMUser user)
         {
-            SVR_JMMUser _user = (SVR_JMMUser) Context.CurrentUser;
-            if (_user.IsAdmin == 1)
-            {
-                SVR_JMMUser user = this.Bind();
-                return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty
-                    ? APIStatus.OK()
-                    : APIStatus.InternalError();
-            }
-
-            return APIStatus.AdminNeeded();
+            return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty
+                ? APIStatus.OK()
+                : APIStatus.InternalError();
         }
 
         #endregion
@@ -815,7 +715,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Return OSFolder object that is a folder from which jmmserver is running
         /// </summary>
         /// <returns></returns>
-        private object GetOSBaseFolder()
+        [HttpGet("os/folder/base")]
+        public OSFolder GetOSBaseFolder()
         {
             OSFolder dir = new OSFolder
             {
@@ -842,10 +743,10 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="folder"></param>
         /// <returns></returns>
-        private object GetOSFolder(string folder)
+        [HttpPost("/os/folder")]
+        public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, [FromBody] OSFolder dir)
         {
-            OSFolder dir = this.Bind();
-            if (!String.IsNullOrEmpty(dir.full_path))
+            if (!string.IsNullOrEmpty(dir.full_path))
             {
                 DirectoryInfo dir_info = new DirectoryInfo(dir.full_path);
                 dir.dir = dir_info.Name;
@@ -870,7 +771,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Return OSFolder with subdirs as every driver on local system
         /// </summary>
         /// <returns></returns>
-        private object GetOSDrives()
+        [HttpGet("os/drives")]
+        public OSFolder GetOSDrives()
         {
             string[] drives = Directory.GetLogicalDrives();
             OSFolder dir = new OSFolder
@@ -896,31 +798,36 @@ namespace Shoko.Server.API.v2.Modules
 
         #region 09.Cloud Accounts
 
-        private object GetCloudAccounts()
+        [HttpGet("cloud/list")]
+        public ActionResult GetCloudAccounts()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        private object GetCloudAccountsCount()
+        [HttpGet("cloud/count")]
+        public ActionResult GetCloudAccountsCount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        private object AddCloudAccount()
+        [HttpPost("cloud/add")]
+        public ActionResult AddCloudAccount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        private object DeleteCloudAccount()
+        [HttpPost("cloud/delete")]
+        public ActionResult DeleteCloudAccount()
         {
             // TODO APIv2: Cloud
             return APIStatus.NotImplemented();
         }
 
-        private object RunCloudImport()
+        [HttpGet("cloud/import")]
+        public ActionResult RunCloudImport()
         {
             ShokoServer.RunImport();
             return APIStatus.OK();
@@ -934,7 +841,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Run LogRotator with current settings
         /// </summary>
         /// <returns></returns>
-        private object StartRotateLogs()
+        [HttpGet("log/get")]
+        public ActionResult StartRotateLogs()
         {
             ShokoServer.logrotator.Start();
             return APIStatus.OK();
@@ -944,41 +852,35 @@ namespace Shoko.Server.API.v2.Modules
         /// Set settings for LogRotator
         /// </summary>
         /// <returns></returns>
-        private object SetRotateLogs()
+        [HttpPost("log/rotate")]
+        [Authorize("admin")]
+        public ActionResult SetRotateLogs([FromBody] Logs rotator)
         {
-            Request request = Request;
-            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser;
-            Logs rotator = this.Bind();
+            ServerSettings.Instance.RotateLogs = rotator.rotate;
+            ServerSettings.Instance.RotateLogs_Zip = rotator.zip;
+            ServerSettings.Instance.RotateLogs_Delete = rotator.delete;
+            ServerSettings.Instance.RotateLogs_Delete_Days = rotator.days.ToString();
 
-            if (user.IsAdmin == 1)
-            {
-                ServerSettings.RotateLogs = rotator.rotate;
-                ServerSettings.RotateLogs_Zip = rotator.zip;
-                ServerSettings.RotateLogs_Delete = rotator.delete;
-                ServerSettings.RotateLogs_Delete_Days = rotator.days.ToString();
-
-                return APIStatus.OK();
-            }
-
-            return APIStatus.AdminNeeded();
+            return APIStatus.OK();
         }
 
         /// <summary>
         /// Get settings for LogRotator
         /// </summary>
         /// <returns></returns>
-        private object GetRotateLogs()
+        [HttpGet("log/rotate")]
+        public ActionResult<Logs> GetRotateLogs()
         {
             Logs rotator = new Logs
             {
-                rotate = ServerSettings.RotateLogs,
-                zip = ServerSettings.RotateLogs_Zip,
-                delete = ServerSettings.RotateLogs_Delete
+                rotate = ServerSettings.Instance.RotateLogs,
+                zip = ServerSettings.Instance.RotateLogs_Zip,
+                delete = ServerSettings.Instance.RotateLogs_Delete
             };
             int day = 0;
-            if (!String.IsNullOrEmpty(ServerSettings.RotateLogs_Delete_Days))
+            if (!String.IsNullOrEmpty(ServerSettings.Instance.RotateLogs_Delete_Days))
             {
-                int.TryParse(ServerSettings.RotateLogs_Delete_Days, out day);
+                int.TryParse(ServerSettings.Instance.RotateLogs_Delete_Days, out day);
             }
             rotator.days = day;
 
@@ -992,7 +894,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="lines">max lines to return</param>
         /// <param name="position">position to seek</param>
         /// <returns></returns>
-        private object GetLog(int lines, int position)
+        [HttpGet("log/get/{lines?}/{position?}")]
+        public ActionResult<Dictionary<string, object>> GetLog(int lines = 10, int position = 0)
         {
             string log_file = LogRotator.GetCurrentLogFile();
             if (string.IsNullOrEmpty(log_file))
@@ -1000,13 +903,13 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.NotFound("Could not find current log name. Sorry");
             }
 
-            if (!File.Exists(log_file))
+            if (!System.IO.File.Exists(log_file))
             {
                 return APIStatus.NotFound();
             }
 
             Dictionary<string, object> result = new Dictionary<string, object>();
-            FileStream fs = File.OpenRead(log_file);
+            FileStream fs = System.IO.File.OpenRead(log_file);
 
             if (position >= fs.Length)
             {
@@ -1033,7 +936,8 @@ namespace Shoko.Server.API.v2.Modules
 
         #region 11. Image Actions
 
-        private object UpdateImages()
+        [HttpGet("images/update")]
+        public ActionResult UpdateImages()
         {
             Importer.RunImport_UpdateTvDB(true);
             ShokoServer.Instance.DownloadAllImages();

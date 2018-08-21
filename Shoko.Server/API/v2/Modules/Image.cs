@@ -7,7 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Resources;
 using System.Threading.Tasks;
-using Nancy;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
@@ -18,28 +19,20 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
-using File = Pri.LongPath.File;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Image : NancyModule
+    [ApiController]
+    [Route("/api/image")]
+    public class Image : Controller
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        public Image() : base("/api")
+        [HttpGet("validateall")]
+        public ActionResult ValidateAll()
         {
-            Get["/image/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetImage((int) x.type, (int) x.id), ct);
-            Get["/image/thumb/{type}/{id}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, x.ratio), ct);
-            Get["/image/thumb/{type}/{id}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetThumb((int) x.type, (int) x.id, "0"), ct);
-            Get["/image/support/{name}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name), ct);
-            Get["/image/support/{name}/{ratio}", true] = async (x,ct) => await Task.Factory.StartNew(() => GetSupportImage(x.name, x.ratio), ct);
-            Get["/image/validateall", true] = async (x,ct) => await Task.Factory.StartNew(() =>
-            {
-                Importer.ValidateAllImages();
-                return APIStatus.OK();
-            }, ct);
-            Get["/image/{type}/random", true] =
-                async (x, ct) => await Task.Factory.StartNew(() => GetRandomImage((int) x.type));
+            Importer.ValidateAllImages();
+            return APIStatus.OK();
         }
 
         /// <summary>
@@ -48,26 +41,20 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="id">image id</param>
         /// <param name="type">image type</param>
         /// <returns>image body inside stream</returns>
-        private object GetImage(int type, int id)
+        [HttpGet("{type}/{id}")]
+        public FileResult GetImage(int type, int id)
         {
-            Response response;
-            string contentType;
             string path = GetImagePath(type, id, false);
 
             if (string.IsNullOrEmpty(path))
             {
-                Stream image = MissingImage();
-                contentType = "image/png";
-                response = Response.FromStream(image, contentType);
+                Response.StatusCode = 404;
+                return File(MissingImage(), "image/png");
             }
             else
             {
-                FileStream fs = File.OpenRead(path);
-                contentType = MimeTypes.GetMimeType(path);
-                response = Response.FromStream(fs, contentType);
+                return File(System.IO.File.OpenRead(path), MimeTypes.GetMimeType(path));
             }
-
-            return response;
         }
 
         /// <summary>
@@ -77,32 +64,28 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="type">image type</param>
         /// <param name="ratio">new image ratio</param>
         /// <returns>resize image body inside stream</returns>
-        private object GetThumb(int type, int id, string ratio)
+        [HttpGet("thumb/{type}/{id}/{ratio?}")]
+        public FileResult GetThumb(int type, int id, string ratio = "0")
         {
-            Response response;
             string contentType;
             ratio = ratio.Replace(',', '.');
-            if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"),
-                out float newratio))
+            if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out float newratio))
                 newratio = 0.6667f;
 
             string path = GetImagePath(type, id, false);
 
             if (string.IsNullOrEmpty(path))
             {
-                Stream image = MissingImage();
-                contentType = "image/png";
-                response = Response.FromStream(image, contentType);
+                Response.StatusCode = 404;
+                return File(MissingImage(), "image/png");
             }
             else
             {
-                FileStream fs = File.OpenRead(path);
+                FileStream fs = System.IO.File.OpenRead(path);
                 contentType = MimeTypes.GetMimeType(path);
                 System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
-                response = Response.FromStream(ResizeImageToRatio(im, newratio), contentType);
+                return File(ResizeImageToRatio(im, newratio), contentType);
             }
-
-            return response;
         }
 
         /// <summary>
@@ -110,7 +93,8 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="name">image file name</param>
         /// <returns></returns>
-        private object GetSupportImage(string name)
+        [HttpGet("support/{name}")]
+        public ActionResult GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
                 return APIStatus.NotFound();
@@ -122,10 +106,11 @@ namespace Shoko.Server.API.v2.Modules
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
 
-            return Response.FromStream(ms, "image/png");
+            return File(ms, "image/png");
         }
 
-        private object GetSupportImage(string name, string ratio)
+        [HttpGet("support/{name}/{ratio}")]
+        public ActionResult GetSupportImage(string name, string ratio)
         {
             if (string.IsNullOrEmpty(name))
                 return APIStatus.NotFound();
@@ -143,7 +128,7 @@ namespace Shoko.Server.API.v2.Modules
             ms.Seek(0, SeekOrigin.Begin);
             System.Drawing.Image im = System.Drawing.Image.FromStream(ms);
 
-            return Response.FromStream(ResizeImageToRatio(im, newratio), "image/png");
+            return File(ResizeImageToRatio(im, newratio), "image/png");
         }
 
         /// <summary>
@@ -162,11 +147,11 @@ namespace Shoko.Server.API.v2.Modules
             {
                 // 1
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(id);
                     if (anime == null)
                         return null;
                     path = anime.PosterPath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -179,11 +164,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 2
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(id);
+                    AniDB_Character chr = Repo.AniDB_Character.GetByID(id);
                     if (chr == null)
                         return null;
                     path = chr.GetPosterPath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -196,11 +181,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 3
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(id);
+                    AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(id);
                     if (creator == null)
                         return null;
                     path = creator.GetPosterPath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -213,11 +198,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 4
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(id);
+                    TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetByID(id);
                     if (wideBanner == null)
                         return null;
                     path = wideBanner.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -230,11 +215,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 5
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(id);
+                    TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(id);
                     if (poster == null)
                         return null;
                     path = poster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -247,11 +232,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 6
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(id);
+                    TvDB_Episode ep = Repo.TvDB_Episode.GetByID(id);
                     if (ep == null)
                         return null;
                     path = ep.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -264,14 +249,14 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 7
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
+                    TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(id);
                     if (fanart == null)
                         return null;
                     if (thumb)
                     {
                         //ratio
                         path = fanart.GetFullThumbnailPath();
-                        if (File.Exists(path))
+                        if (System.IO.File.Exists(path))
                             return path;
                         path = string.Empty;
                         logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
@@ -279,7 +264,7 @@ namespace Shoko.Server.API.v2.Modules
                     else
                     {
                         path = fanart.GetFullImagePath();
-                        if (File.Exists(path))
+                        if (System.IO.File.Exists(path))
                             return path;
                         path = string.Empty;
                         logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
@@ -288,14 +273,14 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 8
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetByID(id);
+                    MovieDB_Fanart mFanart = Repo.MovieDB_Fanart.GetByID(id);
                     if (mFanart == null)
                         return null;
-                    mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
+                    mFanart = Repo.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null)
                         return null;
                     path = mFanart.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -308,14 +293,14 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 9
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(id);
+                    MovieDB_Poster mPoster = Repo.MovieDB_Poster.GetByID(id);
                     if (mPoster == null)
                         return null;
-                    mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
+                    mPoster = Repo.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null)
                         return null;
                     path = mPoster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -327,11 +312,11 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Character:
-                    AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(id);
+                    AnimeCharacter character = Repo.AnimeCharacter.GetByID(id);
                     if (character == null)
                         return null;
                     path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -344,11 +329,11 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Staff:
-                    var staff = RepoFactory.AnimeStaff.GetByID(id);
+                    var staff = Repo.AnimeStaff.GetByID(id);
                     if (staff == null)
                         return null;
                     path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -373,26 +358,20 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="type">image type</param>
         /// <returns>image body inside stream</returns>
-        private object GetRandomImage(int type)
+        [HttpGet("random/{type}")]
+        public FileResult GetRandomImage(int type)
         {
-            Response response;
-            string contentType;
             string path = GetRandomImagePath(type);
 
             if (string.IsNullOrEmpty(path))
             {
-                Stream image = MissingImage();
-                contentType = "image/png";
-                response = Response.FromStream(image, contentType);
+                Response.StatusCode = 404;
+                return File(MissingImage(), "image/png");
             }
             else
             {
-                FileStream fs = File.OpenRead(path);
-                contentType = MimeTypes.GetMimeType(path);
-                response = Response.FromStream(fs, contentType);
+                return File(System.IO.File.OpenRead(path), MimeTypes.GetMimeType(path));
             }
-
-            return response;
         }
 
         private string GetRandomImagePath(int type)
@@ -404,13 +383,13 @@ namespace Shoko.Server.API.v2.Modules
             {
                 // 1
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetAll()
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetAll()
                         .Where(a => a?.PosterPath != null && !a.GetAllTags().Contains("18 restricted"))
                         .GetRandomElement();
                     if (anime == null)
                         return null;
                     path = anime.PosterPath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -423,14 +402,14 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 2
                 case ImageEntityType.AniDB_Character:
-                    var chr = RepoFactory.AniDB_Anime.GetAll()
+                    var chr = Repo.AniDB_Anime.GetAll()
                         .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
                         .SelectMany(a => a.GetAnimeCharacters()).Select(a => a.GetCharacter()).Where(a => a != null)
                         .GetRandomElement();
                     if (chr == null)
                         return null;
                     path = chr.GetPosterPath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -443,16 +422,16 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 3 -- this will likely be slow
                 case ImageEntityType.AniDB_Creator:
-                    var creator = RepoFactory.AniDB_Anime.GetAll()
+                    var creator = Repo.AniDB_Anime.GetAll()
                         .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
                         .SelectMany(a => a.GetAnimeCharacters())
-                        .SelectMany(a => RepoFactory.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
-                        .Select(a => RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(a.SeiyuuID)).Where(a => a != null)
+                        .SelectMany(a => Repo.AniDB_Character_Seiyuu.GetByCharID(a.CharID))
+                        .Select(a => Repo.AniDB_Seiyuu.GetByID(a.SeiyuuID)).Where(a => a != null)
                         .GetRandomElement();
                     if (creator == null)
                         return null;
                     path = creator.GetPosterPath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -466,11 +445,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 4
                 case ImageEntityType.TvDB_Banner:
                     // TvDB doesn't allow H content, so we get to skip the check!
-                    TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetAll().GetRandomElement();
+                    TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetAll().GetRandomElement();
                     if (wideBanner == null)
                         return null;
                     path = wideBanner.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -484,11 +463,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 5
                 case ImageEntityType.TvDB_Cover:
                     // TvDB doesn't allow H content, so we get to skip the check!
-                    TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetAll().GetRandomElement();
+                    TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetAll().GetRandomElement();
                     if (poster == null)
                         return null;
                     path = poster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -502,11 +481,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 6
                 case ImageEntityType.TvDB_Episode:
                     // TvDB doesn't allow H content, so we get to skip the check!
-                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetAll().GetRandomElement();
+                    TvDB_Episode ep = Repo.TvDB_Episode.GetAll().GetRandomElement();
                     if (ep == null)
                         return null;
                     path = ep.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -520,11 +499,11 @@ namespace Shoko.Server.API.v2.Modules
                 // 7
                 case ImageEntityType.TvDB_FanArt:
                     // TvDB doesn't allow H content, so we get to skip the check!
-                    TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetAll().GetRandomElement();
+                    TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetAll().GetRandomElement();
                     if (fanart == null)
                         return null;
                     path = fanart.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                         return path;
                     path = string.Empty;
                     logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
@@ -532,11 +511,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 8
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart mFanart = RepoFactory.MovieDB_Fanart.GetAll().GetRandomElement();
+                    MovieDB_Fanart mFanart = Repo.MovieDB_Fanart.GetAll().GetRandomElement();
                     if (mFanart == null)
                         return null;
                     path = mFanart.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -549,11 +528,11 @@ namespace Shoko.Server.API.v2.Modules
 
                 // 9
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetAll().GetRandomElement();
+                    MovieDB_Poster mPoster = Repo.MovieDB_Poster.GetAll().GetRandomElement();
                     if (mPoster == null)
                         return null;
                     path = mPoster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -565,15 +544,15 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Character:
-                    var character = RepoFactory.AniDB_Anime.GetAll()
+                    var character = Repo.AniDB_Anime.GetAll()
                         .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .SelectMany(a => Repo.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
                         .Where(a => a.RoleType == (int) StaffRoleType.Seiyuu && a.RoleID.HasValue)
-                        .Select(a => RepoFactory.AnimeCharacter.GetByID(a.RoleID.Value)).GetRandomElement();
+                        .Select(a => Repo.AnimeCharacter.GetByID(a.RoleID.Value)).GetRandomElement();
                     if (character == null)
                         return null;
                     path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -586,14 +565,14 @@ namespace Shoko.Server.API.v2.Modules
                     break;
 
                 case ImageEntityType.Staff:
-                    var staff = RepoFactory.AniDB_Anime.GetAll()
+                    var staff = Repo.AniDB_Anime.GetAll()
                         .Where(a => a != null && !a.GetAllTags().Contains("18 restricted"))
-                        .SelectMany(a => RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
-                        .Select(a => RepoFactory.AnimeStaff.GetByID(a.StaffID)).GetRandomElement();
+                        .SelectMany(a => Repo.CrossRef_Anime_Staff.GetByAnimeID(a.AnimeID))
+                        .Select(a => Repo.AnimeStaff.GetByID(a.StaffID)).GetRandomElement();
                     if (staff == null)
                         return null;
                     path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }

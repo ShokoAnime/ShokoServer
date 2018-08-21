@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
-using Nancy;
+using System.Net;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server.API.v2.Models.core
 {
-    public class APIMessage
+    public class APIMessage : ActionResult
     {
         public int code { get; set; }
         public string message { get; set; }
@@ -50,6 +51,11 @@ namespace Shoko.Server.API.v2.Models.core
             code = _code;
             message = _message;
             details = _details.ToArray();
+        }
+
+        public override void ExecuteResult(ActionContext context)
+        {
+            context.HttpContext.Response.StatusCode = code;
         }
     }
 

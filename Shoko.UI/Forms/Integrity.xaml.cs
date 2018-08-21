@@ -72,7 +72,7 @@ namespace Shoko.UI.Forms
                 Cursor = Cursors.Wait;
                 SVR_Scan s = (SVR_Scan) frm.SelectedScan;
                 HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
-                List<SVR_VideoLocal> vl = imp.SelectMany(a => RepoFactory.VideoLocal.GetByImportFolder(a))
+                List<SVR_VideoLocal> vl = imp.SelectMany(a => Repo.VideoLocal.GetByImportFolder(a))
                     .Distinct()
                     .ToList();
                 List<ScanFile> files = new List<ScanFile>();
@@ -91,7 +91,7 @@ namespace Shoko.UI.Forms
                         files.Add(sfile);
                     }
                 }
-                RepoFactory.ScanFile.Save(files);
+                Repo.ScanFile.BeginAdd(files).Commit();
                 this.IsEnabled = true;
                 Scanner.Instance.Scans.Add(s);
                 comboProvider.SelectedItem = s;
@@ -124,13 +124,20 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    {
+                        upd.Entity.Status = (int)ScanStatus.Standby;
+                        scan = upd.Commit();
+                    }
                 }
                 List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
                 Scanner.Instance.ActiveErrorFiles.Clear();
-                files.ForEach(a => { a.Status = (int) ScanFileStatus.Waiting; });
-                RepoFactory.ScanFile.Save(files);
+
+                using (var upd = Repo.ScanFile.BeginBatchUpdate(() => files))
+                {
+                    upd.ForEach(a => { a.Status = (int)ScanFileStatus.Waiting; });
+                    upd.Commit();
+                }
                 Scanner.Instance.Refresh();
             }
         }
@@ -150,11 +157,17 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    {
+                        upd.Entity.Status = (int)ScanStatus.Standby;
+                        scan = upd.Commit();
+                    }
                 }
-                item.Status = (int) ScanFileStatus.Waiting;
-                RepoFactory.ScanFile.Save(item);
+                using (var upd = Repo.ScanFile.BeginAddOrUpdate(() => item))
+                {
+                    upd.Entity.Status = (int)ScanFileStatus.Waiting;
+                    item = upd.Commit();
+                }
                 Scanner.Instance.ActiveErrorFiles.Remove(item);
                 Scanner.Instance.Refresh();
             }
@@ -174,8 +187,11 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    scan.Status = (int) ScanStatus.Standby;
-                    RepoFactory.Scan.Save(scan);
+                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    {
+                        upd.Entity.Status = (int)ScanStatus.Standby;
+                        scan = upd.Commit();
+                    }
                 }
                 Scanner.Instance.DeleteAllErroredFiles();
                 Scanner.Instance.Refresh();

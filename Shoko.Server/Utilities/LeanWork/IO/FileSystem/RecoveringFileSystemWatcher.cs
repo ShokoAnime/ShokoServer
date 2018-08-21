@@ -7,7 +7,7 @@ using ErrorEventArgs = System.IO.ErrorEventArgs;
 using InternalBufferOverflowException = System.IO.InternalBufferOverflowException;
 using System.Threading;
 using NLog;
-using Pri.LongPath;
+using System.IO;
 
 namespace LeanWork.IO.FileSystem
 {

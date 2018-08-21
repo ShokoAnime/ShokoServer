@@ -31,7 +31,7 @@ namespace Shoko.Server.Plex
         private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new ConcurrentDictionary<int, PlexHelper>();
 
         private readonly int _userId;
-        private JMMUser _user { get => RepoFactory.JMMUser.GetByID(_userId); }
+        private JMMUser _user { get => Repo.JMMUser.GetByID(_userId); }
 
         internal readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings();
 
@@ -60,20 +60,20 @@ namespace Shoko.Server.Plex
         {
             get
             {
-                if (string.IsNullOrEmpty(ServerSettings.Plex_Server)) return null;
+                if (string.IsNullOrEmpty(ServerSettings.Instance.Plex_Server)) return null;
                 if (DateTime.Now - TimeSpan.FromHours(1) >= _lastMediaCacheTime) _mediaDevice = null;
-                if (_mediaDevice != null && ServerSettings.Plex_Server == _mediaDevice.ClientIdentifier)
+                if (_mediaDevice != null && ServerSettings.Instance.Plex_Server == _mediaDevice.ClientIdentifier)
                     return _mediaDevice;
-                _mediaDevice = GetPlexServers().FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Plex_Server);
+                _mediaDevice = GetPlexServers().FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Instance.Plex_Server);
                 if (_mediaDevice != null) return _mediaDevice;
-                if (!ServerSettings.Plex_Server.Contains(':')) return null;
+                if (!ServerSettings.Instance.Plex_Server.Contains(':')) return null;
 
 
-                var strings = ServerSettings.Plex_Server.Split(':');
+                var strings = ServerSettings.Instance.Plex_Server.Split(':');
                 _mediaDevice = GetPlexServers().FirstOrDefault(s =>
                     s.Connection.Any(c => c.Address == strings[0] && c.Port == strings[1]));
                 if (_mediaDevice != null)
-                    ServerSettings.Plex_Server = _mediaDevice.ClientIdentifier;
+                    ServerSettings.Instance.Plex_Server = _mediaDevice.ClientIdentifier;
                 return _mediaDevice;
             }
             private set
@@ -278,13 +278,13 @@ namespace Shoko.Server.Plex
         {
             if (server == null)
             {
-                ServerSettings.Plex_Server = null;
+                ServerSettings.Instance.Plex_Server = null;
                 return;
             }
 
             if (!server.Provides.Split(',').Contains("server")) return; //not allowed.
 
-            ServerSettings.Plex_Server = server.ClientIdentifier;
+            ServerSettings.Instance.Plex_Server = server.ClientIdentifier;
             ServerCache = server;
         }
 

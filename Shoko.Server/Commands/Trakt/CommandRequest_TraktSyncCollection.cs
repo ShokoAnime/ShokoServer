@@ -36,31 +36,25 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken)) return;
 
-                ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
-                if (sched == null)
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(
+                    () => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync),
+                    () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktSync, UpdateDetails = string.Empty }
+                    ))
                 {
-                    sched = new ScheduledUpdate
+                    if (upd.IsUpdate)
                     {
-                        UpdateType = (int)ScheduledUpdateType.TraktSync,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
-                {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.Trakt_SyncFrequency);
 
-                    // if we have run this in the last xxx hours then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!ForceRefresh) return;
+                        // if we have run this in the last xxx hours then exit
+                        TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                        if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
+                            return;
                     }
+                    upd.Entity.LastUpdate = DateTime.Now;
+                    upd.Commit();
                 }
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
 
                 TraktTVHelper.SyncCollectionToTrakt();
             }

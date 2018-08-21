@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.Linq;
-using FluentNHibernate.MappingModel;
 using Newtonsoft.Json;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -36,7 +36,7 @@ namespace Shoko.Server.Models
         internal Dictionary<int, HashSet<int>> _seriesId = new Dictionary<int, HashSet<int>>();
         internal List<GroupFilterCondition> _conditions = new List<GroupFilterCondition>();
 
-
+        [NotMapped]
         public virtual HashSet<GroupFilterConditionType> Types
         {
             get
@@ -47,6 +47,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public virtual Dictionary<int, HashSet<int>> GroupsIds
         {
             get
@@ -63,6 +64,7 @@ namespace Shoko.Server.Models
             set => _groupsId = value;
         }
 
+        [NotMapped]
         public virtual Dictionary<int, HashSet<int>> SeriesIds
         {
             get
@@ -79,6 +81,7 @@ namespace Shoko.Server.Models
             set => _seriesId = value;
         }
 
+        [NotMapped]
         public virtual List<GroupFilterCondition> Conditions
         {
             get
@@ -105,6 +108,7 @@ namespace Shoko.Server.Models
             return $"{GroupFilterID} - {GroupFilterName}";
         }
 
+        [NotMapped]
         public List<GroupFilterSortingCriteria> SortCriteriaList
         {
             get
@@ -143,8 +147,13 @@ namespace Shoko.Server.Models
         {
             if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
-                Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
-                RepoFactory.GroupFilter.Save(this);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
+                    upd.Entity.Conditions = Conditions;
+
+                    upd.Commit();
+                }
             }
             CL_GroupFilter contract = new CL_GroupFilter
             {
@@ -162,7 +171,7 @@ namespace Shoko.Server.Models
                 Series = SeriesIds,
                 Childs = GroupFilterID == 0
                     ? new HashSet<int>()
-                    : RepoFactory.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet()
+                    : Repo.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet()
             };
             return contract;
         }
@@ -217,7 +226,7 @@ namespace Shoko.Server.Models
                 if (result)
                 {
                     GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                        .Select(a => Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -229,7 +238,7 @@ namespace Shoko.Server.Models
                 while (true)
                 {
                     if (groupID == null) break;
-                    SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+                    SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(groupID.Value);
                     if (grp != null)
                         groupID = grp.AnimeGroupParentID;
                     else
@@ -237,7 +246,7 @@ namespace Shoko.Server.Models
                 }
                 if (groupID == null) return false;
 
-                var group = RepoFactory.AnimeGroup.GetByID(groupID.Value);
+                var group = Repo.AnimeGroup.GetByID(groupID.Value);
 
                 var contract = group?.Contract;
                 if (user != null)
@@ -250,7 +259,7 @@ namespace Shoko.Server.Models
                 {
                     SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
                         .SelectMany(a =>
-                            RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                            Repo.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -278,7 +287,7 @@ namespace Shoko.Server.Models
                 if (result)
                 {
                     GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                        .Select(a => Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -287,7 +296,7 @@ namespace Shoko.Server.Models
                 result = CalculateGroupFilterGroups(grp, user);
                 if (result)
                 {
-                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
+                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => Repo.AnimeGroup.GetByID(a)
                             ?.GetAllSeries()
                             ?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
@@ -298,7 +307,7 @@ namespace Shoko.Server.Models
         }
 
 
-        private bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
+        internal bool CalculateGroupFilterSeries(CL_AnimeSeries_User ser, JMMUser user)
         {
             if (ser == null) return false;
 
@@ -313,7 +322,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                change = seriesIds.RemoveWhere(a => RepoFactory.AnimeSeries.GetByID(a) == null) > 0;
+                change = seriesIds.RemoveWhere(a => Repo.AnimeSeries.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(ser, user))
@@ -328,7 +337,7 @@ namespace Shoko.Server.Models
             return change;
         }
 
-        private bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
+        internal bool CalculateGroupFilterGroups(CL_AnimeGroup_User grp, JMMUser user)
         {
             if (grp == null) return false;
             bool change = false;
@@ -342,7 +351,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                change = groupIds.RemoveWhere(a => RepoFactory.AnimeGroup.GetByID(a) == null) > 0;
+                change = groupIds.RemoveWhere(a => Repo.AnimeGroup.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(grp, user))
@@ -367,17 +376,17 @@ namespace Shoko.Server.Models
                 foreach (int user in SeriesIds.Keys)
                 {
                     GroupsIds[user] = SeriesIds[user].Select(a =>
-                        {
-                            int id = RepoFactory.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
-                            if (id == -1)
-                                erroredSeries.Add(a);
-                            return id;
-                        }).Where(a => a != -1)
+                    {
+                        int id = Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
+                        if (id == -1)
+                            erroredSeries.Add(a);
+                        return id;
+                    }).Where(a => a != -1)
                         .ToHashSet();
                 }
                 foreach (int id in erroredSeries.OrderBy(a => a).ToList())
                 {
-                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(id);
+                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
                     LogManager.GetCurrentClassLogger()
                         .Error("While calculating group filters, an AnimeSeries without a group was found: " + (ser?.GetSeriesName() ?? id.ToString()));
                 }
@@ -389,22 +398,22 @@ namespace Shoko.Server.Models
                 foreach (int user in GroupsIds.Keys)
                 {
                     HashSet<int> ids = GroupsIds[user];
-                    SeriesIds[user] = ids.SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)
+                    SeriesIds[user] = ids.SelectMany(a => Repo.AnimeGroup.GetByID(a)
                             ?.GetAllSeries()
                             ?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
                         .ToHashSet();
                 }
             }
-            if ((FilterType & (int) GroupFilterType.Tag) == (int) GroupFilterType.Tag)
+            if ((FilterType & (int)GroupFilterType.Tag) == (int)GroupFilterType.Tag)
                 GroupFilterName = GroupFilterName.Replace('`', '\'');
         }
 
         private void EvaluateAnimeGroups()
         {
-            IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
             // make sure the user has not filtered this out
-            foreach (SVR_AnimeGroup grp in RepoFactory.AnimeGroup.GetAllTopLevelGroups())
+            foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAllTopLevelGroups())
             {
                 foreach (SVR_JMMUser user in users)
                 {
@@ -415,8 +424,8 @@ namespace Shoko.Server.Models
 
         private void EvaluateAnimeSeries()
         {
-            IReadOnlyList<SVR_JMMUser> users = RepoFactory.JMMUser.GetAll();
-            foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
+            foreach (SVR_AnimeSeries ser in Repo.AnimeSeries.GetAll())
             {
                 if (ser.Contract == null)
                     ser.UpdateContract();
@@ -440,7 +449,7 @@ namespace Shoko.Server.Models
 
                 foreach (int user in gf.SeriesIds.Keys)
                 {
-                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => RepoFactory.AnimeSeries.GetByID(a)?
+                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => Repo.AnimeSeries.GetByID(a)?
                                                                             .TopLevelAnimeGroup?.AnimeGroupID ?? -1).Where(a => a != -1)
                         .ToHashSet();
                 }
@@ -451,7 +460,7 @@ namespace Shoko.Server.Models
 
                 foreach (int user in gf.GroupsIds.Keys)
                 {
-                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => RepoFactory.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => Repo.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
                         .ToHashSet();
                 }
@@ -464,7 +473,7 @@ namespace Shoko.Server.Models
         public bool EvaluateGroupFilter(CL_AnimeGroup_User contractGroup, JMMUser curUser)
         {
             //Directories don't count
-            if ((FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
+            if ((FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                 return false;
 
             if (contractGroup?.Stat_AllTags == null) return false;
@@ -492,7 +501,7 @@ namespace Shoko.Server.Models
                 return false;
             }
 
-            bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
+            bool exclude = BaseCondition == (int)GroupFilterBaseCondition.Exclude;
 
             return Conditions.All(gfc => exclude ^ EvaluateConditions(contractGroup, gfc));
         }
@@ -527,7 +536,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.Tag:
                     List<string> tags =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .Where(a => !string.IsNullOrWhiteSpace(a))
                             .ToList();
@@ -542,7 +551,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.Year:
                     HashSet<int> years = new HashSet<int>();
                     string[] parameterStrings = gfc.ConditionParameter.Trim()
-                        .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+                        .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (string yearString in parameterStrings)
                     {
                         if (int.TryParse(yearString.Trim(), out int year))
@@ -796,7 +805,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.CustomTags:
                     List<string> ctags =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundTag = ctags.FindInEnumerable(contractGroup.Stat_AllCustomTags);
@@ -807,8 +816,8 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AnimeType:
                     List<string> ctypes =
                         gfc.ConditionParameter
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => ((int) Commons.Extensions.Models.RawToType(a)).ToString())
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => ((int)Commons.Extensions.Models.RawToType(a)).ToString())
                             .ToList();
                     bool foundAnimeType = ctypes.FindInEnumerable(contractGroup.Stat_AnimeTypes);
                     if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundAnimeType) return false;
@@ -819,7 +828,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.VideoQuality:
                     List<string> vqs =
                         gfc.ConditionParameter
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundVid = vqs.FindInEnumerable(contractGroup.Stat_AllVideoQuality);
@@ -835,7 +844,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AudioLanguage:
                     List<string> als =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundLang = als.FindInEnumerable(contractGroup.Stat_AudioLanguages);
@@ -846,7 +855,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.SubtitleLanguage:
                     List<string> ass =
                         gfc.ConditionParameter
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundSub = ass.FindInEnumerable(contractGroup.Stat_SubtitleLanguages);
@@ -861,7 +870,7 @@ namespace Shoko.Server.Models
         public bool EvaluateGroupFilter(CL_AnimeSeries_User contractSerie, JMMUser curUser)
         {
             //Directories don't count
-            if ((FilterType & (int) GroupFilterType.Directory) == (int) GroupFilterType.Directory)
+            if ((FilterType & (int)GroupFilterType.Directory) == (int)GroupFilterType.Directory)
                 return false;
 
             if (contractSerie?.AniDBAnime?.AniDBAnime == null) return false;
@@ -870,7 +879,7 @@ namespace Shoko.Server.Models
                 false)
                 return false;
 
-            bool exclude = BaseCondition == (int) GroupFilterBaseCondition.Exclude;
+            bool exclude = BaseCondition == (int)GroupFilterBaseCondition.Exclude;
 
             return Conditions.All(gfc => exclude ^ EvaluateConditions(contractSerie, gfc));
         }
@@ -900,7 +909,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.Tag:
                     List<string> tags =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .Where(a => !string.IsNullOrWhiteSpace(a))
                             .ToList();
@@ -977,9 +986,9 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedTvDBInfo:
-                    bool tvDBInfoMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
+                    bool tvDBInfoMissing = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
                     bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType !=
-                                                  (int) AnimeType.Movie &&
+                                                  (int)AnimeType.Movie &&
                                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                     tvDBInfoMissing &= supposedToHaveTvDBLink;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && tvDBInfoMissing)
@@ -998,7 +1007,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AssignedMovieDBInfo:
                     bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
                     bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
-                                                   (int) AnimeType.Movie &&
+                                                   (int)AnimeType.Movie &&
                                                    !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                     movieMissing &= supposedToHaveMovieLink;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && movieMissing) return false;
@@ -1010,7 +1019,7 @@ namespace Shoko.Server.Models
                     bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                     bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && !restricted;
                     bool tvlinkMissing =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
+                        Repo.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
                         !restricted;
                     bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
@@ -1035,7 +1044,7 @@ namespace Shoko.Server.Models
 
                 case GroupFilterConditionType.UserVoted:
                     bool voted = (contractSerie.AniDBAnime.UserVote != null) &&
-                                 (contractSerie.AniDBAnime.UserVote.VoteType == (int) AniDBVoteType.Anime);
+                                 (contractSerie.AniDBAnime.UserVote.VoteType == (int)AniDBVoteType.Anime);
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && !voted) return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && voted) return false;
                     break;
@@ -1199,7 +1208,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.CustomTags:
                     List<string> ctags =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundTag =
@@ -1211,9 +1220,9 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AnimeType:
                     List<string> ctypes =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(
-                                a => ((int) Commons.Extensions.Models.RawToType(a.ToLowerInvariant())).ToString())
+                                a => ((int)Commons.Extensions.Models.RawToType(a.ToLowerInvariant())).ToString())
                             .ToList();
                     bool foundAnimeType = ctypes.Contains(contractSerie.AniDBAnime.AniDBAnime.AnimeType.ToString());
                     if ((gfc.GetConditionOperatorEnum() == GroupFilterOperator.In) && !foundAnimeType) return false;
@@ -1224,7 +1233,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.VideoQuality:
                     List<string> vqs =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundVid = vqs.FindInEnumerable(contractSerie.AniDBAnime.Stat_AllVideoQuality);
@@ -1241,7 +1250,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.AudioLanguage:
                     List<string> als =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundLang = als.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
@@ -1252,7 +1261,7 @@ namespace Shoko.Server.Models
                 case GroupFilterConditionType.SubtitleLanguage:
                     List<string> ass =
                         gfc.ConditionParameter.Trim()
-                            .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(a => a.ToLowerInvariant().Trim())
                             .ToList();
                     bool foundSub = ass.FindInEnumerable(contractSerie.AniDBAnime.Stat_AudioLanguages);
@@ -1320,13 +1329,19 @@ namespace Shoko.Server.Models
             if (other.SortingCriteria != SortingCriteria) return false;
             if (Conditions == null || Conditions.Count == 0)
             {
-                Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
-                RepoFactory.GroupFilter.Save(this);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    upd.Entity.Conditions = Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
+                    upd.Commit();
+                }
             }
             if (other.Conditions == null || other.Conditions.Count == 0)
             {
-                other.Conditions = RepoFactory.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
-                RepoFactory.GroupFilter.Save(other);
+                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                {
+                    upd.Entity.Conditions = other.Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
+                    upd.Commit();
+                }
             }
             if (Conditions != null && other.Conditions != null)
             {

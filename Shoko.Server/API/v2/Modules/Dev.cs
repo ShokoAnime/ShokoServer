@@ -1,18 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Nancy;
-using Nancy.Responses;
+using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Repositories;
-using Shoko.Server.Tasks;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Dev : Nancy.NancyModule
+    [ApiController]
+    [Route("/api/dev")]
+    public class Dev : Controller
     {
-        public Dev() : base("/api/dev")
+        /*public Dev() : base("")
         {
-            Get["/contracts/{entity?}"] = x => { return ExtractContracts((string) x.entity); };
-            Get["/relationtree/{id?}"] = x => { return GetRelationTree((string) x.id); };
+            //Get("/contracts/{entity?}", x => { return ExtractContracts((string) x.entity); }); //ContractExtractor was removed.
+            //Get("/relationtree/{id?}", x => { return GetRelationTree((string) x.id); });
         }
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace Shoko.Server.API.v2.Modules
             var zipStream = new ContractExtractor().GetContractsAsZipStream(entityType);
 
             return new StreamResponse(() => zipStream, "application/zip").AsAttachment("contracts.zip");
-        }
+        }*/
 
         private class Relation
         {
@@ -33,21 +33,15 @@ namespace Shoko.Server.API.v2.Modules
             public List<Relation> Relations { get; set; }
         }
 
-        private object GetRelationTree(string id)
+        [HttpGet("relationtree")]
+        private List<Relation> GetRelationTreeForAll()
         {
-            if (string.IsNullOrEmpty(id)) return GetRelationTreeForAll();
-            if (!int.TryParse(id, out int anime)) return GetRelationTreeForAll();
-            return GetRelationTreeForAnime(anime);
-        }
-
-        private object GetRelationTreeForAll()
-        {
-            var series = RepoFactory.AnimeSeries.GetAll().Select(a => a.AniDB_ID).OrderBy(a => a).ToArray();
+            var series = Repo.AnimeSeries.GetAll().Select(a => a.AniDB_ID).OrderBy(a => a).ToArray();
             List<Relation> result = new List<Relation>(series.Length);
             foreach (var i in series)
             {
-                var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(i);
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(i);
+                var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(i);
+                var anime = Repo.AniDB_Anime.GetByID(i);
                 result.Add(new Relation
                 {
                     AnimeID = i,
@@ -55,7 +49,7 @@ namespace Shoko.Server.API.v2.Modules
                     Relations = relations.Select(a => new Relation
                     {
                         AnimeID = a,
-                        MainTitle = RepoFactory.AniDB_Anime.GetByAnimeID(a)?.MainTitle
+                        MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
                     }).ToList()
                 });
             }
@@ -63,11 +57,12 @@ namespace Shoko.Server.API.v2.Modules
             return result;
         }
 
-        private object GetRelationTreeForAnime(int id)
+        [HttpGet("relationtree/{id}")]
+        private Relation GetRelationTreeForAnime(int id)
         {
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(id);
+            var anime = Repo.AniDB_Anime.GetByID(id);
             if (anime == null) return null;
-            var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(id);
+            var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(id);
 
             return new Relation
             {
@@ -76,7 +71,7 @@ namespace Shoko.Server.API.v2.Modules
                 Relations = relations.Select(a => new Relation
                 {
                     AnimeID = a,
-                    MainTitle = RepoFactory.AniDB_Anime.GetByAnimeID(a)?.MainTitle
+                    MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
                 }).ToList()
             };
         }

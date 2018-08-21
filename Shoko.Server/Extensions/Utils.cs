@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using NutzCode.CloudFileSystem;
@@ -71,6 +70,20 @@ namespace Shoko.Server.Extensions
         {
             if (value1 > value2) return value1 - value2 <= error;
             return value2 - value1 <= error;
+        }
+
+        public static bool ContentEquals<T>(this IEnumerable<T> l, IEnumerable<T> r)
+        {
+            if (l == null && r == null) return true;
+            if (l == null || r == null) return false;
+
+            if (l.Count() != r.Count())
+                return false;
+
+            for (int i = 0; i < l.Count(); i++)
+                if (!l.ElementAt(i).Equals(r.ElementAt(i))) return false;
+
+            return true;
         }
 
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)

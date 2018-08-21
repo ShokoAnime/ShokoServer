@@ -63,7 +63,7 @@ namespace Shoko.Server.Commands
             CrossRef_File_Episode xref = new CrossRef_File_Episode();
             try
             {
-                xref.PopulateManually(vlocal, episode);
+                xref.PopulateManually_RA(vlocal, episode);
                 if (Percentage > 0 && Percentage <= 100)
                 {
                     xref.Percentage = Percentage;
@@ -74,11 +74,11 @@ namespace Shoko.Server.Commands
                 logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
                 throw;
             }
-            RepoFactory.CrossRef_File_Episode.Save(xref);
+            Repo.CrossRef_File_Episode.BeginAdd(xref).Commit();
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
-            if (ServerSettings.FileQualityFilterEnabled)
+            if (ServerSettings.Instance.FileQualityFilterEnabled)
             {
                 List<SVR_VideoLocal> videoLocals = episode.GetVideoLocals();
                 if (videoLocals != null)
@@ -99,21 +99,19 @@ namespace Shoko.Server.Commands
 
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
-            SVR_AnimeSeries ser = episode.GetAnimeSeries();
-            ser.EpisodeAddedDate = DateTime.Now;
-            RepoFactory.AnimeSeries.Save(ser, false, true);
+            SVR_AnimeSeries ser;
+            using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => episode.GetAnimeSeries()))
+            {
+                upd.Entity.EpisodeAddedDate = DateTime.Now;
+                ser = upd.Commit((false, true, false, false));
+            }
 
             //Update will re-save
             ser.QueueUpdateStats();
 
+            Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
-            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-            {
-                grp.EpisodeAddedDate = DateTime.Now;
-                RepoFactory.AnimeGroup.Save(grp, false, false);
-            }
-
-            if (ServerSettings.AniDB_MyList_AddFiles)
+            if (ServerSettings.Instance.AniDB_MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
                 cmdAddFile.Save();
@@ -147,13 +145,13 @@ namespace Shoko.Server.Commands
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
                 EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
                 Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
                 if (null==vlocal)
                 {
                     logger.Info("videolocal object {0} not found", VideoLocalID);
                     return false;
                 }
-                episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
+                episode = Repo.AnimeEpisode.GetByID(EpisodeID);
             }
 
             return true;

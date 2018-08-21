@@ -1,40 +1,80 @@
-﻿using System.Collections.Generic;
+﻿#if false
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using System.Security.Claims;
 using System.Text;
 using Nancy.Rest.Module;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API
 {
     using Nancy;
-    using Nancy.Authentication.Stateless;
+    //using Nancy.Authentication.Stateless;
     using Nancy.Bootstrapper;
     using Nancy.Conventions;
     using Nancy.TinyIoc;
     using System.Linq;
     using Nancy.ErrorHandling;
-    using Pri.LongPath;
+
     using Nancy.Diagnostics;
     using NLog;
     using System;
-    using Nancy.Gzip;
+    //using Nancy.Gzip;
 
     public class Bootstrapper : RestBootstrapper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        protected override NancyInternalConfiguration InternalConfiguration
+        protected override Func<ITypeCatalog, NancyInternalConfiguration> InternalConfiguration
         {
             //RestBootstraper with use a custom json.net serializer,no need to readd something in here
             get
             {
-                NancyInternalConfiguration nac = base.InternalConfiguration;
-                nac.ResponseProcessors.Remove(typeof(BinaryProcessor));
-                nac.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
-                return nac;
+                return cat =>
+                {
+
+                    NancyInternalConfiguration nac = base.InternalConfiguration(cat);
+                    nac.ResponseProcessors.Remove(typeof(BinaryProcessor));
+                    nac.ResponseProcessors.Insert(0, typeof(BinaryProcessor));
+                    return nac;
+                };
             }
+        }
+
+        private IList<string> MimeTypes { get; set; } = new List<string>
+        {
+            "text/plain",
+            "text/html",
+            "text/xml",
+            "text/css",
+            "application/json",
+            "application/x-javascript",
+            "application/atom+xml",
+            "application/xml"
+        };
+
+        public SVR_JMMUser GetRequestUser(NancyContext ctx)
+        {
+            if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
+            string apikey = ctx.Request.Headers["apikey"].FirstOrDefault()?.Trim();
+            if (string.IsNullOrEmpty(apikey))
+            {
+                // try from query string instead
+                try
+                {
+                    apikey = (string)ctx.Request.Query.apikey.Value;
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+            AuthTokens auth = Repo.AuthTokens.GetByToken(apikey);
+            return auth != null ? Repo.JMMUser.GetByID(auth.UserID) : null;
         }
 
         /// <inheritdoc />
@@ -44,34 +84,7 @@ namespace Shoko.Server.API
         protected override void RequestStartup(TinyIoCContainer requestContainer, IPipelines pipelines,
             NancyContext context)
         {
-            StaticConfiguration.EnableRequestTracing = true;
-            var configuration =
-                new StatelessAuthenticationConfiguration(nancyContext =>
-                {
-                    // If the server isn't up yet, we can't access the db for users
-                    if (!(ServerState.Instance?.ServerOnline ?? false)) return null;
-                    // get apikey from header
-                    string apiKey = nancyContext.Request.Headers["apikey"].FirstOrDefault()?.Trim();
-                    // if not in header
-                    if (string.IsNullOrEmpty(apiKey))
-                    {
-                        // try from query string instead
-                        try
-                        {
-                            apiKey = (string) nancyContext.Request.Query.apikey.Value;
-                        }
-                        catch
-                        {
-                            // ignore
-                        }
-                    }
-                    AuthTokens auth = RepoFactory.AuthTokens.GetByToken(apiKey);
-                    return auth != null
-                        ? RepoFactory.JMMUser.GetByID(auth.UserID)
-                        : null;
-                });
-            StaticConfiguration.DisableErrorTraces = false;
-            StatelessAuthentication.Enable(pipelines, configuration);
+            context.CurrentUser = new ClaimsPrincipal(GetRequestUser(context));
 
             pipelines.OnError += (ctx, ex) => onError(ctx, ex);
 
@@ -90,16 +103,25 @@ namespace Shoko.Server.API
             #endregion
 
             #region Gzip compression
-
-            GzipCompressionSettings gzipsettings = new GzipCompressionSettings
+            pipelines.AfterRequest.AddItemToEndOfPipeline(ctx =>
             {
-                MinimumBytes = 16384 //16k
-            };
-            gzipsettings.MimeTypes.Add("application/xml");
-            gzipsettings.MimeTypes.Add("application/json");
-            pipelines.EnableGzipCompression(gzipsettings);
+                if (ctx.Request.Headers.AcceptEncoding.Any(x => x.Contains("gzip"))) return;
+                if (ctx.Response.StatusCode != HttpStatusCode.OK) return;
+                if (MimeTypes.Any(x => x == ctx.Response.ContentType || ctx.Response.ContentType.StartsWith($"{x};"))) return;
+                if (!ctx.Response.Headers.TryGetValue("Content-Length", out var contentLength) || long.Parse(contentLength) < 16384) return;
 
+                ctx.Response.Headers["Content-Encoding"] = "gzip";
+                var contents = ctx.Response.Contents;
+                ctx.Response.Contents = responseStream =>
+                {
+                    using (var compression = new GZipStream(responseStream, CompressionMode.Compress))
+                    {
+                        contents(compression);
+                    }
+                };
+            });
             #endregion
+
         }
 
         /// <inheritdoc />
@@ -114,10 +136,12 @@ namespace Shoko.Server.API
             base.ConfigureConventions(nancyConventions);
         }
 
+        /*
         protected override DiagnosticsConfiguration DiagnosticsConfiguration
         {
             get { return new DiagnosticsConfiguration {Password = @"jmmserver"}; }
         }
+        */
 
         private Response onError(NancyContext ctx, Exception ex)
         {
@@ -193,9 +217,10 @@ namespace Shoko.Server.API
                         writer.Close();
                     }
                     catch
-                    {}
+                    { }
                 }
             };
         }
     }
 }
+#endif

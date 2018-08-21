@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -29,7 +29,7 @@ namespace Shoko.Server.API.v2.Models.common
             roles = new List<Role>();
         }
 
-        public static Group GenerateFromAnimeGroup(NancyContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
+        public static Group GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup ag, int uid, bool nocast, bool notag, int level,
             bool all, int filterid, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Group g = new Group
@@ -45,14 +45,14 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_GroupFilter filter = null;
             if (filterid > 0)
             {
-                filter = RepoFactory.GroupFilter.GetByID(filterid);
+                filter = Repo.GroupFilter.GetByID(filterid);
                 if (filter?.ApplyToSeries == 0)
                     filter = null;
             }
 
             List<SVR_AniDB_Anime> animes;
             if (filter != null)
-                animes = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                animes = filter.SeriesIds[uid].Select(id => Repo.AnimeSeries.GetByID(id))
                     .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).Select(ser => ser.GetAnime())
                     .Where(a => a != null).OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue)
                     .ToList();
@@ -67,7 +67,7 @@ namespace Shoko.Server.API.v2.Models.common
                 List<SVR_AnimeEpisode> ael;
                 if (filter != null)
                 {
-                    var series = filter.SeriesIds[uid].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                    var series = filter.SeriesIds[uid].Select(id => Repo.AnimeSeries.GetByID(id))
                         .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).ToList();
                     ael = series.SelectMany(ser => ser.GetAnimeEpisodes())
                         .ToList();
@@ -86,7 +86,12 @@ namespace Shoko.Server.API.v2.Models.common
 
                 g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
                 g.summary = anime.Description ?? string.Empty;
-                g.titles = anime.GetTitles().ToAPIContract();
+                g.titles = anime.GetTitles().Select(s => new Shoko.Models.PlexAndKodi.AnimeTitle()
+                {
+                    Type = s.TitleType,
+                    Language = s.Language,
+                    Title = s.Language
+                }).ToList();//.ToAPIContract();
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
@@ -95,13 +100,13 @@ namespace Shoko.Server.API.v2.Models.common
                 if (!nocast)
                 {
                     var xref_animestaff =
-                        RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
+                        Repo.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
                     foreach (var xref in xref_animestaff)
                     {
                         if (xref.RoleID == null) continue;
-                        var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
+                        var character = Repo.AnimeCharacter.GetByID(xref.RoleID.Value);
                         if (character == null) continue;
-                        var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
+                        var staff = Repo.AnimeStaff.GetByID(xref.StaffID);
                         if (staff == null) continue;
                         var role = new Role
                         {
@@ -138,17 +143,17 @@ namespace Shoko.Server.API.v2.Models.common
             return g;
         }
 
-        public static void PopulateArtFromAniDBAnime(NancyContext ctx, IEnumerable<SVR_AniDB_Anime> animes, Group grp, bool allpics, int pic)
+        public static void PopulateArtFromAniDBAnime(HttpContext ctx, IEnumerable<SVR_AniDB_Anime> animes, Group grp, bool allpics, int pic)
         {
             Random rand = new Random();
 
             foreach (var anime in animes.Randomize())
             {
-                var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+                var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
                 var fanarts = tvdbIDs
-                    .SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+                    .SelectMany(a => Repo.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
                 var banners = tvdbIDs
-                    .SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+                    .SelectMany(a => Repo.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
 
                 var posters = anime.AllPosters;
                 if (allpics || pic > 1)

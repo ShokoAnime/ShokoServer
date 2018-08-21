@@ -6,7 +6,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
@@ -55,7 +54,7 @@ namespace Shoko.Server.Providers.TraktTV
                              "json: " + json + Environment.NewLine;
                 logger.Trace(msg);
 
-                var request = (HttpWebRequest) WebRequest.Create(uri);
+                var request = (HttpWebRequest)WebRequest.Create(uri);
                 request.KeepAlive = true;
 
                 request.Method = verb;
@@ -73,7 +72,7 @@ namespace Shoko.Server.Providers.TraktTV
                 postStream.Write(data, 0, data.Length);
 
                 // get the response
-                var response = (HttpWebResponse) request.GetResponse();
+                var response = (HttpWebResponse)request.GetResponse();
 
                 Stream responseStream = response.GetResponseStream();
                 if (responseStream == null) return ret;
@@ -81,7 +80,7 @@ namespace Shoko.Server.Providers.TraktTV
                 StreamReader reader = new StreamReader(responseStream);
                 string strResponse = reader.ReadToEnd();
 
-                int statusCode = (int) response.StatusCode;
+                int statusCode = (int)response.StatusCode;
 
                 // cleanup
                 postStream.Close();
@@ -104,8 +103,8 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     if (webEx.Response is HttpWebResponse response)
                     {
-                        logger.Error($"Error in SendData: {(int) response.StatusCode} - {webEx}");
-                        ret = (int) response.StatusCode;
+                        logger.Error($"Error in SendData: {(int)response.StatusCode} - {webEx}");
+                        ret = (int)response.StatusCode;
 
                         try
                         {
@@ -139,7 +138,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static string GetFromTrakt(string uri, ref int traktCode)
         {
-            var request = (HttpWebRequest) WebRequest.Create(uri);
+            var request = (HttpWebRequest)WebRequest.Create(uri);
 
             string msg = "Trakt GET Data" + Environment.NewLine +
                          "uri: " + uri + Environment.NewLine;
@@ -158,7 +157,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             try
             {
-                WebResponse response = (HttpWebResponse) request.GetResponse();
+                WebResponse response = (HttpWebResponse)request.GetResponse();
                 Stream stream = response.GetResponseStream();
                 if (stream == null) return null;
 
@@ -166,8 +165,8 @@ namespace Shoko.Server.Providers.TraktTV
                 string strResponse = reader.ReadToEnd();
 
                 // get the response
-                var httpResponse = (HttpWebResponse) request.GetResponse();
-                traktCode = (int) httpResponse.StatusCode;
+                var httpResponse = (HttpWebResponse)request.GetResponse();
+                traktCode = (int)httpResponse.StatusCode;
 
                 stream.Close();
                 reader.Close();
@@ -188,8 +187,8 @@ namespace Shoko.Server.Providers.TraktTV
             {
                 logger.Error("Error in GetFromTrakt: {0}", e);
 
-                var httpResponse = (HttpWebResponse) e.Response;
-                traktCode = (int) httpResponse.StatusCode;
+                var httpResponse = (HttpWebResponse)e.Response;
+                traktCode = (int)httpResponse.StatusCode;
 
                 return null;
             }
@@ -204,7 +203,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             Dictionary<string, string> headers = new Dictionary<string, string>
             {
-                {"Authorization", $"Bearer {ServerSettings.Trakt_AuthToken}"},
+                {"Authorization", $"Bearer {ServerSettings.Instance.Trakt_AuthToken}"},
                 {"trakt-api-key", TraktConstants.ClientID},
                 {"trakt-api-version", "2"}
             };
@@ -221,20 +220,20 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled ||
-                    string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken) ||
-                    string.IsNullOrEmpty(ServerSettings.Trakt_RefreshToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled ||
+                    string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken) ||
+                    string.IsNullOrEmpty(ServerSettings.Instance.Trakt_RefreshToken))
                 {
-                    ServerSettings.Trakt_AuthToken = string.Empty;
-                    ServerSettings.Trakt_RefreshToken = string.Empty;
-                    ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                    ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                    ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                    ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
 
                     return;
                 }
 
                 TraktV2RefreshToken token = new TraktV2RefreshToken
                 {
-                    refresh_token = ServerSettings.Trakt_RefreshToken
+                    refresh_token = ServerSettings.Instance.Trakt_RefreshToken
                 };
                 string json = JSONHelper.Serialize(token);
                 Dictionary<string, string> headers = new Dictionary<string, string>();
@@ -246,26 +245,26 @@ namespace Shoko.Server.Providers.TraktTV
                     var loginResponse = retData.FromJSON<TraktAuthToken>();
 
                     // save the token to the config file to use for subsequent API calls
-                    ServerSettings.Trakt_AuthToken = loginResponse.AccessToken;
-                    ServerSettings.Trakt_RefreshToken = loginResponse.RefreshToken;
+                    ServerSettings.Instance.Trakt_AuthToken = loginResponse.AccessToken;
+                    ServerSettings.Instance.Trakt_RefreshToken = loginResponse.RefreshToken;
 
                     long.TryParse(loginResponse.CreatedAt, out long createdAt);
                     long.TryParse(loginResponse.ExpiresIn, out long validity);
                     long expireDate = createdAt + validity;
 
-                    ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
+                    ServerSettings.Instance.Trakt_TokenExpirationDate = expireDate.ToString();
 
                     return;
                 }
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
             }
             catch (Exception ex)
             {
-                ServerSettings.Trakt_AuthToken = string.Empty;
-                ServerSettings.Trakt_RefreshToken = string.Empty;
-                ServerSettings.Trakt_TokenExpirationDate = string.Empty;
+                ServerSettings.Instance.Trakt_AuthToken = string.Empty;
+                ServerSettings.Instance.Trakt_RefreshToken = string.Empty;
+                ServerSettings.Instance.Trakt_TokenExpirationDate = string.Empty;
 
                 logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex);
             }
@@ -362,14 +361,14 @@ namespace Shoko.Server.Providers.TraktTV
                     if (response == TraktStatusCodes.Success)
                     {
                         var tokenResponse = retData.FromJSON<TraktAuthToken>();
-                        ServerSettings.Trakt_AuthToken = tokenResponse.AccessToken;
-                        ServerSettings.Trakt_RefreshToken = tokenResponse.RefreshToken;
+                        ServerSettings.Instance.Trakt_AuthToken = tokenResponse.AccessToken;
+                        ServerSettings.Instance.Trakt_RefreshToken = tokenResponse.RefreshToken;
 
                         long.TryParse(tokenResponse.CreatedAt, out long createdAt);
                         long.TryParse(tokenResponse.ExpiresIn, out long validity);
                         long expireDate = createdAt + validity;
 
-                        ServerSettings.Trakt_TokenExpirationDate = expireDate.ToString();
+                        ServerSettings.Instance.Trakt_TokenExpirationDate = expireDate.ToString();
                         break;
                     }
                     if (response == TraktStatusCodes.Rate_Limit_Exceeded)
@@ -394,29 +393,17 @@ namespace Shoko.Server.Providers.TraktTV
 
         #region Linking
 
-        public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
-            int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return LinkAniDBTrakt(session, animeID, aniEpType, aniEpNumber, traktID, seasonNumber, traktEpNumber,
-                    excludeFromWebCache);
-            }
-        }
-
-        public static string LinkAniDBTrakt(ISession session, int animeID, EpisodeType aniEpType, int aniEpNumber,
+        public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<CrossRef_AniDB_TraktV2> xrefTemps = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
-                session, animeID,
-                (int) aniEpType,
-                aniEpNumber);
+            List<CrossRef_AniDB_TraktV2> xrefTemps = Repo.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
+                animeID, (int)aniEpType, aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
             {
                 foreach (CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
                 {
                     // delete the existing one if we are updating
-                    RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
+                    RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType)xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
@@ -424,44 +411,43 @@ namespace Shoko.Server.Providers.TraktTV
 
             // check if we have this information locally
             // if not download it now
-            Trakt_Show traktShow = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
+            Trakt_Show traktShow = Repo.Trakt_Show.GetByTraktSlug(traktID);
             if (traktShow == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 GetShowInfoV2(traktID);
-                traktShow = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
+                traktShow = Repo.Trakt_Show.GetByTraktSlug(traktID);
             }
 
             // download and update series info, episode info and episode images
+            CrossRef_AniDB_TraktV2 xref;
+            using (var upd = Repo.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(
+                () => Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int)aniEpType, aniEpNumber)))
+            {
+                upd.Entity.AnimeID = animeID;
+                upd.Entity.AniDBStartEpisodeType = (int)aniEpType;
+                upd.Entity.AniDBStartEpisodeNumber = aniEpNumber;
 
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(session, traktID,
-                                              seasonNumber, traktEpNumber,
-                                              animeID,
-                                              (int) aniEpType, aniEpNumber) ?? new CrossRef_AniDB_TraktV2();
+                upd.Entity.TraktID = traktID;
+                upd.Entity.TraktSeasonNumber = seasonNumber;
+                upd.Entity.TraktStartEpisodeNumber = traktEpNumber;
+                if (traktShow != null)
+                    upd.Entity.TraktTitle = traktShow.Title;
 
-            xref.AnimeID = animeID;
-            xref.AniDBStartEpisodeType = (int) aniEpType;
-            xref.AniDBStartEpisodeNumber = aniEpNumber;
+                if (excludeFromWebCache)
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
+                else
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
 
-            xref.TraktID = traktID;
-            xref.TraktSeasonNumber = seasonNumber;
-            xref.TraktStartEpisodeNumber = traktEpNumber;
-            if (traktShow != null)
-                xref.TraktTitle = traktShow.Title;
-
-            if (excludeFromWebCache)
-                xref.CrossRefSource = (int) CrossRefSource.WebCache;
-            else
-                xref.CrossRefSource = (int) CrossRefSource.User;
-
-            RepoFactory.CrossRef_AniDB_TraktV2.Save(xref);
+                xref = upd.Commit();
+            }
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache && ServerSettings.WebCache_Trakt_Send)
+            if (!excludeFromWebCache && ServerSettings.Instance.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheSendXRefAniDBTrakt req =
                     new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
@@ -474,21 +460,21 @@ namespace Shoko.Server.Providers.TraktTV
         public static void RemoveLinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
-            CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
+            CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
                 traktEpNumber, animeID,
-                (int) aniEpType,
+                (int)aniEpType,
                 aniEpNumber);
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
+            Repo.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            if (ServerSettings.Trakt_IsEnabled && ServerSettings.WebCache_Trakt_Send)
+            if (ServerSettings.Instance.Trakt_IsEnabled && ServerSettings.Instance.WebCache_Trakt_Send)
             {
                 CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
                     new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,
-                        (int) aniEpType, aniEpNumber,
+                        (int)aniEpType, aniEpNumber,
                         traktID, seasonNumber, traktEpNumber);
                 req.Save();
             }
@@ -496,11 +482,11 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void ScanForMatches()
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
 
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
@@ -529,7 +515,7 @@ namespace Shoko.Server.Providers.TraktTV
             AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
-            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
+            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
             if (anime == null)
                 return null;
 
@@ -576,7 +562,7 @@ namespace Shoko.Server.Providers.TraktTV
                         CrossRef_AniDB_TraktV2 xrefBase = null;
                         foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                         {
-                            if (xrefTrakt.AniDBStartEpisodeType != (int) EpisodeType.Episode) continue;
+                            if (xrefTrakt.AniDBStartEpisodeType != (int)EpisodeType.Episode) continue;
                             if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
                             {
                                 foundStartingPoint = true;
@@ -635,7 +621,7 @@ namespace Shoko.Server.Providers.TraktTV
                     CrossRef_AniDB_TraktV2 xrefBase = null;
                     foreach (CrossRef_AniDB_TraktV2 xrefTrakt in traktCrossRef)
                     {
-                        if (xrefTrakt.AniDBStartEpisodeType != (int) EpisodeType.Special) continue;
+                        if (xrefTrakt.AniDBStartEpisodeType != (int)EpisodeType.Special) continue;
                         if (ep.EpisodeNumber >= xrefTrakt.AniDBStartEpisodeNumber)
                         {
                             foundStartingPoint = true;
@@ -710,13 +696,13 @@ namespace Shoko.Server.Providers.TraktTV
             CL_Response<bool> ret = new CL_Response<bool>();
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled)
+                if (!ServerSettings.Instance.Trakt_IsEnabled)
                 {
                     ret.ErrorMessage = "Trakt has not been enabled";
                     ret.Result = false;
                     return ret;
                 }
-                if (string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 {
                     ret.ErrorMessage = "Trakt has not been authorized";
                     ret.Result = false;
@@ -788,7 +774,7 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     // get the latest user record and find the latest date this episode was watched
                     DateTime? thisDate = null;
-                    List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                    List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
                     if (traktUsers.Count > 0)
                     {
                         foreach (SVR_JMMUser juser in traktUsers)
@@ -816,7 +802,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return;
 
                 string traktShowID = string.Empty;
@@ -842,7 +828,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return;
 
                 string json;
@@ -892,7 +878,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return 401;
 
                 string json = string.Empty;
@@ -915,7 +901,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 //1.get traktid and slugid from episode id
                 if (!int.TryParse(AnimeEpisodeID, out int aep)) return 400;
-                SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aep);
                 string slugID = string.Empty;
                 int season = 0;
                 int epNumber = 0;
@@ -967,7 +953,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             List<TraktV2SearchShowResult> results = new List<TraktV2SearchShowResult>();
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return results;
 
             try
@@ -1005,7 +991,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             List<TraktV2SearchTvDBIDShowResult> results = new List<TraktV2SearchTvDBIDShowResult>();
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return results;
 
             try
@@ -1044,7 +1030,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             TraktV2ShowExtended resultShow;
 
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return null;
 
             try
@@ -1090,17 +1076,21 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // save this data to the DB for use later
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(tvshow.ids.slug) ?? new Trakt_Show();
+                Trakt_Show show;
 
-                show.Populate(tvshow);
-                RepoFactory.Trakt_Show.Save(show);
+
+                using (var upd = Repo.Trakt_Show.BeginAddOrUpdate(() => Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
+                {
+                    upd.Entity.Populate_RA(tvshow);
+                    show = upd.Commit();
+                }
 
                 // save the seasons
 
                 // delete episodes if they no longer exist on Trakt
                 if (seasons.Count > 0)
                 {
-                    foreach (Trakt_Episode epTemp in RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
+                    foreach (Trakt_Episode epTemp in Repo.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
                     {
                         TraktV2Episode ep = null;
                         TraktV2Season sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
@@ -1109,37 +1099,39 @@ namespace Shoko.Server.Providers.TraktTV
 
                         // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
                         if (ep == null)
-                            RepoFactory.Trakt_Episode.Delete(epTemp.Trakt_EpisodeID);
+                            Repo.Trakt_Episode.Delete(epTemp.Trakt_EpisodeID);
                     }
                 }
 
                 foreach (TraktV2Season sea in seasons)
                 {
-                    Trakt_Season season = RepoFactory.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number) ??
-                                          new Trakt_Season();
+                    using (var upd = Repo.Trakt_Season.BeginAddOrUpdate(() => Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
+                    {
 
-                    season.Season = sea.number;
-                    season.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
-                    season.Trakt_ShowID = show.Trakt_ShowID;
-                    RepoFactory.Trakt_Season.Save(season);
+                        upd.Entity.Season = sea.number;
+                        upd.Entity.URL = string.Format(TraktURIs.WebsiteSeason, show.TraktID, sea.number);
+                        upd.Entity.Trakt_ShowID = show.Trakt_ShowID;
+                        upd.Commit();
+                    }
 
                     if (sea.episodes != null)
                     {
+
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            Trakt_Episode episode = RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(
-                                                        show.Trakt_ShowID, ep.season,
-                                                        ep.number) ?? new Trakt_Episode();
+                            using (var upd = Repo.Trakt_Episode.BeginAddOrUpdate(() => Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
+                            {
 
-                            episode.TraktID = ep.ids.TraktID;
-                            episode.EpisodeNumber = ep.number;
-                            episode.Overview = string.Empty;
-                            // this is now part of a separate API call for V2, we get this info from TvDB anyway
-                            episode.Season = ep.season;
-                            episode.Title = ep.title;
-                            episode.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
-                            episode.Trakt_ShowID = show.Trakt_ShowID;
-                            RepoFactory.Trakt_Episode.Save(episode);
+                                upd.Entity.TraktID = ep.ids.TraktID;
+                                upd.Entity.EpisodeNumber = ep.number;
+                                upd.Entity.Overview = string.Empty;
+                                // this is now part of a separate API call for V2, we get this info from TvDB anyway
+                                upd.Entity.Season = ep.season;
+                                upd.Entity.Title = ep.title;
+                                upd.Entity.URL = string.Format(TraktURIs.WebsiteEpisode, show.TraktID, ep.season, ep.number);
+                                upd.Entity.Trakt_ShowID = show.Trakt_ShowID;
+                                upd.Commit();
+                            }
                         }
                     }
                 }
@@ -1152,22 +1144,14 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static List<TraktV2Comment> GetShowCommentsV2(int animeID)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetShowCommentsV2(session, animeID);
-            }
-        }
-
-        public static List<TraktV2Comment> GetShowCommentsV2(ISession session, int animeID)
-        {
             List<TraktV2Comment> ret = new List<TraktV2Comment>();
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return ret;
 
                 List<CrossRef_AniDB_TraktV2> traktXRefs =
-                    RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, animeID);
+                    Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
@@ -1220,7 +1204,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static List<TraktV2ShowWatchedResult> GetWatchedShows(ref int traktCode)
         {
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return new List<TraktV2ShowWatchedResult>();
 
             try
@@ -1249,7 +1233,7 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static List<TraktV2ShowCollectedResult> GetCollectedShows(ref int traktCode)
         {
-            if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                 return new List<TraktV2ShowCollectedResult>();
 
             try
@@ -1281,9 +1265,9 @@ namespace Shoko.Server.Providers.TraktTV
 
         public static void UpdateAllInfo()
         {
-            if (!ServerSettings.Trakt_IsEnabled) return;
+            if (!ServerSettings.Instance.Trakt_IsEnabled) return;
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfo cmd = new CommandRequest_TraktUpdateInfo(xref.TraktID);
@@ -1296,10 +1280,10 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                 if (anime == null) return;
 
                 TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1330,13 +1314,13 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken)) return;
 
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
                 // now get the full users collection from Trakt
                 List<TraktV2ShowCollectedResult> collected = new List<TraktV2ShowCollectedResult>();
@@ -1363,7 +1347,7 @@ namespace Shoko.Server.Providers.TraktTV
                     logger.Trace("Syncing check -  local collection: {0} / {1} - {2}", counter, allSeries.Count,
                         series.GetSeriesName());
 
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                     if (anime == null) continue;
 
                     //if (anime.AnimeID != 3427) continue;
@@ -1428,13 +1412,13 @@ namespace Shoko.Server.Providers.TraktTV
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs =
-                        RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                        Repo.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1503,13 +1487,13 @@ namespace Shoko.Server.Providers.TraktTV
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs =
-                        RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                        Repo.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            SVR_AnimeSeries locSeries = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1611,7 +1595,7 @@ namespace Shoko.Server.Providers.TraktTV
                 // let's check if we can get this show on Trakt
                 int traktCode = TraktStatusCodes.Success;
                 // get all the shows from the database and make sure they are still valid Trakt Slugs
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(slug);
+                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(slug);
                 if (show == null)
                 {
                     logger.Error($"Unable to get Trakt Show for \"{slug}\". Attempting to download info, anyway.");
@@ -1621,7 +1605,7 @@ namespace Shoko.Server.Providers.TraktTV
                         logger.Error($"\"{slug}\" was not found on Trakt. Not continuing.");
                         return false;
                     }
-                    show = RepoFactory.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
+                    show = Repo.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
                 }
 
                 // note - getting extended show info also updates it as well
@@ -1649,18 +1633,18 @@ namespace Shoko.Server.Providers.TraktTV
         {
             // this means Trakt has no record of this slug.
             // 1. Delete any cross ref links
-            RepoFactory.CrossRef_AniDB_TraktV2.Delete(RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(show.TraktID));
+            Repo.CrossRef_AniDB_TraktV2.Delete(Repo.CrossRef_AniDB_TraktV2.GetByTraktID(show.TraktID));
 
             // 2. Delete default image links
 
             // 3. Delete episodes
-            RepoFactory.Trakt_Episode.Delete(RepoFactory.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
+            Repo.Trakt_Episode.Delete(Repo.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
 
             // 5. Delete seasons
-            RepoFactory.Trakt_Season.Delete(RepoFactory.Trakt_Season.GetByShowID(show.Trakt_ShowID));
+            Repo.Trakt_Season.Delete(Repo.Trakt_Season.GetByShowID(show.Trakt_ShowID));
 
             // 6. Delete the show
-            RepoFactory.Trakt_Show.Delete(show.Trakt_ShowID);
+            Repo.Trakt_Show.Delete(show.Trakt_ShowID);
         }
 
         private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,
@@ -1798,11 +1782,11 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (!ServerSettings.Instance.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
                     return false;
 
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = RepoFactory.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return false;
 
                 int traktCode = TraktStatusCodes.Success;

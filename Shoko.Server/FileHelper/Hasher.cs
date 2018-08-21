@@ -1,13 +1,13 @@
 ﻿using System;
+using System.IO;
 using FileInfo = System.IO.FileInfo;
 using FileStream = System.IO.FileStream;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
-using Pri.LongPath;
+
 
 namespace Shoko.Server.FileHelper
 {
@@ -148,7 +148,7 @@ namespace Shoko.Server.FileHelper
                 if (gotHash)
                     return rhash;
                 
-                logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {0}", rval, strPath);
+                logger.Error("Error using DLL to get hash (Functon returned {0}), trying C# code instead: {1}", rval, strPath);
             }
             return CalculateHashes_here(strPath, onHashProgress, getCRC32, getMD5, getSHA1);
         }

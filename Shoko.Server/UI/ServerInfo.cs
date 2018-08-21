@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
@@ -301,7 +300,7 @@ namespace Shoko.Server
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 waitingOnResponseAniDBUDPString = Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;
@@ -346,7 +345,7 @@ namespace Shoko.Server
             try
             {
                 ImportFolders.Clear();
-                RepoFactory.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
+                Repo.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
             }
             catch (Exception ex)
             {
@@ -359,7 +358,7 @@ namespace Shoko.Server
             try
             {
                 CloudAccounts.Clear();
-                RepoFactory.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
+                Repo.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
             }
             catch (Exception ex)
             {
@@ -373,7 +372,7 @@ namespace Shoko.Server
             {
                 FolderProviders.Clear();
                 FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
+                Repo.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
             }
             catch (Exception ex)
             {

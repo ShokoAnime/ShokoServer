@@ -3,11 +3,10 @@ using System.ComponentModel;
 using NLog;
 using Microsoft.Win32;
 using System;
-using Microsoft.Win32.TaskScheduler;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Microsoft.Win32.TaskScheduler;
 
 namespace Shoko.Server
 {
@@ -270,20 +269,19 @@ namespace Shoko.Server
 
         public void LoadSettings()
         {
-            AniDB_Username = ServerSettings.AniDB_Username;
-            AniDB_Password = ServerSettings.AniDB_Password;
-            AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
-            AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
-            AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
+            AniDB_Username = ServerSettings.Instance.AniDB_Username;
+            AniDB_Password = ServerSettings.Instance.AniDB_Password;
+            AniDB_ServerAddress = ServerSettings.Instance.AniDB_ServerAddress;
+            AniDB_ServerPort = ServerSettings.Instance.AniDB_ServerPort.ToString();
+            AniDB_ClientPort = ServerSettings.Instance.AniDB_ClientPort.ToString();
 
-            MinOnStartup = ServerSettings.MinimizeOnStartup;
-            MaxOnStartup = !ServerSettings.MinimizeOnStartup;
+            MinOnStartup = ServerSettings.Instance.MinimizeOnStartup;
+            MaxOnStartup = !ServerSettings.Instance.MinimizeOnStartup;
 
-
-            VLCLocation = ServerSettings.VLCLocation;
+            VLCLocation = ServerSettings.Instance.VLCLocation;
 
             if (Utils.IsRunningOnMono()) return;
-            
+
             if (autostartMethod == AutostartMethod.Registry)
             {
                 try

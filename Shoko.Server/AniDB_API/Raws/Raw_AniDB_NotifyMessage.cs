@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text;
-using Shoko.Server;
 using Shoko.Commons.Utils;
 
 namespace AniDBAPI

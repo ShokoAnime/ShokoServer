@@ -17,11 +17,9 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
-using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Repositories.Cached;
-using Pri.LongPath;
 using Shoko.Commons.Utils;
 using Shoko.Server.Utilities;
+using System.IO;
 
 namespace Shoko.Server
 {
@@ -32,11 +30,11 @@ namespace Shoko.Server
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             List<CL_AnimeSeries_User> series_list = new List<CL_AnimeSeries_User>();
             if (user == null) return series_list;
 
-            var series = RepoFactory.AnimeSeries.GetAll()
+            var series = Repo.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
                 .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
@@ -83,7 +81,7 @@ namespace Shoko.Server
         private static string RemoveSubgroups(string value)
         {
             int originalLength = value.Length;
-            var releaseGroups = SVR_AniDB_Anime.GetAllReleaseGroups();
+            var releaseGroups = Repo.AniDB_File.GetAllReleaseGroups();
             foreach (string releaseGroup in releaseGroups)
             {
                 value = ReplaceCaseInsensitive(value, releaseGroup, string.Empty);
@@ -113,7 +111,7 @@ namespace Shoko.Server
                     b.Language.Equals("x-jat",
                         StringComparison.InvariantCultureIgnoreCase) ||
                     b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals(ServerSettings.LanguagePreference, StringComparison.InvariantCultureIgnoreCase))
+                    b.Language.Equals(string.Join(",", ServerSettings.Instance.LanguagePreference), StringComparison.InvariantCultureIgnoreCase))
                 .Select(b => b.Title).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
@@ -132,11 +130,11 @@ namespace Shoko.Server
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            SVR_JMMUser user = Repo.JMMUser.GetByID(uid);
             List<CL_AniDB_Anime> series_list = new List<CL_AniDB_Anime>();
             if (user == null) return series_list;
 
-            var series = RepoFactory.AnimeSeries.GetAll()
+            var series = Repo.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
                 .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
@@ -152,7 +150,7 @@ namespace Shoko.Server
 
         public List<string> GetAllReleaseGroups()
         {
-            return SVR_AniDB_Anime.GetAllReleaseGroups().ToList();
+            return Repo.AniDB_File.GetAllReleaseGroups();
         }
 
         public bool DeleteMultipleFilesWithPreferences(int userID)
@@ -161,7 +159,7 @@ namespace Shoko.Server
             {
                 List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
                 List<SVR_AnimeEpisode> eps =
-                    epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                    epContracts.Select(a => Repo.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                         .Where(b => b != null)
                         .ToList();
 
@@ -198,7 +196,7 @@ namespace Shoko.Server
         {
             List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
             List<SVR_AnimeEpisode> eps =
-                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                epContracts.Select(a => Repo.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                     .Where(b => b != null)
                     .ToList();
 
@@ -223,7 +221,7 @@ namespace Shoko.Server
         {
             List<CL_AnimeEpisode_User> epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
             List<SVR_AnimeEpisode> eps =
-                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
+                epContracts.Select(a => Repo.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
                     .Where(b => b != null)
                     .ToList();
 
@@ -250,10 +248,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return null;
 
-                return RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
+                return Repo.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
             }
             catch (Exception ex)
             {
@@ -266,13 +264,13 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return;
 
-                FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
+                FileFfdshowPreset ffd = Repo.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
                 if (ffd == null) return;
 
-                RepoFactory.FileFfdshowPreset.Delete(ffd.FileFfdshowPresetID);
+                Repo.FileFfdshowPreset.Delete(ffd.FileFfdshowPresetID);
             }
             catch (Exception ex)
             {
@@ -284,17 +282,18 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByHashAndSize(preset.Hash, preset.FileSize);
                 if (vid == null) return;
 
-                FileFfdshowPreset ffd = RepoFactory.FileFfdshowPreset.GetByHashAndSize(preset.Hash, preset.FileSize);
-                if (ffd == null) ffd = new FileFfdshowPreset();
 
-                ffd.FileSize = preset.FileSize;
-                ffd.Hash = preset.Hash;
-                ffd.Preset = preset.Preset;
+                using (var upd = Repo.FileFfdshowPreset.BeginAddOrUpdate(() => Repo.FileFfdshowPreset.GetByHashAndSize(preset.Hash, preset.FileSize)))
+                {
+                    upd.Entity.FileSize = preset.FileSize;
+                    upd.Entity.Hash = preset.Hash;
+                    upd.Entity.Preset = preset.Preset;
 
-                RepoFactory.FileFfdshowPreset.Save(ffd);
+                    upd.Commit();
+                }
             }
             catch (Exception ex)
             {
@@ -308,19 +307,19 @@ namespace Shoko.Server
             {
                 List<CL_VideoLocal> vids = new List<CL_VideoLocal>();
 
-                FileSearchCriteria sType = (FileSearchCriteria) searchType;
+                FileSearchCriteria sType = (FileSearchCriteria)searchType;
 
 
                 switch (sType)
                 {
                     case FileSearchCriteria.Name:
-                        List<SVR_VideoLocal> results1 = RepoFactory.VideoLocal.GetByName(searchCriteria.Trim());
+                        List<SVR_VideoLocal> results1 = Repo.VideoLocal.GetByName(searchCriteria.Trim());
                         foreach (SVR_VideoLocal vid in results1)
                             vids.Add(vid.ToClient(userID));
                         break;
 
                     case FileSearchCriteria.ED2KHash:
-                        SVR_VideoLocal vidl = RepoFactory.VideoLocal.GetByHash(searchCriteria.Trim());
+                        SVR_VideoLocal vidl = Repo.VideoLocal.GetByHash(searchCriteria.Trim());
                         if (vidl != null)
                             vids.Add(vidl.ToClient(userID));
                         break;
@@ -334,7 +333,7 @@ namespace Shoko.Server
                         {
                             if (int.TryParse(searchCriteria, out int temp)) number = temp;
                         }
-                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
+                        List<SVR_VideoLocal> results2 = Repo.VideoLocal.GetMostRecentlyAdded(number);
                         foreach (SVR_VideoLocal vid in results2)
                             vids.Add(vid.ToClient(userID));
                         break;
@@ -376,7 +375,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToClient(userID)).ToList();
+                return Repo.VideoLocal.GetRandomFiles(maxResults).Select(a => a.ToClient(userID)).ToList();
             }
             catch (Exception ex)
             {
@@ -394,7 +393,7 @@ namespace Shoko.Server
             };
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -461,7 +460,7 @@ namespace Shoko.Server
             }
             try
             {
-                SVR_VideoLocal vid = RepoFactory.VideoLocal.GetByID(videoLocalID);
+                SVR_VideoLocal vid = Repo.VideoLocal.GetByID(videoLocalID);
                 if (vid == null)
                 {
                     ret.VideoLocal = null;
@@ -532,7 +531,7 @@ namespace Shoko.Server
                 }
                 vid.FileName = name;
                 if (ret.VideoLocal == null)
-                    ret.VideoLocal = new CL_VideoLocal() {FileName = name, VideoLocalID = videoLocalID};
+                    ret.VideoLocal = new CL_VideoLocal() { FileName = name, VideoLocalID = videoLocalID };
                 else
                     ret.VideoLocal.FileName = name;
             }
@@ -567,7 +566,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.RenameScript.GetAll().Where(a =>
+                return Repo.RenameScript.GetAll().Where(a =>
                         !a.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName,
                             StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
@@ -588,16 +587,16 @@ namespace Shoko.Server
             };
             try
             {
-                RenameScript script;
+                RenameScript script = null;
                 if (contract.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
                 {
-                    script = RepoFactory.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
+                    script = Repo.RenameScript.GetByName(Shoko.Models.Constants.Renamer.TempFileName) ??
                              new RenameScript();
                 }
                 else if (contract.RenameScriptID != 0)
                 {
                     // update
-                    script = RepoFactory.RenameScript.GetByID(contract.RenameScriptID);
+                    script = Repo.RenameScript.GetByID(contract.RenameScriptID);
                     if (script == null)
                     {
                         response.ErrorMessage = "Could not find Rename Script ID: " +
@@ -605,9 +604,6 @@ namespace Shoko.Server
                         return response;
                     }
                 }
-                else
-                    // create
-                    script = new RenameScript();
 
                 if (string.IsNullOrEmpty(contract.ScriptName))
                 {
@@ -615,28 +611,27 @@ namespace Shoko.Server
                     return response;
                 }
 
-                // check to make sure we multiple scripts enable on import (only one can be selected)
-                IReadOnlyList<RenameScript> allScripts = RepoFactory.RenameScript.GetAll();
 
                 if (contract.IsEnabledOnImport == 1)
                 {
-                    foreach (RenameScript rs in allScripts)
-                    {
-                        if (rs.IsEnabledOnImport == 1 &&
-                            (contract.RenameScriptID == 0 || (contract.RenameScriptID != rs.RenameScriptID)))
-                        {
-                            rs.IsEnabledOnImport = 0;
-                            RepoFactory.RenameScript.Save(rs);
-                        }
-                    }
+
+                    // check to make sure we multiple scripts enable on import (only one can be selected)
+                    IReadOnlyList<RenameScript> scripts = Repo.RenameScript.GetAll().Where(rs => rs.IsEnabledOnImport == 1).ToList();
+
+                    Repo.RenameScript.BatchAction(scripts, scripts.Count, (rs, orig) => { if (contract.RenameScriptID == 0 || contract.RenameScriptID != rs.RenameScriptID) rs.IsEnabledOnImport = 0; });
                 }
 
-                script.IsEnabledOnImport = contract.IsEnabledOnImport;
-                script.Script = contract.Script;
-                script.ScriptName = contract.ScriptName;
-                script.RenamerType = contract.RenamerType;
-                script.ExtraData = contract.ExtraData;
-                RepoFactory.RenameScript.Save(script);
+                using (var upd = Repo.RenameScript.BeginAddOrUpdate(() => script))
+                {
+                    upd.Entity.IsEnabledOnImport = contract.IsEnabledOnImport;
+                    upd.Entity.Script = contract.Script;
+                    upd.Entity.ScriptName = contract.ScriptName;
+                    upd.Entity.RenamerType = contract.RenamerType;
+                    upd.Entity.ExtraData = contract.ExtraData;
+
+                    script = upd.Commit();
+                }
+                
 
                 response.Result = script;
 
@@ -654,9 +649,9 @@ namespace Shoko.Server
         {
             try
             {
-                RenameScript df = RepoFactory.RenameScript.GetByID(renameScriptID);
+                RenameScript df = Repo.RenameScript.GetByID(renameScriptID);
                 if (df == null) return "Database entry does not exist";
-                RepoFactory.RenameScript.Delete(renameScriptID);
+                Repo.RenameScript.Delete(renameScriptID);
 
                 return string.Empty;
             }
@@ -676,7 +671,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID).Cast<AniDB_Recommendation>().ToList();
+                return Repo.AniDB_Recommendation.GetByAnimeID(animeID).Cast<AniDB_Recommendation>().ToList();
             }
             catch (Exception ex)
             {
@@ -700,7 +695,7 @@ namespace Shoko.Server
                     // try the local database first
                     // if not download the data from AniDB now
                     SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
-                        ServerSettings.AniDB_DownloadRelatedAnime);
+                        ServerSettings.Instance.AniDB_DownloadRelatedAnime);
                     if (anime != null)
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
@@ -713,7 +708,7 @@ namespace Shoko.Server
                         };
 
                         // check for existing series and group details
-                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anime.AnimeID);
                         if (ser != null)
                         {
                             res.SeriesExists = true;
@@ -730,34 +725,30 @@ namespace Shoko.Server
                     // title search so look at the web cache
                     List<Shoko.Models.Azure.Azure_AnimeIDTitle> titles = AzureWebAPI.Get_AnimeTitle(titleQuery);
 
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+
+                    foreach (Shoko.Models.Azure.Azure_AnimeIDTitle tit in titles)
                     {
-                        ISessionWrapper sessionWrapper = session.Wrap();
-
-                        foreach (Shoko.Models.Azure.Azure_AnimeIDTitle tit in titles)
+                        CL_AnimeSearch res = new CL_AnimeSearch
                         {
-                            CL_AnimeSearch res = new CL_AnimeSearch
-                            {
-                                AnimeID = tit.AnimeID,
-                                MainTitle = tit.MainTitle,
-                                Titles =
-                                new HashSet<string>(tit.Titles.Split(new char[] { '|' },
-                                    StringSplitOptions.RemoveEmptyEntries))
-                            };
+                            AnimeID = tit.AnimeID,
+                            MainTitle = tit.MainTitle,
+                            Titles =
+                            new HashSet<string>(tit.Titles.Split(new char[] { '|' },
+                                StringSplitOptions.RemoveEmptyEntries))
+                        };
 
-                            // check for existing series and group details
-                            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
-                            if (ser != null)
-                            {
-                                res.SeriesExists = true;
-                                res.AnimeSeriesID = ser.AnimeSeriesID;
-                                res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
-                            }
-                            else
-                                res.SeriesExists = false;
-
-                            retTitles.Add(res);
+                        // check for existing series and group details
+                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                        if (ser != null)
+                        {
+                            res.SeriesExists = true;
+                            res.AnimeSeriesID = ser.AnimeSeriesID;
+                            res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
                         }
+                        else
+                            res.SeriesExists = false;
+
+                        retTitles.Add(res);
                     }
                 }
             }
@@ -773,10 +764,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+                SVR_JMMUser user = Repo.JMMUser.GetByID(userID);
                 if (user == null) return new List<CL_IgnoreAnime>();
 
-                return RepoFactory.IgnoreAnime.GetByUser(userID).Select(a => a.ToClient()).ToList();
+                return Repo.IgnoreAnime.GetByUser(userID).Select(a => a.ToClient()).ToList();
             }
             catch (Exception ex)
             {
@@ -791,10 +782,10 @@ namespace Shoko.Server
         {
             try
             {
-                IgnoreAnime ignore = RepoFactory.IgnoreAnime.GetByID(ignoreAnimeID);
+                IgnoreAnime ignore = Repo.IgnoreAnime.GetByID(ignoreAnimeID);
                 if (ignore == null) return;
 
-                RepoFactory.IgnoreAnime.Delete(ignoreAnimeID);
+                Repo.IgnoreAnime.Delete(ignoreAnimeID);
             }
             catch (Exception ex)
             {
@@ -807,11 +798,11 @@ namespace Shoko.Server
         {
             List<CL_MissingEpisode> contracts = new List<CL_MissingEpisode>();
 
-            AiringState airState = (AiringState) airingState;
+            AiringState airState = (AiringState)airingState;
 
             try
             {
-                IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
                 foreach (SVR_AnimeSeries ser in allSeries)
                 {
                     int missingEps = ser.MissingEpisodeCount;
@@ -894,7 +885,7 @@ namespace Shoko.Server
             try
             {
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotMyListHTTP)
                 {
@@ -903,17 +894,17 @@ namespace Shoko.Server
                         // let's check if the file on AniDB actually exists in the user's local collection
                         string hash = string.Empty;
 
-                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        AniDB_File anifile = Repo.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
                         {
                             // look for manually linked files
                             List<CrossRef_File_Episode> xrefs =
-                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                                Repo.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
-                                if (xref.CrossRefSource != (int) CrossRefSource.AniDB)
+                                if (xref.CrossRefSource != (int)CrossRefSource.AniDB)
                                 {
                                     hash = xref.Hash;
                                     break;
@@ -927,15 +918,15 @@ namespace Shoko.Server
                         else
                         {
                             // now check if the file actually exists on disk
-                            SVR_VideoLocal v = RepoFactory.VideoLocal.GetByHash(hash);
+                            SVR_VideoLocal v = Repo.VideoLocal.GetByHash(hash);
                             fileMissing = true;
                             foreach (SVR_VideoLocal_Place p in v.Places)
                             {
                                 IFileSystem fs = p.ImportFolder.FileSystem;
                                 if (fs != null)
                                 {
-                                    FileSystemResult<IObject> res = fs.Resolve(p.FullServerPath);
-                                    if (res != null && res.IsOk)
+                                    IObject res = fs.Resolve(p.FullServerPath);
+                                    if (res != null && res.Status == Status.Ok)
                                     {
                                         fileMissing = false;
                                         break;
@@ -952,7 +943,7 @@ namespace Shoko.Server
                                 anime = animeCache[myitem.AnimeID];
                             else
                             {
-                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(myitem.AnimeID);
+                                anime = Repo.AniDB_Anime.GetByAnimeID(myitem.AnimeID);
                                 animeCache[myitem.AnimeID] = anime;
                             }
 
@@ -961,7 +952,7 @@ namespace Shoko.Server
                                 ser = animeSeriesCache[myitem.AnimeID];
                             else
                             {
-                                ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID);
+                                ser = Repo.AnimeSeries.GetByAnimeID(myitem.AnimeID);
                                 animeSeriesCache[myitem.AnimeID] = ser;
                             }
 
@@ -973,7 +964,7 @@ namespace Shoko.Server
                             };
                             if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
                             missingFile.EpisodeID = myitem.EpisodeID;
-                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID);
+                            AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID);
                             missingFile.EpisodeNumber = -1;
                             missingFile.EpisodeType = 1;
                             if (ep != null)
@@ -1018,9 +1009,9 @@ namespace Shoko.Server
 
             try
             {
-                foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
+                foreach (SVR_AnimeSeries ser in Repo.AnimeSeries.GetAll())
                 {
-                    if (RepoFactory.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
+                    if (Repo.VideoLocal.GetByAniDBAnimeID(ser.AniDB_ID).Count == 0)
                     {
                         CL_AnimeSeries_User can = ser.GetUserContract(userID);
                         if (can != null)
@@ -1039,10 +1030,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
                 if (user != null)
                     return
-                        RepoFactory.AnimeSeries.GetWithMissingEpisodes()
+                        Repo.AnimeSeries.GetWithMissingEpisodes()
                             .Select(a => a.GetUserContract(jmmuserID))
                             .Where(a => a != null)
                             .ToList();
@@ -1059,7 +1050,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetIgnoredVideos())
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetIgnoredVideos())
                 {
                     contracts.Add(vid.ToClient(userID));
                 }
@@ -1076,7 +1067,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetManuallyLinkedVideos())
                 {
                     contracts.Add(vid.ToClient(userID));
                 }
@@ -1093,7 +1084,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
             try
             {
-                contracts.AddRange(RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(vid => vid.ToClient(userID)));
+                contracts.AddRange(Repo.VideoLocal.GetVideosWithoutEpisode().Select(vid => vid.ToClient(userID)));
             }
             catch (Exception ex)
             {
@@ -1107,7 +1098,7 @@ namespace Shoko.Server
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> filesWithoutEpisode = Repo.VideoLocal.GetVideosWithoutEpisode();
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -1126,7 +1117,7 @@ namespace Shoko.Server
             try
             {
                 // files which have been hashed, but don't have an associated episode
-                List<SVR_VideoLocal> files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+                List<SVR_VideoLocal> files = Repo.VideoLocal.GetManuallyLinkedVideos();
 
                 foreach (SVR_VideoLocal vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
@@ -1145,7 +1136,7 @@ namespace Shoko.Server
             List<CL_DuplicateFile> dupFiles = new List<CL_DuplicateFile>();
             try
             {
-                return RepoFactory.DuplicateFile.GetAll().Select(a => ModelClients.ToClient(a)).ToList();
+                return Repo.DuplicateFile.GetAll().Select(a => ModelClients.ToClient(a)).ToList();
             }
             catch (Exception ex)
             {
@@ -1164,7 +1155,7 @@ namespace Shoko.Server
         {
             try
             {
-                DuplicateFile df = RepoFactory.DuplicateFile.GetByID(duplicateFileID);
+                DuplicateFile df = Repo.DuplicateFile.GetByID(duplicateFileID);
                 if (df == null) return "Database entry does not exist";
 
                 if (fileNumber != 1 && fileNumber != 2) return string.Empty;
@@ -1173,12 +1164,12 @@ namespace Shoko.Server
                 {
                     case 1:
                         place =
-                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile1,
+                            Repo.VideoLocal_Place.GetByFilePathAndImportFolderID(df.FilePathFile1,
                                 df.ImportFolderIDFile1);
                         break;
                     case 2:
                         place =
-                            RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(df.FilePathFile2,
+                            Repo.VideoLocal_Place.GetByFilePathAndImportFolderID(df.FilePathFile2,
                                 df.ImportFolderIDFile2);
                         break;
                     default:
@@ -1201,7 +1192,7 @@ namespace Shoko.Server
             List<CL_VideoLocal> manualFiles = new List<CL_VideoLocal>();
             try
             {
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetManuallyLinkedVideos())
                 {
                     manualFiles.Add(vid.ToClient(userID));
                 }
@@ -1227,11 +1218,11 @@ namespace Shoko.Server
 
                 if (onlyFinishedSeries)
                 {
-                    IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+                    IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
                     foreach (SVR_AnimeSeries ser in allSeries)
                         dictSeriesAnime[ser.AnimeSeriesID] = ser.AniDB_ID;
 
-                    IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+                    IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
                     foreach (SVR_AniDB_Anime anime in allAnime)
                         dictAnimeFinishedAiring[anime.AnimeID] = anime.GetFinishedAiring();
 
@@ -1242,7 +1233,7 @@ namespace Shoko.Server
                     }
                 }
 
-                foreach (SVR_AnimeEpisode ep in RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations))
+                foreach (SVR_AnimeEpisode ep in Repo.AnimeEpisode.GetEpisodesWithMultipleFiles(ignoreVariations))
                 {
                     if (onlyFinishedSeries)
                     {
@@ -1270,7 +1261,7 @@ namespace Shoko.Server
         {
             try
             {
-                foreach (DuplicateFile df in RepoFactory.DuplicateFile.GetAll())
+                foreach (DuplicateFile df in Repo.DuplicateFile.GetAll())
                 {
                     if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
                     {
@@ -1279,7 +1270,7 @@ namespace Shoko.Server
                                 "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
                                 df.FilePathFile1, df.FilePathFile2);
                         logger.Info(msg);
-                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
+                        Repo.DuplicateFile.Delete(df.DuplicateFileID);
                         continue;
                     }
 
@@ -1292,7 +1283,7 @@ namespace Shoko.Server
                                 "Deleting duplicate file record as they are actually point to the same file: {0}",
                                 df.GetFullServerPath1());
                         logger.Info(msg);
-                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
+                        Repo.DuplicateFile.Delete(df.DuplicateFileID);
                     }
 
                     // check if both files still exist
@@ -1305,7 +1296,7 @@ namespace Shoko.Server
                                 "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
                                 df.GetFullServerPath1(), df.GetFullServerPath2());
                         logger.Info(msg);
-                        RepoFactory.DuplicateFile.Delete(df.DuplicateFileID);
+                        Repo.DuplicateFile.Delete(df.DuplicateFileID);
                     }
                 }
             }
@@ -1323,10 +1314,10 @@ namespace Shoko.Server
 
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     int thisBitDepth = 8;
 
@@ -1386,10 +1377,10 @@ namespace Shoko.Server
 
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return vids;
 
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID))
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetByAniDBAnimeID(animeID))
                 {
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
@@ -1452,7 +1443,7 @@ namespace Shoko.Server
         {
             List<CL_GroupVideoQuality> vidQuals = new List<CL_GroupVideoQuality>();
 
-            List<SVR_VideoLocal> files = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID);
+            List<SVR_VideoLocal> files = Repo.VideoLocal.GetByAniDBAnimeID(animeID);
             files.Sort(FileQualityFilter.CompareTo);
             var lookup = files.ToLookup(a =>
             {

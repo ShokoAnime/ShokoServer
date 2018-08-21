@@ -18,9 +18,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+
 
 namespace Shoko.Server
 {
@@ -231,7 +229,7 @@ namespace Shoko.Server
 
                 #region Cleanup Default Ports
 
-                if (ServerSettings.JMMServerPort != 8111.ToString())
+                if (ServerSettings.Instance.JMMServerPort != 8111.ToString())
                 {
                     BatchFileStream.WriteLine(string.Format(
                         @"netsh http delete urlacl url=http://+:{0}/JMMServerImage", 8111));
@@ -255,7 +253,7 @@ namespace Shoko.Server
                             8111));
                 }
 
-                if (ServerSettings.JMMServerFilePort != 8112.ToString())
+                if (ServerSettings.Instance.JMMServerFilePort != 8112.ToString())
                 {
                     BatchFileStream.WriteLine(string.Format(@"netsh http delete urlacl url=http://+:{0}/JMMFilePort",
                         8112));
@@ -940,7 +938,7 @@ namespace Shoko.Server
                 // get root level files
 
                 FileSystemResult r = sDir.Populate();
-                if (r == null || !r.IsOk)
+                if (r.Status!=Status.Ok)
                 {
                     logger.Error($"Unable to retrieve folder {sDir.FullName}");
                     return;
@@ -1074,7 +1072,7 @@ namespace Shoko.Server
                 }
 
                 proc.Start();
-                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());         
+                ServerSettings.DoServerShutdown(new ServerSettings.ReasonedEventArgs());
                 Environment.Exit(0);
             }
             catch (Exception ex)

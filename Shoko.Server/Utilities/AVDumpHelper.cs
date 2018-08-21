@@ -5,12 +5,15 @@ using System.Linq;
 using NLog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
+using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
+#if PRILONGPATH
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using Path = Pri.LongPath.Path;
+#endif
 
 namespace Shoko.Server
 {
@@ -84,7 +87,7 @@ namespace Shoko.Server
 
         public static string DumpFile(int vid)
         {
-            var vl = RepoFactory.VideoLocal.GetByID(vid);
+            var vl = Repo.VideoLocal.GetByID(vid);
             if (vl == null) return "Unable to get videoloocal with id: " + vid;
             string file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return "Unable to get file: " + vid;
@@ -113,8 +116,8 @@ namespace Shoko.Server
                     {
                         FileName = avdumpDestination,
                         Arguments =
-                            $@" --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={
-                                    ServerSettings.AniDB_AVDumpClientPort
+                            $@" --Auth={ServerSettings.Instance.AniDB_Username}:{ServerSettings.Instance.AniDB_AVDumpKey} --LPort={
+                                    ServerSettings.Instance.AniDB_AVDumpClientPort
                                 } --PrintEd2kLink -t {fileName}",
                         UseShellExecute = false,
                         WindowStyle = ProcessWindowStyle.Hidden,
@@ -155,7 +158,7 @@ namespace Shoko.Server
             string fileName = (char)34 + file + (char)34;
 
             pProcess.StartInfo.Arguments =
-                $@"{avdumpDestination} --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={ServerSettings.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+                $@"{avdumpDestination} --Auth={ServerSettings.Instance.AniDB_Username}:{ServerSettings.Instance.AniDB_AVDumpKey} --LPort={ServerSettings.Instance.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;

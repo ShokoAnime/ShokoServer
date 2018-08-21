@@ -35,10 +35,13 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
+            SVR_GroupFilter gf = Repo.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
-            gf.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(gf);
+            using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => gf))
+            {
+                upd.Entity.CalculateGroupsAndSeries();
+                upd.Commit();
+            }
         }
 
         public override void GenerateCommandID()

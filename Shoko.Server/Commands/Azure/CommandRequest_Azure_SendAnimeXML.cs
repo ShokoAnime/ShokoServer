@@ -44,10 +44,10 @@ namespace Shoko.Server.Commands.Azure
 
                 if (!process) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
-                string filePath = ServerSettings.AnimeXmlDirectory;
+                string filePath = ServerSettings.Instance.AnimeXmlDirectory;
 
                 if (!Directory.Exists(filePath))
                     Directory.CreateDirectory(filePath);
@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands.Azure
                     AnimeID = AnimeID,
                     AnimeName = anime.MainTitle,
                     DateDownloaded = 0,
-                    Username = ServerSettings.AniDB_Username,
+                    Username = ServerSettings.Instance.AniDB_Username,
                     XMLContent = rawXML
                 };
                 AzureWebAPI.Send_AnimeXML(xml);

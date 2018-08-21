@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
 using NLog;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Models.TvDB
@@ -152,7 +151,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                tvDBEpisodes = RepoFactory.TvDB_Episode.GetBySeriesID(TvDBID)
+                tvDBEpisodes = Repo.TvDB_Episode.GetBySeriesID(TvDBID)
                     .OrderBy(a => a.SeasonNumber)
                     .ThenBy(a => a.EpisodeNumber)
                     .ToList();

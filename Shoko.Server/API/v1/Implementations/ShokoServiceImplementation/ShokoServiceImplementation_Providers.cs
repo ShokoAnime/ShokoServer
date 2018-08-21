@@ -49,80 +49,77 @@ namespace Shoko.Server
 
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                if (anime == null) return result;
+
+                var xrefs = Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
+
+                // TvDB
+                result.CrossRef_AniDB_TvDB = xrefs;
+
+                foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
+                    result.TvDBEpisodes.Add(ep);
+
+                foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
                 {
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null) return result;
+                    TvDB_Series ser = Repo.TvDB_Series.GetByTvDBID(xref.TvDBID);
+                    if (ser != null)
+                        result.TvDBSeries.Add(ser);
 
-                    var xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
+                    foreach (TvDB_ImageFanart fanart in Repo.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
+                        result.TvDBImageFanarts.Add(fanart);
 
-                    // TvDB
-                    result.CrossRef_AniDB_TvDB = xrefs;
+                    foreach (TvDB_ImagePoster poster in Repo.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
+                        result.TvDBImagePosters.Add(poster);
 
-                    foreach (TvDB_Episode ep in anime.GetTvDBEpisodes())
-                        result.TvDBEpisodes.Add(ep);
+                    foreach (TvDB_ImageWideBanner banner in Repo.TvDB_ImageWideBanner.GetBySeriesID(xref
+                        .TvDBID))
+                        result.TvDBImageWideBanners.Add(banner);
+                }
 
-                    foreach (var xref in xrefs.DistinctBy(a => a.TvDBID))
-                    {
-                        TvDB_Series ser = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
-                        if (ser != null)
-                            result.TvDBSeries.Add(ser);
-
-                        foreach (TvDB_ImageFanart fanart in RepoFactory.TvDB_ImageFanart.GetBySeriesID(xref.TvDBID))
-                            result.TvDBImageFanarts.Add(fanart);
-
-                        foreach (TvDB_ImagePoster poster in RepoFactory.TvDB_ImagePoster.GetBySeriesID(xref.TvDBID))
-                            result.TvDBImagePosters.Add(poster);
-
-                        foreach (TvDB_ImageWideBanner banner in RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(xref
-                            .TvDBID))
-                            result.TvDBImageWideBanners.Add(banner);
-                    }
-
-                    // Trakt
+                // Trakt
 
 
-                    foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2(session))
-                    {
-                        result.CrossRef_AniDB_Trakt.Add(xref);
+                foreach (CrossRef_AniDB_TraktV2 xref in anime.GetCrossRefTraktV2())
+                {
+                    result.CrossRef_AniDB_Trakt.Add(xref);
 
-                        Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
-                        if (show != null) result.TraktShows.Add(show.ToClient());
-                    }
-
-
-                    // MovieDB
-                    CrossRef_AniDB_Other xrefMovie = anime.GetCrossRefMovieDB();
-                    result.CrossRef_AniDB_MovieDB = xrefMovie;
+                    Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(xref.TraktID);
+                    if (show != null) result.TraktShows.Add(show.ToClient());
+                }
 
 
-                    result.MovieDBMovie = anime.GetMovieDBMovie();
+                // MovieDB
+                CrossRef_AniDB_Other xrefMovie = anime.GetCrossRefMovieDB();
+                result.CrossRef_AniDB_MovieDB = xrefMovie;
 
 
-                    foreach (MovieDB_Fanart fanart in anime.GetMovieDBFanarts())
-                    {
-                        if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBFanarts.Add(fanart);
-                    }
+                result.MovieDBMovie = anime.GetMovieDBMovie();
 
-                    foreach (MovieDB_Poster poster in anime.GetMovieDBPosters())
-                    {
-                        if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
-                            StringComparison.InvariantCultureIgnoreCase))
-                            result.MovieDBPosters.Add(poster);
-                    }
 
-                    // MAL
-                    List<CrossRef_AniDB_MAL> xrefMAL = anime.GetCrossRefMAL();
-                    if (xrefMAL == null)
-                        result.CrossRef_AniDB_MAL = null;
-                    else
-                    {
-                        result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
-                        foreach (CrossRef_AniDB_MAL xrefTemp in xrefMAL)
-                            result.CrossRef_AniDB_MAL.Add(xrefTemp);
-                    }
+                foreach (MovieDB_Fanart fanart in anime.GetMovieDBFanarts())
+                {
+                    if (fanart.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
+                        StringComparison.InvariantCultureIgnoreCase))
+                        result.MovieDBFanarts.Add(fanart);
+                }
+
+                foreach (MovieDB_Poster poster in anime.GetMovieDBPosters())
+                {
+                    if (poster.ImageSize.Equals(Shoko.Models.Constants.MovieDBImageSize.Original,
+                        StringComparison.InvariantCultureIgnoreCase))
+                        result.MovieDBPosters.Add(poster);
+                }
+
+                // MAL
+                List<CrossRef_AniDB_MAL> xrefMAL = anime.GetCrossRefMAL();
+                if (xrefMAL == null)
+                    result.CrossRef_AniDB_MAL = null;
+                else
+                {
+                    result.CrossRef_AniDB_MAL = new List<CrossRef_AniDB_MAL>();
+                    foreach (CrossRef_AniDB_MAL xrefTemp in xrefMAL)
+                        result.CrossRef_AniDB_MAL.Add(xrefTemp);
                 }
                 return result;
             }
@@ -226,10 +223,10 @@ namespace Shoko.Server
             try
             {
                 // Get all the links for this user and anime
-                List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDB> xrefs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -240,7 +237,7 @@ namespace Shoko.Server
                 {
                     foreach (Azure_CrossRef_AniDB_TvDB xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             foundLinks = true;
@@ -264,7 +261,7 @@ namespace Shoko.Server
                         new List<Azure_CrossRef_AniDB_TvDB>();
                     foreach (Azure_CrossRef_AniDB_TvDB xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
@@ -325,10 +322,10 @@ namespace Shoko.Server
             try
             {
                 // Get all the links for this user and anime
-                List<CrossRef_AniDB_TraktV2> xrefs = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TraktV2> xrefs = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (xrefs == null) return "No Links found to use";
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
@@ -339,7 +336,7 @@ namespace Shoko.Server
                 {
                     foreach (Azure_CrossRef_AniDB_Trakt xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
                             StringComparison.InvariantCultureIgnoreCase))
                         {
                             foundLinks = true;
@@ -363,7 +360,7 @@ namespace Shoko.Server
                         new List<Azure_CrossRef_AniDB_Trakt>();
                     foreach (Azure_CrossRef_AniDB_Trakt xref in results)
                     {
-                        if (xref.Username.Equals(ServerSettings.AniDB_Username,
+                        if (xref.Username.Equals(ServerSettings.Instance.AniDB_Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
@@ -442,7 +439,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
+                return Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(animeID);
             }
             catch (Exception ex)
             {
@@ -460,7 +457,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID).ToList();
+                return Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID).ToList();
             }
             catch (Exception ex)
             {
@@ -492,7 +489,7 @@ namespace Shoko.Server
                 // refresh data from TvDB
                 TvDBApiHelper.UpdateSeriesInfoAndImages(seriesID, true, false);
 
-                seasonNumbers = RepoFactory.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
+                seasonNumbers = Repo.TvDB_Episode.GetSeasonNumbersForSeries(seriesID);
 
                 return seasonNumbers;
             }
@@ -507,12 +504,12 @@ namespace Shoko.Server
         {
             try
             {
-                CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(link.AnimeID, link.TvDBID);
+                CrossRef_AniDB_TvDB xref = Repo.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(link.AnimeID, link.TvDBID);
 
                 if (xref != null && link.IsAdditive)
                 {
                     string msg = $"You have already linked Anime ID {xref.AniDBID} to this TvDB show/season/ep";
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AniDBID);
                     if (anime != null)
                         msg =
                             $"You have already linked Anime {anime.MainTitle} ({xref.AniDBID}) to this TvDB show/season/ep";
@@ -541,9 +538,9 @@ namespace Shoko.Server
 
                 var link = links[0];
 
-                var existingLinks = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(link.AnimeID);
-                RepoFactory.CrossRef_AniDB_TvDB.Delete(existingLinks);
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(link.AnimeID);
+                var existingLinks = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(link.AnimeID);
+                Repo.CrossRef_AniDB_TvDB.Delete(existingLinks);
+                Repo.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(link.AnimeID);
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
                 CommandRequest_LinkAniDBTvDB cmdRequest =
@@ -554,10 +551,10 @@ namespace Shoko.Server
                 foreach (var episodeOverride in overrides)
                 {
                     var exists =
-                        RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
+                        Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
                             episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
                     if (exists != null) continue;
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
+                    Repo.CrossRef_AniDB_TvDB_Episode_Override.Touch(() => episodeOverride);
                 }
 
                 return string.Empty;
@@ -593,17 +590,17 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
-                List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+                List<CrossRef_AniDB_TvDB> xrefs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
                 if (xrefs == null) return string.Empty;
 
                 foreach (CrossRef_AniDB_TvDB xref in xrefs)
                 {
                     // check if there are default images used associated
-                    List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
+                    List<AniDB_Anime_DefaultImage> images = Repo.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                     foreach (AniDB_Anime_DefaultImage image in images)
                     {
                         if (image.ImageParentType == (int) ImageEntityType.TvDB_Banner ||
@@ -611,7 +608,7 @@ namespace Shoko.Server
                             image.ImageParentType == (int) ImageEntityType.TvDB_FanArt)
                         {
                             if (image.ImageParentID == xref.TvDBID)
-                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
+                                Repo.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                         }
                     }
 
@@ -631,12 +628,12 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(link.AnimeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(link.AnimeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(link.AnimeID);
+                List<AniDB_Anime_DefaultImage> images = Repo.AniDB_Anime_DefaultImage.GetByAnimeID(link.AnimeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) ImageEntityType.TvDB_Banner ||
@@ -644,7 +641,7 @@ namespace Shoko.Server
                         image.ImageParentType == (int) ImageEntityType.TvDB_FanArt)
                     {
                         if (image.ImageParentID == link.TvDBID)
-                            RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
+                            Repo.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
@@ -663,17 +660,17 @@ namespace Shoko.Server
         {
             try
             {
-                AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
+                AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(aniDBEpisodeID);
 
                 if (ep == null) return "Could not find Episode";
 
                 CrossRef_AniDB_TvDB_Episode_Override xref =
-                    RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBEpisodeID,
+                    Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBEpisodeID,
                         tvDBEpisodeID);
                 if (xref == null) return "Could not find Link!";
 
 
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(xref.CrossRef_AniDB_TvDB_Episode_OverrideID);
+                Repo.CrossRef_AniDB_TvDB_Episode_Override.Delete(xref.CrossRef_AniDB_TvDB_Episode_OverrideID);
 
                 return string.Empty;
             }
@@ -690,9 +687,9 @@ namespace Shoko.Server
             try
             {
                 if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
+                    return Repo.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
                 else
-                    return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
+                    return Repo.TvDB_ImagePoster.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -706,9 +703,9 @@ namespace Shoko.Server
             try
             {
                 if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
+                    return Repo.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
                 else
-                    return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
+                    return Repo.TvDB_ImageWideBanner.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -722,9 +719,9 @@ namespace Shoko.Server
             try
             {
                 if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
+                    return Repo.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
                 else
-                    return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
+                    return Repo.TvDB_ImageFanart.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -738,9 +735,9 @@ namespace Shoko.Server
             try
             {
                 if (tvDBID.HasValue)
-                    return RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
+                    return Repo.TvDB_Episode.GetBySeriesID(tvDBID.Value);
                 else
-                    return RepoFactory.TvDB_Episode.GetAll().ToList();
+                    return Repo.TvDB_Episode.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -758,9 +755,9 @@ namespace Shoko.Server
             try
             {
                 if (traktShowID.HasValue)
-                    return RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
+                    return Repo.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
                 else
-                    return RepoFactory.Trakt_Episode.GetAll().ToList();
+                    return Repo.Trakt_Episode.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -773,7 +770,7 @@ namespace Shoko.Server
         {
             try
             {
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
+                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(traktID);
                 if (show != null)
                     return GetAllTraktEpisodes(show.Trakt_ShowID);
 
@@ -810,14 +807,14 @@ namespace Shoko.Server
                 if (crossRef_AniDB_TraktV2ID.HasValue)
                 {
                     CrossRef_AniDB_TraktV2 xrefTemp =
-                        RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
+                        Repo.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
                     // delete the existing one if we are updating
                     TraktTVHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType) xrefTemp.AniDBStartEpisodeType,
                         xrefTemp.AniDBStartEpisodeNumber,
                         xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
                 }
 
-                CrossRef_AniDB_TraktV2 xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
+                CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
                     traktEpNumber, animeID,
                     aniEpType,
                     aniEpNumber);
@@ -825,7 +822,7 @@ namespace Shoko.Server
                 {
                     string msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep",
                         xref.AnimeID);
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(xref.AnimeID);
                     if (anime != null)
                     {
                         msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep",
@@ -851,7 +848,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TraktV2>().ToList();
+                return Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TraktV2>().ToList();
             }
             catch (Exception ex)
             {
@@ -864,7 +861,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_Trakt_Episode.GetByAnimeID(animeID);
+                return Repo.CrossRef_AniDB_Trakt_Episode.GetByAnimeID(animeID);
             }
             catch (Exception ex)
             {
@@ -896,22 +893,22 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = Repo.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) ImageEntityType.Trakt_Fanart ||
                         image.ImageParentType == (int) ImageEntityType.Trakt_Poster)
                     {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
+                        Repo.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
-                foreach (CrossRef_AniDB_TraktV2 xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
+                foreach (CrossRef_AniDB_TraktV2 xref in Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
                 {
                     TraktTVHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType) xref.AniDBStartEpisodeType,
                         xref.AniDBStartEpisodeNumber,
@@ -933,18 +930,18 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
 
                 if (ser == null) return "Could not find Series for Anime!";
 
                 // check if there are default images used associated
-                List<AniDB_Anime_DefaultImage> images = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
+                List<AniDB_Anime_DefaultImage> images = Repo.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                 foreach (AniDB_Anime_DefaultImage image in images)
                 {
                     if (image.ImageParentType == (int) ImageEntityType.Trakt_Fanart ||
                         image.ImageParentType == (int) ImageEntityType.Trakt_Poster)
                     {
-                        RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
+                        Repo.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                     }
                 }
 
@@ -968,7 +965,7 @@ namespace Shoko.Server
                 // refresh show info including season numbers from trakt
                 TraktV2ShowExtended tvshow = TraktTVHelper.GetShowInfoV2(traktID);
 
-                Trakt_Show show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
+                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(traktID);
                 if (show == null) return seasonNumbers;
 
                 foreach (Trakt_Season season in show.GetSeasons())
@@ -1078,9 +1075,9 @@ namespace Shoko.Server
         {
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled) return string.Empty;
+                if (!ServerSettings.Instance.Trakt_IsEnabled) return string.Empty;
 
-                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";
 
                 CommandRequest_TraktSyncCollectionSeries cmd =
@@ -1119,7 +1116,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetAll().Cast<CrossRef_AniDB_TraktV2>().ToList();
+                return Repo.CrossRef_AniDB_TraktV2.GetAll().Cast<CrossRef_AniDB_TraktV2>().ToList();
             }
             catch (Exception ex)
             {
@@ -1141,7 +1138,7 @@ namespace Shoko.Server
                 {
                     CL_Trakt_CommentUser comment = new CL_Trakt_CommentUser();
 
-                    Trakt_Friend traktFriend = RepoFactory.Trakt_Friend.GetByUsername(sht.user.username);
+                    Trakt_Friend traktFriend = Repo.Trakt_Friend.GetByUsername(sht.user.username);
 
                     // user details
                     comment.User = new CL_Trakt_User();
@@ -1213,7 +1210,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType) crossRefType);
+                return Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, (CrossRefType) crossRefType);
             }
             catch (Exception ex)
             {
@@ -1248,7 +1245,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
 
                 if (anime == null) return "Could not find Anime!";
 
@@ -1259,13 +1256,13 @@ namespace Shoko.Server
 
                         // check if there are default images used associated
                         List<AniDB_Anime_DefaultImage> images =
-                            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
+                            Repo.AniDB_Anime_DefaultImage.GetByAnimeID(animeID);
                         foreach (AniDB_Anime_DefaultImage image in images)
                         {
                             if (image.ImageParentType == (int) ImageEntityType.MovieDB_FanArt ||
                                 image.ImageParentType == (int) ImageEntityType.MovieDB_Poster)
                             {
-                                RepoFactory.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
+                                Repo.AniDB_Anime_DefaultImage.Delete(image.AniDB_Anime_DefaultImageID);
                             }
                         }
                         MovieDBHelper.RemoveLinkAniDBMovieDB(animeID);
@@ -1309,9 +1306,9 @@ namespace Shoko.Server
             try
             {
                 if (movieID.HasValue)
-                    return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
+                    return Repo.MovieDB_Poster.GetByMovieID(movieID.Value);
                 else
-                    return RepoFactory.MovieDB_Poster.GetAllOriginal();
+                    return Repo.MovieDB_Poster.GetAllOriginal();
             }
             catch (Exception ex)
             {
@@ -1325,9 +1322,9 @@ namespace Shoko.Server
             try
             {
                 if (movieID.HasValue)
-                    return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
+                    return Repo.MovieDB_Fanart.GetByMovieID(movieID.Value);
                 else
-                    return RepoFactory.MovieDB_Fanart.GetAllOriginal();
+                    return Repo.MovieDB_Fanart.GetAllOriginal();
             }
             catch (Exception ex)
             {

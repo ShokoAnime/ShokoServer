@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Nancy.Rest.Module;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
@@ -9,8 +9,10 @@ using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 
 namespace Shoko.Server.API.v1.Implementations
 {
-    public class ShokoServiceImplementationPlex : IShokoServerPlex
+    public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         CommonImplementation _impl = new CommonImplementation();
 
         public System.IO.Stream GetSupportImage(string name)
@@ -20,34 +22,34 @@ namespace Shoko.Server.API.v1.Implementations
 
         public MediaContainer GetFilters(string userId)
         {
-            return _impl.GetFilters(new PlexProvider {Nancy = RestModule.CurrentModule}, userId);
+            return _impl.GetFilters(new PlexProvider {Nancy = HttpContext}, userId);
         }
 
         public MediaContainer GetMetadata(string userId, int type, string id, string historyinfo, int? filterid)
         {
-            return _impl.GetMetadata(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, type, id, historyinfo,
+            return _impl.GetMetadata(new PlexProvider {Nancy = HttpContext}, userId, type, id, historyinfo,
                 false, filterid);
         }
 
         public PlexContract_Users GetUsers()
         {
-            return _impl.GetUsers(new PlexProvider {Nancy = RestModule.CurrentModule});
+            return _impl.GetUsers(new PlexProvider {Nancy = HttpContext});
         }
 
         public MediaContainer Search(string userId, int limit, string query)
         {
-            return _impl.Search(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, limit, query, false);
+            return _impl.Search(new PlexProvider {Nancy = HttpContext}, userId, limit, query, false);
         }
 
         public Response ToggleWatchedStatusOnEpisode(string userId, int epid, bool status)
         {
-            return _impl.ToggleWatchedStatusOnEpisode(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, epid,
+            return _impl.ToggleWatchedStatusOnEpisode(new PlexProvider {Nancy = HttpContext}, userId, epid,
                 status);
         }
 
         public Response Vote(string userId, int id, float votevalue, int votetype)
         {
-            return _impl.VoteAnime(new PlexProvider {Nancy = RestModule.CurrentModule}, userId, id, votevalue,
+            return _impl.VoteAnime(new PlexProvider {Nancy = HttpContext}, userId, id, votevalue,
                 votetype);
         }
 

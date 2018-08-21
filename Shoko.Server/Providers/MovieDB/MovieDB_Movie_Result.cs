@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Client;
 using TMDbLib.Objects.General;

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Enums;
@@ -25,7 +25,7 @@ namespace Shoko.Server.API.v2.Models.common
             filters = new List<Filters>();
         }
 
-        internal static Filters GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+        internal static Filters GenerateFromGroupFilter(HttpContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
             bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Filters f = new Filters
@@ -35,7 +35,7 @@ namespace Shoko.Server.API.v2.Models.common
             };
 
             var _ = new List<string>();
-            var gfs = RepoFactory.GroupFilter.GetByParentID(f.id).AsParallel()
+            var gfs = Repo.GroupFilter.GetByParentID(f.id).AsParallel()
                 // Not invisible in clients
                 .Where(a => a.InvisibleInClients == 0 &&
                             // and Has groups or is a directory
@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (_.Count > 0)
             {
-                gfs = gfs.Concat(_.Select(tag => RepoFactory.GroupFilter.GetAll().FirstOrDefault(a =>
+                gfs = gfs.Concat(_.Select(tag => Repo.GroupFilter.GetAll().FirstOrDefault(a =>
                 {
                     if (a.FilterType != (int) GroupFilterType.Tag) return false;
                     if (tag.Equals("Original Work"))

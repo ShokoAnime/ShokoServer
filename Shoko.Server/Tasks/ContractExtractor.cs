@@ -5,8 +5,6 @@ using System.IO.Compression;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Criterion;
@@ -180,27 +178,27 @@ namespace Shoko.Server.Tasks
 
             // We should be able to get a bit of a perf boost using parallelism. However, since we're locking on
             // writing to the zip archive, using any more than 2 threads would be pointless in this case
-            Parallel.ForEach(records, new ParallelOptions {MaxDegreeOfParallelism = 2}, record =>
-            {
-                string zipEntryName = record[0].ToString();
-                int contractLen = (int) record[1];
-                byte[] contractBinary = (byte[]) record[2];
+            Parallel.ForEach(records, new ParallelOptions { MaxDegreeOfParallelism = 2 }, record =>
+              {
+                  string zipEntryName = record[0].ToString();
+                  int contractLen = (int)record[1];
+                  byte[] contractBinary = (byte[])record[2];
 
-                if (contractLen > 0 && contractBinary != null)
-                {
-                    TContract contract = CompressionHelper.DeserializeObject<TContract>(contractBinary, contractLen);
+                  if (contractLen > 0 && contractBinary != null)
+                  {
+                      TContract contract = CompressionHelper.DeserializeObject<TContract>(contractBinary, contractLen);
 
-                    lock (zipLock)
-                    {
-                        ZipArchiveEntry archiveEntry = zip.CreateEntry(zipEntryName, CompressionLevel.Optimal);
+                      lock (zipLock)
+                      {
+                          ZipArchiveEntry archiveEntry = zip.CreateEntry(zipEntryName, CompressionLevel.Optimal);
 
-                        using (StreamWriter writer = new StreamWriter(archiveEntry.Open(), Encoding.UTF8))
-                        {
-                            jsonSerializer.Serialize(writer, contract);
-                        }
-                    }
-                }
-            });
+                          using (StreamWriter writer = new StreamWriter(archiveEntry.Open(), Encoding.UTF8))
+                          {
+                              jsonSerializer.Serialize(writer, contract);
+                          }
+                      }
+                  }
+              });
         }
     }
 }

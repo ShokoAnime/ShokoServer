@@ -124,7 +124,7 @@ namespace Shoko.Server.Commands
 
         public CommandProcessorGeneral()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             workerCommands.WorkerReportsProgress = true;
             workerCommands.WorkerSupportsCancellation = true;
@@ -134,7 +134,7 @@ namespace Shoko.Server.Commands
 
         void WorkerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             CurrentCommand = null;
             processingCommands = false;
@@ -144,12 +144,12 @@ namespace Shoko.Server.Commands
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
 
-            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
+            QueueCount = Repo.CommandRequest.GetQueuedCommandCountGeneral();
         }
 
         public void Init()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             processingCommands = true;
             QueueState = new QueueStateStruct
@@ -172,7 +172,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public void NotifyOfNewCommand()
         {
-            QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
+            QueueCount = Repo.CommandRequest.GetQueuedCommandCountGeneral();
             // if the worker is busy, it will pick up the next command from the DB
             // do not pick new command if cancellation is requested
             if (processingCommands || workerCommands.CancellationPending)
@@ -206,7 +206,7 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestGeneral();
+                CommandRequest crdb = Repo.CommandRequest.GetNextDBCommandRequestGeneral();
                 if (crdb == null)
                 {
                     if (QueueCount > 0 && !ShokoService.AnidbProcessor.IsHttpBanned && !ShokoService.AnidbProcessor.IsUdpBanned)
@@ -246,9 +246,9 @@ namespace Shoko.Server.Commands
                 }
 
                 logger.Trace("Deleting command request: {0}", crdb.CommandID);
-                RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
+                Repo.CommandRequest.Delete(crdb.CommandRequestID);
 
-                QueueCount = RepoFactory.CommandRequest.GetQueuedCommandCountGeneral();
+                QueueCount = Repo.CommandRequest.GetQueuedCommandCountGeneral();
             }
         }
     }

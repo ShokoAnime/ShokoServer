@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>Shoko.UI</RootNamespace>
     <AssemblyName>ShokoServer</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -100,16 +100,19 @@
     <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
     </Reference>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\NLog.4.4.11\lib\net45\NLog.dll</HintPath>
+    <Reference Include="NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.5.0.0-beta11\lib\net45\NLog.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net" />
     <Reference Include="System.Runtime" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
@@ -298,11 +301,11 @@
       <Name>Shoko.Commons</Name>
     </ProjectReference>
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
-      <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
+      <Project>{F73F9DF6-580A-4341-B516-8717626F9D42}</Project>
       <Name>Shoko.Models</Name>
     </ProjectReference>
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj">
-      <Project>{da8f0783-0f82-4106-9860-6f09ba2ea522}</Project>
+      <Project>{DA8F0783-0F82-4106-9860-6F09BA2EA522}</Project>
       <Name>Shoko.Server</Name>
     </ProjectReference>
   </ItemGroup>
@@ -535,8 +538,10 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
       xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-      xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y
-      xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
+
+REM For now, hasher isn't really in the solution.
+REM      xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y
+REM      xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
 
       goto :exit
       if $(ConfigurationName) == Debug goto :exit
@@ -555,7 +560,7 @@
       rmdir Merge
 
       :exit
-      </PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

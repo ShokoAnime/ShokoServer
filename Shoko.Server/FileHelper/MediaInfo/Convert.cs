@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Runtime;
 using System.Threading;
-using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Pri.LongPath;
 
 
 namespace Shoko.Server.FileHelper.MediaInfo
@@ -688,7 +685,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         m.OptimizedForStreaming = 0;
                         byte[] buffer = new byte[8];
                         FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
-                        if (fsr == null || !fsr.IsOk)
+                        if (fsr == null || fsr.Status != NutzCode.CloudFileSystem.Status.Ok)
                             return null;
                         System.IO.Stream fs = fsr.Result;
                         fs.Read(buffer, 0, 4);

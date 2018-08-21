@@ -4,7 +4,6 @@ using System.IO;
 using System.Xml;
 using Shoko.Server;
 using Shoko.Server.Providers.Azure;
-using Shoko.Models.Azure;
 using NLog;
 
 namespace AniDBAPI.Commands

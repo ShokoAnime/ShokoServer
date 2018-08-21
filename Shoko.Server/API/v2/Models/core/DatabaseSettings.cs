@@ -1,9 +1,11 @@
-﻿namespace Shoko.Server.API.v2.Models.core
+﻿using Shoko.Server.Databases;
+
+namespace Shoko.Server.API.v2.Models.core
 {
     public class DatabaseSettings
     {
         // case invariant, no spaces representation of db type
-        public string db_type { get; set; }
+        public DatabaseTypes? db_type { get; set; }
 
         public string sqlserver_databaseserver { get; set; }
 

@@ -16,7 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Infralution.Localization.Wpf;
+//using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using NLog;
@@ -26,6 +26,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Commands.Azure;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.UI.Forms;
@@ -54,7 +55,7 @@ namespace Shoko.UI
         {
             InitializeComponent();
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
             ShokoServer.Instance.OAuthProvider=new AuthProvider(this);
             if (!ShokoServer.Instance.StartUpServer())
             {
@@ -119,7 +120,7 @@ namespace Shoko.UI
 
             Loaded += MainWindow_Loaded;
 
-            txtServerPort.Text = ServerSettings.JMMServerPort;
+            txtServerPort.Text = ServerSettings.Instance.JMMServerPort.ToString(CultureInfo.InvariantCulture);
 
             btnToolbarHelp.Click += btnToolbarHelp_Click;
             btnApplyServerPort.Click += btnApplyServerPort_Click;
@@ -160,7 +161,7 @@ namespace Shoko.UI
             InitCulture();
             Instance = this;
 
-            if (!ServerSettings.FirstRun)
+            if (!ServerSettings.Instance.FirstRun)
             {
                 logger.Info("Already been set up... Initializing DB...");
                 ShokoServer.RunWorkSetupDB();
@@ -179,7 +180,8 @@ namespace Shoko.UI
                         MessageBoxButtons.YesNo);
                 if (dr == System.Windows.Forms.DialogResult.No) args.Cancel = true;
             };
-            ServerSettings.LocateFile += (sender, args) =>
+            /* This no longer exists.
+            ServerSettings.Instance.LocateFile += (sender, args) =>
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog();
                 openFileDialog.Filter = @"JMM config|JMMServer.exe.config;settings.json";
@@ -188,7 +190,7 @@ namespace Shoko.UI
                 {
                     args.FileName = openFileDialog.FileName;
                 }
-            };
+            };*/
 
             Utils.ErrorMessage +=
                 (sender, args) => MessageBox.Show(this, args.Message, args.Title ?? (args.IsError ? "Error" : "Message"), MessageBoxButton.OK, args.IsError ? MessageBoxImage.Error : MessageBoxImage.Information);
@@ -225,16 +227,6 @@ namespace Shoko.UI
                 LoginWindow.Owner = this;
                 LoginWindow.ShowDialog();
             });
-
-            ServerSettings.MigrationStarted += (a, e) =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    // Display the migration form.
-                    var migrationForm = new MigrationForm();
-                    migrationForm.Show();
-                });
-            };
 
             ShokoServer.Instance.
                 DBSetupCompleted += DBSetupCompleted;
@@ -276,7 +268,7 @@ namespace Shoko.UI
             string imagePath = ServerSettings.DefaultImagePath;
             if (!Directory.Exists(imagePath))
                 Directory.CreateDirectory(imagePath);
-            ServerSettings.ImagesPath = imagePath;
+            ServerSettings.Instance.ImagesPath = imagePath;
         }
 
         public static MainWindow Instance { get; private set; }
@@ -309,7 +301,7 @@ namespace Shoko.UI
 
         void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = RepoFactory.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
             int cnt = 0;
             foreach (SVR_AniDB_Anime anime in allAnime)
             {
@@ -334,7 +326,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                RepoFactory.CommandRequest.ClearImageQueue();
+                Repo.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
             });
 
@@ -360,7 +352,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                RepoFactory.CommandRequest.ClearGeneralQueue();
+                Repo.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 
@@ -386,7 +378,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                RepoFactory.CommandRequest.ClearHasherQueue();
+                Repo.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 
@@ -430,7 +422,7 @@ namespace Shoko.UI
 
         void toggleMinimizeOnStartup(object sender, RoutedEventArgs e)
         {
-            ServerSettings.MinimizeOnStartup = !ServerSettings.MinimizeOnStartup;
+            ServerSettings.Instance.MinimizeOnStartup = !ServerSettings.Instance.MinimizeOnStartup;
             ServerState.Instance.MinOnStartup = !ServerState.Instance.MinOnStartup;
             ServerState.Instance.MaxOnStartup = !ServerState.Instance.MaxOnStartup;
         }
@@ -473,7 +465,7 @@ namespace Shoko.UI
         {
             try
             {
-                string currentCulture = ServerSettings.Culture;
+                string currentCulture = ServerSettings.Instance.Culture;
 
                 cboLanguages.ItemsSource = UserCulture.SupportedLanguages;
 
@@ -499,15 +491,15 @@ namespace Shoko.UI
         {
             if (cboLanguages.SelectedItem == null) return;
             UserCulture ul = cboLanguages.SelectedItem as UserCulture;
-            bool isLanguageChanged = ServerSettings.Culture != ul.Culture;
+            bool isLanguageChanged = ServerSettings.Instance.Culture != ul.Culture;
             DialogResult result;
 
             try
             {
                 CultureInfo ci = new CultureInfo(ul.Culture);
                 CultureInfo.DefaultThreadCurrentUICulture = ci;
-                CultureManager.UICulture = ci;
-                ServerSettings.Culture = ul.Culture;
+                //CultureManager.UICulture = ci;
+                ServerSettings.Instance.Culture = ul.Culture;
                 if (isLanguageChanged)
                 {
                     result = System.Windows.Forms.MessageBox.Show(Commons.Properties.Resources.Language_Info,
@@ -543,7 +535,7 @@ namespace Shoko.UI
             OpenFileDialog dialog = new OpenFileDialog();
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                ServerSettings.VLCLocation = dialog.FileName;
+                ServerSettings.Instance.VLCLocation = dialog.FileName;
             }
         }
 
@@ -557,7 +549,7 @@ namespace Shoko.UI
                 //CommonFileDialogResult result = dialog.ShowDialog();
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    ServerSettings.ImagesPath = dialog.FileName;
+                    ServerSettings.Instance.ImagesPath = dialog.FileName;
                 }
             }
             else
@@ -565,7 +557,7 @@ namespace Shoko.UI
                 System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    ServerSettings.ImagesPath = dialog.SelectedPath;
+                    ServerSettings.Instance.ImagesPath = dialog.SelectedPath;
                 }
             }
         }
@@ -583,7 +575,7 @@ namespace Shoko.UI
 
                 if (ServerState.Instance.DatabaseIsSQLite)
                 {
-                    ServerSettings.DatabaseType = "SQLite";
+                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.Sqlite;
                 }
                 else if (ServerState.Instance.DatabaseIsSQLServer)
                 {
@@ -599,11 +591,11 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.DatabaseType = "SQLServer";
-                    ServerSettings.DatabaseName = txtMSSQL_DatabaseName.Text;
-                    ServerSettings.DatabasePassword = txtMSSQL_Password.Password;
-                    ServerSettings.DatabaseServer = cboMSSQLServerList.Text;
-                    ServerSettings.DatabaseUsername = txtMSSQL_Username.Text;
+                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.SqlServer;
+                    ServerSettings.Instance.DatabaseName = txtMSSQL_DatabaseName.Text;
+                    ServerSettings.Instance.DatabasePassword = txtMSSQL_Password.Password;
+                    ServerSettings.Instance.DatabaseServer = cboMSSQLServerList.Text;
+                    ServerSettings.Instance.DatabaseUsername = txtMSSQL_Username.Text;
                 }
                 else if (ServerState.Instance.DatabaseIsMySQL)
                 {
@@ -619,11 +611,11 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.DatabaseType = "MySQL";
-                    ServerSettings.MySQL_SchemaName = txtMySQL_DatabaseName.Text;
-                    ServerSettings.MySQL_Password = txtMySQL_Password.Password;
-                    ServerSettings.MySQL_Hostname = txtMySQL_ServerAddress.Text;
-                    ServerSettings.MySQL_Username = txtMySQL_Username.Text;
+                    ServerSettings.Instance.DatabaseType = Server.Databases.DatabaseTypes.MySql;
+                    ServerSettings.Instance.MySQL_SchemaName = txtMySQL_DatabaseName.Text;
+                    ServerSettings.Instance.MySQL_Password = txtMySQL_Password.Password;
+                    ServerSettings.Instance.MySQL_Hostname = txtMySQL_ServerAddress.Text;
+                    ServerSettings.Instance.MySQL_Username = txtMySQL_Username.Text;
                 }
 
                 logger.Info("Initializing DB...");
@@ -648,17 +640,17 @@ namespace Shoko.UI
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 1:
-                    bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.DatabaseName) ||
-                                            !string.IsNullOrEmpty(ServerSettings.DatabasePassword)
-                                            || !string.IsNullOrEmpty(ServerSettings.DatabaseServer) ||
-                                            !string.IsNullOrEmpty(ServerSettings.DatabaseUsername);
+                    bool anySettingsMSSQL = !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseName) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.DatabasePassword)
+                                            || !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseServer) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.DatabaseUsername);
                     if (anySettingsMSSQL)
                     {
-                        txtMSSQL_DatabaseName.Text = ServerSettings.DatabaseName;
-                        txtMSSQL_Password.Password = ServerSettings.DatabasePassword;
+                        txtMSSQL_DatabaseName.Text = ServerSettings.Instance.DatabaseName;
+                        txtMSSQL_Password.Password = ServerSettings.Instance.DatabasePassword;
 
-                        cboMSSQLServerList.Text = ServerSettings.DatabaseServer;
-                        txtMSSQL_Username.Text = ServerSettings.DatabaseUsername;
+                        cboMSSQLServerList.Text = ServerSettings.Instance.DatabaseServer;
+                        txtMSSQL_Username.Text = ServerSettings.Instance.DatabaseUsername;
                     }
                     else
                     {
@@ -672,16 +664,16 @@ namespace Shoko.UI
                     ServerState.Instance.DatabaseIsMySQL = false;
                     break;
                 case 2:
-                    bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.MySQL_SchemaName) ||
-                                            !string.IsNullOrEmpty(ServerSettings.MySQL_Password)
-                                            || !string.IsNullOrEmpty(ServerSettings.MySQL_Hostname) ||
-                                            !string.IsNullOrEmpty(ServerSettings.MySQL_Username);
+                    bool anySettingsMySQL = !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_SchemaName) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Password)
+                                            || !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Hostname) ||
+                                            !string.IsNullOrEmpty(ServerSettings.Instance.MySQL_Username);
                     if (anySettingsMySQL)
                     {
-                        txtMySQL_DatabaseName.Text = ServerSettings.MySQL_SchemaName;
-                        txtMySQL_Password.Password = ServerSettings.MySQL_Password;
-                        txtMySQL_ServerAddress.Text = ServerSettings.MySQL_Hostname;
-                        txtMySQL_Username.Text = ServerSettings.MySQL_Username;
+                        txtMySQL_DatabaseName.Text = ServerSettings.Instance.MySQL_SchemaName;
+                        txtMySQL_Password.Password = ServerSettings.Instance.MySQL_Password;
+                        txtMySQL_ServerAddress.Text = ServerSettings.Instance.MySQL_Hostname;
+                        txtMySQL_Username.Text = ServerSettings.Instance.MySQL_Username;
                     }
                     else
                     {
@@ -739,11 +731,11 @@ namespace Shoko.UI
 
         private void ShowDatabaseSetup()
         {
-            if (ServerSettings.DatabaseType.Trim().Equals("SQLite", StringComparison.InvariantCultureIgnoreCase))
+            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.Sqlite)
                 cboDatabaseType.SelectedIndex = 0;
-            if (ServerSettings.DatabaseType.Trim().Equals("SQLServer", StringComparison.InvariantCultureIgnoreCase))
+            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.SqlServer)
                 cboDatabaseType.SelectedIndex = 1;
-            if (ServerSettings.DatabaseType.Trim().Equals("MySQL", StringComparison.InvariantCultureIgnoreCase))
+            if (ServerSettings.Instance.DatabaseType == Server.Databases.DatabaseTypes.MySql)
                 cboDatabaseType.SelectedIndex = 2;
             cboDatabaseType.IsEnabled = true;
             btnSaveDatabaseSettings.IsEnabled = true;
@@ -767,7 +759,8 @@ namespace Shoko.UI
         #region MyAnime2 Migration
         void btnImportManualLinks_Click(object sender, RoutedEventArgs e)
         {
-            if (ShokoServer.IsMyAnime2WorkerBusy())
+            //TODO: Work out if we need MyAnime2
+            if (/*ShokoServer.IsMyAnime2WorkerBusy()*/ true)
             {
                 MessageBox.Show(Commons.Properties.Resources.Server_Import,
                     Commons.Properties.Resources.Error,
@@ -783,7 +776,7 @@ namespace Shoko.UI
             ofd.ShowDialog();
             if (!string.IsNullOrEmpty(ofd.FileName))
             {
-                ShokoServer.RunMyAnime2Worker(ofd.FileName);
+                //ShokoServer.RunMyAnime2Worker(ofd.FileName);
             }
         }
 
@@ -843,7 +836,7 @@ namespace Shoko.UI
         {
             //ServerInfo.Instance.RefreshImportFolders();
 
-            if (ServerSettings.MinimizeOnStartup) MinimizeToTray();
+            if (ServerSettings.Instance.MinimizeOnStartup) MinimizeToTray();
 
             tabControl1.SelectedIndex = 4; // Settings
 
@@ -851,7 +844,7 @@ namespace Shoko.UI
 
             Utils.ClearAutoUpdateCache();
 
-            if (ServerSettings.FirstRun)
+            if (ServerSettings.Instance.FirstRun)
             {
                 logger.Info("Initializing DB...");
                 ShokoServer.RunWorkSetupDB();
@@ -894,7 +887,7 @@ namespace Shoko.UI
                 if (string.IsNullOrEmpty(IP))
                     IP = "127.0.0.1";
 
-                string url = $"http://{IP}:{ServerSettings.JMMServerPort}";
+                string url = $"http://{IP}:{ServerSettings.Instance.JMMServerPort}";
                 Process.Start(url);
             }
             catch (Exception ex)
@@ -1010,7 +1003,7 @@ namespace Shoko.UI
         void btnSyncTrakt_Click(object sender, RoutedEventArgs e)
         {
             Cursor = Cursors.Wait;
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Instance.Trakt_AuthToken))
             {
                 CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
                 cmd.Save();
@@ -1148,7 +1141,7 @@ namespace Shoko.UI
                 if (string.IsNullOrEmpty(IP))
                     IP = "127.0.0.1";
 
-                string url = $"http://{IP}:{ServerSettings.JMMServerPort}";
+                string url = $"http://{IP}:{ServerSettings.Instance.JMMServerPort}";
                 Process.Start(url);
             }
             catch (Exception ex)

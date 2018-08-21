@@ -2,7 +2,6 @@
 using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -15,9 +14,6 @@ namespace Shoko.Server
         private static bool _blnLogToFileOK = false;
         private static bool _blnLogToScreenshotOK = false;
         private static bool _blnLogToEventLogOK;
-
-        private static System.Drawing.Imaging.ImageFormat _ScreenshotImageFormat =
-            System.Drawing.Imaging.ImageFormat.Png;
 
         private static string _strScreenshotFullPath = string.Empty;
 
@@ -433,7 +429,6 @@ namespace Shoko.Server
             string _strHowUserAffected = null;
             const string _strWhatUserCanDo =
                 "Restart (app), and try repeating your last action. Try alternative methods of performing the same action.";
-
             _strHowUserAffected = "The action you requested was not performed.";*/
 
 
@@ -747,41 +742,6 @@ namespace Shoko.Server
             _with6.Append(Environment.NewLine);
 
             return objStringBuilder.ToString();
-        }
-
-        //--
-        //-- returns ImageCodecInfo for the specified MIME type
-        //--
-        private static ImageCodecInfo GetEncoderInfo(string strMimeType)
-        {
-            int j = 0;
-            ImageCodecInfo[] objImageCodecInfo = ImageCodecInfo.GetImageEncoders();
-            
-            while (j < objImageCodecInfo.Length)
-            {
-                if (objImageCodecInfo[j].MimeType == strMimeType)
-                {
-                    return objImageCodecInfo[j];
-                }
-                j += 1;
-            }
-
-            return null;
-        }
-
-        //--
-        //-- save bitmap object to JPEG of specified quality level
-        //--
-        private static void BitmapToJPEG(Bitmap objBitmap, string strFilename, long lngCompression = 75)
-        {
-            System.Drawing.Imaging.EncoderParameters objEncoderParameters =
-                new System.Drawing.Imaging.EncoderParameters(1);
-            System.Drawing.Imaging.ImageCodecInfo objImageCodecInfo = GetEncoderInfo("image/jpeg");
-
-            objEncoderParameters.Param[0] =
-                new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality,
-                    lngCompression);
-            objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
         }
 
         //--

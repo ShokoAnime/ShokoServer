@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿#if false
 using Nancy.Rest.Module;
 
 namespace Shoko.Server.API.v1
@@ -15,3 +11,4 @@ namespace Shoko.Server.API.v1
         }
     }
 }
+#endif

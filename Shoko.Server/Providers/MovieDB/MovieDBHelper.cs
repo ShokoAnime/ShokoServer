@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Shoko.Models.Server;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
@@ -27,30 +24,21 @@ namespace Shoko.Server.Providers.MovieDB
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private static string apiKey = "8192e8032758f0ef4f7caa1ab7b32dd3";
 
-        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages, bool isTrakt)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                SaveMovieToDatabase(session, searchResult, saveImages, isTrakt);
-            }
-        }
-
-        public static void SaveMovieToDatabase(ISession session, MovieDB_Movie_Result searchResult, bool saveImages,
+        public static void SaveMovieToDatabase(MovieDB_Movie_Result searchResult, bool saveImages,
             bool isTrakt)
         {
-            ISessionWrapper sessionWrapper = session.Wrap();
 
             // save to the DB
-            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(searchResult.MovieID);
-            if (movie == null) movie = new MovieDB_Movie();
-            movie.Populate(searchResult);
-
-            // Only save movie info if source is not trakt, this presents adding tv shows as movies
-            // Needs better fix later on
-
-            if (!isTrakt)
+            MovieDB_Movie movie;
+            using (var upd = Repo.MovieDb_Movie.BeginAddOrUpdate(() => Repo.MovieDb_Movie.GetByMovieID(searchResult.MovieID).FirstOrDefault()))
             {
-                RepoFactory.MovieDb_Movie.Save(movie);
+                upd.Entity.Populate_RA(searchResult);
+                // Only save movie info if source is not trakt, this presents adding tv shows as movies
+                // Needs better fix later on
+                if (!isTrakt)
+                    movie = upd.Commit();
+                else
+                    movie = upd.Entity;
             }
 
             if (!saveImages) return;
@@ -63,41 +51,42 @@ namespace Shoko.Server.Providers.MovieDB
             {
                 if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    MovieDB_Poster poster = RepoFactory.MovieDB_Poster.GetByOnlineID(session, img.URL);
-                    if (poster == null) poster = new MovieDB_Poster();
-                    poster.Populate(img, movie.MovieId);
-                    RepoFactory.MovieDB_Poster.Save(poster);
-
+                    MovieDB_Poster poster;
+                    using (var upd = Repo.MovieDB_Poster.BeginAddOrUpdate(() => Repo.MovieDB_Poster.GetByOnlineID(img.URL)))
+                    {
+                        upd.Entity.Populate_RA(img, movie.MovieId);
+                        poster = upd.Commit();
+                    }
                     if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && File.Exists(poster.GetFullImagePath()))
                         numPostersDownloaded++;
                 }
                 else
                 {
                     // fanart (backdrop)
-                    MovieDB_Fanart fanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(session, img.URL);
-                    if (fanart == null) fanart = new MovieDB_Fanart();
-                    fanart.Populate(img, movie.MovieId);
-                    RepoFactory.MovieDB_Fanart.Save(fanart);
-
+                    MovieDB_Fanart fanart;
+                    using (var upd = Repo.MovieDB_Fanart.BeginAddOrUpdate(() => Repo.MovieDB_Fanart.GetByOnlineID(img.URL)))
+                    {
+                        upd.Entity.Populate_RA(img, movie.MovieId);
+                        fanart = upd.Commit();
+                    }
                     if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()))
                         numFanartDownloaded++;
                 }
             }
 
             // download the posters
-            if (ServerSettings.MovieDB_AutoPosters || isTrakt)
+            if (ServerSettings.Instance.MovieDB_AutoPosters || isTrakt)
             {
-                foreach (MovieDB_Poster poster in RepoFactory.MovieDB_Poster.GetByMovieID(sessionWrapper, movie.MovieId)
-                )
+                foreach (MovieDB_Poster poster in Repo.MovieDB_Poster.GetByMovieID(movie.MovieId))
                 {
-                    if (numPostersDownloaded < ServerSettings.MovieDB_AutoPostersAmount)
+                    if (numPostersDownloaded < ServerSettings.Instance.MovieDB_AutoPostersAmount)
                     {
                         // download the image
                         if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
                                 ImageEntityType.MovieDB_Poster, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numPostersDownloaded++;
                         }
                     }
@@ -108,26 +97,25 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(poster.GetFullImagePath()))
                         {
-                            RepoFactory.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
+                            Repo.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
                         }
                     }
                 }
             }
 
             // download the fanart
-            if (ServerSettings.MovieDB_AutoFanart || isTrakt)
+            if (ServerSettings.Instance.MovieDB_AutoFanart || isTrakt)
             {
-                foreach (MovieDB_Fanart fanart in RepoFactory.MovieDB_Fanart.GetByMovieID(sessionWrapper, movie.MovieId)
-                )
+                foreach (MovieDB_Fanart fanart in Repo.MovieDB_Fanart.GetByMovieID(movie.MovieId))
                 {
-                    if (numFanartDownloaded < ServerSettings.MovieDB_AutoFanartAmount)
+                    if (numFanartDownloaded < ServerSettings.Instance.MovieDB_AutoFanartAmount)
                     {
                         // download the image
                         if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
                                 ImageEntityType.MovieDB_FanArt, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numFanartDownloaded++;
                         }
                     }
@@ -138,7 +126,7 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(fanart.GetFullImagePath()))
                         {
-                            RepoFactory.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
+                            Repo.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
                         }
                     }
                 }
@@ -201,15 +189,9 @@ namespace Shoko.Server.Providers.MovieDB
             return results;
         }
 
-        public static void UpdateMovieInfo(int movieID, bool saveImages)
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                UpdateMovieInfo(session, movieID, saveImages);
-            }
-        }
 
-        public static void UpdateMovieInfo(ISession session, int movieID, bool saveImages)
+
+        public static void UpdateMovieInfo(int movieID, bool saveImages)
         {
             try
             {
@@ -221,7 +203,7 @@ namespace Shoko.Server.Providers.MovieDB
                 searchResult.Populate(movie, imgs);
 
                 // save to the DB
-                SaveMovieToDatabase(session, searchResult, saveImages, false);
+                SaveMovieToDatabase(searchResult, saveImages, false);
             }
             catch (Exception ex)
             {
@@ -234,33 +216,31 @@ namespace Shoko.Server.Providers.MovieDB
             // check if we have this information locally
             // if not download it now
 
-            MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
+            MovieDB_Movie movie = Repo.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
             if (movie == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 UpdateMovieInfo(movieDBID, false);
-                movie = RepoFactory.MovieDb_Movie.GetByOnlineID(movieDBID);
+                movie = Repo.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
                 if (movie == null) return;
             }
 
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
+            CrossRef_AniDB_Other xref;
+            using (var upd = Repo.CrossRef_AniDB_Other.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
+            {
+                upd.Entity.AnimeID= animeID;
+                if (fromWebCache)
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
+                else
+                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
 
-            CrossRef_AniDB_Other xref =
-                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            if (xref == null)
-                xref = new CrossRef_AniDB_Other();
-
-            xref.AnimeID = animeID;
-            if (fromWebCache)
-                xref.CrossRefSource = (int) CrossRefSource.WebCache;
-            else
-                xref.CrossRefSource = (int) CrossRefSource.User;
-
-            xref.CrossRefType = (int) CrossRefType.MovieDB;
-            xref.CrossRefID = movieDBID.ToString();
-            RepoFactory.CrossRef_AniDB_Other.Save(xref);
+                upd.Entity.CrossRefType = (int)CrossRefType.MovieDB;
+                upd.Entity.CrossRefID = movieDBID.ToString();
+                xref = upd.Commit();
+            }          
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
@@ -272,11 +252,10 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref =
-                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
+            Repo.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
 
             CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID,
                 CrossRefType.MovieDB);
@@ -285,7 +264,7 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {

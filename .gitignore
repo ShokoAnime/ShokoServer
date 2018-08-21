@@ -4,28 +4,34 @@
 # User-specific files
 *.suo
 *.user
+*.userosscache
 *.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
 
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-x64/
-x86/
-build/
+[Xx]64/
+[Xx]86/
+[Bb]uild/
 bld/
 [Bb]in/
 [Oo]bj/
 
-# Roslyn cache directories
-*.ide/
+# Visual Studio 2015 cache/options directory
+.vs/
+# Uncomment if you have tasks that create the project's static files in wwwroot
+#wwwroot/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 
-#NUNIT
+# NUNIT
 *.VisualState.xml
 TestResult.xml
 
@@ -33,6 +39,10 @@ TestResult.xml
 [Dd]ebugPS/
 [Rr]eleasePS/
 dlldata.c
+
+# DNX
+project.lock.json
+artifacts/
 
 *_i.c
 *_p.c
@@ -66,14 +76,17 @@ _Chutzpah*
 ipch/
 *.aps
 *.ncb
+*.opendb
 *.opensdf
 *.sdf
 *.cachefile
+*.VC.db
 
 # Visual Studio profiler
 *.psess
 *.vsp
 *.vspx
+*.sap
 
 # TFS 2012 Local Workspace
 $tf/
@@ -86,7 +99,7 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
-# JustCode is a .NET coding addin-in
+# JustCode is a .NET coding add-in
 .JustCode
 
 # TeamCity is a build add-in
@@ -98,6 +111,7 @@ _TeamCity*
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml
+nCrunchTemp_*
 
 # MightyMoose
 *.mm.*
@@ -125,9 +139,11 @@ publish/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
-# TODO: Comment the next line if you want to checkin your web deploy settings 
-# but database connection strings (with potential passwords) will be unencrypted
-*.pubxml
+
+# TODO: Un-comment the next line if you do not want to checkin
+# your web deploy settings because they may include unencrypted
+# passwords
+#*.pubxml
 *.publishproj
 
 # NuGet Packages
@@ -136,19 +152,31 @@ publish/
 **/packages/*
 # except build/, which is used as an MSBuild target.
 !**/packages/build/
-# If using the old MSBuild-Integrated Package Restore, uncomment this:
+# Uncomment if necessary however generally it will be regenerated when needed
 #!**/packages/repositories.config
+# NuGet v3's project.json files produces more ignoreable files
+*.nuget.props
+*.nuget.targets
 
-# Windows Azure Build Output
+# Microsoft Azure Build Output
 csx/
 *.build.csdef
 
+# Microsoft Azure Emulator
+ecf/
+rcf/
+
 # Windows Store app package directory
 AppPackages/
+BundleArtifacts/
+
+# Visual Studio cache files
+# files ending in .cache can be ignored
+*.[Cc]ache
+# but keep track of directories ending in .cache
+!*.[Cc]ache/
 
 # Others
-sql/
-*.Cache
 ClientBin/
 [Ss]tyle[Cc]op.*
 ~$*
@@ -158,7 +186,7 @@ ClientBin/
 *.pfx
 *.publishsettings
 node_modules/
-/.vs/
+orleans.codegen.cs
 
 # RIA/Silverlight projects
 Generated_Code/

@@ -27,7 +27,7 @@ using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server
 {
-    public static class ServerSettings
+    public static class ServerSettings_Legacy
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -99,10 +99,12 @@ namespace Shoko.Server
                 try
                 {
                     //Reconfigure log file to applicationpath
-                    var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-                    target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
-                    LogManager.ReconfigExistingLoggers();
-
+                    var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
+                    if (target != null)
+                    {
+                        target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
+                        LogManager.ReconfigExistingLoggers();
+                    }
 
                     disabledSave = true;
                     bool startedWithFreshConfig = false;
@@ -726,19 +728,19 @@ namespace Shoko.Server
             set => Set("DatabaseBackupDirectory", value);
         }
 
-        public static string JMMServerPort
+        public static int JMMServerPort
         {
             get
             {
                 string serverPort = Get("JMMServerPort");
-                if (string.IsNullOrEmpty(serverPort))
+                if (!int.TryParse(serverPort, out int outPort))
                 {
-                    serverPort = "8111";
-                    Set("JMMServerPort", serverPort);
+                    outPort = 8111;
+                    Set("JMMServerPort", "8111");
                 }
-                return serverPort;
+                return outPort;
             }
-            set => Set("JMMServerPort", value);
+            set => Set("JMMServerPort", value.ToString());
         }
 
 
@@ -1885,6 +1887,15 @@ namespace Shoko.Server
             set { Set(nameof(AniDB_MaxRelationDepth), value.ToString()); }
         }
 
+        public static bool TraceLog {
+            get
+            {
+                if (!bool.TryParse(Get(nameof(TraceLog)), out bool val)) return false;
+                return val;
+            }
+            set { Set(nameof(TraceLog), value.ToString()); }
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings
@@ -2009,7 +2020,7 @@ namespace Shoko.Server
             {
                 logger.Warn($"Error in log (server version lookup): {ex}");
             }
-
+            /*
             try
             {
                 if (DatabaseFactory.Instance != null)
@@ -2020,7 +2031,7 @@ namespace Shoko.Server
                 // oopps, can't create file
                 logger.Warn("Error in log (database version lookup: {0}", ex.Message);
             }
-
+            */
             logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
             try

@@ -35,7 +35,7 @@ namespace Shoko.Server.Commands.Plex
 
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
-                if (!ServerSettings.Plex_Libraries.Contains(section.Key)) continue;
+                if (!ServerSettings.Instance.Plex_Libraries.Contains(section.Key)) continue;
 
                 var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)
@@ -90,7 +90,7 @@ namespace Shoko.Server.Commands.Plex
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
-            _jmmuser = RepoFactory.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+            _jmmuser = Repo.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
             return true;
         }
 

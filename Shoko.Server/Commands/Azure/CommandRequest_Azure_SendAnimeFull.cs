@@ -42,7 +42,7 @@ namespace Shoko.Server.Commands.Azure
 
                 if (!process) return;
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 if (anime.AllTags.ToUpper().Contains("18 RESTRICTED")) return;

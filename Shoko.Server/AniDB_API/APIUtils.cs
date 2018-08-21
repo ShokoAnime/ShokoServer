@@ -79,7 +79,7 @@ namespace AniDBAPI
 
         public static XmlDocument LoadAnimeHTTPFromFile(int animeID)
         {
-            string filePath = ServerSettings.AnimeXmlDirectory;
+            string filePath = ServerSettings.Instance.AnimeXmlDirectory;
 
 
             if (!Directory.Exists(filePath))
@@ -103,7 +103,7 @@ namespace AniDBAPI
         {
             try
             {
-                string filePath = ServerSettings.AnimeXmlDirectory;
+                string filePath = ServerSettings.Instance.AnimeXmlDirectory;
 
                 if (!Directory.Exists(filePath))
                     Directory.CreateDirectory(filePath);

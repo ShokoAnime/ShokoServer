@@ -39,22 +39,20 @@ namespace Shoko.Server.Commands
             try
             {
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotVotesHTTP)
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {
-                        List<AniDB_Vote> dbVotes = RepoFactory.AniDB_Vote.GetByEntity(myVote.EntityID);
+                        List<AniDB_Vote> dbVotes = Repo.AniDB_Vote.GetByEntity(myVote.EntityID);
                         AniDB_Vote thisVote = null;
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
                             // we can only have anime permanent or anime temp but not both
-                            if (myVote.VoteType == AniDBVoteType.Anime ||
-                                myVote.VoteType == AniDBVoteType.AnimeTemp)
+                            if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                             {
-                                if (dbVote.VoteType == (int) AniDBVoteType.Anime ||
-                                    dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
+                                if (dbVote.VoteType == (int) AniDBVoteType.Anime || dbVote.VoteType == (int) AniDBVoteType.AnimeTemp)
                                 {
                                     thisVote = dbVote;
                                 }
@@ -65,17 +63,16 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        if (thisVote == null)
+                        using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(
+                            () => thisVote,
+                            () => new AniDB_Vote { EntityID = myVote.EntityID }
+                            ))
                         {
-                            thisVote = new AniDB_Vote
-                            {
-                                EntityID = myVote.EntityID
-                            };
-                        }
-                        thisVote.VoteType = (int) myVote.VoteType;
-                        thisVote.VoteValue = myVote.VoteValue;
+                            upd.Entity.VoteType = (int)myVote.VoteType;
+                            upd.Entity.VoteValue = myVote.VoteValue;
 
-                        RepoFactory.AniDB_Vote.Save(thisVote);
+                            upd.Commit();
+                        }
 
                         if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                         {

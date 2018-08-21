@@ -1,10 +1,5 @@
 ﻿using Shoko.Server;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Shoko.Server.Commands;
 
 namespace Shoko.CLI
 {
@@ -22,12 +17,16 @@ namespace Shoko.CLI
                     }
                 }
             }
-            
+
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
-            ShokoServer.Instance.StartUpServer();
+            ShokoServer.Instance.SetupNetHosts();
 
-            ShokoServer.RunWorkSetupDB();
+            if (!ServerSettings.Instance.FirstRun)
+            {
+                ShokoServer.Instance.StartUpServer();
+                ShokoServer.RunWorkSetupDB();
+            }
 
             bool running = true;
 
@@ -35,6 +34,14 @@ namespace Shoko.CLI
             Utils.YesNoRequired += (sender, e) =>
             {
                 e.Cancel = true;
+            };
+
+            ServerState.Instance.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+                {
+                    Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+                }
             };
 
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=

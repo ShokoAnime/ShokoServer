@@ -46,7 +46,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                switch (ServerSettings.AniDB_MyList_DeleteType)
+                switch (ServerSettings.Instance.AniDB_MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
                         if (MyListID > 0)

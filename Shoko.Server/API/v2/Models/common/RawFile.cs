@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Nancy;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -87,7 +88,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
         }
 
-        public RawFile(NancyContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+        public RawFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
         {
             if (vl == null) return;
 

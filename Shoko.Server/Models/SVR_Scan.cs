@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+
 
 namespace Shoko.Server.Models
 {
     public class SVR_Scan : Scan
     {
+        public DateTime CreationTIme;
+
         public string TitleText
         {
             get
             {
-                return CreationTIme.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
+                return CreationTime.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
                            this.GetImportFolderList()
-                               .Select(a => RepoFactory.ImportFolder.GetByID(a))
+                               .Select(a => Repo.ImportFolder.GetByID(a))
                                .Where(a => a != null)
                                .Select(a => a.ImportFolderLocation
                                    .Split(

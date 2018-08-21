@@ -1,10 +1,6 @@
-﻿using System.IO;
-using System.ServiceModel.Web;
-using System.Text;
-using System.Xml.Serialization;
-using Shoko.Models.PlexAndKodi;
+﻿using Shoko.Models.PlexAndKodi;
 using System;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.PlexAndKodi.Kodi
 {
@@ -13,7 +9,7 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         //public const string MediaTagVersion = "1420942002";
 
         public string ServiceAddress => ShokoServer.PathAddressKodi;
-        public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
+        public int ServicePort => ServerSettings.Instance.JMMServerPort;
         public bool UseBreadCrumbs => false; // turn off breadcrumbs navigation (plex)
         public bool ConstructFakeIosParent => false; //turn off plex workaround for ios (plex)
         public bool AutoWatch => false; //turn off marking watched on stream side (plex)
@@ -64,6 +60,6 @@ namespace Shoko.Server.PlexAndKodi.Kodi
         public bool AddPlexPrefsItem { get; } = false;
         public bool RemoveFileAttribute { get; } = false;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = false;
-        public NancyModule Nancy { get; set; }
+        public HttpContext Nancy { get; set; }
     }
 }

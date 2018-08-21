@@ -4,7 +4,6 @@ using System.Linq;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
-using Iesi.Collections.Generic;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
@@ -45,18 +44,11 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
                 ScheduledUpdate sched =
-                    RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
-                if (sched == null)
+                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+
+                if (sched != null)
                 {
-                    sched = new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
-                        UpdateDetails = string.Empty
-                    };
-                }
-                else
-                {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyList_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDB_MyList_UpdateFrequency);
 
                     // if we have run this in the last 24 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -68,7 +60,7 @@ namespace Shoko.Server.Commands
 
                 // Get the list from AniDB
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev != enHelperActivityType.GotMyListHTTP)
                 {
@@ -82,10 +74,10 @@ namespace Shoko.Server.Commands
 
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
-                var dictAniFiles = RepoFactory.AniDB_File.GetAll().ToLookup(a => a.Hash);
+                var dictAniFiles = Repo.AniDB_File.GetAll().ToLookup(a => a.Hash);
 
                 int missingFiles = 0;
-                foreach (SVR_VideoLocal vid in RepoFactory.VideoLocal.GetAll()
+                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetAll()
                     .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
                 {
                     // Does it have a linked AniFile
@@ -102,12 +94,14 @@ namespace Shoko.Server.Commands
                         {
                             if (vid.MyListID == 0)
                             {
-                                vid.MyListID = file.ListID;
-                                RepoFactory.VideoLocal.Save(vid);
+                                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vid))
+                                {
+                                    vid.MyListID = file.ListID;
+                                }
                             }
 
                             // Update file state if deleted
-                            if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
+                            if (file.State != (int) ServerSettings.Instance.AniDB_MyList_StorageState)
                             {
                                 int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
                                 CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
@@ -122,7 +116,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // means we have found a file in our local collection, which is not recorded online
-                    if (ServerSettings.AniDB_MyList_AddFiles)
+                    if (ServerSettings.Instance.AniDB_MyList_AddFiles)
                     {
                         CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
                         cmdAddFile.Save();
@@ -131,8 +125,8 @@ namespace Shoko.Server.Commands
                 }
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
-                List<SVR_JMMUser> aniDBUsers = RepoFactory.JMMUser.GetAniDBUsers();
-                LinkedHashSet<SVR_AnimeSeries> modifiedSeries = new LinkedHashSet<SVR_AnimeSeries>();
+                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
+                HashSet<SVR_AnimeSeries> modifiedSeries = new HashSet<SVR_AnimeSeries>();
 
                 // Remove Missing Files and update watched states (single loop)
                 List<int> filesToRemove = new List<int>();
@@ -145,7 +139,7 @@ namespace Shoko.Server.Commands
 
                         string hash = string.Empty;
 
-                        SVR_AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
+                        SVR_AniDB_File anifile = Repo.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                         {
                             hash = anifile.Hash;
@@ -154,7 +148,7 @@ namespace Shoko.Server.Commands
                         {
                             // look for manually linked files
                             List<CrossRef_File_Episode> xrefs =
-                                RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                                Repo.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
@@ -171,7 +165,7 @@ namespace Shoko.Server.Commands
                         }
 
                         // If there's no video local, we don't have it
-                        SVR_VideoLocal vl = RepoFactory.VideoLocal.GetByHash(hash);
+                        SVR_VideoLocal vl = Repo.VideoLocal.GetByHash(hash);
                         if (vl == null)
                         {
                             filesToRemove.Add(myitem.ListID);
@@ -195,7 +189,7 @@ namespace Shoko.Server.Commands
                             if (localStatus)
                             {
                                 // local = watched, anidb = unwatched
-                                if (ServerSettings.AniDB_MyList_ReadUnwatched)
+                                if (ServerSettings.Instance.AniDB_MyList_ReadUnwatched)
                                 {
                                     modifiedItems++;
                                     vl.ToggleWatchedStatus(false, false, watchedDate,
@@ -203,7 +197,7 @@ namespace Shoko.Server.Commands
                                         true);
                                     action = "Used AniDB Status";
                                 }
-                                else if (ServerSettings.AniDB_MyList_SetWatched)
+                                else if (ServerSettings.Instance.AniDB_MyList_SetWatched)
                                 {
                                     vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
                                         false, true);
@@ -212,14 +206,14 @@ namespace Shoko.Server.Commands
                             else
                             {
                                 // means local is un-watched, and anidb is watched
-                                if (ServerSettings.AniDB_MyList_ReadWatched)
+                                if (ServerSettings.Instance.AniDB_MyList_ReadWatched)
                                 {
                                     modifiedItems++;
                                     vl.ToggleWatchedStatus(true, false, watchedDate, false,
                                         jmmUserID, false, true);
                                     action = "Updated Local record to Watched";
                                 }
-                                else if (ServerSettings.AniDB_MyList_SetUnwatched)
+                                else if (ServerSettings.Instance.AniDB_MyList_SetUnwatched)
                                 {
                                     vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
                                         false, true);
@@ -254,8 +248,11 @@ namespace Shoko.Server.Commands
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
-                sched.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(sched);
+                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty }))
+                {
+                    sched.LastUpdate = DateTime.Now;
+                    upd.Commit();
+                }
             }
             catch (Exception ex)
             {

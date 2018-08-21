@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV
@@ -155,10 +153,10 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                Show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktID);
+                Show = Repo.Trakt_Show.GetByTraktSlug(TraktID);
                 if (Show == null) return;
 
-                traktEpisodes = RepoFactory.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
+                traktEpisodes = Repo.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
                     .OrderBy(a => a.Season)
                     .ThenBy(a => a.EpisodeNumber)
                     .ToList();

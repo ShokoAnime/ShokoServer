@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV
@@ -36,7 +34,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+                crossRefTraktV2 = Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {

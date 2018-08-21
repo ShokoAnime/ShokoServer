@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Models.TvDB
@@ -36,7 +34,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+                crossRefTvDB = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
@@ -123,7 +121,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDBEpisodes = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
+                crossRefTvDBEpisodes = Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {

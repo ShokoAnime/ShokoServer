@@ -7,7 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
-using Nancy.Extensions;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
@@ -19,9 +19,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {
@@ -84,7 +81,7 @@ namespace Shoko.Server.Commands
                     switch (EntityTypeEnum)
                     {
                         case ImageEntityType.AniDB_Cover:
-                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+                            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
                             if (anime == null)
                             {
                                 logger.Warn(
@@ -97,9 +94,9 @@ namespace Shoko.Server.Commands
                             break;
 
                         case ImageEntityType.AniDB_Character:
-                            if (!ServerSettings.AniDB_DownloadCharacters) continue;
-                            var chrs = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                    select RepoFactory.AniDB_Character.GetByCharID(xref1.CharID))
+                            if (!ServerSettings.Instance.AniDB_DownloadCharacters) continue;
+                            var chrs = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                                    select Repo.AniDB_Character.GetByCharID(xref1.CharID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
                                 .DistinctBy(a => a.CharID)
                                 .ToList();
@@ -120,11 +117,11 @@ namespace Shoko.Server.Commands
                             break;
 
                         case ImageEntityType.AniDB_Creator:
-                            if (!ServerSettings.AniDB_DownloadCreators) continue;
+                            if (!ServerSettings.Instance.AniDB_DownloadCreators) continue;
 
-                            var creators = (from xref1 in RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                                    from xref2 in RepoFactory.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)
-                                    select RepoFactory.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID))
+                            var creators = (from xref1 in Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID)
+                                    from xref2 in Repo.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID)
+                                    select Repo.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID))
                                 .Where(a => !string.IsNullOrEmpty(a?.PicName))
                                 .DistinctBy(a => a.SeiyuuID)
                                 .ToList();
@@ -175,7 +172,7 @@ namespace Shoko.Server.Commands
                             catch (Exception ex)
                             {
                                 Thread.CurrentThread.CurrentUICulture =
-                                    CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                                    CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                                 logger.Warn(Resources.Command_DeleteError, fileNames, ex.Message);
                                 return;

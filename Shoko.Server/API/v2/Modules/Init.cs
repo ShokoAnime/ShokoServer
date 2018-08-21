@@ -8,11 +8,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using Microsoft.SqlServer.Management.Smo;
-using Nancy;
-using Nancy.ModelBinding;
+//using Microsoft.SqlServer.Management.Smo;
 using NLog;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -20,11 +18,16 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
+//using Microsoft.SqlServer.Management.Smo;
 
 namespace Shoko.Server.API.v2.Modules
 {
     // ReSharper disable once UnusedMember.Global
-    public class Init : NancyModule
+    [Route("/api/init")]
+    [ApiController]
+    public class Init : Controller
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
         /// <inheritdoc />
@@ -33,59 +36,59 @@ namespace Shoko.Server.API.v2.Modules
         /// Settings will be loaded prior to this starting
         /// Unless otherwise noted, these will only work before server init
         /// </summary>
-        public Init() : base("/api/init")
+        public Init()// : base("/api/init")
         {
-            // Get version, regardless of server status
+            /*// Get version, regardless of server status
             // This will work after init
-            Get["/version"] = ctx => GetVersion();
+            Get("/version", ctx => GetVersion());
 
             // Get the startup state
             // This will work after init
-            Get["/status"] = ctx => GetServerStatus();
+            Get("/status", ctx => GetServerStatus());
 
             // Get the Default User Credentials
-            Get["/defaultuser"] = ctx => GetDefaultUserCredentials();
+            Get("/defaultuser", ctx => GetDefaultUserCredentials());
 
             // Set the Default User Credentials
             // Pass this a Credentials object
-            Post["/defaultuser"] = ctx => SetDefaultUserCredentials();
+            Post("/defaultuser", ctx => SetDefaultUserCredentials());
 
             // Set AniDB user/pass
             // Pass this a Credentials object
-            Post["/anidb"] = ctx => SetAniDB();
+            Post("/anidb", ctx => SetAniDB());
 
             // Get existing AniDB user, don't provide pass
-            Get["/anidb"] = ctx => GetAniDB();
+            Get("/anidb", ctx => GetAniDB());
 
             // Test AniDB login
-            Get["/anidb/test"] = ctx => TestAniDB();
+            Get("/anidb/test", ctx => TestAniDB());
 
             // Get Database Settings
-            Get["/database"] = ctx => GetDatabaseSettings();
+            Get("/database", ctx => GetDatabaseSettings());
 
             // Set Database Settings
-            Post["/database"] = ctx => SetDatabaseSettings();
+            Post("/database", ctx => SetDatabaseSettings());
 
             // Test Database Connection
-            Get["/database/test"] = ctx => TestDatabaseConnection();
+            Get("/database/test", ctx => TestDatabaseConnection());
 
             // Get SQL Server Instances on the Machine
-            Get["/database/sqlserverinstance"] = ctx => GetMSSQLInstances();
+            Get("/database/sqlserverinstance", ctx => GetMSSQLInstances());
 
             // Get the whole settings file
-            Get["/config"] = ctx => ExportConfig();
+            Get("/config", ctx => ExportConfig());
 
             // Replace the whole settings file
-            Post["/config"] = ctx => ImportConfig();
+            Post("/config", ctx => ImportConfig());
 
             // Get a single setting value
-            Get["/setting"] = ctx => GetSetting();
+            Get("/setting", ctx => GetSetting());
 
             // Set a single setting value
-            Patch["/setting"] = ctx => SetSetting();
+            Patch("/setting", ctx => SetSetting());
 
             // Start the server
-            Get["/startserver"] = ctx => StartServer();
+            Get("/startserver", ctx => StartServer());*/
         }
 
         /// <summary>
@@ -93,7 +96,8 @@ namespace Shoko.Server.API.v2.Modules
         /// This will work after init
         /// </summary>
         /// <returns></returns>
-        private object GetVersion()
+        [HttpGet("version")]
+        public List<ComponentVersion> GetVersion()
         {
             List<ComponentVersion> list = new List<ComponentVersion>();
 
@@ -130,19 +134,19 @@ namespace Shoko.Server.API.v2.Modules
             };
             list.Add(version);
 
-            version = new ComponentVersion
+            /*version = new ComponentVersion
             {
                 version = Assembly.GetAssembly(typeof(INancyModule)).GetName().Version.ToString(),
                 name = "Nancy"
             };
-            list.Add(version);
+            list.Add(version);*/
 
             string dllpath = Assembly.GetEntryAssembly().Location;
             dllpath = Path.GetDirectoryName(dllpath);
             dllpath = Path.Combine(dllpath, "x86");
             dllpath = Path.Combine(dllpath, "MediaInfo.dll");
 
-            if (File.Exists(dllpath))
+            if (System.IO.File.Exists(dllpath))
             {
                 version = new ComponentVersion
                 {
@@ -157,7 +161,7 @@ namespace Shoko.Server.API.v2.Modules
                 dllpath = Path.GetDirectoryName(dllpath);
                 dllpath = Path.Combine(dllpath, "x64");
                 dllpath = Path.Combine(dllpath, "MediaInfo.dll");
-                if (File.Exists(dllpath))
+                if (System.IO.File.Exists(dllpath))
                 {
                     version = new ComponentVersion
                     {
@@ -177,9 +181,9 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
 
-            if (File.Exists("webui//index.ver"))
+            if (System.IO.File.Exists("webui//index.ver"))
             {
-                string webui_version = File.ReadAllText("webui//index.ver");
+                string webui_version = System.IO.File.ReadAllText("webui//index.ver");
                 string[] versions = webui_version.Split('>');
                 if (versions.Length == 2)
                 {
@@ -200,7 +204,8 @@ namespace Shoko.Server.API.v2.Modules
         /// This will work after init
         /// </summary>
         /// <returns></returns>
-        private object GetServerStatus()
+        [HttpGet("status")]
+        public ServerStatus GetServerStatus()
         {
             TimeSpan? uptime = ShokoServer.UpTime;
             string uptimemsg = uptime == null
@@ -211,7 +216,7 @@ namespace Shoko.Server.API.v2.Modules
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.CurrentSetupStatus,
                 server_uptime = uptimemsg,
-                first_run = ServerSettings.FirstRun,
+                first_run = ServerSettings.Instance.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage
             };
@@ -222,15 +227,16 @@ namespace Shoko.Server.API.v2.Modules
         /// Gets the Default user's credentials. Will only return on first run
         /// </summary>
         /// <returns></returns>
-        private object GetDefaultUserCredentials()
+        [HttpGet("defaultuser")]
+        public ActionResult<Credentials> GetDefaultUserCredentials()
         {
-            if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+            if (!ServerSettings.Instance.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only request the default user's credentials on first run");
 
             return new Credentials
             {
-                login = ServerSettings.DefaultUserUsername,
-                password = ServerSettings.DefaultUserPassword
+                login = ServerSettings.Instance.DefaultUserUsername,
+                password = ServerSettings.Instance.DefaultUserPassword
             };
         }
 
@@ -238,16 +244,16 @@ namespace Shoko.Server.API.v2.Modules
         /// Sets the default user's credentials
         /// </summary>
         /// <returns></returns>
-        private object SetDefaultUserCredentials()
+        [HttpPost("defaultuser")]
+        public ActionResult SetDefaultUserCredentials(Credentials credentials)
         {
-            if (!ServerSettings.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
+            if (!ServerSettings.Instance.FirstRun || ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only set the default user's credentials on first run");
 
             try
             {
-                Credentials credentials = this.Bind();
-                ServerSettings.DefaultUserUsername = credentials.login;
-                ServerSettings.DefaultUserPassword = credentials.password;
+                ServerSettings.Instance.DefaultUserUsername = credentials.login;
+                ServerSettings.Instance.DefaultUserPassword = credentials.password;
                 return APIStatus.OK();
             }
             catch
@@ -260,6 +266,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Starts the server, or does nothing
         /// </summary>
         /// <returns></returns>
+        [HttpGet("startserver")]
         private object StartServer()
         {
             if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
@@ -282,12 +289,12 @@ namespace Shoko.Server.API.v2.Modules
         /// Set AniDB account credentials with a Credentials object
         /// </summary>
         /// <returns></returns>
-        private object SetAniDB()
+        [HttpPost]
+        public ActionResult SetAniDB(Credentials cred)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
-            Credentials cred = this.Bind();
             var details = new List<(string, string)>();
             if (string.IsNullOrEmpty(cred.login))
                 details.Add(("login", "Username missing"));
@@ -295,14 +302,14 @@ namespace Shoko.Server.API.v2.Modules
                 details.Add(("password", "Password missing"));
             if (details.Count > 0) return new APIMessage(400, "Login or Password missing", details);
 
-            ServerSettings.AniDB_Username = cred.login;
-            ServerSettings.AniDB_Password = cred.password;
+            ServerSettings.Instance.AniDB_Username = cred.login;
+            ServerSettings.Instance.AniDB_Password = cred.password;
             if (cred.port != 0)
-                ServerSettings.AniDB_ClientPort = cred.port.ToString();
+                ServerSettings.Instance.AniDB_ClientPort = cred.port;
             if (!string.IsNullOrEmpty(cred.apikey))
-                ServerSettings.AniDB_AVDumpKey = cred.apikey;
+                ServerSettings.Instance.AniDB_AVDumpKey = cred.apikey;
             if (cred.apiport != 0)
-                ServerSettings.AniDB_AVDumpClientPort = cred.apiport.ToString();
+                ServerSettings.Instance.AniDB_AVDumpClientPort = cred.apiport;
 
             return APIStatus.OK();
         }
@@ -311,7 +318,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Test AniDB Creditentials
         /// </summary>
         /// <returns></returns>
-        private object TestAniDB()
+        [HttpGet("anidb/test")]
+        public ActionResult TestAniDB()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
@@ -321,11 +329,11 @@ namespace Shoko.Server.API.v2.Modules
 
             Thread.Sleep(1000);
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDB_Username, ServerSettings.Instance.AniDB_Password,
+                ServerSettings.Instance.AniDB_ServerAddress,
+                ServerSettings.Instance.AniDB_ServerPort, ServerSettings.Instance.AniDB_ClientPort);
 
             if (!ShokoService.AnidbProcessor.Login()) return APIStatus.Unauthorized();
             ShokoService.AnidbProcessor.ForceLogout();
@@ -337,20 +345,20 @@ namespace Shoko.Server.API.v2.Modules
         /// Return existing login and ports for AniDB
         /// </summary>
         /// <returns></returns>
-        private object GetAniDB()
+        [HttpGet("anidb")]
+        public ActionResult<Credentials> GetAniDB()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
             try
             {
-                Credentials cred = new Credentials
+                return new Credentials
                 {
-                    login = ServerSettings.AniDB_Username,
-                    port = int.Parse(ServerSettings.AniDB_ClientPort),
-                    apiport = int.Parse(ServerSettings.AniDB_AVDumpClientPort)
+                    login = ServerSettings.Instance.AniDB_Username,
+                    port = ServerSettings.Instance.AniDB_ClientPort,
+                    apiport = ServerSettings.Instance.AniDB_AVDumpClientPort
                 };
-                return cred;
             }
             catch
             {
@@ -367,23 +375,24 @@ namespace Shoko.Server.API.v2.Modules
         /// Get Database Settings
         /// </summary>
         /// <returns></returns>
-        private object GetDatabaseSettings()
+        [HttpGet("database")]
+        public ActionResult<DatabaseSettings> GetDatabaseSettings()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
             var settings = new DatabaseSettings
             {
-                db_type = ServerSettings.DatabaseType,
-                mysql_hostname = ServerSettings.MySQL_Hostname,
-                mysql_password = ServerSettings.MySQL_Password,
-                mysql_schemaname = ServerSettings.MySQL_SchemaName,
-                mysql_username = ServerSettings.MySQL_Username,
-                sqlite_databasefile = ServerSettings.DatabaseFile,
-                sqlserver_databasename = ServerSettings.DatabaseName,
-                sqlserver_databaseserver = ServerSettings.DatabaseServer,
-                sqlserver_password = ServerSettings.DatabasePassword,
-                sqlserver_username = ServerSettings.DatabaseUsername
+                db_type = ServerSettings.Instance.DatabaseType,
+                mysql_hostname = ServerSettings.Instance.MySQL_Hostname,
+                mysql_password = ServerSettings.Instance.MySQL_Password,
+                mysql_schemaname = ServerSettings.Instance.MySQL_SchemaName,
+                mysql_username = ServerSettings.Instance.MySQL_Username,
+                sqlite_databasefile = ServerSettings.Instance.DatabaseFile,
+                sqlserver_databasename = ServerSettings.Instance.DatabaseName,
+                sqlserver_databaseserver = ServerSettings.Instance.DatabaseServer,
+                sqlserver_password = ServerSettings.Instance.DatabasePassword,
+                sqlserver_username = ServerSettings.Instance.DatabaseUsername
             };
 
             return settings;
@@ -393,16 +402,16 @@ namespace Shoko.Server.API.v2.Modules
         /// Set Database Settings
         /// </summary>
         /// <returns></returns>
-        private object SetDatabaseSettings()
+        [HttpPost("database")]
+        public ActionResult SetDatabaseSettings(DatabaseSettings settings)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
-            DatabaseSettings settings = this.Bind();
-            string dbtype = settings?.db_type?.Trim();
-            if (string.IsNullOrEmpty(dbtype))
+            DatabaseTypes? dbtype = settings?.db_type;
+            if (dbtype == null)
                 return APIStatus.BadRequest("You must specify database type and use valid xml or json.");
-            if (dbtype.Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.MySql)
             {
                 var details = new List<(string, string)>();
                 if (string.IsNullOrEmpty(settings.mysql_hostname))
@@ -415,14 +424,14 @@ namespace Shoko.Server.API.v2.Modules
                     details.Add(("mysql_password", "Must not be empty"));
                 if (details.Count > 0)
                     return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-                ServerSettings.DatabaseType = Constants.DatabaseType.MySQL;
-                ServerSettings.MySQL_Hostname = settings.mysql_hostname;
-                ServerSettings.MySQL_Password = settings.mysql_password;
-                ServerSettings.MySQL_SchemaName = settings.mysql_schemaname;
-                ServerSettings.MySQL_Username = settings.mysql_username;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.MySql;
+                ServerSettings.Instance.MySQL_Hostname = settings.mysql_hostname;
+                ServerSettings.Instance.MySQL_Password = settings.mysql_password;
+                ServerSettings.Instance.MySQL_SchemaName = settings.mysql_schemaname;
+                ServerSettings.Instance.MySQL_Username = settings.mysql_username;
                 return APIStatus.OK();
             }
-            if (dbtype.Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.SqlServer)
             {
                 var details = new List<(string, string)>();
                 if (string.IsNullOrEmpty(settings.sqlserver_databaseserver))
@@ -435,18 +444,18 @@ namespace Shoko.Server.API.v2.Modules
                     details.Add(("sqlserver_password", "Must not be empty"));
                 if (details.Count > 0)
                     return new APIMessage(HttpStatusCode.BadRequest, "An invalid setting was passed", details);
-                ServerSettings.DatabaseType = Constants.DatabaseType.SqlServer;
-                ServerSettings.DatabaseServer = settings.sqlserver_databaseserver;
-                ServerSettings.DatabaseName = settings.sqlserver_databasename;
-                ServerSettings.DatabaseUsername = settings.sqlserver_username;
-                ServerSettings.DatabasePassword = settings.sqlserver_password;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.SqlServer;
+                ServerSettings.Instance.DatabaseServer = settings.sqlserver_databaseserver;
+                ServerSettings.Instance.DatabaseName = settings.sqlserver_databasename;
+                ServerSettings.Instance.DatabaseUsername = settings.sqlserver_username;
+                ServerSettings.Instance.DatabasePassword = settings.sqlserver_password;
                 return APIStatus.OK();
             }
-            if (dbtype.Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            if (dbtype == DatabaseTypes.Sqlite)
             {
-                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                ServerSettings.Instance.DatabaseType = DatabaseTypes.Sqlite;
                 if (!string.IsNullOrEmpty(settings.sqlite_databasefile))
-                    ServerSettings.DatabaseFile = settings.sqlite_databasefile;
+                    ServerSettings.Instance.DatabaseFile = settings.sqlite_databasefile;
                 return APIStatus.OK();
             }
             return APIStatus.BadRequest("An invalid setting was passed");
@@ -456,39 +465,42 @@ namespace Shoko.Server.API.v2.Modules
         /// Test Database Connection with Current Settings
         /// </summary>
         /// <returns>200 if connection successful, 400 otherwise</returns>
-        private object TestDatabaseConnection()
+        [HttpGet("database/test")]
+        public ActionResult TestDatabaseConnection()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
+            return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.MySQL,
+            /*if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.MySQL,
                     StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
                 return APIStatus.OK();
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
+            if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.SqlServer,
                     StringComparison.InvariantCultureIgnoreCase) && new SQLServer().TestConnection())
                 return APIStatus.OK();
 
-            if (ServerSettings.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
+            if (ServerSettings.Instance.DatabaseType.Equals(Constants.DatabaseType.Sqlite,
                 StringComparison.InvariantCultureIgnoreCase))
-                return APIStatus.OK();
+                return APIStatus.OK();*/
 
-            return APIStatus.BadRequest("Failed to Connect");
+            //return APIStatus.BadRequest("Failed to Connect");
         }
 
         /// <summary>
         /// Get SQL Server Instances Running on this Machine
         /// </summary>
         /// <returns>List of strings that may be passed as sqlserver_databaseserver</returns>
-        private object GetMSSQLInstances()
+        [HttpGet("database/sqlserverinstance")]
+        public ActionResult<List<string>> GetMSSQLInstances()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
             List<string> instances = new List<string>();
 
-            DataTable dt = SmoApplication.EnumAvailableSqlServers();
-            if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
+            //DataTable dt = SmoApplication.EnumAvailableSqlServers();
+            //if (dt?.Rows.Count > 0) instances.AddRange(from DataRow row in dt.Rows select row[0].ToString());
 
             return instances;
         }
@@ -500,14 +512,15 @@ namespace Shoko.Server.API.v2.Modules
         /// Return body of current working settings.json - this could act as backup
         /// </summary>
         /// <returns></returns>
-        private object ExportConfig()
+        [HttpGet("config")]
+        public ActionResult<ServerSettings> ExportConfig()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
             try
             {
-                return ServerSettings.appSettings;
+                return ServerSettings.Instance;
             }
             catch
             {
@@ -519,19 +532,19 @@ namespace Shoko.Server.API.v2.Modules
         /// Import config file that was sent to in API body - this act as import from backup
         /// </summary>
         /// <returns>APIStatus</returns>
-        private object ImportConfig()
+        [HttpPost("config")]
+        public ActionResult ImportConfig(CL_ServerSettings settings)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
-            CL_ServerSettings settings = this.Bind();
             string raw_settings = settings.ToJSON();
 
             if (raw_settings.Length == new CL_ServerSettings().ToJSON().Length)
                 return APIStatus.BadRequest("Empty settings are not allowed");
 
             string path = Path.Combine(ServerSettings.ApplicationPath, "temp.json");
-            File.WriteAllText(path, raw_settings, Encoding.UTF8);
+            System.IO.File.WriteAllText(path, raw_settings, Encoding.UTF8);
             try
             {
                 ServerSettings.LoadSettingsFromFile(path, true);
@@ -547,7 +560,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Return given setting
         /// </summary>
         /// <returns></returns>
-        private object GetSetting()
+        [HttpGet("setting")]
+        private ActionResult<Setting> GetSetting(Setting setting)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
@@ -555,19 +569,17 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
                 try
                 {
                     var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
                     if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
 
-                    Setting returnSetting = new Setting
+                    return new Setting
                     {
                         setting = setting.setting,
                         value = value.ToString()
                     };
-                    return returnSetting;
                 }
                 catch
                 {
@@ -584,7 +596,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Set given setting
         /// </summary>
         /// <returns></returns>
-        private object SetSetting()
+        [HttpPatch("setting")]
+        public ActionResult SetSetting(Setting setting)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
@@ -592,7 +605,6 @@ namespace Shoko.Server.API.v2.Modules
             // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
             try
             {
-                Setting setting = this.Bind();
                 if (string.IsNullOrEmpty(setting.setting))
                     return APIStatus.BadRequest("An invalid setting was passed");
 

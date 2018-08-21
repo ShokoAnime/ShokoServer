@@ -2,11 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.ServiceModel.Channels;
-using System.ServiceModel.Web;
-using System.Text;
-using System.Threading.Tasks;
-using FluentNHibernate.Mapping;
+using System.Net.Http;
+using System.Net.Http.Formatting;
 using Nancy;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
@@ -28,22 +25,12 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-            Request req = prov?.Nancy?.Request;
+            var req = prov?.Nancy?.Request;
 
-            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                              ?.RequestUri.Host;
-            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                                ?.RequestUri.Scheme;
-            if (host == null)
-            {
-                var context = System.ServiceModel.OperationContext.Current;
-                if (context != null && context.IncomingMessageHeaders?.To != null)
-                {
-                    Uri ur = context.IncomingMessageHeaders?.To;
-                    host = ur.Host;
-                    scheme = ur.Scheme;
-                }
-            }
+            string host = req?.Host.Host;
+
+            string scheme = req?.Scheme;
+
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
@@ -68,10 +55,11 @@ namespace Shoko.Server.PlexAndKodi
             {
                 return prov.Nancy.Request.Query[name];
             }
+            /*
             if (WebOperationContext.Current == null)
                 return null;
             if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];
+                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];*/
             return null;
         }
 
@@ -92,9 +80,16 @@ namespace Shoko.Server.PlexAndKodi
                 if (prov.Nancy.Request.Headers.Keys.Contains(name))
                     return prov.Nancy.Request.Headers[name].ElementAt(0);
             }
-            else if (WebOperationContext.Current != null &&
-                     WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.Headers[name];
+            /*else
+            {
+                var headers = OperationContext.Current.IncomingMessageProperties["httpRequest"];
+                if (headers!=null)
+                {
+                    WebHeaderCollection coll = ((HttpRequestMessageProperty) headers).Headers;
+                    if (coll.AllKeys.Contains(name))
+                        return coll.Get(name);
+                }
+            } */           
             return null;
         }
 
@@ -106,29 +101,6 @@ namespace Shoko.Server.PlexAndKodi
             string version = prov.RequestHeader("X-Plex-Version");
             string platform = prov.RequestHeader("X-Plex-Platform");
             return new PlexDeviceInfo(device, product, version, platform);
-        }
-
-        public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers,
-            string contentype = null)
-        {
-            if (prov?.Nancy?.After != null)
-            {
-                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value))
-                    .ToList();
-                prov.Nancy.After.AddItemToEndOfPipeline((ctx) =>
-                {
-                    ctx.Response.WithHeaders(tps.ToArray());
-                    if (contentype != null)
-                        ctx.Response.ContentType = contentype;
-                });
-            }
-            else if (WebOperationContext.Current != null)
-            {
-                foreach (string n in headers.Keys)
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
-                if (contentype != null)
-                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
-            }
         }
 
         public static Dictionary<string, string> GetOptions()

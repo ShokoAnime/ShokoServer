@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using AniDBAPI;
-using Nancy.Extensions;
-using NHibernate.Util;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -16,31 +16,28 @@ namespace Shoko.Server.Models
 {
     public class SVR_AniDB_File : AniDB_File
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private string episodesPercentRAW;
+        private string episodesRAW;
+
+        private string languagesRAW;
+        //private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private string subtitlesRAW;
-        private string languagesRAW;
-        private string episodesRAW;
-        private string episodesPercentRAW;
 
-        public SVR_AniDB_File() //Empty Constructor for nhibernate
-        {
-        }
 
         [XmlIgnore]
+        [NotMapped]
         public List<Language> Languages
         {
             get
             {
                 List<Language> lans = new List<Language>();
-
-                List<CrossRef_Languages_AniDB_File> fileLanguages =
-                    RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
-
+                List<CrossRef_Languages_AniDB_File> fileLanguages = Repo.CrossRef_Languages_AniDB_File.GetByFileID(FileID);
                 foreach (CrossRef_Languages_AniDB_File crossref in fileLanguages)
                 {
-                    Language lan = RepoFactory.Language.GetByID(crossref.LanguageID);
-                    if (lan != null) lans.Add(lan);
+                    Language lan = Repo.Language.GetByID(crossref.LanguageID);
+                    if (lan != null)
+                        lans.Add(lan);
                 }
                 return lans;
             }
@@ -48,66 +45,59 @@ namespace Shoko.Server.Models
 
 
         [XmlIgnore]
+        [NotMapped]
         public List<Language> Subtitles
         {
             get
             {
                 List<Language> subs = new List<Language>();
-
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =
-                    RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
-
-
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = Repo.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID);
                 foreach (CrossRef_Subtitles_AniDB_File crossref in fileSubtitles)
                 {
-                    Language sub = RepoFactory.Language.GetByID(crossref.LanguageID);
-                    if (sub != null) subs.Add(sub);
+                    Language sub = Repo.Language.GetByID(crossref.LanguageID);
+                    if (sub != null)
+                        subs.Add(sub);
                 }
                 return subs;
             }
         }
-
+        [NotMapped]
         [XmlIgnore]
         public List<int> EpisodeIDs
         {
             get
             {
                 List<int> ids = new List<int>();
-
-                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
-
+                List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
                 foreach (CrossRef_File_Episode crossref in fileEps)
-                {
                     ids.Add(crossref.EpisodeID);
-                }
+
                 return ids;
             }
         }
 
         [XmlIgnore]
+        [NotMapped]
         public List<AniDB_Episode> Episodes
         {
             get
             {
                 List<AniDB_Episode> eps = new List<AniDB_Episode>();
-
-                List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash);
-
+                List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
                 foreach (CrossRef_File_Episode crossref in fileEps)
                 {
-                    if (crossref.GetEpisode() != null) eps.Add(crossref.GetEpisode());
+                    if (crossref.GetEpisode() != null)
+                        eps.Add(crossref.GetEpisode());
                 }
                 return eps;
             }
         }
 
         [XmlIgnore]
-        public List<CrossRef_File_Episode> EpisodeCrossRefs
-        {
-            get { return RepoFactory.CrossRef_File_Episode.GetByHash(this.Hash); }
-        }
+        [NotMapped]
+        public List<CrossRef_File_Episode> EpisodeCrossRefs => Repo.CrossRef_File_Episode.GetByHash(Hash);
 
-
+        [NotMapped]
         public string SubtitlesRAW
         {
             get
@@ -121,12 +111,13 @@ namespace Shoko.Server.Models
                         ret += ",";
                     ret += lang.LanguageName;
                 }
+
                 return ret;
             }
             set { subtitlesRAW = value; }
         }
 
-
+        [NotMapped]
         public string LanguagesRAW
         {
             get
@@ -140,12 +131,13 @@ namespace Shoko.Server.Models
                         ret += ",";
                     ret += lang.LanguageName;
                 }
+
                 return ret;
             }
             set { languagesRAW = value; }
         }
 
-
+        [NotMapped]
         public string EpisodesRAW
         {
             get
@@ -159,12 +151,13 @@ namespace Shoko.Server.Models
                         ret += ", ";
                     ret += cross.EpisodeID.ToString();
                 }
+
                 return ret;
             }
             set { episodesRAW = value; }
         }
 
-
+        [NotMapped]
         public string EpisodesPercentRAW
         {
             get
@@ -178,11 +171,12 @@ namespace Shoko.Server.Models
                         ret += ", ";
                     ret += cross.Percentage.ToString();
                 }
+
                 return ret;
             }
             set { episodesPercentRAW = value; }
         }
-
+        [NotMapped]
         public string SubtitlesRAWForWebCache
         {
             get
@@ -198,12 +192,13 @@ namespace Shoko.Server.Models
                         ret += apostrophe;
                     ret += lang.LanguageName;
                 }
+
                 return ret;
             }
             set { subtitlesRAW = value; }
         }
 
-
+        [NotMapped]
         public string LanguagesRAWForWebCache
         {
             get
@@ -219,12 +214,13 @@ namespace Shoko.Server.Models
                         ret += apostrophe;
                     ret += lang.LanguageName;
                 }
+
                 return ret;
             }
             set { languagesRAW = value; }
         }
 
-
+        [NotMapped]
         public string EpisodesRAWForWebCache
         {
             get
@@ -240,12 +236,13 @@ namespace Shoko.Server.Models
                         ret += apostrophe;
                     ret += cross.EpisodeID.ToString();
                 }
+
                 return ret;
             }
             set { episodesRAW = value; }
         }
 
-
+        [NotMapped]
         public string EpisodesPercentRAWForWebCache
         {
             get
@@ -261,138 +258,133 @@ namespace Shoko.Server.Models
                         ret += apostrophe;
                     ret += cross.Percentage.ToString();
                 }
+
                 return ret;
             }
             set { episodesPercentRAW = value; }
         }
 
 
-        public static void Populate(SVR_AniDB_File anidbfile, Raw_AniDB_File fileInfo)
+        public void Populate_RA(Raw_AniDB_File fileInfo)
         {
-            anidbfile.Anime_GroupName = fileInfo.Anime_GroupName;
-            anidbfile.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
-            anidbfile.AnimeID = fileInfo.AnimeID;
-            anidbfile.CRC = fileInfo.CRC;
-            anidbfile.DateTimeUpdated = DateTime.Now;
-            anidbfile.Episode_Rating = fileInfo.Episode_Rating;
-            anidbfile.Episode_Votes = fileInfo.Episode_Votes;
-            anidbfile.File_AudioCodec = fileInfo.File_AudioCodec;
-            anidbfile.File_Description = fileInfo.File_Description;
-            anidbfile.File_FileExtension = fileInfo.File_FileExtension;
-            anidbfile.File_LengthSeconds = fileInfo.File_LengthSeconds;
-            anidbfile.File_ReleaseDate = fileInfo.File_ReleaseDate;
-            anidbfile.File_Source = fileInfo.File_Source;
-            anidbfile.File_VideoCodec = fileInfo.File_VideoCodec;
-            anidbfile.File_VideoResolution = fileInfo.File_VideoResolution;
-            anidbfile.FileID = fileInfo.FileID;
-            anidbfile.FileName = fileInfo.FileName;
-            anidbfile.FileSize = fileInfo.FileSize;
-            anidbfile.GroupID = fileInfo.GroupID;
-            anidbfile.Hash = fileInfo.ED2KHash;
-            anidbfile.IsWatched = fileInfo.IsWatched;
-            anidbfile.MD5 = fileInfo.MD5;
-            anidbfile.SHA1 = fileInfo.SHA1;
-            anidbfile.FileVersion = fileInfo.FileVersion;
-            anidbfile.IsCensored = fileInfo.IsCensored;
-            anidbfile.IsDeprecated = fileInfo.IsDeprecated;
-            anidbfile.IsChaptered = fileInfo.IsChaptered;
-            anidbfile.InternalVersion = fileInfo.InternalVersion;
-
-            anidbfile.languagesRAW = fileInfo.LanguagesRAW;
-            anidbfile.subtitlesRAW = fileInfo.SubtitlesRAW;
-            anidbfile.episodesPercentRAW = fileInfo.EpisodesPercentRAW;
-            anidbfile.episodesRAW = fileInfo.EpisodesRAW;
+            Anime_GroupName = fileInfo.Anime_GroupName;
+            Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
+            AnimeID = fileInfo.AnimeID;
+            CRC = fileInfo.CRC;
+            DateTimeUpdated = DateTime.Now;
+            Episode_Rating = fileInfo.Episode_Rating;
+            Episode_Votes = fileInfo.Episode_Votes;
+            File_AudioCodec = fileInfo.File_AudioCodec;
+            File_Description = fileInfo.File_Description;
+            File_FileExtension = fileInfo.File_FileExtension;
+            File_LengthSeconds = fileInfo.File_LengthSeconds;
+            File_ReleaseDate = fileInfo.File_ReleaseDate;
+            File_Source = fileInfo.File_Source;
+            File_VideoCodec = fileInfo.File_VideoCodec;
+            File_VideoResolution = fileInfo.File_VideoResolution;
+            FileID = fileInfo.FileID;
+            FileName = fileInfo.FileName;
+            FileSize = fileInfo.FileSize;
+            GroupID = fileInfo.GroupID;
+            Hash = fileInfo.ED2KHash;
+            IsWatched = fileInfo.IsWatched;
+            MD5 = fileInfo.MD5;
+            SHA1 = fileInfo.SHA1;
+            FileVersion = fileInfo.FileVersion;
+            IsCensored = fileInfo.IsCensored;
+            IsDeprecated = fileInfo.IsDeprecated;
+            IsChaptered = fileInfo.IsChaptered;
+            InternalVersion = fileInfo.InternalVersion;
+            languagesRAW = fileInfo.LanguagesRAW;
+            subtitlesRAW = fileInfo.SubtitlesRAW;
+            episodesPercentRAW = fileInfo.EpisodesPercentRAW;
+            episodesRAW = fileInfo.EpisodesRAW;
         }
 
 
         public void CreateLanguages()
         {
             char apostrophe = "'".ToCharArray()[0];
-
-            if (languagesRAW != null) //Only create relations if the origin of the data if from Raw (WebService/AniDB)
+            Dictionary<string,int> ld=new Dictionary<string,int>();
+            List<string> audios=new List<string>();
+            List<string> subts=new List<string>();
+            if (languagesRAW != null && languagesRAW.Trim().Length > 0) //Only create relations if the origin of the data if from Raw (WebService/AniDB)
             {
-                if (languagesRAW.Trim().Length == 0) return;
-                // Delete old if changed
-
-                List<CrossRef_Languages_AniDB_File> fileLanguages =
-                    RepoFactory.CrossRef_Languages_AniDB_File.GetByFileID(this.FileID);
-                foreach (CrossRef_Languages_AniDB_File fLan in fileLanguages)
-                {
-                    RepoFactory.CrossRef_Languages_AniDB_File.Delete(fLan.CrossRef_Languages_AniDB_FileID);
-                }
-
-
                 string[] langs = languagesRAW.Split(apostrophe);
                 foreach (string language in langs)
                 {
                     string rlan = language.Trim().ToLower();
                     if (rlan.Length > 0)
                     {
-                        Language lan = RepoFactory.Language.GetByLanguageName(rlan);
-                        if (lan == null)
+                        if (!ld.ContainsKey(rlan))
                         {
-                            lan = new Language
-                            {
-                                LanguageName = rlan
-                            };
-                            RepoFactory.Language.Save(lan);
+                            Language lan = Repo.Language.GetByLanguageName(rlan) ?? Repo.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
+                            ld.Add(rlan, lan.LanguageID);
                         }
-                        CrossRef_Languages_AniDB_File cross = new CrossRef_Languages_AniDB_File
-                        {
-                            LanguageID = lan.LanguageID,
-                            FileID = FileID
-                        };
-                        RepoFactory.CrossRef_Languages_AniDB_File.Save(cross);
+
+                        audios.Add(rlan);
                     }
                 }
             }
 
-            if (subtitlesRAW != null)
+            if (subtitlesRAW != null && subtitlesRAW.Trim().Length > 0)
             {
-                if (subtitlesRAW.Trim().Length == 0) return;
-
-                // Delete old if changed
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles =
-                    RepoFactory.CrossRef_Subtitles_AniDB_File.GetByFileID(this.FileID);
-
-                foreach (CrossRef_Subtitles_AniDB_File fSub in fileSubtitles)
-                {
-                    RepoFactory.CrossRef_Subtitles_AniDB_File.Delete(fSub.CrossRef_Subtitles_AniDB_FileID);
-                }
-
                 string[] subs = subtitlesRAW.Split(apostrophe);
                 foreach (string language in subs)
                 {
                     string rlan = language.Trim().ToLower();
                     if (rlan.Length > 0)
                     {
-                        Language lan = RepoFactory.Language.GetByLanguageName(rlan);
-                        if (lan == null)
+                        if (!ld.ContainsKey(rlan))
                         {
-                            lan = new Language
-                            {
-                                LanguageName = rlan
-                            };
-                            RepoFactory.Language.Save(lan);
+                            Language lan = Repo.Language.GetByLanguageName(rlan) ?? Repo.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
+                            ld.Add(rlan, lan.LanguageID);
                         }
-                        CrossRef_Subtitles_AniDB_File cross = new CrossRef_Subtitles_AniDB_File
-                        {
-                            LanguageID = lan.LanguageID,
-                            FileID = FileID
-                        };
-                        RepoFactory.CrossRef_Subtitles_AniDB_File.Save(cross);
+                        subts.Add(rlan);
                     }
                 }
             }
+
+            if (audios.Count > 0)
+            {
+                using (var upd = Repo.CrossRef_Languages_AniDB_File.BeginBatchUpdate(() => Repo.CrossRef_Languages_AniDB_File.GetByFileID(FileID),true))
+                {
+                    foreach (string str in audios)
+                    {
+                        int langid = ld[str];
+                        CrossRef_Languages_AniDB_File cross = upd.FindOrCreate(a => a.LanguageID == langid);
+                        cross.FileID = FileID;
+                        cross.LanguageID = langid;
+                        upd.Update(cross);
+                    }
+                    upd.Commit();
+                }
+            }
+
+            if (subts.Count > 0)
+            {
+                using (var upd = Repo.CrossRef_Subtitles_AniDB_File.BeginBatchUpdate(() => Repo.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID),true))
+                {
+                    foreach (string str in subts)
+                    {
+                        int langid = ld[str];
+                        CrossRef_Subtitles_AniDB_File cross = upd.FindOrCreate(a => a.LanguageID == langid);
+                        cross.FileID = FileID;
+                        cross.LanguageID = langid;
+                        upd.Update(cross);
+                    }
+                    upd.Commit();
+                }
+            }           
         }
 
         public void CreateCrossEpisodes(string localFileName)
         {
             if (episodesRAW == null) return;
-            List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
+            List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
 
             foreach (CrossRef_File_Episode fileEp in fileEps)
-                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+                Repo.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
 
             fileEps = new List<CrossRef_File_Episode>();
 
@@ -429,10 +421,9 @@ namespace Shoko.Server.Models
                 fileEps.Add(cross);
             }
             // There is a chance that AniDB returned a dup, however unlikely
-            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
-                .ForEach(fileEp => RepoFactory.CrossRef_File_Episode.Save(fileEp));
+            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ForEach(fileEp => Repo.CrossRef_File_Episode.Touch(() => fileEp));
         }
-
+  
         public string ToXML()
         {
             StringBuilder sb = new StringBuilder();

@@ -1,7 +1,6 @@
 ﻿using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
 using FileSystemWatcher = System.IO.FileSystemWatcher;
 using FileSystemEventHandler = System.IO.FileSystemEventHandler;
@@ -14,10 +13,14 @@ using WatcherChangeTypes = System.IO.WatcherChangeTypes;
 using RenamedEventArgs = System.IO.RenamedEventArgs;
 using SearchOption = System.IO.SearchOption;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Pri.LongPath;
+#if PRILONGPATH
+using System.IO;
+#else
+using System.IO;
+#endif
+
 
 namespace LeanWork.IO.FileSystem
 {
@@ -33,7 +36,7 @@ namespace LeanWork.IO.FileSystem
     /// Notes:
     ///   We contain FilSystemWatcher to follow the prinicple composition over inheritance
     ///   and because System.IO.FileSystemWatcher is not designed to be inherited from:
-    ///   Event handlers and Dispose(disposing) are not virtual.
+    ///   Event handlers and Dispose(disposing) are  not virtual.
     /// </devdoc>
     public class BufferingFileSystemWatcher : Component
     {
