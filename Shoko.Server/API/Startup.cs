@@ -55,6 +55,11 @@ namespace Shoko.Server.API
             {
                 c.SwaggerDoc("v1", new Info { Title = "Shoko Server API", Version = "v1" });
             });
+
+            services.ConfigureSwaggerGen(options =>
+            {               
+                options.CustomSchemaIds(x => x.FullName);
+            });
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -88,7 +93,7 @@ namespace Shoko.Server.API
                 return next();
             });*/
 
-            app.UseRouter(routes =>
+            /*app.UseRouter(routes =>
             {
                 routes
                     .RouteFor(new ShokoServiceImplementation())
@@ -97,13 +102,12 @@ namespace Shoko.Server.API
                     .RouteFor(new ShokoServiceImplementationMetro())
                     .RouteFor(new ShokoServiceImplementationPlex())
                     .RouteFor(new ShokoServiceImplementationStream());
-            });
+            });*/
 
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
 
             app.UseMvc();
-            //app.UseRouter(new ApiV1Router())
 
             /*app.UseOwin(x => {
                 x.UseNancy(opt => {

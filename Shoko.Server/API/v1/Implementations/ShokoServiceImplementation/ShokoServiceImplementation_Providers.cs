@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;
@@ -24,6 +25,7 @@ namespace Shoko.Server
 {
     public partial class ShokoServiceImplementation : IShokoServer
     {
+        [HttpGet("AniDB/CrossRef/{animeID}")]
         public CL_AniDB_AnimeCrossRefs GetCrossRefDetails(int animeID)
         {
             CL_AniDB_AnimeCrossRefs result = new CL_AniDB_AnimeCrossRefs
@@ -132,6 +134,7 @@ namespace Shoko.Server
 
         #region Web Cache Admin
 
+        [HttpGet("WebCache/IsAdmin")]
         public bool IsWebCacheAdmin()
         {
             try
@@ -146,6 +149,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("WebCache/RandomLinkForApproval/{linkType}")]
         public Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
         {
             try
@@ -173,6 +177,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("WebCache/AdminMessages")]
         public List<Azure_AdminMessage> GetAdminMessages()
         {
             try
@@ -188,6 +193,7 @@ namespace Shoko.Server
 
         #region Admin - TvDB
 
+        [HttpPost("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}")]
         public string ApproveTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
         {
             try
@@ -201,6 +207,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("WebCache/CrossRef/TvDB/{crossRef_AniDB_TvDBId}")]
         public string RevokeTVDBCrossRefWebCache(int crossRef_AniDB_TvDBId)
         {
             try
@@ -218,6 +225,7 @@ namespace Shoko.Server
         /// Sends the current user's TvDB links to the web cache, and then admin approves them
         /// </summary>
         /// <returns></returns>
+        [HttpPost("WebCache/TvDB/UseLinks/{animeID}")]
         public string UseMyTvDBLinksWebCache(int animeID)
         {
             try
@@ -287,6 +295,7 @@ namespace Shoko.Server
 
         #region Admin - Trakt
 
+        [HttpPost("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}")]
         public string ApproveTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
         {
             try
@@ -300,6 +309,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("WebCache/CrossRef/Trakt/{crossRef_AniDB_TraktId}")]
         public string RevokeTraktCrossRefWebCache(int crossRef_AniDB_TraktId)
         {
             try
@@ -317,6 +327,7 @@ namespace Shoko.Server
         /// Sends the current user's Trakt links to the web cache, and then admin approves them
         /// </summary>
         /// <returns></returns>
+        [HttpPost("WebCache/Trakt/UseLinks/{animeID}")]
         public string UseMyTraktLinksWebCache(int animeID)
         {
             try
@@ -390,6 +401,7 @@ namespace Shoko.Server
 
         #region TvDB
 
+        [HttpPost("Serie/TvDB/Refresh/{seriesID}")]
         public string UpdateTvDBData(int seriesID)
         {
             try
@@ -404,6 +416,7 @@ namespace Shoko.Server
             return string.Empty;
         }
 
+        [HttpGet("TvDB/Language")]
         public List<TvDB_Language> GetTvDBLanguages()
         {
             try
@@ -418,6 +431,7 @@ namespace Shoko.Server
             return new List<TvDB_Language>();
         }
 
+        [HttpGet("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}")]
         public List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
         {
             try
@@ -434,7 +448,7 @@ namespace Shoko.Server
             }
         }
 
-
+        [HttpGet("TvDB/CrossRef/{animeID}")]
         public List<CrossRef_AniDB_TvDBV2> GetTVDBCrossRefV2(int animeID)
         {
             try
@@ -448,11 +462,13 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("TvDB/CrossRef/Preview/{animeID}/{tvdbID}")]
         public List<CrossRef_AniDB_TvDB_Episode> GetTvDBEpisodeMatchPreview(int animeID, int tvdbID)
         {
             return TvDBLinkingHelper.GetMatchPreviewWithOverrides(animeID, tvdbID);
         }
 
+        [HttpGet("TvDB/CrossRef/Episode/{animeID}")]
         public List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID)
         {
             try
@@ -466,7 +482,7 @@ namespace Shoko.Server
             }
         }
 
-
+        [HttpGet("TvDB/Search/{criteria}")]
         public List<TVDB_Series_Search_Response> SearchTheTvDB(string criteria)
         {
             try
@@ -480,7 +496,7 @@ namespace Shoko.Server
             }
         }
 
-
+        [HttpGet("Serie/Seasons/{seriesID}")]
         public List<int> GetSeasonNumbersForSeries(int seriesID)
         {
             List<int> seasonNumbers = new List<int>();
@@ -500,6 +516,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("TvDB/CrossRef")]
         public string LinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
         {
             try
@@ -530,6 +547,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("TvDB/CrossRef/FromWebCache")]
         public string LinkTvDBUsingWebCacheLinks(List<CrossRef_AniDB_TvDBV2> links)
         {
             try
@@ -566,6 +584,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("TvDB/CrossRef/Episode/{aniDBID}/{tvDBID}")]
         public string LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
         {
             try
@@ -586,6 +605,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="animeID"></param>
         /// <returns></returns>
+        [HttpDelete("TvDB/CrossRef/{animeID}")]
         public string RemoveLinkAniDBTvDBForAnime(int animeID)
         {
             try
@@ -624,6 +644,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("TvDB/CrossRef")]
         public string RemoveLinkAniDBTvDB(CrossRef_AniDB_TvDBV2 link)
         {
             try
@@ -656,6 +677,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("TvDB/CrossRef/Episode/{aniDBEpisodeID}")]
         public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvDBEpisodeID)
         {
             try
@@ -681,6 +703,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("TvDB/Poster/{tvDBID?}")]
         public List<TvDB_ImagePoster> GetAllTvDBPosters(int? tvDBID)
         {
             List<TvDB_ImagePoster> allImages = new List<TvDB_ImagePoster>();
@@ -698,6 +721,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("TvDB/Banner/{tvDBID?}")]
         public List<TvDB_ImageWideBanner> GetAllTvDBWideBanners(int? tvDBID)
         {
             try
@@ -714,6 +738,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("TvDB/Fanart/{tvDBID?}")]
         public List<TvDB_ImageFanart> GetAllTvDBFanart(int? tvDBID)
         {
             try
@@ -730,6 +755,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("TvDB/Episode/{tvDBID?}")]
         public List<TvDB_Episode> GetAllTvDBEpisodes(int? tvDBID)
         {
             try
@@ -750,6 +776,7 @@ namespace Shoko.Server
 
         #region Trakt
 
+        [HttpGet("Trakt/Episode/{traktShowID?}")]
         public List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
         {
             try
@@ -766,6 +793,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Trakt/Episode/FromTraktId/{traktID}")]
         public List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
         {
             try
@@ -783,6 +811,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}")]
         public List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
         {
             try
@@ -799,6 +828,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{seasonNumber}/{traktEpNumber}/{crossRef_AniDB_TraktV2ID?}")]
         public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
             int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
         {
@@ -843,7 +873,7 @@ namespace Shoko.Server
             }
         }
 
-
+        [HttpGet("Trakt/CrossRef/{animeID}")]
         public List<CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
         {
             try
@@ -857,6 +887,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Trakt/CrossRef/Episode/{animeID}")]
         public List<CrossRef_AniDB_Trakt_Episode> GetTraktCrossRefEpisode(int animeID)
         {
             try
@@ -870,6 +901,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Trakt/Search/{criteria}")]
         public List<CL_TraktTVShowResponse> SearchTrakt(string criteria)
         {
             List<CL_TraktTVShowResponse> results = new List<CL_TraktTVShowResponse>();
@@ -889,6 +921,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Trakt/CrossRef/{animeID}")]
         public string RemoveLinkAniDBTraktForAnime(int animeID)
         {
             try
@@ -924,6 +957,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{traktSeasonNumber}/{traktEpNumber}")]
         public string RemoveLinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID,
             int traktSeasonNumber,
             int traktEpNumber)
@@ -957,6 +991,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Trakt/Seasons/{traktID}")]
         public List<int> GetSeasonNumbersForTrakt(string traktID)
         {
             List<int> seasonNumbers = new List<int>();
@@ -980,6 +1015,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Trakt/Friend/{friendUsername}")]
         public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
         {
             return new CL_Response<bool> {Result = false};
@@ -996,6 +1032,7 @@ namespace Shoko.Server
             }*/
         }
 
+        [HttpPost("Trakt/Friend/{friendUsername}")]
         public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
         {
             return new CL_Response<bool> {Result = false};
@@ -1012,6 +1049,7 @@ namespace Shoko.Server
             }*/
         }
 
+        [HttpPost("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}")]
         public int TraktScrobble(int animeId, int type, int progress, int status)
         {
             try
@@ -1058,6 +1096,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Trakt/Refresh/{traktID}")]
         public string UpdateTraktData(string traktD)
         {
             try
@@ -1071,6 +1110,7 @@ namespace Shoko.Server
             return string.Empty;
         }
 
+        [HttpPost("Trakt/Sync/{animeID}")]
         public string SyncTraktSeries(int animeID)
         {
             try
@@ -1094,11 +1134,13 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
         public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
         {
             return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
+        [HttpPost("Trakt/LinkValidity/{slug}/{removeDBEntries}")]
         public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
         {
             try
@@ -1112,6 +1154,7 @@ namespace Shoko.Server
             return false;
         }
 
+        [HttpGet("Trakt/CrossRef")]
         public List<CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs()
         {
             try
@@ -1125,6 +1168,7 @@ namespace Shoko.Server
             return new List<CrossRef_AniDB_TraktV2>();
         }
 
+        [HttpGet("Trakt/Comment/{animeID}")]
         public List<CL_Trakt_CommentUser> GetTraktCommentsForAnime(int animeID)
         {
             List<CL_Trakt_CommentUser> comments = new List<CL_Trakt_CommentUser>();
@@ -1171,6 +1215,7 @@ namespace Shoko.Server
             return comments;
         }
 
+        [HttpGet("Trakt/DeviceCode")]
         public CL_TraktDeviceCode GetTraktDeviceCode()
         {
             try
@@ -1193,6 +1238,7 @@ namespace Shoko.Server
 
         #region Other Cross Refs
 
+        [HttpGet("WebCache/CrossRef/Other/{animeID}/{crossRefType}")]
         public CL_CrossRef_AniDB_Other_Response GetOtherAnimeCrossRefWebCache(int animeID, int crossRefType)
         {
             try
@@ -1206,6 +1252,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Other/CrossRef/{animeID}/{crossRefType}")]
         public CrossRef_AniDB_Other GetOtherAnimeCrossRef(int animeID, int crossRefType)
         {
             try
@@ -1219,6 +1266,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Other/CrossRef/{animeID}/{id}/{crossRefType}")]
         public string LinkAniDBOther(int animeID, int movieID, int crossRefType)
         {
             try
@@ -1241,6 +1289,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Other/CrossRef/{animeID}/{crossRefType}")]
         public string RemoveLinkAniDBOther(int animeID, int crossRefType)
         {
             try
@@ -1282,6 +1331,7 @@ namespace Shoko.Server
 
         #region MovieDB
 
+        [HttpGet("MovieDB/Search/{criteria}")]
         public List<CL_MovieDBMovieSearch_Response> SearchTheMovieDB(string criteria)
         {
             List<CL_MovieDBMovieSearch_Response> results = new List<CL_MovieDBMovieSearch_Response>();
@@ -1301,6 +1351,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MovieDB/Poster/{movieID?}")]
         public List<MovieDB_Poster> GetAllMovieDBPosters(int? movieID)
         {
             try
@@ -1317,6 +1368,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MovieDB/Fanart/{movieID?}")]
         public List<MovieDB_Fanart> GetAllMovieDBFanart(int? movieID)
         {
             try
@@ -1333,6 +1385,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("MovieDB/Refresh/{movieID}")]
         public string UpdateMovieDBData(int movieD)
         {
             try

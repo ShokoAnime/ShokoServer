@@ -31,13 +31,12 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
     public partial class ShokoServiceImplementation : IShokoServer
     {
-
-
         #region Episodes and Files
 
         /// <summary>
@@ -46,6 +45,7 @@ namespace Shoko.Server
         /// <param name="animeSeriesID"></param>
         /// <param name="userID"></param>
         /// <returns></returns>
+        [HttpGet("Episode/PreviousEpisode/{animeSeriesID}/{userID}")]
         public CL_AnimeEpisode_User GetPreviousEpisodeForUnwatched(int animeSeriesID, int userID)
         {
             try
@@ -76,6 +76,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/NextForSeries/{animeSeriesID}/{userID}")]
         public CL_AnimeEpisode_User GetNextUnwatchedEpisode(int animeSeriesID, int userID)
         {
             try
@@ -154,6 +155,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/Unwatched/{animeSeriesID}/{userID}")]
         public List<CL_AnimeEpisode_User> GetAllUnwatchedEpisodes(int animeSeriesID, int userID)
         {
             List<CL_AnimeEpisode_User> ret = new List<CL_AnimeEpisode_User>();
@@ -248,6 +250,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/NextForGroup/{animeGroupID}/{userID}")]
         public CL_AnimeEpisode_User GetNextUnwatchedEpisodeForGroup(int animeGroupID, int userID)
         {
             try
@@ -273,6 +276,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/ContinueWatching/{userID}/{maxRecords}")]
         public List<CL_AnimeEpisode_User> GetContinueWatchingFilter(int userID, int maxRecords)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -367,6 +371,7 @@ namespace Shoko.Server
         /// It will return the next episode to watch in the most recent 10 series
         /// </summary>
         /// <returns></returns>
+        [HttpGet("Episode/WatchedToWatch/{maxRecords}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -419,6 +424,7 @@ namespace Shoko.Server
             return retEps;
         }
 
+        [HttpGet("Episode/Watched/{maxRecords}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesRecentlyWatched(int maxRecords, int userID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -463,6 +469,7 @@ namespace Shoko.Server
             return retEps;
         }
 
+        [NonAction]
         public IReadOnlyList<SVR_VideoLocal> GetAllFiles()
         {
             try
@@ -476,6 +483,7 @@ namespace Shoko.Server
             }
         }
 
+        [NonAction]
         public SVR_VideoLocal GetFileByID(int id)
         {
             try
@@ -489,6 +497,7 @@ namespace Shoko.Server
             }
         }
 
+        [NonAction]
         public List<SVR_VideoLocal> GetFilesRecentlyAdded(int max_records)
         {
             try
@@ -502,6 +511,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/RecentlyAdded/{maxRecords}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesRecentlyAdded(int maxRecords, int userID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -542,6 +552,7 @@ namespace Shoko.Server
             return retEps;
         }
 
+        [HttpGet("Episode/RecentlyAdded/Summary/{maxRecords}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int userID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -603,6 +614,7 @@ namespace Shoko.Server
             return retEps;
         }
 
+        [HttpGet("Serie/RecentlyAdded/{maxRecords}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesRecentlyAdded(int maxRecords, int userID)
         {
             List<CL_AnimeSeries_User> retSeries = new List<CL_AnimeSeries_User>();
@@ -637,6 +649,7 @@ namespace Shoko.Server
             return retSeries;
         }
 
+        [HttpGet("Episode/LastWatched/{animeSeriesID}/{jmmuserID}")]
         public CL_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int animeSeriesID, int jmmuserID)
         {
             try
@@ -668,6 +681,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("Episode/{animeEpisodeID}/{userID}")]
         public CL_AnimeEpisode_User GetEpisode(int animeEpisodeID, int userID)
         {
             try
@@ -681,6 +695,7 @@ namespace Shoko.Server
             }
         }
 
+        [NonAction]
         public IReadOnlyList<AnimeEpisode> GetAllEpisodes()
         {
             try
@@ -694,6 +709,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/AniDB/{episodeID}/{userID}")]
         public CL_AnimeEpisode_User GetEpisodeByAniDBEpisodeID(int episodeID, int userID)
         {
             try
@@ -707,6 +723,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("File/Association/{videoLocalID}/{animeEpisodeID}")]
         public string RemoveAssociationOnFile(int videoLocalID, int animeEpisodeID)
         {
             try
@@ -754,6 +771,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("File/Status/{videoLocalID}/{isIgnored}")]
         public string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored)
         {
             try
@@ -777,6 +795,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("File/Variation/{videoLocalID}/{isVariation}")]
         public string SetVariationStatusOnFile(int videoLocalID, bool isVariation)
         {
             try
@@ -798,6 +817,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("File/Association/{videoLocalID}/{animeEpisodeID}")]
         public string AssociateSingleFile(int videoLocalID, int animeEpisodeID)
         {
             try
@@ -824,6 +844,7 @@ namespace Shoko.Server
             return "";
         }
 
+        [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
         public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum,
             int endEpNum)
         {
@@ -864,6 +885,7 @@ namespace Shoko.Server
             return "";
         }
 
+        [HttpPost("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
         public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber,
             bool singleEpisode)
         {
@@ -915,11 +937,13 @@ namespace Shoko.Server
             return "";
         }
 
+        [HttpPost("AniDB/Refresh/{missingInfo}/{outOfDate}/{countOnly}")]
         public int UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool countOnly)
         {
             return Importer.UpdateAniDBFileData(missingInfo, outOfDate, countOnly);
         }
 
+        [HttpPost("File/Refresh/{videoLocalID}")]
         public string UpdateFileData(int videoLocalID)
         {
             try
@@ -936,6 +960,8 @@ namespace Shoko.Server
             }
             return "";
         }
+
+        [HttpPost("File/Rescan/{videoLocalID}")]
         public string RescanFile(int videoLocalID)
         {
             try
@@ -955,6 +981,7 @@ namespace Shoko.Server
             return "";
         }
 
+        [HttpPost("File/Rehash/{videoLocalID}")]
         public void RehashFile(int videoLocalID)
         {
             SVR_VideoLocal vl = Repo.VideoLocal.GetByID(videoLocalID);
@@ -977,6 +1004,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="videoplaceid"></param>
         /// <returns></returns>
+        [HttpDelete("File/Physical/{videoplaceid}")]
         public string DeleteVideoLocalPlaceAndFile(int videoplaceid)
         {
             try
@@ -994,6 +1022,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("File/Resume/{videoLocalID}/{resumeposition}/{userID}")]
         public string SetResumePosition(int videoLocalID, long resumeposition, int userID)
         {
             try
@@ -1011,6 +1040,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("File/ForAnime/{animeID}/{userID}")]
         public List<CL_VideoLocal> GetVideoLocalsForAnime(int animeID, int userID)
         {
             try
@@ -1044,6 +1074,7 @@ namespace Shoko.Server
             return new List<CL_VideoLocal>();
         }
 
+        [HttpGet("AniDB/Vote/{animeID}")]
         public AniDB_Vote GetUserVote(int animeID)
         {
             try
@@ -1057,6 +1088,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("Episode/IncrementStats/{animeEpisodeID}/{userID}/{statCountType}")]
         public void IncrementEpisodeStats(int animeEpisodeID, int userID, int statCountType)
         {
             try
@@ -1121,12 +1153,14 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("AniDB/MyList/{fileID}")]
         public void DeleteFileFromMyList(int fileID)
         {
             CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(fileID);
             cmd.Save();
         }
 
+        [HttpPost("AniDB/MyList/{hash}")]
         public void ForceAddFileToMyList(string hash)
         {
             try
@@ -1140,6 +1174,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("AniDB/Episode/ForAnime/{animeID}")]
         public List<CL_AniDB_Episode> GetAniDBEpisodesForAnime(int animeID)
         {
             try
@@ -1158,6 +1193,7 @@ namespace Shoko.Server
             return new List<CL_AniDB_Episode>();
         }
 
+        [HttpGet("Episode/ForSerie/{animeSeriesID}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<CL_AnimeEpisode_User> eps = new List<CL_AnimeEpisode_User>();
@@ -1247,6 +1283,7 @@ namespace Shoko.Server
             return eps;
         }
 
+        [HttpGet("Episode/Old/{animeSeriesID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesForSeriesOld(int animeSeriesID)
         {
             List<CL_AnimeEpisode_User> eps = new List<CL_AnimeEpisode_User>();
@@ -1314,6 +1351,7 @@ namespace Shoko.Server
             return eps;
         }
 
+        [HttpGet("File/Detailed/{episodeID}/{userID}")]
         public List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
         {
             try
@@ -1331,6 +1369,7 @@ namespace Shoko.Server
             return new List<CL_VideoDetailed>();
         }
 
+        [HttpGet("File/ForEpisode/{episodeID}/{userID}")]
         public List<CL_VideoLocal> GetVideoLocalsForEpisode(int episodeID, int userID)
         {
             List<CL_VideoLocal> contracts = new List<CL_VideoLocal>();
@@ -1352,6 +1391,7 @@ namespace Shoko.Server
             return contracts;
         }
 
+        [HttpPost("File/Watch/{videoLocalID}/{watchedStatus}/{userID}")]
         public string ToggleWatchedStatusOnVideo(int videoLocalID, bool watchedStatus, int userID)
         {
             try
@@ -1369,6 +1409,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}")]
         public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
             bool watchedStatus, int userID)
         {
@@ -1405,6 +1446,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("File/Detailed/{videoLocalID}/{userID}")]
         public CL_VideoDetailed GetVideoDetailed(int videoLocalID, int userID)
         {
             try
@@ -1422,6 +1464,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/ForSingleFile/{videoLocalID}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesForFile(int videoLocalID, int userID)
         {
             List<CL_AnimeEpisode_User> contracts = new List<CL_AnimeEpisode_User>();
@@ -1452,6 +1495,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="aniDBEpisodeID"></param>
         /// <returns></returns>
+        [HttpGet("AniDB/ReleaseGroup/FromEpisode/{aniDBEpisodeID}")]
         public List<CL_AniDB_GroupStatus> GetMyReleaseGroupsForAniDBEpisode(int aniDBEpisodeID)
         {
             DateTime start = DateTime.Now;
@@ -1516,6 +1560,7 @@ namespace Shoko.Server
 
         #region Groups and Series
 
+        [HttpGet("Serie/{animeSeriesID}/{userID}")]
         public CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID)
         {
             try
@@ -1529,6 +1574,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [NonAction]
         public List<CL_AnimeSeries_User> GetSeriesByFolderID(int FolderID, int userID, int max)
         {
             try
@@ -1568,6 +1614,7 @@ namespace Shoko.Server
         /// <param name="animeID"></param>
         /// <param name="voteValue">Must be 1 or 2 (Anime or Anime Temp(</param>
         /// <param name="voteType"></param>
+        [HttpPost("AniDB/Vote/{animeID}/{voteType}")]
         public void VoteAnime(int animeID, decimal voteValue, int voteType)
         {
             string msg = $"Voting for anime: {animeID} - Value: {voteValue}";
@@ -1598,6 +1645,7 @@ namespace Shoko.Server
             cmdVote.Save();
         }
 
+        [HttpDelete("AniDB/Vote/{animeID}")]
         public void VoteAnimeRevoke(int animeID)
         {
             // lets save to the database and assume it will work
@@ -1629,6 +1677,7 @@ namespace Shoko.Server
         /// <param name="watchedStatus"></param>
         /// <param name="maxEpisodeNumber">Use this to specify a max episode number to apply to</param>
         /// <returns></returns>
+        [HttpPost("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}")]
         public string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber,
             int episodeType,
             int userID)
@@ -1675,6 +1724,7 @@ namespace Shoko.Server
             }
         }
 
+        [NonAction]
         public List<CL_AnimeSeries_FileStats> GetSeriesFileStatsByFolderID(int FolderID, int userID, int max)
         {
             try
@@ -1727,6 +1777,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("Serie/ForAnime/{animeID}/{userID}")]
         public CL_AnimeSeries_User GetSeriesForAnime(int animeID, int userID)
         {
             try
@@ -1740,6 +1791,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("Serie/ExistingForAnime/{animeID}")]
         public bool GetSeriesExistingForAnime(int animeID)
         {
             try
@@ -1756,6 +1808,7 @@ namespace Shoko.Server
             return true;
         }
 
+        [HttpGet("Group/{userID}")]
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
             List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
@@ -1773,6 +1826,7 @@ namespace Shoko.Server
             return grps;
         }
 
+        [HttpGet("Group/AboveGroup/{animeGroupID}/{userID}")]
         public List<CL_AnimeGroup_User> GetAllGroupsAboveGroupInclusive(int animeGroupID, int userID)
         {
             List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
@@ -1798,6 +1852,7 @@ namespace Shoko.Server
             return grps;
         }
 
+        [HttpGet("Group/AboveSeries/{animeSeriesID}/{userID}")]
         public List<CL_AnimeGroup_User> GetAllGroupsAboveSeries(int animeSeriesID, int userID)
         {
             List<CL_AnimeGroup_User> grps = new List<CL_AnimeGroup_User>();
@@ -1822,6 +1877,7 @@ namespace Shoko.Server
             return grps;
         }
 
+        [HttpGet("Group/{animeGroupID}/{userID}")]
         public CL_AnimeGroup_User GetGroup(int animeGroupID, int userID)
         {
             try
@@ -1835,6 +1891,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpPost("Group/Recreate/{resume}")]
         public void RecreateAllGroups(bool resume = false)
         {
             try
@@ -1847,6 +1904,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Group/Rename")]
         public string RenameAllGroups()
         {
             try
@@ -1862,6 +1920,7 @@ namespace Shoko.Server
             return string.Empty;
         }
 
+        [HttpDelete("Group/{animeGroupID}/{deleteFiles}")]
         public string DeleteAnimeGroup(int animeGroupID, bool deleteFiles)
         {
             try
@@ -1939,6 +1998,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Group/ForFilter/{groupFilterID}/{userID}/{getSingleSeriesGroups}")]
         public List<CL_AnimeGroup_User> GetAnimeGroupsForFilter(int groupFilterID, int userID,
             bool getSingleSeriesGroups)
         {
@@ -1997,6 +2057,7 @@ namespace Shoko.Server
         /// <param name="animeGroupID"></param>
         /// <param name="allSeries"></param>
         /// <returns></returns>
+        [HttpGet("Serie/ForGroup/{animeGroupID}/{userID}")]
         public static SVR_AnimeSeries GetSeriesForGroup(int animeGroupID, List<SVR_AnimeSeries> allSeries)
         {
             try
@@ -2015,6 +2076,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Group/{userID}")]
         public CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request contract, int userID)
         {
             CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User>
@@ -2086,6 +2148,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}")]
         public CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
@@ -2156,6 +2219,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Serie/{userID}")]
         public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
@@ -2236,6 +2300,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}")]
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite)
         {
             CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
@@ -2321,6 +2386,7 @@ namespace Shoko.Server
             return response;
         }
 
+        [HttpPost("AniDB/Anime/Update/{animeID}")]
         public string UpdateAnimeData(int animeID)
         {
             try
@@ -2354,6 +2420,7 @@ namespace Shoko.Server
             return string.Empty;
         }
 
+        [HttpPost("AniDB/Anime/GetUpdated/{animeID}")]
         public CL_AniDB_AnimeDetailed GetUpdatedAnimeData(int animeID)
         {
             try
@@ -2389,6 +2456,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpPost("AniDB/Anime/ExternalLinksFlag/{animeID}/{flags}")]
         public void UpdateAnimeDisableExternalLinksFlag(int animeID, int flags)
         {
             try
@@ -2408,6 +2476,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}")]
         public void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID)
         {
             try
@@ -2430,6 +2499,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Group/DefaultSerie/{animeGroupID}")]
         public void RemoveDefaultSeriesForGroup(int animeGroupID)
         {
             try
@@ -2449,6 +2519,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Group/ForSerie/{animeSeriesID}/{userID}")]
         public CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID)
         {
             try
@@ -2463,6 +2534,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpPost("AniDB/Anime/Ignore/{animeID}/{ignoreType}/{userID}")]
         public void IgnoreAnime(int animeID, int ignoreType, int userID)
         {
             try
@@ -2495,6 +2567,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("AniDB/Anime/Similar/{animeID}/{userID}")]
         public List<CL_AniDB_Anime_Similar> GetSimilarAnimeLinks(int animeID, int userID)
         {
             List<CL_AniDB_Anime_Similar> links = new List<CL_AniDB_Anime_Similar>();
@@ -2530,6 +2603,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("AniDB/Anime/Relation/{animeID}/{userID}")]
         public List<CL_AniDB_Anime_Relation> GetRelatedAnimeLinks(int animeID, int userID)
         {
             List<CL_AniDB_Anime_Relation> links = new List<CL_AniDB_Anime_Relation>();
@@ -2571,6 +2645,7 @@ namespace Shoko.Server
         /// <param name="animeSeriesID"></param>
         /// <param name="deleteFiles">also delete the physical files</param>
         /// <returns></returns>
+        [HttpDelete("Serie/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
         public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
         {
             try
@@ -2625,6 +2700,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("AniDB/Anime/{animeID}")]
         public CL_AniDB_Anime GetAnime(int animeID)
         {
             try
@@ -2639,6 +2715,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("AniDB/Anime")]
         public List<CL_AniDB_Anime> GetAllAnime()
         {
             try
@@ -2652,6 +2729,7 @@ namespace Shoko.Server
             return new List<CL_AniDB_Anime>();
         }
 
+        [HttpGet("AniDB/Anime/Rating/{collectionState}/{watchedState}/{ratingVotedState}/{userID}")]
         public List<CL_AnimeRating> GetAnimeRatings(int collectionState, int watchedState, int ratingVotedState,
             int userID)
         {
@@ -2843,6 +2921,7 @@ namespace Shoko.Server
             return contracts;
         }
 
+        [HttpGet("AniDB/Anime/Detailed")]
         public List<CL_AniDB_AnimeDetailed> GetAllAnimeDetailed()
         {
             try
@@ -2856,6 +2935,7 @@ namespace Shoko.Server
             return new List<CL_AniDB_AnimeDetailed>();
         }
 
+        [HttpGet("Serie/{userID}")]
         public List<CL_AnimeSeries_User> GetAllSeries(int userID)
         {
             try
@@ -2869,6 +2949,7 @@ namespace Shoko.Server
             return new List<CL_AnimeSeries_User>();
         }
 
+        [HttpGet("AniDB/Anime/Detailed/{animeID}")]
         public CL_AniDB_AnimeDetailed GetAnimeDetailed(int animeID)
         {
             try
@@ -2882,6 +2963,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Group/SubGroup/{animeGroupID}/{userID}")]
         public List<CL_AnimeGroup_User> GetSubGroupsForGroup(int animeGroupID, int userID)
         {
             List<CL_AnimeGroup_User> retGroups = new List<CL_AnimeGroup_User>();
@@ -2905,6 +2987,7 @@ namespace Shoko.Server
             return retGroups;
         }
 
+        [HttpGet("Serie/ForGroup/{animeGroupID}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID)
         {
             List<CL_AnimeSeries_User> series = new List<CL_AnimeSeries_User>();
@@ -2929,6 +3012,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Serie/ForGroupRecursive/{animeGroupID}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID)
         {
             List<CL_AnimeSeries_User> series = new List<CL_AnimeSeries_User>();
@@ -2957,6 +3041,7 @@ namespace Shoko.Server
 
         #region Group Filters
 
+        [HttpPost("GroupFilter")]
         public CL_Response<CL_GroupFilter> SaveGroupFilter(CL_GroupFilter contract)
         {
             CL_Response<CL_GroupFilter> response = new CL_Response<CL_GroupFilter>
@@ -2991,6 +3076,7 @@ namespace Shoko.Server
             return response;
         }
 
+        [HttpDelete("GroupFilter/{groupFilterID}")]
         public string DeleteGroupFilter(int groupFilterID)
         {
             try
@@ -3010,6 +3096,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("GroupFilter/Detailed/{groupFilterID}/{userID}")]
         public CL_GroupFilterExtended GetGroupFilterExtended(int groupFilterID, int userID)
         {
             try
@@ -3029,6 +3116,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpGet("GroupFilter/Detailed/ForUser/{userID}")]
         public List<CL_GroupFilterExtended> GetAllGroupFiltersExtended(int userID)
         {
             List<CL_GroupFilterExtended> gfs = new List<CL_GroupFilterExtended>();
@@ -3058,6 +3146,7 @@ namespace Shoko.Server
             return gfs;
         }
 
+        [HttpGet("GroupFilter/Detailed/ForUser/{userID}/{gfparentid}")]
         public List<CL_GroupFilterExtended> GetGroupFiltersExtended(int userID, int gfparentid = 0)
         {
             List<CL_GroupFilterExtended> gfs = new List<CL_GroupFilterExtended>();
@@ -3089,6 +3178,7 @@ namespace Shoko.Server
             return gfs;
         }
 
+        [HttpGet("GroupFilter")]
         public List<CL_GroupFilter> GetAllGroupFilters()
         {
             List<CL_GroupFilter> gfs = new List<CL_GroupFilter>();
@@ -3113,6 +3203,7 @@ namespace Shoko.Server
             return gfs;
         }
 
+        [HttpGet("GroupFilter/Parent/{gfparentid}")]
         public List<CL_GroupFilter> GetGroupFilters(int gfparentid = 0)
         {
             List<CL_GroupFilter> gfs = new List<CL_GroupFilter>();
@@ -3139,6 +3230,7 @@ namespace Shoko.Server
             return gfs;
         }
 
+        [HttpGet("GroupFilter/{gf}")]
         public CL_GroupFilter GetGroupFilter(int gf)
         {
             try
@@ -3152,6 +3244,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [HttpPost("GroupFilter/Evaluate")]
         public CL_GroupFilter EvaluateGroupFilter(CL_GroupFilter contract)
         {
             try
@@ -3169,6 +3262,7 @@ namespace Shoko.Server
 
         #region Playlists
 
+        [HttpGet("Playlist")]
         public List<Playlist> GetAllPlaylists()
         {
             try
@@ -3182,6 +3276,7 @@ namespace Shoko.Server
             return new List<Playlist>();
         }
 
+        [HttpPost("Playlist")]
         public CL_Response<Playlist> SavePlaylist(Playlist contract)
         {
             CL_Response<Playlist> contractRet = new CL_Response<Playlist>
@@ -3232,6 +3327,7 @@ namespace Shoko.Server
             return contractRet;
         }
 
+        [HttpDelete("Playlist/{playlistID}")]
         public string DeletePlaylist(int playlistID)
         {
             try
@@ -3251,6 +3347,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Playlist/{playlistID}")]
         public Playlist GetPlaylist(int playlistID)
         {
             try
@@ -3268,6 +3365,7 @@ namespace Shoko.Server
 
         #region Custom Tags
 
+        [HttpGet("CustomTag")]
         public List<CustomTag> GetAllCustomTags()
         {
             try
@@ -3281,6 +3379,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("CustomTag/CrossRef")]
         public CL_Response<CrossRef_CustomTag> SaveCustomTagCrossRef(CrossRef_CustomTag contract)
         {
             CL_Response<CrossRef_CustomTag> contractRet = new CL_Response<CrossRef_CustomTag>
@@ -3323,6 +3422,7 @@ namespace Shoko.Server
             return contractRet;
         }
 
+        [HttpDelete("CustomTag/CrossRef/{xrefID}")]
         public string DeleteCustomTagCrossRefByID(int xrefID)
         {
             try
@@ -3342,6 +3442,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("CustomTag/CrossRef/{customTagID}/{crossRefType}/{crossRefID}")]
         public string DeleteCustomTagCrossRef(int customTagID, int crossRefType, int crossRefID)
         {
             try
@@ -3363,6 +3464,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("CustomTag")]
         public CL_Response<CustomTag> SaveCustomTag(CustomTag contract)
         {
             CL_Response<CustomTag> contractRet = new CL_Response<CustomTag>
@@ -3409,6 +3511,7 @@ namespace Shoko.Server
             return contractRet;
         }
 
+        [HttpDelete("CustomTag/{customTagID}")]
         public string DeleteCustomTag(int customTagID)
         {
             try
@@ -3438,6 +3541,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("CustomTag/{customTagID}")]
         public CustomTag GetCustomTag(int customTagID)
         {
             try
@@ -3455,6 +3559,7 @@ namespace Shoko.Server
 
         #region Users
 
+        [HttpGet("User")]
         public List<JMMUser> GetAllUsers()
         {
             try
@@ -3468,6 +3573,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("User/{username}")]
         public JMMUser AuthenticateUser(string username, string password)
         {
             try
@@ -3481,11 +3587,13 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("User/ChangePassword/{userID}")]
         public string ChangePassword(int userID, string newPassword)
         {
             return ChangePassword(userID, newPassword, true);
         }
 
+        [NonAction]
         public string ChangePassword(int userID, string newPassword, bool revokeapikey)
         {
             try
@@ -3513,6 +3621,7 @@ namespace Shoko.Server
             return string.Empty;
         }
 
+        [HttpPost("User")]
         public string SaveUser(JMMUser user)
         {
             try
@@ -3608,6 +3717,7 @@ namespace Shoko.Server
             return "";
         }
 
+        [HttpDelete("User")]
         public string DeleteUser(int userID)
         {
             try
@@ -3651,6 +3761,7 @@ namespace Shoko.Server
         #endregion
 
         #region Import Folders
+        [HttpGet("Folder")]
         public List<ImportFolder> GetImportFolders()
         {
             try
@@ -3664,6 +3775,7 @@ namespace Shoko.Server
             return new List<ImportFolder>();
         }
 
+        [HttpPost("Folder")]
         public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
         {
             CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
@@ -3791,6 +3903,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("Folder/{importFolderID}")]
         public string DeleteImportFolder(int importFolderID)
         {
             ShokoServer.DeleteImportFolder(importFolderID);

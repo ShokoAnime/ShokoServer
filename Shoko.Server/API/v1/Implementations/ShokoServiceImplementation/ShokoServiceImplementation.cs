@@ -21,9 +21,13 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Plex;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
+    [ApiController]
+    [Route("/v1")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public partial class ShokoServiceImplementation : IShokoServer, IHttpContextAccessor
     {
         HttpContext _ctx;
@@ -34,7 +38,7 @@ namespace Shoko.Server
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         #region Bookmarks
-
+        [HttpGet("Bookmark")]
         public List<CL_BookmarkedAnime> GetAllBookmarkedAnime()
         {
             List<CL_BookmarkedAnime> baList = new List<CL_BookmarkedAnime>();
@@ -49,6 +53,7 @@ namespace Shoko.Server
             return baList;
         }
 
+        [HttpPost("Bookmark")]
         public CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(CL_BookmarkedAnime contract)
         {
             CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>
@@ -81,6 +86,7 @@ namespace Shoko.Server
             return contractRet;
         }
 
+        [HttpDelete("Bookmark/{bookmarkedAnimeID}")]
         public string DeleteBookmarkedAnime(int bookmarkedAnimeID)
         {
             try
@@ -99,6 +105,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Bookmark/{bookmarkedAnimeID}")]
         public CL_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID)
         {
             try
@@ -116,6 +123,7 @@ namespace Shoko.Server
 
         #region Status and Changes
 
+        [HttpGet("Changes/{date}/{userID}")]
         public CL_MainChanges GetAllChanges(DateTime date, int userID)
         {
             CL_MainChanges c = new CL_MainChanges();
@@ -198,6 +206,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [HttpGet("GroupFilter/Changes/{date}")]
         public CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date)
         {
             CL_Changes<CL_GroupFilter> c = new CL_Changes<CL_GroupFilter>();
@@ -217,6 +226,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [HttpGet("Server")]
         public CL_ServerStatus GetServerStatus()
         {
             CL_ServerStatus contract = new CL_ServerStatus();
@@ -268,6 +278,7 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpGet("Server/Versions")]
         public CL_AppVersions GetAppVersions()
         {
             try
@@ -285,6 +296,7 @@ namespace Shoko.Server
 
         #endregion
 
+        [HttpGet("Years")]
         public List<string> GetAllYears()
         {
             List<CL_AnimeSeries_User> grps =
@@ -303,6 +315,7 @@ namespace Shoko.Server
             return allyears.OrderBy(a => a).ToList();
         }
 
+        [HttpGet("Seasons")]
         public List<string> GetAllSeasons()
         {
             List<CL_AnimeSeries_User> grps =
@@ -315,6 +328,7 @@ namespace Shoko.Server
             return allseasons.ToList();
         }
 
+        [HttpGet("Tags")]
         public List<string> GetAllTagNames()
         {
             List<string> allTagNames = new List<string>();
@@ -341,8 +355,10 @@ namespace Shoko.Server
             return allTagNames;
         }
 
+        [HttpPost("CloudAccount/Directory/{cloudaccountid}")]
         public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path)
         {
+            if (path == null) path = "null";
             List<string> result = new List<string>();
             try
             {
@@ -390,6 +406,7 @@ namespace Shoko.Server
             return result;
         }
 
+        [HttpGet("CloudAccount")]
         public List<CL_CloudAccount> GetCloudProviders()
         {
             List<CL_CloudAccount> ls = new List<CL_CloudAccount>();
@@ -406,6 +423,7 @@ namespace Shoko.Server
         }
 
         #region Settings
+        [HttpPost("Server/Settings")]
         public CL_Response SaveServerSettings(CL_ServerSettings contractIn)
         {
             CL_Response contract = new CL_Response
@@ -457,7 +475,7 @@ namespace Shoko.Server
                     }
                 }
 
-                if (ushort.TryParse(contractIn.AniDB_AVDumpClientPort, out ushort newAniDB_AVDumpClientPort))
+                if (!ushort.TryParse(contractIn.AniDB_AVDumpClientPort, out ushort newAniDB_AVDumpClientPort))
                 {
                     contract.ErrorMessage += "AniDB AVDump port must be a valid port" + Environment.NewLine;
                 }
@@ -585,6 +603,7 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpGet("Server/Settings")]
         public CL_ServerSettings GetServerSettings()
         {
             CL_ServerSettings contract = new CL_ServerSettings();
@@ -604,41 +623,49 @@ namespace Shoko.Server
 
         #region Actions
 
+        [HttpPost("Folder/Import")]
         public void RunImport()
         {
             ShokoServer.RunImport();
         }
 
+        [HttpPost("File/Hashes/Sync")]
         public void SyncHashes()
         {
             ShokoServer.SyncHashes();
         }
 
+        [HttpPost("Folder/Scan")]
         public void ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
         }
 
+        [HttpPost("Folder/Scan/{importFolderID}")]
         public void ScanFolder(int importFolderID)
         {
             ShokoServer.ScanFolder(importFolderID);
         }
 
+        [HttpPost("Folder/RemoveMissing")]
         public void RemoveMissingFiles()
         {
             ShokoServer.RemoveMissingFiles();
         }
 
+        [HttpPost("Folder/RefreshMediaInfo")]
         public void RefreshAllMediaInfo()
         {
             ShokoServer.RefreshAllMediaInfo();
         }
 
+        [HttpPost("AniDB/MyList/Sync")]
         public void SyncMyList()
         {
             ShokoServer.SyncMyList();
         }
 
+        [HttpPost("AniDB/Vote/Sync")]
         public void SyncVotes()
         {
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
@@ -648,21 +675,25 @@ namespace Shoko.Server
         #endregion
 
         #region Queue Actions
+        [HttpPost("CommandQueue/Hasher/{paused}")]
         public void SetCommandProcessorHasherPaused(bool paused)
         {
             ShokoService.CmdProcessorHasher.Paused = paused;
         }
 
+        [HttpPost("CommandQueue/General/{paused}")]
         public void SetCommandProcessorGeneralPaused(bool paused)
         {
             ShokoService.CmdProcessorGeneral.Paused = paused;
         }
 
+        [HttpPost("CommandQueue/Images/{paused}")]
         public void SetCommandProcessorImagesPaused(bool paused)
         {
             ShokoService.CmdProcessorImages.Paused = paused;
         }
 
+        [HttpDelete("CommandQueue/Hasher")]
         public void ClearHasherQueue()
         {
             try
@@ -678,6 +709,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("CommandQueue/Images")]
         public void ClearImagesQueue()
         {
             try
@@ -693,6 +725,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("CommandQueue/General")]
         public void ClearGeneralQueue()
         {
             try
@@ -709,6 +742,7 @@ namespace Shoko.Server
         }
         #endregion
 
+        [HttpPost("AniDB/Status")]
         public string TestAniDBConnection()
         {
             string log = string.Empty;
@@ -747,6 +781,7 @@ namespace Shoko.Server
             return log;
         }
 
+        [HttpGet("MediaInfo/Quality")]
         public List<string> GetAllUniqueVideoQuality()
         {
             try
@@ -760,6 +795,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MediaInfo/AudioLanguages")]
         public List<string> GetAllUniqueAudioLanguages()
         {
             try
@@ -773,6 +809,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MediaInfo/SubtitleLanguages")]
         public List<string> GetAllUniqueSubtitleLanguages()
         {
             try
@@ -788,18 +825,21 @@ namespace Shoko.Server
 
         #region Plex
 
+        [HttpGet("User/Plex/LoginUrl/{userID}")]
         public string LoginUrl(int userID)
         {
             JMMUser user = Repo.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).LoginUrl;
         }
 
+        [HttpGet("User/Plex/Authenticated/{userID}")]
         public bool IsPlexAuthenticated(int userID)
         {
             JMMUser user = Repo.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).IsAuthenticated;
         }
 
+        [HttpGet("User/Plex/Remove/{userID}")]
         public bool RemovePlexAuth(int userID)
         {
             JMMUser user = Repo.JMMUser.GetByID(userID);
@@ -809,6 +849,7 @@ namespace Shoko.Server
 
         #endregion
 
+        [HttpPost("Image/Enable/{enabled}/{imageID}/{imageType}")]
         public string EnableDisableImage(bool enabled, int imageID, int imageType)
         {
             try
@@ -887,6 +928,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}")]
         public string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType)
         {
             try
@@ -949,6 +991,7 @@ namespace Shoko.Server
 
         #region Calendar (Dashboard)
 
+        [HttpGet("AniDB/Anime/Calendar/{userID}/{numberOfDays}")]
         public List<CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays)
         {
             // get all the series
@@ -977,6 +1020,7 @@ namespace Shoko.Server
             return animeList;
         }
 
+        [HttpGet("AniDB/Anime/ForMonth/{userID}/{month}/{year}")]
         public List<CL_AniDB_Anime> GetAnimeForMonth(int jmmuserID, int month, int year)
         {
             // get all the series
@@ -1007,6 +1051,7 @@ namespace Shoko.Server
             return animeList;
         }
 
+        [HttpPost("AniDB/Anime/Calendar/Update")]
         public string UpdateCalendarData()
         {
             try
@@ -1054,6 +1099,7 @@ namespace Shoko.Server
         /// <param name="maxResults"></param>
         /// <param name="userID"></param>
         /// <param name="recommendationType">1 = to watch, 2 = to download</param>
+        [HttpGet("Recommendation/{maxResults}/{userID}/{recommendationType}")]
         public List<CL_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType)
         {
             List<CL_Recommendation> recs = new List<CL_Recommendation>();
@@ -1225,6 +1271,7 @@ namespace Shoko.Server
             return score;
         }
 
+        [HttpGet("AniDB/ReleaseGroup/{animeID}")]
         public List<CL_AniDB_GroupStatus> GetReleaseGroupsForAnime(int animeID)
         {
             List<CL_AniDB_GroupStatus> relGroups = new List<CL_AniDB_GroupStatus>();
@@ -1281,6 +1328,7 @@ namespace Shoko.Server
             return relGroups;
         }
 
+        [HttpGet("AniDB/Character/{animeID}")]
         public List<CL_AniDB_Character> GetCharactersForAnime(int animeID)
         {
             List<CL_AniDB_Character> chars = new List<CL_AniDB_Character>();
@@ -1297,6 +1345,7 @@ namespace Shoko.Server
             return chars;
         }
 
+        [HttpGet("AniDB/Character/FromSeiyuu/{seiyuuID}")]
         public List<CL_AniDB_Character> GetCharactersForSeiyuu(int aniDB_SeiyuuID)
         {
             List<CL_AniDB_Character> chars = new List<CL_AniDB_Character>();
@@ -1335,6 +1384,7 @@ namespace Shoko.Server
             return chars;
         }
 
+        [HttpGet("AniDB/Seiyuu/{seiyuuID}")]
         public AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
         {
             try

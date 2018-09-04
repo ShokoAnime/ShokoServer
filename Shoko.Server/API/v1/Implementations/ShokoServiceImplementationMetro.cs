@@ -22,15 +22,20 @@ using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
+    [ApiController]
+    [Route("/api/Metro")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        [HttpGet("Server/Status")]
         public CL_ServerStatus GetServerStatus()
         {
             CL_ServerStatus contract = new CL_ServerStatus();
@@ -65,6 +70,7 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpPost("Server/Settings")]
         public CL_ServerSettings GetServerSettings()
         {
             CL_ServerSettings contract = new CL_ServerSettings();
@@ -80,11 +86,13 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpPost("Comment/{traktID}/{commentText}/{isSpoiler}")]
         public CL_Response<bool> PostCommentShow(string traktID, string commentText, bool isSpoiler)
         {
             return TraktTVHelper.PostCommentShow(traktID, commentText, isSpoiler);
         }
 
+        [HttpGet("Community/Links/{animeID}")]
         public Metro_CommunityLinks GetCommunityLinks(int animeID)
         {
             Metro_CommunityLinks contract = new Metro_CommunityLinks();
@@ -132,6 +140,7 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpPost("User/Auth/{username}/{password}")]
         public JMMUser AuthenticateUser(string username, string password)
         {
             try
@@ -145,6 +154,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("User")]
         public List<JMMUser> GetAllUsers()
         {
             // get all the users
@@ -159,6 +169,7 @@ namespace Shoko.Server
             return new List<JMMUser>();
         }
 
+        [HttpGet("Group/{userID}")]
         public List<CL_AnimeGroup_User> GetAllGroups(int userID)
         {
             try
@@ -175,6 +186,7 @@ namespace Shoko.Server
             return new List<CL_AnimeGroup_User>();
         }
 
+        [NonAction]
         public List<CL_AnimeEpisode_User> GetEpisodesRecentlyAddedSummary(int maxRecords, int jmmuserID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
@@ -230,6 +242,7 @@ namespace Shoko.Server
             return retEps;
         }
 
+        [HttpGet("Anime/New/{maxRecords}/{userID}")]
         public List<Metro_Anime_Summary> GetAnimeWithNewEpisodes(int maxRecords, int jmmuserID)
         {
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
@@ -299,6 +312,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
+        [NonAction]
         public List<Metro_Anime_Summary> GetAnimeContinueWatching_old(int maxRecords, int jmmuserID)
         {
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
@@ -383,6 +397,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
+        [HttpGet("Anime/ContinueWatch/{maxRecords}/{userID}")]
         public List<Metro_Anime_Summary> GetAnimeContinueWatching(int maxRecords, int jmmuserID)
         {
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
@@ -471,6 +486,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
+        [HttpGet("Anime/Calendar/{userID}/{startDateSecs}/{endDateSecs}/{maxRecords}")]
         public List<Metro_Anime_Summary> GetAnimeCalendar(int jmmuserID, int startDateSecs, int endDateSecs,
             int maxRecords)
         {
@@ -526,6 +542,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
+        [HttpGet("Anime/Search/{userID}/{queryText}/{maxRecords}")]
         public List<Metro_Anime_Summary> SearchAnime(int jmmuserID, string queryText, int maxRecords)
         {
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
@@ -577,6 +594,7 @@ namespace Shoko.Server
             return retAnime;
         }
 
+        [HttpGet("Anime/Detail/{animeID}/{userID}/{maxEpisodeRecords}")]
         public Metro_Anime_Detail GetAnimeDetail(int animeID, int jmmuserID, int maxEpisodeRecords)
         {
             try
@@ -757,6 +775,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Anime/Summary/{animeID}")]
         public Metro_Anime_Summary GetAnimeSummary(int animeID)
         {
             try
@@ -797,6 +816,7 @@ namespace Shoko.Server
             return null;
         }
 
+        [NonAction]
         public static void SetTvDBInfo(SVR_AniDB_Anime anime, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
@@ -805,6 +825,7 @@ namespace Shoko.Server
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
+        [NonAction]
         public static void SetTvDBInfo(int anidbid, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             TvDBSummary tvSummary = new TvDBSummary();
@@ -813,6 +834,7 @@ namespace Shoko.Server
             SetTvDBInfo(tvSummary, ep, ref contract);
         }
 
+        [NonAction]
         public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
             var override_link = Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
@@ -837,6 +859,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Anime/Character/{animeID}/{maxRecords}")]
         public List<Metro_AniDB_Character> GetCharactersForAnime(int animeID, int maxRecords)
         {
             List<Metro_AniDB_Character> chars = new List<Metro_AniDB_Character>();
@@ -896,6 +919,7 @@ namespace Shoko.Server
             return chars;
         }
 
+        [HttpGet("Anime/Comment/{animeID}/{maxRecords}")]
         public List<Metro_Comment> GetTraktCommentsForAnime(int animeID, int maxRecords)
         {
             List<Metro_Comment> comments = new List<Metro_Comment>();
@@ -946,6 +970,7 @@ namespace Shoko.Server
             return comments;
         }
 
+        [HttpGet("Anime/Recommendation/{animeID}/{maxRecords}")]
         public List<Metro_Comment> GetAniDBRecommendationsForAnime(int animeID, int maxRecords)
         {
             List<Metro_Comment> contracts = new List<Metro_Comment>();
@@ -997,6 +1022,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Anime/Similar/{animeID}/{maxRecords}/{userID}")]
         public List<Metro_Anime_Summary> GetSimilarAnimeForAnime(int animeID, int maxRecords, int jmmuserID)
         {
             List<CL_AniDB_Anime_Similar> links = new List<CL_AniDB_Anime_Similar>();
@@ -1110,6 +1136,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Episode/Files/{episodeID}/{userID}")]
         public List<CL_VideoDetailed> GetFilesForEpisode(int episodeID, int userID)
         {
             try
@@ -1126,6 +1153,7 @@ namespace Shoko.Server
             return new List<CL_VideoDetailed>();
         }
 
+        [HttpGet("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}")]
         public CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID,
             bool watchedStatus, int userID)
         {
@@ -1163,6 +1191,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Anime/Refresh/{animeID}")]
         public string UpdateAnimeData(int animeID)
         {
             try

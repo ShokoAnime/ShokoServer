@@ -14,15 +14,20 @@ using Resources = Shoko.Server.Properties.Resources;
 using Shoko.Server.API.v1;
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
+    [ApiController]
+    [Route("/api/Image")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        [HttpGet("{imageid}/{imageType}/{thumnbnailOnly?}")]
         public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly)
         {
             string path = GetImagePath(imageid, imageType, thumnbnailOnly);
@@ -31,6 +36,7 @@ namespace Shoko.Server
             return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
         }
 
+        [HttpGet("WithPath/{serverImagePath}")]
         public Stream GetImageUsingPath(string serverImagePath)
         {
             if (File.Exists(serverImagePath))
@@ -41,6 +47,7 @@ namespace Shoko.Server
             return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
+        [HttpGet("Blank")]
         public Stream BlankImage()
         {
             byte[] dta = Resources.blank;
@@ -49,6 +56,7 @@ namespace Shoko.Server
             return new StreamWithResponse(ms, "image/jpeg");
         }
 
+        [NonAction]
         internal static Bitmap ReSize(Bitmap im, int width, int height)
         {
             Bitmap dest = new Bitmap(width, height);
@@ -64,6 +72,7 @@ namespace Shoko.Server
             return dest;
         }
 
+        [NonAction]
         public Stream ResizeToRatio(Image im, double newratio)
         {
             double calcwidth = im.Width;
@@ -110,6 +119,7 @@ namespace Shoko.Server
             return new StreamWithResponse(ms, "image/jpg");
         }
 
+        [HttpGet("Support/{name}/{ratio}")]
         public System.IO.Stream GetSupportImage(string name, float? ratio)
         {
             if (string.IsNullOrEmpty(name))
@@ -177,6 +187,7 @@ namespace Shoko.Server
             return new StreamWithResponse(ms2, "image/png");
         }
 
+        [HttpGet("Thumb/{imageId}/{imageType}/{ratio}")]
         public System.IO.Stream GetThumb(int imageId, int imageType, float ratio)
         {
             using (Stream m = GetImage(imageId, imageType, false))
@@ -189,6 +200,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Path/{imageId}/{imageType}/{thumnbnailOnly?}")]
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
         {
             ImageEntityType it = (ImageEntityType) imageType;

@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
@@ -17,6 +18,9 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
+    [ApiController]
+    [Route("/Stream")]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class ShokoServiceImplementationStream : IShokoServerStream, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }
@@ -27,6 +31,7 @@ namespace Shoko.Server
         public const string ServerVersion = "Shoko Stream Server 1.0";
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        [HttpGet("/{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -37,6 +42,7 @@ namespace Shoko.Server
             return StreamFromIFile(r, autowatch);
         }
 
+        [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
@@ -134,6 +140,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpHead("/{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -148,6 +155,7 @@ namespace Shoko.Server
             return s;
         }
 
+        [HttpHead("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream InfoVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
