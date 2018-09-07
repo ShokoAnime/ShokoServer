@@ -14,6 +14,11 @@ using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories
 {
+    internal static class Lock
+    {
+        internal static ReaderWriterLockSlim RepoLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+    }
+
     public abstract class BaseRepository<T, TS> : BaseRepository<T, TS, object> where T : class, new()
     {
     
@@ -29,7 +34,7 @@ namespace Shoko.Server.Repositories
         internal PocoCache<TS, T> Cache;
         internal DbSet<T> Table;
         internal ShokoContext Context;
-        internal ReaderWriterLockSlim RepoLock=new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        internal ReaderWriterLockSlim RepoLock = Lock.RepoLock;
         
         public static TU Create<TU>(ShokoContext context,DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
         {
@@ -78,7 +83,8 @@ namespace Shoko.Server.Repositories
         }
         public void Delete(TS id, TT pars = default(TT))
         {
-            Delete(InternalGetByID(id));
+            using (RepoLock.ReaderLock())
+                Delete(InternalGetByID(id));
         }
 
         public void Delete(T obj, TT pars=default(TT))
@@ -242,6 +248,7 @@ namespace Shoko.Server.Repositories
 
         internal void BatchAction(IEnumerable<T> items, int batchSize, Action<T, T> peritemaction, TT pars = default(TT), bool parallel = false)
         {
+            batchSize = Math.Max(1, batchSize);
             foreach (T[] batch in items.Batch(batchSize))
             {
                 using (IAtomicList<T, TT> update = BeginUpdate(batch))

@@ -281,6 +281,9 @@ namespace Shoko.Server
 
                     videosFound++;
 
+
+
+
                     CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
                     cr_hashfile.Save();
                 }

@@ -14,6 +14,60 @@ namespace Shoko.Server.Repositories.Repos
         private PocoIndex<int, CommandRequest, int> CommandTypes;
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
 
+        //TODO: Refactor to attributes.
+        private static readonly HashSet<int> CommandTypesHasher = new HashSet<int>
+        {
+            (int) CommandRequestType.HashFile,
+            (int) CommandRequestType.ReadMediaInfo
+        };
+
+        private static readonly HashSet<int> CommandTypesImages = new HashSet<int>
+        {
+            (int) CommandRequestType.TvDB_DownloadImages,
+            (int) CommandRequestType.ImageDownload,
+            (int) CommandRequestType.ValidateAllImages
+        };
+
+        private static readonly HashSet<int> AniDbUdpCommands = new HashSet<int>
+        {
+            (int) CommandRequestType.AniDB_AddFileUDP,
+            (int) CommandRequestType.AniDB_DeleteFileUDP,
+            (int) CommandRequestType.AniDB_GetCalendar,
+            (int) CommandRequestType.AniDB_GetEpisodeUDP,
+            (int) CommandRequestType.AniDB_GetFileUDP,
+            (int) CommandRequestType.AniDB_GetMyListFile,
+            (int) CommandRequestType.AniDB_GetReleaseGroup,
+            (int) CommandRequestType.AniDB_GetReleaseGroupStatus,
+            (int) CommandRequestType.AniDB_GetReviews, // this isn't used.
+            (int) CommandRequestType.AniDB_GetUpdated,
+            (int) CommandRequestType.AniDB_UpdateWatchedUDP,
+            (int) CommandRequestType.AniDB_UpdateMylistStats,
+            (int) CommandRequestType.AniDB_VoteAnime
+        };
+
+        private static readonly HashSet<int> AniDbHttpCommands = new HashSet<int>
+        {
+            (int) CommandRequestType.AniDB_GetAnimeHTTP,
+            (int) CommandRequestType.AniDB_SyncMyList,
+            (int) CommandRequestType.AniDB_SyncVotes,
+        };
+
+        private static readonly HashSet<int> CommandTypesGeneral = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralUDPBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbUdpCommands).ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralHTTPBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbHttpCommands).ToHashSet();
+
+        private static readonly HashSet<int> CommandTypesGeneralFullBan = Enum.GetValues(typeof(CommandRequestType))
+            .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
+            .Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
+
         internal override int SelectKey(CommandRequest entity) => entity.CommandRequestID;
 
 
@@ -40,12 +94,9 @@ namespace Shoko.Server.Repositories.Repos
         /// </returns>
         public static int GetQueueIndex(CommandRequest req)
         {
-            if (req.CommandType == (int) CommandRequestType.TvDB_DownloadImages ||
-                req.CommandType == (int) CommandRequestType.ImageDownload ||
-                req.CommandType == (int) CommandRequestType.ValidateAllImages)
+            if (CommandTypesImages.Contains(req.CommandType))
                 return 2;
-            if (req.CommandType == (int) CommandRequestType.HashFile ||
-                     req.CommandType == (int) CommandRequestType.ReadMediaInfo)
+            if (CommandTypesHasher.Contains(req.CommandType))
                 return 1;
 
             return 0;
@@ -76,11 +127,27 @@ namespace Shoko.Server.Repositories.Repos
         {
             try
             {
+                HashSet<int> types = CommandTypesGeneral;
+                // This is called very often, so speed it up as much as possible
+                // We can spare bytes of RAM to speed up the command queue
+                if (ShokoService.AnidbProcessor.IsHttpBanned && ShokoService.AnidbProcessor.IsUdpBanned)
+                {
+                    types = CommandTypesGeneralFullBan;
+                }
+                else if (ShokoService.AnidbProcessor.IsUdpBanned)
+                {
+                    types = CommandTypesGeneralUDPBan;
+                }
+                else if (ShokoService.AnidbProcessor.IsHttpBanned)
+                {
+                    types = CommandTypesGeneralHTTPBan;
+                }
+
                 using (RepoLock.ReaderLock())
                 {
                     if (IsCached)
-                        return CommandTypes.GetMultiple(0).OrderBy(a => a.Priority).ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                    return Table.Where(a => a.CommandType==0).OrderBy(a => a.Priority).ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                        return GetAll().Where(a => types.Contains(a.CommandType)).OrderBy(a => a.Priority).ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
+                    return Table.Where(a => types.Contains(a.CommandType)).OrderBy(a => a.Priority).ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
 
             }
@@ -97,7 +164,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(0);
-                return Table.Where(a => a.CommandType == 0).ToList();
+                return Table.Where(a => GetQueueIndex(a) == 0).ToList();
             }
 
         }
@@ -111,8 +178,8 @@ namespace Shoko.Server.Repositories.Repos
                     if (IsCached)
                         return CommandTypes.GetMultiple(1).OrderBy(a => a.Priority)
                             .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                    return Table.Where(a => a.CommandType == 1).ToList().OrderBy(a => a.Priority)
-                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault(); 
+                    return Table.Where(a => GetQueueIndex(a) == 1).ToList().OrderBy(a => a.Priority)
+                        .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
             }
             catch (Exception e)
@@ -128,7 +195,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(1);
-                return Table.Where(a => a.CommandType == 1).ToList();
+                return Table.Where(a => GetQueueIndex(a) == 1).ToList();
             }
         }
 
@@ -141,7 +208,7 @@ namespace Shoko.Server.Repositories.Repos
                     if (IsCached)
                         return CommandTypes.GetMultiple(2).OrderBy(a => a.Priority)
                             .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
-                    return Table.Where(a => a.CommandType == 2).ToList().OrderBy(a => a.Priority)
+                    return Table.Where(a => GetQueueIndex(a) == 2).ToList().OrderBy(a => a.Priority)
                         .ThenBy(a => a.DateTimeUpdated).FirstOrDefault();
                 }
             }
@@ -158,7 +225,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(2);
-                return Table.Where(a => a.CommandType == 2).ToList();
+                return Table.Where(a => GetQueueIndex(a) == 2).ToList();
             }
         }
 
@@ -168,7 +235,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(0).Count;
-                return Table.Count(a => a.CommandType == 0);
+                return Table.Count(a => GetQueueIndex(a) == 0);
             }
         }
 
@@ -178,7 +245,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(1).Count;
-                return Table.Count(a => a.CommandType == 1);
+                return Table.Count(a => GetQueueIndex(a) == 1);
             }
         }
 
@@ -188,7 +255,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return CommandTypes.GetMultiple(2).Count;
-                return Table.Count(a => a.CommandType == 2);
+                return Table.Count(a => GetQueueIndex(a) == 2);
             }
 
         }

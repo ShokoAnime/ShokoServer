@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories
             T ret;
             using (_repo.RepoLock.WriterLock())
             {
-                if (Original == null)
+                if (Original == null || !IsUpdate)
                 {
                     ret = Entity;
                     _repo.Table.Add(Entity);

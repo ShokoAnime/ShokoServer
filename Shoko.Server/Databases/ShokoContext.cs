@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Nito.AsyncEx;
+using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
@@ -12,11 +13,12 @@ namespace Shoko.Server.Databases
 {
     public class ShokoContext : DbContext
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((_, __) => true, true) });
 
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;
-        private AsyncLock _saveLock=new AsyncLock();
+        private AsyncLock _saveLock = new AsyncLock();
 
         public ShokoContext(DatabaseTypes type, string connectionstring)
         {
@@ -59,8 +61,15 @@ namespace Shoko.Server.Databases
         //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            using (_saveLock.Lock())
-                return base.SaveChanges(acceptAllChangesOnSuccess);
+            try
+            {
+                using (_saveLock.Lock())
+                    return base.SaveChanges(acceptAllChangesOnSuccess);
+            } catch (DbUpdateException ex)
+            {
+                logger.Log(NLog.LogLevel.Error, $"Error in {nameof(ShokoContext)}: {ex.InnerException.Message}", ex);
+                throw;
+            }
         }
 
         //
@@ -84,11 +93,15 @@ namespace Shoko.Server.Databases
         //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
         //     to discover any changes to entity instances before saving to the underlying database.
         //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        /*
+         * NOTE: Cazzar: This by the code for EFCore just calls SaveChanges(acceptAllChangesOnSuccess: true);
+         *               Inherently I have removed this call to just stop save locking recursing where we have a database deadlock.
         public override int SaveChanges()
         {
             using (_saveLock.Lock())
                 return base.SaveChanges();
-        }
+        }*/
+
         //
         // Summary:
         //     Asynchronously saves all changes made in this context to the database.
@@ -126,8 +139,15 @@ namespace Shoko.Server.Databases
 
         public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            using (await _saveLock.LockAsync())
-                return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            try
+            {
+                using (await _saveLock.LockAsync())
+                    return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            } catch (DbUpdateException ex)
+            {
+                logger.Log(NLog.LogLevel.Error, $"Error in {nameof(ShokoContext)}: {ex.InnerException.Message}", ex);
+                throw;
+            }
         }
         //
         // Summary:
@@ -159,11 +179,14 @@ namespace Shoko.Server.Databases
         //     Multiple active operations on the same context instance are not supported. Use
         //     'await' to ensure that any asynchronous operations have completed before calling
         //     another method on this context.
+        /*
+         * Note: Cazzar: Same with SaveChanges, this calls SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             using (await _saveLock.LockAsync())
                 return await base.SaveChangesAsync(cancellationToken);
         }
+        */
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -181,6 +204,7 @@ namespace Shoko.Server.Databases
             }
             #if DEBUG
             optionsBuilder.UseLoggerFactory(MyLoggerFactory);
+            optionsBuilder.EnableSensitiveDataLogging();
             #endif
         }
 

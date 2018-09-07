@@ -161,13 +161,12 @@ namespace Shoko.Server.Commands
             }
 
 
-            FileSystemResult<IObject> source = (FileSystemResult<IObject>)f.Resolve(FileName);
-            if (source == null || source.Status != Status.Ok || !(source.Result is IFile))
+            IObject source = f.Resolve(FileName);
+            if (source == null || source.Status != Status.Ok || !(source is IFile source_file))
             {
                 logger.Error("Could not access file: " + FileName);
                 return;
             }
-            IFile source_file = (IFile)source.Result;
             if (folder.CloudID.HasValue)
                 filesize = source_file.Size;
             nshareID = folder.ImportFolderID;
@@ -243,26 +242,26 @@ namespace Shoko.Server.Commands
 
                 {
                     // check if we need to get a hash this file
-                    if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
+                    if (string.IsNullOrEmpty(txn.Entity.Hash) || ForceHash)
                     {
                         logger.Trace("No existing hash in VideoLocal, checking XRefs");
                         if (!ForceHash)
                         {
                             // try getting the hash from the CrossRef
                             List<CrossRef_File_Episode> crossRefs =
-                                Repo.CrossRef_File_Episode.GetByFileNameAndSize(filename, vlocal.FileSize);
+                                Repo.CrossRef_File_Episode.GetByFileNameAndSize(filename, txn.Entity.FileSize);
                             if (crossRefs.Any())
                             {
-                                vlocal.Hash = crossRefs[0].Hash;
-                                vlocal.HashSource = (int)HashSource.DirectHash;
+                                txn.Entity.Hash = crossRefs[0].Hash;
+                                txn.Entity.HashSource = (int)HashSource.DirectHash;
                             }
                         }
 
                         // try getting the hash from the LOCAL cache
-                        if (!ForceHash && string.IsNullOrEmpty(vlocal.Hash))
+                        if (!ForceHash && string.IsNullOrEmpty(txn.Entity.Hash))
                         {
                             List<FileNameHash> fnhashes =
-                                Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                                Repo.FileNameHash.GetByFileNameAndSize(filename, txn.Entity.FileSize);
                             if (fnhashes != null && fnhashes.Count > 1)
                             {
                                 // if we have more than one record it probably means there is some sort of corruption
@@ -273,21 +272,21 @@ namespace Shoko.Server.Commands
                                 }
                             }
                             // reinit this to check if we erased them
-                            fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                            fnhashes = Repo.FileNameHash.GetByFileNameAndSize(filename, txn.Entity.FileSize);
 
                             if (fnhashes != null && fnhashes.Count == 1)
                             {
                                 logger.Trace("Got hash from LOCAL cache: {0} ({1})", FileName, fnhashes[0].Hash);
-                                vlocal.Hash = fnhashes[0].Hash;
-                                vlocal.HashSource = (int)HashSource.WebCacheFileName;
+                                txn.Entity.Hash = fnhashes[0].Hash;
+                                txn.Entity.HashSource = (int)HashSource.WebCacheFileName;
                             }
                         }
 
-                        if (string.IsNullOrEmpty(vlocal.Hash))
-                            FillVideoHashes(vlocal);
+                        if (string.IsNullOrEmpty(txn.Entity.Hash))
+                            FillVideoHashes(txn.Entity);
 
                         //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
-                        if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
+                        if (string.IsNullOrEmpty(txn.Entity.Hash) && folder.CloudID.HasValue)
                         {
                             logger.Trace("No Hash found for cloud " + filename +
                                          " putting in videolocal table with empty ED2K");
@@ -304,7 +303,7 @@ namespace Shoko.Server.Commands
                         }
 
                         // hash the file
-                        if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
+                        if (string.IsNullOrEmpty(txn.Entity.Hash) || ForceHash)
                         {
                             logger.Info("Hashing File: {0}", FileName);
                             ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
@@ -314,18 +313,18 @@ namespace Shoko.Server.Commands
                                 true, true, true);
                             TimeSpan ts = DateTime.Now - start;
                             logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
-                                Utils.FormatByteSize(vlocal.FileSize));
-                            vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
-                            vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-                            vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
-                            vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
-                            vlocal.HashSource = (int)HashSource.DirectHash;
+                                Utils.FormatByteSize(txn.Entity.FileSize));
+                            txn.Entity.Hash = hashes.ED2K?.ToUpperInvariant();
+                            txn.Entity.CRC32 = hashes.CRC32?.ToUpperInvariant();
+                            txn.Entity.MD5 = hashes.MD5?.ToUpperInvariant();
+                            txn.Entity.SHA1 = hashes.SHA1?.ToUpperInvariant();
+                            txn.Entity.HashSource = (int)HashSource.DirectHash;
                         }
-                        FillMissingHashes(vlocal);
+                        FillMissingHashes(txn.Entity);
                         // We should have a hash by now
                         // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
 
-                        SVR_VideoLocal tlocal = Repo.VideoLocal.GetByHash(vlocal.Hash);
+                        SVR_VideoLocal tlocal = Repo.VideoLocal.GetByHash(txn.Entity.Hash);
                         
                         bool changed = false;
 
@@ -333,7 +332,7 @@ namespace Shoko.Server.Commands
                         {
                             logger.Trace("Found existing VideoLocal with hash, merging info from it");
                             // Aid with hashing cloud. Merge hashes and save, regardless of duplicate file
-                            changed = tlocal.MergeInfoFrom(vlocal);
+                            changed = tlocal.MergeInfoFrom(txn.Entity);
                             vlocal = tlocal;
 
                             List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(
@@ -356,7 +355,7 @@ namespace Shoko.Server.Commands
                                 }
                             }
 
-                            var dupPlace = vlocal.Places.FirstOrDefault(
+                            var dupPlace = txn.Entity.Places.FirstOrDefault(
                                 a => a.ImportFolder.CloudID == folder.CloudID &&
                                      !vlocalplace.FullServerPath.Equals(a.FullServerPath));
 
@@ -386,7 +385,7 @@ namespace Shoko.Server.Commands
                                         FilePathFile2 = dupPlace.FilePath,
                                         ImportFolderIDFile1 = vlocalplace.ImportFolderID,
                                         ImportFolderIDFile2 = dupPlace.ImportFolderID,
-                                        Hash = vlocal.Hash
+                                        Hash = txn.Entity.Hash
                                     };
                                     Repo.DuplicateFile.BeginAdd(dup).Commit();
                                 }

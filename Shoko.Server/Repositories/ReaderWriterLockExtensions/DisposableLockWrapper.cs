@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Shoko.Server.Repositories.ReaderWriterLockExtensions
 {
     //https://itneverworksfirsttime.wordpress.com/2011/06/29/an-idisposable-locking-implementation/
+    [DebuggerStepThrough]
     public class DisposableLockWrapper : IDisposable
     {
         private readonly LockType lockType;
