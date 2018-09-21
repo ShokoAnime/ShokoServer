@@ -50,7 +50,7 @@ namespace Shoko.Server.Databases
             {
                 var model = builder.Entity<AniDB_AnimeUpdate>();
                 model.ToTable("AniDB_AnimeUpdate").HasKey(x => x.AniDB_AnimeUpdateID);
-                model.HasIndex(x => x.AnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_AnimeID");
+                model.HasIndex(x => x.AnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_AnimeUpdate");
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.UpdatedAt).IsRequired();
             }

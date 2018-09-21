@@ -208,7 +208,7 @@ namespace Shoko.Server
             switch (it)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(imageId);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
                     {
@@ -221,7 +221,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.AniDB_Character:
-                    AniDB_Character chr = Repo.AniDB_Character.GetByID(imageId);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByID(imageId);
                     if (chr == null) return null;
                     if (File.Exists(chr.GetPosterPath()))
                     {
@@ -234,7 +234,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.AniDB_Creator:
-                    AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetByID(imageId);
+                    AniDB_Seiyuu creator = Repo.Instance.AniDB_Seiyuu.GetByID(imageId);
                     if (creator == null) return string.Empty;
                     if (File.Exists(creator.GetPosterPath()))
                     {
@@ -247,7 +247,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Cover:
-                    TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(imageId);
+                    TvDB_ImagePoster poster = Repo.Instance.TvDB_ImagePoster.GetByID(imageId);
                     if (poster == null) return null;
                     if (File.Exists(poster.GetFullImagePath()))
                     {
@@ -260,7 +260,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Banner:
-                    TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetByID(imageId);
+                    TvDB_ImageWideBanner wideBanner = Repo.Instance.TvDB_ImageWideBanner.GetByID(imageId);
                     if (wideBanner == null) return null;
                     if (File.Exists(wideBanner.GetFullImagePath()))
                     {
@@ -273,7 +273,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = Repo.TvDB_Episode.GetByID(imageId);
+                    TvDB_Episode ep = Repo.Instance.TvDB_Episode.GetByID(imageId);
                     if (ep == null) return null;
                     if (File.Exists(ep.GetFullImagePath()))
                     {
@@ -286,7 +286,7 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(imageId);
+                    TvDB_ImageFanart fanart = Repo.Instance.TvDB_ImageFanart.GetByID(imageId);
                     if (fanart == null) return null;
                     if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
                     {
@@ -310,11 +310,11 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.MovieDB_Poster:
-                    MovieDB_Poster mPoster = Repo.MovieDB_Poster.GetByID(imageId);
+                    MovieDB_Poster mPoster = Repo.Instance.MovieDB_Poster.GetByID(imageId);
                     if (mPoster == null) return null;
 
                     // now find only the original size
-                    mPoster = Repo.MovieDB_Poster.GetByOnlineID(mPoster.URL);
+                    mPoster = Repo.Instance.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) return null;
                     if (File.Exists(mPoster.GetFullImagePath()))
                     {
@@ -327,9 +327,9 @@ namespace Shoko.Server
                     }
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart mFanart = Repo.MovieDB_Fanart.GetByID(imageId);
+                    MovieDB_Fanart mFanart = Repo.Instance.MovieDB_Fanart.GetByID(imageId);
                     if (mFanart == null) return null;
-                    mFanart = Repo.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
+                    mFanart = Repo.Instance.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;
                     if (File.Exists(mFanart.GetFullImagePath()))
                     {

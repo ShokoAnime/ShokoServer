@@ -83,7 +83,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public string ValidateUser(string username, string password, string device)
         {
-            JMMUser userrecord = Repo.JMMUser.AuthenticateUser(username, password);
+            JMMUser userrecord = Repo.Instance.JMMUser.AuthenticateUser(username, password);
 
             if (userrecord == null) return string.Empty;
 

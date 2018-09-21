@@ -36,14 +36,14 @@ namespace Shoko.Server.Repositories.Repos
 
             if (parameters.verifylockedFilters)
             {
-                Repo.GroupFilter.CreateOrVerifyDirectoryFilters(null, false, entity.Contract.Stat_AllTags,
+                Repo.Instance.GroupFilter.CreateOrVerifyDirectoryFilters(null, false, entity.Contract.Stat_AllTags,
                     entity.Contract.Stat_AllYears, entity.Contract.Stat_AllSeasons);
                 //This call will create extra years or tags if the Group have a new year or tag
                 entity.UpdateGroupFilters(types);
             }
             if (entity.AnimeGroupParentID.HasValue && parameters.recursive && entity.AnimeGroupParentID.Value!=entity.AnimeGroupID)
             {
-                using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => GetByID(entity.AnimeGroupParentID.Value)))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => GetByID(entity.AnimeGroupParentID.Value)))
                 {
                     if (upd.IsUpdate)
                         upd.Commit((parameters.updategrpcontractstats, true, parameters.verifylockedFilters)); // WARNING: This might creata a recursion loop
@@ -53,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginDelete(SVR_AnimeGroup entity, (bool updategrpcontractstats, bool recursive, bool verifylockedFilters) parameters)
         {
-            Repo.AnimeGroup_User.Delete(entity.AnimeGroupID);
+            Repo.Instance.AnimeGroup_User.Delete(entity.AnimeGroupID);
             entity.DeleteFromFilters();
             return null;
         }
@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Repos
             if (entity.AnimeGroupParentID.HasValue && entity.AnimeGroupParentID.Value > 0 && entity.AnimeGroupParentID!=entity.AnimeGroupID)
             {
                 logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", entity.AnimeGroupParentID.Value);
-                Repo.AnimeGroup.Touch(()=>Repo.AnimeGroup.GetByID(entity.AnimeGroupParentID.Value),(false, true, true));
+                Repo.Instance.AnimeGroup.Touch(()=>Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupParentID.Value),(false, true, true));
             }
         }
 

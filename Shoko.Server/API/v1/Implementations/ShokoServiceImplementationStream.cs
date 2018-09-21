@@ -185,7 +185,7 @@ namespace Shoko.Server
             try
             {
                 InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = Repo.VideoLocal.GetByID(videolocalid);
+                SVR_VideoLocal loc = Repo.Instance.VideoLocal.GetByID(videolocalid);
                 if (loc == null)
                 {
                     r.Status = HttpStatusCode.NotFound;
@@ -225,7 +225,7 @@ namespace Shoko.Server
             }
             if (userId.HasValue && autowatch.HasValue && userId.Value != 0)
             {
-                r.User = Repo.JMMUser.GetByID(userId.Value);
+                r.User = Repo.Instance.JMMUser.GetByID(userId.Value);
                 if (r.User == null)
                 {
                     r.Status = HttpStatusCode.NotFound;

@@ -15,16 +15,16 @@ namespace Shoko.Server.Extensions
 
         public static AniDB_Character GetCharacter(this AniDB_Anime_Character character)
         {
-            return Repo.AniDB_Character.GetByID(character.CharID);
+            return Repo.Instance.AniDB_Character.GetByID(character.CharID);
         }
 
 
-        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => Repo.Trakt_Episode
+        public static List<Trakt_Episode> GetEpisodes(this Trakt_Season season) => Repo.Instance.Trakt_Episode
             .GetByShowIDAndSeason(season.Trakt_ShowID, season.Season);
 
         public static List<Trakt_Season> GetSeasons(this Trakt_Show show)
         {
-            return Repo.Trakt_Season.GetByShowID(show.Trakt_ShowID);
+            return Repo.Instance.Trakt_Season.GetByShowID(show.Trakt_ShowID);
         }
 
 
@@ -32,12 +32,12 @@ namespace Shoko.Server.Extensions
         public static AniDB_Seiyuu GetSeiyuu(this AniDB_Character character)
         {
             List<AniDB_Character_Seiyuu> charSeiyuus =
-                Repo.AniDB_Character_Seiyuu.GetByCharID(character.CharID);
+                Repo.Instance.AniDB_Character_Seiyuu.GetByCharID(character.CharID);
 
             if (charSeiyuus.Count > 0)
             {
                 // just use the first creator
-                return Repo.AniDB_Seiyuu.GetByID(charSeiyuus[0].SeiyuuID);
+                return Repo.Instance.AniDB_Seiyuu.GetByID(charSeiyuus[0].SeiyuuID);
             }
 
             return null;
@@ -47,40 +47,40 @@ namespace Shoko.Server.Extensions
         {
             SVR_AnimeEpisode existingEp;
             // check if there is an existing episode for this EpisodeID
-            using (var upd = Repo.AnimeEpisode.BeginAddOrUpdate(() => Repo.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)))
+            using (var upd = Repo.Instance.AnimeEpisode.BeginAddOrUpdate(() => Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)))
             {
                 upd.Entity.Populate_RA(episode);
                 upd.Entity.AnimeSeriesID = animeSeriesID;
                 existingEp = upd.Commit();
             }
-            Repo.AnimeEpisode_User.Touch(() => Repo.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
+            Repo.Instance.AnimeEpisode_User.Touch(() => Repo.Instance.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
         }
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
         {
             if (cross.CrossRefType != (int) CrossRefType.MovieDB)
                 return null;
-            return Repo.MovieDb_Movie.GetByOnlineID(int.Parse(cross.CrossRefID));
+            return Repo.Instance.MovieDb_Movie.GetByOnlineID(int.Parse(cross.CrossRefID));
         }
 
         public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
         {
-            return Repo.Trakt_Show.GetByTraktSlug(cross.TraktID);
+            return Repo.Instance.Trakt_Show.GetByTraktSlug(cross.TraktID);
         }
 
         public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
         {
-            return Repo.TvDB_Series.GetByTvDBID(cross.TvDBID);
+            return Repo.Instance.TvDB_Series.GetByTvDBID(cross.TvDBID);
         }
 
         public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)
         {
-            return Repo.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
+            return Repo.Instance.AniDB_Episode.GetByEpisodeID(cross.EpisodeID);
         }
 
         public static VideoLocal_User GetVideoLocalUserRecord(this CrossRef_File_Episode cross, int userID)
         {
-            SVR_VideoLocal vid = Repo.VideoLocal.GetByHash(cross.Hash);
+            SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByHash(cross.Hash);
             if (vid != null)
             {
                 VideoLocal_User vidUser = vid.GetUserRecord(userID);
@@ -90,24 +90,24 @@ namespace Shoko.Server.Extensions
             return null;
         }
 
-        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => Repo.ImportFolder
+        public static SVR_ImportFolder GetImportFolder1(this DuplicateFile duplicatefile) => Repo.Instance.ImportFolder
             .GetByID(duplicatefile.ImportFolderIDFile1);
 
         public static string GetFullServerPath1(this DuplicateFile duplicatefile) => Path.Combine(
             duplicatefile.GetImportFolder1().ImportFolderLocation, duplicatefile.FilePathFile1);
 
-        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => Repo.ImportFolder
+        public static SVR_ImportFolder GetImportFolder2(this DuplicateFile duplicatefile) => Repo.Instance.ImportFolder
             .GetByID(duplicatefile.ImportFolderIDFile2);
 
         public static string GetFullServerPath2(this DuplicateFile duplicatefile) => Path.Combine(
             duplicatefile.GetImportFolder2().ImportFolderLocation, duplicatefile.FilePathFile2);
 
-        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => Repo.AniDB_File.GetByHash(
+        public static SVR_AniDB_File GetAniDBFile(this DuplicateFile duplicatefile) => Repo.Instance.AniDB_File.GetByHash(
             duplicatefile.Hash);
 
         public static string GetEnglishTitle(this AniDB_Episode ep)
         {
-            return Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
+            return Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.EpisodeID, "EN").FirstOrDefault()
                 ?.Title;
         }
     }

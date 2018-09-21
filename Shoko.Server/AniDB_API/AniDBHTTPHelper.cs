@@ -35,7 +35,7 @@ namespace AniDBAPI
                 ShokoService.LastAniDBMessage = DateTime.Now;
                 ShokoService.LastAniDBHTTPMessage = DateTime.Now;
 
-                var anime = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                var anime = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID);
                 DateTime? prevUpdate = anime?.UpdatedAt;
 
                 string uri = string.Format(AnimeURL, animeID);
@@ -47,8 +47,8 @@ namespace AniDBAPI
                 string rawXML = APIUtils.DownloadWebPage(uri);
 
                 // Putting this here for no chance of error. It is ALWAYS created or updated when AniDB is called!
-                var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-                using (var upd = Repo.AniDB_AnimeUpdate.BeginAddOrUpdate(() => Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID), () => new AniDB_AnimeUpdate {AnimeID = animeID}))
+                var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                using (var upd = Repo.Instance.AniDB_AnimeUpdate.BeginAddOrUpdate(() => Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID), () => new AniDB_AnimeUpdate {AnimeID = animeID}))
                 {
                     upd.Entity.UpdatedAt = DateTime.Now;
                     upd.Commit();

@@ -68,7 +68,7 @@ namespace Shoko.Server.PlexAndKodi
             try
             {
                 {
-                    List<SVR_GroupFilter> allGfs = Repo.GroupFilter.GetTopLevel()
+                    List<SVR_GroupFilter> allGfs = Repo.Instance.GroupFilter.GetTopLevel()
                         .Where(a => a.InvisibleInClients == 0 &&
                                     (
                                         (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
@@ -84,7 +84,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pp != null)
                             dirs.Add(prov, pp, info);
                     }
-                    List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
+                    List<SVR_VideoLocal> vids = Repo.Instance.VideoLocal.GetVideosWithoutEpisodeUnsorted().ToList();
                     if (vids.Count > 0)
                     {
                         Directory pp = new Directory() { Type = "show" };
@@ -96,7 +96,7 @@ namespace Shoko.Server.PlexAndKodi
                         pp.ViewedLeafCount = 0;
                         dirs.Add(prov, pp, info);
                     }
-                    var playlists = Repo.Playlist.GetAll();
+                    var playlists = Repo.Instance.Playlist.GetAll();
                     if (playlists.Count > 0)
                     {
                         Directory pp = new Directory() { Type = "show" };
@@ -193,7 +193,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!ret.Init(prov))
                     return new MediaContainer(); //Normal
                 var retPlaylists = new List<Video>();
-                var playlists = Repo.Playlist.GetAll();
+                var playlists = Repo.Instance.Playlist.GetAll();
 
                 foreach (var playlist in playlists)
                 {
@@ -207,7 +207,7 @@ namespace Shoko.Server.PlexAndKodi
                     var episodeID = -1;
                     if (int.TryParse(playlist.PlaylistItems.Split('|')[0].Split(';')[1], out episodeID))
                     {
-                        var anime = Repo.AnimeEpisode.GetByID(episodeID)
+                        var anime = Repo.Instance.AnimeEpisode.GetByID(episodeID)
                             .GetAnimeSeries()
                             .GetAnime();
                         dir.Thumb = anime?.GetDefaultPosterDetailsNoBlanks()?.GenPoster(prov);
@@ -228,7 +228,7 @@ namespace Shoko.Server.PlexAndKodi
             }
             if (PlaylistID > 0)
             {
-                var playlist = Repo.Playlist.GetByID(PlaylistID);
+                var playlist = Repo.Instance.Playlist.GetByID(PlaylistID);
                 var playlistItems = playlist.PlaylistItems.Split('|');
                 var vids = new List<Video>();
                 var ret =
@@ -244,7 +244,7 @@ namespace Shoko.Server.PlexAndKodi
                         var episodeID = -1;
                         int.TryParse(item.Split(';')[1], out episodeID);
                         if (episodeID < 0) return new MediaContainer() { ErrorString = "Invalid Episode ID" };
-                        SVR_AnimeEpisode e = Repo.AnimeEpisode.GetByID(episodeID);
+                        SVR_AnimeEpisode e = Repo.Instance.AnimeEpisode.GetByID(episodeID);
                         if (e == null)
                             return new MediaContainer() { ErrorString = "Invalid Episode" };
                         KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> ep =
@@ -252,7 +252,7 @@ namespace Shoko.Server.PlexAndKodi
                                 e.GetUserContract(userid));
                         if (ep.Value != null && ep.Value.LocalFileCount == 0)
                             continue;
-                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
+                        SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                         if (ser == null)
                             return new MediaContainer() { ErrorString = "Invalid Series" };
                         CL_AnimeSeries_User con = ser.GetUserContract(userid);
@@ -291,7 +291,7 @@ namespace Shoko.Server.PlexAndKodi
             if (!ret.Init(prov))
                 return new MediaContainer();
             List<Video> dirs = new List<Video>();
-            List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisode();
+            List<SVR_VideoLocal> vids = Repo.Instance.VideoLocal.GetVideosWithoutEpisode();
             foreach (SVR_VideoLocal v in vids.OrderByDescending(a => a.DateTimeCreated))
             {
                 try
@@ -321,7 +321,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (!int.TryParse(Id, out int id))
                 return new MediaContainer() { ErrorString = "Invalid File Id" };
-            SVR_VideoLocal vi = Repo.VideoLocal.GetByID(id);
+            SVR_VideoLocal vi = Repo.Instance.VideoLocal.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
                     Path.GetFileNameWithoutExtension(vi.FileName ?? string.Empty),
@@ -353,7 +353,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 List<Video> dirs = new List<Video>();
 
-                SVR_AnimeEpisode e = Repo.AnimeEpisode.GetByID(id);
+                SVR_AnimeEpisode e = Repo.Instance.AnimeEpisode.GetByID(id);
                 if (e == null)
                     return new MediaContainer() { ErrorString = "Invalid Episode Id" };
                 KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> ep =
@@ -364,7 +364,7 @@ namespace Shoko.Server.PlexAndKodi
                 AniDB_Episode aep = ep.Key.AniDB_Episode;
                 if (aep == null)
                     return new MediaContainer() { ErrorString = "Invalid Episode AniDB link not found" };
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
+                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(ep.Key.AnimeSeriesID);
                 if (ser == null)
                     return new MediaContainer() { ErrorString = "Invalid Serie" };
                 SVR_AniDB_Anime anime = ser.GetAnime();
@@ -410,7 +410,7 @@ namespace Shoko.Server.PlexAndKodi
             Dictionary<int, string> users = new Dictionary<int, string>();
             try
             {
-                foreach (SVR_JMMUser us in Repo.JMMUser.GetAll())
+                foreach (SVR_JMMUser us in Repo.Instance.JMMUser.GetAll())
                 {
                     users.Add(us.JMMUserID, us.Username);
                 }
@@ -428,7 +428,7 @@ namespace Shoko.Server.PlexAndKodi
             try
             {
                 gfs.Users = new List<PlexContract_User>();
-                foreach (SVR_JMMUser us in Repo.JMMUser.GetAll())
+                foreach (SVR_JMMUser us in Repo.Instance.JMMUser.GetAll())
                 {
                     PlexContract_User p = new PlexContract_User
                     {
@@ -487,7 +487,7 @@ namespace Shoko.Server.PlexAndKodi
             List<Video> ls = new List<Video>();
             int cnt = 0;
             IEnumerable<SVR_AnimeSeries> series = searchTag
-                ? Repo.AnimeSeries.GetAll()
+                ? Repo.Instance.AnimeSeries.GetAll()
                     .Where(
                         a =>
                             a.Contract != null && a.Contract.AniDBAnime != null &&
@@ -497,7 +497,7 @@ namespace Shoko.Server.PlexAndKodi
                                      StringComparer.InvariantCultureIgnoreCase) ||
                              a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName)
                                  .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
-                : Repo.AnimeSeries.GetAll()
+                : Repo.Instance.AnimeSeries.GetAll()
                     .Where(
                         a =>
                             a.Contract != null && a.Contract.AniDBAnime != null &&
@@ -505,7 +505,7 @@ namespace Shoko.Server.PlexAndKodi
                             string.Join(",", a.Contract.AniDBAnime.AniDBAnime.AllTitles)
                                 .IndexOf(query, 0, StringComparison.InvariantCultureIgnoreCase) >= 0);
 
-            //List<AniDB_Anime> animes = searchTag ? Repo.AniDB_Anime.SearchByTag(query) : Repo.AniDB_Anime.SearchByName(query);
+            //List<AniDB_Anime> animes = searchTag ? Repo.Instace.AniDB_Anime.SearchByTag(query) : Repo.Instace.AniDB_Anime.SearchByName(query);
             foreach (SVR_AnimeSeries ser in series)
             {
                 if (!user.AllowedSeries(ser)) continue;
@@ -554,7 +554,7 @@ namespace Shoko.Server.PlexAndKodi
                 return new MediaContainer() { ErrorString = "Invalid Group Id" };
 
             List<Video> retGroups = new List<Video>();
-            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(groupID);
+            SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(groupID);
 
             if (grp == null)
                 return new MediaContainer { ErrorString = "Invalid Group" };
@@ -570,7 +570,7 @@ namespace Shoko.Server.PlexAndKodi
                 List<SVR_AnimeSeries> seriesList = grp.GetSeries();
                 if (filterID != null)
                 {
-                    SVR_GroupFilter filter = Repo.GroupFilter.GetByID(filterID.Value);
+                    SVR_GroupFilter filter = Repo.Instance.GroupFilter.GetByID(filterID.Value);
                     if (filter != null)
                     {
                         if (filter.ApplyToSeries > 0)
@@ -633,7 +633,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!int.TryParse(userid, out int usid))
                     return rsp;
 
-                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(aep);
                 if (ep == null)
                 {
                     rsp.Code = "404";
@@ -669,7 +669,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!int.TryParse(userid, out int usid))
                     return rsp;
 
-                SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(aep);
+                SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByID(aep);
                 if (series == null)
                 {
                     rsp.Code = "404";
@@ -714,7 +714,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!int.TryParse(userid, out int usid))
                     return rsp;
 
-                SVR_AnimeGroup group = Repo.AnimeGroup.GetByID(aep);
+                SVR_AnimeGroup group = Repo.Instance.AnimeGroup.GetByID(aep);
                 if (group == null)
                 {
                     rsp.Code = "404";
@@ -762,7 +762,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (vt == (int)AniDBVoteType.Episode)
                 {
-                    SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(objid);
+                    SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(objid);
                     if (ep == null)
                     {
                         rsp.Code = "404";
@@ -781,7 +781,7 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
 
                     // lets save to the database and assume it will work
-                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode), () => new AniDB_Vote { EntityID = ep.AnimeEpisodeID }))
+                    using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(() => Repo.Instance.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode), () => new AniDB_Vote { EntityID = ep.AnimeEpisodeID }))
                     {
                         upd.Entity.VoteType = vt;
 
@@ -805,7 +805,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (vt == (int)AniDBVoteType.Anime)
                 {
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(objid);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(objid);
                     SVR_AniDB_Anime anime = ser.GetAnime();
                     if (anime == null)
                     {
@@ -817,9 +817,9 @@ namespace Shoko.Server.PlexAndKodi
                     logger.Info(msg);
 
                     // lets save to the database and assume it will work
-                    using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(
-                        () => Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp) ??
-                              Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime),
+                    using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(
+                        () => Repo.Instance.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp) ??
+                              Repo.Instance.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime),
                         () => new AniDB_Vote { EntityID = anime.AnimeID }))
                     {
                         upd.Entity.VoteType = vt;
@@ -973,7 +973,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 if (serieID == -1)
                     return new MediaContainer() { ErrorString = "Invalid Serie Id" };
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(serieID);
+                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(serieID);
                 if (ser == null)
                     return new MediaContainer() { ErrorString = "Invalid Series" };
                 CL_AnimeSeries_User cseries = ser.GetUserContract(userid);
@@ -1102,7 +1102,7 @@ namespace Shoko.Server.PlexAndKodi
                 DateTime start = DateTime.Now;
 
                 SVR_GroupFilter gf;
-                gf = Repo.GroupFilter.GetByID(groupFilterID);
+                gf = Repo.Instance.GroupFilter.GetByID(groupFilterID);
                 if (gf == null) return new MediaContainer() { ErrorString = "Invalid Group Filter" };
 
                 BaseObject ret =
@@ -1111,7 +1111,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (!ret.Init(prov))
                     return new MediaContainer();
                 List<SVR_GroupFilter> allGfs =
-                    Repo.GroupFilter.GetByParentID(groupFilterID)
+                    Repo.Instance.GroupFilter.GetByParentID(groupFilterID)
                         .Where(a => a.InvisibleInClients == 0 &&
                                     (
                                         (a.GroupsIds.ContainsKey(userid) && a.GroupsIds[userid].Count > 0)
@@ -1137,7 +1137,7 @@ namespace Shoko.Server.PlexAndKodi
                     // NOTE: The ToList() in the below foreach is required to prevent enumerable was modified exception
                     foreach (SVR_AnimeGroup grp in gf.GroupsIds[userid]
                         .ToList()
-                        .Select(a => Repo.AnimeGroup.GetByID(a))
+                        .Select(a => Repo.Instance.AnimeGroup.GetByID(a))
                         .Where(a => a != null))
                     {
                         Video v = grp.GetPlexContract(userid)?.Clone<Directory>(prov);
@@ -1172,7 +1172,7 @@ namespace Shoko.Server.PlexAndKodi
             }
         }
 
-        public void UseDirectories(int userId, List<Shoko.Models.Plex.Libraries.Directory> directories)
+        public void UseDirectories(int userId, List<global::Shoko.Models.Plex.Libraries.Directory> directories)
         {
             if (directories == null)
             {
@@ -1183,15 +1183,15 @@ namespace Shoko.Server.PlexAndKodi
             ServerSettings.Instance.Plex.Libraries = directories.Select(s => s.Key).ToArray();
         }
 
-        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).GetDirectories();
+        public global::Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(Repo.Instance.JMMUser.GetByID(userId)).GetDirectories();
 
         public void UseDevice(int userId, MediaDevice server) =>
-            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).UseServer(server);
+            PlexHelper.GetForUser(Repo.Instance.JMMUser.GetByID(userId)).UseServer(server);
 
         public MediaDevice[] AvailableDevices(int userId) =>
-            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).GetPlexServers().ToArray();
+            PlexHelper.GetForUser(Repo.Instance.JMMUser.GetByID(userId)).GetPlexServers().ToArray();
 
         public MediaDevice CurrentDevice(int userId) =>
-            PlexHelper.GetForUser(Repo.JMMUser.GetByID(userId)).ServerCache;
+            PlexHelper.GetForUser(Repo.Instance.JMMUser.GetByID(userId)).ServerCache;
     }
 }

@@ -56,9 +56,9 @@ namespace Shoko.Server.API.v2.Models.common
                     List<SVR_AnimeSeries> arts = null;
                     if (gf.SeriesIds.ContainsKey(uid))
                     {
-                        var seriesList = gf.SeriesIds[uid].Select(Repo.AnimeSeries.GetByID).ToList();
+                        var seriesList = gf.SeriesIds[uid].Select(Repo.Instance.AnimeSeries.GetByID).ToList();
                         groupsList = seriesList.Select(a => a.AnimeGroupID).Distinct()
-                            .Select(Repo.AnimeGroup.GetByID).ToList();
+                            .Select(Repo.Instance.AnimeGroup.GetByID).ToList();
                         if (pic == 1)
                         {
                             arts = seriesList.Where(SeriesHasCompleteArt).Where(a => a != null).ToList();
@@ -146,9 +146,9 @@ namespace Shoko.Server.API.v2.Models.common
         {
             var anime = series?.GetAnime();
             if (anime == null) return false;
-            var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-            if (!tvdbIDs.Any(a => Repo.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Any())) return false;
-            if (!tvdbIDs.Any(a => Repo.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID).Any())) return false;
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            if (!tvdbIDs.Any(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Any())) return false;
+            if (!tvdbIDs.Any(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID).Any())) return false;
             return true;
         }
 
@@ -156,21 +156,21 @@ namespace Shoko.Server.API.v2.Models.common
         {
             var anime = series?.GetAnime();
             if (anime == null) return false;
-            var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-            if (!tvdbIDs.Any(a => Repo.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Any())) return false;
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            if (!tvdbIDs.Any(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID).Any())) return false;
             return true;
         }
 
         private static List<TvDB_ImageFanart> GetFanartFromSeries(SVR_AnimeSeries ser)
         {
-            var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
-            return tvdbIDs.SelectMany(a => Repo.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
+            return tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
         }
 
         private static List<TvDB_ImageWideBanner> GetBannersFromSeries(SVR_AnimeSeries ser)
         {
-            var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
-            return tvdbIDs.SelectMany(a => Repo.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).ToList();
+            return tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
         }
     }
 }

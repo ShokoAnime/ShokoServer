@@ -30,7 +30,7 @@ namespace Shoko.Server.Providers.MovieDB
 
             // save to the DB
             MovieDB_Movie movie;
-            using (var upd = Repo.MovieDb_Movie.BeginAddOrUpdate(() => Repo.MovieDb_Movie.GetByMovieID(searchResult.MovieID).FirstOrDefault()))
+            using (var upd = Repo.Instance.MovieDb_Movie.BeginAddOrUpdate(() => Repo.Instance.MovieDb_Movie.GetByMovieID(searchResult.MovieID).FirstOrDefault()))
             {
                 upd.Entity.Populate_RA(searchResult);
                 // Only save movie info if source is not trakt, this presents adding tv shows as movies
@@ -52,7 +52,7 @@ namespace Shoko.Server.Providers.MovieDB
                 if (img.ImageType.Equals("poster", StringComparison.InvariantCultureIgnoreCase))
                 {
                     MovieDB_Poster poster;
-                    using (var upd = Repo.MovieDB_Poster.BeginAddOrUpdate(() => Repo.MovieDB_Poster.GetByOnlineID(img.URL)))
+                    using (var upd = Repo.Instance.MovieDB_Poster.BeginAddOrUpdate(() => Repo.Instance.MovieDB_Poster.GetByOnlineID(img.URL)))
                     {
                         upd.Entity.Populate_RA(img, movie.MovieId);
                         poster = upd.Commit();
@@ -64,7 +64,7 @@ namespace Shoko.Server.Providers.MovieDB
                 {
                     // fanart (backdrop)
                     MovieDB_Fanart fanart;
-                    using (var upd = Repo.MovieDB_Fanart.BeginAddOrUpdate(() => Repo.MovieDB_Fanart.GetByOnlineID(img.URL)))
+                    using (var upd = Repo.Instance.MovieDB_Fanart.BeginAddOrUpdate(() => Repo.Instance.MovieDB_Fanart.GetByOnlineID(img.URL)))
                     {
                         upd.Entity.Populate_RA(img, movie.MovieId);
                         fanart = upd.Commit();
@@ -77,7 +77,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download the posters
             if (ServerSettings.Instance.MovieDb.AutoPosters || isTrakt)
             {
-                foreach (MovieDB_Poster poster in Repo.MovieDB_Poster.GetByMovieID(movie.MovieId))
+                foreach (MovieDB_Poster poster in Repo.Instance.MovieDB_Poster.GetByMovieID(movie.MovieId))
                 {
                     if (numPostersDownloaded < ServerSettings.Instance.MovieDb.AutoPostersAmount)
                     {
@@ -97,7 +97,7 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(poster.GetFullImagePath()))
                         {
-                            Repo.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
+                            Repo.Instance.MovieDB_Poster.Delete(poster.MovieDB_PosterID);
                         }
                     }
                 }
@@ -106,7 +106,7 @@ namespace Shoko.Server.Providers.MovieDB
             // download the fanart
             if (ServerSettings.Instance.MovieDb.AutoFanart || isTrakt)
             {
-                foreach (MovieDB_Fanart fanart in Repo.MovieDB_Fanart.GetByMovieID(movie.MovieId))
+                foreach (MovieDB_Fanart fanart in Repo.Instance.MovieDB_Fanart.GetByMovieID(movie.MovieId))
                 {
                     if (numFanartDownloaded < ServerSettings.Instance.MovieDb.AutoFanartAmount)
                     {
@@ -126,7 +126,7 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(fanart.GetFullImagePath()))
                         {
-                            Repo.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
+                            Repo.Instance.MovieDB_Fanart.Delete(fanart.MovieDB_FanartID);
                         }
                     }
                 }
@@ -216,20 +216,20 @@ namespace Shoko.Server.Providers.MovieDB
             // check if we have this information locally
             // if not download it now
 
-            MovieDB_Movie movie = Repo.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
+            MovieDB_Movie movie = Repo.Instance.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
             if (movie == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 UpdateMovieInfo(movieDBID, false);
-                movie = Repo.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
+                movie = Repo.Instance.MovieDb_Movie.GetByMovieID(movieDBID).FirstOrDefault();
                 if (movie == null) return;
             }
 
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
             CrossRef_AniDB_Other xref;
-            using (var upd = Repo.CrossRef_AniDB_Other.BeginAddOrUpdate(() => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
+            using (var upd = Repo.Instance.CrossRef_AniDB_Other.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
             {
                 upd.Entity.AnimeID= animeID;
                 if (fromWebCache)
@@ -252,10 +252,10 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref = Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB_Other xref = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
             if (xref == null) return;
 
-            Repo.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
+            Repo.Instance.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
 
             CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID,
                 CrossRefType.MovieDB);
@@ -264,7 +264,7 @@ namespace Shoko.Server.Providers.MovieDB
 
         public static void ScanForMatches()
         {
-            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {

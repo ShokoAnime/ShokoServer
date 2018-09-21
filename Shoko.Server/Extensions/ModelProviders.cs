@@ -857,10 +857,10 @@ namespace Shoko.Server.Extensions
         public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
         {
             if (ep == null) return (0, 0);
-            int epsInSeason = Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+            int epsInSeason = Repo.Instance.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
             if (ep.EpisodeNumber == epsInSeason)
             {
-                int numberOfSeasons = Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID);
+                int numberOfSeasons = Repo.Instance.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID);
                 if (ep.SeasonNumber == numberOfSeasons) return (0, 0);
                 return (ep.SeasonNumber + 1, 1);
             }
@@ -877,7 +877,7 @@ namespace Shoko.Server.Extensions
 
             // episode number is 1
             // get the last episode of last season
-            int epsInSeason = Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
+            int epsInSeason = Repo.Instance.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
             return (ep.SeasonNumber - 1, epsInSeason);
         }
 
@@ -885,8 +885,8 @@ namespace Shoko.Server.Extensions
         {
             if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
             int number = ep.EpisodeNumber;
-            for (int season = 1; season < Repo.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
-                number += Repo.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
+            for (int season = 1; season < Repo.Instance.TvDB_Episode.GetLastSeasonForSeries(ep.SeriesID); season++)
+                number += Repo.Instance.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
 
             return number;
         }

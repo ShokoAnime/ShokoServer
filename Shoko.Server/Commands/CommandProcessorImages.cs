@@ -135,7 +135,7 @@ namespace Shoko.Server.Commands
             paused = false;
 
             QueueState = new QueueStateStruct {queueState = QueueStateEnum.Idle, extraParams = new string[0]};
-            QueueCount = Repo.CommandRequest.GetQueuedCommandCountImages();
+            QueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCountImages();
 
             if (QueueCount > 0 && !workerCommands.IsBusy)
             {
@@ -168,7 +168,7 @@ namespace Shoko.Server.Commands
         /// </summary>
         public void NotifyOfNewCommand()
         {
-            QueueCount = Repo.CommandRequest.GetQueuedCommandCountImages();
+            QueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCountImages();
             // if the worker is busy, it will pick up the next command from the DB
             // do not pick new command if cancellation is requested
             if (processingCommands || workerCommands.CancellationPending)
@@ -204,7 +204,7 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                CommandRequest crdb = Repo.CommandRequest.GetNextDBCommandRequestImages();
+                CommandRequest crdb = Repo.Instance.CommandRequest.GetNextDBCommandRequestImages();
                 if (crdb == null) return;
 
                 if (workerCommands.CancellationPending)
@@ -233,8 +233,8 @@ namespace Shoko.Server.Commands
                     CurrentCommand = null;
                 }
 
-                Repo.CommandRequest.Delete(crdb.CommandRequestID);
-                QueueCount = Repo.CommandRequest.GetQueuedCommandCountImages();
+                Repo.Instance.CommandRequest.Delete(crdb.CommandRequestID);
+                QueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCountImages();
             }
         }
 

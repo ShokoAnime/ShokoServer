@@ -19,7 +19,7 @@ namespace Shoko.Server.Models
             {
                 return CreationTime.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
                            this.GetImportFolderList()
-                               .Select(a => Repo.ImportFolder.GetByID(a))
+                               .Select(a => Repo.Instance.ImportFolder.GetByID(a))
                                .Where(a => a != null)
                                .Select(a => a.ImportFolderLocation
                                    .Split(

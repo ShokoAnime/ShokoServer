@@ -501,7 +501,7 @@ namespace Shoko.Server
                         if (evt.FullPath.StartsWith("|CLOUD|"))
                         {
                             int shareid = int.Parse(evt.Name);
-                            Importer.RunImport_ImportFolderNewFiles(Repo.ImportFolder.GetByID(shareid));
+                            Importer.RunImport_ImportFolderNewFiles(Repo.Instance.ImportFolder.GetByID(shareid));
                         }
                         else
                         {
@@ -641,7 +641,7 @@ namespace Shoko.Server
         {
             try
             {
-                foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll()
+                foreach (SVR_ImportFolder share in Repo.Instance.ImportFolder.GetAll()
                     .Where(a => a.CloudID.HasValue && a.FolderIsWatched))
                 {
                     //Little hack in there to reuse the file queue
@@ -714,7 +714,8 @@ namespace Shoko.Server
 
                 logger.Info("Setting up database...");
                 //Repo.Init(new ShokoContext(ServerSettings.Instance.Database.Type, ))
-                if (!Repo.Start())
+                var repo = new Repo();
+                if (!repo.Start() || !repo.Migrate() || !repo.DoInit())
                 //if (!DatabaseFactory.InitDB(out string errorMessage))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
@@ -772,7 +773,7 @@ namespace Shoko.Server
 
                 DownloadAllImages();
 
-                IReadOnlyList<SVR_ImportFolder> folders = Repo.ImportFolder.GetAll();
+                IReadOnlyList<SVR_ImportFolder> folders = Repo.Instance.ImportFolder.GetAll();
 
                 if (ServerSettings.Instance.Import.ScanDropFoldersOnStart) ScanDropFolders();
                 if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0) RunImport();
@@ -802,7 +803,7 @@ namespace Shoko.Server
         void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
             // first build a list of files that we already know about, as we don't want to process them again
-            IReadOnlyList<SVR_VideoLocal> filesAll = Repo.VideoLocal.GetAll();
+            IReadOnlyList<SVR_VideoLocal> filesAll = Repo.Instance.VideoLocal.GetAll();
             foreach (SVR_VideoLocal vl in filesAll)
             {
                 CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
@@ -852,7 +853,7 @@ namespace Shoko.Server
                 // get a list of unlinked files
 
 
-                List<SVR_VideoLocal> vids = Repo.VideoLocal.GetVideosWithoutEpisode();
+                List<SVR_VideoLocal> vids = Repo.Instance.VideoLocal.GetVideosWithoutEpisode();
                 ma2Progress.TotalFiles = vids.Count;
 
                 foreach (SVR_VideoLocal vid in vids.Where(a => !string.IsNullOrEmpty(a.Hash)))
@@ -888,7 +889,7 @@ namespace Shoko.Server
                             // so now we have all the needed details we can link the file to the episode
                             // as long as wehave the details in JMM
                             SVR_AniDB_Anime anime = null;
-                            AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(episodeID);
+                            AniDB_Episode ep = Repo.Instance.AniDB_Episode.GetByEpisodeID(episodeID);
                             if (ep == null)
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
@@ -896,7 +897,7 @@ namespace Shoko.Server
                                     ServerSettings.Instance.AutoGroupSeries);
                             }
                             else
-                                anime = Repo.AniDB_Anime.GetByID(animeID);
+                                anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
 
                             // create the group/series/episode records if needed
                             SVR_AnimeSeries ser = null;
@@ -904,13 +905,13 @@ namespace Shoko.Server
 
                             logger.Debug("Creating groups, series and episodes....");
                             // check if there is an AnimeSeries Record associated with this AnimeID
-                            using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByAnimeID(animeID), () => anime.CreateAnimeSeriesAndGroup()))
+                            using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByAnimeID(animeID), () => anime.CreateAnimeSeriesAndGroup()))
                             {
                                 upd.Entity.CreateAnimeEpisodes();
 
                                 // check if we have any group status data for this associated anime
                                 // if not we will download it now
-                                if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                                if (Repo.Instance.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                                 {
                                     CommandRequest_GetReleaseGroupStatus cmdStatus =
                                         new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
@@ -922,11 +923,11 @@ namespace Shoko.Server
                                 ser = upd.Commit();
                             }
 
-                            Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
+                            Repo.Instance.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
-                            SVR_AnimeEpisode epAnime = Repo.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
+                            SVR_AnimeEpisode epAnime = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
 
-                            using (var upd = Repo.CrossRef_File_Episode.BeginAdd())
+                            using (var upd = Repo.Instance.CrossRef_File_Episode.BeginAdd())
                             {
                                 try
                                 {
@@ -993,7 +994,7 @@ namespace Shoko.Server
         private void GenerateAzureList()
         {
             // get a lst of anime's that we already have
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.Instance.AniDB_Anime.GetAll();
             Dictionary<int, int> localAnimeIDs = new Dictionary<int, int>();
             foreach (SVR_AniDB_Anime anime in allAnime)
             {
@@ -1046,7 +1047,7 @@ namespace Shoko.Server
         private void SendToAzureXML()
         {
             DateTime dt = DateTime.Now.AddYears(-2);
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.Instance.AniDB_Anime.GetAll();
 
             int sentAnime = 0;
             foreach (SVR_AniDB_Anime anime in allAnime)
@@ -1278,7 +1279,7 @@ namespace Shoko.Server
             StopCloudWatchTimer();
             watcherVids = new List<RecoveringFileSystemWatcher>();
 
-            foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in Repo.Instance.ImportFolder.GetAll())
             {
                 try
                 {
@@ -1547,7 +1548,7 @@ namespace Shoko.Server
 
             // get a complete list of files
             List<string> fileList = new List<string>();
-            foreach (SVR_ImportFolder share in Repo.ImportFolder.GetAll())
+            foreach (SVR_ImportFolder share in Repo.Instance.ImportFolder.GetAll())
             {
                 logger.Debug("Import Folder: {0} || {1}", share.ImportFolderName, share.ImportFolderLocation);
                 Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
@@ -1615,7 +1616,7 @@ namespace Shoko.Server
         public bool SyncPlex()
         {
             bool flag = false;
-            foreach (SVR_JMMUser user in Repo.JMMUser.GetAll())
+            foreach (SVR_JMMUser user in Repo.Instance.JMMUser.GetAll())
             {
                 if (!string.IsNullOrEmpty(user.PlexToken))
                 {

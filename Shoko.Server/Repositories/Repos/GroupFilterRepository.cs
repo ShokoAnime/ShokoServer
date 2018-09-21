@@ -286,7 +286,7 @@ namespace Shoko.Server.Repositories.Repos
                 HashSet<string> alltags;
                 if (tags == null)
                     alltags = new HashSet<string>(
-                        Repo.AniDB_Tag.GetAll().Select(a => a.TagName)
+                        Repo.Instance.AniDB_Tag.GetAll().Select(a => a.TagName)
                             .Distinct(StringComparer.InvariantCultureIgnoreCase),
                         StringComparer.InvariantCultureIgnoreCase);
                 else
@@ -349,7 +349,7 @@ namespace Shoko.Server.Repositories.Repos
                 HashSet<string> allyears;
                 if (airdate == null || airdate.Count == 0)
                 {
-                    List<CL_AnimeSeries_User> grps = Repo.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
+                    List<CL_AnimeSeries_User> grps = Repo.Instance.AnimeSeries.GetAll().Select(a => a.Contract).Where(a => a != null).ToList();
 
                     allyears = new HashSet<string>(StringComparer.Ordinal);
                     foreach (CL_AnimeSeries_User ser in grps)
@@ -423,7 +423,7 @@ namespace Shoko.Server.Repositories.Repos
                 SortedSet<string> allseasons;
                 if (season == null)
                 {
-                    List<SVR_AnimeSeries> grps = Repo.AnimeSeries.GetAll().ToList();
+                    List<SVR_AnimeSeries> grps = Repo.Instance.AnimeSeries.GetAll().ToList();
 
                     allseasons = new SortedSet<string>(new SeasonComparator());
                     foreach (SVR_AnimeSeries s in grps)
@@ -553,10 +553,10 @@ namespace Shoko.Server.Repositories.Repos
                     new ConcurrentDictionary<int, Dictionary<int, HashSet<int>>>();
                 var filters = GetAll().Where(a => a.FilterType == (int)GroupFilterType.Tag).ToList();
                 List<SVR_JMMUser> users = new List<SVR_JMMUser> { null };
-                users.AddRange(Repo.JMMUser.GetAll());
+                users.AddRange(Repo.Instance.JMMUser.GetAll());
                 List<SVR_GroupFilter> toRemove = new List<SVR_GroupFilter>();
                 var nameToFilter = filters.ToLookup(a => a?.GroupFilterName?.ToLowerInvariant());
-                var tags = Repo.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
+                var tags = Repo.Instance.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
 
                 Parallel.ForEach(tags, tag =>
                 {
@@ -574,7 +574,7 @@ namespace Shoko.Server.Repositories.Repos
                         toRemove.AddRange(grpFilters);
                     }
 
-                    foreach (var series in tag.ToList().SelectMany(a => Repo.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
+                    foreach (var series in tag.ToList().SelectMany(a => Repo.Instance.AniDB_Anime_Tag.GetAnimeWithTag(a.TagID)))
                     {
                         var seriesTags = series.GetAnime()?.GetAllTags();
                         foreach (var user in users)

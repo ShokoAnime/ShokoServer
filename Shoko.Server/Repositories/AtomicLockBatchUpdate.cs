@@ -18,8 +18,8 @@ namespace Shoko.Server.Repositories
 
         internal AtomicLockBatchUpdate(BaseRepository<T, TS, TT> repo, Func<List<T>> find_original_items = null, bool delete_not_updated = false)
         {
-            _lock = _repo.RepoLock.WriterLock();
             _repo = repo;
+            _lock = _repo.RepoLock.WriterLock();
             _originalItems = find_original_items != null ? find_original_items().ToDictionary(a => a.DeepClone(), a => a) : new Dictionary<T, T>();
             _delete_not_updated = delete_not_updated;
         }

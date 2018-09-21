@@ -212,7 +212,7 @@ namespace Shoko.Server.Workers.Commands.Hashing
             if (!string.IsNullOrEmpty(str))
             {
                 InternalSerialize hf = JsonConvert.DeserializeObject<InternalSerialize>(str);
-                IFileSystem fs = Repo.ImportFolder.GetAll().FirstOrDefault(a => a.FileSystem.Name == hf.FileSystemName)?.FileSystem;
+                IFileSystem fs = Repo.Instance.ImportFolder.GetAll().FirstOrDefault(a => a.FileSystem.Name == hf.FileSystemName)?.FileSystem;
                 if (fs != null)
                 {
                     IObject obj = await fs.ResolveAsync(hf.FullName);

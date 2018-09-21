@@ -58,10 +58,10 @@ namespace Shoko.Server.Models
         {
 
 
-            List<SVR_AnimeGroup> allGrps = Repo.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
-            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+            List<SVR_AnimeGroup> allGrps = Repo.Instance.AnimeGroup.GetAllTopLevelGroups(); // No Need of subgroups
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
-            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetAll()))
+            using (var upd = Repo.Instance.GroupFilter.BeginBatchUpdate(() => Repo.Instance.GroupFilter.GetAll()))
             {
 
                 foreach (SVR_GroupFilter gf in upd)
@@ -96,7 +96,7 @@ namespace Shoko.Server.Models
 
         public SVR_JMMUser(string username)
         {
-            foreach (SVR_JMMUser us in Repo.JMMUser.GetAll())
+            foreach (SVR_JMMUser us in Repo.Instance.JMMUser.GetAll())
             {
                 if (string.Equals(us.Username, username, System.StringComparison.CurrentCultureIgnoreCase))
                 {

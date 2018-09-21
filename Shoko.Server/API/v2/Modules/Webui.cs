@@ -58,7 +58,7 @@ namespace Shoko.Server.API.v2.Modules
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
                 var response = client.DownloadString(
-                    new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/tags/" +
+                    new Uri("https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases/tags/" +
                             tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
@@ -200,7 +200,7 @@ namespace Shoko.Server.API.v2.Modules
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
             var response = client.DownloadString(new Uri(
-                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/latest"));
+                "https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases/latest"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
@@ -245,7 +245,7 @@ namespace Shoko.Server.API.v2.Modules
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "shokoserver");
             var response = client.DownloadString(new Uri(
-                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases"));
+                "https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 

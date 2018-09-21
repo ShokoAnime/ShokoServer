@@ -153,10 +153,10 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                Show = Repo.Trakt_Show.GetByTraktSlug(TraktID);
+                Show = Repo.Instance.Trakt_Show.GetByTraktSlug(TraktID);
                 if (Show == null) return;
 
-                traktEpisodes = Repo.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
+                traktEpisodes = Repo.Instance.Trakt_Episode.GetByShowID(Show.Trakt_ShowID)
                     .OrderBy(a => a.Season)
                     .ThenBy(a => a.EpisodeNumber)
                     .ToList();

@@ -21,14 +21,14 @@ namespace Shoko.Server
 
         public static IRenamer GetRenamer()
         {
-            var script = Repo.RenameScript.GetDefaultScript();
+            var script = Repo.Instance.RenameScript.GetDefaultScript();
             if (script == null) return null;
             return GetRenamerFor(script);
         }
 
         public static IRenamer GetRenamerWithFallback()
         {
-            var script = Repo.RenameScript.GetDefaultOrFirst();
+            var script = Repo.Instance.RenameScript.GetDefaultOrFirst();
             if (script == null) return null;
 
             return GetRenamerFor(script);
@@ -36,7 +36,7 @@ namespace Shoko.Server
 
         public static IRenamer GetRenamer(string scriptName)
         {
-            var script = Repo.RenameScript.GetByName(scriptName);
+            var script = Repo.Instance.RenameScript.GetByName(scriptName);
             if (script == null) return null;
 
             return GetRenamerFor(script);

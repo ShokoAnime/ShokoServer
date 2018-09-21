@@ -79,7 +79,7 @@ namespace Shoko.Server.Models
                 {
                     if (CloudID != null)
                     {
-                        SVR_CloudAccount cl = Repo.CloudAccount.GetByID(CloudID.Value);
+                        SVR_CloudAccount cl = Repo.Instance.CloudAccount.GetByID(CloudID.Value);
                         if (cl == null)
                             throw new Exception("Cloud Account Not Found");
                         _filesystem = cl.FileSystem;
@@ -130,7 +130,7 @@ namespace Shoko.Server.Models
         }
 
         [NotMapped]
-        public SVR_CloudAccount CloudAccount => CloudID.HasValue ? Repo.CloudAccount.GetByID(CloudID.Value) : null;
+        public SVR_CloudAccount CloudAccount => CloudID.HasValue ? Repo.Instance.CloudAccount.GetByID(CloudID.Value) : null;
 
 
         [NotMapped]

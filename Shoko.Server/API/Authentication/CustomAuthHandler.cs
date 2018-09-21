@@ -48,8 +48,8 @@ namespace Shoko.Server.API.Authentication
             string apikey = ctx?.Trim();
             if (string.IsNullOrEmpty(apikey)) return null;
 
-            AuthTokens auth = Repo.AuthTokens.GetByToken(apikey);
-            return auth != null ? Repo.JMMUser.GetByID(auth.UserID) : null;
+            AuthTokens auth = Repo.Instance.AuthTokens.GetByToken(apikey);
+            return auth != null ? Repo.Instance.JMMUser.GetByID(auth.UserID) : null;
         }
     }
 }

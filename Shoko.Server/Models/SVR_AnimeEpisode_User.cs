@@ -28,9 +28,9 @@ namespace Shoko.Server.Models
                     _contract = CompressionHelper.DeserializeObject<CL_AnimeEpisode_User>(ContractBlob, ContractSize);
                 if (_contract != null)
                 {
-                    SVR_AnimeSeries_User seuse = Repo.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, AnimeSeriesID);
+                    SVR_AnimeSeries_User seuse = Repo.Instance.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, AnimeSeriesID);
                     _contract.UnwatchedEpCountSeries = seuse?.UnwatchedEpisodeCount ?? 0;
-                    SVR_AnimeEpisode aep = Repo.AnimeEpisode.GetByID(AnimeEpisodeID);
+                    SVR_AnimeEpisode aep = Repo.Instance.AnimeEpisode.GetByID(AnimeEpisodeID);
                     _contract.LocalFileCount = aep?.GetVideoLocals().Count ?? 0;
                 }
                 return _contract;

@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands.AniDB
             {
                 // we will always assume that an anime was downloaded via http first
 
-                ScheduledUpdate sched = Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+                ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
 
                 if (sched != null)
                 {
@@ -55,7 +55,7 @@ namespace Shoko.Server.Commands.AniDB
                     }
                 }
 
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
                     () => sched,
                     () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMylistStats, UpdateDetails = string.Empty }
                     ))

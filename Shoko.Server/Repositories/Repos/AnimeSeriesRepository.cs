@@ -34,7 +34,7 @@ namespace Shoko.Server.Repositories.Repos
                 if (original_entity.AnimeGroupID != entity.AnimeGroupID)
                 {
                     oldGroup = original_entity.AnimeGroupID;
-                    SVR_AnimeGroup newGroup = Repo.AnimeGroup.GetByID(entity.AnimeGroupID);
+                    SVR_AnimeGroup newGroup = Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID);
                     if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
                         isMigrating = true;
                     newSeries = true;
@@ -59,11 +59,11 @@ namespace Shoko.Server.Repositories.Repos
             if (parameters.updateGroups && !isMigrating)
             {
                 logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", entity.AnimeSeriesID);
-                Repo.AnimeGroup.Touch(() => Repo.AnimeGroup.GetByID(entity.AnimeGroupID), (true, true, true));
+                Repo.Instance.AnimeGroup.Touch(() => Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID), (true, true, true));
                 if (oldGroup != 0)
                 {
                     logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",oldGroup);
-                    Repo.AnimeGroup.Touch(() => Repo.AnimeGroup.GetByID(oldGroup), (true, true, true));
+                    Repo.Instance.AnimeGroup.Touch(() => Repo.Instance.AnimeGroup.GetByID(oldGroup), (true, true, true));
                 }
             }
             if (!parameters.skipgroupfilters && !isMigrating)
@@ -77,7 +77,7 @@ namespace Shoko.Server.Repositories.Repos
                         endyear - entity.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
                 }
                 //This call will create extra years or tags if the Group have a new year or tag
-                Repo.GroupFilter.CreateOrVerifyDirectoryFilters(null, false,
+                Repo.Instance.GroupFilter.CreateOrVerifyDirectoryFilters(null, false,
                     entity.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears,
                     entity.Contract?.AniDBAnime?.Stat_AllSeasons);
 
@@ -90,7 +90,7 @@ namespace Shoko.Server.Repositories.Repos
             }
             if (parameters.alsoupdateepisodes)
             {
-                Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetBySeriesID(entity.AnimeSeriesID));
+                Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetBySeriesID(entity.AnimeSeriesID));
             }
         }
 
@@ -118,7 +118,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginDelete(SVR_AnimeSeries entity,
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
-            Repo.AnimeSeries_User.Delete(entity.AnimeSeriesID);
+            Repo.Instance.AnimeSeries_User.Delete(entity.AnimeSeriesID);
             lock(Changes)
                 Changes.Remove(entity.AnimeSeriesID);
             return null;
@@ -131,7 +131,7 @@ namespace Shoko.Server.Repositories.Repos
             if (entity.AnimeGroupID != 0)
             {
                 logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", entity.AnimeGroupID);
-                Repo.AnimeGroup.Touch(()=>Repo.AnimeGroup.GetByID(entity.AnimeGroupID),(true, true, true));
+                Repo.Instance.AnimeGroup.Touch(()=>Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID),(true, true, true));
             }
         }
 

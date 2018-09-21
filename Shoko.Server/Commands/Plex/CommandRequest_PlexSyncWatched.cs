@@ -90,7 +90,7 @@ namespace Shoko.Server.Commands.Plex
             Priority = cq.Priority;
             CommandDetails = cq.CommandDetails;
             DateTimeUpdated = cq.DateTimeUpdated;
-            _jmmuser = Repo.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
+            _jmmuser = Repo.Instance.JMMUser.GetByID(Convert.ToInt32(cq.CommandDetails));
             return true;
         }
 

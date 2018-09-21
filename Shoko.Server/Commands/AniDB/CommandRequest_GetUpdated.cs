@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
 
                 // check the automated update table to see when the last time we ran this command
                 ScheduledUpdate sched =
-                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
+                    Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
@@ -87,7 +87,7 @@ namespace Shoko.Server.Commands
 
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates }))
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates }))
                 {
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Entity.UpdateDetails = webUpdateTimeNew.ToString();
@@ -106,7 +106,7 @@ namespace Shoko.Server.Commands
                 foreach (int animeID in animeIDsToUpdate)
                 {
                     // update the anime from HTTP
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null)
                     {
                         logger.Trace("No local record found for Anime ID: {0}, so skipping...", animeID);
@@ -115,7 +115,7 @@ namespace Shoko.Server.Commands
 
                     logger.Info("Updating CommandRequest_GetUpdated: {0} ", animeID);
 
-                    var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                    var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID);
 
                     // but only if it hasn't been recently updated
                     TimeSpan ts = DateTime.Now - update.UpdatedAt;
@@ -129,7 +129,7 @@ namespace Shoko.Server.Commands
                     // update the group status
                     // this will allow us to determine which anime has missing episodes
                     // so we wonly get by an amime where we also have an associated series
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
                     if (ser != null)
                     {
                         CommandRequest_GetReleaseGroupStatus cmdStatus =

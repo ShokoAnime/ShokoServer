@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -9,116 +10,125 @@ using Shoko.Server.Repositories.Repos;
 
 namespace Shoko.Server.Repositories
 {
-    public static class Repo
+    public class Repo
     {
+        public static Repo Instance => _tl.Value;
+
+        private static readonly ThreadLocal<Repo> _tl = new ThreadLocal<Repo>(() =>
+        {
+            var repo = new Repo();
+            repo.Start();
+            return repo;
+        });
+
         // DECLARE THESE IN ORDER OF DEPENDENCY
-        public static JMMUserRepository JMMUser { get; private set; }
-        public static AuthTokensRepository AuthTokens { get; private set; }
-        public static CloudAccountRepository CloudAccount { get; private set; }
-        public static ImportFolderRepository ImportFolder { get; private set; }
-        public static AniDB_AnimeRepository AniDB_Anime { get; private set; }
-        public static AniDB_EpisodeRepository AniDB_Episode { get; private set; }
-        public static AniDB_FileRepository AniDB_File { get; private set; }
-        public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; private set; }
-        public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; private set; }
-        public static AniDB_TagRepository AniDB_Tag { get; private set; }
-        public static CustomTagRepository CustomTag { get; private set; }
-        public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; private set; }
-        public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; private set; }
-        public static CommandRequestRepository CommandRequest { get; private set; }
-        public static VideoLocal_PlaceRepository VideoLocal_Place { get; private set; }
-        public static VideoLocalRepository VideoLocal { get; private set; }
-        public static VideoLocal_UserRepository VideoLocal_User { get; private set; }
-        public static GroupFilterConditionRepository GroupFilterCondition { get; internal set; }
-        public static GroupFilterRepository GroupFilter { get; private set; }
-        public static AnimeEpisodeRepository AnimeEpisode { get; private set; }
-        public static AnimeEpisode_UserRepository AnimeEpisode_User { get; private set; }
-        public static AnimeSeriesRepository AnimeSeries { get; private set; }
-        public static AnimeSeries_UserRepository AnimeSeries_User { get; private set; }
-        public static AnimeGroupRepository AnimeGroup { get; private set; }
-        public static AnimeGroup_UserRepository AnimeGroup_User { get; private set; }
-        public static AniDB_VoteRepository AniDB_Vote { get; private set; }
-        public static TvDB_EpisodeRepository TvDB_Episode { get; private set; }
-        public static TvDB_SeriesRepository TvDB_Series { get; private set; }
-        public static CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; private set; }
-        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; private set; }
-        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; private set; }
-        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; private set; }
-        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; private set; }
+        public JMMUserRepository JMMUser { get; private set; }
+        public AuthTokensRepository AuthTokens { get; private set; }
+        public CloudAccountRepository CloudAccount { get; private set; }
+        public ImportFolderRepository ImportFolder { get; private set; }
+        public AniDB_AnimeRepository AniDB_Anime { get; private set; }
+        public AniDB_EpisodeRepository AniDB_Episode { get; private set; }
+        public AniDB_FileRepository AniDB_File { get; private set; }
+        public AniDB_Anime_TitleRepository AniDB_Anime_Title { get; private set; }
+        public AniDB_Anime_TagRepository AniDB_Anime_Tag { get; private set; }
+        public AniDB_TagRepository AniDB_Tag { get; private set; }
+        public CustomTagRepository CustomTag { get; private set; }
+        public CrossRef_CustomTagRepository CrossRef_CustomTag { get; private set; }
+        public CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; private set; }
+        public CommandRequestRepository CommandRequest { get; private set; }
+        public VideoLocal_PlaceRepository VideoLocal_Place { get; private set; }
+        public VideoLocalRepository VideoLocal { get; private set; }
+        public VideoLocal_UserRepository VideoLocal_User { get; private set; }
+        public GroupFilterConditionRepository GroupFilterCondition { get; internal set; }
+        public GroupFilterRepository GroupFilter { get; private set; }
+        public AnimeEpisodeRepository AnimeEpisode { get; private set; }
+        public AnimeEpisode_UserRepository AnimeEpisode_User { get; private set; }
+        public AnimeSeriesRepository AnimeSeries { get; private set; }
+        public AnimeSeries_UserRepository AnimeSeries_User { get; private set; }
+        public AnimeGroupRepository AnimeGroup { get; private set; }
+        public AnimeGroup_UserRepository AnimeGroup_User { get; private set; }
+        public AniDB_VoteRepository AniDB_Vote { get; private set; }
+        public TvDB_EpisodeRepository TvDB_Episode { get; private set; }
+        public TvDB_SeriesRepository TvDB_Series { get; private set; }
+        public CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; private set; }
+        public CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; private set; }
+        public TvDB_ImagePosterRepository TvDB_ImagePoster { get; private set; }
+        public TvDB_ImageFanartRepository TvDB_ImageFanart { get; private set; }
+        public TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; private set; }
 
 
-        public static Trakt_ShowRepository Trakt_Show { get; private set; }
-        public static Trakt_SeasonRepository Trakt_Season { get; private set; }
-        public static Trakt_FriendRepository Trakt_Friend { get; private set; }
-        public static Trakt_EpisodeRepository Trakt_Episode { get; private set; }
-        public static ScheduledUpdateRepository ScheduledUpdate { get; private set; }
-        public static RenameScriptRepository RenameScript { get; private set; }
-        public static PlaylistRepository Playlist { get; private set; }
-        public static MovieDB_PosterRepository MovieDB_Poster { get; private set; }
-        public static MovieDB_FanartRepository MovieDB_Fanart { get; private set; }
-        public static MovieDB_MovieRepository MovieDb_Movie { get; private set; }
-        public static LanguageRepository Language { get; private set; }
-        public static IgnoreAnimeRepository IgnoreAnime { get; private set; }
-        public static FileNameHashRepository FileNameHash { get; private set; }
-        public static FileFfdshowPresetRepository FileFfdshowPreset { get; private set; }
-        public static DuplicateFileRepository DuplicateFile { get; private set; }
+        public Trakt_ShowRepository Trakt_Show { get; private set; }
+        public Trakt_SeasonRepository Trakt_Season { get; private set; }
+        public Trakt_FriendRepository Trakt_Friend { get; private set; }
+        public Trakt_EpisodeRepository Trakt_Episode { get; private set; }
+        public ScheduledUpdateRepository ScheduledUpdate { get; private set; }
+        public RenameScriptRepository RenameScript { get; private set; }
+        public PlaylistRepository Playlist { get; private set; }
+        public MovieDB_PosterRepository MovieDB_Poster { get; private set; }
+        public MovieDB_FanartRepository MovieDB_Fanart { get; private set; }
+        public MovieDB_MovieRepository MovieDb_Movie { get; private set; }
+        public LanguageRepository Language { get; private set; }
+        public IgnoreAnimeRepository IgnoreAnime { get; private set; }
+        public FileNameHashRepository FileNameHash { get; private set; }
+        public FileFfdshowPresetRepository FileFfdshowPreset { get; private set; }
+        public DuplicateFileRepository DuplicateFile { get; private set; }
 
-        public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; private set; }
+        public CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; private set; }
 
-        public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; private set; }
+        public CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; private set; }
 
-        public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; private set; }
+        public CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; private set; }
 
-        public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; private set; }
+        public CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; private set; }
 
-        public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; private set; }
-        public static BookmarkedAnimeRepository BookmarkedAnime { get; private set; }
-        public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; private set; }
-        public static AniDB_ReviewRepository AniDB_Review { get; private set; }
-        public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; private set; }
+        public CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; private set; }
+        public BookmarkedAnimeRepository BookmarkedAnime { get; private set; }
+        public AniDB_SeiyuuRepository AniDB_Seiyuu { get; private set; }
+        public AniDB_ReviewRepository AniDB_Review { get; private set; }
+        public AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; private set; }
 
-        public static AniDB_RecommendationRepository AniDB_Recommendation { get; private set; }
-        public static AniDB_MylistStatsRepository AniDB_MylistStats { get; private set; }            
-        public static AniDB_GroupStatusRepository AniDB_GroupStatus { get; private set; }
-        public static AniDB_CharacterRepository AniDB_Character { get; private set; }
+        public AniDB_RecommendationRepository AniDB_Recommendation { get; private set; }
+        public AniDB_MylistStatsRepository AniDB_MylistStats { get; private set; }            
+        public AniDB_GroupStatusRepository AniDB_GroupStatus { get; private set; }
+        public AniDB_CharacterRepository AniDB_Character { get; private set; }
 
-        public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu { get; private set; }
+        public AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu { get; private set; }
 
-        public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar { get; private set; }
+        public AniDB_Anime_SimilarRepository AniDB_Anime_Similar { get; private set; }
 
-        public static AniDB_Anime_ReviewRepository AniDB_Anime_Review { get; private set; }
+        public AniDB_Anime_ReviewRepository AniDB_Anime_Review { get; private set; }
 
-        public static AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; private set; }
+        public AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; private set; }
 
-        public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; private set; }
+        public AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; private set; }
 
-        public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; private set; }
+        public AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; private set; }
 
-        public static ScanRepository Scan { get; private set; }
-        public static ScanFileRepository ScanFile { get; private set; }
-        public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; internal set; }
-        public static AnimeStaffRepository AnimeStaff { get; internal set; }
-        public static AnimeCharacterRepository AnimeCharacter { get; internal set; }
-        public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; internal set; }
+        public ScanRepository Scan { get; private set; }
+        public ScanFileRepository ScanFile { get; private set; }
+        public AniDB_Episode_TitleRepository AniDB_Episode_Title { get; internal set; }
+        public AnimeStaffRepository AnimeStaff { get; internal set; }
+        public AnimeCharacterRepository AnimeCharacter { get; internal set; }
+        public AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; internal set; }
 
 
 
 
 
         /************** Might need to be DEPRECATED **************/
-        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; private set; }
-        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; private set; }
-        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; private set; }
-        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; internal set; }
+        public CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; private set; }
+        public CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; private set; }
+        public CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; private set; }
+        public CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; internal set; }
 
 
         //AdHoc Repo
-        public static AdhocRepository Adhoc { get; private set; }
-        internal static ShokoContext Db { get; set; }
+        public AdhocRepository Adhoc { get; private set; }
+        internal ShokoContext Db { get; set; }
 
-        private static List<IRepository> _repos;
+        private List<IRepository> _repos;
 
-        private static TU Register<TU, T>(DbSet<T> table) where T : class where TU : IRepository<T>, new()
+        private TU Register<TU, T>(DbSet<T> table) where T : class where TU : IRepository<T>, new()
         {
             TU repo = new TU();
             repo.SetContext(Db,table);
@@ -127,7 +137,8 @@ namespace Shoko.Server.Repositories
             return repo;
         }
 
-        public static HashSet<string> CachedRepos = new HashSet<string>()
+        public HashSet<string> CachedRepos = new HashSet<string>();
+        public HashSet<string> DefaultCached = new HashSet<string>()
         {
             nameof(AniDB_Anime_DefaultImage), nameof(AniDB_Anime_Tag), nameof(AniDB_Anime_Title),
             nameof(AniDB_Anime), nameof(AniDB_Episode_Title), nameof(AniDB_Episode),
@@ -142,9 +153,11 @@ namespace Shoko.Server.Repositories
             nameof(TvDB_Series), nameof(VideoLocal_Place), nameof(VideoLocal_User), nameof(VideoLocal),
         }; //TODO Set Default
 
-        public static void Init(ShokoContext db, HashSet<string> cachedRepos, IProgress<InitProgress> progress, int batchSize=20)
+        public void Init(ShokoContext db, HashSet<string> cachedRepos)
         {
-            _repos=new List<IRepository>();
+            db.Database.Migrate();
+
+            _repos =new List<IRepository>();
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
             Db = db;
@@ -244,20 +257,15 @@ namespace Shoko.Server.Repositories
             CrossRef_AniDB_TvDB = Register<CrossRef_AniDB_TvDBRepository, CrossRef_AniDB_TvDB>(db.CrossRef_AniDB_TvDB);
             CrossRef_Anime_Staff = Register<CrossRef_Anime_StaffRepository, CrossRef_Anime_Staff>(db.CrossRef_Anime_Staff);
             Adhoc = new AdhocRepository();
-
-            db.Database.Migrate(); //run any migrations.
-
-            _repos.ForEach(a => a.PreInit(progress,batchSize));
-            _repos.ForEach(a => a.PostInit(progress, batchSize));
         }
         
-        public static void SetCache(HashSet<string> cachedRepos)
+        public void SetCache(HashSet<string> cachedRepos)
         {
             CachedRepos = cachedRepos != null ? cachedRepos : new HashSet<string>();
             _repos.ForEach(r=>r.SwitchCache(CachedRepos.Contains(r.Name)));
         }
 
-        internal static bool Start()
+        internal bool Start()
         {
             string connStr;
             switch(ServerSettings.Instance.Database.Type)
@@ -275,10 +283,25 @@ namespace Shoko.Server.Repositories
                     break;
             }
 
-            Init(new ShokoContext(ServerSettings.Instance.Database.Type, connStr), CachedRepos, new ProgressShit());
+            Init(new ShokoContext(ServerSettings.Instance.Database.Type, connStr), CachedRepos);
 
             return true;
         }
+
+        internal bool Migrate()
+        {
+             //run any migrations.
+            return true;
+        }
+
+        internal bool DoInit(IProgress<InitProgress> progress = null, int batchSize = 20)
+        {
+            progress = new ProgressShit();
+            _repos.ForEach(a => a.PreInit(progress, batchSize));
+            _repos.ForEach(a => a.PostInit(progress, batchSize));
+            return true;
+        }
+
 
         public class ProgressShit : IProgress<InitProgress>
         {

@@ -76,20 +76,20 @@ namespace Shoko.Server.Commands
 
         public void Save()
         {
-            CommandRequest crTemp = Repo.CommandRequest.GetByCommandID(CommandID);
+            CommandRequest crTemp = Repo.Instance.CommandRequest.GetByCommandID(CommandID);
             if (crTemp != null)
             {
                 // we will always mylist watched state changes
                 // this is because the user may be toggling the status in the client, and we need to process
                 // them all in the order they were requested
                 if (CommandType == (int) CommandRequestType.AniDB_UpdateWatchedUDP)
-                    Repo.CommandRequest.Delete(crTemp);
+                    Repo.Instance.CommandRequest.Delete(crTemp);
                 else
                     return;
             }
 
             CommandRequest cri = ToDatabaseObject();
-            Repo.CommandRequest.BeginAdd(cri).Commit();
+            Repo.Instance.CommandRequest.BeginAdd(cri).Commit();
             
             switch (CommandRequestRepository.GetQueueIndex(cri))
             {

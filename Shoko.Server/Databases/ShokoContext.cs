@@ -14,7 +14,8 @@ namespace Shoko.Server.Databases
     public class ShokoContext : DbContext
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((_, __) => true, true) });
+        public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((a, __) => a == "Microsoft.EntityFrameworkCore.Database.Command", true) });
+
 
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;

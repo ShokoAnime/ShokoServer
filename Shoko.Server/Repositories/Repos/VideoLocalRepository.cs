@@ -23,8 +23,8 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginDelete(SVR_VideoLocal entity, bool updateEpisodes)
         {
             List<int> eps= entity.GetAnimeEpisodes().Select(a=>a.AnimeEpisodeID).ToList();
-            Repo.VideoLocal_Place.Delete(entity.Places);
-            Repo.VideoLocal_User.Delete(Repo.VideoLocal_User.GetByVideoLocalID(entity.VideoLocalID));
+            Repo.Instance.VideoLocal_Place.Delete(entity.Places);
+            Repo.Instance.VideoLocal_User.Delete(Repo.Instance.VideoLocal_User.GetByVideoLocalID(entity.VideoLocalID));
             return eps;
 
         }
@@ -38,7 +38,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         internal override void EndDelete(SVR_VideoLocal entity, object returnFromBeginDelete, bool updateEpisodes)
         {
-            Repo.AnimeEpisode.Touch(()=>Repo.AnimeEpisode.GetMany((List<int>)returnFromBeginDelete));
+            Repo.Instance.AnimeEpisode.Touch(()=>Repo.Instance.AnimeEpisode.GetMany((List<int>)returnFromBeginDelete));
         }
 
 
@@ -91,7 +91,7 @@ namespace Shoko.Server.Repositories.Repos
                     froms.Remove(to);
                     foreach (SVR_VideoLocal from in froms)
                     {
-                        using (var upd = Repo.VideoLocal_Place.BeginBatchUpdate(() => Repo.VideoLocal_Place.GetByVideoLocal(from.VideoLocalID)))
+                        using (var upd = Repo.Instance.VideoLocal_Place.BeginBatchUpdate(() => Repo.Instance.VideoLocal_Place.GetByVideoLocal(from.VideoLocalID)))
                         {
                             foreach (SVR_VideoLocal_Place place in upd)
                             {
@@ -110,13 +110,13 @@ namespace Shoko.Server.Repositories.Repos
                 Delete(toRemove);
             }
 
-            List<CrossRef_File_Episode> frags = WhereAll().SelectMany(a => Repo.CrossRef_File_Episode.GetByHash(a.Hash)).AsQueryable().Where(a => Repo.AniDB_Anime.GetByID(a.AnimeID) == null || a.GetEpisode() == null).ToList();
+            List<CrossRef_File_Episode> frags = WhereAll().SelectMany(a => Repo.Instance.CrossRef_File_Episode.GetByHash(a.Hash)).AsQueryable().Where(a => Repo.Instance.AniDB_Anime.GetByID(a.AnimeID) == null || a.GetEpisode() == null).ToList();
             if (frags.Count > 0)
             {
                 regen.Step = 0;
                 regen.Total = frags.Count;
                 regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Fragmented Records");
-                Repo.CrossRef_File_Episode.Delete(frags);
+                Repo.Instance.CrossRef_File_Episode.Delete(frags);
             }
         }
 
@@ -126,15 +126,15 @@ namespace Shoko.Server.Repositories.Repos
             {
                 if (IsCached)
                     return Cache.Values
-                        .Where(a => a.IsIgnored == 0 && !Repo.CrossRef_File_Episode.GetByHash(a.Hash).Any());
+                        .Where(a => a.IsIgnored == 0 && !Repo.Instance.CrossRef_File_Episode.GetByHash(a.Hash).Any());
                 else
-                    return Table.Where(a => a.IsIgnored == 0 && !Repo.CrossRef_File_Episode.GetByHash(a.Hash).Any());
+                    return Table.Where(a => a.IsIgnored == 0 && !Repo.Instance.CrossRef_File_Episode.GetByHash(a.Hash).Any());
             }
         }
 
         public List<SVR_VideoLocal> GetByImportFolder(int importFolderID)
         {
-            return Repo.VideoLocal_Place.GetByImportFolder(importFolderID).Select(a => a.VideoLocal)
+            return Repo.Instance.VideoLocal_Place.GetByImportFolder(importFolderID).Select(a => a.VideoLocal)
                 .Where(a => a != null)
                 .Distinct()
                 .ToList();
@@ -160,7 +160,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override void EndSave(SVR_VideoLocal entity, object returnFromBeginSave, bool updateEpisodes)
         {
             if (updateEpisodes)
-                Repo.AnimeEpisode.Touch(()=>entity.GetAnimeEpisodes());
+                Repo.Instance.AnimeEpisode.Touch(()=>entity.GetAnimeEpisodes());
         }
         public SVR_VideoLocal GetByHash(string hash)
         {
@@ -184,12 +184,12 @@ namespace Shoko.Server.Repositories.Repos
         internal IDictionary<int, DateTime> GetEpisodesRecentlyAdded()
         {
             using (RepoLock.ReaderLock())
-            //using (Repo.CrossRef_File_Episode.RepoLock.ReaderLock()) //TODO: Test, this will probably lock.
-            //using (Repo.AnimeEpisode.RepoLock.ReaderLock())
+            //using (Repo.Instace.CrossRef_File_Episode.RepoLock.ReaderLock()) //TODO: Test, this will probably lock.
+            //using (Repo.Instace.AnimeEpisode.RepoLock.ReaderLock())
             {
                 return Table
-                        .Join(Repo.CrossRef_File_Episode.Table, vl => vl.Hash, xref => xref.Hash, (vl, xref) => new { vl, xref })
-                        .Join(Repo.AnimeEpisode.Table, x => x.xref.EpisodeID, ae => ae.AniDB_EpisodeID, (jn, ae) => new { jn.vl, jn.xref, ae })
+                        .Join(Repo.Instance.CrossRef_File_Episode.Table, vl => vl.Hash, xref => xref.Hash, (vl, xref) => new { vl, xref })
+                        .Join(Repo.Instance.AnimeEpisode.Table, x => x.xref.EpisodeID, ae => ae.AniDB_EpisodeID, (jn, ae) => new { jn.vl, jn.xref, ae })
                         .GroupBy(jn => jn.ae.AnimeSeriesID, (_, group) => group.OrderByDescending(x => x.vl.DateTimeCreated).First())
                         .OrderByDescending(s => s.vl.DateTimeCreated)
                         .Select(grp => new { grp.ae.AnimeSeriesID, grp.vl.DateTimeCreated }).ToList()
@@ -294,7 +294,7 @@ namespace Shoko.Server.Repositories.Repos
         /// 
         public List<SVR_VideoLocal> GetByAniDBEpisodeID(int episodeID)
         {
-            return Repo.CrossRef_File_Episode.GetByEpisodeID(episodeID).Select(a => GetByHash(a.Hash))
+            return Repo.Instance.CrossRef_File_Episode.GetByEpisodeID(episodeID).Select(a => GetByHash(a.Hash))
                 .Where(a => a != null)
                 .ToList();
         }
@@ -303,7 +303,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<SVR_VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
         {
             return
-                Repo.CrossRef_File_Episode.GetByAnimeID(animeID).Select(a => GetByHash(a.Hash))
+                Repo.Instance.CrossRef_File_Episode.GetByAnimeID(animeID).Select(a => GetByHash(a.Hash))
                     .Where(a => a != null)
                     .OrderByDescending(a => a.DateTimeCreated)
                     .Take(maxResults)
@@ -313,21 +313,21 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal> GetByAniDBResolution(string res)
         {
-            return Repo.AniDB_File.GetByResolution(res).Select(a => GetByHash(a.Hash))
+            return Repo.Instance.AniDB_File.GetByResolution(res).Select(a => GetByHash(a.Hash))
                 .Where(a => a != null)
                 .ToList();
         }
 
         public List<SVR_VideoLocal> GetByInternalVersion(int iver)
         {
-            return Repo.AniDB_File.GetByInternalVersion(iver).Select(a => GetByHash(a.Hash))
+            return Repo.Instance.AniDB_File.GetByInternalVersion(iver).Select(a => GetByHash(a.Hash))
                 .Where(a => a != null)
                 .ToList();
         }
 
         public List<SVR_VideoLocal> GetWithMissingChapters()
         {
-            return Repo.AniDB_File.GetWithWithMissingChapters().Select(a => GetByHash(a.Hash))
+            return Repo.Instance.AniDB_File.GetWithWithMissingChapters().Select(a => GetByHash(a.Hash))
                 .Where(a => a != null)
                 .ToList();
         }
@@ -340,7 +340,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<SVR_VideoLocal> GetByAniDBAnimeID(int animeID)
         {
             return
-                Repo.CrossRef_File_Episode.GetByAnimeID(animeID).Select(a => GetByHash(a.Hash))
+                Repo.Instance.CrossRef_File_Episode.GetByAnimeID(animeID).Select(a => GetByHash(a.Hash))
                     .Where(a => a != null)
                     .ToList();
         }
@@ -362,7 +362,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_VideoLocal> GetVideosWithoutEpisode()
         {
-            HashSet<string> hashes = new HashSet<string>(Repo.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
+            HashSet<string> hashes = new HashSet<string>(Repo.Instance.CrossRef_File_Episode.GetAll().Select(a => a.Hash));
             HashSet<string> vlocals;
             using (RepoLock.ReaderLock())
             {
@@ -379,7 +379,7 @@ namespace Shoko.Server.Repositories.Repos
         public List<SVR_VideoLocal> GetManuallyLinkedVideos()
         {
             return
-                Repo.CrossRef_File_Episode.GetAll().Where(a => a.CrossRefSource != 1)
+                Repo.Instance.CrossRef_File_Episode.GetAll().Where(a => a.CrossRefSource != 1)
                     .Select(a => GetByHash(a.Hash))
                     .Where(a => a != null)
                     .ToList();

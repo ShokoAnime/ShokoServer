@@ -75,21 +75,21 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginDelete(SVR_VideoLocal_Place entity, object parameters)
         {
-            var dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(entity.FilePath, entity.ImportFolderID);
+            var dups = Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(entity.FilePath, entity.ImportFolderID);
             if (dups != null && dups.Count > 0)
-                Repo.DuplicateFile.Delete(dups);
+                Repo.Instance.DuplicateFile.Delete(dups);
             return null;
         }
 
         internal override void EndDelete(SVR_VideoLocal_Place entity, object returnFromBeginDelete, object parameters)
         {
-            Repo.AnimeEpisode.Touch(() => entity.VideoLocal.GetAnimeEpisodes());
+            Repo.Instance.AnimeEpisode.Touch(() => entity.VideoLocal.GetAnimeEpisodes());
         }
 
 
         public static (SVR_ImportFolder, string) GetFromFullPath(string fullPath)
         {
-            IReadOnlyList<SVR_ImportFolder> shares = Repo.ImportFolder.GetAll();
+            IReadOnlyList<SVR_ImportFolder> shares = Repo.Instance.ImportFolder.GetAll();
 
             // TODO make sure that import folders are not sub folders of each other
             // TODO make sure import folders do not contain a trailing "\"

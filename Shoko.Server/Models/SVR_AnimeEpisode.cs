@@ -45,11 +45,11 @@ namespace Shoko.Server.Models
         [NotMapped]
         public EpisodeType EpisodeTypeEnum => (EpisodeType)AniDB_Episode.EpisodeType;
 
-        public AniDB_Episode AniDB_Episode => Repo.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        public AniDB_Episode AniDB_Episode => Repo.Instance.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         public SVR_AnimeEpisode_User GetUserRecord(int userID)
         {
-            return Repo.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
+            return Repo.Instance.AnimeEpisode_User.GetByUserIDAndEpisodeID(userID, AnimeEpisodeID);
         }
 
 
@@ -58,16 +58,16 @@ namespace Shoko.Server.Models
         /// </summary>
         public SVR_AnimeSeries GetAnimeSeries()
         {
-            return Repo.AnimeSeries.GetByID(AnimeSeriesID);
+            return Repo.Instance.AnimeSeries.GetByID(AnimeSeriesID);
         }
 
         public List<SVR_VideoLocal> GetVideoLocals()
         {
-            return Repo.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
+            return Repo.Instance.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
         }
 
         [NotMapped]
-        public List<CrossRef_File_Episode> FileCrossRefs => Repo.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
+        public List<CrossRef_File_Episode> FileCrossRefs => Repo.Instance.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
         [NotMapped]
         public TvDB_Episode TvDBEpisode
@@ -75,10 +75,10 @@ namespace Shoko.Server.Models
             get
             {
                 // Try Overrides first, then regular
-                return Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => Repo.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                return Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => Repo.Instance.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => Repo.Instance.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
                     .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
             }
         }
@@ -88,7 +88,7 @@ namespace Shoko.Server.Models
         {
             get
             {
-                AniDB_Vote vote = Repo.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
+                AniDB_Vote vote = Repo.Instance.AniDB_Vote.GetByEntityAndType(AnimeEpisodeID, AniDBVoteType.Episode);
                 if (vote != null) return vote.VoteValue / 100D;
                 return -1;
             }
@@ -100,7 +100,7 @@ namespace Shoko.Server.Models
 
             if (watched)
             {
-                using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
+                using (var upd = Repo.Instance.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userID)))
                 {
                     // lets check if an update is actually required
                     if (upd.Entity?.WatchedDate != null && watchedDate != null &&
@@ -141,7 +141,7 @@ namespace Shoko.Server.Models
             else
             {
                 if (epUserRecord != null)
-                    Repo.AnimeEpisode_User.Delete(epUserRecord.AnimeEpisode_UserID);
+                    Repo.Instance.AnimeEpisode_User.Delete(epUserRecord.AnimeEpisode_UserID);
             }
         }
 
@@ -149,7 +149,7 @@ namespace Shoko.Server.Models
         public List<CL_VideoDetailed> GetVideoDetailedContracts(int userID)
         {
             // get all the cross refs
-            return FileCrossRefs.Select(xref => Repo.VideoLocal.GetByHash(xref.Hash))
+            return FileCrossRefs.Select(xref => Repo.Instance.VideoLocal.GetByHash(xref.Hash))
                 .Where(v => v != null)
                 .Select(v => v.ToClientDetailed(userID)).ToList();
         }
@@ -160,7 +160,7 @@ namespace Shoko.Server.Models
             if (rr != null)
                 return rr.Contract;
 
-            using (var upd = Repo.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userid)))
+            using (var upd = Repo.Instance.AnimeEpisode_User.BeginAddOrUpdate(() => GetUserRecord(userid)))
             {
                 upd.Entity.PlayedCount = 0;
                 upd.Entity.StoppedCount = 0;
@@ -203,13 +203,13 @@ namespace Shoko.Server.Models
                 foreach (var language in languages)
                 {
                     var episode_title =
-                        Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
+                        Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, language);
                     var title = episode_title.FirstOrDefault();
                     if (string.IsNullOrEmpty(title?.Title)) continue;
                     return title?.Title;
                 }
 
-                return Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
+                return Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, "EN").FirstOrDefault()
                     ?.Title;
             }
         }

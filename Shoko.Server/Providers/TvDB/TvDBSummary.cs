@@ -34,7 +34,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDB = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+                crossRefTvDB = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {
@@ -121,7 +121,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDBEpisodes = Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
+                crossRefTvDBEpisodes = Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
             }
             catch (Exception ex)
             {

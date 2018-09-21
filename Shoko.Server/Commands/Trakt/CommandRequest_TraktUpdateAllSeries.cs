@@ -36,8 +36,8 @@ namespace Shoko.Server.Commands
 
             try
             {
-                using (var txn = Repo.ScheduledUpdate.BeginAddOrUpdate(
-                    () => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate),
+                using (var txn = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
+                    () => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate),
                     () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty }
                     ))
                 {

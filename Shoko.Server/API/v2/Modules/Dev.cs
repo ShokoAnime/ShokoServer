@@ -36,12 +36,12 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("relationtree")]
         private List<Relation> GetRelationTreeForAll()
         {
-            var series = Repo.AnimeSeries.GetAll().Select(a => a.AniDB_ID).OrderBy(a => a).ToArray();
+            var series = Repo.Instance.AnimeSeries.GetAll().Select(a => a.AniDB_ID).OrderBy(a => a).ToArray();
             List<Relation> result = new List<Relation>(series.Length);
             foreach (var i in series)
             {
-                var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(i);
-                var anime = Repo.AniDB_Anime.GetByID(i);
+                var relations = Repo.Instance.AniDB_Anime_Relation.GetFullLinearRelationTree(i);
+                var anime = Repo.Instance.AniDB_Anime.GetByID(i);
                 result.Add(new Relation
                 {
                     AnimeID = i,
@@ -49,7 +49,7 @@ namespace Shoko.Server.API.v2.Modules
                     Relations = relations.Select(a => new Relation
                     {
                         AnimeID = a,
-                        MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
+                        MainTitle = Repo.Instance.AniDB_Anime.GetByID(a)?.MainTitle
                     }).ToList()
                 });
             }
@@ -60,9 +60,9 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("relationtree/{id}")]
         private Relation GetRelationTreeForAnime(int id)
         {
-            var anime = Repo.AniDB_Anime.GetByID(id);
+            var anime = Repo.Instance.AniDB_Anime.GetByID(id);
             if (anime == null) return null;
-            var relations = Repo.AniDB_Anime_Relation.GetFullLinearRelationTree(id);
+            var relations = Repo.Instance.AniDB_Anime_Relation.GetFullLinearRelationTree(id);
 
             return new Relation
             {
@@ -71,7 +71,7 @@ namespace Shoko.Server.API.v2.Modules
                 Relations = relations.Select(a => new Relation
                 {
                     AnimeID = a,
-                    MainTitle = Repo.AniDB_Anime.GetByID(a)?.MainTitle
+                    MainTitle = Repo.Instance.AniDB_Anime.GetByID(a)?.MainTitle
                 }).ToList()
             };
         }

@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 return new Dictionary<int, List<(CrossRef_AniDB_TvDBV2, TvDB_Series)>>();
-            Dictionary<int, List<CrossRef_AniDB_TvDBV2>> animetvdb = Repo.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(animeIds).ToDictionary(a=>a.Key,a=>a.Value);
+            Dictionary<int, List<CrossRef_AniDB_TvDBV2>> animetvdb = Repo.Instance.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(animeIds).ToDictionary(a=>a.Key,a=>a.Value);
             return animetvdb.ToDictionary(a => a.Key, a => a.Value.Select(b => (b, GetByTvDBID(b.TvDBID))).ToList());
         }
 
@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories.Repos
                 return EmptyLookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)>.Instance;
 
             using (RepoLock.ReaderLock())
-                return GetAll().Join(Repo.CrossRef_AniDB_TvDB.GetAll(), s => s.SeriesID, x => x.AniDBID, (series, xref) => (xref, series)).ToLookup(a => a.xref.AniDBID);
+                return GetAll().Join(Repo.Instance.CrossRef_AniDB_TvDB.GetAll(), s => s.SeriesID, x => x.AniDBID, (series, xref) => (xref, series)).ToLookup(a => a.xref.AniDBID);
         }
     }
 }

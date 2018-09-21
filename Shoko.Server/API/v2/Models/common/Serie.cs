@@ -58,11 +58,11 @@ namespace Shoko.Server.API.v2.Models.common
 
         public static Serie GenerateFromBookmark(HttpContext ctx, BookmarkedAnime bookmark, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
-            var series = Repo.AnimeSeries.GetByAnimeID(bookmark.AnimeID);
+            var series = Repo.Instance.AnimeSeries.GetByAnimeID(bookmark.AnimeID);
             if (series != null)
                 return GenerateFromAnimeSeries(ctx, series, uid, nocast, notag, level, all, allpics, pic, tagfilter);
 
-            SVR_AniDB_Anime aniDB_Anime = Repo.AniDB_Anime.GetByID(bookmark.AnimeID);
+            SVR_AniDB_Anime aniDB_Anime = Repo.Instance.AniDB_Anime.GetByID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
                 Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
@@ -102,8 +102,8 @@ namespace Shoko.Server.API.v2.Models.common
                     sr.air = airdate.ToPlexDate();
             }
 
-            AniDB_Vote vote = Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
-                              Repo.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
+            AniDB_Vote vote = Repo.Instance.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
+                              Repo.Instance.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
             if (vote != null)
                 sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
             sr.titles = anime.GetTitles().Select(title =>
@@ -113,14 +113,14 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (!nocast)
             {
-                var xref_animestaff = Repo.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
+                var xref_animestaff = Repo.Instance.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
                     StaffRoleType.Seiyuu);
                 foreach (var xref in xref_animestaff)
                 {
                     if (xref.RoleID == null) continue;
-                    var character = Repo.AnimeCharacter.GetByID(xref.RoleID.Value);
+                    var character = Repo.Instance.AnimeCharacter.GetByID(xref.RoleID.Value);
                     if (character == null) continue;
-                    var staff = Repo.AnimeStaff.GetByID(xref.StaffID);
+                    var staff = Repo.Instance.AnimeStaff.GetByID(xref.StaffID);
                     if (staff == null) continue;
                     var role = new Role
                     {
@@ -170,7 +170,7 @@ namespace Shoko.Server.API.v2.Models.common
                 .MaxBy(a => a.Count()).FirstOrDefault()?.Key;
             if (tvdbseriesID != null)
             {
-                var tvdbseries = Repo.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
+                var tvdbseries = Repo.Instance.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
                 if (tvdbseries != null)
                 {
                     var title = new AnimeTitle {Language = "EN", Title = tvdbseries.SeriesName, Type = "TvDB"};
@@ -322,11 +322,11 @@ namespace Shoko.Server.API.v2.Models.common
         public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics, int pic)
         {
             Random rand = new Random();
-            var tvdbIDs = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
             var fanarts = tvdbIDs
-                .SelectMany(a => Repo.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+                .SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
             var banners = tvdbIDs
-                .SelectMany(a => Repo.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+                .SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
 
             if (allpics || pic > 1)
             {

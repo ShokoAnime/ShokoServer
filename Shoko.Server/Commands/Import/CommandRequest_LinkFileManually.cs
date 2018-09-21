@@ -74,7 +74,7 @@ namespace Shoko.Server.Commands
                 logger.Error(ex, "Error populating XREF: {0}", vlocal.ToStringDetailed());
                 throw;
             }
-            Repo.CrossRef_File_Episode.BeginAdd(xref).Commit();
+            Repo.Instance.CrossRef_File_Episode.BeginAdd(xref).Commit();
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
@@ -100,7 +100,7 @@ namespace Shoko.Server.Commands
             vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
             SVR_AnimeSeries ser;
-            using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => episode.GetAnimeSeries()))
+            using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => episode.GetAnimeSeries()))
             {
                 upd.Entity.EpisodeAddedDate = DateTime.Now;
                 ser = upd.Commit((false, true, false, false));
@@ -109,7 +109,7 @@ namespace Shoko.Server.Commands
             //Update will re-save
             ser.QueueUpdateStats();
 
-            Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
+            Repo.Instance.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
             if (ServerSettings.Instance.AniDb.MyList_AddFiles)
             {
@@ -145,13 +145,13 @@ namespace Shoko.Server.Commands
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "VideoLocalID"));
                 EpisodeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "EpisodeID"));
                 Percentage = int.Parse(TryGetProperty(docCreator, "CommandRequest_LinkFileManually", "Percentage"));
-                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 if (null==vlocal)
                 {
                     logger.Info("videolocal object {0} not found", VideoLocalID);
                     return false;
                 }
-                episode = Repo.AnimeEpisode.GetByID(EpisodeID);
+                episode = Repo.Instance.AnimeEpisode.GetByID(EpisodeID);
             }
 
             return true;

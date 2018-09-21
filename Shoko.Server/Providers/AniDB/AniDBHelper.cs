@@ -459,11 +459,11 @@ namespace Shoko.Server.Providers.AniDB
                             return;
                 }
                 if (cmdGetFileStatus.MyListFile?.WatchedDate == null) return;
-                var aniFile = Repo.AniDB_File.GetByFileID(aniDBFileID);
-                var vids = aniFile.EpisodeIDs.SelectMany(a => Repo.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
+                var aniFile = Repo.Instance.AniDB_File.GetByFileID(aniDBFileID);
+                var vids = aniFile.EpisodeIDs.SelectMany(a => Repo.Instance.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
                 foreach (var vid in vids)
                 {
-                    foreach (var user in Repo.JMMUser.GetAniDBUsers())
+                    foreach (var user in Repo.Instance.JMMUser.GetAniDBUsers())
                     {
                         vid.ToggleWatchedStatus(true, false, cmdGetFileStatus.MyListFile.WatchedDate, true,
                             user.JMMUserID, false, true);
@@ -486,7 +486,7 @@ namespace Shoko.Server.Providers.AniDB
                 SetWaitingOnResponse(false);
                 if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
-                    using (var upd = Repo.AniDB_MylistStats.BeginAddOrUpdate(() => Repo.AniDB_MylistStats.GetAll().FirstOrDefault()))
+                    using (var upd = Repo.Instance.AniDB_MylistStats.BeginAddOrUpdate(() => Repo.Instance.AniDB_MylistStats.GetAll().FirstOrDefault()))
                     {
                         upd.Entity.Populate_RA(cmdGetMylistStats.MyListStats);
                         upd.Commit();
@@ -811,7 +811,7 @@ namespace Shoko.Server.Providers.AniDB
                 skip = false;
             else
             {
-                anime = Repo.AniDB_Anime.GetByID(animeID);
+                anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime == null) skip = false;
             }
 
@@ -877,7 +877,7 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
-            using (var upd = Repo.AniDB_ReleaseGroup.BeginAddOrUpdate(() => Repo.AniDB_ReleaseGroup.GetByID(groupID)))
+            using (var upd = Repo.Instance.AniDB_ReleaseGroup.BeginAddOrUpdate(() => Repo.Instance.AniDB_ReleaseGroup.GetByID(groupID)))
             {
                 upd.Entity.Populate_RA(getCmd.Group);
                 upd.Commit();
@@ -903,12 +903,12 @@ namespace Shoko.Server.Providers.AniDB
                 return getCmd.GrpStatusCollection;
 
             // delete existing records
-            Repo.AniDB_GroupStatus.DeleteForAnime(animeID);
+            Repo.Instance.AniDB_GroupStatus.DeleteForAnime(animeID);
 
             // save the records
             foreach (Raw_AniDB_GroupStatus raw in getCmd.GrpStatusCollection.Groups)
             {
-                using (var upd = Repo.AniDB_GroupStatus.BeginAdd())
+                using (var upd = Repo.Instance.AniDB_GroupStatus.BeginAdd())
                 {
                     upd.Entity.Populate_RA(raw);
                     upd.Commit();
@@ -918,10 +918,10 @@ namespace Shoko.Server.Providers.AniDB
             if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
             {
                 // update the anime with a record of the latest subbed episode
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime != null)
                 {
-                    using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                    using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
                     {
                         upd.Entity.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
                         anime = upd.Commit();
@@ -929,7 +929,7 @@ namespace Shoko.Server.Providers.AniDB
 
                     // check if we have this episode in the database
                     // if not get it now by updating the anime record
-                    List<AniDB_Episode> eps = Repo.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                    List<AniDB_Episode> eps = Repo.Instance.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
                         getCmd.GrpStatusCollection.LatestEpisodeNumber);
                     if (eps.Count == 0)
                     {
@@ -938,7 +938,7 @@ namespace Shoko.Server.Providers.AniDB
                         cr_anime.Save();
                     }
                     // update the missing episode stats on groups and children
-                    SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
                     series?.QueueUpdateStats();
                     //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
@@ -947,7 +947,7 @@ namespace Shoko.Server.Providers.AniDB
 
                     // check if we have this episode in the database
                     // if not get it now by updating the anime record
-                    List<AniDB_Episode> eps = Repo.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                    List<AniDB_Episode> eps = Repo.Instance.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
                         getCmd.GrpStatusCollection.LatestEpisodeNumber);
                     if (eps.Count == 0)
                     {
@@ -956,7 +956,7 @@ namespace Shoko.Server.Providers.AniDB
                         cr_anime.Save();
                     }
                     // update the missing episode stats on groups and children
-                    SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(animeID);
+                    SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
                     series?.QueueUpdateStats();
                     //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
                 }
@@ -1004,7 +1004,7 @@ namespace Shoko.Server.Providers.AniDB
 
             if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
             {
-                using (var upd = Repo.AniDB_Review.BeginAddOrUpdate(()=>Repo.AniDB_Review.GetByID(reviewID)))
+                using (var upd = Repo.Instance.AniDB_Review.BeginAddOrUpdate(()=>Repo.Instance.AniDB_Review.GetByID(reviewID)))
                 {
                     upd.Entity.Populate_RA(cmd.ReviewInfo);
                     return upd.Commit();
@@ -1028,7 +1028,7 @@ namespace Shoko.Server.Providers.AniDB
                 SetWaitingOnResponse(false);
                 if (ev != enHelperActivityType.Voted && ev != enHelperActivityType.VoteUpdated) return;
 
-                using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(() => Repo.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType), () => new AniDB_Vote { EntityID = cmdVote.EntityID }))
+                using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(() => Repo.Instance.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType), () => new AniDB_Vote { EntityID = cmdVote.EntityID }))
                 {
                     upd.Entity.VoteType = (int)cmdVote.VoteType;
                     upd.Entity.VoteValue = cmdVote.VoteValue;
@@ -1046,8 +1046,8 @@ namespace Shoko.Server.Providers.AniDB
         {
             //if (!Login()) return null;
 
-            var anime = Repo.AniDB_Anime.GetByID(animeID);
-            var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+            var anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
+            var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID);
             bool skip = true;
             bool animeRecentlyUpdated = false;
             if (anime != null && update != null)
@@ -1100,7 +1100,7 @@ namespace Shoko.Server.Providers.AniDB
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
             SVR_AniDB_Anime anime;
-            using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => Repo.AniDB_Anime.GetByID(animeID)))
+            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime.GetByID(animeID)))
             {
                 if (!upd.Entity.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                     getAnimeCmd.Categories, getAnimeCmd.Tags,
@@ -1121,10 +1121,10 @@ namespace Shoko.Server.Providers.AniDB
                 anime = upd.Commit();
             }
             // create AnimeEpisode records for all episodes in this anime only if we have a series
-            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+            SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
             if (ser != null)
             {
-                using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => ser))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => ser))
                 {
                     upd.Entity.CreateAnimeEpisodes();
                     upd.Commit();
@@ -1137,6 +1137,13 @@ namespace Shoko.Server.Providers.AniDB
 
         public bool ValidAniDBCredentials()
         {
+            var settings = ServerSettings.Instance.AniDb;
+            userName = settings.Username;
+            password = settings.Password;
+            serverName = settings.ServerAddress;
+            serverPort = settings.ServerPort;
+            clientPort = settings.ClientPort;
+
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password) ||
                 string.IsNullOrEmpty(serverName)
                 || serverPort == 0 || clientPort == 0)

@@ -48,10 +48,10 @@ namespace Shoko.Server.Commands
             try
             {
                 // only get group status if we have an associated series
-                SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(AnimeID);
+                SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(AnimeID);
                 if (series == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
                             {
                                 // don't skip if we have never downloaded this info before
                                 List<AniDB_GroupStatus> grpStatuses =
-                                    Repo.AniDB_GroupStatus.GetByAnimeID(AnimeID);
+                                    Repo.Instance.AniDB_GroupStatus.GetByAnimeID(AnimeID);
                                 if (grpStatuses != null && grpStatuses.Count > 0)
                                 {
                                     skip = true;

@@ -52,7 +52,7 @@ namespace Shoko.Server.Tasks
         {
             DateTime now = DateTime.Now;
             SVR_AnimeGroup tempGroup;
-            using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => Repo.AnimeGroup.GetByID(0)))
+            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => Repo.Instance.AnimeGroup.GetByID(0)))
             {
                 upd.Entity.GroupName = TempGroupName;
                 upd.Entity.Description = TempGroupName;
@@ -64,9 +64,9 @@ namespace Shoko.Server.Tasks
 
             // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
             //ssion.Insert(tempGroup);
-            lock (Repo.AnimeGroup.Cache)
+            lock (Repo.Instance.AnimeGroup.Cache)
             {
-                Repo.AnimeGroup.Cache.Update(tempGroup);
+                Repo.Instance.AnimeGroup.Cache.Update(tempGroup);
             }
 
             return tempGroup;
@@ -123,7 +123,7 @@ namespace Shoko.Server.Tasks
             // NOTE: There are situations in which UpdatePlexKodiContracts will cause database database writes to occur, so we can't
             // use Parallel.ForEach for the time being (If it was guaranteed to only read then we'd be ok)
             List<int> ids = allCreatedGroupUsers.SelectMany(a => a).Select(a => a.AnimeGroup_UserID).ToList();
-            using (var upd = Repo.AnimeGroup_User.BeginBatchUpdate(()=>Repo.AnimeGroup_User.GetMany(ids)))
+            using (var upd = Repo.Instance.AnimeGroup_User.BeginBatchUpdate(()=>Repo.Instance.AnimeGroup_User.GetMany(ids)))
             {
                 foreach (SVR_AnimeGroup_User guser in upd)
                 {
@@ -147,9 +147,9 @@ namespace Shoko.Server.Tasks
         {
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
-            Repo.GroupFilter.CalculateAnimeSeriesPerTagGroupFilter();
+            Repo.Instance.GroupFilter.CalculateAnimeSeriesPerTagGroupFilter();
             _log.Info("Caculating All Other Filters");
-            IEnumerable<SVR_GroupFilter> grpFilters = Repo.GroupFilter.GetAll().Where(a =>
+            IEnumerable<SVR_GroupFilter> grpFilters = Repo.Instance.GroupFilter.GetAll().Where(a =>
                 a.FilterType != (int) GroupFilterType.Tag &&
                 ((GroupFilterType) a.FilterType & GroupFilterType.Directory) == 0).ToList();
 
@@ -164,7 +164,7 @@ namespace Shoko.Server.Tasks
                     filter.UpdateEntityReferenceStrings();
                 });
 
-            Repo.GroupFilter.BatchAction(grpFilters, grpFilters.Count(), (_, __) => { });
+            Repo.Instance.GroupFilter.BatchAction(grpFilters, grpFilters.Count(), (_, __) => { });
 
             _log.Info("Group Filters updated");
         }
@@ -187,12 +187,12 @@ namespace Shoko.Server.Tasks
             foreach (SVR_AnimeSeries s in seriesList)
             {
                 SVR_AnimeGroup grp;
-                using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => null))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => null))
                 {
                     upd.Entity.Populate_RA(s,now);
                     grp = upd.Commit((false, false, false));
                 }
-                using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByID(s.AnimeSeriesID)))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByID(s.AnimeSeriesID)))
                 {
                     upd.Entity.AnimeGroupID = grp.AnimeGroupID;
                     upd.Commit((false, false, true, false));
@@ -232,12 +232,12 @@ namespace Shoko.Server.Tasks
                 int mainAnimeId = groupAndSeries.Key;
                 SVR_AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
                 SVR_AnimeGroup grp;
-                using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => null))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => null))
                 {
                     CreateAnimeGroup_RA(upd.Entity,mainSeries, mainAnimeId, now);
                     grp = upd.Commit((false, false, false));
                 }
-                using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(() => Repo.AnimeSeries.GetByID(mainSeries.AnimeSeriesID)))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByID(mainSeries.AnimeSeriesID)))
                 {
                     upd.Entity.AnimeGroupID = grp.AnimeGroupID;
                     upd.Commit((false, false, true, false));
@@ -272,7 +272,7 @@ namespace Shoko.Server.Tasks
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
-                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByID(mainAnimeId);
+                SVR_AniDB_Anime mainAnime = Repo.Instance.AniDB_Anime.GetByID(mainAnimeId);
 
                 animeGroup.Populate_RA(mainAnime, now);
                 groupName = animeGroup.GroupName;
@@ -307,23 +307,23 @@ namespace Shoko.Server.Tasks
                 // Try to find an existing AnimeGroup to add the series to
                 // We basically pick the first group that any of the related series belongs to already
                 animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
-                    .Select(id => Repo.AnimeSeries.GetByAnimeID(id))
+                    .Select(id => Repo.Instance.AnimeSeries.GetByAnimeID(id))
                     .Where(s => s != null)
-                    .Select(s => Repo.AnimeGroup.GetByID(s.AnimeGroupID))
+                    .Select(s => Repo.Instance.AnimeGroup.GetByID(s.AnimeGroupID))
                     .FirstOrDefault(s => s != null);
 
                 if (animeGroup == null)
                 {
                     // No existing group was found, so create a new one
                     int mainAnimeId = grpCalculator.GetGroupAnimeId(series.AniDB_ID);
-                    SVR_AnimeSeries mainSeries = Repo.AnimeSeries.GetByAnimeID(mainAnimeId);
+                    SVR_AnimeSeries mainSeries = Repo.Instance.AnimeSeries.GetByAnimeID(mainAnimeId);
 
-                    animeGroup = Repo.AnimeGroup.BeginAdd(CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now)).Commit((true, true, true));
+                    animeGroup = Repo.Instance.AnimeGroup.BeginAdd(CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now)).Commit((true, true, true));
                 }
             }
             else // We're not auto grouping (e.g. we're doing group per series)
             {
-                using (var upd = Repo.AnimeGroup.BeginAdd())
+                using (var upd = Repo.Instance.AnimeGroup.BeginAdd())
                 {
                     upd.Entity.Populate_RA(series, DateTime.Now);
                     animeGroup = upd.Commit((true, true, true));
@@ -357,7 +357,7 @@ namespace Shoko.Server.Tasks
             }
             else // The anime chosen as the group's main anime doesn't actually have a series
             {
-                SVR_AniDB_Anime mainAnime = Repo.AniDB_Anime.GetByAnimeID(mainAnimeId);
+                SVR_AniDB_Anime mainAnime = Repo.Instance.AniDB_Anime.GetByAnimeID(mainAnimeId);
 
                 animeGroup.Populate_RA(mainAnime, now);
                 groupName = animeGroup.GroupName;
@@ -395,17 +395,17 @@ namespace Shoko.Server.Tasks
 
 
 
-                IReadOnlyList<SVR_AnimeSeries> animeSeries = Repo.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> animeSeries = Repo.Instance.AnimeSeries.GetAll();
                 IEnumerable<SVR_AnimeGroup> createdGroups = null;
                 SVR_AnimeGroup tempGroup = null;
 
                 tempGroup = CreateTempAnimeGroup();
                 _log.Info("Resetting AnimeSeries to an Empty Group");
-                Repo.AnimeSeries.CleanAnimeGroups();
+                Repo.Instance.AnimeSeries.CleanAnimeGroups();
                 _log.Info("Removing existing AnimeGroups and resetting GroupFilters");
-                Repo.AnimeGroup_User.KillEmAll();
-                Repo.AnimeGroup.KillEmAllExceptGrimorieOfZero();
-                Repo.GroupFilter.CleanUpAllgroupsIds();
+                Repo.Instance.AnimeGroup_User.KillEmAll();
+                Repo.Instance.AnimeGroup.KillEmAllExceptGrimorieOfZero();
+                Repo.Instance.GroupFilter.CleanUpAllgroupsIds();
                 _log.Info("AnimeGroups have been removed and GroupFilters have been reset");
 
                 if (_autoGroupSeries)
@@ -419,20 +419,20 @@ namespace Shoko.Server.Tasks
                 }
 
                 UpdateAnimeSeriesContractsAndSave(animeSeries);
-                Repo.AnimeGroup.Delete(tempGroup); // We should no longer need the temporary group we created earlier
+                Repo.Instance.AnimeGroup.Delete(tempGroup); // We should no longer need the temporary group we created earlier
 
                 // We need groups and series cached for updating of AnimeGroup contracts to work
-                Repo.AnimeGroup.PopulateCache();
-                Repo.AnimeSeries.PopulateCache();
+                Repo.Instance.AnimeGroup.PopulateCache();
+                Repo.Instance.AnimeSeries.PopulateCache();
 
                 UpdateAnimeGroupsAndTheirContracts(createdGroups);
                 
 
                 // We need to update the AnimeGroups cache again now that the contracts have been saved
                 // (Otherwise updating Group Filters won't get the correct results)
-                Repo.AnimeGroup.PopulateCache();
-                Repo.AnimeGroup_User.PopulateCache();
-                Repo.GroupFilter.PopulateCache();
+                Repo.Instance.AnimeGroup.PopulateCache();
+                Repo.Instance.AnimeGroup_User.PopulateCache();
+                Repo.Instance.GroupFilter.PopulateCache();
 
                 UpdateGroupFilters();
 

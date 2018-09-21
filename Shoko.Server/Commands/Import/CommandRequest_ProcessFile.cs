@@ -68,7 +68,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (vlocal == null) vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                if (vlocal == null) vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
 
                 //now that we have all the has info, we can get the AniDB Info
@@ -91,13 +91,13 @@ namespace Shoko.Server.Commands
 
                 if (!ForceAniDB)
                 {
-                    aniFile = Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+                    aniFile = Repo.Instance.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
                     if (aniFile == null)
                         logger.Trace("AniDB_File record not found");
                 }
                 // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
-                List<CrossRef_File_Episode> crossRefs = Repo.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                List<CrossRef_File_Episode> crossRefs = Repo.Instance.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                 if (crossRefs == null || crossRefs.Count == 0) aniFile = null;
 
                 int animeID = 0;
@@ -109,7 +109,7 @@ namespace Shoko.Server.Commands
 
                     // check if we already have a record
 
-                    using (var upd = Repo.AniDB_File.BeginAddOrUpdate(() => Repo.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize)))
+                    using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => Repo.Instance.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize)))
                     {
                         bool skip = false;
                         if (!upd.IsUpdate)
@@ -146,7 +146,7 @@ namespace Shoko.Server.Commands
                 if (aniFile == null)
                 {
                     // check if we have any records from previous imports
-                    crossRefs = Repo.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    crossRefs = Repo.Instance.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
@@ -191,7 +191,7 @@ namespace Shoko.Server.Commands
                                 {
                                     crossRefs.Add(xrefEnt);
                                     // in this case we need to save the cross refs manually as AniDB did not provide them
-                                    Repo.CrossRef_File_Episode.BeginAdd(xrefEnt).Commit();
+                                    Repo.Instance.CrossRef_File_Episode.BeginAdd(xrefEnt).Commit();
                                 }
                             }
                         }
@@ -207,7 +207,7 @@ namespace Shoko.Server.Commands
                     {
                         animeID = xref.AnimeID;
 
-                        AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                        AniDB_Episode ep = Repo.Instance.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                         if (ep == null) missingEpisodes = true;
                     }
                 }
@@ -228,7 +228,7 @@ namespace Shoko.Server.Commands
                     {
                         foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                         {
-                            AniDB_Episode ep = Repo.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
+                            AniDB_Episode ep = Repo.Instance.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
                             if (ep == null)
                                 missingEpisodes = true;
 
@@ -238,8 +238,8 @@ namespace Shoko.Server.Commands
                 }
 
                 // get from DB
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
-                var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(animeID);
+                var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(animeID);
                 bool animeRecentlyUpdated = false;
 
                 if (anime != null && update != null)
@@ -265,8 +265,8 @@ namespace Shoko.Server.Commands
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
                     SVR_AnimeSeries ser;
-                    using (var upd = Repo.AnimeSeries.BeginAddOrUpdate(
-                        () => Repo.AnimeSeries.GetByAnimeID(animeID),
+                    using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(
+                        () => Repo.Instance.AnimeSeries.GetByAnimeID(animeID),
                         () => anime.CreateAnimeSeriesAndGroup()
                         ))
                     {
@@ -274,7 +274,7 @@ namespace Shoko.Server.Commands
 
                         // check if we have any group status data for this associated anime
                         // if not we will download it now
-                        if (Repo.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
+                        if (Repo.Instance.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                         {
                             CommandRequest_GetReleaseGroupStatus cmdStatus =
                                 new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
@@ -286,17 +286,17 @@ namespace Shoko.Server.Commands
                         ser = upd.Commit();
                     }
                     
-                    Repo.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now, (true, false, false));
+                    Repo.Instance.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now, (true, false, false));
 
                     // We do this inside, as the info will not be available as needed otherwise
                     List<SVR_VideoLocal> videoLocals =
-                        aniFile?.EpisodeIDs?.SelectMany(a => Repo.VideoLocal.GetByAniDBEpisodeID(a))
+                        aniFile?.EpisodeIDs?.SelectMany(a => Repo.Instance.VideoLocal.GetByAniDBEpisodeID(a))
                             .Where(b => b != null)
                             .ToList();
                     if (videoLocals != null)
                     {
                         // Copy over watched states
-                        foreach (var user in Repo.JMMUser.GetAll())
+                        foreach (var user in Repo.Instance.JMMUser.GetAll())
                         {
                             var watchedVideo = videoLocals.FirstOrDefault(a =>
                                 a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
@@ -305,7 +305,7 @@ namespace Shoko.Server.Commands
 
                             var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
 
-                            using (var upd = Repo.VideoLocal_User.BeginAddOrUpdate(
+                            using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(
                                     () => vidLocal.GetUserRecord(user.JMMUserID),
                                     () => new VideoLocal_User { JMMUserID = user.JMMUserID, VideoLocalID = vidLocal.VideoLocalID }
                                 ))
@@ -376,7 +376,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
                 ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
-                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;

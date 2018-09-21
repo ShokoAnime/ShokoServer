@@ -84,7 +84,7 @@ namespace Shoko.Server.Repositories.Repos
 
         private void UpdatePlexKodiContracts(SVR_AnimeSeries_User ugrp)
         {
-            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
+            SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(ugrp.AnimeSeriesID);
             CL_AnimeSeries_User con = ser?.GetUserContract(ugrp.JMMUserID);
             if (con == null)
                 return;

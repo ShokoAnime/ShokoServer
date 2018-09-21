@@ -61,7 +61,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (episode == null) return;
 
-            var vl = Repo.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
+            var vl = Repo.Instance.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
@@ -83,7 +83,7 @@ namespace Shoko.Server.API.v2.Modules
 
             logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
 
-            var user = Repo.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+            var user = Repo.Instance.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
             {
                 logger.Info($"Unable to determine who \"{data.Account.Title}\" is in Shoko, make sure this is set under user settings in Desktop");
@@ -106,7 +106,7 @@ namespace Shoko.Server.API.v2.Modules
             int animeId = int.Parse(parts[1]);
             int series = int.Parse(parts[2]);
 
-            var anime = Repo.AnimeSeries.GetByID(animeId);
+            var anime = Repo.Instance.AnimeSeries.GetByID(animeId);
 
             EpisodeType episodeType;
             switch (series) //I hate magic number's but this is just about how I can do this, also the rest of this is for later.
@@ -181,7 +181,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("sync/{id}")]
         public ActionResult SyncForUser(int uid)
         {
-            JMMUser user = Repo.JMMUser.GetByID(uid);
+            JMMUser user = Repo.Instance.JMMUser.GetByID(uid);
             ShokoServer.Instance.SyncPlex();
             return APIStatus.OK();
         }

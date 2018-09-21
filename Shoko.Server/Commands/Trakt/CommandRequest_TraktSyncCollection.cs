@@ -38,8 +38,8 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
 
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(
-                    () => Repo.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync),
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
+                    () => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync),
                     () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktSync, UpdateDetails = string.Empty }
                     ))
                 {

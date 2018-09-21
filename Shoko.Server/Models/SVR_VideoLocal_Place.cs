@@ -35,7 +35,7 @@ namespace Shoko.Server.Models
 
     public class SVR_VideoLocal_Place : VideoLocal_Place
     {
-        internal SVR_ImportFolder ImportFolder => Repo.ImportFolder.GetByID(ImportFolderID);
+        internal SVR_ImportFolder ImportFolder => Repo.Instance.ImportFolder.GetByID(ImportFolderID);
 
         public string FullServerPath
         {
@@ -47,7 +47,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        public SVR_VideoLocal VideoLocal => Repo.VideoLocal.GetByID(VideoLocalID);
+        public SVR_VideoLocal VideoLocal => Repo.Instance.VideoLocal.GetByID(VideoLocalID);
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -146,11 +146,11 @@ namespace Shoko.Server.Models
                 }
 
                 // Before we change all references, remap Duplicate Files
-                List<DuplicateFile> dups = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                List<DuplicateFile> dups = Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
                 if (dups != null && dups.Count > 0)
                 {
 
-                    Repo.DuplicateFile.BatchAction(dups, dups.Count, (dup, _) =>
+                    Repo.Instance.DuplicateFile.BatchAction(dups, dups.Count, (dup, _) =>
                     {
                         if (dup.FilePathFile1.Equals(FilePath, StringComparison.InvariantCultureIgnoreCase) &&
                             dup.ImportFolderIDFile1 == ImportFolderID)
@@ -164,7 +164,7 @@ namespace Shoko.Server.Models
                         }
                     }, parallel: true);//todo: test parallel
                 }
-                var filename_hash = Repo.FileNameHash.GetByHash(VideoLocal.Hash);
+                var filename_hash = Repo.Instance.FileNameHash.GetByHash(VideoLocal.Hash);
                 if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
                 {
                     FileNameHash fnhash = new FileNameHash
@@ -174,10 +174,10 @@ namespace Shoko.Server.Models
                         FileSize = VideoLocal.FileSize,
                         Hash = VideoLocal.Hash
                     };
-                    Repo.FileNameHash.BeginAdd(fnhash).Commit();
+                    Repo.Instance.FileNameHash.BeginAdd(fnhash).Commit();
                 }
 
-                using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
                 {
                     FilePath = upd.Entity.FilePath = tup.Item2; //Also update this, as we can't 
                     upd.Commit();
@@ -201,7 +201,7 @@ namespace Shoko.Server.Models
             SVR_VideoLocal v = VideoLocal;
             List<DuplicateFile> dupFiles = null;
             if (!string.IsNullOrEmpty(FilePath))
-                dupFiles = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                dupFiles = Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
             if (v?.Places?.Count <= 1)
             {
                 if (updateMyListStatus)
@@ -211,25 +211,25 @@ namespace Shoko.Server.Models
                     cmdDel.Save();
                 }
 
-                using (var transaction = Repo.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
                 {
-                    Repo.VideoLocal_Place.Delete(this);
+                    Repo.Instance.VideoLocal_Place.Delete(this);
 
                     episodesToUpdate.AddRange(v.GetAnimeEpisodes());
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                         .Select(a => a.GetAnimeSeries()));
-                    Repo.VideoLocal.Delete(v);
+                    Repo.Instance.VideoLocal.Delete(v);
 
-                    dupFiles?.ForEach(a => Repo.DuplicateFile.Delete(a));
+                    dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete(a));
                     transaction.Commit();
                 }
             }
             else
             {
-                using (var transaction = Repo.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
                 {
-                    Repo.VideoLocal_Place.Delete(this);
-                    dupFiles?.ForEach(a => Repo.DuplicateFile.Delete( a));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
+                    dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete( a));
                     transaction.Commit();
                 }
             }
@@ -238,7 +238,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    Repo.AnimeEpisode.Touch(() => ep);
+                    Repo.Instance.AnimeEpisode.Touch(() => ep);
                 }
                 catch (Exception ex)
                 {
@@ -260,7 +260,7 @@ namespace Shoko.Server.Models
 
             List<DuplicateFile> dupFiles = null;
             if (!string.IsNullOrEmpty(FilePath))
-                dupFiles = Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
+                dupFiles = Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             if (v?.Places?.Count <= 1)
             {
@@ -274,21 +274,21 @@ namespace Shoko.Server.Models
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
-                using (var transaction = Repo.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
                 {
-                    Repo.VideoLocal_Place.Delete(this);
-                    Repo.VideoLocal.Delete(v);
-                    dupFiles?.ForEach(a => Repo.DuplicateFile.Delete(a));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
+                    Repo.Instance.VideoLocal.Delete(v);
+                    dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete(a));
 
                     transaction.Commit();
                 }
             }
             else
             {
-                using (var transaction = Repo.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
                 {
-                    Repo.VideoLocal_Place.Delete(this);
-                    dupFiles?.ForEach(a => Repo.DuplicateFile.Delete(a));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
+                    dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete(a));
                     transaction.Commit();
                 }
             }
@@ -735,7 +735,7 @@ namespace Shoko.Server.Models
             string originalFileName = FullServerPath;
 
             // Handle Duplicate Files
-            using (var dups = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
+            using (var dups = Repo.Instance.DuplicateFile.BeginBatchUpdate(() => Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
             {
                 foreach (var dup in dups)
                 {
@@ -753,12 +753,12 @@ namespace Shoko.Server.Models
                     // validate the dup file
                     // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                     if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                        Repo.DuplicateFile.Delete(dup);
+                        Repo.Instance.DuplicateFile.Delete(dup);
                 }
                 dups.Commit();
             }
 
-            using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
             {
                 upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                 upd.Entity.FilePath = FilePath = newFilePath;
@@ -927,7 +927,7 @@ namespace Shoko.Server.Models
                     // Handle Duplicate Files, A duplicate file record won't exist yet,
                     // so we'll check the old fashioned way
                     logger.Trace("A file already exists at the new location, checking it for duplicate");
-                    var destVideoLocalPlace = Repo.VideoLocal_Place.GetByFilePathAndImportFolderID(newFilePath,
+                    var destVideoLocalPlace = Repo.Instance.VideoLocal_Place.GetByFilePathAndImportFolderID(newFilePath,
                         destFolder.ImportFolderID);
                     var destVideoLocal = destVideoLocalPlace?.VideoLocal;
                     if (destVideoLocal == null)
@@ -1017,7 +1017,7 @@ namespace Shoko.Server.Models
                             string originalFileName = FullServerPath;
 
                             // Handle Duplicate Files
-                            using (var upd = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
+                            using (var upd = Repo.Instance.DuplicateFile.BeginBatchUpdate(() => Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
                             {
                                 foreach (var dup in upd)
                                 {
@@ -1035,13 +1035,13 @@ namespace Shoko.Server.Models
                                     // validate the dup file
                                     // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                                     if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                        Repo.DuplicateFile.Delete(dup);
+                                        Repo.Instance.DuplicateFile.Delete(dup);
                                 }
 
                                 upd.Commit();
                             }
 
-                            using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
                             {
                                 upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                                 upd.Entity.FilePath = FilePath = newFilePath;
@@ -1110,7 +1110,7 @@ namespace Shoko.Server.Models
                     string originalFileName = FullServerPath;
 
                     // Handle Duplicate Files
-                    using (var dups = Repo.DuplicateFile.BeginBatchUpdate(() => Repo.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
+                    using (var dups = Repo.Instance.DuplicateFile.BeginBatchUpdate(() => Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID)))
                     {
                         foreach (var dup in dups)
                         {
@@ -1128,12 +1128,12 @@ namespace Shoko.Server.Models
                             // validate the dup file
                             // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                             if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                Repo.DuplicateFile.Delete(dup);
+                                Repo.Instance.DuplicateFile.Delete(dup);
                         }
                         dups.Commit();
                     }
 
-                    using (var upd = Repo.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
                     {
                         upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                         upd.Entity.FilePath = FilePath = newFilePath;

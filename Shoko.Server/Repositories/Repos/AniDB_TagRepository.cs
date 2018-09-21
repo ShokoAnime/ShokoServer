@@ -48,7 +48,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Tag> GetByAnimeID(int animeID)
         {
-            return GetMany(Repo.AniDB_Anime_Tag.GetByAnimeID(animeID).Select(a => a.TagID).ToList());
+            return GetMany(Repo.Instance.AniDB_Anime_Tag.GetByAnimeID(animeID).Select(a => a.TagID).ToList());
         }
 
 
@@ -58,7 +58,7 @@ namespace Shoko.Server.Repositories.Repos
             if (ids == null)
                 throw new ArgumentNullException(nameof(ids));
 
-            return Repo.AniDB_Anime_Tag.GetTagsIdByAnimeIDs(ids).ToDictionary(a => a.Key, a => GetMany(a.Value));
+            return Repo.Instance.AniDB_Anime_Tag.GetTagsIdByAnimeIDs(ids).ToDictionary(a => a.Key, a => GetMany(a.Value));
         }
 
 
@@ -68,7 +68,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Tag> GetAllForLocalSeries()
         {
-            return GetMany(GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Select(a=>a.TagID));
+            return GetMany(GetByAnimeIDs(Repo.Instance.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Select(a=>a.TagID));
         }
 
         public Dictionary<string, List<int>> GetGroupByTagName()

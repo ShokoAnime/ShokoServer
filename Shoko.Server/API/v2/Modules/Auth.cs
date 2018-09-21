@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
             if (auth.pass == null) auth.pass = string.Empty;
 
             //create and save new token for authenticated user or return known one
-            string apiKey = Repo.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
+            string apiKey = Repo.Instance.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
 
             if (!string.IsNullOrEmpty(apiKey)) return Ok(new { apikey = apiKey });
 
@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpDelete("")]
         public ActionResult Delete(string apikey)
         {
-            Repo.AuthTokens.DeleteWithToken(apikey);
+            Repo.Instance.AuthTokens.DeleteWithToken(apikey);
             return Ok();
         }
     }

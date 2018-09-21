@@ -72,7 +72,7 @@ namespace Shoko.UI.Forms
                 Cursor = Cursors.Wait;
                 SVR_Scan s = (SVR_Scan) frm.SelectedScan;
                 HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
-                List<SVR_VideoLocal> vl = imp.SelectMany(a => Repo.VideoLocal.GetByImportFolder(a))
+                List<SVR_VideoLocal> vl = imp.SelectMany(a => Repo.Instance.VideoLocal.GetByImportFolder(a))
                     .Distinct()
                     .ToList();
                 List<ScanFile> files = new List<ScanFile>();
@@ -91,7 +91,7 @@ namespace Shoko.UI.Forms
                         files.Add(sfile);
                     }
                 }
-                Repo.ScanFile.BeginAdd(files).Commit();
+                Repo.Instance.ScanFile.BeginAdd(files).Commit();
                 this.IsEnabled = true;
                 Scanner.Instance.Scans.Add(s);
                 comboProvider.SelectedItem = s;
@@ -124,7 +124,7 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => scan))
                     {
                         upd.Entity.Status = (int)ScanStatus.Standby;
                         scan = upd.Commit();
@@ -133,7 +133,7 @@ namespace Shoko.UI.Forms
                 List<ScanFile> files = Scanner.Instance.ActiveErrorFiles.ToList();
                 Scanner.Instance.ActiveErrorFiles.Clear();
 
-                using (var upd = Repo.ScanFile.BeginBatchUpdate(() => files))
+                using (var upd = Repo.Instance.ScanFile.BeginBatchUpdate(() => files))
                 {
                     upd.ForEach(a => { a.Status = (int)ScanFileStatus.Waiting; });
                     upd.Commit();
@@ -157,13 +157,13 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => scan))
                     {
                         upd.Entity.Status = (int)ScanStatus.Standby;
                         scan = upd.Commit();
                     }
                 }
-                using (var upd = Repo.ScanFile.BeginAddOrUpdate(() => item))
+                using (var upd = Repo.Instance.ScanFile.BeginAddOrUpdate(() => item))
                 {
                     upd.Entity.Status = (int)ScanFileStatus.Waiting;
                     item = upd.Commit();
@@ -187,7 +187,7 @@ namespace Shoko.UI.Forms
                 }
                 if (scan.GetScanStatus() == ScanStatus.Finish)
                 {
-                    using (var upd = Repo.Scan.BeginAddOrUpdate(() => scan))
+                    using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => scan))
                     {
                         upd.Entity.Status = (int)ScanStatus.Standby;
                         scan = upd.Commit();

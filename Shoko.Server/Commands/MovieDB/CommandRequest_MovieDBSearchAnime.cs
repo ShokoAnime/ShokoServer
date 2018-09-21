@@ -60,12 +60,12 @@ namespace Shoko.Server.Commands
                             if (crossRef != null)
                             {
                                 int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = Repo.MovieDb_Movie.GetByOnlineID(movieID);
+                                MovieDB_Movie movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
                                 if (movie == null)
                                 {
                                     // update the info from online
                                     MovieDBHelper.UpdateMovieInfo(movieID, true);
-                                    movie = Repo.MovieDb_Movie.GetByOnlineID(movieID);
+                                    movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
                                 }
 
                                 if (movie != null)
@@ -85,7 +85,7 @@ namespace Shoko.Server.Commands
                     if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                     string searchCriteria = string.Empty;
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null) return;
 
                     searchCriteria = anime.MainTitle;

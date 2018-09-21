@@ -24,7 +24,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void EndDelete(SVR_AnimeEpisode entity, object returnFromBeginDelete, object parameters)
         {
-            Repo.AnimeEpisode_User.Delete(entity.AnimeEpisodeID);
+            Repo.Instance.AnimeEpisode_User.Delete(entity.AnimeEpisodeID);
         }
 
         internal override int SelectKey(SVR_AnimeEpisode entity)
@@ -106,7 +106,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns>the AnimeEpisode given the file information</returns>
         public SVR_AnimeEpisode GetByFilename(string name)
         {
-            return Repo.VideoLocal_Place.GetByFilename(name).Select(a => a.VideoLocal.GetAnimeEpisodes()).FirstOrDefault()?.FirstOrDefault();
+            return Repo.Instance.VideoLocal_Place.GetByFilename(name).Select(a => a.VideoLocal.GetAnimeEpisodes()).FirstOrDefault()?.FirstOrDefault();
         }
 
 
@@ -120,20 +120,20 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<SVR_AnimeEpisode> GetByHash(string hash)
         {
-            return GetByAniDBEpisodeIDs(Repo.CrossRef_File_Episode.GetByHash(hash).Select(a => a.EpisodeID).ToList());
+            return GetByAniDBEpisodeIDs(Repo.Instance.CrossRef_File_Episode.GetByHash(hash).Select(a => a.EpisodeID).ToList());
         }
         //TODO DBRefactor
         public List<SVR_AnimeEpisode> GetEpisodesWithMultipleFiles(bool ignoreVariations)
         {
 
-            List<string> hashes = Repo.VideoLocal.GetVariationsHashes(!ignoreVariations);
-            return GetByAniDBEpisodeIDs(Repo.CrossRef_File_Episode.GetMultiEpIdByHashes(hashes));
+            List<string> hashes = Repo.Instance.VideoLocal.GetVariationsHashes(!ignoreVariations);
+            return GetByAniDBEpisodeIDs(Repo.Instance.CrossRef_File_Episode.GetMultiEpIdByHashes(hashes));
         }
 
         public List<SVR_AnimeEpisode> GetUnwatchedEpisodes(int seriesid, int userid)
         {
             List<int> eps =
-                Repo.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid).Where(a => a.WatchedDate.HasValue)
+                Repo.Instance.AnimeEpisode_User.GetByUserIDAndSeriesID(userid, seriesid).Where(a => a.WatchedDate.HasValue)
                     .Select(a => a.AnimeEpisodeID)
                     .ToList();
             return GetBySeriesID(seriesid).Where(a => !eps.Contains(a.AnimeEpisodeID)).ToList();

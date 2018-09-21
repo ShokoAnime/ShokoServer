@@ -79,7 +79,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Anime_Tag> GetAllForLocalSeries()
         {
-            return GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Distinct().ToList();
+            return GetByAnimeIDs(Repo.Instance.AnimeSeries.GetAllAnimeIds()).SelectMany(a=>a.Value).Distinct().ToList();
         }
 
         public Dictionary<int, List<int>> GetGroupByTagIDAnimes()
@@ -100,7 +100,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal List<SVR_AnimeSeries> GetAnimeWithTag(int tagID)
         {
-            return Where(s => s.TagID == tagID).Select(s => Repo.AnimeSeries.GetByAnimeID(tagID)).Where(a => a != null).ToList();
+            return Where(s => s.TagID == tagID).Select(s => Repo.Instance.AnimeSeries.GetByAnimeID(tagID)).Where(a => a != null).ToList();
         }
     }
 }

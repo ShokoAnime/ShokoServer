@@ -105,7 +105,7 @@ namespace Shoko.Server.Repositories.Repos
         /// <returns></returns>
         public List<AniDB_Anime_Title> GetAllForLocalSeries()
         {
-            return GetByAnimeIDs(Repo.AnimeSeries.GetAllAnimeIds()).SelectMany(a => a.Value).Distinct().ToList();
+            return GetByAnimeIDs(Repo.Instance.AnimeSeries.GetAllAnimeIds()).SelectMany(a => a.Value).Distinct().ToList();
         }
     }
 }

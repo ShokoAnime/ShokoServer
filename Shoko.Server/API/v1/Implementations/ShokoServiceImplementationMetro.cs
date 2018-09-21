@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AniDBAPI;
-using Shoko.Server.Repositories.Cached;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -98,7 +97,7 @@ namespace Shoko.Server
             Metro_CommunityLinks contract = new Metro_CommunityLinks();
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return null;
 
                 //AniDB
@@ -145,7 +144,7 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.JMMUser.AuthenticateUser(username, password);
+                return Repo.Instance.JMMUser.AuthenticateUser(username, password);
             }
             catch (Exception ex)
             {
@@ -160,7 +159,7 @@ namespace Shoko.Server
             // get all the users
             try
             {
-                return Repo.JMMUser.GetAll().Cast<JMMUser>().ToList();
+                return Repo.Instance.JMMUser.GetAll().Cast<JMMUser>().ToList();
             }
             catch (Exception ex)
             {
@@ -174,7 +173,7 @@ namespace Shoko.Server
         {
             try
             {
-                return Repo.AnimeGroup.GetAll()
+                return Repo.Instance.AnimeGroup.GetAll()
                     .Select(a => a.GetUserContract(userID))
                     .OrderBy(a => a.SortName)
                     .ToList();
@@ -193,7 +192,7 @@ namespace Shoko.Server
             try
             {
                 {
-                    SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retEps;
 
                     /*string sql = "Select ae.AnimeSeriesID, max(vl.DateTimeCreated) as MaxDate " +
@@ -204,19 +203,19 @@ namespace Shoko.Server
                                  "ORDER BY MaxDate desc ";
                     */
 
-                    var results = Repo.VideoLocal.GetEpisodesRecentlyAdded();
+                    var results = Repo.Instance.VideoLocal.GetEpisodesRecentlyAdded();
 
                     int numEps = 0;
                     foreach ((int animeSeriesID, DateTime lastUpdated) in results)
                     {
-                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(animeSeriesID);
+                        SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(ser)) continue;
 
 
                         List<SVR_VideoLocal> vids =
-                            Repo.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                            Repo.Instance.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -249,16 +248,16 @@ namespace Shoko.Server
             try
             {
                 { 
-                    SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     //todo, turn this into linq to sql
-                    IDictionary<int, DateTime> results = Repo.VideoLocal.GetEpisodesRecentlyAdded();
+                    IDictionary<int, DateTime> results = Repo.Instance.VideoLocal.GetEpisodesRecentlyAdded();
 
                     int numEps = 0;
                     foreach ((int animeSeriesID, DateTime lastUpdated) in results)
                     {
-                        SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(animeSeriesID);
+                        SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(animeSeriesID);
                         if (ser == null) continue;
 
                         if (!user.AllowedSeries(ser)) continue;
@@ -266,7 +265,7 @@ namespace Shoko.Server
                         SVR_AnimeSeries_User serUser = ser.GetUserRecord(jmmuserID);
 
                         List<SVR_VideoLocal> vids =
-                            Repo.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
+                            Repo.Instance.VideoLocal.GetMostRecentlyAddedForAnime(1, ser.AniDB_ID);
                         if (vids.Count == 0) continue;
 
                         List<SVR_AnimeEpisode> eps = vids[0].GetAnimeEpisodes();
@@ -321,12 +320,12 @@ namespace Shoko.Server
                 {
                     DateTime start = DateTime.Now;
 
-                    SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                    SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                     if (user == null) return retAnime;
 
                     // get a list of series that is applicable
                     List<SVR_AnimeSeries_User> allSeriesUser =
-                        Repo.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
+                        Repo.Instance.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
 
                     TimeSpan ts = DateTime.Now - start;
                     logger.Info(string.Format("GetAnimeContinueWatching:Series: {0}", ts.TotalMilliseconds));
@@ -337,7 +336,7 @@ namespace Shoko.Server
                     {
                         start = DateTime.Now;
 
-                        SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
+                        SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByID(userRecord.AnimeSeriesID);
                         if (series == null) continue;
 
                         if (!user.AllowedSeries(series))
@@ -403,12 +402,12 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                 if (user == null) return retAnime;
 
                 // find the locked Continue Watching Filter
                 SVR_GroupFilter gf = null;
-                List<SVR_GroupFilter> lockedGFs = Repo.GroupFilter.GetLockedGroupFilters();
+                List<SVR_GroupFilter> lockedGFs = Repo.Instance.GroupFilter.GetLockedGroupFilters();
                 if (lockedGFs != null)
                 {
                     // if it already exists we can leave
@@ -425,7 +424,7 @@ namespace Shoko.Server
                     return retAnime;
                 IEnumerable<CL_AnimeGroup_User> comboGroups =
                     gf.GroupsIds[jmmuserID]
-                        .Select(a => Repo.AnimeGroup.GetByID(a))
+                        .Select(a => Repo.Instance.AnimeGroup.GetByID(a))
                         .Where(a => a != null)
                         .Select(a => a.GetUserContract(jmmuserID));
 
@@ -435,7 +434,7 @@ namespace Shoko.Server
                 foreach (CL_AnimeGroup_User grp in comboGroups)
                 {
                     ShokoServiceImplementation imp = new ShokoServiceImplementation();
-                    foreach (SVR_AnimeSeries ser in Repo.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
+                    foreach (SVR_AnimeSeries ser in Repo.Instance.AnimeSeries.GetByGroupID(grp.AnimeGroupID))
                     {
                         if (!user.AllowedSeries(ser)) continue;
 
@@ -493,19 +492,19 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                 if (user == null) return retAnime;
 
                 DateTime? startDate = AniDB.GetAniDBDateAsDate(startDateSecs);
                 DateTime? endDate = AniDB.GetAniDBDateAsDate(endDateSecs);
 
                 List<SVR_AniDB_Anime> animes =
-                    Repo.AniDB_Anime.GetForDate(startDate.Value, endDate.Value);
+                    Repo.Instance.AniDB_Anime.GetForDate(startDate.Value, endDate.Value);
                 foreach (SVR_AniDB_Anime anidb_anime in animes)
                 {
                     if (!user.AllowedAnime(anidb_anime)) continue;
 
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
                     Metro_Anime_Summary summ = new Metro_Anime_Summary
                     {
@@ -548,16 +547,16 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                SVR_JMMUser user = Repo.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = Repo.Instance.JMMUser.GetByID(jmmuserID);
                 if (user == null) return retAnime;
 
 
-                List<SVR_AniDB_Anime> animes = Repo.AniDB_Anime.SearchByName(queryText);
+                List<SVR_AniDB_Anime> animes = Repo.Instance.AniDB_Anime.SearchByName(queryText);
                 foreach (SVR_AniDB_Anime anidb_anime in animes)
                 {
                     if (!user.AllowedAnime(anidb_anime)) continue;
 
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(anidb_anime.AnimeID);
 
                     Metro_Anime_Summary summ = new Metro_Anime_Summary
                     {
@@ -599,10 +598,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return null;
 
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
 
                 Metro_Anime_Detail ret = new Metro_Anime_Detail
                 {
@@ -665,10 +664,10 @@ namespace Shoko.Server
                         new Dictionary<int, SVR_AnimeEpisode_User>();
                     foreach (
                         SVR_AnimeEpisode_User userRecord in
-                        Repo.AnimeEpisode_User.GetByUserIDAndSeriesID(jmmuserID, ser.AnimeSeriesID))
+                        Repo.Instance.AnimeEpisode_User.GetByUserIDAndSeriesID(jmmuserID, ser.AnimeSeriesID))
                         dictEpUsers[userRecord.AnimeEpisodeID] = userRecord;
 
-                    foreach (SVR_AnimeEpisode animeep in Repo.AnimeEpisode.GetBySeriesID(ser.AnimeSeriesID))
+                    foreach (SVR_AnimeEpisode animeep in Repo.Instance.AnimeEpisode.GetBySeriesID(ser.AnimeSeriesID))
                     {
                         if (!dictEpUsers.ContainsKey(animeep.AnimeEpisodeID))
                         {
@@ -681,7 +680,7 @@ namespace Shoko.Server
                             epList.Add(animeep);
                     }
 
-                    List<AniDB_Episode> aniEpList = Repo.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
+                    List<AniDB_Episode> aniEpList = Repo.Instance.AniDB_Episode.GetByAnimeID(ser.AniDB_ID);
                     Dictionary<int, AniDB_Episode> dictAniEps = new Dictionary<int, AniDB_Episode>();
                     foreach (AniDB_Episode aniep in aniEpList)
                         dictAniEps[aniep.EpisodeID] = aniep;
@@ -730,7 +729,7 @@ namespace Shoko.Server
                                     userEpRecord = dictEpUsers[canEp.AnimeEpisodeID];
 
                                 // now refresh from the database to get file count
-                                SVR_AnimeEpisode epFresh = Repo.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
+                                SVR_AnimeEpisode epFresh = Repo.Instance.AnimeEpisode.GetByID(canEp.AnimeEpisodeID);
 
                                 int fileCount = epFresh.GetVideoLocals().Count;
                                 if (fileCount > 0)
@@ -781,10 +780,10 @@ namespace Shoko.Server
             try
             {
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return null;
 
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(animeID);
+                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
 
                 Metro_Anime_Summary summ = new Metro_Anime_Summary
                 {
@@ -837,10 +836,10 @@ namespace Shoko.Server
         [NonAction]
         public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
-            var override_link = Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
+            var override_link = Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
             if (override_link.Any(a => a != null))
             {
-                var tvep = Repo.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
+                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
                 contract.EpisodeName = tvep.EpisodeName;
                 contract.EpisodeOverview = tvep.Overview;
                 contract.ImageID = tvep.Id;
@@ -848,10 +847,10 @@ namespace Shoko.Server
                 return;
             }
 
-            var link = Repo.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(ep.EpisodeID);
+            var link = Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(ep.EpisodeID);
             if (link.Any(a => a != null))
             {
-                var tvep = Repo.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
+                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
                 contract.EpisodeName = tvep.EpisodeName;
                 contract.EpisodeOverview = tvep.Overview;
                 contract.ImageID = tvep.Id;
@@ -867,7 +866,7 @@ namespace Shoko.Server
             try
             {
                 List<AniDB_Anime_Character> animeChars =
-                    Repo.AniDB_Anime_Character.GetByAnimeID(animeID);
+                    Repo.Instance.AniDB_Anime_Character.GetByAnimeID(animeID);
                 if (animeChars == null || animeChars.Count == 0) return chars;
 
                 int cnt = 0;
@@ -881,7 +880,7 @@ namespace Shoko.Server
                                 StringComparison.InvariantCultureIgnoreCase)))
                 {
                     cnt++;
-                    AniDB_Character chr = Repo.AniDB_Character.GetByID(animeChar.CharID);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByID(animeChar.CharID);
                     if (chr != null)
                     {
                         Metro_AniDB_Character contract = new Metro_AniDB_Character();
@@ -901,7 +900,7 @@ namespace Shoko.Server
                 )
                 {
                     cnt++;
-                    AniDB_Character chr = Repo.AniDB_Character.GetByID(animeChar.CharID);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByID(animeChar.CharID);
                     if (chr != null)
                     {
                         Metro_AniDB_Character contract = new Metro_AniDB_Character();
@@ -935,7 +934,7 @@ namespace Shoko.Server
                 {
                     Metro_Comment comment = new Metro_Comment();
 
-                    Trakt_Friend traktFriend = Repo.Trakt_Friend.GetByUsername(sht.user.username);
+                    Trakt_Friend traktFriend = Repo.Instance.Trakt_Friend.GetByUsername(sht.user.username);
 
                     // user details
                     CL_Trakt_User user = new CL_Trakt_User();
@@ -977,7 +976,7 @@ namespace Shoko.Server
             try
             {
                 int cnt = 0;
-                foreach (AniDB_Recommendation rec in Repo.AniDB_Recommendation.GetByAnimeID(animeID))
+                foreach (AniDB_Recommendation rec in Repo.Instance.AniDB_Recommendation.GetByAnimeID(animeID))
                 {
                     Metro_Comment shout = new Metro_Comment
                     {
@@ -1029,17 +1028,17 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
                 if (anime == null) return retAnime;
 
-                SVR_JMMUser juser = Repo.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser juser = Repo.Instance.JMMUser.GetByID(jmmuserID);
                 if (juser == null) return retAnime;
 
 
                 // first get the related anime
                 foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
                 {
-                    SVR_AniDB_Anime animeLink = Repo.AniDB_Anime.GetByID(link.RelatedAnimeID);
+                    SVR_AniDB_Anime animeLink = Repo.Instance.AniDB_Anime.GetByID(link.RelatedAnimeID);
 
                     if (animeLink == null)
                     {
@@ -1053,7 +1052,7 @@ namespace Shoko.Server
                     if (!juser.AllowedAnime(animeLink)) continue;
 
                     // check if this anime has a series
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(link.RelatedAnimeID);
 
                     Metro_Anime_Summary summ = new Metro_Anime_Summary
                     {
@@ -1084,7 +1083,7 @@ namespace Shoko.Server
                 foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime())
                 {
                     SVR_AniDB_Anime animeLink =
-                        Repo.AniDB_Anime.GetByID(link.SimilarAnimeID);
+                        Repo.Instance.AniDB_Anime.GetByID(link.SimilarAnimeID);
 
                     if (animeLink == null)
                     {
@@ -1098,7 +1097,7 @@ namespace Shoko.Server
                     if (!juser.AllowedAnime(animeLink)) continue;
 
                     // check if this anime has a series
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(link.SimilarAnimeID);
 
                     Metro_Anime_Summary summ = new Metro_Anime_Summary
                     {
@@ -1141,7 +1140,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(episodeID);
+                SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(episodeID);
                 return ep != null 
                     ? ep.GetVideoDetailedContracts(userID) 
                     : new List<CL_VideoDetailed>();
@@ -1165,7 +1164,7 @@ namespace Shoko.Server
                 };
             try
             {
-                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(animeEpisodeID);
+                SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null)
                 {
                     response.ErrorMessage = "Could not find anime episode record";
@@ -1177,7 +1176,7 @@ namespace Shoko.Server
                 //StatsCache.Instance.UpdateUsingSeries(ep.GetAnimeSeries().AnimeSeriesID);
 
                 // refresh from db
-                ep = Repo.AnimeEpisode.GetByID(animeEpisodeID);
+                ep = Repo.Instance.AnimeEpisode.GetByID(animeEpisodeID);
 
                 response.Result = ep.GetUserContract(userID);
 

@@ -99,7 +99,7 @@ namespace Shoko.Server.Models
             SVR_AnimeGroup_User rr = GetUserRecord(userid);
             if (rr == null)
             {
-                using (var upd = Repo.AnimeGroup_User.BeginAdd())
+                using (var upd = Repo.Instance.AnimeGroup_User.BeginAdd())
                 {
                     upd.Entity.WatchedCount = 0;
                     upd.Entity.UnwatchedEpisodeCount = 0;
@@ -122,7 +122,7 @@ namespace Shoko.Server.Models
 
         public SVR_AnimeGroup_User GetUserRecord(int userID)
         {
-            return Repo.AnimeGroup_User.GetByUserAndGroupID(userID, AnimeGroupID);
+            return Repo.Instance.AnimeGroup_User.GetByUserAndGroupID(userID, AnimeGroupID);
         }
 
         public bool HasCustomName()
@@ -141,7 +141,7 @@ namespace Shoko.Server.Models
             if (animeID == 0) return false;
 
             var animes = groupingCalculator.GetIdsOfAnimeInSameGroup(animeID)
-                .Select(a => Repo.AniDB_Anime.GetByID(a)).Where(a => a != null)
+                .Select(a => Repo.Instance.AniDB_Anime.GetByID(a)).Where(a => a != null)
                 .SelectMany(a => a.GetAllTitles()).ToHashSet();
             return !animes.Contains(GroupName);
         }
@@ -155,14 +155,14 @@ namespace Shoko.Server.Models
             //using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
                 var groupingCalculator = AutoAnimeGroupCalculator.CreateFromServerSettings();
-                foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAll().ToList())
+                foreach (SVR_AnimeGroup grp in Repo.Instance.AnimeGroup.GetAll().ToList())
                 {
                     List<SVR_AnimeSeries> list = grp.GetSeries();
 
                     // rename the group if it only has one direct child Anime Series
                     if (list.Count == 1)
                     {
-                        using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => grp))
+                        using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
                         {
                             string newTitle = list[0].GetSeriesName();
                             upd.Entity.GroupName = newTitle;
@@ -178,7 +178,7 @@ namespace Shoko.Server.Models
                         bool hasCustomName = grp.HasCustomName(groupingCalculator);
                         if (grp.DefaultAnimeSeriesID.HasValue)
                         {
-                            series = Repo.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
+                            series = Repo.Instance.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value);
                             if (series == null)
                                 grp.DefaultAnimeSeriesID = null;
                         }
@@ -221,11 +221,11 @@ namespace Shoko.Server.Models
                             string newTitle = series.GetSeriesName();
                             if (grp.DefaultAnimeSeriesID.HasValue &&
                                 grp.DefaultAnimeSeriesID.Value != series.AnimeSeriesID)
-                                newTitle = Repo.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value)
+                                newTitle = Repo.Instance.AnimeSeries.GetByID(grp.DefaultAnimeSeriesID.Value)
                                     .GetSeriesName();
                             if (hasCustomName) newTitle = grp.GroupName;
                             // reset tags, description, etc to new series
-                            using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => grp))
+                            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
                             {
                                 upd.Entity.Populate_RA(series);
                                 upd.Entity.GroupName = newTitle;
@@ -278,7 +278,7 @@ namespace Shoko.Server.Models
 
         public List<SVR_AnimeGroup> GetChildGroups()
         {
-            return Repo.AnimeGroup.GetByParentID(AnimeGroupID);
+            return Repo.Instance.AnimeGroup.GetByParentID(AnimeGroupID);
         }
 
         public List<SVR_AnimeGroup> GetAllChildGroups()
@@ -290,11 +290,11 @@ namespace Shoko.Server.Models
 
         public List<SVR_AnimeSeries> GetSeries()
         {
-            List<SVR_AnimeSeries> seriesList = Repo.AnimeSeries.GetByGroupID(AnimeGroupID);
+            List<SVR_AnimeSeries> seriesList = Repo.Instance.AnimeSeries.GetByGroupID(AnimeGroupID);
             // Make everything that relies on GetSeries[0] have the proper result
             seriesList = seriesList.OrderBy(a => a.Year).ThenBy(a => a.AirDate).ToList();
             if (!DefaultAnimeSeriesID.HasValue) return seriesList;
-            SVR_AnimeSeries series = Repo.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+            SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
             if (series == null) return seriesList;
             seriesList.Remove(series);
             seriesList.Insert(0, series);
@@ -326,7 +326,7 @@ namespace Shoko.Server.Models
             var seriesByGroup = animeGroups.ToDictionary(g => g.AnimeGroupID, g => g.GetAllSeries());
             var allAnimeIds = seriesByGroup.Values.SelectMany(serLst => serLst.Select(series => series.AniDB_ID))
                 .ToArray();
-            var votesByAnime = Repo.AniDB_Vote.GetByAnimeIDs(allAnimeIds);
+            var votesByAnime = Repo.Instance.AniDB_Vote.GetByAnimeIDs(allAnimeIds);
 
             foreach (SVR_AnimeGroup animeGroup in animeGroups)
             {
@@ -385,7 +385,7 @@ namespace Shoko.Server.Models
                     }
 
                 return animeTags.OrderByDescending(a => a.Weight)
-                    .Select(animeTag => Repo.AniDB_Tag.GetByID(animeTag.TagID)).Where(tag => tag != null)
+                    .Select(animeTag => Repo.Instance.AniDB_Tag.GetByID(animeTag.TagID)).Where(tag => tag != null)
                     .ToList();
             }
         }
@@ -401,7 +401,7 @@ namespace Shoko.Server.Models
 
                 // get a list of all the unique custom tags for all the series in this group
                 foreach (SVR_AnimeSeries ser in GetAllSeries())
-                foreach (CustomTag tag in Repo.CustomTag.GetByAnimeID(ser.AniDB_ID))
+                foreach (CustomTag tag in Repo.Instance.CustomTag.GetByAnimeID(ser.AniDB_ID))
                     if (!tagIDs.Contains(tag.CustomTagID))
                     {
                         tagIDs.Add(tag.CustomTagID);
@@ -477,7 +477,7 @@ namespace Shoko.Server.Models
             if (missingEpsStats)
             {
                 UpdateMissingEpisodeStats(this, seriesList);
-                using (var upd = Repo.AnimeGroup.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => this))
                 {
                     UpdateMissingEpisodeStats(upd.Entity, seriesList);
                     upd.Commit((true, false, false));
@@ -486,13 +486,13 @@ namespace Shoko.Server.Models
 
             if (watchedStats)
             {
-                IReadOnlyList<SVR_JMMUser> allUsers = Repo.JMMUser.GetAll();
+                IReadOnlyList<SVR_JMMUser> allUsers = Repo.Instance.JMMUser.GetAll();
 
                 UpdateWatchedStats(this, seriesList, allUsers, (userRecord, isNew) =>
                 {
                     // Now update the stats for the groups
                     logger.Trace("Updating stats for {0}", ToString());
-                    Repo.AnimeGroup_User.Touch(() => userRecord);
+                    Repo.Instance.AnimeGroup_User.Touch(() => userRecord);
                 });
             }
         }
@@ -524,7 +524,7 @@ namespace Shoko.Server.Models
                 return; // Nothing to do
 
             var allUsers =
-                new Lazy<IReadOnlyList<SVR_JMMUser>>(() => Repo.JMMUser.GetAll(), isThreadSafe: false);
+                new Lazy<IReadOnlyList<SVR_JMMUser>>(() => Repo.Instance.JMMUser.GetAll(), isThreadSafe: false);
 
             foreach (SVR_AnimeGroup animeGroup in animeGroups)
             {
@@ -723,18 +723,18 @@ namespace Shoko.Server.Models
             var allGroupIds = new Lazy<int[]>(
                 () => animeGroups.Select(grp => grp.AnimeGroupID).ToArray(), isThreadSafe: false);
             var audioLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
-                () => Repo.Adhoc.GetAudioLanguageStatsByAnime(allAnimeIds.Value), isThreadSafe: false);
+                () => Repo.Instance.Adhoc.GetAudioLanguageStatsByAnime(allAnimeIds.Value), isThreadSafe: false);
             var subLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
-                () => Repo.Adhoc.GetSubtitleLanguageStatsByAnime(allAnimeIds.Value),
+                () => Repo.Instance.Adhoc.GetSubtitleLanguageStatsByAnime(allAnimeIds.Value),
                 isThreadSafe: false);
             var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
-                () => Repo.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
+                () => Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var allVidQualByGroup = new Lazy<Dictionary<int, HashSet<string>>>(
-                () => Repo.Adhoc.GetAllVideoQualityByGroup(allGroupIds.Value), isThreadSafe: false);
+                () => Repo.Instance.Adhoc.GetAllVideoQualityByGroup(allGroupIds.Value), isThreadSafe: false);
             var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
-                () => Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndType(allAnimeIds.Value, CrossRefType.MovieDB), isThreadSafe: false);
+                () => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDsAndType(allAnimeIds.Value, CrossRefType.MovieDB), isThreadSafe: false);
             var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
-                () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
+                () => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var votesByGroup = BatchGetVotes(animeGroups);
             DateTime now = DateTime.Now;
 
@@ -799,9 +799,9 @@ namespace Shoko.Server.Models
                     {
                         seriesCount++;
 
-                        List<SVR_VideoLocal> vidsTemp = Repo.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
+                        List<SVR_VideoLocal> vidsTemp = Repo.Instance.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
                         List<CrossRef_File_Episode> crossRefs =
-                            Repo.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
+                            Repo.Instance.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
                         ILookup<int, CrossRef_File_Episode> crossRefsLookup = crossRefs.ToLookup(cr => cr.EpisodeID);
                         var dictVids = new Dictionary<string, SVR_VideoLocal>();
 
@@ -1005,10 +1005,10 @@ namespace Shoko.Server.Models
 
         public void DeleteFromFilters()
         {
-            foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
+            foreach (SVR_GroupFilter gf in Repo.Instance.GroupFilter.GetAll())
             {
                 bool change = false;
-                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => gf))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
                 {
                     foreach (int k in upd.Entity.GroupsIds.Keys)
                         if (upd.Entity.GroupsIds[k].Contains(AnimeGroupID))
@@ -1026,11 +1026,11 @@ namespace Shoko.Server.Models
         {
             IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> {user};
             if (user == null)
-                users = Repo.JMMUser.GetAll();
+                users = Repo.Instance.JMMUser.GetAll();
             List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
             HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
-            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetWithConditionTypesAndAll(n)))
+            using (var upd = Repo.Instance.GroupFilter.BeginBatchUpdate(() => Repo.Instance.GroupFilter.GetWithConditionTypesAndAll(n)))
             {
                 foreach (SVR_GroupFilter gf in upd)
                 {
@@ -1050,7 +1050,7 @@ namespace Shoko.Server.Models
 
         public static void GetAnimeGroupsRecursive(int animeGroupID, ref List<SVR_AnimeGroup> groupList)
         {
-            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(animeGroupID);
+            SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
             if (grp == null) return;
 
             // get the child groups for this group
@@ -1062,7 +1062,7 @@ namespace Shoko.Server.Models
 
         public static void GetAnimeSeriesRecursive(int animeGroupID, ref List<SVR_AnimeSeries> seriesList)
         {
-            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(animeGroupID);
+            SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
             if (grp == null) return;
 
             // get the series for this group
@@ -1079,9 +1079,9 @@ namespace Shoko.Server.Models
             get
             {
                 if (!AnimeGroupParentID.HasValue) return this;
-                SVR_AnimeGroup parentGroup = Repo.AnimeGroup.GetByID(AnimeGroupParentID.Value);
+                SVR_AnimeGroup parentGroup = Repo.Instance.AnimeGroup.GetByID(AnimeGroupParentID.Value);
                 while (parentGroup?.AnimeGroupParentID != null)
-                    parentGroup = Repo.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
+                    parentGroup = Repo.Instance.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
                 return parentGroup;
             }
         }

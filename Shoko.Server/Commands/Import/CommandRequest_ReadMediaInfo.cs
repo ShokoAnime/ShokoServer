@@ -42,14 +42,14 @@ namespace Shoko.Server.Commands
 
             try
             {
-                SVR_VideoLocal vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                SVR_VideoLocal vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
                 if (place == null)
                 {
                     logger.Error("Cound not find Video: {0}", VideoLocalID);
                     return;
                 }
-                using (var txn = Repo.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
+                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
                 {
                     if (place.RefreshMediaInfo())
                     {

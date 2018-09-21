@@ -37,7 +37,7 @@ namespace Shoko.Server.Repositories.Cached
                             first = false;
                             continue;
                         }
-                        Repo.AniDB_Vote.Delete(dbVote);
+                        Repo.Instance.AniDB_Vote.Delete(dbVote);
                     }
 
                     return cr.FirstOrDefault();
@@ -94,7 +94,7 @@ namespace Shoko.Server.Repositories.Cached
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetByID(entity.EntityID));
                     break;
             }
         }
@@ -110,7 +110,7 @@ namespace Shoko.Server.Repositories.Cached
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.AnimeEpisode.Touch(() => Repo.AnimeEpisode.GetByID(entity.EntityID));
+                    Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetByID(entity.EntityID));
                     break;
             }
         }

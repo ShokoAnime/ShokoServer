@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMServer.Repositories;
+using JMMServer.Repo.Instance.itories;
 using JMMServer.Entities;
 using System.Xml;
 using System.IO;
@@ -49,7 +49,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-				AniDB_CharacterRepository repChar = new AniDB_CharacterRepository();
+				AniDB_CharacterRepo.Instance.itory repChar = new AniDB_CharacterRepo.Instance.itory();
 				AniDB_Character chr = repChar.GetByCharID(CharID);
 
 				if (ForceRefresh || chr == null)

@@ -27,7 +27,7 @@ namespace Shoko.UI.Forms
 
         public ScanImportFolders()
         {
-            List<SVR_ImportFolder> flds = Repo.ImportFolder.GetAll()
+            List<SVR_ImportFolder> flds = Repo.Instance.ImportFolder.GetAll()
                 .Where(a => a.ImportFolderType <= (int) ImportFolderType.HDD)
                 .ToList();
             ObservableCollection<CheckedImportFolder> flds2 = new ObservableCollection<CheckedImportFolder>();
@@ -64,7 +64,7 @@ namespace Shoko.UI.Forms
                 CreationTIme = DateTime.Now,
                 ImportFolders = string.Join(",", ids.Select(a => a.ToString()))
             };
-            s = Repo.Scan.BeginAdd(s).Commit();
+            s = Repo.Instance.Scan.BeginAdd(s).Commit();
             SelectedScan = s;
             this.DialogResult = true;
             this.Close();

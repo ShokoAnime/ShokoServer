@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using JMMServer.Entities;
 using System.Xml;
-using JMMServer.Repositories;
+using JMMServer.Repo.Instance.itories;
 
 namespace JMMServer.Commands
 {
@@ -48,8 +48,8 @@ namespace JMMServer.Commands
 
 			try
 			{
-				AniDB_AnimeRepository repAnime = new AniDB_AnimeRepository();
-				AniDB_Character_CreatorRepository repCharCreators = new AniDB_Character_CreatorRepository();
+				AniDB_AnimeRepo.Instance.itory repAnime = new AniDB_AnimeRepo.Instance.itory();
+				AniDB_Character_CreatorRepo.Instance.itory repCharCreators = new AniDB_Character_CreatorRepo.Instance.itory();
 				AniDB_Anime anime = null;
 
 				if (ForceRefresh)

@@ -45,7 +45,7 @@ namespace Shoko.Server.Commands
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {
-                        List<AniDB_Vote> dbVotes = Repo.AniDB_Vote.GetByEntity(myVote.EntityID);
+                        List<AniDB_Vote> dbVotes = Repo.Instance.AniDB_Vote.GetByEntity(myVote.EntityID);
                         AniDB_Vote thisVote = null;
                         foreach (AniDB_Vote dbVote in dbVotes)
                         {
@@ -63,7 +63,7 @@ namespace Shoko.Server.Commands
                             }
                         }
 
-                        using (var upd = Repo.AniDB_Vote.BeginAddOrUpdate(
+                        using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(
                             () => thisVote,
                             () => new AniDB_Vote { EntityID = myVote.EntityID }
                             ))

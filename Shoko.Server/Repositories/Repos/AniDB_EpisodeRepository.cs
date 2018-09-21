@@ -109,7 +109,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<AniDB_Episode> GetEpisodesWithMultipleFiles()
         {
-            List<int> ids = Repo.CrossRef_File_Episode.GetEpisodesIdsWithMultipleFiles();
+            List<int> ids = Repo.Instance.CrossRef_File_Episode.GetEpisodesIdsWithMultipleFiles();
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)

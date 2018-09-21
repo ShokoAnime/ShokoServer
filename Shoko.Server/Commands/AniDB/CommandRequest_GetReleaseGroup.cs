@@ -41,7 +41,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                AniDB_ReleaseGroup relGroup = Repo.AniDB_ReleaseGroup.GetByGroupID(GroupID);
+                AniDB_ReleaseGroup relGroup = Repo.Instance.AniDB_ReleaseGroup.GetByGroupID(GroupID);
 
                 if (ForceRefresh || relGroup == null)
                 {

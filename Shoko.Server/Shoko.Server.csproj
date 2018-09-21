@@ -72,7 +72,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\Views\" />
-    <Folder Include="Migrations\" />
     <Folder Include="Workers\WorkUnits\Import\" />
   </ItemGroup>
   <ItemGroup>

@@ -301,7 +301,7 @@ namespace Shoko.UI
 
         void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.AniDB_Anime.GetAll();
+            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.Instance.AniDB_Anime.GetAll();
             int cnt = 0;
             foreach (SVR_AniDB_Anime anime in allAnime)
             {
@@ -326,7 +326,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorImages.Stop();
 
-                Repo.CommandRequest.ClearImageQueue();
+                Repo.Instance.CommandRequest.ClearImageQueue();
                 ShokoService.CmdProcessorImages.Init();
             });
 
@@ -352,7 +352,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorGeneral.Stop();
 
-                Repo.CommandRequest.ClearGeneralQueue();
+                Repo.Instance.CommandRequest.ClearGeneralQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 
@@ -378,7 +378,7 @@ namespace Shoko.UI
             {
                 ShokoService.CmdProcessorHasher.Stop();
 
-                Repo.CommandRequest.ClearHasherQueue();
+                Repo.Instance.CommandRequest.ClearHasherQueue();
                 ShokoService.CmdProcessorHasher.Init();
             });
 

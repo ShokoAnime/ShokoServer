@@ -147,7 +147,7 @@ namespace Shoko.Server.Models
         {
             if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
-                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
                 {
                     Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
                     upd.Entity.Conditions = Conditions;
@@ -171,7 +171,7 @@ namespace Shoko.Server.Models
                 Series = SeriesIds,
                 Childs = GroupFilterID == 0
                     ? new HashSet<int>()
-                    : Repo.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet()
+                    : Repo.Instance.GroupFilter.GetByParentID(GroupFilterID).Select(a => a.GroupFilterID).ToHashSet()
             };
             return contract;
         }
@@ -226,7 +226,7 @@ namespace Shoko.Server.Models
                 if (result)
                 {
                     GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                        .Select(a => Repo.Instance.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -238,7 +238,7 @@ namespace Shoko.Server.Models
                 while (true)
                 {
                     if (groupID == null) break;
-                    SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(groupID.Value);
+                    SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(groupID.Value);
                     if (grp != null)
                         groupID = grp.AnimeGroupParentID;
                     else
@@ -246,7 +246,7 @@ namespace Shoko.Server.Models
                 }
                 if (groupID == null) return false;
 
-                var group = Repo.AnimeGroup.GetByID(groupID.Value);
+                var group = Repo.Instance.AnimeGroup.GetByID(groupID.Value);
 
                 var contract = group?.Contract;
                 if (user != null)
@@ -259,7 +259,7 @@ namespace Shoko.Server.Models
                 {
                     SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0]
                         .SelectMany(a =>
-                            Repo.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                            Repo.Instance.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -287,7 +287,7 @@ namespace Shoko.Server.Models
                 if (result)
                 {
                     GroupsIds[user?.JMMUserID ?? 0] = SeriesIds[user?.JMMUserID ?? 0]
-                        .Select(a => Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
+                        .Select(a => Repo.Instance.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(a => a != -1).ToHashSet();
                 }
             }
@@ -296,7 +296,7 @@ namespace Shoko.Server.Models
                 result = CalculateGroupFilterGroups(grp, user);
                 if (result)
                 {
-                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => Repo.AnimeGroup.GetByID(a)
+                    SeriesIds[user?.JMMUserID ?? 0] = GroupsIds[user?.JMMUserID ?? 0].SelectMany(a => Repo.Instance.AnimeGroup.GetByID(a)
                             ?.GetAllSeries()
                             ?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
@@ -322,7 +322,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                change = seriesIds.RemoveWhere(a => Repo.AnimeSeries.GetByID(a) == null) > 0;
+                change = seriesIds.RemoveWhere(a => Repo.Instance.AnimeSeries.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(ser, user))
@@ -351,7 +351,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                change = groupIds.RemoveWhere(a => Repo.AnimeGroup.GetByID(a) == null) > 0;
+                change = groupIds.RemoveWhere(a => Repo.Instance.AnimeGroup.GetByID(a) == null) > 0;
             }
 
             if (EvaluateGroupFilter(grp, user))
@@ -377,7 +377,7 @@ namespace Shoko.Server.Models
                 {
                     GroupsIds[user] = SeriesIds[user].Select(a =>
                     {
-                        int id = Repo.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
+                        int id = Repo.Instance.AnimeSeries.GetByID(a)?.TopLevelAnimeGroup?.AnimeGroupID ?? -1;
                         if (id == -1)
                             erroredSeries.Add(a);
                         return id;
@@ -386,7 +386,7 @@ namespace Shoko.Server.Models
                 }
                 foreach (int id in erroredSeries.OrderBy(a => a).ToList())
                 {
-                    SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(id);
+                    SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(id);
                     LogManager.GetCurrentClassLogger()
                         .Error("While calculating group filters, an AnimeSeries without a group was found: " + (ser?.GetSeriesName() ?? id.ToString()));
                 }
@@ -398,7 +398,7 @@ namespace Shoko.Server.Models
                 foreach (int user in GroupsIds.Keys)
                 {
                     HashSet<int> ids = GroupsIds[user];
-                    SeriesIds[user] = ids.SelectMany(a => Repo.AnimeGroup.GetByID(a)
+                    SeriesIds[user] = ids.SelectMany(a => Repo.Instance.AnimeGroup.GetByID(a)
                             ?.GetAllSeries()
                             ?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
@@ -411,9 +411,9 @@ namespace Shoko.Server.Models
 
         private void EvaluateAnimeGroups()
         {
-            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
+            IReadOnlyList<SVR_JMMUser> users = Repo.Instance.JMMUser.GetAll();
             // make sure the user has not filtered this out
-            foreach (SVR_AnimeGroup grp in Repo.AnimeGroup.GetAllTopLevelGroups())
+            foreach (SVR_AnimeGroup grp in Repo.Instance.AnimeGroup.GetAllTopLevelGroups())
             {
                 foreach (SVR_JMMUser user in users)
                 {
@@ -424,8 +424,8 @@ namespace Shoko.Server.Models
 
         private void EvaluateAnimeSeries()
         {
-            IReadOnlyList<SVR_JMMUser> users = Repo.JMMUser.GetAll();
-            foreach (SVR_AnimeSeries ser in Repo.AnimeSeries.GetAll())
+            IReadOnlyList<SVR_JMMUser> users = Repo.Instance.JMMUser.GetAll();
+            foreach (SVR_AnimeSeries ser in Repo.Instance.AnimeSeries.GetAll())
             {
                 if (ser.Contract == null)
                     ser.UpdateContract();
@@ -449,7 +449,7 @@ namespace Shoko.Server.Models
 
                 foreach (int user in gf.SeriesIds.Keys)
                 {
-                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => Repo.AnimeSeries.GetByID(a)?
+                    gf.GroupsIds[user] = gf.SeriesIds[user].Select(a => Repo.Instance.AnimeSeries.GetByID(a)?
                                                                             .TopLevelAnimeGroup?.AnimeGroupID ?? -1).Where(a => a != -1)
                         .ToHashSet();
                 }
@@ -460,7 +460,7 @@ namespace Shoko.Server.Models
 
                 foreach (int user in gf.GroupsIds.Keys)
                 {
-                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => Repo.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
+                    gf.SeriesIds[user] = gf.GroupsIds[user].SelectMany(a => Repo.Instance.AnimeGroup.GetByID(a)?.GetAllSeries()?.Select(b => b?.AnimeSeriesID ?? -1))
                         .Where(a => a != -1)
                         .ToHashSet();
                 }
@@ -986,7 +986,7 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedTvDBInfo:
-                    bool tvDBInfoMissing = Repo.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
+                    bool tvDBInfoMissing = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
                     bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType !=
                                                   (int)AnimeType.Movie &&
                                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
@@ -1019,7 +1019,7 @@ namespace Shoko.Server.Models
                     bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                     bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && !restricted;
                     bool tvlinkMissing =
-                        Repo.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
+                        Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
                         !restricted;
                     bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
@@ -1329,17 +1329,17 @@ namespace Shoko.Server.Models
             if (other.SortingCriteria != SortingCriteria) return false;
             if (Conditions == null || Conditions.Count == 0)
             {
-                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
                 {
-                    upd.Entity.Conditions = Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
+                    upd.Entity.Conditions = Conditions = Repo.Instance.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
                     upd.Commit();
                 }
             }
             if (other.Conditions == null || other.Conditions.Count == 0)
             {
-                using (var upd = Repo.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
                 {
-                    upd.Entity.Conditions = other.Conditions = Repo.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
+                    upd.Entity.Conditions = other.Conditions = Repo.Instance.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
                     upd.Commit();
                 }
             }

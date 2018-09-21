@@ -35,7 +35,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<string> GetAllUniqueAudioLanguages()
         {
-            List<int> langsid = Repo.CrossRef_Languages_AniDB_File.GetDistincLanguagesId();
+            List<int> langsid = Repo.Instance.CrossRef_Languages_AniDB_File.GetDistincLanguagesId();
             using (RepoLock.ReaderLock())
             {
                 return WhereMany(langsid).Select(a => a.LanguageName).ToList();
@@ -43,7 +43,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public List<string> GetAllUniqueSubtitleLanguages()
         {
-            List<int> langsid = Repo.CrossRef_Subtitles_AniDB_File.GetDistincLanguagesId();
+            List<int> langsid = Repo.Instance.CrossRef_Subtitles_AniDB_File.GetDistincLanguagesId();
             using (RepoLock.ReaderLock())
             {
                 return WhereMany(langsid).Select(a => a.LanguageName).ToList();

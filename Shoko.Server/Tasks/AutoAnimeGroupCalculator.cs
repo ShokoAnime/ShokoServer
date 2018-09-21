@@ -109,9 +109,9 @@ namespace Shoko.Server.Tasks
         public static AutoAnimeGroupCalculator Create(AutoGroupExclude exclusions = AutoGroupExclude.SameSetting | AutoGroupExclude.Character, AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations, MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
         {
 
-            Dictionary<int, (int type, string title, DateTime? airdate)> animes = Repo.AniDB_Anime.GetRelationInfo();
+            Dictionary<int, (int type, string title, DateTime? airdate)> animes = Repo.Instance.AniDB_Anime.GetRelationInfo();
             Dictionary<int, List<AnimeRelation>> relations = new Dictionary<int, List<AnimeRelation>>();
-            foreach (AniDB_Anime_Relation rel in Repo.AniDB_Anime_Relation.GetAll())
+            foreach (AniDB_Anime_Relation rel in Repo.Instance.AniDB_Anime_Relation.GetAll())
             {
                 (int type, string title, DateTime? airdate) from = animes.ContainsKey(rel.AnimeID) ? animes[rel.AnimeID] : (0, null, null);
                 (int type, string title, DateTime? airdate) to = animes.ContainsKey(rel.RelatedAnimeID) ? animes[rel.RelatedAnimeID] : (0, null, null);

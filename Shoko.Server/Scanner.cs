@@ -51,7 +51,7 @@ namespace Shoko.Server
 
         public void Init()
         {
-            Utils.MainThreadDispatch(() => { Repo.Scan.GetAll().ForEach(a => Scans.Add(a)); });
+            Utils.MainThreadDispatch(() => { Repo.Instance.Scan.GetAll().ForEach(a => Scans.Add(a)); });
             SVR_Scan runscan = Scans.FirstOrDefault(a => a.GetScanStatus() == ScanStatus.Running);
             if (runscan != null)
             {
@@ -75,8 +75,8 @@ namespace Shoko.Server
                 return;
             if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
                 CancelScan();
-            Repo.ScanFile.Delete(Repo.ScanFile.GetByScanID(ActiveScan.ScanID));
-            Repo.Scan.Delete(ActiveScan);
+            Repo.Instance.ScanFile.Delete(Repo.Instance.ScanFile.GetByScanID(ActiveScan.ScanID));
+            Repo.Instance.Scan.Delete(ActiveScan);
             Utils.MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
             ActiveScan = null;
         }
@@ -120,7 +120,7 @@ namespace Shoko.Server
                     Utils.MainThreadDispatch(() => {
                         ActiveErrorFiles.Clear();
                         if (value != null)
-                            Repo.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
+                            Repo.Instance.ScanFile.GetWithError(value.ScanID).ForEach(a => ActiveErrorFiles.Add(a));
                     });
                 }
             }
@@ -131,7 +131,7 @@ namespace Shoko.Server
             this.OnPropertyChanged(() => Exists, () => Finished, () => QueueState, () => QueuePaused,
                 () => QueueRunning);
             if (activeScan != null)
-                QueueCount = Repo.ScanFile.GetWaitingCount(activeScan.ScanID);
+                QueueCount = Repo.Instance.ScanFile.GetWaitingCount(activeScan.ScanID);
         }
 
         public ObservableCollection<SVR_Scan> Scans { get; set; } = new ObservableCollection<SVR_Scan>();
@@ -160,11 +160,11 @@ namespace Shoko.Server
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             files.ForEach(file =>
             {
-                SVR_VideoLocal_Place place = Repo.VideoLocal_Place.GetByID(file.VideoLocal_Place_ID);
+                SVR_VideoLocal_Place place = Repo.Instance.VideoLocal_Place.GetByID(file.VideoLocal_Place_ID);
                 place.RemoveAndDeleteFileWithOpenTransaction(episodesToUpdate, seriesToUpdate);
             });
             // update everything we modified
-            Repo.AnimeEpisode.BatchAction(episodesToUpdate, episodesToUpdate.Count, (ep, _) => {
+            Repo.Instance.AnimeEpisode.BatchAction(episodesToUpdate, episodesToUpdate.Count, (ep, _) => {
                 if (ep.AnimeEpisodeID == 0)
                 {
                     ep.PlexContract = null;
@@ -179,7 +179,7 @@ namespace Shoko.Server
                 }
             });
                 
-            Repo.ScanFile.Delete(files);
+            Repo.Instance.ScanFile.Delete(files);
         }
 
         private bool cancelIntegrityCheck = false;
@@ -197,17 +197,17 @@ namespace Shoko.Server
                 bool paused = ShokoService.CmdProcessorHasher.Paused;
                 ShokoService.CmdProcessorHasher.Paused = true;
                 SVR_Scan s = RunScan;
-                using (var upd = Repo.Scan.BeginAddOrUpdate(() => s))
+                using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => s))
                 {
                     upd.Entity.Status = (int) ScanStatus.Running;
                     s = upd.Commit();
                 }
                 Refresh();
-                List<ScanFile> files = Repo.ScanFile.GetWaiting(RunScan.ScanID);
+                List<ScanFile> files = Repo.Instance.ScanFile.GetWaiting(RunScan.ScanID);
 
 
                 //foreach (ScanFile sf in files) //TODO: Fix
-                Repo.ScanFile.BatchAction(files, files.Count, (sf, orig) => 
+                Repo.Instance.ScanFile.BatchAction(files, files.Count, (sf, orig) => 
                 {
                     try
                     {
@@ -257,7 +257,7 @@ namespace Shoko.Server
                 });
 
 
-                using (var upd = Repo.Scan.BeginAddOrUpdate(() => s)) 
+                using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => s)) 
                 {
                     if (files.Any(a => a.GetScanFileStatus() == ScanFileStatus.Waiting))
                         upd.Entity.Status = (int) ScanStatus.Standby;

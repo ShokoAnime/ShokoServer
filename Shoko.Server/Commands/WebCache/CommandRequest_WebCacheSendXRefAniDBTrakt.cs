@@ -38,13 +38,13 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
+                CrossRef_AniDB_TraktV2 xref = Repo.Instance.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
                 if (xref == null) return;
 
-                Trakt_Show tvShow = Repo.Trakt_Show.GetByTraktSlug(xref.TraktID);
+                Trakt_Show tvShow = Repo.Instance.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(xref.AnimeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null) return;
 
                 string showName = string.Empty;

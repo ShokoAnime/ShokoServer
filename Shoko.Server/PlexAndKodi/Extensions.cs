@@ -200,7 +200,7 @@ namespace Shoko.Server.PlexAndKodi
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
-                        VideoLocal_User vl = v.Medias.Select(a => Repo.VideoLocal.GetByID(a.Id))
+                        VideoLocal_User vl = v.Medias.Select(a => Repo.Instance.VideoLocal.GetByID(a.Id))
                             .Where(a => a != null)
                             .Select(a => a.GetUserRecord(userid))
                             .Where(a => a != null)
@@ -215,7 +215,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                     break;
                 case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
-                    VideoLocal_User vl2 = Repo.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
+                    VideoLocal_User vl2 = Repo.Instance.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
                         v.ViewOffset = vl2.ResumePosition;

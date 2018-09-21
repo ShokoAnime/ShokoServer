@@ -27,7 +27,7 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var group = Repo.AnimeGroup.GetByID(AnimeGroupID);
+                    var group = Repo.Instance.AnimeGroup.GetByID(AnimeGroupID);
                     return _plexContract = Helper.GenerateFromAnimeGroup(group, JMMUserID, group.GetAllSeries());
                 }
                 return _plexContract;
@@ -76,15 +76,15 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);
-            SVR_JMMUser usr = Repo.JMMUser.GetByID(JMMUserID);
+            SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(AnimeGroupID);
+            SVR_JMMUser usr = Repo.Instance.JMMUser.GetByID(JMMUserID);
             if (grp != null && usr != null)
                 grp.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            using (var upd=Repo.GroupFilter.BeginBatchUpdate(()=> Repo.GroupFilter.GetAll()))
+            using (var upd=Repo.Instance.GroupFilter.BeginBatchUpdate(()=> Repo.Instance.GroupFilter.GetAll()))
             {
                 foreach (SVR_GroupFilter gf in upd)
                 {
@@ -104,7 +104,7 @@ namespace Shoko.Server.Models
 
         public void UpdatePlexKodiContracts_RA()
         {
-            SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(AnimeGroupID);
+            SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(AnimeGroupID);
             if (grp == null)
                 return;
             List<SVR_AnimeSeries> series = grp.GetAllSeries();

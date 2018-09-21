@@ -167,7 +167,7 @@ namespace Shoko.Server.Extensions
                 AnimeID = i.AnimeID,
                 IgnoreType = i.IgnoreType
             };
-            c.Anime = Repo.AniDB_Anime.GetByID(i.AnimeID).ToClient();
+            c.Anime = Repo.Instance.AniDB_Anime.GetByID(i.AnimeID).ToClient();
             return c;
         }
 
@@ -207,19 +207,19 @@ namespace Shoko.Server.Extensions
             switch (imgType)
             {
                 case ImageEntityType.TvDB_Banner:
-                    parentImage = Repo.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.Instance.TvDB_ImageWideBanner.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_Cover:
-                    parentImage = Repo.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.Instance.TvDB_ImagePoster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.TvDB_FanArt:
-                    parentImage = Repo.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.Instance.TvDB_ImageFanart.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_Poster:
-                    parentImage = Repo.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.Instance.MovieDB_Poster.GetByID(defaultImage.ImageParentID);
                     break;
                 case ImageEntityType.MovieDB_FanArt:
-                    parentImage = Repo.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
+                    parentImage = Repo.Instance.MovieDB_Fanart.GetByID(defaultImage.ImageParentID);
                     break;
             }
 
@@ -305,7 +305,7 @@ namespace Shoko.Server.Extensions
                 Downloading = bookmarkedanime.Downloading
             };
             cl.Anime = null;
-            SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByID(bookmarkedanime.AnimeID);
+            SVR_AniDB_Anime an = Repo.Instance.AniDB_Anime.GetByID(bookmarkedanime.AnimeID);
             if (an != null)
                 cl.Anime = an.Contract.AniDBAnime;
 
@@ -322,8 +322,8 @@ namespace Shoko.Server.Extensions
                 Hash = duplicatefile.Hash,
                 ImportFolderIDFile1 = duplicatefile.ImportFolderIDFile1,
                 ImportFolderIDFile2 = duplicatefile.ImportFolderIDFile2,
-                ImportFolder1 = Repo.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
-                ImportFolder2 = Repo.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
+                ImportFolder1 = Repo.Instance.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile1),
+                ImportFolder2 = Repo.Instance.ImportFolder.GetByID(duplicatefile.ImportFolderIDFile2),
                 DateTimeUpdated = duplicatefile.DateTimeUpdated
             };
             if (duplicatefile.GetAniDBFile() != null)
@@ -333,9 +333,9 @@ namespace Shoko.Server.Extensions
                 {
                     cl.EpisodeNumber = eps[0].EpisodeNumber;
                     cl.EpisodeType = eps[0].EpisodeType;
-                    cl.EpisodeName = Repo.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
+                    cl.EpisodeName = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(eps[0].EpisodeID)?.Title;
                     cl.AnimeID = eps[0].AnimeID;
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByID(eps[0].AnimeID);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(eps[0].AnimeID);
                     if (anime != null)
                         cl.AnimeName = anime.MainTitle;
                 }
@@ -346,7 +346,7 @@ namespace Shoko.Server.Extensions
 
         public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
         {
-            var titles = Repo.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
+            var titles = Repo.Instance.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
             return new CL_AniDB_Episode
             {
                 AniDB_EpisodeID = ep.AniDB_EpisodeID,

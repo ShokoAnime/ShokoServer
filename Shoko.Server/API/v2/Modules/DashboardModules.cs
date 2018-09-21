@@ -41,7 +41,7 @@ namespace Shoko.Server.API.v2.Modules
 
             if (user != null)
             {
-                var series = Repo.AnimeSeries.GetAll().Where(a =>
+                var series = Repo.Instance.AnimeSeries.GetAll().Where(a =>
                     !a.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false).ToList();
                 series_count = series.Count;
 
@@ -50,31 +50,31 @@ namespace Shoko.Server.API.v2.Modules
                 file_count = files.Count;
                 size = SizeSuffix(files.Sum(a => a.FileSize));
 
-                var watched = Repo.VideoLocal_User.GetByUserID(user.JMMUserID)
+                var watched = Repo.Instance.VideoLocal_User.GetByUserID(user.JMMUserID)
                     .Where(a => a.WatchedDate != null).ToList();
 
                 watched_files = watched.Count;
 
-                watched_series = Repo.AnimeSeries.GetAll().Count(a =>
+                watched_series = Repo.Instance.AnimeSeries.GetAll().Count(a =>
                 {
                     var contract = a.GetUserContract(user.JMMUserID);
                     if (contract?.MissingEpisodeCount > 0) return false;
                     return contract?.UnwatchedEpisodeCount == 0;
                 });
 
-                hours = watched.Select(a => Repo.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
+                hours = watched.Select(a => Repo.Instance.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
                     .Sum(a => a.Duration) / 3600000; // 1000ms * 60s * 60m = ?h
 
-                tags = Repo.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
+                tags = Repo.Instance.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                     .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
-                    .Select(a => Repo.AniDB_Tag.GetByID(a.Key)?.TagName)
+                    .Select(a => Repo.Instance.AniDB_Tag.GetByID(a.Key)?.TagName)
                     .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
                 tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
             }
             else
             {
-                var series = Repo.AnimeSeries.GetAll();
+                var series = Repo.Instance.AnimeSeries.GetAll();
                 series_count = series.Count;
 
                 var files = series.SelectMany(a => a.GetAnimeEpisodes()).SelectMany(a => a.GetVideoLocals())
@@ -82,9 +82,9 @@ namespace Shoko.Server.API.v2.Modules
                 file_count = files.Count;
                 size = SizeSuffix(files.Sum(a => a.FileSize));
 
-                tags = Repo.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
+                tags = Repo.Instance.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                     .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
-                    .Select(a => Repo.AniDB_Tag.GetByID(a.Key)?.TagName)
+                    .Select(a => Repo.Instance.AniDB_Tag.GetByID(a.Key)?.TagName)
                     .Where(a => a != null).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
                 tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
@@ -92,7 +92,7 @@ namespace Shoko.Server.API.v2.Modules
 
             return new Dictionary<string, object>
             {
-                {"queue", Repo.CommandRequest.GetAll().GroupBy(a => a.CommandType)
+                {"queue", Repo.Instance.CommandRequest.GetAll().GroupBy(a => a.CommandType)
                     .ToDictionary(a => (CommandRequestType)a.Key, a => a.Count()) },
                 {"file_count", file_count },
                 {"series_count", series_count },

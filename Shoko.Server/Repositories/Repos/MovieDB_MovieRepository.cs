@@ -52,7 +52,7 @@ namespace Shoko.Server.Repositories.Repos
             if (animeIds == null)
                 return new Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>();
 
-            Dictionary<int, CrossRef_AniDB_Other> crosses = Repo.CrossRef_AniDB_Other.GetByAnimeIDsAndTypes(animeIds, CrossRefType.MovieDB).ToDictionary(a => a.Key, a => a.Value[0]);
+            Dictionary<int, CrossRef_AniDB_Other> crosses = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDsAndTypes(animeIds, CrossRefType.MovieDB).ToDictionary(a => a.Key, a => a.Value[0]);
             List<int> movids = crosses.Select(a => a.Value).Distinct().Select(a => int.Parse(a.CrossRefID)).ToList();
             Dictionary<int, MovieDB_Movie> images = GetByMoviesIds(movids).ToDictionary(a => a.Key, a => a.Value[0]);
             return crosses.ToDictionary(a => a.Key, a => (a.Value, images.ContainsKey(int.Parse(a.Value.CrossRefID)) ? images[int.Parse(a.Value.CrossRefID)] : null));

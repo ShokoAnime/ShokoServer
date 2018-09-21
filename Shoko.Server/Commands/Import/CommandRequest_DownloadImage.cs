@@ -102,7 +102,7 @@ namespace Shoko.Server.Commands
                 switch (EntityTypeEnum)
                 {
                     case ImageEntityType.TvDB_Episode:
-                        TvDB_Episode ep = Repo.TvDB_Episode.GetByID(EntityID);
+                        TvDB_Episode ep = Repo.Instance.TvDB_Episode.GetByID(EntityID);
                         if (string.IsNullOrEmpty(ep?.Filename))
                         {
                             logger.Warn($"TvDB Episode image failed to download: Can't get episode with ID: {EntityID}");
@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(EntityID);
+                        TvDB_ImageFanart fanart = Repo.Instance.TvDB_ImageFanart.GetByID(EntityID);
                         if (string.IsNullOrEmpty(fanart?.BannerPath))
                         {
                             logger.Warn($"TvDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
@@ -123,7 +123,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(EntityID);
+                        TvDB_ImagePoster poster = Repo.Instance.TvDB_ImagePoster.GetByID(EntityID);
                         if (string.IsNullOrEmpty(poster?.BannerPath))
                         {
                             logger.Warn($"TvDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
@@ -134,7 +134,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetByID(EntityID);
+                        TvDB_ImageWideBanner wideBanner = Repo.Instance.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (string.IsNullOrEmpty(wideBanner?.BannerPath))
                         {
                             logger.Warn($"TvDB Banner image failed to download: Can't find valid banner with ID: {EntityID}");
@@ -145,7 +145,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = Repo.MovieDB_Poster.GetByID(EntityID);
+                        MovieDB_Poster moviePoster = Repo.Instance.MovieDB_Poster.GetByID(EntityID);
                         if (string.IsNullOrEmpty(moviePoster?.URL))
                         {
                             logger.Warn($"MovieDB Poster image failed to download: Can't find valid poster with ID: {EntityID}");
@@ -156,7 +156,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = Repo.MovieDB_Fanart.GetByID(EntityID);
+                        MovieDB_Fanart movieFanart = Repo.Instance.MovieDB_Fanart.GetByID(EntityID);
                         if (string.IsNullOrEmpty(movieFanart?.URL))
                         {
                             logger.Warn($"MovieDB Fanart image failed to download: Can't find valid fanart with ID: {EntityID}");
@@ -166,7 +166,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(EntityID);
+                        SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(EntityID);
                         if (anime == null)
                         {
                             logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {EntityID}");
@@ -177,7 +177,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Character:
-                        AniDB_Character chr = Repo.AniDB_Character.GetByCharID(EntityID);
+                        AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(EntityID);
                         if (chr == null)
                         {
                             logger.Warn($"AniDB Character image failed to download: Can't find AniDB Character with ID: {EntityID}");
@@ -188,7 +188,7 @@ namespace Shoko.Server.Commands
                         break;
 
                     case ImageEntityType.AniDB_Creator:
-                        AniDB_Seiyuu creator = Repo.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
+                        AniDB_Seiyuu creator = Repo.Instance.AniDB_Seiyuu.GetBySeiyuuID(EntityID);
                         if (creator == null)
                         {
                             logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {EntityID}");
@@ -286,33 +286,33 @@ namespace Shoko.Server.Commands
             switch (EntityTypeEnum)
                 {
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = Repo.TvDB_ImageFanart.GetByID(EntityID);
+                        TvDB_ImageFanart fanart = Repo.Instance.TvDB_ImageFanart.GetByID(EntityID);
                         if (fanart == null) return;
-                        Repo.TvDB_ImageFanart.Delete(fanart);
+                        Repo.Instance.TvDB_ImageFanart.Delete(fanart);
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = Repo.TvDB_ImagePoster.GetByID(EntityID);
+                        TvDB_ImagePoster poster = Repo.Instance.TvDB_ImagePoster.GetByID(EntityID);
                         if (poster == null) return;
-                        Repo.TvDB_ImagePoster.Delete(poster);
+                        Repo.Instance.TvDB_ImagePoster.Delete(poster);
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner wideBanner = Repo.TvDB_ImageWideBanner.GetByID(EntityID);
+                        TvDB_ImageWideBanner wideBanner = Repo.Instance.TvDB_ImageWideBanner.GetByID(EntityID);
                         if (wideBanner == null) return;
-                        Repo.TvDB_ImageWideBanner.Delete(wideBanner);
+                        Repo.Instance.TvDB_ImageWideBanner.Delete(wideBanner);
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = Repo.MovieDB_Poster.GetByID(EntityID);
+                        MovieDB_Poster moviePoster = Repo.Instance.MovieDB_Poster.GetByID(EntityID);
                         if (moviePoster == null) return;
-                        Repo.MovieDB_Poster.Delete(moviePoster);
+                        Repo.Instance.MovieDB_Poster.Delete(moviePoster);
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = Repo.MovieDB_Fanart.GetByID(EntityID);
+                        MovieDB_Fanart movieFanart = Repo.Instance.MovieDB_Fanart.GetByID(EntityID);
                         if (movieFanart == null) return;
-                        Repo.MovieDB_Fanart.Delete(movieFanart);
+                        Repo.Instance.MovieDB_Fanart.Delete(movieFanart);
                         break;
                 }
         }

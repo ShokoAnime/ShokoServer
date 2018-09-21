@@ -84,7 +84,7 @@ namespace Shoko.Server.Models
             ref List<SVR_AniDB_Anime> relList,
             ref List<int> relListIDs, ref List<int> searchedIDs)
         {
-            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(animeID);
+            SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(animeID);
             searchedIDs.Add(animeID);
 
             foreach (AniDB_Anime_Relation rel in anime.GetRelatedAnime())
@@ -95,7 +95,7 @@ namespace Shoko.Server.Models
                     //Filter these relations these will fix messes, like Gundam , Clamp, etc.
                     continue;
                 }
-                SVR_AniDB_Anime relAnime = Repo.AniDB_Anime.GetByAnimeID(rel.RelatedAnimeID);
+                SVR_AniDB_Anime relAnime = Repo.Instance.AniDB_Anime.GetByAnimeID(rel.RelatedAnimeID);
                 if (relAnime != null && !relListIDs.Contains(relAnime.AnimeID))
                 {
                     if (SVR_AnimeGroup.IsRelationTypeInExclusions(relAnime.GetAnimeTypeDescription().ToLower()))
@@ -115,7 +115,7 @@ namespace Shoko.Server.Models
             List<TvDB_Episode> results = new List<TvDB_Episode>();
             int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
-                results.AddRange(Repo.TvDB_Episode.GetBySeriesID(id).OrderBy(a => a.SeasonNumber)
+                results.AddRange(Repo.Instance.TvDB_Episode.GetBySeriesID(id).OrderBy(a => a.SeasonNumber)
                     .ThenBy(a => a.EpisodeNumber));
             return results;
         }
@@ -213,19 +213,19 @@ namespace Shoko.Server.Models
             return dictTvDBSeasonsSpecials;
         }
 
-        public List<CrossRef_AniDB_TvDB_Episode_Override> GetCrossRefTvDBEpisodes() => Repo.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TvDB_Episode_Override> GetCrossRefTvDBEpisodes() => Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
 
-        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB() => Repo.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB() => Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
 
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL() => Repo.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_MAL> GetCrossRefMAL() => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
 
         public TvDB_Series GetTvDBSeries()
         {
             int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id == -1) return null;
-            return Repo.TvDB_Series.GetByTvDBID(id);
+            return Repo.Instance.TvDB_Series.GetByTvDBID(id);
         }
 
         public List<TvDB_ImageFanart> GetTvDBImageFanarts()
@@ -233,7 +233,7 @@ namespace Shoko.Server.Models
             List<TvDB_ImageFanart> results = new List<TvDB_ImageFanart>();
             int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
-                results.AddRange(Repo.TvDB_ImageFanart.GetBySeriesID(id));
+                results.AddRange(Repo.Instance.TvDB_ImageFanart.GetBySeriesID(id));
             return results;
         }
 
@@ -242,7 +242,7 @@ namespace Shoko.Server.Models
             List<TvDB_ImagePoster> results = new List<TvDB_ImagePoster>();
             int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
-                results.AddRange(Repo.TvDB_ImagePoster.GetBySeriesID(id));
+                results.AddRange(Repo.Instance.TvDB_ImagePoster.GetBySeriesID(id));
             return results;
         }
 
@@ -251,18 +251,18 @@ namespace Shoko.Server.Models
             List<TvDB_ImageWideBanner> results = new List<TvDB_ImageWideBanner>();
             int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
             if (id != -1)
-                results.AddRange(Repo.TvDB_ImageWideBanner.GetBySeriesID(id));
+                results.AddRange(Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(id));
             return results;
         }
 
-        public CrossRef_AniDB_Other GetCrossRefMovieDB() => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(AnimeID,
+        public CrossRef_AniDB_Other GetCrossRefMovieDB() => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(AnimeID,
             CrossRefType.MovieDB);
 
         public MovieDB_Movie GetMovieDBMovie()
         {
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
             if (xref == null) return null;
-            return Repo.MovieDb_Movie.GetByOnlineID(int.Parse(xref.CrossRefID));
+            return Repo.Instance.MovieDb_Movie.GetByOnlineID(int.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Fanart> GetMovieDBFanarts()
@@ -270,7 +270,7 @@ namespace Shoko.Server.Models
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
             if (xref == null) return new List<MovieDB_Fanart>();
 
-            return Repo.MovieDB_Fanart.GetByMovieID(int.Parse(xref.CrossRefID));
+            return Repo.Instance.MovieDB_Fanart.GetByMovieID(int.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Poster> GetMovieDBPosters()
@@ -278,11 +278,11 @@ namespace Shoko.Server.Models
             CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
             if (xref == null) return new List<MovieDB_Poster>();
 
-            return Repo.MovieDB_Poster.GetByMovieID(int.Parse(xref.CrossRefID));
+            return Repo.Instance.MovieDB_Poster.GetByMovieID(int.Parse(xref.CrossRefID));
         }
 
         public AniDB_Anime_DefaultImage GetDefaultPoster() =>
-            Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.Poster);
+            Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.Poster);
 
         public string PosterPathNoDefault
         {
@@ -338,7 +338,7 @@ namespace Shoko.Server.Models
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster tvPoster =
-                        Repo.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
+                        Repo.Instance.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
                     if (tvPoster != null)
                         return tvPoster.GetFullImagePath();
                     else
@@ -346,7 +346,7 @@ namespace Shoko.Server.Models
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster =
-                        Repo.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
+                        Repo.Instance.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
                     if (moviePoster != null)
                         return moviePoster.GetFullImagePath();
                     else
@@ -372,7 +372,7 @@ namespace Shoko.Server.Models
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster tvPoster =
-                        Repo.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
+                        Repo.Instance.TvDB_ImagePoster.GetByID(defaultPoster.ImageParentID);
                     if (tvPoster != null)
                         details = new ImageDetails
                         {
@@ -383,7 +383,7 @@ namespace Shoko.Server.Models
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster =
-                        Repo.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
+                        Repo.Instance.MovieDB_Poster.GetByID(defaultPoster.ImageParentID);
                     if (moviePoster != null)
                         details = new ImageDetails
                         {
@@ -397,7 +397,7 @@ namespace Shoko.Server.Models
         }
 
         public AniDB_Anime_DefaultImage GetDefaultFanart() =>
-            Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.Fanart);
+            Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.Fanart);
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
         {
@@ -423,7 +423,7 @@ namespace Shoko.Server.Models
             switch (imageType)
             {
                 case ImageEntityType.TvDB_FanArt:
-                    TvDB_ImageFanart tvFanart = Repo.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
+                    TvDB_ImageFanart tvFanart = Repo.Instance.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
                     if (tvFanart != null)
                         details = new ImageDetails
                         {
@@ -433,7 +433,7 @@ namespace Shoko.Server.Models
                     return details;
 
                 case ImageEntityType.MovieDB_FanArt:
-                    MovieDB_Fanart movieFanart = Repo.MovieDB_Fanart.GetByID(fanart.ImageParentID);
+                    MovieDB_Fanart movieFanart = Repo.Instance.MovieDB_Fanart.GetByID(fanart.ImageParentID);
                     if (movieFanart != null)
                         details = new ImageDetails
                         {
@@ -479,14 +479,14 @@ namespace Shoko.Server.Models
             {
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart tvFanart =
-                        Repo.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
+                        Repo.Instance.TvDB_ImageFanart.GetByID(fanart.ImageParentID);
                     if (tvFanart != null)
                         return string.Format(Constants.URLS.TvDB_Images, tvFanart.BannerPath);
                     break;
 
                 case ImageEntityType.MovieDB_FanArt:
                     MovieDB_Fanart movieFanart =
-                        Repo.MovieDB_Fanart.GetByID(fanart.ImageParentID);
+                        Repo.Instance.MovieDB_Fanart.GetByID(fanart.ImageParentID);
                     if (movieFanart != null)
                         return movieFanart.URL;
                     break;
@@ -496,7 +496,7 @@ namespace Shoko.Server.Models
         }
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner() =>
-            Repo.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.WideBanner);
+            Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int)ImageSizeType.WideBanner);
 
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
         {
@@ -560,24 +560,24 @@ namespace Shoko.Server.Models
             List<AniDB_Tag> tags = new List<AniDB_Tag>();
             foreach (AniDB_Anime_Tag tag in GetAnimeTags())
             {
-                AniDB_Tag newTag = Repo.AniDB_Tag.GetByTagID(tag.TagID);
+                AniDB_Tag newTag = Repo.Instance.AniDB_Tag.GetByTagID(tag.TagID);
                 if (newTag != null) tags.Add(newTag);
             }
             return tags;
         }
 
-        public List<CustomTag> GetCustomTagsForAnime() => Repo.CustomTag.GetByAnimeID(AnimeID);
+        public List<CustomTag> GetCustomTagsForAnime() => Repo.Instance.CustomTag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Tag> GetAniDBTags() => Repo.AniDB_Tag.GetByAnimeID(AnimeID);
+        public List<AniDB_Tag> GetAniDBTags() => Repo.Instance.AniDB_Tag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Tag> GetAnimeTags() => Repo.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Tag> GetAnimeTags() => Repo.Instance.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Relation> GetRelatedAnime() => Repo.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Relation> GetRelatedAnime() => Repo.Instance.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Similar> GetSimilarAnime() => Repo.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Similar> GetSimilarAnime() => Repo.Instance.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
 
         [XmlIgnore]
-        public List<AniDB_Anime_Review> AnimeReviews => Repo.AniDB_Anime_Review.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Review> AnimeReviews => Repo.Instance.AniDB_Anime_Review.GetByAnimeID(AnimeID);
 
         public List<SVR_AniDB_Anime> GetAllRelatedAnime()
         {
@@ -588,9 +588,9 @@ namespace Shoko.Server.Models
             GetRelatedAnimeRecursive(AnimeID, ref relList, ref relListIDs, ref searchedIDs);
             return relList;
         }
-        public List<AniDB_Anime_Character> GetAnimeCharacters() => Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Character> GetAnimeCharacters() => Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Anime_Title> GetTitles() => Repo.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+        public List<AniDB_Anime_Title> GetTitles() => Repo.Instance.AniDB_Anime_Title.GetByAnimeID(AnimeID);
 
         public string GetFormattedTitle(List<AniDB_Anime_Title> titles)
         {
@@ -654,7 +654,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    return Repo.AniDB_Vote.GetByAnimeID(AnimeID);
+                    return Repo.Instance.AniDB_Vote.GetByAnimeID(AnimeID);
                 }
                 catch (Exception ex)
                 {
@@ -668,9 +668,9 @@ namespace Shoko.Server.Models
 
 
         [XmlIgnore]
-        public List<AniDB_Episode> AniDBEpisodes => Repo.AniDB_Episode.GetByAnimeID(AnimeID);
+        public List<AniDB_Episode> AniDBEpisodes => Repo.Instance.AniDB_Episode.GetByAnimeID(AnimeID);
 
-        public List<AniDB_Episode> GetAniDBEpisodes() => Repo.AniDB_Episode.GetByAnimeID(AnimeID);
+        public List<AniDB_Episode> GetAniDBEpisodes() => Repo.Instance.AniDB_Episode.GetByAnimeID(AnimeID);
 
         #endregion
 
@@ -734,14 +734,14 @@ namespace Shoko.Server.Models
             // Create a new AnimeSeries record
             SVR_AnimeSeries series;
 
-            using (var txn = Repo.AnimeSeries.BeginAdd())
+            using (var txn = Repo.Instance.AnimeSeries.BeginAdd())
             {
                 txn.Entity.Populate(this);
                 // Populate before making a group to ensure IDs and stats are set for group filters.
                 series = txn.Commit((false, false, false, false));
             }
 
-            using (var txn = Repo.AnimeSeries.BeginAddOrUpdate(() => series))
+            using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => series))
             {
                 if (existingGroupID == null)
                 {
@@ -750,7 +750,7 @@ namespace Shoko.Server.Models
                 }
                 else
                 {
-                    SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(existingGroupID.Value) ??
+                    SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(existingGroupID.Value) ??
                                          new AnimeGroupCreator().GetOrCreateSingleGroupForSeries(txn.Entity);
                     txn.Entity.AnimeGroupID = grp.AnimeGroupID;
                 }
@@ -789,7 +789,7 @@ namespace Shoko.Server.Models
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
         {
-            using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => this))
+            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => this))
             {
                 logger.Trace("------------------------------------------------");
                 logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
@@ -865,7 +865,7 @@ namespace Shoko.Server.Models
         /// <param name="animeInfo"></param>
         public void PopulateAndSaveFromUDP(Raw_AniDB_Anime animeInfo)
         {
-            using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => this))
+            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => this))
             {
                 // raw fields
                 upd.Entity.reviewIDListRAW = reviewIDListRAW = animeInfo.ReviewIDListRAW;
@@ -889,7 +889,7 @@ namespace Shoko.Server.Models
             {
                 //
                 // we need to do this check because some times AniDB will replace an existing episode with a new episode
-                List<AniDB_Episode> existingEps = Repo.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
+                List<AniDB_Episode> existingEps = Repo.Instance.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
                     epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
 
                 // delete any old records
@@ -898,21 +898,21 @@ namespace Shoko.Server.Models
                     if (epOld.EpisodeID != epraw.EpisodeID)
                     {
                         // first delete any AnimeEpisode records that point to the new anidb episode
-                        SVR_AnimeEpisode aniep = Repo.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
+                        SVR_AnimeEpisode aniep = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
                         if (aniep != null)
                             animeEpsToDelete.Add(aniep);
                         aniDBEpsToDelete.Add(epOld);
                     }
                 }
             }
-            Repo.AnimeEpisode.Delete(animeEpsToDelete);
-            Repo.AniDB_Episode.Delete(aniDBEpsToDelete);
+            Repo.Instance.AnimeEpisode.Delete(animeEpsToDelete);
+            Repo.Instance.AniDB_Episode.Delete(aniDBEpsToDelete);
 
 
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
             foreach (Raw_AniDB_Episode epraw in eps)
             {
-                using (var upd = Repo.AniDB_Episode.BeginAddOrUpdate(() => Repo.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID)))
+                using (var upd = Repo.Instance.AniDB_Episode.BeginAddOrUpdate(() => Repo.Instance.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID)))
                 {
                     upd.Entity.Populate_RA(epraw);
 
@@ -935,7 +935,7 @@ namespace Shoko.Server.Models
 
             txn.Entity.AllTitles = AllTitles = string.Empty;
 
-            List<AniDB_Anime_Title> titlesToDelete = Repo.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+            List<AniDB_Anime_Title> titlesToDelete = Repo.Instance.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             List<AniDB_Anime_Title> titlesToSave = new List<AniDB_Anime_Title>();
             foreach (Raw_AniDB_Anime_Title rawtitle in titles)
             {
@@ -946,8 +946,8 @@ namespace Shoko.Server.Models
                 if (AllTitles.Length > 0) AllTitles += "|";
                 txn.Entity.AllTitles = AllTitles += rawtitle.Title;
             }
-            Repo.AniDB_Anime_Title.Delete(titlesToDelete);
-            Repo.AniDB_Anime_Title.BeginAdd(titlesToSave).Commit();
+            Repo.Instance.AniDB_Anime_Title.Delete(titlesToDelete);
+            Repo.Instance.AniDB_Anime_Title.BeginAdd(titlesToSave).Commit();
         }
 
         private void CreateTags(List<Raw_AniDB_Tag> tags, IAtomic<SVR_AniDB_Anime, object> txn)
@@ -959,34 +959,34 @@ namespace Shoko.Server.Models
             List<AniDB_Anime_Tag> xrefsToDelete = new List<AniDB_Anime_Tag>();
 
             // find all the current links, and then later remove the ones that are no longer relevant
-            List<AniDB_Anime_Tag> currentTags = Repo.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
+            List<AniDB_Anime_Tag> currentTags = Repo.Instance.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
             List<int> newTagIDs = new List<int>();
 
             foreach (Raw_AniDB_Tag rawtag in tags)
             {
-                using (var upd = Repo.AniDB_Tag.BeginAddOrUpdate(() => Repo.AniDB_Tag.GetByID(rawtag.TagID)))
+                using (var upd = Repo.Instance.AniDB_Tag.BeginAddOrUpdate(() => Repo.Instance.AniDB_Tag.GetByID(rawtag.TagID)))
                 {
                     if (upd.IsNew())
                     {
                         // There are situations in which an ID may have changed, this is usually due to it being moved
-                        var existingTags = Repo.AniDB_Tag.GetByName(rawtag.TagName).ToList();
-                        var xrefsToRemap = existingTags.Select(s => Repo.AniDB_Anime_Tag.GetByID(s.AniDB_TagID))
+                        var existingTags = Repo.Instance.AniDB_Tag.GetByName(rawtag.TagName).ToList();
+                        var xrefsToRemap = existingTags.Select(s => Repo.Instance.AniDB_Anime_Tag.GetByID(s.AniDB_TagID))
                             .ToList();
-                        Repo.AniDB_Anime_Tag.BatchAction(xrefsToRemap, xrefsToRemap.Count, (xref, _) => xref.TagID = rawtag.TagID);
+                        Repo.Instance.AniDB_Anime_Tag.BatchAction(xrefsToRemap, xrefsToRemap.Count, (xref, _) => xref.TagID = rawtag.TagID);
 
                         // Delete the obsolete tag(s)
-                        Repo.AniDB_Tag.Delete(existingTags);
+                        Repo.Instance.AniDB_Tag.Delete(existingTags);
 
                         // While we're at it, clean up other unreferenced tags
-                        Repo.AniDB_Tag.Delete(Repo.AniDB_Tag.GetAll()
-                            .Where(a => !Repo.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+                        Repo.Instance.AniDB_Tag.Delete(Repo.Instance.AniDB_Tag.GetAll()
+                            .Where(a => !Repo.Instance.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
                     }
 
                     if (!upd.Entity.Populate(rawtag)) continue;
 
                     newTagIDs.Add(upd.Entity.TagID);
 
-                    using (var xr = Repo.AniDB_Anime_Tag.BeginAddOrUpdate(() => Repo.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID)))
+                    using (var xr = Repo.Instance.AniDB_Anime_Tag.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, rawtag.TagID)))
                     {
                         xr.Entity.Populate(rawtag);
                     }
@@ -1002,7 +1002,7 @@ namespace Shoko.Server.Models
                 if (!newTagIDs.Contains(curTag.TagID))
                     xrefsToDelete.Add(curTag);
             }
-            Repo.AniDB_Anime_Tag.Delete(xrefsToDelete);
+            Repo.Instance.AniDB_Anime_Tag.Delete(xrefsToDelete);
         }
 
         private void CreateCharacters(List<Raw_AniDB_Character> chars)
@@ -1011,11 +1011,11 @@ namespace Shoko.Server.Models
 
             // delete all the existing cross references just in case one has been removed
             List<AniDB_Anime_Character> animeChars =
-                Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID);
+                Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID);
 
             try
             {
-                Repo.AniDB_Anime_Character.Delete(animeChars);
+                Repo.Instance.AniDB_Anime_Character.Delete(animeChars);
             }
             catch (Exception ex)
             {
@@ -1035,13 +1035,13 @@ namespace Shoko.Server.Models
             {
                 // delete existing relationships to seiyuu's
                 List<AniDB_Character_Seiyuu> allCharSei =
-                    Repo.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharID);
+                    Repo.Instance.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharID);
                 foreach (AniDB_Character_Seiyuu xref in allCharSei)
                     charSeiyuusToDelete.Add(xref);
             }
             try
             {
-                Repo.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+                Repo.Instance.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
             }
             catch (Exception ex)
             {
@@ -1054,13 +1054,13 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(rawchar.CharID) ??
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(rawchar.CharID) ??
                                           new AniDB_Character();
 
                     if (!chr.PopulateFromHTTP(rawchar)) continue;
                     chrsToSave.Add(chr);
 
-                    var character = Repo.AnimeCharacter.GetByAniDBID(chr.CharID);
+                    var character = Repo.Instance.AnimeCharacter.GetByAniDBID(chr.CharID);
                     if (character == null)
                     {
                         character = new AnimeCharacter
@@ -1072,7 +1072,7 @@ namespace Shoko.Server.Models
                             ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
                         };
                         // we need an ID for xref
-                        Repo.AnimeCharacter.BeginAdd(character).Commit();
+                        Repo.Instance.AnimeCharacter.BeginAdd(character).Commit();
                     }
 
                     // create cross ref's between anime and character, but don't actually download anything
@@ -1085,7 +1085,7 @@ namespace Shoko.Server.Models
                         try
                         {
                             // save the link between character and seiyuu
-                            AniDB_Character_Seiyuu acc = Repo.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID,
+                            AniDB_Character_Seiyuu acc = Repo.Instance.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID,
                                 rawSeiyuu.SeiyuuID);
                             if (acc == null)
                             {
@@ -1098,14 +1098,14 @@ namespace Shoko.Server.Models
                             }
 
                             // save the seiyuu
-                            AniDB_Seiyuu seiyuu = Repo.AniDB_Seiyuu.GetByID(rawSeiyuu.SeiyuuID);
+                            AniDB_Seiyuu seiyuu = Repo.Instance.AniDB_Seiyuu.GetByID(rawSeiyuu.SeiyuuID);
                             if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
                             seiyuu.PicName = rawSeiyuu.PicName;
                             seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
                             seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
                             seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
 
-                            var staff = Repo.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
+                            var staff = Repo.Instance.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
                             if (staff == null)
                             {
                                 staff = new AnimeStaff
@@ -1116,10 +1116,10 @@ namespace Shoko.Server.Models
                                     ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
                                 };
                                 // we need an ID for xref
-                                Repo.AnimeStaff.BeginAdd(staff).Commit();
+                                Repo.Instance.AnimeStaff.BeginAdd(staff).Commit();
                             }
 
-                            var xrefAnimeStaff = Repo.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
+                            var xrefAnimeStaff = Repo.Instance.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
                                 staff.StaffID, StaffRoleType.Seiyuu);
                             if (xrefAnimeStaff == null)
                             {
@@ -1132,7 +1132,7 @@ namespace Shoko.Server.Models
                                     RoleID = character.CharacterID,
                                     StaffID = staff.StaffID,
                                 };
-                                Repo.CrossRef_Anime_Staff.BeginAdd(xrefAnimeStaff).Commit();
+                                Repo.Instance.CrossRef_Anime_Staff.BeginAdd(xrefAnimeStaff).Commit();
                             }
                         }
                         catch (Exception e)
@@ -1148,10 +1148,10 @@ namespace Shoko.Server.Models
             }
             try
             {
-                Repo.AniDB_Character.BeginAdd(chrsToSave).Commit();
-                Repo.AniDB_Anime_Character.BeginAdd(xrefsToSave).Commit();
-                Repo.AniDB_Seiyuu.BeginAdd(seiyuuToSave.Values.ToList()).Commit();
-                Repo.AniDB_Character_Seiyuu.BeginAdd(seiyuuXrefToSave).Commit();
+                Repo.Instance.AniDB_Character.BeginAdd(chrsToSave).Commit();
+                Repo.Instance.AniDB_Anime_Character.BeginAdd(xrefsToSave).Commit();
+                Repo.Instance.AniDB_Seiyuu.BeginAdd(seiyuuToSave.Values.ToList()).Commit();
+                Repo.Instance.AniDB_Character_Seiyuu.BeginAdd(seiyuuXrefToSave).Commit();
             }
             catch (Exception ex)
             {
@@ -1221,7 +1221,7 @@ namespace Shoko.Server.Models
                         {
                             int id = resource.ID;
                             if (id == 0) break;
-                            if (Repo.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
+                            if (Repo.Instance.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
                             CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
                             {
                                 AnimeID = AnimeID,
@@ -1236,7 +1236,7 @@ namespace Shoko.Server.Models
                         }
                 }
             }
-            Repo.CrossRef_AniDB_MAL.BeginAdd(malLinks).Commit();
+            Repo.Instance.CrossRef_AniDB_MAL.BeginAdd(malLinks).Commit();
         }
 
         private void CreateRelations(List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations, int relDepth)
@@ -1247,7 +1247,7 @@ namespace Shoko.Server.Models
 
             foreach (Raw_AniDB_RelatedAnime rawrel in rels)
             {
-                using (var upd = Repo.AniDB_Anime_Relation.BeginAddOrUpdate(() => Repo.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(rawrel.AnimeID, rawrel.RelatedAnimeID)))
+                using (var upd = Repo.Instance.AniDB_Anime_Relation.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(rawrel.AnimeID, rawrel.RelatedAnimeID)))
                 {
                     if (!upd.Entity.Populate(rawrel)) continue;
 
@@ -1279,7 +1279,7 @@ namespace Shoko.Server.Models
 
             foreach (Raw_AniDB_SimilarAnime rawsim in sims)
             {
-                using (var upd = Repo.AniDB_Anime_Similar.BeginAddOrUpdate(() => Repo.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID)))
+                using (var upd = Repo.Instance.AniDB_Anime_Similar.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID)))
                 {
                     upd.Entity.Populate(rawsim);
                     upd.Commit();
@@ -1296,7 +1296,7 @@ namespace Shoko.Server.Models
             List<AniDB_Recommendation> recsToSave = new List<AniDB_Recommendation>();
             foreach (Raw_AniDB_Recommendation rawRec in recs)
             {
-                using (var upd = Repo.AniDB_Recommendation.BeginAddOrUpdate(() => Repo.AniDB_Recommendation.GetByAnimeIDAndUserID(rawRec.AnimeID, rawRec.UserID)))
+                using (var upd = Repo.Instance.AniDB_Recommendation.BeginAddOrUpdate(() => Repo.Instance.AniDB_Recommendation.GetByAnimeIDAndUserID(rawRec.AnimeID, rawRec.UserID)))
                 {
                     upd.Entity.Populate_RA(rawRec);
                     upd.Commit();
@@ -1313,9 +1313,9 @@ namespace Shoko.Server.Models
                     return;
 
                 //Delete old if changed
-                List<AniDB_Anime_Review> animeReviews = Repo.AniDB_Anime_Review.GetByAnimeID(AnimeID);
+                List<AniDB_Anime_Review> animeReviews = Repo.Instance.AniDB_Anime_Review.GetByAnimeID(AnimeID);
                 foreach (AniDB_Anime_Review xref in animeReviews)
-                    Repo.AniDB_Anime_Review.Delete(xref.AniDB_Anime_ReviewID);
+                    Repo.Instance.AniDB_Anime_Review.Delete(xref.AniDB_Anime_ReviewID);
 
 
                 string[] revs = reviewIDListRAW.Split(',');
@@ -1331,7 +1331,7 @@ namespace Shoko.Server.Models
                                 AnimeID = AnimeID,
                                 ReviewID = rev
                             };
-                            Repo.AniDB_Anime_Review.BeginAdd(csr).Commit();
+                            Repo.Instance.AniDB_Anime_Review.BeginAdd(csr).Commit();
                         }
                     }
                 }
@@ -1419,12 +1419,12 @@ namespace Shoko.Server.Models
 
             try
             {
-                List<AniDB_Anime_Character> animeChars = Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID);
+                List<AniDB_Anime_Character> animeChars = Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID);
                 if (animeChars == null || animeChars.Count == 0) return chars;
 
                 foreach (AniDB_Anime_Character animeChar in animeChars)
                 {
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(animeChar.CharID);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(animeChar.CharID);
                     if (chr != null)
                         chars.Add(chr.ToClient(animeChar.CharType));
                 }
@@ -1443,20 +1443,20 @@ namespace Shoko.Server.Models
 
             int[] animeIds = animeColl.Select(a => a.AnimeID).ToArray();
 
-            var titlesByAnime = Repo.AniDB_Anime_Title.GetByAnimeIDs(animeIds);
-            var animeTagsByAnime = Repo.AniDB_Anime_Tag.GetByAnimeIDs(animeIds);
-            var tagsByAnime = Repo.AniDB_Tag.GetByAnimeIDs(animeIds);
-            var custTagsByAnime = Repo.CustomTag.GetByAnimeIDs(animeIds);
-            var voteByAnime = Repo.AniDB_Vote.GetByAnimeIDs(animeIds);
-            var audioLangByAnime = Repo.Adhoc.GetAudioLanguageStatsByAnime(animeIds);
-            var subtitleLangByAnime = Repo.Adhoc.GetSubtitleLanguageStatsByAnime(animeIds);
-            var vidQualByAnime = Repo.Adhoc.GetAllVideoQualityByAnime(animeIds);
-            var epVidQualByAnime = Repo.Adhoc.GetEpisodeVideoQualityStatsByAnime(animeIds);
-            var defImagesByAnime = Repo.AniDB_Anime.GetDefaultImagesByAnime(animeIds);
-            var charsByAnime = Repo.AniDB_Character.GetCharacterAndSeiyuuByAnime(animeIds);
-            var movDbFanartByAnime = Repo.MovieDB_Fanart.GetByAnimeIDs(animeIds);
-            var tvDbBannersByAnime = Repo.TvDB_ImageWideBanner.GetByAnimeIDs(animeIds);
-            var tvDbFanartByAnime = Repo.TvDB_ImageFanart.GetByAnimeIDs(animeIds);
+            var titlesByAnime = Repo.Instance.AniDB_Anime_Title.GetByAnimeIDs(animeIds);
+            var animeTagsByAnime = Repo.Instance.AniDB_Anime_Tag.GetByAnimeIDs(animeIds);
+            var tagsByAnime = Repo.Instance.AniDB_Tag.GetByAnimeIDs(animeIds);
+            var custTagsByAnime = Repo.Instance.CustomTag.GetByAnimeIDs(animeIds);
+            var voteByAnime = Repo.Instance.AniDB_Vote.GetByAnimeIDs(animeIds);
+            var audioLangByAnime = Repo.Instance.Adhoc.GetAudioLanguageStatsByAnime(animeIds);
+            var subtitleLangByAnime = Repo.Instance.Adhoc.GetSubtitleLanguageStatsByAnime(animeIds);
+            var vidQualByAnime = Repo.Instance.Adhoc.GetAllVideoQualityByAnime(animeIds);
+            var epVidQualByAnime = Repo.Instance.Adhoc.GetEpisodeVideoQualityStatsByAnime(animeIds);
+            var defImagesByAnime = Repo.Instance.AniDB_Anime.GetDefaultImagesByAnime(animeIds);
+            var charsByAnime = Repo.Instance.AniDB_Character.GetCharacterAndSeiyuuByAnime(animeIds);
+            var movDbFanartByAnime = Repo.Instance.MovieDB_Fanart.GetByAnimeIDs(animeIds);
+            var tvDbBannersByAnime = Repo.Instance.TvDB_ImageWideBanner.GetByAnimeIDs(animeIds);
+            var tvDbFanartByAnime = Repo.Instance.TvDB_ImageFanart.GetByAnimeIDs(animeIds);
 
             foreach (SVR_AniDB_Anime anime in animeColl)
             {
@@ -1568,7 +1568,7 @@ namespace Shoko.Server.Models
 
         public void UpdateContractDetailed()
         {
-            List<AniDB_Anime_Title> animeTitles = Repo.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+            List<AniDB_Anime_Title> animeTitles = Repo.Instance.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             CL_AniDB_AnimeDetailed cl = new CL_AniDB_AnimeDetailed
             {
                 AniDBAnime = GenerateContract(animeTitles),
@@ -1645,7 +1645,7 @@ namespace Shoko.Server.Models
 
             // audio languages
             Dictionary<int, LanguageStat> dicAudio =
-                Repo.Adhoc.GetAudioLanguageStatsByAnime(AnimeID);
+                Repo.Instance.Adhoc.GetAudioLanguageStatsByAnime(AnimeID);
             foreach (KeyValuePair<int, LanguageStat> kvp in dicAudio)
             {
                 foreach (string lanName in kvp.Value.LanguageNames)
@@ -1659,7 +1659,7 @@ namespace Shoko.Server.Models
 
             // subtitle languages
             var dicSubtitle =
-                Repo.Adhoc.GetSubtitleLanguageStatsByAnime(AnimeID);
+                Repo.Instance.Adhoc.GetSubtitleLanguageStatsByAnime(AnimeID);
             foreach ((_, LanguageStat lang) in dicSubtitle)
             {
                 foreach (string lanName in lang.LanguageNames)
@@ -1678,9 +1678,9 @@ namespace Shoko.Server.Models
             cl.Stat_SubtitleLanguages = subtitleLanguages;
 
             //logger.Trace(" XXXX 10");
-            cl.Stat_AllVideoQuality = Repo.Adhoc.GetAllVideoQualityForAnime(AnimeID);
+            cl.Stat_AllVideoQuality = Repo.Instance.Adhoc.GetAllVideoQualityForAnime(AnimeID);
 
-            AnimeVideoQualityStat stat = Repo.Adhoc.GetEpisodeVideoQualityStatsForAnime(AnimeID);
+            AnimeVideoQualityStat stat = Repo.Instance.Adhoc.GetEpisodeVideoQualityStatsForAnime(AnimeID);
             cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
             if (stat != null && stat.VideoQualityEpisodeCount.Count > 0)
@@ -1722,7 +1722,7 @@ namespace Shoko.Server.Models
             contract.Detail.TotalVotes = this.GetAniDBTotalVotes();
 
 
-            List<AniDB_Anime_Character> animeChars = Repo.AniDB_Anime_Character.GetByAnimeID(AnimeID);
+            List<AniDB_Anime_Character> animeChars = Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID);
 
             if (animeChars != null && animeChars.Count > 0)
             {
@@ -1733,7 +1733,7 @@ namespace Shoko.Server.Models
                         item =>
                             item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase)))
                 {
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(animeChar.CharID);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(animeChar.CharID);
                     if (chr != null)
                         contract.Characters.Add(chr.ToContractAzure(animeChar));
                 }
@@ -1746,14 +1746,14 @@ namespace Shoko.Server.Models
                             !item.CharType.Equals("main character in", StringComparison.InvariantCultureIgnoreCase))
                 )
                 {
-                    AniDB_Character chr = Repo.AniDB_Character.GetByCharID(animeChar.CharID);
+                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(animeChar.CharID);
                     if (chr != null)
                         contract.Characters.Add(chr.ToContractAzure(animeChar));
                 }
             }
 
 
-            foreach (AniDB_Recommendation rec in Repo.AniDB_Recommendation.GetByAnimeID(AnimeID))
+            foreach (AniDB_Recommendation rec in Repo.Instance.AniDB_Recommendation.GetByAnimeID(AnimeID))
             {
                 Azure_AnimeComment comment = new Azure_AnimeComment
                 {
@@ -1792,14 +1792,14 @@ namespace Shoko.Server.Models
 
         public static void UpdateStatsByAnimeID(int id)
         {
-            SVR_AniDB_Anime an = Repo.AniDB_Anime.GetByAnimeID(id);
+            SVR_AniDB_Anime an = Repo.Instance.AniDB_Anime.GetByAnimeID(id);
             if (an != null)
-                Repo.AniDB_Anime.Touch(() => an);
+                Repo.Instance.AniDB_Anime.Touch(() => an);
 
-            SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(id);
+            SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(id);
             if (series != null)
             {
-                using (var txn = Repo.AnimeSeries.BeginAddOrUpdate(() => series))
+                using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => series))
                 {
                     // Update more than just stats in case the xrefs have changed
                     txn.Entity.UpdateStats(true, true, true);
@@ -1810,7 +1810,7 @@ namespace Shoko.Server.Models
 
         public DateTime GetDateTimeUpdated()
         {
-            var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
+            var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
             return update?.UpdatedAt ?? DateTime.MinValue;
         }
     }

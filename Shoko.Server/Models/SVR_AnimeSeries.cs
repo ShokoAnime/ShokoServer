@@ -109,30 +109,30 @@ namespace Shoko.Server.Models
 
         public List<SVR_AnimeEpisode> GetAnimeEpisodes()
         {
-            return Repo.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
+            return Repo.Instance.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
         }
 
         public int GetAnimeEpisodesNormalCountWithVideoLocal()
         {
             return
-                Repo.AnimeEpisode
+                Repo.Instance.AnimeEpisode
                     .GetBySeriesID(AnimeSeriesID)
                     .Count(a => a.EpisodeTypeEnum == EpisodeType.Episode &&
-                                Repo.CrossRef_File_Episode
-                                    .GetByEpisodeID(Repo.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
+                                Repo.Instance.CrossRef_File_Episode
+                                    .GetByEpisodeID(Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
                                                         ?.EpisodeID ?? 0)
-                                    .Select(b => Repo.VideoLocal.GetByHash(b.Hash))
+                                    .Select(b => Repo.Instance.VideoLocal.GetByHash(b.Hash))
                                     .Count(b => b != null) > 0);
         }
 
         public int GetAnimeNumberOfEpisodeTypes()
         {
-            return Repo.AnimeEpisode
+            return Repo.Instance.AnimeEpisode
                 .GetBySeriesID(AnimeSeriesID)
-                .Where(a => Repo.CrossRef_File_Episode
+                .Where(a => Repo.Instance.CrossRef_File_Episode
                                 .GetByEpisodeID(
-                                    Repo.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
-                                .Select(b => Repo.VideoLocal.GetByHash(b.Hash))
+                                    Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
+                                .Select(b => Repo.Instance.VideoLocal.GetByHash(b.Hash))
                                 .Count(b => b != null) > 0)
                 .Select(a => a.EpisodeTypeEnum)
                 .Distinct()
@@ -141,11 +141,11 @@ namespace Shoko.Server.Models
 
         public int GetAnimeEpisodesCountWithVideoLocal()
         {
-            return Repo.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
-                .Count(a => Repo.CrossRef_File_Episode
+            return Repo.Instance.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
+                .Count(a => Repo.Instance.CrossRef_File_Episode
                                 .GetByEpisodeID(
-                                    Repo.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
-                                .Select(b => Repo.VideoLocal.GetByHash(b.Hash))
+                                    Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
+                                .Select(b => Repo.Instance.VideoLocal.GetByHash(b.Hash))
                                 .Count(b => b != null) > 0);
         }
 
@@ -153,7 +153,7 @@ namespace Shoko.Server.Models
 
         public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
         {
-            return Repo.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
+            return Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
         }
 
         public List<TvDB_Series> GetTvDBSeries()
@@ -173,7 +173,7 @@ namespace Shoko.Server.Models
 
         #region Trakt
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
 
         public List<Trakt_Show> GetTraktShow()
         {
@@ -191,10 +191,10 @@ namespace Shoko.Server.Models
         #endregion
 
         [NotMapped]
-        public CrossRef_AniDB_Other CrossRefMovieDB => Repo.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
+        public CrossRef_AniDB_Other CrossRefMovieDB => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
 
         [NotMapped]
-        public List<CrossRef_AniDB_MAL> CrossRefMAL => Repo.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
+        public List<CrossRef_AniDB_MAL> CrossRefMAL => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
@@ -204,7 +204,7 @@ namespace Shoko.Server.Models
                 if (contract == null)
                 {
                     logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
-                    _contract = Repo.AnimeSeries.Touch(() => this, (false, false, true, false))._contract?.DeepClone();
+                    _contract = Repo.Instance.AnimeSeries.Touch(() => this, (false, false, true, false))._contract?.DeepClone();
                 }
 
                 if (contract == null)
@@ -271,7 +271,7 @@ namespace Shoko.Server.Models
                 WatchedEpisodeCount = 0,
                 WatchedDate = null
             };
-            Repo.AnimeSeries_User.BeginAdd(rr).Commit();
+            Repo.Instance.AnimeSeries_User.BeginAdd(rr).Commit();
             return rr;
         }
 
@@ -303,13 +303,13 @@ namespace Shoko.Server.Models
 
         public SVR_AnimeSeries_User GetUserRecord(int userID)
         {
-            return Repo.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
+            return Repo.Instance.AnimeSeries_User.GetByUserAndSeriesID(userID, AnimeSeriesID);
         }
 
 
         public SVR_AniDB_Anime GetAnime()
         {
-            return Repo.AniDB_Anime.GetByAnimeID(AniDB_ID);
+            return Repo.Instance.AniDB_Anime.GetByAnimeID(AniDB_ID);
         }
 
         [NotMapped]
@@ -363,7 +363,7 @@ namespace Shoko.Server.Models
         /// Gets the direct parent AnimeGroup this series belongs to
         /// </summary>
         [NotMapped]
-        public SVR_AnimeGroup AnimeGroup => Repo.AnimeGroup.GetByID(AnimeGroupID);
+        public SVR_AnimeGroup AnimeGroup => Repo.Instance.AnimeGroup.GetByID(AnimeGroupID);
 
         /// <summary>
         /// Gets the very top level AnimeGroup which this series belongs to
@@ -373,10 +373,10 @@ namespace Shoko.Server.Models
         {
             get
             {
-                SVR_AnimeGroup parentGroup = Repo.AnimeGroup.GetByID(AnimeGroupID);
+                SVR_AnimeGroup parentGroup = Repo.Instance.AnimeGroup.GetByID(AnimeGroupID);
 
                 while (parentGroup?.AnimeGroupParentID != null)
-                    parentGroup = Repo.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
+                    parentGroup = Repo.Instance.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
                 return parentGroup;
             }
         }
@@ -392,7 +392,7 @@ namespace Shoko.Server.Models
                     int? groupID = AnimeGroupID;
                     while (groupID.HasValue)
                     {
-                        SVR_AnimeGroup grp = Repo.AnimeGroup.GetByID(groupID.Value);
+                        SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(groupID.Value);
                         if (grp != null)
                         {
                             grps.Add(grp);
@@ -418,12 +418,12 @@ namespace Shoko.Server.Models
         {
             IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> { user };
             if (user == null)
-                users = Repo.JMMUser.GetAll();
+                users = Repo.Instance.JMMUser.GetAll();
             List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
             HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
 
-            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetWithConditionTypesAndAll(n)))
+            using (var upd = Repo.Instance.GroupFilter.BeginBatchUpdate(() => Repo.Instance.GroupFilter.GetWithConditionTypesAndAll(n)))
             {
                 foreach (SVR_GroupFilter gf in upd)
                 {
@@ -442,9 +442,9 @@ namespace Shoko.Server.Models
 
         public void DeleteFromFilters()
         {
-            //foreach (SVR_GroupFilter gf in Repo.GroupFilter.GetAll())
-            var gfs = Repo.GroupFilter.GetAll();
-            Repo.GroupFilter.BatchAction(gfs, gfs.Count, (gf, _) =>
+            //foreach (SVR_GroupFilter gf in Repo.Instace.GroupFilter.GetAll())
+            var gfs = Repo.Instance.GroupFilter.GetAll();
+            Repo.Instance.GroupFilter.BatchAction(gfs, gfs.Count, (gf, _) =>
             {
                 foreach (int k in gf.SeriesIds.Keys)
                     if (gf.SeriesIds[k].Contains(AnimeSeriesID))
@@ -465,13 +465,13 @@ namespace Shoko.Server.Models
 
             var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
             var tvDbByAnime = new Lazy<ILookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)>>(
-                () => Repo.TvDB_Series.GetByAnimeIDs(animeIds.Value), false);
+                () => Repo.Instance.TvDB_Series.GetByAnimeIDs(animeIds.Value), false);
             var movieByAnime = new Lazy<Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>>(
-                () => Repo.MovieDb_Movie.GetByAnimeIDs(animeIds.Value), false);
+                () => Repo.Instance.MovieDb_Movie.GetByAnimeIDs(animeIds.Value), false);
             var malXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
-                () => Repo.CrossRef_AniDB_MAL.GetByAnimeIDs(animeIds.Value), false);
+                () => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeIDs(animeIds.Value), false);
             var defImagesByAnime = new Lazy<Dictionary<int, DefaultAnimeImages>>(
-                () => Repo.AniDB_Anime.GetDefaultImagesByAnime(animeIds.Value), false);
+                () => Repo.Instance.AniDB_Anime.GetDefaultImagesByAnime(animeIds.Value), false);
 
             foreach (SVR_AnimeSeries series in seriesBatch)
             {
@@ -533,7 +533,7 @@ namespace Shoko.Server.Models
                         logger.Warn("You are missing database information for TvDB series: {0} - {1}",
                             missingTvDbSeries.TvDBID, missingTvDbSeries.GetTvDBSeries()?.SeriesName ?? "Series Not Found");
 
-                    contract.CrossRefAniDBTvDBV2 = Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
+                    contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
                     contract.TvDB_Series = tvDbCrossRefs
                         .Select(s => s.Item2)
                         .ToList();
@@ -621,7 +621,7 @@ namespace Shoko.Server.Models
                 if (animeRec != null)
                 {
                     if (animeRec.Contract == null)
-                        animeRec = Repo.AniDB_Anime.Touch(() => animeRec);
+                        animeRec = Repo.Instance.AniDB_Anime.Touch(() => animeRec);
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
@@ -648,7 +648,7 @@ namespace Shoko.Server.Models
                     contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
                 }
 
-                contract.CrossRefAniDBTvDBV2 = Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
+                contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
 
 
                 contract.TvDB_Series = sers;
@@ -936,14 +936,14 @@ namespace Shoko.Server.Models
 
         public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
         {
-            using (var txn = Repo.AnimeSeries.BeginAddOrUpdate(() => this))
+            using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => this))
             {
                 DateTime start = DateTime.Now;
                 logger.Info(
                     $"Starting Updating STATS for SERIES {AnimeSeriesID} ({watchedStats} - {missingEpsStats} - {updateAllGroupsAbove})");
 
 
-                IReadOnlyList<SVR_JMMUser> allUsers = Repo.JMMUser.GetAll();
+                IReadOnlyList<SVR_JMMUser> allUsers = Repo.Instance.JMMUser.GetAll();
 
                 DateTime startEps = DateTime.Now;
                 List<SVR_AnimeEpisode> eps = GetAnimeEpisodes();
@@ -951,8 +951,8 @@ namespace Shoko.Server.Models
                 logger.Trace("Got episodes for SERIES {0} in {1}ms", ToString(), tsEps.TotalMilliseconds);
 
                 DateTime startVids = DateTime.Now;
-                List<SVR_VideoLocal> vidsTemp = Repo.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
-                List<CrossRef_File_Episode> crossRefs = Repo.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
+                List<SVR_VideoLocal> vidsTemp = Repo.Instance.VideoLocal.GetByAniDBAnimeID(AniDB_ID);
+                List<CrossRef_File_Episode> crossRefs = Repo.Instance.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
 
                 Dictionary<int, List<CrossRef_File_Episode>> dictCrossRefs =
                     new Dictionary<int, List<CrossRef_File_Episode>>();
@@ -975,7 +975,7 @@ namespace Shoko.Server.Models
                     foreach (SVR_JMMUser juser in allUsers)
                     {
                         //this.WatchedCount = 0;
-                        using (var upd = Repo.AnimeSeries_User.BeginAddOrUpdate(() => GetUserRecord(juser.JMMUserID), () => new SVR_AnimeSeries_User { JMMUserID = juser.JMMUserID, AnimeSeriesID = AnimeSeriesID }))
+                        using (var upd = Repo.Instance.AnimeSeries_User.BeginAddOrUpdate(() => GetUserRecord(juser.JMMUserID), () => new SVR_AnimeSeries_User { JMMUserID = juser.JMMUserID, AnimeSeriesID = AnimeSeriesID }))
                         {
                             // reset stats
                             upd.Entity.UnwatchedEpisodeCount = 0;
@@ -985,7 +985,7 @@ namespace Shoko.Server.Models
 
                             DateTime startUser = DateTime.Now;
                             List<SVR_AnimeEpisode_User> epUserRecords =
-                                Repo.AnimeEpisode_User.GetByUserID(juser.JMMUserID);
+                                Repo.Instance.AnimeEpisode_User.GetByUserID(juser.JMMUserID);
                             Dictionary<int, SVR_AnimeEpisode_User> dictUserRecords =
                                 new Dictionary<int, SVR_AnimeEpisode_User>();
                             foreach (SVR_AnimeEpisode_User usrec in epUserRecords)
@@ -1047,7 +1047,7 @@ namespace Shoko.Server.Models
                     txn.Entity.MissingEpisodeCountGroups = MissingEpisodeCountGroups = 0;
 
                     // get all the group status records
-                    List<AniDB_GroupStatus> grpStatuses = Repo.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
+                    List<AniDB_GroupStatus> grpStatuses = Repo.Instance.AniDB_GroupStatus.GetByAnimeID(AniDB_ID);
 
                     // find all the episodes for which the user has a file
                     // from this we can determine what their latest episode number is
@@ -1175,7 +1175,7 @@ namespace Shoko.Server.Models
 
         public static Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff> SearchSeriesByStaff(string staffname, bool fuzzy = false)
         {
-            var allseries = Repo.AnimeSeries.GetAll();
+            var allseries = Repo.Instance.AnimeSeries.GetAll();
             var results = new Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff>();
             List<string> stringsToSearchFor = new List<string>();
             if (staffname.Contains(" "))
@@ -1190,8 +1190,8 @@ namespace Shoko.Server.Models
 
             foreach (SVR_AnimeSeries series in allseries)
             {
-                List<(CrossRef_Anime_Staff, AnimeStaff)> staff = Repo.CrossRef_Anime_Staff
-                    .GetByAnimeID(series.AniDB_ID).Select(a => (a, Repo.AnimeStaff.GetByID(a.StaffID))).ToList();
+                List<(CrossRef_Anime_Staff, AnimeStaff)> staff = Repo.Instance.CrossRef_Anime_Staff
+                    .GetByAnimeID(series.AniDB_ID).Select(a => (a, Repo.Instance.AnimeStaff.GetByID(a.StaffID))).ToList();
 
                 foreach (var animeStaff in staff)
                     foreach (var search in stringsToSearchFor)

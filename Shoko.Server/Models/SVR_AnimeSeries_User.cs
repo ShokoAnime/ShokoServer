@@ -26,7 +26,7 @@ namespace Shoko.Server.Models
                 if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
                 {
                     _lastPlexRegen = DateTime.Now;
-                    var series = Repo.AnimeSeries.GetByID(AnimeSeriesID);
+                    var series = Repo.Instance.AnimeSeries.GetByID(AnimeSeriesID);
                     return _plexContract = Helper.GenerateFromSeries(series.GetUserContract(JMMUserID), series,
                         series.GetAnime(), JMMUserID);
                 }
@@ -59,15 +59,15 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilter(HashSet<GroupFilterConditionType> types)
         {
-            SVR_AnimeSeries ser = Repo.AnimeSeries.GetByID(AnimeSeriesID);
-            SVR_JMMUser usr = Repo.JMMUser.GetByID(JMMUserID);
+            SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(AnimeSeriesID);
+            SVR_JMMUser usr = Repo.Instance.JMMUser.GetByID(JMMUserID);
             if (ser != null && usr != null)
                 ser.UpdateGroupFilters(types, usr);
         }
 
         public void DeleteFromFilters()
         {
-            using (var upd = Repo.GroupFilter.BeginBatchUpdate(() => Repo.GroupFilter.GetAll()))
+            using (var upd = Repo.Instance.GroupFilter.BeginBatchUpdate(() => Repo.Instance.GroupFilter.GetAll()))
             {
                 foreach (SVR_GroupFilter gf in upd)
                 {

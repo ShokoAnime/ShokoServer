@@ -44,7 +44,7 @@ namespace Shoko.Server.Commands
             {
                 // we will always assume that an anime was downloaded via http first
                 ScheduledUpdate sched =
-                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
+                    Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
 
                 if (sched != null)
                 {
@@ -74,10 +74,10 @@ namespace Shoko.Server.Commands
 
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
-                var dictAniFiles = Repo.AniDB_File.GetAll().ToLookup(a => a.Hash);
+                var dictAniFiles = Repo.Instance.AniDB_File.GetAll().ToLookup(a => a.Hash);
 
                 int missingFiles = 0;
-                foreach (SVR_VideoLocal vid in Repo.VideoLocal.GetAll()
+                foreach (SVR_VideoLocal vid in Repo.Instance.VideoLocal.GetAll()
                     .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
                 {
                     // Does it have a linked AniFile
@@ -94,7 +94,7 @@ namespace Shoko.Server.Commands
                         {
                             if (vid.MyListID == 0)
                             {
-                                using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vid))
+                                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vid))
                                 {
                                     vid.MyListID = file.ListID;
                                 }
@@ -125,7 +125,7 @@ namespace Shoko.Server.Commands
                 }
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
-                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.Instance.JMMUser.GetAniDBUsers();
                 HashSet<SVR_AnimeSeries> modifiedSeries = new HashSet<SVR_AnimeSeries>();
 
                 // Remove Missing Files and update watched states (single loop)
@@ -139,7 +139,7 @@ namespace Shoko.Server.Commands
 
                         string hash = string.Empty;
 
-                        SVR_AniDB_File anifile = Repo.AniDB_File.GetByFileID(myitem.FileID);
+                        SVR_AniDB_File anifile = Repo.Instance.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                         {
                             hash = anifile.Hash;
@@ -148,7 +148,7 @@ namespace Shoko.Server.Commands
                         {
                             // look for manually linked files
                             List<CrossRef_File_Episode> xrefs =
-                                Repo.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
+                                Repo.Instance.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID);
                             foreach (CrossRef_File_Episode xref in xrefs)
                             {
                                 if (xref.CrossRefSource == (int) CrossRefSource.AniDB) continue;
@@ -165,7 +165,7 @@ namespace Shoko.Server.Commands
                         }
 
                         // If there's no video local, we don't have it
-                        SVR_VideoLocal vl = Repo.VideoLocal.GetByHash(hash);
+                        SVR_VideoLocal vl = Repo.Instance.VideoLocal.GetByHash(hash);
                         if (vl == null)
                         {
                             filesToRemove.Add(myitem.ListID);
@@ -248,7 +248,7 @@ namespace Shoko.Server.Commands
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty }))
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty }))
                 {
                     sched.LastUpdate = DateTime.Now;
                     upd.Commit();

@@ -74,7 +74,7 @@ namespace Shoko.Server.Commands
                     isManualLink = xrefs[0].CrossRefSource != (int) CrossRefSource.AniDB;
 
                 // mark the video file as watched
-                List<SVR_JMMUser> aniDBUsers = Repo.JMMUser.GetAniDBUsers();
+                List<SVR_JMMUser> aniDBUsers = Repo.Instance.JMMUser.GetAniDBUsers();
                 SVR_JMMUser juser = aniDBUsers.FirstOrDefault();
                 DateTime? originalWatchedDate = null;
                 if (juser != null)
@@ -96,7 +96,7 @@ namespace Shoko.Server.Commands
                 // never true for Manual Links, so no worries about the loop overwriting it
                 if (lid != null && lid.Value > 0)
                 {
-                    using (var upd = Repo.VideoLocal.BeginAddOrUpdate(() => vid)) //TODO: Test if this will work{
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vid)) //TODO: Test if this will work{
                     {
                         upd.Entity.MyListID = lid.Value;
                         upd.Commit();
@@ -153,7 +153,7 @@ namespace Shoko.Server.Commands
                 // if we don't have xrefs, then no series or eps.
                 if (xrefs.Count <= 0) return;
 
-                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID);
+                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(xrefs[0].AnimeID);
                 // all the eps should belong to the same anime
                 ser.QueueUpdateStats();
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
@@ -207,7 +207,7 @@ namespace Shoko.Server.Commands
             }
 
             if (Hash.Trim().Length <= 0) return false;
-            vid = Repo.VideoLocal.GetByHash(Hash);
+            vid = Repo.Instance.VideoLocal.GetByHash(Hash);
             return true;
         }
 

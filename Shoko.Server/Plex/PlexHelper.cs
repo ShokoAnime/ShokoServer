@@ -31,7 +31,7 @@ namespace Shoko.Server.Plex
         private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new ConcurrentDictionary<int, PlexHelper>();
 
         private readonly int _userId;
-        private JMMUser _user { get => Repo.JMMUser.GetByID(_userId); }
+        private JMMUser _user { get => Repo.Instance.JMMUser.GetByID(_userId); }
 
         internal readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings();
 

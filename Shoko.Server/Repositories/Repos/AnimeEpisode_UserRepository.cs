@@ -141,7 +141,7 @@ namespace Shoko.Server.Repositories.Repos
         public void UpdateContract(SVR_AnimeEpisode_User aeu)
         {
             CL_AnimeEpisode_User caep = aeu.Contract ?? new CL_AnimeEpisode_User();
-            SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
+            SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(aeu.AnimeEpisodeID);
             if (ep == null)
                 return;
             AniDB_Episode aniEp = ep.AniDB_Episode;
@@ -153,9 +153,9 @@ namespace Shoko.Server.Repositories.Repos
             caep.StoppedCount = aeu.StoppedCount;
             caep.WatchedCount = aeu.WatchedCount;
             caep.WatchedDate = aeu.WatchedDate;
-            var englishTitle = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "EN")
+            var englishTitle = Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "EN")
                 .FirstOrDefault()?.Title;
-            var romajiTitle = Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
+            var romajiTitle = Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
                 .FirstOrDefault()?.Title;
             caep.AniDB_EnglishName = englishTitle;
             caep.AniDB_RomajiName = romajiTitle;

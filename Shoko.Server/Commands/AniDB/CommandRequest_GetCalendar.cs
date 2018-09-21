@@ -40,7 +40,7 @@ namespace Shoko.Server.Commands
                 // we will always assume that an anime was downloaded via http first
 
                 ScheduledUpdate sched =
-                    Repo.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
+                    Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
 
                 if (sched != null)
                 {
@@ -54,7 +54,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                using (var upd = Repo.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate
                 {
                     UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
                     UpdateDetails = string.Empty
@@ -73,8 +73,8 @@ namespace Shoko.Server.Commands
                 }
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(cal.AnimeID);
-                    var update = Repo.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(cal.AnimeID);
+                    var update = Repo.Instance.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
                     if (anime != null && update != null)
                     {
                         // don't update if the local data is less 2 days old
@@ -90,14 +90,14 @@ namespace Shoko.Server.Commands
                             // update the release date even if we don't update the anime record
                             if (anime.AirDate != cal.ReleaseDate)
                             {
-                                using (var upd = Repo.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                                using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
                                 {
                                     upd.Entity.AirDate = cal.ReleaseDate;
                                     upd.Commit();
                                 }
-                                SVR_AnimeSeries ser = Repo.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                                SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
-                                    Repo.AnimeSeries.Touch(() => ser, (true, false, false, false));
+                                    Repo.Instance.AnimeSeries.Touch(() => ser, (true, false, false, false));
                             }
                         }
                     }

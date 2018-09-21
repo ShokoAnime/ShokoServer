@@ -103,7 +103,7 @@ namespace AniDBAPI
                 if (string.IsNullOrEmpty(language)) continue;
                 string title = nodeChild.InnerText.Trim().Replace('`', '\'');
 
-                using (var upd = Repo.AniDB_Episode_Title.BeginAddOrUpdate(() => Repo.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(id, language).FirstOrDefault()))
+                using (var upd = Repo.Instance.AniDB_Episode_Title.BeginAddOrUpdate(() => Repo.Instance.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(id, language).FirstOrDefault()))
                 {
                     upd.Entity.AniDB_EpisodeID = id;
                     upd.Entity.Language = language;

@@ -147,7 +147,7 @@ namespace Shoko.Server.API
 
                     foreach (int grp in groups)
                     {
-                        SVR_AnimeGroup ag = Repo.AnimeGroup.GetByID(grp);
+                        SVR_AnimeGroup ag = Repo.Instance.AnimeGroup.GetByID(grp);
                         Video v = ag.GetPlexContract(uid);
                         if (v?.Art != null && v.Thumb != null)
                         {

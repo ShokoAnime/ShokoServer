@@ -90,7 +90,7 @@ namespace Shoko.Server.Commands
                 // lets try to see locally if we have a tvDB link for this anime
                 // Trakt allows the use of TvDB ID's or their own Trakt ID's
                 List<CrossRef_AniDB_TvDBV2>
-                    xrefTvDBs = Repo.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
+                    xrefTvDBs = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
                 if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                 {
                     foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
@@ -116,10 +116,10 @@ namespace Shoko.Server.Commands
 
                         // make sure the season specified by TvDB also exists on Trakt
                         Trakt_Show traktShow =
-                            Repo.Trakt_Show.GetByTraktSlug(showInfo.ids.slug);
+                            Repo.Instance.Trakt_Show.GetByTraktSlug(showInfo.ids.slug);
                         if (traktShow == null) continue;
 
-                        Trakt_Season traktSeason = Repo.Trakt_Season.GetByShowIDAndSeason(
+                        Trakt_Season traktSeason = Repo.Instance.Trakt_Season.GetByShowIDAndSeason(
                             traktShow.Trakt_ShowID,
                             tvXRef.TvDBSeasonNumber);
                         if (traktSeason == null) continue;
@@ -140,7 +140,7 @@ namespace Shoko.Server.Commands
                 if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                 // finally lets try searching Trakt directly
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(AnimeID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
                 var searchCriteria = anime.MainTitle;

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using JMMServer.Repositories;
+using JMMServer.Repo.Instance.itories;
 using JMMServer.Entities;
 using System.Xml;
 using System.IO;
@@ -49,7 +49,7 @@ namespace JMMServer.Commands
 
 			try
 			{
-				AniDB_CreatorRepository repCreator = new AniDB_CreatorRepository();
+				AniDB_CreatorRepo.Instance.itory repCreator = new AniDB_CreatorRepo.Instance.itory();
 				AniDB_Seiyuu creator = repCreator.GetByCreatorID(CreatorID);
 
 				if (ForceRefresh || creator == null)

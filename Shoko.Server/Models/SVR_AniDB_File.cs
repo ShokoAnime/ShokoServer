@@ -32,10 +32,10 @@ namespace Shoko.Server.Models
             get
             {
                 List<Language> lans = new List<Language>();
-                List<CrossRef_Languages_AniDB_File> fileLanguages = Repo.CrossRef_Languages_AniDB_File.GetByFileID(FileID);
+                List<CrossRef_Languages_AniDB_File> fileLanguages = Repo.Instance.CrossRef_Languages_AniDB_File.GetByFileID(FileID);
                 foreach (CrossRef_Languages_AniDB_File crossref in fileLanguages)
                 {
-                    Language lan = Repo.Language.GetByID(crossref.LanguageID);
+                    Language lan = Repo.Instance.Language.GetByID(crossref.LanguageID);
                     if (lan != null)
                         lans.Add(lan);
                 }
@@ -51,10 +51,10 @@ namespace Shoko.Server.Models
             get
             {
                 List<Language> subs = new List<Language>();
-                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = Repo.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID);
+                List<CrossRef_Subtitles_AniDB_File> fileSubtitles = Repo.Instance.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID);
                 foreach (CrossRef_Subtitles_AniDB_File crossref in fileSubtitles)
                 {
-                    Language sub = Repo.Language.GetByID(crossref.LanguageID);
+                    Language sub = Repo.Instance.Language.GetByID(crossref.LanguageID);
                     if (sub != null)
                         subs.Add(sub);
                 }
@@ -68,7 +68,7 @@ namespace Shoko.Server.Models
             get
             {
                 List<int> ids = new List<int>();
-                List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
+                List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
                 foreach (CrossRef_File_Episode crossref in fileEps)
                     ids.Add(crossref.EpisodeID);
 
@@ -83,7 +83,7 @@ namespace Shoko.Server.Models
             get
             {
                 List<AniDB_Episode> eps = new List<AniDB_Episode>();
-                List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
+                List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
                 foreach (CrossRef_File_Episode crossref in fileEps)
                 {
                     if (crossref.GetEpisode() != null)
@@ -95,7 +95,7 @@ namespace Shoko.Server.Models
 
         [XmlIgnore]
         [NotMapped]
-        public List<CrossRef_File_Episode> EpisodeCrossRefs => Repo.CrossRef_File_Episode.GetByHash(Hash);
+        public List<CrossRef_File_Episode> EpisodeCrossRefs => Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
 
         [NotMapped]
         public string SubtitlesRAW
@@ -318,7 +318,7 @@ namespace Shoko.Server.Models
                     {
                         if (!ld.ContainsKey(rlan))
                         {
-                            Language lan = Repo.Language.GetByLanguageName(rlan) ?? Repo.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
+                            Language lan = Repo.Instance.Language.GetByLanguageName(rlan) ?? Repo.Instance.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
                             ld.Add(rlan, lan.LanguageID);
                         }
 
@@ -337,7 +337,7 @@ namespace Shoko.Server.Models
                     {
                         if (!ld.ContainsKey(rlan))
                         {
-                            Language lan = Repo.Language.GetByLanguageName(rlan) ?? Repo.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
+                            Language lan = Repo.Instance.Language.GetByLanguageName(rlan) ?? Repo.Instance.Language.BeginAdd(new Language {LanguageName = rlan}).Commit();
                             ld.Add(rlan, lan.LanguageID);
                         }
                         subts.Add(rlan);
@@ -347,7 +347,7 @@ namespace Shoko.Server.Models
 
             if (audios.Count > 0)
             {
-                using (var upd = Repo.CrossRef_Languages_AniDB_File.BeginBatchUpdate(() => Repo.CrossRef_Languages_AniDB_File.GetByFileID(FileID),true))
+                using (var upd = Repo.Instance.CrossRef_Languages_AniDB_File.BeginBatchUpdate(() => Repo.Instance.CrossRef_Languages_AniDB_File.GetByFileID(FileID),true))
                 {
                     foreach (string str in audios)
                     {
@@ -363,7 +363,7 @@ namespace Shoko.Server.Models
 
             if (subts.Count > 0)
             {
-                using (var upd = Repo.CrossRef_Subtitles_AniDB_File.BeginBatchUpdate(() => Repo.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID),true))
+                using (var upd = Repo.Instance.CrossRef_Subtitles_AniDB_File.BeginBatchUpdate(() => Repo.Instance.CrossRef_Subtitles_AniDB_File.GetByFileID(FileID),true))
                 {
                     foreach (string str in subts)
                     {
@@ -381,10 +381,10 @@ namespace Shoko.Server.Models
         public void CreateCrossEpisodes(string localFileName)
         {
             if (episodesRAW == null) return;
-            List<CrossRef_File_Episode> fileEps = Repo.CrossRef_File_Episode.GetByHash(Hash);
+            List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
 
             foreach (CrossRef_File_Episode fileEp in fileEps)
-                Repo.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+                Repo.Instance.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
 
             fileEps = new List<CrossRef_File_Episode>();
 
@@ -421,7 +421,7 @@ namespace Shoko.Server.Models
                 fileEps.Add(cross);
             }
             // There is a chance that AniDB returned a dup, however unlikely
-            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ForEach(fileEp => Repo.CrossRef_File_Episode.Touch(() => fileEp));
+            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ForEach(fileEp => Repo.Instance.CrossRef_File_Episode.Touch(() => fileEp));
         }
   
         public string ToXML()

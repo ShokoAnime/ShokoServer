@@ -21,7 +21,7 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public List<string> GetAllVideoQuality()
         {
-            return Repo.AniDB_File.GetAllVideoQuality();
+            return Repo.Instance.AniDB_File.GetAllVideoQuality();
         }
 
         /// <summary>
@@ -30,10 +30,10 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public Dictionary<int, HashSet<string>> GetAllVideoQualityByGroup()
         {
-            Dictionary<int, List<int>> groupsseries = Repo.AnimeSeries.GetGroupByAnimeGroupIDAnimeSeries();
-            Dictionary<int, List<int>> series = Repo.AnimeEpisode.GetGroupByAnimeSeriesIDEpisodes();
-            Dictionary<int, List<string>> ephashes = Repo.CrossRef_File_Episode.GetGroupByEpisodeIDHashes();
-            Dictionary<string, List<string>> hashesfiles = Repo.AniDB_File.GetGroupByHashFileSource();
+            Dictionary<int, List<int>> groupsseries = Repo.Instance.AnimeSeries.GetGroupByAnimeGroupIDAnimeSeries();
+            Dictionary<int, List<int>> series = Repo.Instance.AnimeEpisode.GetGroupByAnimeSeriesIDEpisodes();
+            Dictionary<int, List<string>> ephashes = Repo.Instance.CrossRef_File_Episode.GetGroupByEpisodeIDHashes();
+            Dictionary<string, List<string>> hashesfiles = Repo.Instance.AniDB_File.GetGroupByHashFileSource();
             return groupsseries.ToDictionary(a => a.Key,a => new HashSet<string>(a.Value.SelectMany(b => series[b])
                     .SelectMany(b => ephashes[b]).SelectMany(b => hashesfiles[b]).Distinct()));
 
@@ -86,9 +86,9 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public Dictionary<int, HashSet<string>> GetAllVideoQualityByAnime()
         {
-            Dictionary<int, List<int>> series = Repo.AniDB_Episode.GetGroupByAnimeIDEpisodes();
-            Dictionary<int, List<string>> ephashes = Repo.CrossRef_File_Episode.GetGroupByEpisodeIDHashes();
-            Dictionary<string, List<string>> hashesfiles = Repo.AniDB_File.GetGroupByHashFileSource();
+            Dictionary<int, List<int>> series = Repo.Instance.AniDB_Episode.GetGroupByAnimeIDEpisodes();
+            Dictionary<int, List<string>> ephashes = Repo.Instance.CrossRef_File_Episode.GetGroupByEpisodeIDHashes();
+            Dictionary<string, List<string>> hashesfiles = Repo.Instance.AniDB_File.GetGroupByHashFileSource();
             return series.ToDictionary(a => a.Key, a => new HashSet<string>(a.Value.SelectMany(b => ephashes[b]).SelectMany(b => hashesfiles[b]).Distinct()));
 
 
@@ -136,10 +136,10 @@ namespace Shoko.Server.Repositories
 
         public HashSet<string> GetAllVideoQualityForGroup(int animeGroupID)
         {
-            return new HashSet<string>(Repo.AniDB_File.GetFileSourcesFromHashes(
-                Repo.CrossRef_File_Episode.GetHashesByEpisodeIds(
-                    Repo.AnimeEpisode.GetAniDBEpisodesIdBySeriesIDs(
-                        Repo.AnimeSeries.GetSeriesIdByGroupID(animeGroupID)))));
+            return new HashSet<string>(Repo.Instance.AniDB_File.GetFileSourcesFromHashes(
+                Repo.Instance.CrossRef_File_Episode.GetHashesByEpisodeIds(
+                    Repo.Instance.AnimeEpisode.GetAniDBEpisodesIdBySeriesIDs(
+                        Repo.Instance.AnimeSeries.GetSeriesIdByGroupID(animeGroupID)))));
 
 
             /*
@@ -222,9 +222,9 @@ namespace Shoko.Server.Repositories
 
         public HashSet<string> GetAllVideoQualityForAnime(int animeID)
         {
-            return new HashSet<string>(Repo.AniDB_File.GetFileSourcesFromHashes(
-                Repo.CrossRef_File_Episode.GetHashesByEpisodeIds(
-                    Repo.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(animeID))));
+            return new HashSet<string>(Repo.Instance.AniDB_File.GetFileSourcesFromHashes(
+                Repo.Instance.CrossRef_File_Episode.GetHashesByEpisodeIds(
+                    Repo.Instance.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(animeID))));
 
             /*
             HashSet<string> vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
@@ -373,13 +373,13 @@ namespace Shoko.Server.Repositories
 
         public AnimeVideoQualityStat GetEpisodeVideoQualityStatsForAnime(int aID)
         {
-            AniDB_Anime anime = Repo.AniDB_Anime.GetByID(aID);
+            AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(aID);
             if (anime != null)
             {
                 Dictionary<string, int> sources =
-                    Repo.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(aID).SelectMany(a =>
-                            Repo.AniDB_File.GetFileSourcesFromHashes(
-                                    Repo.CrossRef_File_Episode.GetHashesByEpisodeId(a))
+                    Repo.Instance.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(aID).SelectMany(a =>
+                            Repo.Instance.AniDB_File.GetFileSourcesFromHashes(
+                                    Repo.Instance.CrossRef_File_Episode.GetHashesByEpisodeId(a))
                                 .Select(z => new {Source = z, Episode = a})).GroupBy(m => m.Source)
                         .ToDictionary(a => a.Key, a => a.Count());
                 return new AnimeVideoQualityStat {  AnimeID = aID, MainTitle = anime.MainTitle, VideoQualityEpisodeCount = sources};
@@ -472,7 +472,7 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public List<string> GetAllUniqueAudioLanguages()
         {
-            return Repo.Language.GetAllUniqueAudioLanguages();
+            return Repo.Instance.Language.GetAllUniqueAudioLanguages();
             /*
             List<string> allLanguages = new List<string>();
 
@@ -506,7 +506,7 @@ namespace Shoko.Server.Repositories
         /// <returns></returns>
         public List<string> GetAllUniqueSubtitleLanguages()
         {
-            return Repo.Language.GetAllUniqueSubtitleLanguages();
+            return Repo.Instance.Language.GetAllUniqueSubtitleLanguages();
             /*
 
 
@@ -535,17 +535,17 @@ namespace Shoko.Server.Repositories
 
         public LanguageStat GetAudioLanguageStatByAnime(int aID)
         {
-            AniDB_Anime an = Repo.AniDB_Anime.GetByID(aID);
+            AniDB_Anime an = Repo.Instance.AniDB_Anime.GetByID(aID);
             if (an != null)
             {
                 return new LanguageStat
                 {
                     AnimeID = aID,
                     MainTitle = an.MainTitle,
-                    LanguageNames = Repo.Language.GetMany(Repo.CrossRef_Languages_AniDB_File.GetIdsByFilesIDs(
-                        Repo.AniDB_File.GetFileIdsFromHashes(
-                            Repo.CrossRef_File_Episode.GetHashesByEpisodeIds(
-                                Repo.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(aID))))).Select(a => a.LanguageName).ToList()
+                    LanguageNames = Repo.Instance.Language.GetMany(Repo.Instance.CrossRef_Languages_AniDB_File.GetIdsByFilesIDs(
+                        Repo.Instance.AniDB_File.GetFileIdsFromHashes(
+                            Repo.Instance.CrossRef_File_Episode.GetHashesByEpisodeIds(
+                                Repo.Instance.AniDB_Episode.GetAniDBEpisodesIdByAnimeId(aID))))).Select(a => a.LanguageName).ToList()
                 };
             }
             return null;
@@ -560,14 +560,14 @@ namespace Shoko.Server.Repositories
                 return new Dictionary<int, LanguageStat>();
             }
 
-            var rows = Repo.AnimeSeries.GetAll()
-                .Join(Repo.AniDB_Anime.GetAll(), s => s.AniDB_ID, j => j.AnimeID, (ser, anime) => new { ser, anime })
-                .Join(Repo.AnimeEpisode.GetAll(), s => s.ser.AnimeSeriesID, j => j.AnimeSeriesID, (cmb, ep) => new { cmb.ser, cmb.anime, ep })
-                .Join(Repo.AniDB_Episode.GetAll(), s => s.ep.AniDB_EpisodeID, aniep => aniep.EpisodeID, (cmb, aniep) => new { cmb.ser, cmb.anime, cmb.ep, aniep })
-                .Join(Repo.CrossRef_File_Episode.GetAll(), s => s.aniep.EpisodeID, xref => xref.EpisodeID, (cmb, xref) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, xref })
-                .Join(Repo.AniDB_File.GetAll(), s => s.xref.Hash, anifile => anifile.Hash, (cmb, anifile) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, anifile })
-                .Join(Repo.CrossRef_Languages_AniDB_File.GetAll(), s => s.anifile.FileID, audio => audio.FileID, (cmb, audio) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, audio })
-                .Join(Repo.Language.GetAll(), s => s.audio.LanguageID, lan => lan.LanguageID, (cmb, lan) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, cmb.audio, lan })
+            var rows = Repo.Instance.AnimeSeries.GetAll()
+                .Join(Repo.Instance.AniDB_Anime.GetAll(), s => s.AniDB_ID, j => j.AnimeID, (ser, anime) => new { ser, anime })
+                .Join(Repo.Instance.AnimeEpisode.GetAll(), s => s.ser.AnimeSeriesID, j => j.AnimeSeriesID, (cmb, ep) => new { cmb.ser, cmb.anime, ep })
+                .Join(Repo.Instance.AniDB_Episode.GetAll(), s => s.ep.AniDB_EpisodeID, aniep => aniep.EpisodeID, (cmb, aniep) => new { cmb.ser, cmb.anime, cmb.ep, aniep })
+                .Join(Repo.Instance.CrossRef_File_Episode.GetAll(), s => s.aniep.EpisodeID, xref => xref.EpisodeID, (cmb, xref) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, xref })
+                .Join(Repo.Instance.AniDB_File.GetAll(), s => s.xref.Hash, anifile => anifile.Hash, (cmb, anifile) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, anifile })
+                .Join(Repo.Instance.CrossRef_Languages_AniDB_File.GetAll(), s => s.anifile.FileID, audio => audio.FileID, (cmb, audio) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, audio })
+                .Join(Repo.Instance.Language.GetAll(), s => s.audio.LanguageID, lan => lan.LanguageID, (cmb, lan) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, cmb.audio, lan })
                 .Where(s => animeIds.Contains(s.anime.AnimeID))
                 .Select(s => (s.anime.AnimeID, s.anime.MainTitle, s.lan.LanguageName))
                 .Distinct();
@@ -602,14 +602,14 @@ namespace Shoko.Server.Repositories
                 return new Dictionary<int, LanguageStat>();
             }
 
-            var rows = Repo.AnimeSeries.GetAll()
-                .Join(Repo.AniDB_Anime.GetAll(), s => s.AniDB_ID, j => j.AnimeID, (ser, anime) => new { ser, anime })
-                .Join(Repo.AnimeEpisode.GetAll(), s => s.ser.AnimeSeriesID, j => j.AnimeSeriesID, (cmb, ep) => new { cmb.ser, cmb.anime, ep })
-                .Join(Repo.AniDB_Episode.GetAll(), s => s.ep.AniDB_EpisodeID, aniep => aniep.EpisodeID, (cmb, aniep) => new { cmb.ser, cmb.anime, cmb.ep, aniep })
-                .Join(Repo.CrossRef_File_Episode.GetAll(), s => s.aniep.EpisodeID, xref => xref.EpisodeID, (cmb, xref) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, xref })
-                .Join(Repo.AniDB_File.GetAll(), s => s.xref.Hash, anifile => anifile.Hash, (cmb, anifile) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, anifile })
-                .Join(Repo.CrossRef_Subtitles_AniDB_File.GetAll(), s => s.anifile.FileID, audio => audio.FileID, (cmb, audio) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, audio })
-                .Join(Repo.Language.GetAll(), s => s.audio.LanguageID, lan => lan.LanguageID, (cmb, lan) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, cmb.audio, lan })
+            var rows = Repo.Instance.AnimeSeries.GetAll()
+                .Join(Repo.Instance.AniDB_Anime.GetAll(), s => s.AniDB_ID, j => j.AnimeID, (ser, anime) => new { ser, anime })
+                .Join(Repo.Instance.AnimeEpisode.GetAll(), s => s.ser.AnimeSeriesID, j => j.AnimeSeriesID, (cmb, ep) => new { cmb.ser, cmb.anime, ep })
+                .Join(Repo.Instance.AniDB_Episode.GetAll(), s => s.ep.AniDB_EpisodeID, aniep => aniep.EpisodeID, (cmb, aniep) => new { cmb.ser, cmb.anime, cmb.ep, aniep })
+                .Join(Repo.Instance.CrossRef_File_Episode.GetAll(), s => s.aniep.EpisodeID, xref => xref.EpisodeID, (cmb, xref) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, xref })
+                .Join(Repo.Instance.AniDB_File.GetAll(), s => s.xref.Hash, anifile => anifile.Hash, (cmb, anifile) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, anifile })
+                .Join(Repo.Instance.CrossRef_Subtitles_AniDB_File.GetAll(), s => s.anifile.FileID, audio => audio.FileID, (cmb, audio) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, audio })
+                .Join(Repo.Instance.Language.GetAll(), s => s.audio.LanguageID, lan => lan.LanguageID, (cmb, lan) => new { cmb.ser, cmb.anime, cmb.ep, cmb.aniep, cmb.xref, cmb.anifile, cmb.audio, lan })
                 .Where(s => animeIds.Contains(s.anime.AnimeID))
                 .Select(s => (s.anime.AnimeID, s.anime.MainTitle, s.lan.LanguageName))
                 .Distinct();

@@ -396,7 +396,7 @@ namespace Shoko.Server.Providers.TraktTV
         public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<CrossRef_AniDB_TraktV2> xrefTemps = Repo.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
+            List<CrossRef_AniDB_TraktV2> xrefTemps = Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
                 animeID, (int)aniEpType, aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
             {
@@ -411,19 +411,19 @@ namespace Shoko.Server.Providers.TraktTV
 
             // check if we have this information locally
             // if not download it now
-            Trakt_Show traktShow = Repo.Trakt_Show.GetByTraktSlug(traktID);
+            Trakt_Show traktShow = Repo.Instance.Trakt_Show.GetByTraktSlug(traktID);
             if (traktShow == null)
             {
                 // we download the series info here just so that we have the basic info in the
                 // database before the queued task runs later
                 GetShowInfoV2(traktID);
-                traktShow = Repo.Trakt_Show.GetByTraktSlug(traktID);
+                traktShow = Repo.Instance.Trakt_Show.GetByTraktSlug(traktID);
             }
 
             // download and update series info, episode info and episode images
             CrossRef_AniDB_TraktV2 xref;
-            using (var upd = Repo.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(
-                () => Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int)aniEpType, aniEpNumber)))
+            using (var upd = Repo.Instance.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(
+                () => Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int)aniEpType, aniEpNumber)))
             {
                 upd.Entity.AnimeID = animeID;
                 upd.Entity.AniDBStartEpisodeType = (int)aniEpType;
@@ -460,13 +460,13 @@ namespace Shoko.Server.Providers.TraktTV
         public static void RemoveLinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
             int seasonNumber, int traktEpNumber)
         {
-            CrossRef_AniDB_TraktV2 xref = Repo.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
+            CrossRef_AniDB_TraktV2 xref = Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
                 traktEpNumber, animeID,
                 (int)aniEpType,
                 aniEpNumber);
             if (xref == null) return;
 
-            Repo.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
+            Repo.Instance.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
@@ -484,9 +484,9 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
 
-            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+            IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.Instance.CrossRef_AniDB_TraktV2.GetAll();
             List<int> alreadyLinked = new List<int>();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
@@ -515,7 +515,7 @@ namespace Shoko.Server.Providers.TraktTV
             AniDB_Episode aniep = ep?.AniDB_Episode;
             if (aniep == null) return null;
 
-            SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
+            SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(aniep.AnimeID);
             if (anime == null)
                 return null;
 
@@ -774,7 +774,7 @@ namespace Shoko.Server.Providers.TraktTV
                 {
                     // get the latest user record and find the latest date this episode was watched
                     DateTime? thisDate = null;
-                    List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
+                    List<SVR_JMMUser> traktUsers = Repo.Instance.JMMUser.GetTraktUsers();
                     if (traktUsers.Count > 0)
                     {
                         foreach (SVR_JMMUser juser in traktUsers)
@@ -901,7 +901,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 //1.get traktid and slugid from episode id
                 if (!int.TryParse(AnimeEpisodeID, out int aep)) return 400;
-                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(aep);
+                SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(aep);
                 string slugID = string.Empty;
                 int season = 0;
                 int epNumber = 0;
@@ -1079,7 +1079,7 @@ namespace Shoko.Server.Providers.TraktTV
                 Trakt_Show show;
 
 
-                using (var upd = Repo.Trakt_Show.BeginAddOrUpdate(() => Repo.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
+                using (var upd = Repo.Instance.Trakt_Show.BeginAddOrUpdate(() => Repo.Instance.Trakt_Show.GetByTraktSlug(tvshow.ids.slug)))
                 {
                     upd.Entity.Populate_RA(tvshow);
                     show = upd.Commit();
@@ -1090,7 +1090,7 @@ namespace Shoko.Server.Providers.TraktTV
                 // delete episodes if they no longer exist on Trakt
                 if (seasons.Count > 0)
                 {
-                    foreach (Trakt_Episode epTemp in Repo.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
+                    foreach (Trakt_Episode epTemp in Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
                     {
                         TraktV2Episode ep = null;
                         TraktV2Season sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
@@ -1099,13 +1099,13 @@ namespace Shoko.Server.Providers.TraktTV
 
                         // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
                         if (ep == null)
-                            Repo.Trakt_Episode.Delete(epTemp.Trakt_EpisodeID);
+                            Repo.Instance.Trakt_Episode.Delete(epTemp.Trakt_EpisodeID);
                     }
                 }
 
                 foreach (TraktV2Season sea in seasons)
                 {
-                    using (var upd = Repo.Trakt_Season.BeginAddOrUpdate(() => Repo.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
+                    using (var upd = Repo.Instance.Trakt_Season.BeginAddOrUpdate(() => Repo.Instance.Trakt_Season.GetByShowIDAndSeason(show.Trakt_ShowID, sea.number)))
                     {
 
                         upd.Entity.Season = sea.number;
@@ -1119,7 +1119,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                         foreach (TraktV2Episode ep in sea.episodes)
                         {
-                            using (var upd = Repo.Trakt_Episode.BeginAddOrUpdate(() => Repo.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
+                            using (var upd = Repo.Instance.Trakt_Episode.BeginAddOrUpdate(() => Repo.Instance.Trakt_Episode.GetByShowIDSeasonAndEpisode(show.Trakt_ShowID, ep.season, ep.number)))
                             {
 
                                 upd.Entity.TraktID = ep.ids.TraktID;
@@ -1151,7 +1151,7 @@ namespace Shoko.Server.Providers.TraktTV
                     return ret;
 
                 List<CrossRef_AniDB_TraktV2> traktXRefs =
-                    Repo.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                    Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
@@ -1267,7 +1267,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.CrossRef_AniDB_TraktV2.GetAll();
+            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.Instance.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
                 CommandRequest_TraktUpdateInfo cmd = new CommandRequest_TraktUpdateInfo(xref.TraktID);
@@ -1280,10 +1280,10 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.Instance.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                 if (anime == null) return;
 
                 TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1317,10 +1317,10 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
 
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.Instance.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return;
 
-                IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.AnimeSeries.GetAll();
+                IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
                 // now get the full users collection from Trakt
                 List<TraktV2ShowCollectedResult> collected = new List<TraktV2ShowCollectedResult>();
@@ -1347,7 +1347,7 @@ namespace Shoko.Server.Providers.TraktTV
                     logger.Trace("Syncing check -  local collection: {0} / {1} - {2}", counter, allSeries.Count,
                         series.GetSeriesName());
 
-                    SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
+                    SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(series.AniDB_ID);
                     if (anime == null) continue;
 
                     //if (anime.AnimeID != 3427) continue;
@@ -1412,13 +1412,13 @@ namespace Shoko.Server.Providers.TraktTV
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs =
-                        Repo.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                        Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            SVR_AnimeSeries locSeries = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = Repo.Instance.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1487,13 +1487,13 @@ namespace Shoko.Server.Providers.TraktTV
 
                     // check if we have this series locally
                     List<CrossRef_AniDB_TraktV2> xrefs =
-                        Repo.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                        Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
                         foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                         {
-                            SVR_AnimeSeries locSeries = Repo.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                            SVR_AnimeSeries locSeries = Repo.Instance.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
 
                             TraktSummaryContainer traktSummary = new TraktSummaryContainer();
@@ -1595,7 +1595,7 @@ namespace Shoko.Server.Providers.TraktTV
                 // let's check if we can get this show on Trakt
                 int traktCode = TraktStatusCodes.Success;
                 // get all the shows from the database and make sure they are still valid Trakt Slugs
-                Trakt_Show show = Repo.Trakt_Show.GetByTraktSlug(slug);
+                Trakt_Show show = Repo.Instance.Trakt_Show.GetByTraktSlug(slug);
                 if (show == null)
                 {
                     logger.Error($"Unable to get Trakt Show for \"{slug}\". Attempting to download info, anyway.");
@@ -1605,7 +1605,7 @@ namespace Shoko.Server.Providers.TraktTV
                         logger.Error($"\"{slug}\" was not found on Trakt. Not continuing.");
                         return false;
                     }
-                    show = Repo.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
+                    show = Repo.Instance.Trakt_Show.GetByTraktSlug(tempShow.ids.slug);
                 }
 
                 // note - getting extended show info also updates it as well
@@ -1633,18 +1633,18 @@ namespace Shoko.Server.Providers.TraktTV
         {
             // this means Trakt has no record of this slug.
             // 1. Delete any cross ref links
-            Repo.CrossRef_AniDB_TraktV2.Delete(Repo.CrossRef_AniDB_TraktV2.GetByTraktID(show.TraktID));
+            Repo.Instance.CrossRef_AniDB_TraktV2.Delete(Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(show.TraktID));
 
             // 2. Delete default image links
 
             // 3. Delete episodes
-            Repo.Trakt_Episode.Delete(Repo.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
+            Repo.Instance.Trakt_Episode.Delete(Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
 
             // 5. Delete seasons
-            Repo.Trakt_Season.Delete(Repo.Trakt_Season.GetByShowID(show.Trakt_ShowID));
+            Repo.Instance.Trakt_Season.Delete(Repo.Instance.Trakt_Season.GetByShowID(show.Trakt_ShowID));
 
             // 6. Delete the show
-            Repo.Trakt_Show.Delete(show.Trakt_ShowID);
+            Repo.Instance.Trakt_Show.Delete(show.Trakt_ShowID);
         }
 
         private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,
@@ -1786,7 +1786,7 @@ namespace Shoko.Server.Providers.TraktTV
                     return false;
 
                 // check that we have at least one user nominated for Trakt
-                List<SVR_JMMUser> traktUsers = Repo.JMMUser.GetTraktUsers();
+                List<SVR_JMMUser> traktUsers = Repo.Instance.JMMUser.GetTraktUsers();
                 if (traktUsers.Count == 0) return false;
 
                 int traktCode = TraktStatusCodes.Success;

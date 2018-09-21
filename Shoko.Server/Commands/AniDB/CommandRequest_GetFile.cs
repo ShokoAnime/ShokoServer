@@ -59,11 +59,11 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (vlocal == null) vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                if (vlocal == null) vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null) return;
                 lock (vlocal)
                 {
-                    SVR_AniDB_File aniFile = Repo.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
+                    SVR_AniDB_File aniFile = Repo.Instance.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || ForceAniDB)
@@ -71,7 +71,7 @@ namespace Shoko.Server.Commands
 
                     if (fileInfo != null)
                     {
-                        using (var upd = Repo.AniDB_File.BeginAddOrUpdate(() => aniFile))
+                        using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => aniFile))
                         {
                             upd.Entity.Populate_RA(fileInfo);
 
@@ -85,9 +85,9 @@ namespace Shoko.Server.Commands
                         aniFile.CreateCrossEpisodes(vlocal.FileName);
 
                         //TODO: Look at why this might be worth it?
-                        //SVR_AniDB_Anime anime = Repo.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
-                        //if (anime != null) Repo.AniDB_Anime.Save(anime); 
-                        SVR_AnimeSeries series = Repo.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
+                        //SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
+                        //if (anime != null) Repo.Instance.AniDB_Anime.Save(anime); 
+                        SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(aniFile.AnimeID);
                         series.UpdateStats(true, true, true);
                     }
                 }
@@ -124,7 +124,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "VideoLocalID"));
                 ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetFile", "ForceAniDB"));
-                vlocal = Repo.VideoLocal.GetByID(VideoLocalID);
+                vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
             }
 
             return true;

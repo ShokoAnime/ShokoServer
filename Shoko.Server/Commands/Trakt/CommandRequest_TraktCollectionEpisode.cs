@@ -47,7 +47,7 @@ namespace Shoko.Server.Commands
             {
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
 
-                SVR_AnimeEpisode ep = Repo.AnimeEpisode.GetByID(AnimeEpisodeID);
+                SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(AnimeEpisodeID);
                 if (ep != null)
                 {
                     TraktSyncType syncType = TraktSyncType.CollectionAdd;

@@ -73,7 +73,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks()
         {
-            return Repo.AnimeSeries.GetAll().Where(a =>
+            return Repo.Instance.AnimeSeries.GetAll().Where(a =>
             {
                 var anime = a.GetAnime();
                 if (anime == null) return false;
@@ -90,9 +90,9 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_AniDB_TvDBV2> GetV2LinksFromAnime(int animeID)
         {
-            List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = Repo.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
-                .ToLookup(a => Repo.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID),
-                    b => Repo.TvDB_Episode.GetByTvDBID(b.TvDBEpisodeID))
+            List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID)
+                .ToLookup(a => Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID),
+                    b => Repo.Instance.TvDB_Episode.GetByTvDBID(b.TvDBEpisodeID))
                 .Select(a => (AniDB: a.Key, TvDB: a.FirstOrDefault())).Where(a => a.AniDB != null && a.TvDB != null)
                 .OrderBy(a => a.AniDB.EpisodeType).ThenBy(a => a.AniDB.EpisodeNumber).ToList();
 
@@ -141,7 +141,7 @@ namespace Shoko.Server.Repositories.Repos
                 TvDBID = a.TvDBSeries,
                 TvDBSeasonNumber = a.TvDBSeason,
                 TvDBStartEpisodeNumber = a.TvDBNumber,
-                TvDBTitle = Repo.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
+                TvDBTitle = Repo.Instance.TvDB_Series.GetByTvDBID(a.TvDBSeries)?.SeriesName
             }).ToList();
         }
 

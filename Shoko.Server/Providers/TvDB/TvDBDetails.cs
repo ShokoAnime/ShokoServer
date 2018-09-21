@@ -151,7 +151,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                tvDBEpisodes = Repo.TvDB_Episode.GetBySeriesID(TvDBID)
+                tvDBEpisodes = Repo.Instance.TvDB_Episode.GetBySeriesID(TvDBID)
                     .OrderBy(a => a.SeasonNumber)
                     .ThenBy(a => a.EpisodeNumber)
                     .ToList();

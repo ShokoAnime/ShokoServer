@@ -26,12 +26,12 @@ namespace Shoko.Server.Repositories.Repos
                 throw new ArgumentNullException(nameof(animeIds));
 
             //TODO Optimize this shit
-            Dictionary<int, List<(int, string)>> animechars = Repo.AniDB_Anime_Character.GetCharsByAnimesIDs(animeIds);
+            Dictionary<int, List<(int, string)>> animechars = Repo.Instance.AniDB_Anime_Character.GetCharsByAnimesIDs(animeIds);
             List<int> charids = animechars.Values.SelectMany(a => a.Select(b=>b.Item1)).Distinct().ToList();
             Dictionary<int, AniDB_Character> chars = GetMany(charids).ToDictionary(a => a.CharID, a => a);
-            Dictionary<int, List<int>> charseiyuus = Repo.AniDB_Character_Seiyuu.GetSeiyuusFromCharIds(chars.Keys);
+            Dictionary<int, List<int>> charseiyuus = Repo.Instance.AniDB_Character_Seiyuu.GetSeiyuusFromCharIds(chars.Keys);
             List<int> seyuuids = charseiyuus.Values.SelectMany(a => a).Distinct().ToList();
-            Dictionary<int, AniDB_Seiyuu> seiyuus=Repo.AniDB_Seiyuu.GetMany(seyuuids).ToDictionary(a=> a.SeiyuuID,a=>a);
+            Dictionary<int, AniDB_Seiyuu> seiyuus=Repo.Instance.AniDB_Seiyuu.GetMany(seyuuids).ToDictionary(a=> a.SeiyuuID,a=>a);
             List<AnimeCharacterAndSeiyuu> ls=new List<AnimeCharacterAndSeiyuu>();
             foreach (int animeid in animechars.Keys)
             {
