@@ -4,6 +4,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -58,49 +59,57 @@ namespace Shoko.Server.Repositories.Repos
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return StaffIDs.GetMultiple(id);
+                if (IsCached)
+                    return StaffIDs.GetMultiple(id);
+                return Table.Where(s => s.StaffID == id).ToList();
             }
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleID(int id)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return RoleIDs.GetMultiple(id);
+                if (IsCached)
+                    return RoleIDs.GetMultiple(id);
+                return Table.Where(s => s.RoleID == id).ToList();
             }
         }
 
         public List<CrossRef_Anime_Staff> GetByRoleType(StaffRoleType type)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return RoleTypes.GetMultiple(type);
+                if (IsCached)
+                    return RoleTypes.GetMultiple(type);
+                return Table.Where(s => (StaffRoleType)s.RoleType == type).ToList();
             }
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeID(int id)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return AnimeIDs.GetMultiple(id);
+                if (IsCached)
+                    return AnimeIDs.GetMultiple(id);
+                return Table.Where(s => s.AniDB_AnimeID == id).ToList();
             }
         }
 
         public List<CrossRef_Anime_Staff> GetByAnimeIDAndRoleType(int id, StaffRoleType type)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return AnimeIDs.GetMultiple(id).Where(xref => xref.RoleType == (int) type).ToList();
+                return GetByAnimeID(id).Where(xref => xref.RoleType == (int) type).ToList();
             }
         }
 
         public CrossRef_Anime_Staff GetByParts(int AnimeID, int? RoleID, int StaffID, StaffRoleType RoleType)
         {
-            lock (Cache)
+            using (RepoLock.ReaderLock())
             {
-                return AnimeIDs.GetMultiple(AnimeID).FirstOrDefault(a =>
+                return GetByAnimeID(AnimeID).Find(a =>
                     a.RoleID == RoleID && a.StaffID == StaffID && a.RoleType == (int) RoleType);
             }
         }

@@ -1023,10 +1023,8 @@ namespace Shoko.Server.Models
             }
 
 
-            List<AniDB_Character> chrsToSave = new List<AniDB_Character>();
             List<AniDB_Anime_Character> xrefsToSave = new List<AniDB_Anime_Character>();
-
-            Dictionary<int, AniDB_Seiyuu> seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
+            
             List<AniDB_Character_Seiyuu> seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
 
             // delete existing relationships to seiyuu's
@@ -1054,91 +1052,97 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    AniDB_Character chr = Repo.Instance.AniDB_Character.GetByCharID(rawchar.CharID) ??
-                                          new AniDB_Character();
-
-                    if (!chr.PopulateFromHTTP(rawchar)) continue;
-                    chrsToSave.Add(chr);
-
-                    var character = Repo.Instance.AnimeCharacter.GetByAniDBID(chr.CharID);
-                    if (character == null)
+                    using (var upd = Repo.Instance.AniDB_Character.BeginAddOrUpdate(() => Repo.Instance.AniDB_Character.GetByCharID(rawchar.CharID)))
                     {
-                        character = new AnimeCharacter
+                        if (!upd.Entity.PopulateFromHTTP(rawchar)) continue;
+
+                        var chr = upd.Entity;
+
+                        var character = Repo.Instance.AnimeCharacter.GetByAniDBID(chr.CharID);
+                        if (character == null)
                         {
-                            AniDBID = chr.CharID,
-                            Name = chr.CharName,
-                            AlternateName = rawchar.CharKanjiName,
-                            Description = chr.CharDescription,
-                            ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
-                        };
-                        // we need an ID for xref
-                        Repo.Instance.AnimeCharacter.BeginAdd(character).Commit();
-                    }
+                            character = new AnimeCharacter
+                            {
+                                AniDBID = chr.CharID,
+                                Name = chr.CharName,
+                                AlternateName = rawchar.CharKanjiName,
+                                Description = chr.CharDescription,
+                                ImagePath = chr.GetPosterPath()?.Replace(charBasePath, "")
+                            };
+                            // we need an ID for xref
+                            Repo.Instance.AnimeCharacter.BeginAdd(character).Commit();
+                        }
 
-                    // create cross ref's between anime and character, but don't actually download anything
-                    AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
-                    anime_char.Populate(rawchar);
-                    xrefsToSave.Add(anime_char);
+                        // create cross ref's between anime and character, but don't actually download anything
+                        AniDB_Anime_Character anime_char = new AniDB_Anime_Character();
+                        if (anime_char.Populate(rawchar))
+                            xrefsToSave.Add(anime_char);
 
-                    foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
-                    {
-                        try
+                        foreach (Raw_AniDB_Seiyuu rawSeiyuu in rawchar.Seiyuus)
                         {
-                            // save the link between character and seiyuu
-                            AniDB_Character_Seiyuu acc = Repo.Instance.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID,
-                                rawSeiyuu.SeiyuuID);
-                            if (acc == null)
+                            try
                             {
-                                acc = new AniDB_Character_Seiyuu
+                                // save the link between character and seiyuu
+                                AniDB_Character_Seiyuu acc = Repo.Instance.AniDB_Character_Seiyuu.GetByCharIDAndSeiyuuID(rawchar.CharID,
+                                    rawSeiyuu.SeiyuuID);
+
+                                if (acc == null)
                                 {
-                                    CharID = chr.CharID,
-                                    SeiyuuID = rawSeiyuu.SeiyuuID
-                                };
-                                seiyuuXrefToSave.Add(acc);
+                                    acc = new AniDB_Character_Seiyuu
+                                    {
+                                        CharID = chr.CharID,
+                                        SeiyuuID = rawSeiyuu.SeiyuuID
+                                    };
+                                    seiyuuXrefToSave.Add(acc);
+                                }
+
+                                // save the seiyuu
+                                AniDB_Seiyuu seiyuu;
+                                using (var seiyuu_upd = Repo.Instance.AniDB_Seiyuu.BeginAddOrUpdate(() => Repo.Instance.AniDB_Seiyuu.GetByID(rawSeiyuu.SeiyuuID)))
+                                {
+                                    seiyuu_upd.Entity.PicName = rawSeiyuu.PicName;
+                                    seiyuu_upd.Entity.SeiyuuID = rawSeiyuu.SeiyuuID;
+                                    seiyuu_upd.Entity.SeiyuuName = rawSeiyuu.SeiyuuName;
+                                    seiyuu = seiyuu_upd.Commit();
+                                }
+
+                                var staff = Repo.Instance.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
+                                if (staff == null)
+                                {
+                                    staff = new AnimeStaff
+                                    {
+                                        // Unfortunately, most of the info is not provided
+                                        AniDBID = seiyuu.SeiyuuID,
+                                        Name = rawSeiyuu.SeiyuuName,
+                                        ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
+                                    };
+                                    // we need an ID for xref
+                                    Repo.Instance.AnimeStaff.BeginAdd(staff).Commit();
+                                }
+
+                                var xrefAnimeStaff = Repo.Instance.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
+                                    staff.StaffID, StaffRoleType.Seiyuu);
+                                if (xrefAnimeStaff == null)
+                                {
+                                    xrefAnimeStaff = new CrossRef_Anime_Staff
+                                    {
+                                        AniDB_AnimeID = AnimeID,
+                                        Language = "Japanese",
+                                        RoleType = (int)StaffRoleType.Seiyuu,
+                                        Role = rawchar.CharType,
+                                        RoleID = character.CharacterID,
+                                        StaffID = staff.StaffID,
+                                    };
+                                    Repo.Instance.CrossRef_Anime_Staff.BeginAdd(xrefAnimeStaff).Commit();
+                                }
                             }
-
-                            // save the seiyuu
-                            AniDB_Seiyuu seiyuu = Repo.Instance.AniDB_Seiyuu.GetByID(rawSeiyuu.SeiyuuID);
-                            if (seiyuu == null) seiyuu = new AniDB_Seiyuu();
-                            seiyuu.PicName = rawSeiyuu.PicName;
-                            seiyuu.SeiyuuID = rawSeiyuu.SeiyuuID;
-                            seiyuu.SeiyuuName = rawSeiyuu.SeiyuuName;
-                            seiyuuToSave[seiyuu.SeiyuuID] = seiyuu;
-
-                            var staff = Repo.Instance.AnimeStaff.GetByAniDBID(seiyuu.SeiyuuID);
-                            if (staff == null)
+                            catch (Exception e)
                             {
-                                staff = new AnimeStaff
-                                {
-                                    // Unfortunately, most of the info is not provided
-                                    AniDBID = seiyuu.SeiyuuID,
-                                    Name = rawSeiyuu.SeiyuuName,
-                                    ImagePath = seiyuu.GetPosterPath()?.Replace(creatorBasePath, "")
-                                };
-                                // we need an ID for xref
-                                Repo.Instance.AnimeStaff.BeginAdd(staff).Commit();
-                            }
-
-                            var xrefAnimeStaff = Repo.Instance.CrossRef_Anime_Staff.GetByParts(AnimeID, character.CharacterID,
-                                staff.StaffID, StaffRoleType.Seiyuu);
-                            if (xrefAnimeStaff == null)
-                            {
-                                xrefAnimeStaff = new CrossRef_Anime_Staff
-                                {
-                                    AniDB_AnimeID = AnimeID,
-                                    Language = "Japanese",
-                                    RoleType = (int)StaffRoleType.Seiyuu,
-                                    Role = rawchar.CharType,
-                                    RoleID = character.CharacterID,
-                                    StaffID = staff.StaffID,
-                                };
-                                Repo.Instance.CrossRef_Anime_Staff.BeginAdd(xrefAnimeStaff).Commit();
+                                logger.Error($"Unable to Populate and Save Seiyuus for {MainTitle}: {e}");
                             }
                         }
-                        catch (Exception e)
-                        {
-                            logger.Error($"Unable to Populate and Save Seiyuus for {MainTitle}: {e}");
-                        }
+
+                        upd.Commit();
                     }
                 }
                 catch (Exception ex)
@@ -1148,9 +1152,7 @@ namespace Shoko.Server.Models
             }
             try
             {
-                Repo.Instance.AniDB_Character.BeginAdd(chrsToSave).Commit();
                 Repo.Instance.AniDB_Anime_Character.BeginAdd(xrefsToSave).Commit();
-                Repo.Instance.AniDB_Seiyuu.BeginAdd(seiyuuToSave.Values.ToList()).Commit();
                 Repo.Instance.AniDB_Character_Seiyuu.BeginAdd(seiyuuXrefToSave).Commit();
             }
             catch (Exception ex)
