@@ -12,6 +12,7 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
@@ -129,18 +130,11 @@ namespace Shoko.Server.Repositories.Repos
         {
             using (RepoLock.ReaderLock())
             {
-                if (IsCached)
-                {
-                    foreach (SVR_GroupFilter gf in Cache.Values)
-                        gf.GroupsIdsString = null;
-                    Context.SaveChanges();
-                }
-                else
-                {
-                    foreach (SVR_GroupFilter gf in Table)
-                        gf.GroupsIdsString = null;
-                    Context.SaveChanges();
-                }
+                List<SVR_GroupFilter> series = IsCached ? Cache.Values.ToList() : Table.ToList();
+                ShokoContext ctx = Provider.GetContext();
+                ctx.AttachRange(series);
+                series.ForEach(a => a.GroupsIdsString = null);
+                ctx.SaveChanges();
             }
         }
 

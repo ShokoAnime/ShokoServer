@@ -211,7 +211,7 @@ namespace Shoko.Server.Models
                     cmdDel.Save();
                 }
 
-                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
                     Repo.Instance.VideoLocal_Place.Delete(this);
 
@@ -226,7 +226,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
                     Repo.Instance.VideoLocal_Place.Delete(this);
                     dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete( a));
@@ -274,7 +274,7 @@ namespace Shoko.Server.Models
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
                 eps?.ForEach(episodesToUpdate.Add);
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
-                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
                     Repo.Instance.VideoLocal_Place.Delete(this);
                     Repo.Instance.VideoLocal.Delete(v);
@@ -285,7 +285,7 @@ namespace Shoko.Server.Models
             }
             else
             {
-                using (var transaction = Repo.Instance.Db.Database.BeginTransaction())
+                using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
                     Repo.Instance.VideoLocal_Place.Delete(this);
                     dupFiles?.ForEach(a => Repo.Instance.DuplicateFile.Delete(a));

@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -100,19 +101,12 @@ namespace Shoko.Server.Repositories.Repos
             {
                 //In the future we can do Bulk Updates, but they seems to be married with the sql provider of choice, 
                 //or using them under the hood. So to keep us clear of problems in the future, chose not to use bulk providers.
-                if (IsCached)
-                {
-                    foreach (SVR_AnimeSeries s in Cache.Values)
-                        s.AnimeGroupID = 0;
-                    Context.SaveChanges();
-                }
-                else
-                {
-                    foreach (SVR_AnimeSeries s in Table)
-                        s.AnimeGroupID = 0;
-                    Context.SaveChanges();
 
-                }
+                List<SVR_AnimeSeries> series = IsCached ? Cache.Values.ToList() : Table.ToList();
+                ShokoContext ctx = Provider.GetContext();
+                ctx.AttachRange(series);
+                series.ForEach(a=>a.AnimeGroupID=0);
+                ctx.SaveChanges();
             }
         }
         internal override object BeginDelete(SVR_AnimeSeries entity,

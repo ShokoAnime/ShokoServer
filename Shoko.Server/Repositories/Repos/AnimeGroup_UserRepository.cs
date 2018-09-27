@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -255,20 +256,21 @@ namespace Shoko.Server.Repositories.Repos
             using (RepoLock.ReaderLock())
             {
 
+                List<SVR_AnimeGroup_User> grps;
                 if (IsCached)
                 {
-                    foreach (SVR_AnimeGroup_User s in Cache.Values)
-                    {
-                        Table.Remove(s);
-                    }
+                    grps = Cache.Values.ToList();
                     Cache = null;
                     ClearIndexes();
                 }
                 else
                 {
-                    Table.RemoveRange(Table);
+                    grps = Table.ToList();
                 }
-                Context.SaveChanges();
+                ShokoContext ctx = Provider.GetContext();
+                ctx.AttachRange(grps);
+                ctx.RemoveRange(grps);
+                ctx.SaveChanges();
             }
         }
 

@@ -78,7 +78,17 @@ namespace Shoko.Server
                 }
             }
 
-            var implementations = asse.SelectMany(a => a.GetTypes())
+            var implementations = asse.SelectMany(a =>
+                {
+                    try
+                    {
+                        return a.GetTypes();
+                    }
+                    catch (Exception e)
+                    {
+                        return new Type[0];
+                    }
+                })
                 .Where(a => a.GetInterfaces().Contains(typeof(IRenamer)));
 
             foreach (var implementation in implementations)

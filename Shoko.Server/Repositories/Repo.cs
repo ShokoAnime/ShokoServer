@@ -124,14 +124,14 @@ namespace Shoko.Server.Repositories
 
         //AdHoc Repo
         public AdhocRepository Adhoc { get; private set; }
-        internal ShokoContext Db { get; set; }
+        internal ShokoContextProvider Provider { get; set; }
 
         private List<IRepository> _repos;
 
         private TU Register<TU, T>(DbSet<T> table) where T : class where TU : IRepository<T>, new()
         {
             TU repo = new TU();
-            repo.SetContext(Db,table);
+            repo.SetContext(Provider,table);
             repo.SwitchCache(CachedRepos.Contains(table.GetName()));
             _repos.Add(repo);
             return repo;
@@ -153,14 +153,15 @@ namespace Shoko.Server.Repositories
             nameof(TvDB_Series), nameof(VideoLocal_Place), nameof(VideoLocal_User), nameof(VideoLocal),
         }; //TODO Set Default
 
-        public void Init(ShokoContext db, HashSet<string> cachedRepos)
+        public void Init(ShokoContextProvider provider, HashSet<string> cachedRepos)
         {
+            ShokoContext db = provider.GetContext();
             db.Database.Migrate();
 
             _repos =new List<IRepository>();
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
-            Db = db;
+            Provider = provider;
 
             JMMUser = Register<JMMUserRepository, SVR_JMMUser>(db.JMMUsers);
             AuthTokens = Register<AuthTokensRepository, AuthTokens>(db.AuthTokens);
@@ -283,7 +284,7 @@ namespace Shoko.Server.Repositories
                     break;
             }
 
-            Init(new ShokoContext(ServerSettings.Instance.Database.Type, connStr), CachedRepos);
+            Init(new ShokoContextProvider(ServerSettings.Instance.Database.Type, connStr), DefaultCached);
 
             return true;
         }

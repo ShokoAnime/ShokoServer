@@ -32,15 +32,17 @@ namespace Shoko.Server.Repositories
 
         internal bool IsCached;
         internal PocoCache<TS, T> Cache;
-        internal DbSet<T> Table;
-        internal ShokoContext Context;
+        internal IQueryable<T> Table;
+        internal ShokoContextProvider Provider;
         internal ReaderWriterLockSlim RepoLock = Lock.RepoLock.Value;
-        
-        public static TU Create<TU>(ShokoContext context,DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
+
+
+        public static TU Create<TU>(ShokoContextProvider context, DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
         {
             TU repo = new TU();
-            repo.Table = table;
-            repo.Context = context;
+            repo.Name = table.GetName();
+            repo.Table = table.AsNoTracking();
+            repo.Provider = context;
             repo.SwitchCache(cache);
             return repo;
         }
@@ -94,8 +96,10 @@ namespace Shoko.Server.Repositories
             object ret=BeginDelete(obj,pars);
             using (RepoLock.WriterLock())
             {
-                Table.Remove(obj);
-                Context.SaveChanges();
+                ShokoContext context = Provider.GetContext();
+                context.Attach(obj);
+                context.Remove(obj);
+                context.SaveChanges();
                 if (IsCached)
                     Cache.Remove(obj);
             }
@@ -115,8 +119,10 @@ namespace Shoko.Server.Repositories
                 savedobjects[e]=BeginDelete(e, pars);
             using (RepoLock.ReaderLock())
             {
-                Table.RemoveRange(listed);
-                Context.SaveChanges();
+                ShokoContext context = Provider.GetContext();
+                context.AttachRange(listed);
+                context.RemoveRange(listed);
+                context.SaveChanges();
                 if (IsCached)
                     listed.ForEach(Cache.Remove);
             }
@@ -144,7 +150,7 @@ namespace Shoko.Server.Repositories
         public IAtomic<T, TT> BeginAdd()
         {
             AtomicUpdate<T, TS, TT> upd = new AtomicUpdate<T, TS, TT>(this);
-            Context.SetLocalKey(upd.Entity,GetNextAutoGen);
+            Provider.GetContext().SetLocalKey(upd.Entity,GetNextAutoGen);
             return upd;
         }
 
@@ -161,8 +167,10 @@ namespace Shoko.Server.Repositories
                 if (obj == null)
                     return false;
                 object ret = BeginDelete(obj, pars);
-                Table.Remove(obj);
-                Context.SaveChanges();
+                ShokoContext context = Provider.GetContext();
+                context.Attach(obj);
+                context.Remove(obj);
+                context.SaveChanges();
                 if (IsCached)
                     Cache.Remove(obj);
                 EndDelete(obj, ret, pars);
@@ -182,8 +190,10 @@ namespace Shoko.Server.Repositories
                     savedobjects[e] = BeginDelete(e, pars);
                 using (RepoLock.ReaderLock())
                 {
-                    Table.RemoveRange(objs);
-                    Context.SaveChanges();
+                    ShokoContext context = Provider.GetContext();
+                    context.AttachRange(objs);
+                    context.RemoveRange(objs);
+                    context.SaveChanges();
                     if (IsCached)
                         objs.ForEach(Cache.Remove);
                 }
@@ -367,10 +377,11 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        public void SetContext(ShokoContext db, DbSet<T> table)
+        public void SetContext(ShokoContextProvider db, DbSet<T> table)
         {
-            Context = db;
-            Table = table;
+            Provider = db;
+            Table = table.AsNoTracking();
+            Name = table.GetName();
         }
 
         public virtual void PreInit(IProgress<InitProgress> progress, int batchSize)
@@ -383,6 +394,7 @@ namespace Shoko.Server.Repositories
 
         }
 
-        public string Name => Table.GetName();
+        public string Name { get; private set; }
     }
+
 }

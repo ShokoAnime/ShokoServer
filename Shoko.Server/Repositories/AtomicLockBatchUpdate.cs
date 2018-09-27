@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Force.DeepCloner;
+using Microsoft.EntityFrameworkCore;
 using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
@@ -49,7 +50,7 @@ namespace Shoko.Server.Repositories
         public T Create()
         {
             T a=new T();
-            _repo.Context.SetLocalKey(a, _repo.GetNextAutoGen);
+            _repo.Provider.GetContext().SetLocalKey(a, _repo.GetNextAutoGen);
             _references[a] = null;
             return a;
         }
@@ -69,8 +70,10 @@ namespace Shoko.Server.Repositories
                 {
                     foreach (T e in _originalItems.Values)
                         savedobjects[e] = _repo.BeginDelete(e, pars);
-                    _repo.Table.RemoveRange(_originalItems.Values);
-                    _repo.Context.SaveChanges();
+                    ShokoContext ctx = _repo.Provider.GetContext();
+                    ctx.AttachRange(_originalItems.Values);
+                    ctx.RemoveRange(_originalItems.Values);
+                    ctx.SaveChanges();
                     if (_repo.IsCached)
                         _originalItems.Values.ForEach(_repo.Cache.Remove);
                     foreach (T e in _originalItems.Values)
@@ -91,25 +94,28 @@ namespace Shoko.Server.Repositories
                 var creates = _references.Where(a => a.Value == null).ToList();
                 using (_repo.RepoLock.WriterLock())
                 {
+                    ShokoContext ctx = _repo.Provider.GetContext();
                     foreach (KeyValuePair<T, T> r in updates)
                     {
                         r.Key.DeepCloneTo(r.Value); //Tried to be 100% atomic and failed miserably, so is 99%. 
                         //If we replace Original with Entity in cache (updating with 'this' as the model to update, will not get the changes).
                         //So this is the best effort
+                        ctx.Attach(r.Value);
+                        ctx.Update(r.Value);
                         returns.Add(r.Value);
                     }
 
                     foreach (KeyValuePair<T, T> r in creates)
                     {
-                        _repo.Table.Add(r.Key);
+                        ctx.Add(r.Key);
                         returns.Add(r.Key);
                     }
 
                     if (_repo.IsCached)
                         returns.ForEach(_repo.Cache.Update);
+                    ctx.SaveChanges();
                 }
 
-                _repo.Context.SaveChanges();
                 foreach (T t in returns)
                 {
                     _repo.EndSave(t, savedObjects[t], pars);

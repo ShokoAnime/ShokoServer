@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         private readonly string _connectionString;
         private readonly DatabaseTypes _type;
-        private AsyncLock _saveLock = new AsyncLock();
+        //private AsyncLock _saveLock = new AsyncLock();
 
         public ShokoContext(DatabaseTypes type, string connectionstring)
         {
@@ -60,48 +60,49 @@ namespace Shoko.Server.Databases
         //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
         //     to discover any changes to entity instances before saving to the underlying database.
         //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
-        public override int SaveChanges(bool acceptAllChangesOnSuccess)
-        {
-            try
-            {
-                using (_saveLock.Lock())
-                    return base.SaveChanges(acceptAllChangesOnSuccess);
-            } catch (DbUpdateException ex)
-            {
-                logger.Log(NLog.LogLevel.Error, $"Error in {nameof(ShokoContext)}: {ex.InnerException.Message}", ex);
-                throw;
-            }
-        }
-
-        //
-        // Summary:
-        //     Saves all changes made in this context to the database.
-        //
-        // Returns:
-        //     The number of state entries written to the database.
-        //
-        // Exceptions:
-        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
-        //     An error is encountered while saving to the database.
-        //
-        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
-        //     A concurrency violation is encountered while saving to the database. A concurrency
-        //     violation occurs when an unexpected number of rows are affected during save.
-        //     This is usually because the data in the database has been modified since it was
-        //     loaded into memory.
-        //
-        // Remarks:
-        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
-        //     to discover any changes to entity instances before saving to the underlying database.
-        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
         /*
-         * NOTE: Cazzar: This by the code for EFCore just calls SaveChanges(acceptAllChangesOnSuccess: true);
-         *               Inherently I have removed this call to just stop save locking recursing where we have a database deadlock.
-        public override int SaveChanges()
-        {
-            using (_saveLock.Lock())
-                return base.SaveChanges();
-        }*/
+   public override int SaveChanges(bool acceptAllChangesOnSuccess)
+   {
+       try
+       {
+           using (_saveLock.Lock())
+               return base.SaveChanges(acceptAllChangesOnSuccess);
+       } catch (DbUpdateException ex)
+       {
+           logger.Log(NLog.LogLevel.Error, $"Error in {nameof(ShokoContext)}: {ex.InnerException.Message}", ex);
+           throw;
+       }
+   }
+   */
+   //
+   // Summary:
+   //     Saves all changes made in this context to the database.
+   //
+   // Returns:
+   //     The number of state entries written to the database.
+   //
+   // Exceptions:
+   //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+   //     An error is encountered while saving to the database.
+   //
+   //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+   //     A concurrency violation is encountered while saving to the database. A concurrency
+   //     violation occurs when an unexpected number of rows are affected during save.
+   //     This is usually because the data in the database has been modified since it was
+   //     loaded into memory.
+   //
+   // Remarks:
+   //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+   //     to discover any changes to entity instances before saving to the underlying database.
+   //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+   /*
+    * NOTE: Cazzar: This by the code for EFCore just calls SaveChanges(acceptAllChangesOnSuccess: true);
+    *               Inherently I have removed this call to just stop save locking recursing where we have a database deadlock.
+   public override int SaveChanges()
+   {
+       using (_saveLock.Lock())
+           return base.SaveChanges();
+   }*/
 
         //
         // Summary:
@@ -137,7 +138,7 @@ namespace Shoko.Server.Databases
         //     Multiple active operations on the same context instance are not supported. Use
         //     'await' to ensure that any asynchronous operations have completed before calling
         //     another method on this context.
-
+        /*
         public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
             try
@@ -149,7 +150,7 @@ namespace Shoko.Server.Databases
                 logger.Log(NLog.LogLevel.Error, $"Error in {nameof(ShokoContext)}: {ex.InnerException.Message}", ex);
                 throw;
             }
-        }
+        }*/
         //
         // Summary:
         //     Asynchronously saves all changes made in this context to the database.

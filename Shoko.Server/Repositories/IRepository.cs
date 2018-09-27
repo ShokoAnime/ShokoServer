@@ -37,6 +37,6 @@ namespace Shoko.Server.Repositories
 
     public interface IRepository<T> : IRepository where T: class
     {
-        void SetContext(ShokoContext db, DbSet<T> table);
+        void SetContext(ShokoContextProvider db, DbSet<T> table);
     }
 }

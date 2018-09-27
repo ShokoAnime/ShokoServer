@@ -659,7 +659,7 @@ namespace Shoko.Server
 
         public void SetupNetHosts()
         {
-            logger.Info("Initializing Web Hosts...");
+            logger.Info($"Initializing Web Hosts on port {ServerSettings.Instance.ServerPort}...");
             ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
             bool started = true;
             started &= NetPermissionWrapper(StartNancyHost);

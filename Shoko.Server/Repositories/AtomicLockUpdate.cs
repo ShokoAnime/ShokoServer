@@ -1,5 +1,6 @@
 ﻿using System;
 using Force.DeepCloner;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories
@@ -40,10 +41,11 @@ namespace Shoko.Server.Repositories
         {
             object obj = _repo.BeginSave(Entity, Original, pars);
             T ret;
+            ShokoContext ctx = _repo.Provider.GetContext();
             if (Original == null)
             {
                 ret = Entity;
-                _repo.Table.Add(Entity);
+                ctx.Add(Entity);
             }
             else
             {
@@ -51,10 +53,12 @@ namespace Shoko.Server.Repositories
                 Entity.DeepCloneTo(Original); //Tried to be 100% atomic and failed miserably, so is 99%. 
                                                 //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
                                                 //So this is the best effort
+                ctx.Attach(Original);
+                ctx.Update(Original);
             }
             if (_repo.IsCached)
                 _repo.Cache.Update(ret);
-            _repo.Context.SaveChanges();
+            ctx.SaveChanges();
             _repo.EndSave(ret, obj, pars);
             return ret;
         }

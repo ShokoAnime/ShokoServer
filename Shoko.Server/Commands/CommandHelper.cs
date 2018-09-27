@@ -111,7 +111,17 @@ namespace Shoko.Server.Commands
         {
             CommandRequestImpls = new Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>>();
 
-            IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
+            IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a =>
+            {
+                try
+                {
+                    return a.GetTypes();
+                }
+                catch (Exception e)
+                {
+                    return new Type[0];
+                }
+            }).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
             foreach (var commandType in types)
             {
                 var attr = commandType.GetCustomAttribute<CommandAttribute>().RequestType;
