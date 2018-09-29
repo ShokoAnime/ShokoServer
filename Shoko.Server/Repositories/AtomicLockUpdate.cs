@@ -1,5 +1,6 @@
 ﻿using System;
 using Force.DeepCloner;
+using Microsoft.EntityFrameworkCore;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -59,6 +60,7 @@ namespace Shoko.Server.Repositories
             if (_repo.IsCached)
                 _repo.Cache.Update(ret);
             ctx.SaveChanges();
+            ctx.Entry(ret).State = EntityState.Detached;
             _repo.EndSave(ret, obj, pars);
             return ret;
         }

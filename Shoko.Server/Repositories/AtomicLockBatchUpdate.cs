@@ -114,6 +114,7 @@ namespace Shoko.Server.Repositories
                     if (_repo.IsCached)
                         returns.ForEach(_repo.Cache.Update);
                     ctx.SaveChanges();
+                    returns.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
                 }
 
                 foreach (T t in returns)

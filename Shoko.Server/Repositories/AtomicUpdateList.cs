@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Force.DeepCloner;
+using Microsoft.EntityFrameworkCore;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
@@ -78,6 +79,7 @@ namespace Shoko.Server.Repositories
                 if (_repo.IsCached)
                     returns.ForEach(_repo.Cache.Update);
                 ctx.SaveChanges();
+                returns.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
             }
             foreach (T t in returns)
             {

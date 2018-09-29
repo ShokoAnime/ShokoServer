@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -107,6 +108,7 @@ namespace Shoko.Server.Repositories.Repos
                 ctx.AttachRange(series);
                 series.ForEach(a=>a.AnimeGroupID=0);
                 ctx.SaveChanges();
+                series.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
             }
         }
         internal override object BeginDelete(SVR_AnimeSeries entity,

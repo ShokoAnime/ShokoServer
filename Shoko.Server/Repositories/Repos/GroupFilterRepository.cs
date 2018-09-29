@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons;
 using Shoko.Commons.Extensions;
@@ -135,6 +136,7 @@ namespace Shoko.Server.Repositories.Repos
                 ctx.AttachRange(series);
                 series.ForEach(a => a.GroupsIdsString = null);
                 ctx.SaveChanges();
+                series.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
             }
         }
 
