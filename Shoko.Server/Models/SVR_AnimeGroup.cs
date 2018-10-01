@@ -934,9 +934,16 @@ namespace Shoko.Server.Models
 
                         int endyear = anime.EndYear;
                         if (endyear == 0) endyear = DateTime.Today.Year;
-                        if (anime.BeginYear != 0)
+                        int startyear = anime.BeginYear;
+                        if (endyear < startyear) endyear = startyear;
+                        if (startyear != 0)
                         {
-                            var years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1).Where(anime.IsInYear).ToList();
+                            List<int> years;
+                            if (startyear == endyear) years = new List<int> {startyear};
+                            else
+                                years = Enumerable.Range(anime.BeginYear, endyear - anime.BeginYear + 1)
+                                    .Where(anime.IsInYear).ToList();
+
                             allYears.UnionWith(years);
                             foreach (int year in years)
                             foreach (AnimeSeason season in Enum.GetValues(typeof(AnimeSeason)))

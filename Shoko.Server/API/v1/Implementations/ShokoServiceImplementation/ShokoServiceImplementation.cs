@@ -304,10 +304,14 @@ namespace Shoko.Server
             var allyears = new HashSet<string>(StringComparer.Ordinal);
             foreach (CL_AnimeSeries_User ser in grps)
             {
-                int endyear = ser.AniDBAnime.AniDBAnime.EndYear;
-                int startyear = ser.AniDBAnime.AniDBAnime.BeginYear;
+                int endyear = ser.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
+                int startyear = ser.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
+                if (startyear == 0) continue;
                 if (endyear == 0) endyear = DateTime.Today.Year;
-                if (startyear != 0)
+                if (startyear > endyear) endyear = startyear;
+                if (startyear == endyear)
+                    allyears.Add(startyear.ToString());
+                else
                     allyears.UnionWith(Enumerable.Range(startyear,
                             endyear - startyear + 1)
                         .Select(a => a.ToString()));

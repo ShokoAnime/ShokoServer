@@ -195,11 +195,14 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                     if (endyear == 0) endyear = DateTime.Today.Year;
+                    int startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
+                    if (endyear < startyear) endyear = startyear;
                     HashSet<int> allyears = null;
-                    if ((obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0) != 0)
+                    if (startyear != 0)
                     {
-                        allyears = new HashSet<int>(Enumerable.Range(obj.Contract.AniDBAnime.AniDBAnime.BeginYear,
-                            endyear - obj.Contract.AniDBAnime.AniDBAnime.BeginYear + 1));
+                        allyears = startyear == endyear
+                            ? new HashSet<int> {startyear}
+                            : new HashSet<int>(Enumerable.Range(startyear, endyear - startyear + 1));
                     }
 
                     //This call will create extra years or tags if the Group have a new year or tag
