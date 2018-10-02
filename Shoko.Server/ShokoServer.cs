@@ -652,6 +652,12 @@ namespace Shoko.Server
                 throw new Exception("Failed to start all of the network hosts");
             }
         }
+        
+        public void RestartAniDBSocket()
+        {
+            AniDBDispose();
+            SetupAniDBProcessor();
+        }
 
         void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -667,8 +673,7 @@ namespace Shoko.Server
 
                 StopWatchingFiles();
 
-                AniDBDispose();
-                SetupAniDBProcessor();
+                RestartAniDBSocket();
 
                 ShokoService.CmdProcessorGeneral.Stop();
                 ShokoService.CmdProcessorHasher.Stop();

@@ -132,7 +132,8 @@ namespace Shoko.Server.API
 
         private Response BeforeProcessing(NancyContext ctx)
         {
-            if (!(ServerState.Instance?.ServerOnline ?? false) && !ctx.Request.Path.StartsWith("/api/init/"))
+            if (!(ServerState.Instance?.ServerOnline ?? false) && ctx.Request.Path.StartsWith("/api") &&
+                !ctx.Request.Path.StartsWith("/api/init/"))
             {
                 return new Response
                 {
@@ -140,6 +141,7 @@ namespace Shoko.Server.API
                     ReasonPhrase = "Server is not running"
                 };
             }
+
             return null;
         }
 
