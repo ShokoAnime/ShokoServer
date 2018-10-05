@@ -97,7 +97,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
                                 ImageEntityType.MovieDB_Poster, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numPostersDownloaded++;
                         }
                     }
@@ -127,7 +127,7 @@ namespace Shoko.Server.Providers.MovieDB
                         {
                             CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
                                 ImageEntityType.MovieDB_FanArt, false);
-                            cmd.Save(session);
+                            cmd.Save();
                             numFanartDownloaded++;
                         }
                     }
@@ -225,7 +225,7 @@ namespace Shoko.Server.Providers.MovieDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in ParseBanners: " + ex.ToString());
+                logger.Error(ex, "Error in UpdateMovieInfo: " + ex);
             }
         }
 
