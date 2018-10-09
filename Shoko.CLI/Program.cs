@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NLog;
 using Shoko.Server.Commands;
 
 namespace Shoko.CLI
 {
     class Program
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         static void Main(string[] args)
         {
             for (int x = 0; x < args.Length; x++)
@@ -27,7 +29,11 @@ namespace Shoko.CLI
             ServerState.Instance.LoadSettings();
             ShokoServer.Instance.StartUpServer();
 
-            ShokoServer.RunWorkSetupDB();
+            // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
+            ShokoServer.Instance.RestartAniDBSocket();
+            if (ShokoService.AnidbProcessor.ValidAniDBCredentials() && ShokoService.AnidbProcessor.Login())
+                ShokoServer.RunWorkSetupDB();
+            else logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
 
             bool running = true;
 
