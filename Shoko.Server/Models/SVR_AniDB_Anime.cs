@@ -948,7 +948,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             EpisodeCountSpecial = 0;
             EpisodeCountNormal = 0;
 
-            List<SVR_AnimeEpisode> animeEpsToDelete = new List<SVR_AnimeEpisode>();
+            HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
             List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
 
             foreach (Raw_AniDB_Episode epraw in eps)
@@ -971,6 +971,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     }
                 }
             }
+
+            // check to see if there are extra orphans and remove them
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
+            if (series != null)
+            {
+                var allEps = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID);
+                animeEpsToDelete.UnionWith(allEps);
+            }
+
             RepoFactory.AnimeEpisode.Delete(animeEpsToDelete);
             RepoFactory.AniDB_Episode.Delete(aniDBEpsToDelete);
 
