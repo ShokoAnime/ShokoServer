@@ -158,11 +158,21 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
+                numAttempts = 0;
+
                 //For systems with no locking
-                while (FileModified(FileName, 3))
+                while (FileModified(FileName, 3) && numAttempts < 60)
                 {
+                    numAttempts++;
                     Thread.Sleep(1000);
                     logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {FileName}");
+                }
+                
+                // if we failed to access the file, get ouuta here
+                if (numAttempts >= 60)
+                {
+                    logger.Error("Could not access file: " + FileName);
+                    return;
                 }
             }
 
