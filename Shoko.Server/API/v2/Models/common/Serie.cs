@@ -161,7 +161,7 @@ namespace Shoko.Server.API.v2.Models.common
             GenerateSizes(sr, ael, uid);
 
             int? season = ael.FirstOrDefault(a =>
-                    a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode && a.AniDB_Episode.EpisodeNumber == 1)
+                    a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode && a.AniDB_Episode.EpisodeNumber == 1))
                 ?.TvDBEpisode?.SeasonNumber;
             if (season != null)
                 sr.season = season.Value.ToString();

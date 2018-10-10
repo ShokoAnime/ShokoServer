@@ -802,7 +802,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (eps != null)
                 {
-                    List<EpisodeType> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType?> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count : eps.Keys.Count;
                 }
                 p.Roles = new List<RoleTag>();

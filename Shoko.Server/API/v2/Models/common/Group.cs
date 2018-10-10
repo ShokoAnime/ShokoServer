@@ -308,6 +308,7 @@ namespace Shoko.Server.API.v2.Models.common
             foreach (SVR_AnimeEpisode ep in ael)
             {
                 if (ep == null) continue;
+                if (ep.EpisodeTypeEnum == null) continue;
                 var local = ep.GetVideoLocals()?.Any() ?? false;
                 switch (ep.EpisodeTypeEnum)
                 {

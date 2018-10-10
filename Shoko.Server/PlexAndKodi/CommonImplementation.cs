@@ -1015,7 +1015,7 @@ namespace Shoko.Server.PlexAndKodi
                 }
                 else
                 {
-                    List<EpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType?> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     if (types.Count > 1)
                     {
                         ret = new BaseObject(
