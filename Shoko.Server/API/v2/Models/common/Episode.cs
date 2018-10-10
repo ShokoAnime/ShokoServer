@@ -56,9 +56,10 @@ namespace Shoko.Server.API.v2.Models.common
             Episode ep = new Episode
             {
                 id = aep.AnimeEpisodeID,
-                eptype = aep.EpisodeTypeEnum.ToString(),
                 art = new ArtCollection()
             };
+
+            if (aep.AniDB_Episode != null) ep.eptype = aep.EpisodeTypeEnum.ToString();
 
             var userrating = aep.UserRating;
             if (userrating > 0) ep.userrating = userrating.ToString(CultureInfo.InvariantCulture);

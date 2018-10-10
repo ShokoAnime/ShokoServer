@@ -240,6 +240,7 @@ namespace Shoko.Server.PlexAndKodi
             }
             if (v != null)
             {
+                if (e.Key.AniDB_Episode == null) return v;
                 if (e.Value != null)
                 {
                     v.ViewCount = e.Value.WatchedCount;
@@ -802,7 +803,8 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (eps != null)
                 {
-                    List<EpisodeType?> types = eps.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType> types = eps.Keys.Where(a => a.AniDB_Episode != null)
+                        .Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     p.ChildCount = types.Count > 1 ? types.Count : eps.Keys.Count;
                 }
                 p.Roles = new List<RoleTag>();

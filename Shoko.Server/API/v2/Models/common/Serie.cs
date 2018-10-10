@@ -227,7 +227,7 @@ namespace Shoko.Server.API.v2.Models.common
             // single loop. Will help on long shows
             foreach (SVR_AnimeEpisode ep in ael)
             {
-                if (ep == null) continue;
+                if (ep?.AniDB_Episode == null) continue;
                 var local = ep.GetVideoLocals().Any();
                 bool watched = (ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0;
                 switch (ep.EpisodeTypeEnum)

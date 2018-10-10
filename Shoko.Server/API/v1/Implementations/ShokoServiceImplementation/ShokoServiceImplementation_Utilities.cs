@@ -851,6 +851,7 @@ namespace Shoko.Server
                     // find the missing episodes
                     foreach (SVR_AnimeEpisode aep in ser.GetAnimeEpisodes())
                     {
+                        if (aep.AniDB_Episode == null) continue;
                         if (regularEpisodesOnly && aep.EpisodeTypeEnum != EpisodeType.Episode) continue;
 
                         AniDB_Episode aniep = aep.AniDB_Episode;

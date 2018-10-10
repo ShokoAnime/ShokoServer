@@ -139,6 +139,7 @@ namespace Shoko.Server.API.v2.Modules
 
             return (anime
                 .GetAnimeEpisodes()
+                .Where(a => a.AniDB_Episode != null)
                 .Where(a => a.EpisodeTypeEnum == episodeType)
                 .Where(a => metadata.Title.Equals(a?.PlexContract?.Title, StringComparison.InvariantCultureIgnoreCase))
                 .FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series), anime);

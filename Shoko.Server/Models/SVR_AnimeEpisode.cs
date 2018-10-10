@@ -40,7 +40,7 @@ namespace Shoko.Server.Models
             _plexContract = null;
         }
 
-        public EpisodeType? EpisodeTypeEnum => (EpisodeType?) AniDB_Episode?.EpisodeType;
+        public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
         public AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
