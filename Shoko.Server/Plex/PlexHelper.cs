@@ -132,7 +132,7 @@ namespace Shoko.Server.Plex
         {
             get
             {
-                if (isAuthenticated != null) return (bool)isAuthenticated;
+                if (isAuthenticated == true) return (bool)isAuthenticated;
                 try
                 {
                     isAuthenticated = RequestAsync("https://plex.tv/users/account.json", HttpMethod.Get,

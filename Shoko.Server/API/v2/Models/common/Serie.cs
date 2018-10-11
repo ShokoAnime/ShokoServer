@@ -161,7 +161,7 @@ namespace Shoko.Server.API.v2.Models.common
             GenerateSizes(sr, ael, uid);
 
             int? season = ael.FirstOrDefault(a =>
-                    a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode && a.AniDB_Episode.EpisodeNumber == 1)
+                    a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode && a.AniDB_Episode.EpisodeNumber == 1))
                 ?.TvDBEpisode?.SeasonNumber;
             if (season != null)
                 sr.season = season.Value.ToString();
@@ -234,7 +234,7 @@ namespace Shoko.Server.API.v2.Models.common
             // single loop. Will help on long shows
             foreach (SVR_AnimeEpisode ep in ael)
             {
-                if (ep == null) continue;
+                if (ep?.AniDB_Episode == null) continue;
                 var local = ep.GetVideoLocals().Any();
                 bool watched = (ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0;
                 switch (ep.EpisodeTypeEnum)

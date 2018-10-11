@@ -207,7 +207,7 @@ namespace Shoko.Server.Providers.MovieDB
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in ParseBanners: " + ex.ToString());
+                logger.Error(ex, "Error in UpdateMovieInfo: " + ex);
             }
         }
 

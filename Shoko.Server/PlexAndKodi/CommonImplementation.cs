@@ -680,6 +680,7 @@ namespace Shoko.Server.PlexAndKodi
                 List<SVR_AnimeEpisode> eps = series.GetAnimeEpisodes();
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
+                    if (ep.AniDB_Episode == null) continue;
                     if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
                     if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
@@ -726,6 +727,7 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                     {
+                        if (ep.AniDB_Episode == null) continue;
                         if (ep.EpisodeTypeEnum == EpisodeType.Credits) continue;
                         if (ep.EpisodeTypeEnum == EpisodeType.Trailer) continue;
 
@@ -988,12 +990,13 @@ namespace Shoko.Server.PlexAndKodi
                     .ToDictionary(a => a.Key, a => a.Value);
                 if (eptype.HasValue)
                 {
-                    episodes = episodes.Where(a => a.Key.EpisodeTypeEnum == eptype.Value)
+                    episodes = episodes.Where(a => a.Key.AniDB_Episode != null && a.Key.EpisodeTypeEnum == eptype.Value)
                         .ToDictionary(a => a.Key, a => a.Value);
                 }
                 else
                 {
-                    List<EpisodeType> types = episodes.Keys.Select(a => a.EpisodeTypeEnum).Distinct().ToList();
+                    List<EpisodeType> types = episodes.Keys.Where(a => a.AniDB_Episode != null)
+                        .Select(a => a.EpisodeTypeEnum).Distinct().ToList();
                     if (types.Count > 1)
                     {
                         ret = new BaseObject(

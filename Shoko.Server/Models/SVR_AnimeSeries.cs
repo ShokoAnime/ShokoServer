@@ -117,7 +117,7 @@ namespace Shoko.Server.Models
             return
                 Repo.Instance.AnimeEpisode
                     .GetBySeriesID(AnimeSeriesID)
-                    .Count(a => a.EpisodeTypeEnum == EpisodeType.Episode &&
+                    .Count(a => a.AniDB_Episode != null && a.EpisodeTypeEnum == EpisodeType.Episode &&
                                 Repo.Instance.CrossRef_File_Episode
                                     .GetByEpisodeID(Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
                                                         ?.EpisodeID ?? 0)
@@ -129,7 +129,7 @@ namespace Shoko.Server.Models
         {
             return Repo.Instance.AnimeEpisode
                 .GetBySeriesID(AnimeSeriesID)
-                .Where(a => Repo.Instance.CrossRef_File_Episode
+                .Where(a => a.AniDB_Episode != null && Repo.Instance.CrossRef_File_Episode
                                 .GetByEpisodeID(
                                     Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
                                 .Select(b => Repo.Instance.VideoLocal.GetByHash(b.Hash))
@@ -283,7 +283,7 @@ namespace Shoko.Server.Models
             foreach (SVR_AnimeEpisode ep in GetAnimeEpisodes())
             {
                 SVR_AnimeEpisode_User userRecord = ep.GetUserRecord(userID);
-                if (userRecord != null && ep.EpisodeTypeEnum == EpisodeType.Episode)
+                if (userRecord != null && ep.AniDB_Episode != null && ep.EpisodeTypeEnum == EpisodeType.Episode)
                 {
                     if (watchedep == null)
                     {
@@ -1005,6 +1005,7 @@ namespace Shoko.Server.Models
                                         .Select(xref => dictVids[xref.Hash]));
 
                                 if (epVids.Count == 0) continue;
+                                if (ep.AniDB_Episode == null) continue;
 
                                 if (ep.EpisodeTypeEnum != EpisodeType.Episode && ep.EpisodeTypeEnum != EpisodeType.Special)
                                     continue;

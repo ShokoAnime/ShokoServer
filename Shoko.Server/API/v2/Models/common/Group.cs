@@ -61,22 +61,23 @@ namespace Shoko.Server.API.v2.Models.common
 
             if (animes != null && animes.Count > 0)
             {
-                var anime = animes.FirstOrDefault();
+                var anime = animes.FirstOrDefault(a => a != null);
+                if (anime == null) return g;
                 PopulateArtFromAniDBAnime(ctx, animes, g, allpic, pic);
 
                 List<SVR_AnimeEpisode> ael;
-                if (filter != null)
+                if (filter != null && filter.SeriesIds.ContainsKey(uid))
                 {
                     var series = filter.SeriesIds[uid].Select(id => Repo.Instance.AnimeSeries.GetByID(id))
-                        .Where(ser => ser?.AnimeGroupID == ag.AnimeGroupID).ToList();
-                    ael = series.SelectMany(ser => ser.GetAnimeEpisodes())
+                        .Where(ser => (ser?.AnimeGroupID ?? 0) == ag.AnimeGroupID).ToList();
+                    ael = series.SelectMany(ser => ser?.GetAnimeEpisodes()).Where(a => a != null)
                         .ToList();
                     g.size = series.Count;
                 }
                 else
                 {
                     var series = ag.GetAllSeries();
-                    ael = series.SelectMany(a => a.GetAnimeEpisodes()).ToList();
+                    ael = series.SelectMany(a => a?.GetAnimeEpisodes()).Where(a => a != null).ToList();
                     g.size = series.Count;
                 }
 
@@ -311,8 +312,8 @@ namespace Shoko.Server.API.v2.Models.common
             // single loop. Will help on long shows
             foreach (SVR_AnimeEpisode ep in ael)
             {
-                if (ep == null) continue;
-                var local = ep.GetVideoLocals().Any();
+                if (ep?.AniDB_Episode == null) continue;
+                var local = ep.GetVideoLocals()?.Any() ?? false;
                 switch (ep.EpisodeTypeEnum)
                 {
                     case EpisodeType.Episode:

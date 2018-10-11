@@ -1689,6 +1689,7 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = null;
                 foreach (SVR_AnimeEpisode ep in eps)
                 {
+                    if (ep?.AniDB_Episode == null) continue;
                     if (ep.EpisodeTypeEnum == (EpisodeType)episodeType &&
                         ep.AniDB_Episode.EpisodeNumber <= maxEpisodeNumber)
                     {

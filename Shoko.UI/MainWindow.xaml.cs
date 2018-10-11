@@ -161,7 +161,7 @@ namespace Shoko.UI
             InitCulture();
             Instance = this;
 
-            if (!ServerSettings.Instance.FirstRun)
+            if (!ServerSettings.Instance.FirstRun && ShokoService.AnidbProcessor.ValidAniDBCredentials())
             {
                 logger.Info("Already been set up... Initializing DB...");
                 ShokoServer.RunWorkSetupDB();
@@ -204,34 +204,27 @@ namespace Shoko.UI
                 {
                     Application.Current.Dispatcher.Invoke(action);
                 };
-            AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (AniDBLoginOpen && LoginWindow != null)
-                {
-                    LoginWindow.Focus();
-                    return;
-                }
-
-                LoginWindow = new InitialSetupForm();
-                LoginWindow.Owner = this;
-                LoginWindow.ShowDialog();
-            });
-            ShokoServer.Instance.LoginFormNeeded += (a, e) => Application.Current.Dispatcher.Invoke(() =>
-            {
-                if (AniDBLoginOpen && LoginWindow != null)
-                {
-                    LoginWindow.Focus();
-                    return;
-                }
-                LoginWindow = new InitialSetupForm();
-                LoginWindow.Owner = this;
-                LoginWindow.ShowDialog();
-            });
+            AniDBHelper.LoginFailed += (a, e) => Application.Current.Dispatcher.Invoke(ShowAniDBLoginDialog);
+            ShokoServer.Instance.LoginFormNeeded +=
+                (a, e) => Application.Current.Dispatcher.Invoke(ShowAniDBLoginDialog);
 
             ShokoServer.Instance.
                 DBSetupCompleted += DBSetupCompleted;
             ShokoServer.Instance.DatabaseSetup += (sender, args) => ShowDatabaseSetup();
         }
+
+        public void ShowAniDBLoginDialog()
+        {
+            if (AniDBLoginOpen && LoginWindow != null)
+            {
+                LoginWindow.Focus();
+                return;
+            }
+
+            LoginWindow = new InitialSetupForm {Owner = this};
+            LoginWindow.ShowDialog();
+        }
+        
         public void DoEvents()
         {
             DispatcherFrame frame = new DispatcherFrame();
@@ -446,14 +439,7 @@ namespace Shoko.UI
 
         void btnUpdateAniDBLogin_Click(object sender, RoutedEventArgs e)
         {
-            if (AniDBLoginOpen && LoginWindow != null)
-            {
-                LoginWindow.Focus();
-                return;
-            }
-            LoginWindow = new InitialSetupForm();
-            LoginWindow.Owner = this;
-            LoginWindow.ShowDialog();
+            ShowAniDBLoginDialog();
         }
 
         void cboLanguages_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -844,10 +830,19 @@ namespace Shoko.UI
 
             Utils.ClearAutoUpdateCache();
 
-            if (ServerSettings.Instance.FirstRun)
+            if (ServerSettings.Instance.FirstRun || !ShokoService.AnidbProcessor.ValidAniDBCredentials())
             {
-                logger.Info("Initializing DB...");
-                ShokoServer.RunWorkSetupDB();
+                ShokoServer.Instance.RestartAniDBSocket();
+                
+                if (!ShokoService.AnidbProcessor.Login()) ShowAniDBLoginDialog();
+                
+                while (AniDBLoginOpen) Thread.Sleep(100);
+
+                if (ShokoService.AnidbProcessor.ValidAniDBCredentials())
+                {
+                    logger.Info("Initializing DB...");
+                    ShokoServer.RunWorkSetupDB();
+                }
             }
 
             ShokoServer.Instance.CheckForUpdates();

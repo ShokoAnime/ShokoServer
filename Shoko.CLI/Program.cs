@@ -1,10 +1,12 @@
 ﻿using Shoko.Server;
 using System;
+using NLog;
 
 namespace Shoko.CLI
 {
     class Program
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         static void Main(string[] args)
         {
             for (int x = 0; x < args.Length; x++)
@@ -20,13 +22,13 @@ namespace Shoko.CLI
 
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
-            ShokoServer.Instance.SetupNetHosts();
+            ShokoServer.Instance.StartUpServer();
 
-            if (!ServerSettings.Instance.FirstRun)
-            {
-                ShokoServer.Instance.StartUpServer();
+            // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
+            ShokoServer.Instance.RestartAniDBSocket();
+            if (!ServerSettings.Instance.FirstRun && ShokoService.AnidbProcessor.ValidAniDBCredentials() && ShokoService.AnidbProcessor.Login())
                 ShokoServer.RunWorkSetupDB();
-            }
+            else logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
 
             bool running = true;
 

@@ -882,7 +882,7 @@ namespace Shoko.Server.Models
             txn.Entity.EpisodeCountSpecial = EpisodeCountSpecial = 0;
             txn.Entity.EpisodeCountNormal = EpisodeCountNormal = 0;
 
-            List<SVR_AnimeEpisode> animeEpsToDelete = new List<SVR_AnimeEpisode>();
+            HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
             List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
 
             foreach (Raw_AniDB_Episode epraw in eps)
@@ -905,6 +905,15 @@ namespace Shoko.Server.Models
                     }
                 }
             }
+
+            // check to see if there are extra orphans and remove them
+            var series = Repo.Instance.AnimeSeries.GetByAnimeID(AnimeID);
+            if (series != null)
+            {
+                var allEps = Repo.Instance.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID);
+                animeEpsToDelete.UnionWith(allEps);
+            }
+
             Repo.Instance.AnimeEpisode.Delete(animeEpsToDelete);
             Repo.Instance.AniDB_Episode.Delete(aniDBEpsToDelete);
 

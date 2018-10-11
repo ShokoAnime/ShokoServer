@@ -819,7 +819,7 @@ namespace Shoko.Server.Models
 
                         foreach (SVR_AnimeEpisode ep in series.GetAnimeEpisodes())
                         {
-                            if (ep.EpisodeTypeEnum != EpisodeType.Episode)
+                            if (ep.AniDB_Episode == null || ep.EpisodeTypeEnum != EpisodeType.Episode)
                                 continue;
 
                             var epVids = new List<SVR_VideoLocal>();
