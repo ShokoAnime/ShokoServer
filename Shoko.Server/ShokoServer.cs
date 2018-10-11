@@ -109,125 +109,127 @@ namespace Shoko.Server
 
         public bool StartUpServer()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
-            // Check if any of the DLL are blocked, common issue with daily builds
-            if (!CheckBlockedFiles())
-            {
-                Utils.ShowErrorMessage(Resources.ErrorBlockedDll);
-                Environment.Exit(1);
-            }
-
-            // Migrate programdata folder from JMMServer to ShokoServer
-            // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
-            if (!MigrateProgramDataLocation())
-            {
-                Utils.ShowErrorMessage(Resources.Migration_LoadError,
-                    Resources.ShokoServer);
-                Environment.Exit(1);
-            }
-
-            // First check if we have a settings.json in case migration had issues as otherwise might clear out existing old configurations
-            string path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
-            if (File.Exists(path))
-            {
-                Thread t = new Thread(UninstallJMMServer) {IsBackground = true};
-                t.Start();
-            }
-
-            //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-            CommandHelper.LoadCommands();
-
             try
             {
-                UnhandledExceptionManager.AddHandler();
-            }
-            catch (Exception e)
-            {
-                logger.Log(LogLevel.Error, e);
-            }
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            try
-            {
-                mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
-                //since it hasn't thrown an exception, then we already have one copy of the app open.
-                return false;
-                //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
-                //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
-                //Environment.Exit(0);
-            }
-            catch (Exception Ex)
-            {
-                //since we didn't find a mutex with that name, create one
-                Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
-                mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
-            }
-            ServerSettings.Instance.DebugSettingsToLog();
-            RenameFileHelper.InitialiseRenamers();
+                // Check if any of the DLL are blocked, common issue with daily builds
+                if (!CheckBlockedFiles())
+                {
+                    Utils.ShowErrorMessage(Resources.ErrorBlockedDll);
+                    Environment.Exit(1);
+                }
 
-            workerFileEvents.WorkerReportsProgress = false;
-            workerFileEvents.WorkerSupportsCancellation = false;
-            workerFileEvents.DoWork += WorkerFileEvents_DoWork;
-            workerFileEvents.RunWorkerCompleted += WorkerFileEvents_RunWorkerCompleted;
+                // Migrate programdata folder from JMMServer to ShokoServer
+                // this needs to run before UnhandledExceptionManager.AddHandler(), because that will probably lock the log file
+                if (!MigrateProgramDataLocation())
+                {
+                    Utils.ShowErrorMessage(Resources.Migration_LoadError,
+                        Resources.ShokoServer);
+                    Environment.Exit(1);
+                }
 
-            //logrotator worker setup
-            LogRotatorWorker.WorkerReportsProgress = false;
-            LogRotatorWorker.WorkerSupportsCancellation = false;
-            LogRotatorWorker.DoWork += LogRotatorWorker_DoWork;
-            LogRotatorWorker.RunWorkerCompleted +=
-                LogRotatorWorker_RunWorkerCompleted;
+                // First check if we have a settings.json in case migration had issues as otherwise might clear out existing old configurations
+                string path = Path.Combine(ServerSettings.ApplicationPath, "settings.json");
+                if (File.Exists(path))
+                {
+                    Thread t = new Thread(UninstallJMMServer) {IsBackground = true};
+                    t.Start();
+                }
 
-            ServerState.Instance.DatabaseAvailable = false;
-            ServerState.Instance.ServerOnline = false;
-            ServerState.Instance.ServerStarting = false;
-            ServerState.Instance.StartupFailed = false;
-            ServerState.Instance.StartupFailedMessage = string.Empty;
-            ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+                //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
+                CommandHelper.LoadCommands();
 
-            downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
-            downloadImagesWorker.WorkerSupportsCancellation = true;
+                try
+                {
+                    UnhandledExceptionManager.AddHandler();
+                }
+                catch (Exception e)
+                {
+                    logger.Log(LogLevel.Error, e);
+                }
 
-            /*workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
+                try
+                {
+                    mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
+                    //since it hasn't thrown an exception, then we already have one copy of the app open.
+                    return false;
+                    //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
+                    //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                    //Environment.Exit(0);
+                }
+                catch (Exception Ex)
+                {
+                    //since we didn't find a mutex with that name, create one
+                    Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
+                    mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
+                }
+                ServerSettings.Instance.DebugSettingsToLog();
+                RenameFileHelper.InitialiseRenamers();
+
+                workerFileEvents.WorkerReportsProgress = false;
+                workerFileEvents.WorkerSupportsCancellation = false;
+                workerFileEvents.DoWork += WorkerFileEvents_DoWork;
+                workerFileEvents.RunWorkerCompleted += WorkerFileEvents_RunWorkerCompleted;
+
+                //logrotator worker setup
+                LogRotatorWorker.WorkerReportsProgress = false;
+                LogRotatorWorker.WorkerSupportsCancellation = false;
+                LogRotatorWorker.DoWork += LogRotatorWorker_DoWork;
+                LogRotatorWorker.RunWorkerCompleted +=
+                    LogRotatorWorker_RunWorkerCompleted;
+
+                ServerState.Instance.DatabaseAvailable = false;
+                ServerState.Instance.ServerOnline = false;
+                ServerState.Instance.ServerStarting = false;
+                ServerState.Instance.StartupFailed = false;
+                ServerState.Instance.StartupFailedMessage = string.Empty;
+                ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+
+                downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
+                downloadImagesWorker.WorkerSupportsCancellation = true;
+
+                /*workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
             workerMyAnime2.RunWorkerCompleted += WorkerMyAnime2_RunWorkerCompleted;
             workerMyAnime2.ProgressChanged += WorkerMyAnime2_ProgressChanged;
             workerMyAnime2.WorkerReportsProgress = true;*/
 
-            workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
+                workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
 
-            workerImport.WorkerReportsProgress = true;
-            workerImport.WorkerSupportsCancellation = true;
-            workerImport.DoWork += WorkerImport_DoWork;
+                workerImport.WorkerReportsProgress = true;
+                workerImport.WorkerSupportsCancellation = true;
+                workerImport.DoWork += WorkerImport_DoWork;
 
-            workerScanFolder.WorkerReportsProgress = true;
-            workerScanFolder.WorkerSupportsCancellation = true;
-            workerScanFolder.DoWork += WorkerScanFolder_DoWork;
-
-
-            workerScanDropFolders.WorkerReportsProgress = true;
-            workerScanDropFolders.WorkerSupportsCancellation = true;
-            workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
+                workerScanFolder.WorkerReportsProgress = true;
+                workerScanFolder.WorkerSupportsCancellation = true;
+                workerScanFolder.DoWork += WorkerScanFolder_DoWork;
 
 
-            workerSyncHashes.WorkerReportsProgress = true;
-            workerSyncHashes.WorkerSupportsCancellation = true;
-            workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
+                workerScanDropFolders.WorkerReportsProgress = true;
+                workerScanDropFolders.WorkerSupportsCancellation = true;
+                workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
 
-            workerSyncMedias.WorkerReportsProgress = true;
-            workerSyncMedias.WorkerSupportsCancellation = true;
-            workerSyncMedias.DoWork += WorkerSyncMedias_DoWork;
 
-            workerRemoveMissing.WorkerReportsProgress = true;
-            workerRemoveMissing.WorkerSupportsCancellation = true;
-            workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
+                workerSyncHashes.WorkerReportsProgress = true;
+                workerSyncHashes.WorkerSupportsCancellation = true;
+                workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
 
-            workerDeleteImportFolder.WorkerReportsProgress = false;
-            workerDeleteImportFolder.WorkerSupportsCancellation = true;
-            workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
+                workerSyncMedias.WorkerReportsProgress = true;
+                workerSyncMedias.WorkerSupportsCancellation = true;
+                workerSyncMedias.DoWork += WorkerSyncMedias_DoWork;
 
-            workerSetupDB.WorkerReportsProgress = true;
-            workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
-            workerSetupDB.DoWork += WorkerSetupDB_DoWork;
-            workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
+                workerRemoveMissing.WorkerReportsProgress = true;
+                workerRemoveMissing.WorkerSupportsCancellation = true;
+                workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
+
+                workerDeleteImportFolder.WorkerReportsProgress = false;
+                workerDeleteImportFolder.WorkerSupportsCancellation = true;
+                workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
+
+                workerSetupDB.WorkerReportsProgress = true;
+                workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
+                workerSetupDB.DoWork += WorkerSetupDB_DoWork;
+                workerSetupDB.RunWorkerCompleted += WorkerSetupDB_RunWorkerCompleted;
 
 #if false
 #region LoggingConfig
@@ -246,18 +248,24 @@ namespace Shoko.Server
 #endregion
 #endif
 
-            ServerState.Instance.LoadSettings();
+                ServerState.Instance.LoadSettings();
 
-            InitCulture();
-            Instance = this;
+                InitCulture();
+                Instance = this;
 
-            // run rotator once and set 24h delay
-            logrotator.Start();
-            StartLogRotatorTimer();
+                // run rotator once and set 24h delay
+                logrotator.Start();
+                StartLogRotatorTimer();
 
-            SetupNetHosts();
+                SetupNetHosts();
 
-            return true;
+                return true;
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                return false;
+            }
         }
 
         private bool CheckBlockedFiles()
