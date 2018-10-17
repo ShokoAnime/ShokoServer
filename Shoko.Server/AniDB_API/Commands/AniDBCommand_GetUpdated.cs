@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,7 +11,7 @@ namespace AniDBAPI.Commands
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public string StartTime { get; set; }
+        public string LastUpdateTime { get; set; }
         public int AniDBEntity { get; set; }
         public int RecordCount { get; set; }
         public List<int> AnimeIDList { get; set; }
@@ -67,13 +68,9 @@ namespace AniDBAPI.Commands
                         string[] flds = sDetails[1].Substring(0).Split('|');
                         AniDBEntity = int.Parse(flds[0]);
                         RecordCount = int.Parse(flds[1]);
-                        StartTime = flds[2];
+                        LastUpdateTime = flds[2];
                         AnimeIDListRaw = flds[3].Trim();
-                        string[] aids = AnimeIDListRaw.Split(',');
-                        foreach (string sid in aids)
-                        {
-                            AnimeIDList.Add(int.Parse(sid));
-                        }
+                        AnimeIDList = AnimeIDListRaw.Split(',').Select(int.Parse).ToList();
                     }
 
                     return enHelperActivityType.GotUpdated;
@@ -94,9 +91,9 @@ namespace AniDBAPI.Commands
         public void Init(string startTime)
         {
             RecordCount = 0;
-            this.StartTime = startTime;
+            this.LastUpdateTime = startTime;
 
-            commandText = string.Format("UPDATED entity=1&time={0}", this.StartTime);
+            commandText = string.Format("UPDATED entity=1&time={0}", this.LastUpdateTime);
             //commandText = "UPDATED entity=1&age=1";
 
             commandID = "UPDATED ";
