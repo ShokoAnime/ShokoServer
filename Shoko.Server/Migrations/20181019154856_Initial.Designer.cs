@@ -9,8 +9,8 @@ using Shoko.Server.Databases;
 namespace Shoko.Server.Migrations
 {
     [DbContext(typeof(ShokoContext))]
-    [Migration("20180921105746_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20181019154856_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -35,11 +35,6 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("EpisodeListRaw");
 
                     b.HasKey("AniDB_Anime_CharacterID");
-
-                    b.HasIndex("AniDB_Anime_CharacterID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Character")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Character_AnimeID");
@@ -68,12 +63,11 @@ namespace Shoko.Server.Migrations
 
                     b.Property<int>("ImageType");
 
+                    b.Property<int?>("SVR_AniDB_AnimeAniDB_AnimeID");
+
                     b.HasKey("AniDB_Anime_DefaultImageID");
 
-                    b.HasIndex("AniDB_Anime_DefaultImageID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_DefaultImage")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasIndex("SVR_AniDB_AnimeAniDB_AnimeID");
 
                     b.HasIndex("AnimeID", "ImageType")
                         .IsUnique()
@@ -98,11 +92,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AniDB_Anime_RelationID");
 
-                    b.HasIndex("AniDB_Anime_RelationID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Relation")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Relation_AnimeID");
 
@@ -123,15 +112,14 @@ namespace Shoko.Server.Migrations
 
                     b.Property<int>("ReviewID");
 
-                    b.HasKey("AniDB_Anime_ReviewID");
+                    b.Property<int?>("SVR_AniDB_AnimeAniDB_AnimeID");
 
-                    b.HasIndex("AniDB_Anime_ReviewID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Review")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_Anime_ReviewID");
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Review_AnimeID");
+
+                    b.HasIndex("SVR_AniDB_AnimeAniDB_AnimeID");
 
                     b.HasIndex("AnimeID", "ReviewID")
                         .IsUnique()
@@ -155,11 +143,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Total");
 
                     b.HasKey("AniDB_Anime_SimilarID");
-
-                    b.HasIndex("AniDB_Anime_SimilarID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Similar")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Similar_AnimeID");
@@ -186,11 +169,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Weight");
 
                     b.HasKey("AniDB_Anime_TagID");
-
-                    b.HasIndex("AniDB_Anime_TagID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Tag")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Tag_AnimeID");
@@ -224,11 +202,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AniDB_Anime_TitleID");
 
-                    b.HasIndex("AniDB_Anime_TitleID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Anime_Title")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Anime_Title_AnimeID");
 
@@ -237,13 +210,13 @@ namespace Shoko.Server.Migrations
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Character", b =>
                 {
-                    b.Property<int>("CharID")
+                    b.Property<int>("AniDB_CharacterID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_CharacterID");
 
                     b.Property<string>("CharDescription")
                         .IsRequired();
+
+                    b.Property<int>("CharID");
 
                     b.Property<string>("CharKanjiName")
                         .IsRequired();
@@ -259,12 +232,7 @@ namespace Shoko.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(100);
 
-                    b.HasKey("CharID");
-
-                    b.HasIndex("CharID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_CharacterID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_CharacterID");
 
                     b.ToTable("AniDB_Character");
                 });
@@ -280,11 +248,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("SeiyuuID");
 
                     b.HasKey("AniDB_Character_SeiyuuID");
-
-                    b.HasIndex("AniDB_Character_SeiyuuID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Character_Seiyuu")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("CharID")
                         .HasName("IX_AniDB_Character_Seiyuu_CharID");
@@ -321,15 +284,12 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("Rating")
                         .IsRequired();
 
+                    b.Property<int?>("SVR_AniDB_AnimeAniDB_AnimeID");
+
                     b.Property<string>("Votes")
                         .IsRequired();
 
                     b.HasKey("AniDB_EpisodeID");
-
-                    b.HasIndex("AniDB_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_Episode_AnimeID");
@@ -337,6 +297,8 @@ namespace Shoko.Server.Migrations
                     b.HasIndex("EpisodeID")
                         .IsUnique()
                         .HasName("UIX_AniDB_Episode_EpisodeID");
+
+                    b.HasIndex("SVR_AniDB_AnimeAniDB_AnimeID");
 
                     b.ToTable("AniDB_Episode");
                 });
@@ -384,11 +346,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Votes");
 
                     b.HasKey("AniDB_GroupStatusID");
-
-                    b.HasIndex("AniDB_GroupStatusID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_GroupStatus")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID")
                         .HasName("IX_AniDB_GroupStatus_AnimeID");
@@ -442,11 +399,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AniDB_MylistStatsID");
 
-                    b.HasIndex("AniDB_MylistStatsID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_MylistStats")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("AniDB_MylistStats");
                 });
 
@@ -466,11 +418,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AniDB_RecommendationID");
 
-                    b.HasIndex("AniDB_RecommendationID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Recommendation")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("AnimeID", "UserID")
                         .IsUnique()
                         .HasName("UIX_AniDB_Recommendation");
@@ -480,14 +427,14 @@ namespace Shoko.Server.Migrations
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_ReleaseGroup", b =>
                 {
-                    b.Property<int>("GroupID")
+                    b.Property<int>("AniDB_ReleaseGroupID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_ReleaseGroupID");
 
                     b.Property<int>("AnimeCount");
 
                     b.Property<int>("FileCount");
+
+                    b.Property<int>("GroupID");
 
                     b.Property<string>("GroupName")
                         .IsRequired();
@@ -516,22 +463,15 @@ namespace Shoko.Server.Migrations
 
                     b.Property<int>("Votes");
 
-                    b.HasKey("GroupID");
-
-                    b.HasIndex("GroupID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_ReleaseGroup_GroupID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_ReleaseGroupID");
 
                     b.ToTable("AniDB_ReleaseGroup");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Review", b =>
                 {
-                    b.Property<int>("ReviewID")
+                    b.Property<int>("AniDB_ReviewID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_ReviewID");
 
                     b.Property<int>("AuthorID");
 
@@ -547,50 +487,40 @@ namespace Shoko.Server.Migrations
 
                     b.Property<int>("RatingValue");
 
+                    b.Property<int>("ReviewID");
+
                     b.Property<string>("ReviewText")
                         .IsRequired();
 
-                    b.HasKey("ReviewID");
-
-                    b.HasIndex("ReviewID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_ReviewID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_ReviewID");
 
                     b.ToTable("AniDB_Review");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Seiyuu", b =>
                 {
-                    b.Property<int>("SeiyuuID")
+                    b.Property<int>("AniDB_SeiyuuID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_SeiyuuID");
 
                     b.Property<string>("PicName")
                         .IsRequired()
                         .HasMaxLength(100);
 
+                    b.Property<int>("SeiyuuID");
+
                     b.Property<string>("SeiyuuName")
                         .IsRequired()
                         .HasMaxLength(200);
 
-                    b.HasKey("SeiyuuID");
-
-                    b.HasIndex("SeiyuuID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_SeiyuuID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_SeiyuuID");
 
                     b.ToTable("AniDB_Seiyuu");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Tag", b =>
                 {
-                    b.Property<int>("TagID")
+                    b.Property<int>("AniDB_TagID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_TagID");
 
                     b.Property<int>("GlobalSpoiler");
 
@@ -603,16 +533,13 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("TagDescription")
                         .IsRequired();
 
+                    b.Property<int>("TagID");
+
                     b.Property<string>("TagName")
                         .IsRequired()
                         .HasMaxLength(150);
 
-                    b.HasKey("TagID");
-
-                    b.HasIndex("TagID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_TagID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_TagID");
 
                     b.ToTable("AniDB_Tag");
                 });
@@ -630,11 +557,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("VoteValue");
 
                     b.HasKey("AniDB_VoteID");
-
-                    b.HasIndex("AniDB_VoteID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_Vote")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("AniDB_Vote");
                 });
@@ -690,33 +612,27 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_AnimeStaff_AniDBID");
 
-                    b.HasIndex("StaffID")
-                        .IsUnique()
-                        .HasName("PK_AnimeStaff_StaffID");
-
                     b.ToTable("AnimeStaff");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AuthTokens", b =>
                 {
                     b.Property<int>("AuthID")
+                        .ValueGeneratedOnAdd()
                         .HasAnnotation("LocalGen", true);
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired();
+
+                    b.Property<string>("Token")
+                        .IsRequired();
 
                     b.Property<int>("UserID");
 
-                    b.Property<string>("DeviceName");
-
-                    b.Property<string>("Token");
-
-                    b.HasKey("AuthID", "UserID", "DeviceName", "Token");
+                    b.HasKey("AuthID");
 
                     b.HasIndex("Token")
                         .HasName("IX_AuthTokens_Token");
-
-                    b.HasIndex("AuthID", "UserID", "DeviceName", "Token")
-                        .IsUnique()
-                        .HasName("PK_AuthTokens")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("AuthTokens");
                 });
@@ -735,11 +651,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Priority");
 
                     b.HasKey("AnimeID");
-
-                    b.HasIndex("AnimeID")
-                        .IsUnique()
-                        .HasName("PK_BookmarkedAnime")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("BookmarkedAnime");
                 });
@@ -764,11 +675,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("CommandRequestID");
 
-                    b.HasIndex("CommandRequestID")
-                        .IsUnique()
-                        .HasName("PK_CommandRequest")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("CommandRequest");
                 });
 
@@ -792,11 +698,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("StartEpisodeType");
 
                     b.HasKey("CrossRef_AniDB_MALID");
-
-                    b.HasIndex("CrossRef_AniDB_MALID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_MAL")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("MALID")
                         .IsUnique()
@@ -826,11 +727,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("CrossRefType");
 
                     b.HasKey("CrossRef_AniDB_OtherID");
-
-                    b.HasIndex("CrossRef_AniDB_OtherID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_Other")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID", "CrossRefID", "CrossRefSource", "CrossRefType")
                         .IsUnique()
@@ -862,11 +758,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_CrossRef_AniDB_Trakt_Episode_AniDBEpisodeID");
 
-                    b.HasIndex("CrossRef_AniDB_Trakt_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_Trakt_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("CrossRef_AniDB_Trakt_Episode");
                 });
 
@@ -894,11 +785,6 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("TraktTitle");
 
                     b.HasKey("CrossRef_AniDB_TraktV2ID");
-
-                    b.HasIndex("CrossRef_AniDB_TraktV2ID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_TraktV2")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeID", "TraktSeasonNumber", "TraktStartEpisodeNumber", "AniDBStartEpisodeType", "AniDBStartEpisodeNumber")
                         .IsUnique()
@@ -941,11 +827,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_CrossRef_AniDB_TvDB_Episode_AniDBEpisodeID");
 
-                    b.HasIndex("CrossRef_AniDB_TvDB_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_TvDB_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("CrossRef_AniDB_TvDB_Episode");
                 });
 
@@ -959,10 +840,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("TvDBEpisodeID");
 
                     b.HasKey("CrossRef_AniDB_TvDB_Episode_OverrideID");
-
-                    b.HasIndex("CrossRef_AniDB_TvDB_Episode_OverrideID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_TvDB_Episode_Override");
 
                     b.ToTable("CrossRef_AniDB_TvDB_Episode_Override");
                 });
@@ -993,11 +870,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("CrossRef_AniDB_TvDBV2ID");
 
-                    b.HasIndex("CrossRef_AniDB_TvDBV2ID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_AniDB_TvDBV2")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("AnimeID", "TvDBID", "TvDBSeasonNumber", "TvDBStartEpisodeNumber", "AniDBStartEpisodeType", "AniDBStartEpisodeNumber")
                         .IsUnique()
                         .HasName("UIX_CrossRef_AniDB_TvDBV2");
@@ -1027,10 +899,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("CrossRef_Anime_StaffID");
 
-                    b.HasIndex("CrossRef_Anime_StaffID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_Anime_Staff");
-
                     b.ToTable("CrossRef_Anime_Staff");
                 });
 
@@ -1047,11 +915,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("CustomTagID");
 
                     b.HasKey("CrossRef_CustomTagID");
-
-                    b.HasIndex("CrossRef_CustomTagID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_CustomTag")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("CustomTagID")
                         .HasName("IX_CrossRef_CustomTag");
@@ -1086,11 +949,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("CrossRef_File_EpisodeID");
 
-                    b.HasIndex("CrossRef_File_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_File_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("Hash", "EpisodeID")
                         .IsUnique()
                         .HasName("UIX_CrossRef_File_Episode_Hash_EpisodeID");
@@ -1109,11 +967,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("LanguageID");
 
                     b.HasKey("CrossRef_Languages_AniDB_FileID");
-
-                    b.HasIndex("CrossRef_Languages_AniDB_FileID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_Languages_AniDB_File")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("FileID")
                         .HasName("IX_CrossRef_Languages_AniDB_File_FileID");
@@ -1136,11 +989,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("CrossRef_Subtitles_AniDB_FileID");
 
-                    b.HasIndex("CrossRef_Subtitles_AniDB_FileID")
-                        .IsUnique()
-                        .HasName("PK_CrossRef_Subtitles_AniDB_File")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("FileID")
                         .HasName("IX_CrossRef_Subtitles_AniDB_File_FileID");
 
@@ -1162,11 +1010,6 @@ namespace Shoko.Server.Migrations
                         .HasMaxLength(500);
 
                     b.HasKey("CustomTagID");
-
-                    b.HasIndex("CustomTagID")
-                        .IsUnique()
-                        .HasName("PK_CustomTag")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("CustomTag");
                 });
@@ -1195,11 +1038,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("DuplicateFileID");
 
-                    b.HasIndex("DuplicateFileID")
-                        .IsUnique()
-                        .HasName("PK_DuplicateFile")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("DuplicateFile");
                 });
 
@@ -1218,11 +1056,6 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("Preset");
 
                     b.HasKey("FileFfdshowPresetID");
-
-                    b.HasIndex("FileFfdshowPresetID")
-                        .IsUnique()
-                        .HasName("PK_FileFfdshowPreset")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("Hash", "FileSize")
                         .IsUnique()
@@ -1251,11 +1084,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("FileNameHashID");
 
-                    b.HasIndex("FileNameHashID")
-                        .IsUnique()
-                        .HasName("PK_FileNameHash")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("FileName", "FileSize", "Hash")
                         .IsUnique()
                         .HasName("UIX_FileNameHash");
@@ -1279,10 +1107,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("GroupFilterConditionID");
 
-                    b.HasIndex("GroupFilterConditionID")
-                        .IsUnique()
-                        .HasName("PK_GroupFilterCondition");
-
                     b.ToTable("GroupFilterCondition");
                 });
 
@@ -1299,11 +1123,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("JMMUserID");
 
                     b.HasKey("IgnoreAnimeID");
-
-                    b.HasIndex("IgnoreAnimeID")
-                        .IsUnique()
-                        .HasName("PK_IgnoreAnime")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("JMMUserID", "AnimeID", "IgnoreType")
                         .IsUnique()
@@ -1323,11 +1142,6 @@ namespace Shoko.Server.Migrations
                         .HasMaxLength(100);
 
                     b.HasKey("LanguageID");
-
-                    b.HasIndex("LanguageID")
-                        .IsUnique()
-                        .HasName("PK_Language")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("LanguageName")
                         .IsUnique()
@@ -1362,11 +1176,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("MovieDB_FanartID");
 
-                    b.HasIndex("MovieDB_FanartID")
-                        .IsUnique()
-                        .HasName("PK_MovieDB_Fanart")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("MovieDB_Fanart");
                 });
 
@@ -1387,11 +1196,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Rating");
 
                     b.HasKey("MovieDB_MovieID");
-
-                    b.HasIndex("MovieDB_MovieID")
-                        .IsUnique()
-                        .HasName("PK_MovieDB_Movie")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("MovieId")
                         .IsUnique()
@@ -1427,11 +1231,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("MovieDB_PosterID");
 
-                    b.HasIndex("MovieDB_PosterID")
-                        .IsUnique()
-                        .HasName("PK_MovieDB_Poster")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("MovieDB_Poster");
                 });
 
@@ -1452,11 +1251,6 @@ namespace Shoko.Server.Migrations
                     b.Property<string>("PlaylistName");
 
                     b.HasKey("PlaylistID");
-
-                    b.HasIndex("PlaylistID")
-                        .IsUnique()
-                        .HasName("PK_Playlist")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("Playlist");
                 });
@@ -1482,45 +1276,38 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("RenameScriptID");
 
-                    b.HasIndex("RenameScriptID")
-                        .IsUnique()
-                        .HasName("PK_RenameScript")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("RenameScript");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.ScanFile", b =>
                 {
                     b.Property<int>("ScanFileID")
+                        .ValueGeneratedOnAdd()
                         .HasAnnotation("LocalGen", true);
 
-                    b.Property<int>("ScanID");
-
-                    b.Property<int>("ImportFolderID");
-
-                    b.Property<int>("VideoLocal_Place_ID");
-
-                    b.Property<string>("FullName");
+                    b.Property<DateTime?>("CheckDate");
 
                     b.Property<long>("FileSize");
 
-                    b.Property<int>("Status");
+                    b.Property<string>("FullName")
+                        .IsRequired();
 
                     b.Property<string>("Hash")
+                        .IsRequired()
                         .HasMaxLength(100);
-
-                    b.Property<DateTime?>("CheckDate");
 
                     b.Property<string>("HashResult")
                         .HasMaxLength(100);
 
-                    b.HasKey("ScanFileID", "ScanID", "ImportFolderID", "VideoLocal_Place_ID", "FullName", "FileSize", "Status", "Hash");
+                    b.Property<int>("ImportFolderID");
 
-                    b.HasIndex("ScanFileID")
-                        .IsUnique()
-                        .HasName("PK_ScanFile")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.Property<int>("ScanID");
+
+                    b.Property<int>("Status");
+
+                    b.Property<int>("VideoLocal_Place_ID");
+
+                    b.HasKey("ScanFileID");
 
                     b.HasIndex("ScanID", "Status")
                         .HasName("IX_ScanFileStatus");
@@ -1542,11 +1329,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("UpdateType");
 
                     b.HasKey("ScheduledUpdateID");
-
-                    b.HasIndex("ScheduledUpdateID")
-                        .IsUnique()
-                        .HasName("PK_ScheduledUpdate")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("UpdateType")
                         .IsUnique()
@@ -1577,11 +1359,6 @@ namespace Shoko.Server.Migrations
                         .HasMaxLength(500);
 
                     b.HasKey("Trakt_EpisodeID");
-
-                    b.HasIndex("Trakt_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_Trakt_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("Trakt_Episode");
                 });
@@ -1620,11 +1397,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("Trakt_FriendID");
 
-                    b.HasIndex("Trakt_FriendID")
-                        .IsUnique()
-                        .HasName("PK_Trakt_Friend")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("Username")
                         .IsUnique()
                         .HasName("UIX_Trakt_Friend_Username");
@@ -1646,11 +1418,6 @@ namespace Shoko.Server.Migrations
                         .HasMaxLength(500);
 
                     b.HasKey("Trakt_SeasonID");
-
-                    b.HasIndex("Trakt_SeasonID")
-                        .IsUnique()
-                        .HasName("PK_Trakt_Season")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("Trakt_Season");
                 });
@@ -1677,11 +1444,6 @@ namespace Shoko.Server.Migrations
                         .HasMaxLength(500);
 
                     b.HasKey("Trakt_ShowID");
-
-                    b.HasIndex("Trakt_ShowID")
-                        .IsUnique()
-                        .HasName("PK_Trakt_Show")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("Trakt_Show");
                 });
@@ -1728,11 +1490,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_TvDB_Episode_Id");
 
-                    b.HasIndex("TvDB_EpisodeID")
-                        .IsUnique()
-                        .HasName("PK_TvDB_Episode")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("TvDB_Episode");
                 });
 
@@ -1770,11 +1527,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_TvDB_ImageFanart_Id");
 
-                    b.HasIndex("TvDB_ImageFanartID")
-                        .IsUnique()
-                        .HasName("PK_TvDB_ImageFanart")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("TvDB_ImageFanart");
                 });
 
@@ -1806,11 +1558,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_TvDB_ImagePoster_Id");
 
-                    b.HasIndex("TvDB_ImagePosterID")
-                        .IsUnique()
-                        .HasName("PK_TvDB_ImagePoster")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("TvDB_ImagePoster");
                 });
 
@@ -1841,11 +1588,6 @@ namespace Shoko.Server.Migrations
                     b.HasIndex("Id")
                         .IsUnique()
                         .HasName("UIX_TvDB_ImageWideBanner_Id");
-
-                    b.HasIndex("TvDB_ImageWideBannerID")
-                        .IsUnique()
-                        .HasName("PK_TvDB_ImageWideBanner")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("TvDB_ImageWideBanner");
                 });
@@ -1885,11 +1627,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_TvDB_Series_SeriesID");
 
-                    b.HasIndex("TvDB_SeriesID")
-                        .IsUnique()
-                        .HasName("PK_TvDB_Series")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("TvDB_Series");
                 });
 
@@ -1911,11 +1648,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("VideoLocal_UserID");
 
-                    b.HasIndex("VideoLocal_UserID")
-                        .IsUnique()
-                        .HasName("PK_VideoLocal_User")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("JMMUserID", "VideoLocalID")
                         .IsUnique()
                         .HasName("UIX_VideoLocal_User_User_VideoLocalID");
@@ -1934,17 +1666,12 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AniDB_AnimeUpdateID");
 
-                    b.HasIndex("AnimeID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_AnimeUpdate")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("AniDB_AnimeUpdate");
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.SVR_AniDB_Anime", b =>
                 {
-                    b.Property<int>("AnimeID")
+                    b.Property<int>("AniDB_AnimeID")
                         .ValueGeneratedOnAdd();
 
                     b.Property<int?>("ANNID");
@@ -1960,7 +1687,7 @@ namespace Shoko.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(1500);
 
-                    b.Property<int>("AniDB_AnimeID");
+                    b.Property<int>("AnimeID");
 
                     b.Property<int?>("AnimeNfo");
 
@@ -2042,22 +1769,15 @@ namespace Shoko.Server.Migrations
 
                     b.Property<string>("Wikipedia_ID");
 
-                    b.HasKey("AnimeID");
-
-                    b.HasIndex("AnimeID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_AnimeID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_AnimeID");
 
                     b.ToTable("AniDB_Anime");
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.SVR_AniDB_File", b =>
                 {
-                    b.Property<int>("FileID")
+                    b.Property<int>("AniDB_FileID")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<int>("AniDB_FileID");
 
                     b.Property<int>("AnimeID");
 
@@ -2075,6 +1795,8 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("Episode_Rating");
 
                     b.Property<int>("Episode_Votes");
+
+                    b.Property<int>("FileID");
 
                     b.Property<string>("FileName")
                         .IsRequired();
@@ -2131,12 +1853,7 @@ namespace Shoko.Server.Migrations
 
                     b.Property<DateTime?>("WatchedDate");
 
-                    b.HasKey("FileID");
-
-                    b.HasIndex("FileID")
-                        .IsUnique()
-                        .HasName("PK_AniDB_FileID")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("AniDB_FileID");
 
                     b.HasIndex("Hash")
                         .IsUnique()
@@ -2164,11 +1881,6 @@ namespace Shoko.Server.Migrations
                     b.HasIndex("AniDB_EpisodeID")
                         .IsUnique()
                         .HasName("UIX_AnimeEpisode_AniDB_EpisodeID");
-
-                    b.HasIndex("AnimeEpisodeID")
-                        .IsUnique()
-                        .HasName("PK_AnimeEpisode")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("AnimeSeriesID")
                         .HasName("IX_AnimeEpisode_AnimeSeriesID");
@@ -2207,11 +1919,6 @@ namespace Shoko.Server.Migrations
                     b.Property<DateTime?>("WatchedDate");
 
                     b.HasKey("AnimeEpisode_UserID");
-
-                    b.HasIndex("AnimeEpisode_UserID")
-                        .IsUnique()
-                        .HasName("PK_AnimeEpisode_User")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("JMMUserID", "AnimeEpisodeID")
                         .IsUnique()
@@ -2269,11 +1976,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AnimeGroupID");
 
-                    b.HasIndex("AnimeGroupID")
-                        .IsUnique()
-                        .HasName("PK_AnimeGroup")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("AnimeGroupParentID")
                         .HasName("IX_AnimeGroup_AnimeGroupParentID");
 
@@ -2305,11 +2007,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("WatchedEpisodeCount");
 
                     b.HasKey("AnimeGroup_UserID");
-
-                    b.HasIndex("AnimeGroup_UserID")
-                        .IsUnique()
-                        .HasName("PK_AnimeGroup_User")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.HasIndex("JMMUserID", "AnimeGroupID")
                         .IsUnique()
@@ -2372,11 +2069,6 @@ namespace Shoko.Server.Migrations
                     b.HasIndex("AnimeGroupID")
                         .HasName("IX_AnimeSeries_AnimeGroupID");
 
-                    b.HasIndex("AnimeSeriesID")
-                        .IsUnique()
-                        .HasName("PK_AnimeSeries")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("AnimeSeries");
                 });
 
@@ -2404,11 +2096,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("AnimeSeries_UserID");
 
-                    b.HasIndex("AnimeSeries_UserID")
-                        .IsUnique()
-                        .HasName("PK_AnimeSeries_User")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("JMMUserID", "AnimeSeriesID")
                         .IsUnique()
                         .HasName("UIX_AnimeSeries_User_User_SeriesID");
@@ -2432,11 +2119,6 @@ namespace Shoko.Server.Migrations
                         .IsRequired();
 
                     b.HasKey("CloudID");
-
-                    b.HasIndex("CloudID")
-                        .IsUnique()
-                        .HasName("PK_CloudAccount")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("CloudAccount");
                 });
@@ -2486,11 +2168,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("GroupFilterID");
 
-                    b.HasIndex("GroupFilterID")
-                        .IsUnique()
-                        .HasName("PK_GroupFilter")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.HasIndex("ParentGroupFilterID")
                         .HasName("IX_GroupFilter_ParentGroupFilterID");
 
@@ -2520,11 +2197,6 @@ namespace Shoko.Server.Migrations
                     b.Property<int>("IsWatched");
 
                     b.HasKey("ImportFolderID");
-
-                    b.HasIndex("ImportFolderID")
-                        .IsUnique()
-                        .HasName("PK_ImportFolder")
-                        .HasAnnotation("SqlServer:Clustered", true);
 
                     b.ToTable("ImportFolder");
                 });
@@ -2557,31 +2229,23 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("JMMUserID");
 
-                    b.HasIndex("JMMUserID")
-                        .IsUnique()
-                        .HasName("PK_JMMUser")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("JMMUser");
                 });
 
             modelBuilder.Entity("Shoko.Server.Models.SVR_Scan", b =>
                 {
                     b.Property<int>("ScanID")
+                        .ValueGeneratedOnAdd()
                         .HasAnnotation("LocalGen", true);
 
                     b.Property<DateTime>("CreationTime");
 
-                    b.Property<string>("ImportFolders");
+                    b.Property<string>("ImportFolders")
+                        .IsRequired();
 
                     b.Property<int>("Status");
 
-                    b.HasKey("ScanID", "CreationTime", "ImportFolders", "Status");
-
-                    b.HasIndex("ScanID", "CreationTime", "ImportFolders", "Status")
-                        .IsUnique()
-                        .HasName("PK_Scan")
-                        .HasAnnotation("SqlServer:Clustered", true);
+                    b.HasKey("ScanID");
 
                     b.ToTable("Scan");
                 });
@@ -2676,11 +2340,6 @@ namespace Shoko.Server.Migrations
                         .IsUnique()
                         .HasName("UIX_IX_VideoLocal_Hash");
 
-                    b.HasIndex("VideoLocalID")
-                        .IsUnique()
-                        .HasName("PK_VideoLocal")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("VideoLocal");
                 });
 
@@ -2701,11 +2360,6 @@ namespace Shoko.Server.Migrations
 
                     b.HasKey("VideoLocal_Place_ID");
 
-                    b.HasIndex("VideoLocal_Place_ID")
-                        .IsUnique()
-                        .HasName("PK_VideoLocal_Place")
-                        .HasAnnotation("SqlServer:Clustered", true);
-
                     b.ToTable("VideoLocal_Place");
                 });
 
@@ -2713,24 +2367,21 @@ namespace Shoko.Server.Migrations
                 {
                     b.HasOne("Shoko.Server.Models.SVR_AniDB_Anime")
                         .WithMany("AllPosters")
-                        .HasForeignKey("AnimeID")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("SVR_AniDB_AnimeAniDB_AnimeID");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Anime_Review", b =>
                 {
                     b.HasOne("Shoko.Server.Models.SVR_AniDB_Anime")
                         .WithMany("AnimeReviews")
-                        .HasForeignKey("AnimeID")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("SVR_AniDB_AnimeAniDB_AnimeID");
                 });
 
             modelBuilder.Entity("Shoko.Models.Server.AniDB_Episode", b =>
                 {
                     b.HasOne("Shoko.Server.Models.SVR_AniDB_Anime")
                         .WithMany("AniDBEpisodes")
-                        .HasForeignKey("AnimeID")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("SVR_AniDB_AnimeAniDB_AnimeID");
                 });
 #pragma warning restore 612, 618
         }

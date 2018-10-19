@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Shoko.Server.Migrations
 {
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -11,9 +11,9 @@ namespace Shoko.Server.Migrations
                 name: "AniDB_Anime",
                 columns: table => new
                 {
-                    AniDB_AnimeID = table.Column<int>(nullable: false),
-                    AnimeID = table.Column<int>(nullable: false)
+                    AniDB_AnimeID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    AnimeID = table.Column<int>(nullable: false),
                     EpisodeCount = table.Column<int>(nullable: false),
                     AirDate = table.Column<DateTime>(nullable: true),
                     EndDate = table.Column<DateTime>(nullable: true),
@@ -60,7 +60,7 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_Anime", x => x.AnimeID);
+                    table.PrimaryKey("PK_AniDB_Anime", x => x.AniDB_AnimeID);
                 });
 
             migrationBuilder.CreateTable(
@@ -160,9 +160,9 @@ namespace Shoko.Server.Migrations
                 name: "AniDB_Character",
                 columns: table => new
                 {
-                    AniDB_CharacterID = table.Column<int>(nullable: false),
-                    CharID = table.Column<int>(nullable: false)
+                    AniDB_CharacterID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    CharID = table.Column<int>(nullable: false),
                     PicName = table.Column<string>(maxLength: 100, nullable: false),
                     CreatorListRaw = table.Column<string>(nullable: false),
                     CharName = table.Column<string>(maxLength: 200, nullable: false),
@@ -171,7 +171,7 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_Character", x => x.CharID);
+                    table.PrimaryKey("PK_AniDB_Character", x => x.AniDB_CharacterID);
                 });
 
             migrationBuilder.CreateTable(
@@ -207,9 +207,9 @@ namespace Shoko.Server.Migrations
                 name: "AniDB_File",
                 columns: table => new
                 {
-                    AniDB_FileID = table.Column<int>(nullable: false),
-                    FileID = table.Column<int>(nullable: false)
+                    AniDB_FileID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    FileID = table.Column<int>(nullable: false),
                     Hash = table.Column<string>(maxLength: 50, nullable: false),
                     AnimeID = table.Column<int>(nullable: false),
                     GroupID = table.Column<int>(nullable: false),
@@ -242,7 +242,7 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_File", x => x.FileID);
+                    table.PrimaryKey("PK_AniDB_File", x => x.AniDB_FileID);
                 });
 
             migrationBuilder.CreateTable(
@@ -314,9 +314,9 @@ namespace Shoko.Server.Migrations
                 name: "AniDB_ReleaseGroup",
                 columns: table => new
                 {
-                    AniDB_ReleaseGroupID = table.Column<int>(nullable: false),
-                    GroupID = table.Column<int>(nullable: false)
+                    AniDB_ReleaseGroupID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    GroupID = table.Column<int>(nullable: false),
                     Rating = table.Column<int>(nullable: false),
                     Votes = table.Column<int>(nullable: false),
                     AnimeCount = table.Column<int>(nullable: false),
@@ -330,16 +330,16 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_ReleaseGroup", x => x.GroupID);
+                    table.PrimaryKey("PK_AniDB_ReleaseGroup", x => x.AniDB_ReleaseGroupID);
                 });
 
             migrationBuilder.CreateTable(
                 name: "AniDB_Review",
                 columns: table => new
                 {
-                    AniDB_ReviewID = table.Column<int>(nullable: false),
-                    ReviewID = table.Column<int>(nullable: false)
+                    AniDB_ReviewID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    ReviewID = table.Column<int>(nullable: false),
                     AuthorID = table.Column<int>(nullable: false),
                     RatingAnimation = table.Column<int>(nullable: false),
                     RatingSound = table.Column<int>(nullable: false),
@@ -351,31 +351,31 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_Review", x => x.ReviewID);
+                    table.PrimaryKey("PK_AniDB_Review", x => x.AniDB_ReviewID);
                 });
 
             migrationBuilder.CreateTable(
                 name: "AniDB_Seiyuu",
                 columns: table => new
                 {
-                    AniDB_SeiyuuID = table.Column<int>(nullable: false),
-                    SeiyuuID = table.Column<int>(nullable: false)
+                    AniDB_SeiyuuID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    SeiyuuID = table.Column<int>(nullable: false),
                     SeiyuuName = table.Column<string>(maxLength: 200, nullable: false),
                     PicName = table.Column<string>(maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_Seiyuu", x => x.SeiyuuID);
+                    table.PrimaryKey("PK_AniDB_Seiyuu", x => x.AniDB_SeiyuuID);
                 });
 
             migrationBuilder.CreateTable(
                 name: "AniDB_Tag",
                 columns: table => new
                 {
-                    AniDB_TagID = table.Column<int>(nullable: false),
-                    TagID = table.Column<int>(nullable: false)
+                    AniDB_TagID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    TagID = table.Column<int>(nullable: false),
                     Spoiler = table.Column<int>(nullable: false),
                     LocalSpoiler = table.Column<int>(nullable: false),
                     GlobalSpoiler = table.Column<int>(nullable: false),
@@ -385,7 +385,7 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AniDB_Tag", x => x.TagID);
+                    table.PrimaryKey("PK_AniDB_Tag", x => x.AniDB_TagID);
                 });
 
             migrationBuilder.CreateTable(
@@ -583,14 +583,15 @@ namespace Shoko.Server.Migrations
                 name: "AuthTokens",
                 columns: table => new
                 {
-                    AuthID = table.Column<int>(nullable: false),
+                    AuthID = table.Column<int>(nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
                     UserID = table.Column<int>(nullable: false),
                     DeviceName = table.Column<string>(nullable: false),
                     Token = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuthTokens", x => new { x.AuthID, x.UserID, x.DeviceName, x.Token });
+                    table.PrimaryKey("PK_AuthTokens", x => x.AuthID);
                 });
 
             migrationBuilder.CreateTable(
@@ -1130,21 +1131,23 @@ namespace Shoko.Server.Migrations
                 name: "Scan",
                 columns: table => new
                 {
-                    ScanID = table.Column<int>(nullable: false),
+                    ScanID = table.Column<int>(nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
                     CreationTime = table.Column<DateTime>(nullable: false),
                     ImportFolders = table.Column<string>(nullable: false),
                     Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Scan", x => new { x.ScanID, x.CreationTime, x.ImportFolders, x.Status });
+                    table.PrimaryKey("PK_Scan", x => x.ScanID);
                 });
 
             migrationBuilder.CreateTable(
                 name: "ScanFile",
                 columns: table => new
                 {
-                    ScanFileID = table.Column<int>(nullable: false),
+                    ScanFileID = table.Column<int>(nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
                     ScanID = table.Column<int>(nullable: false),
                     ImportFolderID = table.Column<int>(nullable: false),
                     VideoLocal_Place_ID = table.Column<int>(nullable: false),
@@ -1157,7 +1160,7 @@ namespace Shoko.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ScanFile", x => new { x.ScanFileID, x.ScanID, x.ImportFolderID, x.VideoLocal_Place_ID, x.FullName, x.FileSize, x.Status, x.Hash });
+                    table.PrimaryKey("PK_ScanFile", x => x.ScanFileID);
                 });
 
             migrationBuilder.CreateTable(
@@ -1440,17 +1443,18 @@ namespace Shoko.Server.Migrations
                     AnimeID = table.Column<int>(nullable: false),
                     ImageParentID = table.Column<int>(nullable: false),
                     ImageParentType = table.Column<int>(nullable: false),
-                    ImageType = table.Column<int>(nullable: false)
+                    ImageType = table.Column<int>(nullable: false),
+                    SVR_AniDB_AnimeAniDB_AnimeID = table.Column<int>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AniDB_Anime_DefaultImage", x => x.AniDB_Anime_DefaultImageID);
                     table.ForeignKey(
-                        name: "FK_AniDB_Anime_DefaultImage_AniDB_Anime_AnimeID",
-                        column: x => x.AnimeID,
+                        name: "FK_AniDB_Anime_DefaultImage_AniDB_Anime_SVR_AniDB_AnimeAniDB_AnimeID",
+                        column: x => x.SVR_AniDB_AnimeAniDB_AnimeID,
                         principalTable: "AniDB_Anime",
-                        principalColumn: "AnimeID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "AniDB_AnimeID",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1460,17 +1464,18 @@ namespace Shoko.Server.Migrations
                     AniDB_Anime_ReviewID = table.Column<int>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     AnimeID = table.Column<int>(nullable: false),
-                    ReviewID = table.Column<int>(nullable: false)
+                    ReviewID = table.Column<int>(nullable: false),
+                    SVR_AniDB_AnimeAniDB_AnimeID = table.Column<int>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AniDB_Anime_Review", x => x.AniDB_Anime_ReviewID);
                     table.ForeignKey(
-                        name: "FK_AniDB_Anime_Review_AniDB_Anime_AnimeID",
-                        column: x => x.AnimeID,
+                        name: "FK_AniDB_Anime_Review_AniDB_Anime_SVR_AniDB_AnimeAniDB_AnimeID",
+                        column: x => x.SVR_AniDB_AnimeAniDB_AnimeID,
                         principalTable: "AniDB_Anime",
-                        principalColumn: "AnimeID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "AniDB_AnimeID",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1488,30 +1493,19 @@ namespace Shoko.Server.Migrations
                     EpisodeType = table.Column<int>(nullable: false),
                     Description = table.Column<string>(nullable: true),
                     AirDate = table.Column<int>(nullable: false),
-                    DateTimeUpdated = table.Column<DateTime>(nullable: false)
+                    DateTimeUpdated = table.Column<DateTime>(nullable: false),
+                    SVR_AniDB_AnimeAniDB_AnimeID = table.Column<int>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AniDB_Episode", x => x.AniDB_EpisodeID);
                     table.ForeignKey(
-                        name: "FK_AniDB_Episode_AniDB_Anime_AnimeID",
-                        column: x => x.AnimeID,
+                        name: "FK_AniDB_Episode_AniDB_Anime_SVR_AniDB_AnimeAniDB_AnimeID",
+                        column: x => x.SVR_AniDB_AnimeAniDB_AnimeID,
                         principalTable: "AniDB_Anime",
-                        principalColumn: "AnimeID",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "AniDB_AnimeID",
+                        onDelete: ReferentialAction.Restrict);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_AnimeID",
-                table: "AniDB_Anime",
-                column: "AnimeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Character",
-                table: "AniDB_Anime_Character",
-                column: "AniDB_Anime_CharacterID",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AniDB_Anime_Character_AnimeID",
@@ -1530,21 +1524,14 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_DefaultImage",
+                name: "IX_AniDB_Anime_DefaultImage_SVR_AniDB_AnimeAniDB_AnimeID",
                 table: "AniDB_Anime_DefaultImage",
-                column: "AniDB_Anime_DefaultImageID",
-                unique: true);
+                column: "SVR_AniDB_AnimeAniDB_AnimeID");
 
             migrationBuilder.CreateIndex(
                 name: "UIX_AniDB_Anime_DefaultImage_ImageType",
                 table: "AniDB_Anime_DefaultImage",
                 columns: new[] { "AnimeID", "ImageType" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Relation",
-                table: "AniDB_Anime_Relation",
-                column: "AniDB_Anime_RelationID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1559,26 +1546,19 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Review",
-                table: "AniDB_Anime_Review",
-                column: "AniDB_Anime_ReviewID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AniDB_Anime_Review_AnimeID",
                 table: "AniDB_Anime_Review",
                 column: "AnimeID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AniDB_Anime_Review_SVR_AniDB_AnimeAniDB_AnimeID",
+                table: "AniDB_Anime_Review",
+                column: "SVR_AniDB_AnimeAniDB_AnimeID");
+
+            migrationBuilder.CreateIndex(
                 name: "UIX_AniDB_Anime_Review_AnimeID_ReviewID",
                 table: "AniDB_Anime_Review",
                 columns: new[] { "AnimeID", "ReviewID" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Similar",
-                table: "AniDB_Anime_Similar",
-                column: "AniDB_Anime_SimilarID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1593,12 +1573,6 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Tag",
-                table: "AniDB_Anime_Tag",
-                column: "AniDB_Anime_TagID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AniDB_Anime_Tag_AnimeID",
                 table: "AniDB_Anime_Tag",
                 column: "AnimeID");
@@ -1610,33 +1584,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Anime_Title",
-                table: "AniDB_Anime_Title",
-                column: "AniDB_Anime_TitleID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AniDB_Anime_Title_AnimeID",
                 table: "AniDB_Anime_Title",
                 column: "AnimeID");
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_AnimeUpdate",
-                table: "AniDB_AnimeUpdate",
-                column: "AnimeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_CharacterID",
-                table: "AniDB_Character",
-                column: "CharID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Character_Seiyuu",
-                table: "AniDB_Character_Seiyuu",
-                column: "AniDB_Character_SeiyuuID",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AniDB_Character_Seiyuu_CharID",
@@ -1647,12 +1597,6 @@ namespace Shoko.Server.Migrations
                 name: "UIX_AniDB_Character_Seiyuu_CharID_SeiyuuID",
                 table: "AniDB_Character_Seiyuu",
                 columns: new[] { "CharID", "SeiyuuID" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Episode",
-                table: "AniDB_Episode",
-                column: "AniDB_EpisodeID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1667,21 +1611,14 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_FileID",
-                table: "AniDB_File",
-                column: "FileID",
-                unique: true);
+                name: "IX_AniDB_Episode_SVR_AniDB_AnimeAniDB_AnimeID",
+                table: "AniDB_Episode",
+                column: "SVR_AniDB_AnimeAniDB_AnimeID");
 
             migrationBuilder.CreateIndex(
                 name: "UIX_AniDB_File_Hash",
                 table: "AniDB_File",
                 column: "Hash",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_GroupStatus",
-                table: "AniDB_GroupStatus",
-                column: "AniDB_GroupStatusID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1696,51 +1633,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AniDB_MylistStats",
-                table: "AniDB_MylistStats",
-                column: "AniDB_MylistStatsID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Recommendation",
-                table: "AniDB_Recommendation",
-                column: "AniDB_RecommendationID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_AniDB_Recommendation",
                 table: "AniDB_Recommendation",
                 columns: new[] { "AnimeID", "UserID" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_ReleaseGroup_GroupID",
-                table: "AniDB_ReleaseGroup",
-                column: "GroupID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_ReviewID",
-                table: "AniDB_Review",
-                column: "ReviewID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_SeiyuuID",
-                table: "AniDB_Seiyuu",
-                column: "SeiyuuID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_TagID",
-                table: "AniDB_Tag",
-                column: "TagID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AniDB_Vote",
-                table: "AniDB_Vote",
-                column: "AniDB_VoteID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1750,21 +1645,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AnimeEpisode",
-                table: "AnimeEpisode",
-                column: "AnimeEpisodeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AnimeEpisode_AnimeSeriesID",
                 table: "AnimeEpisode",
                 column: "AnimeSeriesID");
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AnimeEpisode_User",
-                table: "AnimeEpisode_User",
-                column: "AnimeEpisode_UserID",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "UIX_AnimeEpisode_User_User_EpisodeID",
@@ -1778,21 +1661,9 @@ namespace Shoko.Server.Migrations
                 columns: new[] { "JMMUserID", "AnimeSeriesID" });
 
             migrationBuilder.CreateIndex(
-                name: "PK_AnimeGroup",
-                table: "AnimeGroup",
-                column: "AnimeGroupID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AnimeGroup_AnimeGroupParentID",
                 table: "AnimeGroup",
                 column: "AnimeGroupParentID");
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AnimeGroup_User",
-                table: "AnimeGroup_User",
-                column: "AnimeGroup_UserID",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "UIX_AnimeGroup_User_User_GroupID",
@@ -1812,18 +1683,6 @@ namespace Shoko.Server.Migrations
                 column: "AnimeGroupID");
 
             migrationBuilder.CreateIndex(
-                name: "PK_AnimeSeries",
-                table: "AnimeSeries",
-                column: "AnimeSeriesID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AnimeSeries_User",
-                table: "AnimeSeries_User",
-                column: "AnimeSeries_UserID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_AnimeSeries_User_User_SeriesID",
                 table: "AnimeSeries_User",
                 columns: new[] { "JMMUserID", "AnimeSeriesID" },
@@ -1836,45 +1695,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_AnimeStaff_StaffID",
-                table: "AnimeStaff",
-                column: "StaffID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AuthTokens_Token",
                 table: "AuthTokens",
                 column: "Token");
-
-            migrationBuilder.CreateIndex(
-                name: "PK_AuthTokens",
-                table: "AuthTokens",
-                columns: new[] { "AuthID", "UserID", "DeviceName", "Token" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_BookmarkedAnime",
-                table: "BookmarkedAnime",
-                column: "AnimeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CloudAccount",
-                table: "CloudAccount",
-                column: "CloudID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CommandRequest",
-                table: "CommandRequest",
-                column: "CommandRequestID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_MAL",
-                table: "CrossRef_AniDB_MAL",
-                column: "CrossRef_AniDB_MALID",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "UIX_CrossRef_AniDB_MAL_MALID",
@@ -1886,12 +1709,6 @@ namespace Shoko.Server.Migrations
                 name: "UIX_CrossRef_AniDB_MAL_Anime",
                 table: "CrossRef_AniDB_MAL",
                 columns: new[] { "AnimeID", "StartEpisodeType", "StartEpisodeNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_Other",
-                table: "CrossRef_AniDB_Other",
-                column: "CrossRef_AniDB_OtherID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1907,18 +1724,6 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_Trakt_Episode",
-                table: "CrossRef_AniDB_Trakt_Episode",
-                column: "CrossRef_AniDB_Trakt_EpisodeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_TraktV2",
-                table: "CrossRef_AniDB_TraktV2",
-                column: "CrossRef_AniDB_TraktV2ID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_CrossRef_AniDB_TraktV2",
                 table: "CrossRef_AniDB_TraktV2",
                 columns: new[] { "AnimeID", "TraktSeasonNumber", "TraktStartEpisodeNumber", "AniDBStartEpisodeType", "AniDBStartEpisodeNumber" },
@@ -1931,39 +1736,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_TvDB_Episode",
-                table: "CrossRef_AniDB_TvDB_Episode",
-                column: "CrossRef_AniDB_TvDB_EpisodeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_TvDB_Episode_Override",
-                table: "CrossRef_AniDB_TvDB_Episode_Override",
-                column: "CrossRef_AniDB_TvDB_Episode_OverrideID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_AniDB_TvDBV2",
-                table: "CrossRef_AniDB_TvDBV2",
-                column: "CrossRef_AniDB_TvDBV2ID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_CrossRef_AniDB_TvDBV2",
                 table: "CrossRef_AniDB_TvDBV2",
                 columns: new[] { "AnimeID", "TvDBID", "TvDBSeasonNumber", "TvDBStartEpisodeNumber", "AniDBStartEpisodeType", "AniDBStartEpisodeNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_Anime_Staff",
-                table: "CrossRef_Anime_Staff",
-                column: "CrossRef_Anime_StaffID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_CustomTag",
-                table: "CrossRef_CustomTag",
-                column: "CrossRef_CustomTagID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1972,21 +1747,9 @@ namespace Shoko.Server.Migrations
                 column: "CustomTagID");
 
             migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_File_Episode",
-                table: "CrossRef_File_Episode",
-                column: "CrossRef_File_EpisodeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_CrossRef_File_Episode_Hash_EpisodeID",
                 table: "CrossRef_File_Episode",
                 columns: new[] { "Hash", "EpisodeID" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_Languages_AniDB_File",
-                table: "CrossRef_Languages_AniDB_File",
-                column: "CrossRef_Languages_AniDB_FileID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2000,12 +1763,6 @@ namespace Shoko.Server.Migrations
                 column: "LanguageID");
 
             migrationBuilder.CreateIndex(
-                name: "PK_CrossRef_Subtitles_AniDB_File",
-                table: "CrossRef_Subtitles_AniDB_File",
-                column: "CrossRef_Subtitles_AniDB_FileID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_CrossRef_Subtitles_AniDB_File_FileID",
                 table: "CrossRef_Subtitles_AniDB_File",
                 column: "FileID");
@@ -2016,33 +1773,9 @@ namespace Shoko.Server.Migrations
                 column: "LanguageID");
 
             migrationBuilder.CreateIndex(
-                name: "PK_CustomTag",
-                table: "CustomTag",
-                column: "CustomTagID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_DuplicateFile",
-                table: "DuplicateFile",
-                column: "DuplicateFileID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_FileFfdshowPreset",
-                table: "FileFfdshowPreset",
-                column: "FileFfdshowPresetID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_FileFfdshowPreset_Hash",
                 table: "FileFfdshowPreset",
                 columns: new[] { "Hash", "FileSize" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_FileNameHash",
-                table: "FileNameHash",
-                column: "FileNameHashID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2052,50 +1785,14 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_GroupFilter",
-                table: "GroupFilter",
-                column: "GroupFilterID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_GroupFilter_ParentGroupFilterID",
                 table: "GroupFilter",
                 column: "ParentGroupFilterID");
 
             migrationBuilder.CreateIndex(
-                name: "PK_GroupFilterCondition",
-                table: "GroupFilterCondition",
-                column: "GroupFilterConditionID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_IgnoreAnime",
-                table: "IgnoreAnime",
-                column: "IgnoreAnimeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_IgnoreAnime_User_AnimeID",
                 table: "IgnoreAnime",
                 columns: new[] { "JMMUserID", "AnimeID", "IgnoreType" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_ImportFolder",
-                table: "ImportFolder",
-                column: "ImportFolderID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_JMMUser",
-                table: "JMMUser",
-                column: "JMMUserID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Language",
-                table: "Language",
-                column: "LanguageID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2105,51 +1802,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_MovieDB_Fanart",
-                table: "MovieDB_Fanart",
-                column: "MovieDB_FanartID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_MovieDB_Movie",
-                table: "MovieDB_Movie",
-                column: "MovieDB_MovieID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_MovieDB_Movie_Id",
                 table: "MovieDB_Movie",
                 column: "MovieId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_MovieDB_Poster",
-                table: "MovieDB_Poster",
-                column: "MovieDB_PosterID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Playlist",
-                table: "Playlist",
-                column: "PlaylistID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_RenameScript",
-                table: "RenameScript",
-                column: "RenameScriptID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Scan",
-                table: "Scan",
-                columns: new[] { "ScanID", "CreationTime", "ImportFolders", "Status" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_ScanFile",
-                table: "ScanFile",
-                column: "ScanFileID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2158,27 +1813,9 @@ namespace Shoko.Server.Migrations
                 columns: new[] { "ScanID", "Status" });
 
             migrationBuilder.CreateIndex(
-                name: "PK_ScheduledUpdate",
-                table: "ScheduledUpdate",
-                column: "ScheduledUpdateID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_ScheduledUpdate_Type",
                 table: "ScheduledUpdate",
                 column: "UpdateType",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Trakt_Episode",
-                table: "Trakt_Episode",
-                column: "Trakt_EpisodeID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Trakt_Friend",
-                table: "Trakt_Friend",
-                column: "Trakt_FriendID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2188,27 +1825,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_Trakt_Season",
-                table: "Trakt_Season",
-                column: "Trakt_SeasonID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_Trakt_Show",
-                table: "Trakt_Show",
-                column: "Trakt_ShowID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_TvDB_Episode_Id",
                 table: "TvDB_Episode",
                 column: "Id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_TvDB_Episode",
-                table: "TvDB_Episode",
-                column: "TvDB_EpisodeID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2218,21 +1837,9 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_TvDB_ImageFanart",
-                table: "TvDB_ImageFanart",
-                column: "TvDB_ImageFanartID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_TvDB_ImagePoster_Id",
                 table: "TvDB_ImagePoster",
                 column: "Id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_TvDB_ImagePoster",
-                table: "TvDB_ImagePoster",
-                column: "TvDB_ImagePosterID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -2242,45 +1849,15 @@ namespace Shoko.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_TvDB_ImageWideBanner",
-                table: "TvDB_ImageWideBanner",
-                column: "TvDB_ImageWideBannerID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_TvDB_Series_SeriesID",
                 table: "TvDB_Series",
                 column: "SeriesID",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "PK_TvDB_Series",
-                table: "TvDB_Series",
-                column: "TvDB_SeriesID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "UIX_IX_VideoLocal_Hash",
                 table: "VideoLocal",
                 column: "Hash",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_VideoLocal",
-                table: "VideoLocal",
-                column: "VideoLocalID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_VideoLocal_Place",
-                table: "VideoLocal_Place",
-                column: "VideoLocal_Place_ID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "PK_VideoLocal_User",
-                table: "VideoLocal_User",
-                column: "VideoLocal_UserID",
                 unique: true);
 
             migrationBuilder.CreateIndex(

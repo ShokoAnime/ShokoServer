@@ -540,19 +540,8 @@ namespace Shoko.Server.Models
 
 
         [XmlIgnore]
-        public string TagsString
-        {
-            get
-            {
-                List<AniDB_Tag> tags = GetTags();
-                string temp = string.Empty;
-                foreach (AniDB_Tag tag in tags)
-                    temp += tag.TagName + "|";
-                if (temp.Length > 2)
-                    temp = temp.Substring(0, temp.Length - 2);
-                return temp;
-            }
-        }
+        [NotMapped]
+        public string TagsString => string.Join("|", GetTags().Select(s => s.TagName));
 
 
         public List<AniDB_Tag> GetTags()

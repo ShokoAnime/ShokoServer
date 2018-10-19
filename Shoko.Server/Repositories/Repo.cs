@@ -157,6 +157,7 @@ namespace Shoko.Server.Repositories
         {
             ShokoContext db = provider.GetContext();
             db.Database.Migrate();
+            //db.Database.EnsureCreated();
 
             _repos =new List<IRepository>();
             if (cachedRepos != null)
@@ -291,7 +292,9 @@ namespace Shoko.Server.Repositories
 
         internal bool Migrate()
         {
-             //run any migrations.
+            //run any migrations.
+
+
             return true;
         }
 
