@@ -429,7 +429,10 @@ namespace Shoko.Server.Migrations
                     AnimeSeriesID = table.Column<int>(nullable: false),
                     AniDB_EpisodeID = table.Column<int>(nullable: false),
                     DateTimeUpdated = table.Column<DateTime>(nullable: false),
-                    DateTimeCreated = table.Column<DateTime>(nullable: false)
+                    DateTimeCreated = table.Column<DateTime>(nullable: false),
+                    PlexContractVersion = table.Column<int>(nullable: false, defaultValue: 0),
+                    PlexContractBlob = table.Column<byte[]>("mediumblob", nullable: true),
+                    PlexContractSize = table.Column<int>(nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -504,7 +507,10 @@ namespace Shoko.Server.Migrations
                     WatchedDate = table.Column<DateTime>(nullable: true),
                     PlayedCount = table.Column<int>(nullable: false),
                     WatchedCount = table.Column<int>(nullable: false),
-                    StoppedCount = table.Column<int>(nullable: false)
+                    StoppedCount = table.Column<int>(nullable: false),
+                    PlexContractVersion = table.Column<int>(nullable: false, defaultValue: 0),
+                    PlexContractBlob = table.Column<byte[]>("mediumblob", nullable: true),
+                    PlexContractSize = table.Column<int>(nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -555,7 +561,10 @@ namespace Shoko.Server.Migrations
                     WatchedDate = table.Column<DateTime>(nullable: true),
                     PlayedCount = table.Column<int>(nullable: false),
                     WatchedCount = table.Column<int>(nullable: false),
-                    StoppedCount = table.Column<int>(nullable: false)
+                    StoppedCount = table.Column<int>(nullable: false),
+                    PlexContractVersion = table.Column<int>(nullable: false, defaultValue: 0),
+                    PlexContractBlob = table.Column<byte[]>("mediumblob", nullable: true),
+                    PlexContractSize = table.Column<int>(nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
