@@ -9,7 +9,7 @@ using Shoko.Server.Databases;
 namespace Shoko.Server.Migrations
 {
     [DbContext(typeof(ShokoContext))]
-    [Migration("20181019154856_Initial")]
+    [Migration("20181020122827_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

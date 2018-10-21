@@ -238,3 +238,6 @@ JMMServer/Images/Unused/
 # Jetbrains
 /.idea/
 /Shoko.Server.VC.db
+
+#EF stuff, when defaulting to SQLite.
+/Shoko.CLI/shoko.db
