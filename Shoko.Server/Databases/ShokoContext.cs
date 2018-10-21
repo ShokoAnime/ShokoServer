@@ -198,7 +198,7 @@ namespace Shoko.Server.Databases
                     optionsBuilder.UseSqlServer(_connectionString);
                     break;
                 case DatabaseTypes.MySql:
-                    optionsBuilder.UseMySQL(_connectionString);
+                    optionsBuilder.UseMySql(_connectionString);
                     break;
                 case DatabaseTypes.Sqlite:
                     optionsBuilder.UseSqlite(_connectionString);
