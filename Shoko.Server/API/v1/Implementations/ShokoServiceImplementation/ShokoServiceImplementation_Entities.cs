@@ -787,6 +787,9 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                     return "Could not find anime series record";
+                
+                RemoveXRefsForFile(videoLocalID);
+                
                 for (int i = startEpNum; i <= endEpNum; i++)
                 {
                     AniDB_Episode aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
@@ -797,7 +800,6 @@ namespace Shoko.Server
                     if (ep == null)
                         return "Could not find episode record";
 
-                    RemoveXRefsForFile(videoLocalID);
                     var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                     com.Save();
                 }
