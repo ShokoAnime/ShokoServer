@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Shoko.Server.Migrations
@@ -7,6 +8,25 @@ namespace Shoko.Server.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            Console.WriteLine(migrationBuilder.ActiveProvider);
+            Console.WriteLine(migrationBuilder.ActiveProvider);
+            Console.WriteLine(migrationBuilder.ActiveProvider);
+            Console.WriteLine(migrationBuilder.ActiveProvider);
+            Console.WriteLine(string.Join("||", this.GetType().Assembly.GetManifestResourceNames()));
+            Console.WriteLine(string.Join("||", this.GetType().Assembly.GetManifestResourceNames()));
+            Console.WriteLine(string.Join("||", this.GetType().Assembly.GetManifestResourceNames()));
+            Console.WriteLine(string.Join("||", this.GetType().Assembly.GetManifestResourceNames()));
+            using (var sr = new StreamReader(this.GetType().Assembly.GetManifestResourceStream($"Shoko.Server.Migrations.{migrationBuilder.ActiveProvider}.sql")))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    migrationBuilder.Sql(line);
+                }
+                return;
+            }
+
             migrationBuilder.CreateTable(
                 name: "AniDB_Anime",
                 columns: table => new

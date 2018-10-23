@@ -293,7 +293,9 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         private List<AniDB_Anime_DefaultImage> allPosters;
+        [NotMapped]
         public List<AniDB_Anime_DefaultImage> AllPosters
         {
             get
@@ -657,6 +659,7 @@ namespace Shoko.Server.Models
 
 
         [XmlIgnore]
+        [NotMapped]
         public List<AniDB_Episode> AniDBEpisodes => Repo.Instance.AniDB_Episode.GetByAnimeID(AnimeID);
 
         public List<AniDB_Episode> GetAniDBEpisodes() => Repo.Instance.AniDB_Episode.GetByAnimeID(AnimeID);

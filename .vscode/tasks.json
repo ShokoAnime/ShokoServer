@@ -5,7 +5,7 @@
     "tasks": [
         {
             "label": "build",
-            "command": "dotnet build -c CLI",
+            "command": "dotnet build Shoko.CLI",
             "type": "shell",
             "group": "build",
             "presentation": {

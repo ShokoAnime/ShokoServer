@@ -95,4 +95,17 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Migrations\Microsoft.EntityFrameworkCore.SqlServer.sql" />
+    <Content Remove="Migrations\Pomelo.EntityFrameworkCore.MySql.sql" />
+    <Content Remove="Migrations\Microsoft.EntityFrameworkCore.Sqlite.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\Microsoft.EntityFrameworkCore.SqlServer.sql" />
+    <EmbeddedResource Include="Migrations\Pomelo.EntityFrameworkCore.MySql.sql" />
+    <EmbeddedResource Include="Migrations\Microsoft.EntityFrameworkCore.Sqlite.sql" />
+  </ItemGroup>
+
 </Project>
