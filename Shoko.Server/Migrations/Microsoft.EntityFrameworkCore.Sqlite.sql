@@ -91,7 +91,6 @@ CREATE TABLE IF NOT EXISTS AniDB_Episode_Title ( AniDB_Episode_TitleID INTEGER P
 CREATE TABLE IF NOT EXISTS CrossRef_AniDB_TvDB_Episode_Override( CrossRef_AniDB_TvDB_Episode_OverrideID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL );
 CREATE TABLE IF NOT EXISTS CrossRef_AniDB_TvDB(CrossRef_AniDB_TvDBID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBID int NOT NULL, TvDBID int NOT NULL, CrossRefSource INT NOT NULL);
 CREATE TABLE IF NOT EXISTS CrossRef_AniDB_TvDB_Episode(CrossRef_AniDB_TvDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AniDBEpisodeID int NOT NULL, TvDBEpisodeID int NOT NULL, MatchRating INT NOT NULL);
-CREATE INDEX IF NOT EXISTS IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);
 CREATE INDEX IF NOT EXISTS IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID);
 CREATE UNIQUE INDEX IF NOT EXISTS UIX_AniDB_Anime_Category_AnimeID_CategoryID ON AniDB_Anime_Category (AnimeID, CategoryID);
 CREATE INDEX IF NOT EXISTS IX_AniDB_Anime_Character_AnimeID on AniDB_Anime_Character(AnimeID);
