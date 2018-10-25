@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
+using NLog.Targets;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;

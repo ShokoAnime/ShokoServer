@@ -1,0 +1,14 @@
+.github
+.vs
+.vscode
+Debug
+
+codealike.json
+APIv3_Planning.vsdx
+
+**/*.DotSettings
+
+**/bin/
+**/obj
+**/Connected Services
+**/.git
