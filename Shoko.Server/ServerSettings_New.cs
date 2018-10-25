@@ -140,10 +140,9 @@ namespace Shoko.Server
 
                 var oldPath = Path.Combine(ApplicationPath, "settings.json");
                 if (File.Exists(Path.Combine(ApplicationPath, "settings.json"))) 
-                {
-                    
-                }
-                Instance = new ServerSettings();
+                    Instance = LoadLegacySettings();
+                else
+                    Instance = new ServerSettings();
                 Instance.SaveSettings();
                 return;
             }
