@@ -91,7 +91,7 @@ namespace Shoko.Server
             if (vl == null) return "Unable to get videoloocal with id: " + vid;
             string file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return "Unable to get file: " + vid;
-            if (Utils.IsRunningOnMono()) return DumpFile_Mono(file);
+            if (Utils.IsLinux) return DumpFile_Mono(file);
             return DumpFile(file);
         }
 

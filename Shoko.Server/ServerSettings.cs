@@ -61,7 +61,7 @@ namespace Shoko.Server
         {
             get
             {
-                if (Utils.IsRunningOnMono())
+                if (Utils.IsLinux)
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                         ".shoko",
                         DefaultInstance);
@@ -153,7 +153,7 @@ namespace Shoko.Server
                     }
                     // Check and see if we have old JMMServer installation and add to migration if needed
                     string jmmServerInstallLocation = null;
-                    if (!Utils.IsRunningOnMono())
+                    if (!Utils.IsLinux)
                     {
                         jmmServerInstallLocation = (string)
                         Registry.GetValue(
@@ -397,7 +397,7 @@ namespace Shoko.Server
                     SaveSettings();
 
                     // Just in case start once for new configurations as admin to set permissions if needed
-                    if (startedWithFreshConfig && !Utils.IsAdministrator() && !Utils.IsRunningOnMono())
+                    if (startedWithFreshConfig && !Utils.IsAdministrator() && !Utils.IsLinux)
                     {
                         logger.Info("User has fresh config, restarting once as admin.");
                         Utils.RestartAsAdmin();
@@ -467,7 +467,7 @@ namespace Shoko.Server
                 {
                     // First try to locate it from old JMM Server installer entry
                     string jmmServerInstallLocation = null;
-                    if (!Utils.IsRunningOnMono()) jmmServerInstallLocation = (string) Registry.GetValue(
+                    if (!Utils.IsLinux) jmmServerInstallLocation = (string) Registry.GetValue(
                         @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
                         "InstallLocation", null);
 

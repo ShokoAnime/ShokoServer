@@ -185,7 +185,7 @@ namespace MediaInfoLib
         {
             #region Shoko
 
-            if ((Handle == IntPtr.Zero) && !Shoko.Server.Utils.IsRunningOnMono())
+            if ((Handle == IntPtr.Zero) && !Shoko.Server.Utils.IsLinux)
             {
                 string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
                 if (!string.IsNullOrEmpty(fullexepath))

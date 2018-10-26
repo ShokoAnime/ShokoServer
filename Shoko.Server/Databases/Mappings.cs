@@ -1,6 +1,7 @@
 ﻿using Shoko.Server.Models;
 using Shoko.Models.Server;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.Models.Client;
 
 namespace Shoko.Server.Databases
@@ -442,7 +443,7 @@ namespace Shoko.Server.Databases
                 model.Property(x => x.SeriesNameOverride).HasMaxLength(500);
                 model.Property(x => x.ContractVersion).IsRequired().HasDefaultValue(0);
                 model.Property(x => x.ContractSize).IsRequired().HasDefaultValue(0);
-                model.Property(x => x.AirsOn).HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.EnumToStringConverter<System.DayOfWeek>());
+                model.Property(x => x.AirsOn).HasConversion(new EnumToStringConverter<System.DayOfWeek>());
             }
             {
                 var model = builder.Entity<AnimeStaff>();
