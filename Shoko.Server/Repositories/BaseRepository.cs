@@ -140,7 +140,8 @@ namespace Shoko.Server.Repositories
             {
                 if (IntAutoGen == -1)
                 {
-                    IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
+                    if (Table.Count() == 0) IntAutoGen = 0;
+                    else IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
                 }
                 IntAutoGen++;
             }
