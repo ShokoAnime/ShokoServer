@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -24,6 +25,12 @@ namespace Shoko.Server.API.Authentication
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            if (!ServerState.Instance.ServerOnline)
+            {
+                return Task.FromResult(
+                    AuthenticateResult.Success(
+                        new AuthenticationTicket(new ClaimsPrincipal(InitUser.Instance), Options.Scheme)));
+            }
             // Get Authorization header value
             if (!Request.Headers.TryGetValue("apikey", out var authorization))
             {

@@ -37,8 +37,7 @@ namespace Shoko.Server.API
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc()
-                .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
+            
 
             services.AddAuthentication(options =>
             {
@@ -60,6 +59,10 @@ namespace Shoko.Server.API
             {               
                 options.CustomSchemaIds(x => x.FullName);
             });
+            
+            // this caused issues with auth. https://stackoverflow.com/questions/43574552
+            services.AddMvc()
+                .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -106,6 +109,9 @@ namespace Shoko.Server.API
 
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
+
+            // Important for first run at least
+            app.UseAuthentication();
 
             app.UseMvc();
 

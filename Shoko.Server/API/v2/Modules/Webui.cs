@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,7 +59,7 @@ namespace Shoko.Server.API.v2.Modules
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
                 var response = client.DownloadString(
-                    new Uri("https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases/tags/" +
+                    new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/tags/" +
                             tag_name));
 
                 dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
@@ -91,29 +92,31 @@ namespace Shoko.Server.API.v2.Modules
         internal ActionResult WebUIUpdate(string url, string channel, string version)
         {
             //list all files from root /webui/ and all directories
-            string[] files = Directory.GetFiles("webui");
-            string[] directories = Directory.GetDirectories("webui");
+            string path = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "webui");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            string[] files = Directory.GetFiles(path);
+            string[] directories = Directory.GetDirectories(path);
 
             try
             {
                 //download latest version
                 var client = new System.Net.WebClient();
                 client.Headers.Add("User-Agent", "shokoserver");
-                client.DownloadFile(url, Path.Combine("webui", "latest.zip"));
+                client.DownloadFile(url, Path.Combine(path, "latest.zip"));
 
                 //create 'old' dictionary
-                if (!Directory.Exists(Path.Combine("webui", "old")))
+                if (!Directory.Exists(Path.Combine(path, "old")))
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine("webui", "old"));
+                    System.IO.Directory.CreateDirectory(Path.Combine(path, "old"));
                 }
                 try
                 {
                     //move all directories and files to 'old' folder as fallback recovery
                     foreach (string dir in directories)
                     {
-                        if (Directory.Exists(dir) && dir != Path.Combine("webui", "old") && dir != Path.Combine("webui", "tweak"))
+                        if (Directory.Exists(dir) && dir != Path.Combine(path, "old") && dir != Path.Combine(path, "tweak"))
                         {
-                            string n_dir = dir.Replace("webui", Path.Combine("webui", "old"));
+                            string n_dir = dir.Replace(path, Path.Combine(path, "old"));
                             Directory.Move(dir, n_dir);
                         }
                     }
@@ -121,7 +124,7 @@ namespace Shoko.Server.API.v2.Modules
                     {
                         if (System.IO.File.Exists(file))
                         {
-                            string n_file = file.Replace("webui", Path.Combine("webui", "old"));
+                            string n_file = file.Replace(path, Path.Combine(path, "old"));
                             System.IO.File.Move(file, n_file);
                         }
                     }
@@ -129,18 +132,18 @@ namespace Shoko.Server.API.v2.Modules
                     try
                     {
                         //extract latest webui
-                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine("webui", "latest.zip"), "webui");
+                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine(path, "latest.zip"), path);
 
                         //clean because we already have working updated webui
-                        Directory.Delete(Path.Combine("webui", "old"), true);
-                        System.IO.File.Delete(Path.Combine("webui", "latest.zip"));
+                        Directory.Delete(Path.Combine(path, "old"), true);
+                        System.IO.File.Delete(Path.Combine(path, "latest.zip"));
 
                         //save version type>version that was installed successful
-                        if (System.IO.File.Exists(Path.Combine("webui", "index.ver")))
+                        if (System.IO.File.Exists(Path.Combine(path, "index.ver")))
                         {
-                            System.IO.File.Delete(Path.Combine("webui", "index.ver"));
+                            System.IO.File.Delete(Path.Combine(path, "index.ver"));
                         }
-                        System.IO.File.AppendAllText(Path.Combine("webui", "index.ver"), channel + ">" + version);
+                        System.IO.File.AppendAllText(Path.Combine(path, "index.ver"), channel + ">" + version);
 
                         return APIStatus.OK();
                     }
@@ -200,7 +203,7 @@ namespace Shoko.Server.API.v2.Modules
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
             var response = client.DownloadString(new Uri(
-                "https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases/latest"));
+                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/latest"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 
@@ -245,7 +248,7 @@ namespace Shoko.Server.API.v2.Modules
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "shokoserver");
             var response = client.DownloadString(new Uri(
-                "https://api.github.com/Repo.Instance./japanesemediamanager/shokoserver-webui/releases"));
+                "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases"));
 
             dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
 

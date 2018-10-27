@@ -267,7 +267,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("startserver")]
-        private object StartServer()
+        private ActionResult StartServer()
         {
             if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
             if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
@@ -289,7 +289,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Set AniDB account credentials with a Credentials object
         /// </summary>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("anidb")]
         public ActionResult SetAniDB(Credentials cred)
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
