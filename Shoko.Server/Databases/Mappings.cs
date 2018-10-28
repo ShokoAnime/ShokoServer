@@ -967,11 +967,12 @@ namespace Shoko.Server.Databases
                 model.HasIndex(x => x.Hash).IsUnique().HasName("UIX_IX_VideoLocal_Hash");
                 model.Property(x => x.VideoLocalID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
-                model.Property(x => x.CRC32).HasMaxLength(50);
-                model.Property(x => x.MD5).HasMaxLength(50);
-                model.Property(x => x.SHA1).HasMaxLength(50);
+                model.Property(x => x.CRC32).HasMaxLength(50).HasDefaultValue(null);
+                model.Property(x => x.MD5).HasMaxLength(50).HasDefaultValue(null);
+                model.Property(x => x.SHA1).HasMaxLength(50).HasDefaultValue(null);
                 model.Property(x => x.HashSource).IsRequired();
                 model.Property(x => x.FileSize).IsRequired();
+                model.Property(x => x.FileName).HasDefaultValue(null);
                 model.Property(x => x.IsIgnored).IsRequired();
                 model.Property(x => x.DateTimeUpdated).IsRequired();
                 model.Property(x => x.DateTimeCreated).IsRequired();
