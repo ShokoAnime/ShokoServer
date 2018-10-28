@@ -12,14 +12,8 @@ namespace Shoko.Server.Repositories
 {
     public class Repo
     {
-        public static Repo Instance => _tl.Value;
-
-        private static readonly ThreadLocal<Repo> _tl = new ThreadLocal<Repo>(() =>
-        {
-            var repo = new Repo();
-            repo.Start();
-            return repo;
-        });
+        static Repo _instance;
+        public static Repo Instance => _instance;
 
         // DECLARE THESE IN ORDER OF DEPENDENCY
         public JMMUserRepository JMMUser { get; private set; }
@@ -158,8 +152,9 @@ namespace Shoko.Server.Repositories
             ShokoContext db = provider.GetContext();
             db.Database.Migrate();
             //db.Database.EnsureCreated();
+            _instance = this;
 
-            _repos =new List<IRepository>();
+            _repos = new List<IRepository>();
             if (cachedRepos != null)
                 CachedRepos = cachedRepos;
             Provider = provider;
