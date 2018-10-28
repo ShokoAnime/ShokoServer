@@ -495,9 +495,13 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public void GetUpdated(ref List<int> updatedAnimeIDs, ref long startTime)
+        /// <summary>
+        /// Gets the list of updated AnimeIDs. This may use more than one call to get them all, and therefore a lot of time
+        /// </summary>
+        /// <param name="updatedAnimeIDs">The updated IDs</param>
+        /// <param name="lastUpdateTime">The time that the last anime was updated</param>
+        public void GetUpdated(ref List<int> updatedAnimeIDs, ref long lastUpdateTime)
         {
-            //startTime = 0;
             updatedAnimeIDs = new List<int>();
 
             if (!Login()) return;
@@ -505,16 +509,48 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 AniDBCommand_GetUpdated cmdUpdated = new AniDBCommand_GetUpdated();
-                cmdUpdated.Init(startTime.ToString());
+                cmdUpdated.Init(lastUpdateTime.ToString());
                 SetWaitingOnResponse(true);
                 enHelperActivityType ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
 
-                if (ev == enHelperActivityType.GotUpdated && cmdUpdated.RecordCount > 0)
+                if (ev != enHelperActivityType.GotUpdated) return;
+
+                int records = cmdUpdated.RecordCount;
+                if (records <= 0) return;
+
+                lastUpdateTime = long.Parse(cmdUpdated.LastUpdateTime);
+                updatedAnimeIDs.AddRange(cmdUpdated.AnimeIDList);
+
+                // we got them all
+                if (records <= 200) return;
+
+                // while loop it to be sure
+                while (records > 200)
                 {
-                    startTime = long.Parse(cmdUpdated.StartTime);
-                    updatedAnimeIDs = cmdUpdated.AnimeIDList;
+                    // reinit with last update time provided
+                    cmdUpdated = new AniDBCommand_GetUpdated();
+                    cmdUpdated.Init(lastUpdateTime.ToString());
+                    // get the rest (assuming RecordCount was <= 400
+                    SetWaitingOnResponse(true);
+                    ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                        new UnicodeEncoding(true, false));
+                    SetWaitingOnResponse(false);
+
+                    if (ev != enHelperActivityType.GotUpdated) return;
+
+                    // update records with new count
+                    records = cmdUpdated.RecordCount;
+                    if (records <= 0) return;
+
+                    lastUpdateTime = long.Parse(cmdUpdated.LastUpdateTime);
+
+                    // if the first/last item overlap, then remove it so it isn't duplicated
+                    if (cmdUpdated.AnimeIDList.Count > 0 && cmdUpdated.AnimeIDList[0] == updatedAnimeIDs.LastOrDefault())
+                        cmdUpdated.AnimeIDList.RemoveAt(0);
+
+                    updatedAnimeIDs.AddRange(cmdUpdated.AnimeIDList);
                 }
             }
         }

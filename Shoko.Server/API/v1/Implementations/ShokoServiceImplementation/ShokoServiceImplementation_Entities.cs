@@ -858,6 +858,9 @@ namespace Shoko.Server
                 SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                     return "Could not find anime series record";
+                
+                RemoveXRefsForFile(videoLocalID);
+                
                 for (int i = startEpNum; i <= endEpNum; i++)
                 {
                     List<AniDB_Episode> anieps =

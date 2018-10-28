@@ -69,11 +69,12 @@ namespace Shoko.Server.Commands
         }
 
         //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
-        private long CanAccessFile(string fileName)
+        private long CanAccessFile(string fileName, bool writeAccess)
         {
+            var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
             try
             {
-                using (FileStream fs = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.None))
+                using (FileStream fs = File.Open(fileName, FileMode.Open, accessType, FileShare.None))
                 {
                     long size = fs.Seek(0, SeekOrigin.End);
                     fs.Close();
@@ -92,7 +93,9 @@ namespace Shoko.Server.Commands
         {
             try
             {
-                if (System.IO.File.GetLastWriteTime(FileName).AddSeconds(Seconds) >= DateTime.Now)
+                var lastWrite = System.IO.File.GetLastWriteTime(FileName);
+                var now = DateTime.Now;
+                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now)
                 {
                     return true;
                 }
@@ -138,7 +141,7 @@ namespace Shoko.Server.Commands
                 int numAttempts = 0;
 
                 // Wait 1 minute before giving up on trying to access the file
-                while ((filesize = CanAccessFile(FileName)) == 0 && (numAttempts < 60))
+                while ((filesize = CanAccessFile(FileName, folder.IsDropSource == 1)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
@@ -152,11 +155,21 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
+                numAttempts = 0;
+
                 //For systems with no locking
-                while (FileModified(FileName, 3))
+                while (FileModified(FileName, 3) && numAttempts < 60)
                 {
+                    numAttempts++;
                     Thread.Sleep(1000);
-                    logger.Error($@"An external process is modifying the file, {FileName}");
+                    logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {FileName}");
+                }
+                
+                // if we failed to access the file, get ouuta here
+                if (numAttempts >= 60)
+                {
+                    logger.Error("Could not access file: " + FileName);
+                    return;
                 }
             }
 
