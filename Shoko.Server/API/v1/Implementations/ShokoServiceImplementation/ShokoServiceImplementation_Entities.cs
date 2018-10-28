@@ -843,6 +843,17 @@ namespace Shoko.Server
 
             return "";
         }
+        
+        [NonAction]
+        private void RemoveXRefsForFile(int VideoLocalID)
+        {
+            SVR_VideoLocal vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
+            List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(vlocal.Hash);
+
+            foreach (CrossRef_File_Episode fileEp in fileEps)
+                Repo.Instance.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+
+        }
 
         [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
         public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum,

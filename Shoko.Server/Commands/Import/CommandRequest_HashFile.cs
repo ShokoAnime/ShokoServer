@@ -77,7 +77,6 @@ namespace Shoko.Server.Commands
                 using (FileStream fs = File.Open(fileName, FileMode.Open, accessType, FileShare.None))
                 {
                     long size = fs.Seek(0, SeekOrigin.End);
-                    fs.Close();
                     return size;
                 }
             }
@@ -89,26 +88,24 @@ namespace Shoko.Server.Commands
         }
 
         //Used to check if file has been modified within the last X seconds.
-        private bool FileModified(string FileName, int Seconds)
+        private bool FileModified(string FileName, int Seconds, ref long lastFileSize, bool writeAccess)
         {
             try
             {
-                var lastWrite = System.IO.File.GetLastWriteTime(FileName);
+                var lastWrite = File.GetLastWriteTime(FileName);
                 var now = DateTime.Now;
-                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now)
-                {
+                // check that the size is also equal, since some copy utilities apply the previous modified date
+                var size = CanAccessFile(FileName, writeAccess);
+                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now && lastFileSize == size)
                     return true;
-                }
-                else
-                {
-                    return false;
-                }
+
+                lastFileSize = size;
             }
             catch (Exception ex)
             {
                 logger.Error(ex);
-                return false;
             }
+            return false;
         }
 
         private void ProcessFile_LocalInfo()
@@ -139,9 +136,10 @@ namespace Shoko.Server.Commands
                 }
 
                 int numAttempts = 0;
+                bool writeAccess = folder.IsDropSource == 1;
 
                 // Wait 1 minute before giving up on trying to access the file
-                while ((filesize = CanAccessFile(FileName, folder.IsDropSource == 1)) == 0 && (numAttempts < 60))
+                while ((filesize = CanAccessFile(FileName, writeAccess)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
@@ -155,10 +153,12 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
+                // At least 1s between to ensure that size has the chance to change
+                Thread.Sleep(1000);
                 numAttempts = 0;
 
                 //For systems with no locking
-                while (FileModified(FileName, 3) && numAttempts < 60)
+                while (FileModified(FileName, 3, ref filesize, writeAccess) && numAttempts < 60)
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
