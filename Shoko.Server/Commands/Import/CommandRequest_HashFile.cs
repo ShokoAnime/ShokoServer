@@ -97,10 +97,11 @@ namespace Shoko.Server.Commands
                 var now = DateTime.Now;
                 // check that the size is also equal, since some copy utilities apply the previous modified date
                 var size = CanAccessFile(FileName, writeAccess);
-                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now && lastFileSize == size)
+                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now || lastFileSize != size)
+                {
+                    lastFileSize = size;
                     return true;
-
-                lastFileSize = size;
+                }
             }
             catch (Exception ex)
             {
@@ -146,7 +147,7 @@ namespace Shoko.Server.Commands
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    logger.Error($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                    logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                 }
 
                 // if we failed to access the file, get ouuta here
