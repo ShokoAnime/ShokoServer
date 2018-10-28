@@ -72,6 +72,8 @@
     <PackageReference Include="TMDbLib" Version="1.2.0-alpha" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="API\v3\Controllers\Utility" />
+    <Folder Include="API\v3\Helpers" />
     <Folder Include="API\Views\" />
     <Folder Include="Workers\WorkUnits\Import\" />
   </ItemGroup>
