@@ -81,9 +81,8 @@ namespace Shoko.Server.Commands
                     return size;
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                logger.Error(ex);
                 return 0;
             }
         }
@@ -103,9 +102,9 @@ namespace Shoko.Server.Commands
                     return true;
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                logger.Error(ex);
+                // ignore
             }
             return false;
         }
@@ -166,7 +165,8 @@ namespace Shoko.Server.Commands
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
-                    logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {FileName}");
+                    // Only show if it's more than 3s past
+                    if (numAttempts > 3) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
                 }
                 
                 // if we failed to access the file, get ouuta here
