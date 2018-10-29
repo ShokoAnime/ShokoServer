@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -6,13 +7,9 @@ namespace Shoko.Server.API.v3
     /// <summary>
     /// Series object, stores all of the series info
     /// </summary>
-    public class Series
+    public class Series : Base
     {
-        /// <summary>
-        /// AnimeSeriesID
-        /// </summary>
-        [Required]
-        public int id { get; set; }
+        public override string type => "series";
 
         /// <summary>
         /// AniDB_ID
@@ -29,19 +26,36 @@ namespace Shoko.Server.API.v3
         public int group_id { get; set; }
 
         /// <summary>
+        /// Series type. Series, OVA, Movie, etc
+        /// </summary>
+        [Required]
+        public string series_type { get; set; }
+
+        /// <summary>
         /// Is it porn...or close enough
         /// If not provided, assume no
         /// </summary>
         public bool restricted { get; set; }
 
         /// <summary>
-        /// The server's title. This will use overrides, then the naming settings, then MainTitle if all else fails. This is a guaranteed fallback
+        /// Air date (2013-02-27, shut up avael)
         /// </summary>
         [Required]
-        public string preferred_title { get; set; }
+        public string air_date { get; set; }
 
         /// <summary>
-        /// There should always be at least one of these, since preferred_title will be valid
+        /// End date, can be null. Null means that it's still airing (2013-02-27)
+        /// </summary>
+        public string end_date { get; set; }
+        
+        /// <summary>
+        /// TvDB Season. This value is not guaranteed to be even kind of accurate
+        /// TvDB matchings and links affect this. Null means no match. 0 means specials
+        /// </summary>
+        public int? season { get; set; }
+
+        /// <summary>
+        /// There should always be at least one of these, since name will be valid
         /// </summary>
         public List<Title> titles { get; set; }
 
@@ -84,7 +98,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// links to series pages on various sites
         /// </summary>
-        public List<Resource> resources { get; set; }
+        public List<Resource> links { get; set; }
 
         /// <summary>
         /// A site link, as in hyperlink.

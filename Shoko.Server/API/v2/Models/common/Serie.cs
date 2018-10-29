@@ -459,7 +459,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie a = obj as Serie;
             if (a == null) return 1;
-            // try year first, as it is more likely to have relevannt data
+            // try year first, as it is more likely to have relevant data
             if (int.TryParse(a.year, out int s1) && int.TryParse(year, out int s))
             {
                 if (s < s1) return -1;
