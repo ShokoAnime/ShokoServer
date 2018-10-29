@@ -1,6 +1,7 @@
 #### A lot of these are standard programming tips, but APIv2 was a mess because they weren't followed
 ---
 - Modules/Controllers must be split into smaller files based on what they provide for. Series is its own. Episode is its own. Etc.
+- Use Data Validation on Models. `[Required]` for example
 
 ---
 - Models that have shared functionality, such as Image, Title, etc. should go into Common

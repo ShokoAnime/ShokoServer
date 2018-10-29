@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Shoko.Server.API.v3
 {
     /// <summary>
@@ -8,16 +10,19 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// rating
         /// </summary>
+        [Required]
         public decimal rating { get; set; }
         
         /// <summary>
         /// out of what? Assuming int, as the max should be
         /// </summary>
+        [Required]
         public int max_rating { get; set; }
         
         /// <summary>
         /// AniDB, etc
         /// </summary>
+        [Required]
         public string source { get; set; }
         
         /// <summary>
