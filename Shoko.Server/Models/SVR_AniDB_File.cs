@@ -420,8 +420,9 @@ namespace Shoko.Server.Models
                 };
                 fileEps.Add(cross);
             }
+            fileEps = fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList();
             // There is a chance that AniDB returned a dup, however unlikely
-            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ForEach(fileEp => Repo.Instance.CrossRef_File_Episode.Touch(() => fileEp));
+            Repo.Instance.CrossRef_File_Episode.BeginAdd(fileEps);
         }
   
         public string ToXML()

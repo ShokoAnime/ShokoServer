@@ -787,7 +787,7 @@ namespace Shoko.Server.Models
 
         public override string ToString()
         {
-            return $"Series: {GetAnime().MainTitle} ({AnimeSeriesID})";
+            return $"Series: {GetAnime()?.MainTitle} ({AnimeSeriesID})";
             //return string.Empty;
         }
 

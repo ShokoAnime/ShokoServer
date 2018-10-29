@@ -29,6 +29,7 @@ namespace Shoko.Server
         [HttpPost("Serie/SearchFilename/{uid}")]
         public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string input)
         {
+            if (input == null) input = "";
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
 

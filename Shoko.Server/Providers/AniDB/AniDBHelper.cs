@@ -1138,7 +1138,7 @@ namespace Shoko.Server.Providers.AniDB
             SVR_AniDB_Anime anime;
             using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime.GetByID(animeID)))
             {
-                if (!upd.Entity.PopulateAndSaveFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
+                if (!upd.Entity.PopulateFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                     getAnimeCmd.Categories, getAnimeCmd.Tags,
                     getAnimeCmd.Characters, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
                     downloadRelations, relDepth))

@@ -568,6 +568,7 @@ namespace Shoko.Server.Models
         public List<AniDB_Anime_Similar> GetSimilarAnime() => Repo.Instance.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
 
         [XmlIgnore]
+        [NotMapped]
         public List<AniDB_Anime_Review> AnimeReviews => Repo.Instance.AniDB_Anime_Review.GetByAnimeID(AnimeID);
 
         public List<SVR_AniDB_Anime> GetAllRelatedAnime()
@@ -639,6 +640,7 @@ namespace Shoko.Server.Models
         }
 
         [XmlIgnore]
+        [NotMapped]
         public AniDB_Vote UserVote
         {
             get
@@ -655,6 +657,7 @@ namespace Shoko.Server.Models
             }
         }
 
+        [NotMapped]
         public string PreferredTitle => GetFormattedTitle();
 
 
@@ -673,51 +676,51 @@ namespace Shoko.Server.Models
 
         #region Init and Populate
 
-        private bool Populate(Raw_AniDB_Anime animeInfo, IAtomic<SVR_AniDB_Anime, object> upd)
+        private bool Populate(Raw_AniDB_Anime animeInfo)
         {
             // We need various values to be populated to be considered valid
             if (string.IsNullOrEmpty(animeInfo?.MainTitle) || animeInfo.AnimeID <= 0) return false;
-            upd.Entity.AirDate = AirDate = animeInfo.AirDate;
-            upd.Entity.AllCinemaID = AllCinemaID = animeInfo.AllCinemaID;
-            upd.Entity.AnimeID = AnimeID = animeInfo.AnimeID;
+            AirDate = AirDate = animeInfo.AirDate;
+            AllCinemaID = AllCinemaID = animeInfo.AllCinemaID;
+            AnimeID = AnimeID = animeInfo.AnimeID;
             //this.AnimeNfo = animeInfo.AnimeNfoID;
-            upd.Entity.AnimePlanetID = AnimePlanetID = animeInfo.AnimePlanetID;
-            upd.Entity.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW); this.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
-            upd.Entity.ANNID = ANNID = animeInfo.ANNID;
-            upd.Entity.AvgReviewRating = AvgReviewRating = animeInfo.AvgReviewRating;
-            upd.Entity.AwardList = AwardList = animeInfo.AwardList;
-            upd.Entity.BeginYear = BeginYear = animeInfo.BeginYear;
+            AnimePlanetID = AnimePlanetID = animeInfo.AnimePlanetID;
+            this.SetAnimeTypeRAW(animeInfo.AnimeTypeRAW);
+            ANNID = ANNID = animeInfo.ANNID;
+            AvgReviewRating = AvgReviewRating = animeInfo.AvgReviewRating;
+            AwardList = AwardList = animeInfo.AwardList;
+            BeginYear = BeginYear = animeInfo.BeginYear;
 
-            upd.Entity.DateTimeDescUpdated = DateTimeDescUpdated = DateTime.Now;
-            upd.Entity.DateTimeUpdated = DateTimeUpdated = DateTime.Now;
+            DateTimeDescUpdated = DateTimeDescUpdated = DateTime.Now;
+            DateTimeUpdated = DateTime.Now;
 
-            upd.Entity.Description = Description = animeInfo.Description ?? string.Empty;
-            upd.Entity.EndDate = EndDate = animeInfo.EndDate;
-            upd.Entity.EndYear = EndYear = animeInfo.EndYear;
-            upd.Entity.MainTitle = MainTitle = animeInfo.MainTitle;
-            upd.Entity.AllTitles = AllTitles = string.Empty;
-            upd.Entity.AllTags = AllTags = string.Empty;
+            Description = Description = animeInfo.Description ?? string.Empty;
+            EndDate = EndDate = animeInfo.EndDate;
+            EndYear = EndYear = animeInfo.EndYear;
+            MainTitle = MainTitle = animeInfo.MainTitle;
+            AllTitles = AllTitles = string.Empty;
+            AllTags = AllTags = string.Empty;
             //this.EnglishName = animeInfo.EnglishName;
-            upd.Entity.EpisodeCount = EpisodeCount = animeInfo.EpisodeCount;
-            upd.Entity.EpisodeCountNormal = EpisodeCountNormal = animeInfo.EpisodeCountNormal;
-            upd.Entity.EpisodeCountSpecial = EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
+            EpisodeCount = EpisodeCount = animeInfo.EpisodeCount;
+            EpisodeCountNormal = EpisodeCountNormal = animeInfo.EpisodeCountNormal;
+            EpisodeCountSpecial = EpisodeCountSpecial = animeInfo.EpisodeCountSpecial;
             //this.genre
-            upd.Entity.ImageEnabled = ImageEnabled = 1;
+            ImageEnabled = ImageEnabled = 1;
             //this.KanjiName = animeInfo.KanjiName;
-            upd.Entity.LatestEpisodeNumber = LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
+            LatestEpisodeNumber = LatestEpisodeNumber = animeInfo.LatestEpisodeNumber;
             //this.OtherName = animeInfo.OtherName;
-            upd.Entity.Picname = Picname = animeInfo.Picname;
-            upd.Entity.Rating = Rating = animeInfo.Rating;
+            Picname = Picname = animeInfo.Picname;
+            Rating = Rating = animeInfo.Rating;
             //this.relations
-            upd.Entity.Restricted = Restricted = animeInfo.Restricted;
-            upd.Entity.ReviewCount = ReviewCount = animeInfo.ReviewCount;
+            Restricted = Restricted = animeInfo.Restricted;
+            ReviewCount = ReviewCount = animeInfo.ReviewCount;
             //this.RomajiName = animeInfo.RomajiName;
             //this.ShortNames = animeInfo.ShortNames.Replace("'", "|");
             //this.Synonyms = animeInfo.Synonyms.Replace("'", "|");
-            upd.Entity.TempRating = TempRating = animeInfo.TempRating;
-            upd.Entity.TempVoteCount = TempVoteCount = animeInfo.TempVoteCount;
-            upd.Entity.URL = URL = animeInfo.URL;
-            upd.Entity.VoteCount = VoteCount = animeInfo.VoteCount;
+            TempRating = TempRating = animeInfo.TempRating;
+            TempVoteCount = TempVoteCount = animeInfo.TempVoteCount;
+            URL = URL = animeInfo.URL;
+            VoteCount = VoteCount = animeInfo.VoteCount;
             return true;
         }
 
@@ -774,80 +777,77 @@ namespace Shoko.Server.Models
             return series;
         }
 
-        public bool PopulateAndSaveFromHTTP(Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
+        
+        public bool PopulateFromHTTP(Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
             List<Raw_AniDB_Anime_Title> titles,
             List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
             List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
         {
-            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => this))
+            logger.Trace("------------------------------------------------");
+            logger.Trace($"{nameof(PopulateFromHTTP)}: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
+            logger.Trace("------------------------------------------------");
+
+            Stopwatch taskTimer = new Stopwatch();
+            Stopwatch totalTimer = Stopwatch.StartNew();
+
+            if (!Populate(animeInfo))
             {
-                logger.Trace("------------------------------------------------");
-                logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
-                logger.Trace("------------------------------------------------");
-
-                Stopwatch taskTimer = new Stopwatch();
-                Stopwatch totalTimer = Stopwatch.StartNew();
-
-                if (!Populate(animeInfo, upd))
-                {
-                    logger.Error("AniDB_Anime was unable to populate as it received invalid info. " +
-                                 "This is not an error on our end. It is AniDB's issue, " +
-                                 "as they did not return either an ID or a title for the anime.");
-                    totalTimer.Stop();
-                    return false;
-                }
-
-                taskTimer.Start();
-
-                CreateEpisodes(eps, upd);
-                taskTimer.Stop();
-                logger.Trace("CreateEpisodes in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateTitles(titles, upd);
-                taskTimer.Stop();
-                logger.Trace("CreateTitles in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateTags(tags, upd);
-                taskTimer.Stop();
-                logger.Trace("CreateTags in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateCharacters(chars);
-                taskTimer.Stop();
-                logger.Trace("CreateCharacters in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateResources(resources, upd);
-                taskTimer.Stop();
-                logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateRelations(rels, downloadRelations, relDepth);
-                taskTimer.Stop();
-                logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateSimilarAnime(sims);
-                taskTimer.Stop();
-                logger.Trace("CreateSimilarAnime in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                CreateRecommendations(recs);
-                taskTimer.Stop();
-                logger.Trace("CreateRecommendations in : " + taskTimer.ElapsedMilliseconds);
-                taskTimer.Restart();
-
-                upd.Commit();
+                logger.Error("AniDB_Anime was unable to populate as it received invalid info. " +
+                                "This is not an error on our end. It is AniDB's issue, " +
+                                "as they did not return either an ID or a title for the anime.");
                 totalTimer.Stop();
-                logger.Trace("TOTAL TIME in : " + totalTimer.ElapsedMilliseconds);
-                logger.Trace("------------------------------------------------");
-
-                return true;
+                return false;
             }
+
+            taskTimer.Start();
+
+            CreateEpisodes(eps);
+            taskTimer.Stop();
+            logger.Trace("CreateEpisodes in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateTitles(titles);
+            taskTimer.Stop();
+            logger.Trace("CreateTitles in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateTags(tags);
+            taskTimer.Stop();
+            logger.Trace("CreateTags in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateCharacters(chars);
+            taskTimer.Stop();
+            logger.Trace("CreateCharacters in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateResources(resources);
+            taskTimer.Stop();
+            logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateRelations(rels, downloadRelations, relDepth);
+            taskTimer.Stop();
+            logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateSimilarAnime(sims);
+            taskTimer.Stop();
+            logger.Trace("CreateSimilarAnime in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateRecommendations(recs);
+            taskTimer.Stop();
+            logger.Trace("CreateRecommendations in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            totalTimer.Stop();
+            logger.Trace("TOTAL TIME in : " + totalTimer.ElapsedMilliseconds);
+            logger.Trace("------------------------------------------------");
+
+            return true;
         }
 
         /// <summary>
@@ -867,12 +867,12 @@ namespace Shoko.Server.Models
             CreateAnimeReviews();
         }
 
-        public void CreateEpisodes(List<Raw_AniDB_Episode> eps, IAtomic<SVR_AniDB_Anime, object> txn)
+        public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
         {
             if (eps == null) return;
 
-            txn.Entity.EpisodeCountSpecial = EpisodeCountSpecial = 0;
-            txn.Entity.EpisodeCountNormal = EpisodeCountNormal = 0;
+            EpisodeCountSpecial = EpisodeCountSpecial = 0;
+            EpisodeCountNormal = EpisodeCountNormal = 0;
 
             HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
             List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
@@ -919,22 +919,22 @@ namespace Shoko.Server.Models
 
                     // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
                     if (upd.Entity.GetEpisodeTypeEnum() == EpisodeType.Episode)
-                        txn.Entity.EpisodeCountNormal = EpisodeCountNormal++;
+                        EpisodeCountNormal = EpisodeCountNormal++;
 
                     if (upd.Entity.GetEpisodeTypeEnum() == EpisodeType.Special)
-                        txn.Entity.EpisodeCountSpecial = EpisodeCountSpecial++;
+                        EpisodeCountSpecial = EpisodeCountSpecial++;
                 }
             }
 
-            txn.Entity.EpisodeCount = EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
+            EpisodeCount = EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
         }
 
 
-        private void CreateTitles(List<Raw_AniDB_Anime_Title> titles, IAtomic<SVR_AniDB_Anime, object> txn)
+        private void CreateTitles(List<Raw_AniDB_Anime_Title> titles)
         {
             if (titles == null) return;
 
-            txn.Entity.AllTitles = AllTitles = string.Empty;
+            AllTitles = AllTitles = string.Empty;
 
             List<AniDB_Anime_Title> titlesToDelete = Repo.Instance.AniDB_Anime_Title.GetByAnimeID(AnimeID);
             List<AniDB_Anime_Title> titlesToSave = new List<AniDB_Anime_Title>();
@@ -945,17 +945,17 @@ namespace Shoko.Server.Models
                 titlesToSave.Add(title);
 
                 if (AllTitles.Length > 0) AllTitles += "|";
-                txn.Entity.AllTitles = AllTitles += rawtitle.Title;
+                AllTitles = AllTitles += rawtitle.Title;
             }
             Repo.Instance.AniDB_Anime_Title.Delete(titlesToDelete);
             Repo.Instance.AniDB_Anime_Title.BeginAdd(titlesToSave).Commit();
         }
 
-        private void CreateTags(List<Raw_AniDB_Tag> tags, IAtomic<SVR_AniDB_Anime, object> txn)
+        private void CreateTags(List<Raw_AniDB_Tag> tags)
         {
             if (tags == null) return;
 
-            txn.Entity.AllTags = AllTags = string.Empty;
+            AllTags = AllTags = string.Empty;
 
             List<AniDB_Anime_Tag> xrefsToDelete = new List<AniDB_Anime_Tag>();
 
@@ -992,8 +992,8 @@ namespace Shoko.Server.Models
                         xr.Entity.Populate(rawtag);
                     }
 
-                    if (AllTags.Length > 0) txn.Entity.AllTags = AllTags += "|";
-                    txn.Entity.AllTags = AllTags += upd.Entity.TagName;
+                    if (AllTags.Length > 0) AllTags = AllTags += "|";
+                    AllTags = AllTags += upd.Entity.TagName;
                     upd.Commit();
                 }
             }
@@ -1162,7 +1162,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        public void CreateResources(List<Raw_AniDB_ResourceLink> resources, IAtomic<SVR_AniDB_Anime, object> upd)
+        public void CreateResources(List<Raw_AniDB_ResourceLink> resources)
         {
             if (resources == null) return;
             List<CrossRef_AniDB_MAL> malLinks = new List<CrossRef_AniDB_MAL>();
@@ -1172,52 +1172,52 @@ namespace Shoko.Server.Models
                 {
                     case AniDB_ResourceLinkType.ANN:
                         {
-                            upd.Entity.ANNID = this.ANNID = resource.ID;
+                            ANNID = this.ANNID = resource.ID;
                             break;
                         }
                     case AniDB_ResourceLinkType.ALLCinema:
                         {
-                            upd.Entity.AllCinemaID = this.AllCinemaID = resource.ID;
+                            AllCinemaID = this.AllCinemaID = resource.ID;
                             break;
                         }
                     case AniDB_ResourceLinkType.AnimeNFO:
                         {
-                            upd.Entity.AnimeNfo = this.AnimeNfo = resource.ID;
+                            AnimeNfo = this.AnimeNfo = resource.ID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Site_JP:
                         {
-                            upd.Entity.Site_JP = this.Site_JP = resource.RawID;
+                            Site_JP = this.Site_JP = resource.RawID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Site_EN:
                         {
-                            upd.Entity.Site_EN = this.Site_EN = resource.RawID;
+                            Site_EN = this.Site_EN = resource.RawID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Wiki_EN:
                         {
-                            upd.Entity.Wikipedia_ID = this.Wikipedia_ID = resource.RawID;
+                            Wikipedia_ID = this.Wikipedia_ID = resource.RawID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Wiki_JP:
                         {
-                            upd.Entity.WikipediaJP_ID = this.WikipediaJP_ID = resource.RawID;
+                            WikipediaJP_ID = this.WikipediaJP_ID = resource.RawID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Syoboi:
                         {
-                            upd.Entity.SyoboiID = this.SyoboiID = resource.ID;
+                            SyoboiID = this.SyoboiID = resource.ID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Anison:
                         {
-                            upd.Entity.AnisonID = this.AnisonID = resource.ID;
+                            AnisonID = this.AnisonID = resource.ID;
                             break;
                         }
                     case AniDB_ResourceLinkType.Crunchyroll:
                         {
-                            upd.Entity.CrunchyrollID = this.CrunchyrollID = resource.RawID;
+                            CrunchyrollID = this.CrunchyrollID = resource.RawID;
                             break;
                         }
                     case AniDB_ResourceLinkType.MAL:
