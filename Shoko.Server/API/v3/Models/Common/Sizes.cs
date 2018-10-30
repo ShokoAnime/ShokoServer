@@ -31,17 +31,17 @@ namespace Shoko.Server.API.v3
         /// </summary>
         public class EpisodeCounts
         {
-            public int Episodes { get; set; }
+            public int episodes { get; set; }
 
-            public int Specials { get; set; }
+            public int specials { get; set; }
 
-            public int Credits { get; set; }
+            public int credits { get; set; }
 
-            public int Trailers { get; set; }
+            public int trailers { get; set; }
 
-            public int Parodies { get; set; }
+            public int parodies { get; set; }
 
-            public int Others { get; set; }
+            public int others { get; set; }
         }
     }
 }
