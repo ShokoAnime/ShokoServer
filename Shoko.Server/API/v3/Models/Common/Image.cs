@@ -80,6 +80,78 @@ namespace Shoko.Server.API.v3
             }
         }
         
+        /// <summary>
+        /// Gets the enum ImageEntityType from the text url segments
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static ImageEntityType? GetImageTypeFromSourceAndType(string source, string type)
+        {
+            switch (source)
+            {
+                case "anidb":
+                    switch (type)
+                    {
+                        case "poster": return ImageEntityType.AniDB_Cover;
+                        case "character": return ImageEntityType.Character;
+                        case "staff": return ImageEntityType.Staff;
+                    }
+                    break;
+                case "tvdb":
+                    switch (type)
+                    {
+                        case "poster": return ImageEntityType.TvDB_Cover;
+                        case "fanart": return ImageEntityType.TvDB_FanArt;
+                        case "banner": return ImageEntityType.TvDB_Banner;
+                        case "thumb": return ImageEntityType.TvDB_Episode;
+                    }
+                    break;
+                case "moviedb":
+                    switch (type)
+                    {
+                        case "poster": return ImageEntityType.MovieDB_Poster;
+                        case "fanart": return ImageEntityType.MovieDB_FanArt;
+                    }
+                    break;
+            }
+
+            return null;
+        }
+        
+        /// <summary>
+        /// Gets the source and type from the ImageEntityTypeEnum
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static string GetSourceAndTypeFromImageType(ImageEntityType type)
+        {
+            switch (type)
+            {
+                case ImageEntityType.AniDB_Cover:
+                    return "anidb/poster/";
+                case ImageEntityType.Character:
+                    return "anidb/character/";
+                case ImageEntityType.Staff:
+                    return "anidb/staff/";
+                case ImageEntityType.TvDB_Cover:
+                    return "tvdb/poster";
+                case ImageEntityType.TvDB_FanArt:
+                    return "tvdb/fanart/";
+                case ImageEntityType.TvDB_Banner:
+                    return "tvdb/banner/";
+                case ImageEntityType.TvDB_Episode:
+                    return "tvdb/thumb/";
+                case ImageEntityType.MovieDB_Poster:
+                    return "moviedb/poster/";
+                case ImageEntityType.MovieDB_FanArt:
+                    return "moviedb/fanart/";
+            }
+
+            return null;
+        }
+        
         public static string GetImagePath(ImageEntityType type, int id)
         {
             string path;

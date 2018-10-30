@@ -32,6 +32,7 @@ namespace Shoko.Server.API.v3
                         HttpContext.Items.Add("tags", 0);
                         HttpContext.Items.Add("descriptions", 0);
                         HttpContext.Items.Add("images", 0);
+                        HttpContext.Items.Add("titles", 0);
                     }
                     else
                     {
@@ -39,6 +40,7 @@ namespace Shoko.Server.API.v3
                         if (includeQuery.Contains("tags")) HttpContext.Items.Add("tags", 0);
                         if (includeQuery.Contains("description")) HttpContext.Items.Add("description", 0);
                         if (includeQuery.Contains("images")) HttpContext.Items.Add("images", 0);
+                        if (includeQuery.Contains("titles")) HttpContext.Items.Add("titles", 0);
                     }
                 }
                 else

@@ -166,8 +166,9 @@ namespace Shoko.Server.API.v3
                 };
             }
 
-            titles = anime.GetTitles().Select(title => new Title
-                {language = title.Language, title = title.Title, type = title.TitleType}).ToList();
+            if (ctx.Items.ContainsKey("titles"))
+                titles = anime.GetTitles().Select(title => new Title
+                    {language = title.Language, title = title.Title, type = title.TitleType}).ToList();
 
             PopulateArtFromAniDBAnime(ctx, anime);
 
@@ -244,8 +245,10 @@ namespace Shoko.Server.API.v3
                 var tvdbseries = Repo.Instance.TvDB_Series.GetByTvDBID(tvdbseriesID.Value);
                 if (tvdbseries != null)
                 {
-                    titles.Add(new Title
-                        {language = "en", type = "official", title = tvdbseries.SeriesName, source = "TvDB"});
+                    if (ctx.Items.ContainsKey("titles"))
+                        titles.Add(new Title
+                            {language = "en", type = "official", title = tvdbseries.SeriesName, source = "TvDB"});
+
                     if (ctx.Items.ContainsKey("description"))
                     {
                         description.Add(new Description
@@ -376,6 +379,7 @@ namespace Shoko.Server.API.v3
 
         private void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime)
         {
+            Random rand = (Random) ctx.Items["Random"];
             // TODO Makes this more safe
             preferred_poster = new Image(ctx, anidb_id, ImageEntityType.AniDB_Cover);
             var defaultPoster = Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(anime.AnimeID,
@@ -383,18 +387,18 @@ namespace Shoko.Server.API.v3
             if (defaultPoster != null)
                 preferred_poster = new Image(ctx, defaultPoster.ImageParentID,
                     (ImageEntityType) defaultPoster.ImageParentType);
+
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            var fanarts = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+            var banners = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+
+            var moviedb = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(anime.AnimeID, CrossRefType.MovieDB);
+            List<MovieDB_Fanart> moviedbFanarts = moviedb == null
+                ? new List<MovieDB_Fanart>()
+                : Repo.Instance.MovieDB_Fanart.GetByMovieID(int.Parse(moviedb.CrossRefID));
             
             if (ctx.Items.ContainsKey("images"))
             {
-                var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
-                var fanarts = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
-                var banners = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
-
-                var moviedb = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(anime.AnimeID, CrossRefType.MovieDB);
-                List<MovieDB_Fanart> moviedbFanarts = moviedb == null
-                    ? new List<MovieDB_Fanart>()
-                    : Repo.Instance.MovieDB_Fanart.GetByMovieID(int.Parse(moviedb.CrossRefID));
-
                 var posters = anime.AllPosters;
                 images.AddRange(posters.Select(a =>
                     new Image(ctx, a.AniDB_Anime_DefaultImageID, (ImageEntityType) a.ImageType)));
@@ -406,6 +410,21 @@ namespace Shoko.Server.API.v3
 
                 images.AddRange(moviedbFanarts.Select(a =>
                     new Image(ctx, a.MovieDB_FanartID, ImageEntityType.MovieDB_FanArt)));
+            }
+            else
+            {
+                object fanart_object = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID))
+                    .Cast<object>().Concat(moviedbFanarts).GetRandomElement(rand);
+
+                if (fanart_object is TvDB_ImageFanart tvdb_fanart)
+                    images.Add(new Image(ctx, tvdb_fanart.TvDB_ImageFanartID, ImageEntityType.TvDB_FanArt));
+                else if (fanart_object is MovieDB_Fanart moviedb_fanart)
+                    images.Add(new Image(ctx, moviedb_fanart.MovieDB_FanartID, ImageEntityType.MovieDB_FanArt));
+                
+                var banner = tvdbIDs.SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID))
+                    .GetRandomElement(rand);
+                if (banner != null)
+                    images.Add(new Image(ctx, banner.TvDB_ImageWideBannerID, ImageEntityType.TvDB_Banner));
             }
         }
 

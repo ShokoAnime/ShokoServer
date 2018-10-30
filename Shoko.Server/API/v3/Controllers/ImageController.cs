@@ -24,52 +24,12 @@ namespace Shoko.Server.API.v3
         {
             source = source.ToLower();
             type = type.ToLower();
-            ImageEntityType? sourceType = GetImageTypeFromSourceAndType(source, type);
+            ImageEntityType? sourceType = Image.GetImageTypeFromSourceAndType(source, type);
 
             if (sourceType == null) return BadRequest();
             string path = Image.GetImagePath(sourceType.Value, id);
             if (string.IsNullOrEmpty(path)) return NotFound();
             return File(System.IO.File.OpenRead(path), MimeTypes.GetMimeType(path));
-        }
-
-        /// <summary>
-        /// Gets the enum ImageEntityType from the text url segments
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        [NonAction]
-        private ImageEntityType? GetImageTypeFromSourceAndType(string source, string type)
-        {
-            switch (source)
-            {
-                case "anidb":
-                    switch (type)
-                    {
-                        case "poster": return ImageEntityType.AniDB_Cover;
-                        case "character": return ImageEntityType.Character;
-                        case "staff": return ImageEntityType.Staff;
-                    }
-                    break;
-                case "tvdb":
-                    switch (type)
-                    {
-                        case "poster": return ImageEntityType.TvDB_Cover;
-                        case "fanart": return ImageEntityType.TvDB_FanArt;
-                        case "banner": return ImageEntityType.TvDB_Banner;
-                        case "thumb": return ImageEntityType.TvDB_Episode;
-                    }
-                    break;
-                case "moviedb":
-                    switch (type)
-                    {
-                        case "poster": return ImageEntityType.MovieDB_Poster;
-                        case "fanart": return ImageEntityType.MovieDB_FanArt;
-                    }
-                    break;
-            }
-
-            return null;
         }
     }
 }
