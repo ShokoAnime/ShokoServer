@@ -7,7 +7,7 @@ namespace Shoko.Server.API.v3
 {
     [ApiController]
     [Authorize]
-    [Route("/api3/series")]
+    [Route("/apiv3/series")]
     public class SeriesController : BaseController
     {
         [HttpGet("{id}")]
