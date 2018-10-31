@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v3
     [ApiController]
     [Authorize]
     [Route("/apiv3")]
-    public class ImportFolderController : Controller
+    public class ImportFolderController : BaseController
     {
         /// <summary>
         /// Handle /api/folder/list

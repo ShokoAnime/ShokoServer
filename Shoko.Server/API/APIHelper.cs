@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
+using Shoko.Server.API.v3;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
@@ -92,7 +94,7 @@ namespace Shoko.Server.API
 
         public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
         {
-            return APIHelper.ProperURL(ctx, "/api/image/" + type.ToString() + "/" + id.ToString(), short_url);
+            return APIHelper.ProperURL(ctx, "/apiv3/image/" + Image.GetSourceAndTypeFromImageType((ImageEntityType) type) + id, short_url);
         }
 
         public static string ConstructVideoLocalStream(HttpContext ctx, int userid, string vid, string name, bool autowatch)

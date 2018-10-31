@@ -1,6 +1,12 @@
 #### A lot of these are standard programming tips, but APIv2 was a mess because they weren't followed
 ---
 - Modules/Controllers must be split into smaller files based on what they provide for. Series is its own. Episode is its own. Etc.
+- All Controllers except very special cases, like init, must extend BaseController
+- Use Data Validation on Models. `[Required]` for example
+
+---
+- Controllers that use common queries should have a method to parse the query for the entire HttpContext, then set the Items field
+- In other words, **NO HUGE ARGUMENT CHAINS IN METHODS FOR THE QUERY**. Use Series as an example. It can take ?include=tags&include=cast or ?include=tags,cast
 
 ---
 - Models that have shared functionality, such as Image, Title, etc. should go into Common

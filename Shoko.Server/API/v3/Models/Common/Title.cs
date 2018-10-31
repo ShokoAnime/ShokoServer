@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Shoko.Server.API.v3
 {
     /// <summary>
@@ -10,13 +12,15 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// the title
         /// </summary>
+        [Required]
         public string title { get; set; }
             
         /// <summary>
         /// convert to AniDB style (x-jat is the special one, but most are standard 3-digit short names)
         /// </summary>
+        [Required]
         public string language { get; set; }
-            
+
         /// <summary>
         /// AniDB type
         /// </summary>
@@ -25,6 +29,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// AniDB, TvDB, AniList, etc
         /// </summary>
+        [Required]
         public string source { get; set; }
     }
 }
