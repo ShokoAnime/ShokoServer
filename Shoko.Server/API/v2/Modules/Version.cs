@@ -18,7 +18,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        private List<ComponentVersion> GetVersion()
+        public List<ComponentVersion> GetVersion()
         {
             List<ComponentVersion> list = new List<ComponentVersion>();
 

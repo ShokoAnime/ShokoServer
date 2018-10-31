@@ -1567,10 +1567,21 @@ namespace Shoko.Server
             config.RewriteLocalhost = true;
             config.AllowChunkedEncoding = false;*/
 
-            hostNancy = new WebHostBuilder().UseKestrel(options =>
-            {
-                options.ListenAnyIP(ServerSettings.Instance.ServerPort);
-            }).UseStartup<API.Startup>().Build();
+            hostNancy = new WebHostBuilder()
+                .UseKestrel(options =>
+                {
+                    options.ListenAnyIP(ServerSettings.Instance.ServerPort);
+                })
+                .UseStartup<API.Startup>()
+                #if DEBUG
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    logging.AddNLog();
+                })
+                #endif
+                .Build();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 
