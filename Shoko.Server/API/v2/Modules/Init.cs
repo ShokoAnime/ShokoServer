@@ -471,9 +471,12 @@ namespace Shoko.Server.API.v2.Modules
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
 
-            if (new Repositories.Repo().Start())
+            var ctx = ;
+            ctx.Database.
+
+            if (new Repositories.Repo().GetProvider().GetContext() != null)
                 return Ok();
-            else return BadRequest("Failed to connect");
+            return BadRequest("Failed to connect");
 
             //return APIStatus.BadRequest("Failed to Connect");
         }
