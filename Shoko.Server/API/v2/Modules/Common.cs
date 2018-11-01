@@ -382,7 +382,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("myid/get")]
         public object MyID()
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             dynamic x = new ExpandoObject();
             if (user != null)
             {
@@ -431,7 +431,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("search")]
         public ActionResult<Filter> BigSearch([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             string query = para.query.ToLowerInvariant();
             if (para.limit == 0)
@@ -470,7 +470,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/startswith")]
         public ActionResult<Filter> SearchStartsWith([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             string query = para.query.ToLowerInvariant();
             if (para.limit == 0)
@@ -742,7 +742,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file")]
         public ActionResult<object> GetFile(int id = 0, int limit = 0, int level = 0)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             return id == 0 
                 ? GetAllFiles(limit, level, user.JMMUserID)
@@ -756,7 +756,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file/needsavdumped")]
         public ActionResult<List<RawFile>> GetFilesWithMismatchedInfo(int level)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             var allvids = Repo.Instance.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
@@ -806,7 +806,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file/deprecated")]
         public ActionResult<List<RawFile>> GetDeprecatedFiles(int level)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             var allvids = Repo.Instance.VideoLocal.GetAll()
                 .Where(a => !a.IsEmpty() && a.GetAniDBFile() != null && a.GetAniDBFile().IsDeprecated == 1).ToList();
@@ -820,7 +820,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file/multiple")]
         private object GetMultipleFiles([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             int userID = user.JMMUserID;
             Dictionary<int,Serie> results = new Dictionary<int, Serie>();
@@ -887,7 +887,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file/recent")]
         public List<RawFile> GetRecentFiles(int limit = 0, int level = 0)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             // default 50 as that's reasonable
             if (limit == 0) limit = 50;
 
@@ -910,7 +910,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("file/unsort")]
         public List<RawFile> GetUnsort(int offset = 0, int level = 0, int limit = 0)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             List<RawFile> lst = new List<RawFile>();
 
@@ -942,7 +942,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("file/offset")]
         public ActionResult SetFileOffset(int id, int offset)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             // allow to offset be 0 to reset position
             if (id == 0 || offset < 0)
@@ -1020,7 +1020,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep")]
         public object GetEpisode([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.id == 0)
             {
@@ -1036,7 +1036,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/getbyfilename")]
         public ActionResult<Episode> GetEpisodeFromName(string filename, int pic = 1)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (string.IsNullOrEmpty(filename)) return APIStatus.BadRequest("missing 'filename'");
 
             SVR_AnimeEpisode aep = Repo.Instance.AnimeEpisode.GetByFilename(filename);
@@ -1053,7 +1053,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/recent")]
         public List<Episode> GetRecentEpisodes([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.limit == 0)
             {
@@ -1082,7 +1082,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/missing")]
         public List<Serie> GetMissingEpisodes(bool all, int pic, TagFilter.Filter tagfilter)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             List<Serie> lst = new List<Serie>();
 
             List<SVR_AnimeEpisode> eps = Repo.Instance.AnimeEpisode.GetEpisodesWithNoFiles(all);
@@ -1115,7 +1115,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/watch")]
         public ActionResult MarkEpisodeAsWatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (id != 0)
                 return MarkEpisode(true, id, user.JMMUserID);
             return APIStatus.BadRequest("missing 'id'");
@@ -1128,7 +1128,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/unwatch")]
         public ActionResult MarkEpisodeAsUnwatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (id != 0)
                 return MarkEpisode(false, id, user.JMMUserID);
             return APIStatus.BadRequest("missing 'id'");
@@ -1141,7 +1141,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("ep/vote")]
         public ActionResult VoteOnEpisode(int id, int score)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (id != 0)
             {
@@ -1334,8 +1334,6 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie")]
         public ActionResult<object> GetSerie([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
-
             if (para.id == 0)
             {
                 return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
@@ -1364,7 +1362,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/today")]
         public ActionResult<Group> SeriesToday([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             // 1. get series airing
             // 2. get eps for those series
@@ -1404,7 +1402,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/bookmark")]
         public ActionResult<Group> SeriesBookmark([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             List<Serie> result = Repo.Instance.BookmarkedAnime.GetAll().Select(ser => Serie.GenerateFromBookmark(HttpContext, ser, user.JMMUserID, para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
 
@@ -1426,7 +1424,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/bookmark/add")]
         public ActionResult SeriesBookmarkAdd(int id)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             BookmarkedAnime ba = null;
             if (id != 0)
@@ -1462,7 +1460,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/bookmark/remove")]
         public ActionResult SeriesBookmarkRemove(int id)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             BookmarkedAnime ba = null;
             if (id != 0)
@@ -1511,7 +1509,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/calendar")]
         public ActionResult<Group> SeriesSoon([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             DateTime now = DateTime.Now;
 
             var allSeries = Repo.Instance.AniDB_Anime.GetAll().AsParallel()
@@ -1555,7 +1553,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/byfolder")]
         public ActionResult<IEnumerable<Serie>> GetSeriesByFolderId([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.id != 0)
             {
@@ -1572,7 +1570,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/infobyfolder")]
         public ActionResult<object> GetSeriesInfoByFolderId(int id)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (id != 0)
             {
@@ -1588,7 +1586,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/recent")]
         public ActionResult<IEnumerable<Serie>> GetSeriesRecent([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             List<Serie> allseries = new List<Serie>();
 
@@ -1612,7 +1610,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/watch")]
         public ActionResult MarkSerieAsWatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (id != 0)
             {
                 return MarkSerieWatchStatus(id, true, user.JMMUserID);
@@ -1627,7 +1625,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/unwatch")]
         public ActionResult MarkSerieAsUnwatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (id != 0)
             {
                 return MarkSerieWatchStatus(id, false, user.JMMUserID);
@@ -1642,7 +1640,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/vote")]
         public ActionResult VoteOnSerie(int id, int score)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (id != 0)
             {
@@ -1662,7 +1660,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/search")]
         public ActionResult<IEnumerable<Serie>> SearchForSerie([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.limit == 0)
             {
@@ -1684,7 +1682,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/tag")]
         public ActionResult<IEnumerable<Serie>> SearchForTag([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.limit == 0)
             {
@@ -1708,7 +1706,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/fromep")]
         public ActionResult<Serie> GetSeriesFromEpisode([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (para.id != 0)
             {
                 return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
@@ -1725,7 +1723,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("serie/groups")]
         public ActionResult<IEnumerable<Group>> GetSeriesGroups([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             if (para.id != 0)
             {
                 var anime = Repo.Instance.AnimeSeries.GetByID(para.id);
@@ -1951,7 +1949,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         internal ActionResult<IEnumerable<Serie>> GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             List<Serie> allseries = new List<Serie>();
 
@@ -1982,7 +1980,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         internal ActionResult<Serie> GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             var ser = Repo.Instance.AnimeSeries.GetByID(series_id);
             if (ser == null) return APIStatus.NotFound("Series does not exist.");
             return Serie.GenerateFromAnimeSeries(HttpContext, ser, user.JMMUserID,
@@ -2710,7 +2708,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("filter")]
         public object GetFilters(API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.id == 0)
             {
@@ -2821,7 +2819,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("group")]
         public object GetGroups(API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.id == 0)
             {
@@ -2838,7 +2836,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("group/watch")]
         public  object MarkGroupAsWatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             return MarkWatchedStatusOnGroup(id, user.JMMUserID, true);
         }
 
@@ -2849,7 +2847,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("group/unwatch")]
         private object MarkGroupAsUnwatched(int id)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             return MarkWatchedStatusOnGroup(id, user.JMMUserID, false);
         }
 
@@ -2860,7 +2858,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("group/search")]
         public ActionResult<object> SearchGroup([FromQuery] API_Call_Parameters para)
         {
-            JMMUser user = (JMMUser) HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
 
             if (para.limit == 0)
             {
@@ -3137,7 +3135,7 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult<Filter> SearchByStaff(API_Call_Parameters para)
         {
             List<Serie> results = new List<Serie>();
-            var user = HttpContext.User.Identity as JMMUser;
+            var user = HttpContext.GetUser();
 
             Filter search_filter = new Filter
             {

@@ -673,9 +673,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("user/password")]
         public ActionResult ChangePassword([FromBody] JMMUser user)
         {
-            SVR_JMMUser thisuser = (SVR_JMMUser)HttpContext.User.Identity;
-
-            return new ShokoServiceImplementation().ChangePassword(thisuser.JMMUserID, user.Password) == string.Empty
+            return new ShokoServiceImplementation().ChangePassword(user.JMMUserID, user.Password) == string.Empty
                     ? APIStatus.OK()
                     : APIStatus.InternalError();
         }
@@ -688,7 +686,6 @@ namespace Shoko.Server.API.v2.Modules
         [Authorize("admin")]
         public ActionResult ChangePassword(int uid, [FromBody] JMMUser user)
         {
-            SVR_JMMUser thisuser = (SVR_JMMUser) HttpContext.User.Identity;
             return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
                 ? APIStatus.OK()
                 : APIStatus.InternalError();
