@@ -14,7 +14,7 @@ namespace Shoko.Server.API.v3
     /// <summary>
     /// Series object, stores all of the series info
     /// </summary>
-    public class Series : Base
+    public class Series : BaseModel
     {
         public override string type => "series";
 
@@ -22,7 +22,6 @@ namespace Shoko.Server.API.v3
         /// AniDB_ID
         /// </summary>
         [Required]
-        
         public int anidb_id { get; set; }
 
         /// <summary>

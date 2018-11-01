@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3
 {
-    public abstract class Base
+    public abstract class BaseModel
     {
         /// <summary>
         /// the internal ID, such as AnimeSeriesID or AnimeGroupID
