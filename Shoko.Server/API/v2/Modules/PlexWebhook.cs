@@ -166,7 +166,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("sync")]
         public ActionResult Sync()
         {
-            new CommandRequest_PlexSyncWatched((SVR_JMMUser)HttpContext.User.Identity).Save();
+            new CommandRequest_PlexSyncWatched(HttpContext.GetUser()).Save();
             return APIStatus.OK();
         }
 
@@ -201,7 +201,7 @@ namespace Shoko.Server.API.v2.Modules
         [NonAction]
         private T CallPlexHelper<T>(Func<PlexHelper, T> act)
         {
-            JMMUser user = (JMMUser)HttpContext.User.Identity;
+            JMMUser user = HttpContext.GetUser();
             return act(PlexHelper.GetForUser(user));
         }
 

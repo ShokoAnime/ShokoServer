@@ -220,7 +220,7 @@ namespace Shoko.Server.API.v3
         public void GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser)
         {
             // TODO Add Links
-            int uid = ((JMMUser)ctx.User.Identity).JMMUserID;
+            int uid = ctx.GetUser()?.JMMUserID ?? 0;
             GenerateFromAniDB_Anime(ctx, ser.GetAnime());
 
             List<SVR_AnimeEpisode> ael = ser.GetAnimeEpisodes();

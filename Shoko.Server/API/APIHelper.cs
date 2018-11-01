@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Principal;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -228,6 +229,19 @@ namespace Shoko.Server.API
                     : path;
             }
             return string.Empty;
+        }
+
+        public static SVR_JMMUser GetUser(this IIdentity identity)
+        {
+            if (!(identity?.IsAuthenticated ?? false)) return null;
+            return Repo.Instance.JMMUser.GetByUsername(identity.Name);
+        }
+        
+        public static SVR_JMMUser GetUser(this HttpContext ctx)
+        {
+            var identity = ctx?.User?.Identity;
+            if (!(identity?.IsAuthenticated ?? false)) return null;
+            return Repo.Instance.JMMUser.GetByUsername(identity.Name);
         }
     }
 }
