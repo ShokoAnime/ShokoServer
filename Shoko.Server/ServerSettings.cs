@@ -102,7 +102,7 @@ namespace Shoko.Server
                     var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
                     if (target != null)
                     {
-                        target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
+                        target.FileName = ApplicationPath + "/logs/${shortdate}.log";
                         LogManager.ReconfigExistingLoggers();
                     }
 

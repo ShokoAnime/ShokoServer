@@ -132,7 +132,7 @@ namespace Shoko.Server
             NLog.LogManager.LoadConfiguration("nlog.config");
             //Reconfigure log file to applicationpath
             var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.txt";
+            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             LogManager.ReconfigExistingLoggers();
 
             return serviceProvider;
