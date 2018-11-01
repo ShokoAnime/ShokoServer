@@ -52,6 +52,7 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         // returns false if we should try again after the timer
+        // TODO Generify this and Move and make a return model instead of tuple
         public (bool, string, string) RenameFile(bool preview = false, string scriptName = null)
         {
             if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
@@ -109,8 +110,6 @@ namespace Shoko.Server.Models
 
             try
             {
-                logger.Info($"Renaming file From ({fullFileName}) to ({newFullName})....");
-
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
@@ -127,6 +126,7 @@ namespace Shoko.Server.Models
 
                 ShokoServer.StopWatchingFiles();
 
+                logger.Info($"Renaming file From \"{fullFileName}\" to \"{newFullName}\"");
                 r = file.Rename(renamed);
                 if (r == null || r.Status != Status.Ok)
                 {
@@ -164,6 +164,7 @@ namespace Shoko.Server.Models
                         }
                     }, parallel: true);//todo: test parallel
                 }
+                // Rename hash xrefs
                 var filename_hash = Repo.Instance.FileNameHash.GetByHash(VideoLocal.Hash);
                 if (!filename_hash.Any(a => a.FileName.Equals(renamed)))
                 {
@@ -180,6 +181,12 @@ namespace Shoko.Server.Models
                 using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
                 {
                     FilePath = upd.Entity.FilePath = tup.Item2; //Also update this, as we can't 
+                    upd.Commit();
+                }
+                // just in case
+                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => VideoLocal))
+                {
+                    FilePath = upd.Entity.FileName = renamed; 
                     upd.Commit();
                 }
             }
@@ -545,7 +552,25 @@ namespace Shoko.Server.Models
 
         public void RenameAndMoveAsRequired()
         {
-            bool succeeded = RenameIfRequired();
+            // Move first so that we don't bother the filesystem watcher
+            bool succeeded = MoveFileIfRequired();
+            if (!succeeded)
+            {
+                Thread.Sleep((int)DELAY_IN_USE.FIRST);
+                succeeded = MoveFileIfRequired();
+                if (!succeeded)
+                {
+                    Thread.Sleep((int)DELAY_IN_USE.SECOND);
+                    succeeded = MoveFileIfRequired();
+                    if (!succeeded)
+                    {
+                        Thread.Sleep((int)DELAY_IN_USE.THIRD);
+                        succeeded = MoveFileIfRequired();
+                        if (!succeeded) return; // Don't bother renaming if we couldn't move. It'll need user interaction
+                    }
+                }
+            }
+            succeeded = RenameIfRequired();
             if (!succeeded)
             {
                 Thread.Sleep((int)DELAY_IN_USE.FIRST);
@@ -560,26 +585,8 @@ namespace Shoko.Server.Models
                         succeeded = RenameIfRequired();
                         if (!succeeded)
                         {
-                            // Don't bother moving if we can't rename
                             return;
                         }
-                    }
-                }
-            }
-            succeeded = MoveFileIfRequired();
-            if (!succeeded)
-            {
-                Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                succeeded = MoveFileIfRequired();
-                if (!succeeded)
-                {
-                    Thread.Sleep((int)DELAY_IN_USE.SECOND);
-                    succeeded = MoveFileIfRequired();
-                    if (!succeeded)
-                    {
-                        Thread.Sleep((int)DELAY_IN_USE.THIRD);
-                        succeeded = MoveFileIfRequired();
-                        if (!succeeded) return; //Same as above, but linux permissiosn.
                     }
                 }
             }
@@ -638,7 +645,7 @@ namespace Shoko.Server.Models
                 return (string.Empty, "ERROR: Path is not a file");
             }
 
-            // There is a possibilty of weird logic based on source of the file. Some handling should be made for it....later
+            // There is a possibility of weird logic based on source of the file. Some handling should be made for it....later
             (var destImpl, string newFolderPath) = RenameFileHelper.GetRenamer(scriptName).GetDestinationFolder(this);
 
             if (!(destImpl is SVR_ImportFolder destFolder))

@@ -99,36 +99,6 @@ namespace Shoko.Server.Repositories.Cached
             {
                 // ignore
             }
-            //Fix possible paths in filename
-            try
-            {
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning File Paths");
-                var list = Cache.Values.Where(a => a.FileName.Contains("\\")).ToList();
-                count = 0;
-                max = list.Count;
-                list.ForEach(a =>
-                {
-                    try
-                    {
-                        int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                        a.FileName = a.FileName.Substring(b + 1);
-                        Save(a, false);
-                        count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                            " Cleaning File Paths - " + count + "/" + max);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Error($"Error cleaning path on file: {a.FileName}\r\n{e}");
-                    }
-                });
-            }
-            catch
-            {
-                // ignore
-            }
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
