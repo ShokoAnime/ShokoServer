@@ -80,14 +80,14 @@ namespace Shoko.Server.Repositories
                         _repo.EndDelete(e, savedobjects[e], pars);
                 }
             }
+            savedobjects.Clear();
 
             List<T> returns = new List<T>();
             if (_references.Count > 0)
             {
-                Dictionary<T, object> savedObjects = new Dictionary<T, object>();
                 foreach (T t in _references.Keys)
                 {
-                    savedObjects[t] = _repo.BeginSave(t, _references[t], pars);
+                    savedobjects[t] = _repo.BeginSave(t, _references[t], pars);
                 }
 
                 var updates = _references.Where(a => a.Value != null).ToList();
@@ -117,9 +117,11 @@ namespace Shoko.Server.Repositories
                     returns.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
                 }
 
-                foreach (T t in returns)
+                // TODO Needs a better way to index. r.Value and r.Key are not always the same, throwing an error on indexing
+                // At least the current references will work with this.
+                foreach (T t in savedobjects.Keys)
                 {
-                    _repo.EndSave(t, savedObjects[t], pars);
+                    _repo.EndSave(t, savedobjects[t], pars);
                 }
             }
 

@@ -94,7 +94,9 @@ namespace Shoko.Server.Repositories
                 returns.ForEach(a => ctx.Entry(a).State = EntityState.Detached);
             }
 
-            foreach (T t in returns)
+            // TODO Needs a better way to index. r.Value and r.Key are not always the same, throwing an error on indexing
+            // At least the current references will work with this.
+            foreach (T t in savedObjects.Keys)
             {
                 _repo.EndSave(t, savedObjects[t], pars);
             }
