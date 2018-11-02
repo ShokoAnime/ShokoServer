@@ -828,8 +828,6 @@ namespace Shoko.Server
                 workerSetupDB.ReportProgress(100);
 
                 StartTime = DateTime.Now;
-
-                ServerSettings.Instance.SaveSettings();
                 e.Result = true;
             }
             catch (Exception ex)

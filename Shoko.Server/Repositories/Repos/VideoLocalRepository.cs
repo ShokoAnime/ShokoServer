@@ -145,7 +145,7 @@ namespace Shoko.Server.Repositories.Repos
             if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration == 0)
             {
                 SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace();
-                place?.RefreshMediaInfo();
+                place?.RefreshMediaInfo(obj);
             }
         }
 

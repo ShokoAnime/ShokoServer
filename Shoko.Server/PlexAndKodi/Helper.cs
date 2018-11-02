@@ -206,7 +206,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (pl != null)
                     using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => v))
                     {
-                        if (pl.RefreshMediaInfo()) upd.Commit(true);
+                        if (pl.RefreshMediaInfo(upd.Entity)) upd.Commit(true);
                     }
                 m = v.Media;
             }
@@ -239,7 +239,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pl != null)
                             using (var upd2 = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vl2))
                             {
-                                if (pl.RefreshMediaInfo()) upd2.Commit(true);
+                                if (pl.RefreshMediaInfo(upd2.Entity)) upd2.Commit(true);
                             }
                     }
                     upd.Commit();
@@ -310,7 +310,7 @@ namespace Shoko.Server.PlexAndKodi
                         if (pl != null)
                             using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => v))
                             {
-                                if (pl.RefreshMediaInfo()) upd.Commit(true);
+                                if (pl.RefreshMediaInfo(upd.Entity)) upd.Commit(true);
                             }
                     }
                     v.Media?.Parts?.Where(a => a != null)

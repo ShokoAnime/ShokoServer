@@ -457,7 +457,7 @@ namespace Shoko.Server.Models
                         IObject src = f?.Resolve(pl.FullServerPath);
                         if (src?.Status == Status.Ok
                             && src is IFile
-                            && pl.RefreshMediaInfo())
+                            && pl.RefreshMediaInfo(upd.Entity))
                             upd.Commit(true);
                     }
                 }
