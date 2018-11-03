@@ -78,7 +78,7 @@ namespace Shoko.Server.Commands
                 SVR_JMMUser juser = aniDBUsers.FirstOrDefault();
                 DateTime? originalWatchedDate = null;
                 if (juser != null)
-                    originalWatchedDate = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate;
+                    originalWatchedDate = vid.GetUserRecord(juser.JMMUserID)?.WatchedDate?.ToUniversalTime();
 
                 DateTime? newWatchedDate = null;
                 int? lid = null;

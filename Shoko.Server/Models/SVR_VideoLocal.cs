@@ -263,7 +263,7 @@ namespace Shoko.Server.Models
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
                             Hash, watched, false,
-                            watchedDate.HasValue ? AniDB.GetAniDBDateAsSeconds(watchedDate) : 0);
+                            AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
                         cmd.Save();
                     }
             }
