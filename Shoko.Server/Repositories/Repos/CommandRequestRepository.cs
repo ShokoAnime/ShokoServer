@@ -103,9 +103,13 @@ namespace Shoko.Server.Repositories.Repos
         }
 
 
-
         public CommandRequest GetByCommandID(string cmdid)
         {
+            using (RepoLock.ReaderLock())
+            {
+                return IsCached ? CommandIDs.GetOne(cmdid) : Table.FirstOrDefault(a => a.CommandID == cmdid);
+            }
+            /*
             if (string.IsNullOrEmpty(cmdid)) return null;
             List<CommandRequest> cmds;
             using (RepoLock.ReaderLock())
@@ -120,6 +124,7 @@ namespace Shoko.Server.Repositories.Repos
             cmds.Remove(cmd);
             Delete(cmds);
             return cmd;
+                    */
         }
 
 
