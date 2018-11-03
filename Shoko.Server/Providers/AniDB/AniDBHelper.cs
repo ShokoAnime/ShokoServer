@@ -226,8 +226,8 @@ namespace Shoko.Server.Providers.AniDB
             logoutTimer = null;
             if (soUdp == null) return;
             try{
-                soUdp.Shutdown(SocketShutdown.Both);
                 if (soUdp.Connected) {
+                    soUdp.Shutdown(SocketShutdown.Both);
                     soUdp.Disconnect(false);
                 }
             }
