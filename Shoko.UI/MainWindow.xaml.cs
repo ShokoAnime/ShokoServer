@@ -16,8 +16,9 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
-//using Infralution.Localization.Wpf;
 using Microsoft.SqlServer.Management.Smo;
+//using Infralution.Localization.Wpf;
+
 using Microsoft.WindowsAPICodePack.Dialogs;
 using NLog;
 using Shoko.Commons.Extensions;

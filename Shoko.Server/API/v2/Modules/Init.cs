@@ -470,7 +470,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
-            return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
+            return APIStatus.OK();
+            //TODO: Needs to be redone for EFCore.
 
             /*if (ServerSettings.Instance.Database.Type.Equals(Constants.DatabaseType.MySQL,
                     StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())

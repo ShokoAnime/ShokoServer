@@ -16,7 +16,7 @@ namespace Shoko.Server.Repositories
 {
     internal static class Lock
     {
-        internal static ThreadLocal<ReaderWriterLockSlim> RepoLock = new ThreadLocal<ReaderWriterLockSlim>(() => new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
+        internal static ReaderWriterLockSlim RepoLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
     }
 
     public abstract class BaseRepository<T, TS> : BaseRepository<T, TS, object> where T : class, new()
@@ -34,7 +34,7 @@ namespace Shoko.Server.Repositories
         internal PocoCache<TS, T> Cache;
         internal IQueryable<T> Table;
         internal ShokoContextProvider Provider;
-        internal ReaderWriterLockSlim RepoLock = Lock.RepoLock.Value;
+        internal ReaderWriterLockSlim RepoLock = Lock.RepoLock;
 
 
         public static TU Create<TU>(ShokoContextProvider context, DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()

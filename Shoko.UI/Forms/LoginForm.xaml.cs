@@ -4,7 +4,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Navigation;
-using Nancy.Helpers;
+using System.Web;
 
 namespace Shoko.UI.Forms
 {

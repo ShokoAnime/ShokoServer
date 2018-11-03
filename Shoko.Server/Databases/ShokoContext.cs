@@ -1,13 +1,24 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Force.DeepCloner;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Nito.AsyncEx;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
+using TMDbLib.Objects.Lists;
 
 namespace Shoko.Server.Databases
 {
@@ -15,6 +26,8 @@ namespace Shoko.Server.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
         public static readonly LoggerFactory MyLoggerFactory = new LoggerFactory(new[] { new ConsoleLoggerProvider((a, __) => a == "Microsoft.EntityFrameworkCore.Database.Command", true) });
+
+        private Dictionary<Type, List<PropertyInfo>> _propertiesInfoCache = new Dictionary<Type, List<PropertyInfo>>();
 
 
         private readonly string _connectionString;
@@ -32,8 +45,78 @@ namespace Shoko.Server.Databases
             Mappings.Map(modelBuilder);
             base.OnModelCreating(modelBuilder);
         }
+        /*
+        private List<PropertyInfo> GetPropertiesFromEntity<T>(T entity) where T:class
+        {
+            Type t = typeof(T);
+            List<PropertyInfo> ret;
+            lock (_propertiesInfoCache)
+            {
+                if (_propertiesInfoCache.ContainsKey(t))
+                    ret = _propertiesInfoCache[t];
+                else
+                {
+                    List<string> primaries = new List<string>();
+                    foreach (IKey k in Entry(entity).Metadata.GetKeys())
+                    {
+                        foreach (IProperty p in k.Properties)
+                        {
+                            primaries.Add(p.Name);
+                        }
+                    }
+                    ret = new List<PropertyInfo>();
+                    List<PropertyInfo> props = t.GetProperties(BindingFlags.Public | BindingFlags.Instance).ToList();
+                    foreach (PropertyInfo p in props)
+                    {
+                        if (Attribute.IsDefined(p, typeof(NotMappedAttribute)))
+                            continue;
+                        if (primaries.Contains(p.Name))
+                            continue;
+                        ret.Add(p);
+                    }
+                    _propertiesInfoCache.Add(t, ret);
+                }
+            }
 
+            return ret;
+        }
+        */
+        public void UpdateChanges<T>(T original, T modified) where T : class
+        {
+            Attach(original);
+            foreach (PropertyEntry prop in Entry(original).Properties)
+            {
+                if (!prop.Metadata.IsPrimaryKey())
+                {
+                    PropertyInfo p = prop.Metadata.PropertyInfo;
+                    object or = p.GetValue(original);
+                    object mod = p.GetValue(modified);
+                    ValueComparer comparer = prop.Metadata.GetValueComparer();  //Lets reuse the way EF Core checks for modifications, and not reinvent the wheel.
+                    if (comparer == null) 
+                    {
+                        if (!Equals(or,mod))
+                            prop.IsModified = true;
+                    }
+                    else
+                    {
+                        if (!comparer.Equals(or, mod))
+                            prop.IsModified = true;
+                    }
+                    if (prop.IsModified)
+                        p.SetValue(original,mod);
+                }
+            }
+        }
 
+        public void Detach<T>(T entity) where T : class
+        {
+            Entry(entity).State = EntityState.Detached;
+        }
+        public void DetachRange<T>(IEnumerable<T> entities) where T : class
+        {
+            foreach (T o in entities)
+                Entry(o).State = EntityState.Detached;
+        }
         //
         // Summary:
         //     Saves all changes made in this context to the database.
@@ -74,35 +157,35 @@ namespace Shoko.Server.Databases
        }
    }
    */
-   //
-   // Summary:
-   //     Saves all changes made in this context to the database.
-   //
-   // Returns:
-   //     The number of state entries written to the database.
-   //
-   // Exceptions:
-   //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
-   //     An error is encountered while saving to the database.
-   //
-   //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
-   //     A concurrency violation is encountered while saving to the database. A concurrency
-   //     violation occurs when an unexpected number of rows are affected during save.
-   //     This is usually because the data in the database has been modified since it was
-   //     loaded into memory.
-   //
-   // Remarks:
-   //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
-   //     to discover any changes to entity instances before saving to the underlying database.
-   //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
-   /*
-    * NOTE: Cazzar: This by the code for EFCore just calls SaveChanges(acceptAllChangesOnSuccess: true);
-    *               Inherently I have removed this call to just stop save locking recursing where we have a database deadlock.
-   public override int SaveChanges()
-   {
-       using (_saveLock.Lock())
-           return base.SaveChanges();
-   }*/
+        //
+        // Summary:
+        //     Saves all changes made in this context to the database.
+        //
+        // Returns:
+        //     The number of state entries written to the database.
+        //
+        // Exceptions:
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateException:
+        //     An error is encountered while saving to the database.
+        //
+        //   T:Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException:
+        //     A concurrency violation is encountered while saving to the database. A concurrency
+        //     violation occurs when an unexpected number of rows are affected during save.
+        //     This is usually because the data in the database has been modified since it was
+        //     loaded into memory.
+        //
+        // Remarks:
+        //     This method will automatically call Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.DetectChanges
+        //     to discover any changes to entity instances before saving to the underlying database.
+        //     This can be disabled via Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker.AutoDetectChangesEnabled.
+        /*
+         * NOTE: Cazzar: This by the code for EFCore just calls SaveChanges(acceptAllChangesOnSuccess: true);
+         *               Inherently I have removed this call to just stop save locking recursing where we have a database deadlock.
+        public override int SaveChanges()
+        {
+            using (_saveLock.Lock())
+                return base.SaveChanges();
+        }*/
 
         //
         // Summary:
