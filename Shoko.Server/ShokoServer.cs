@@ -132,7 +132,7 @@ namespace Shoko.Server
             NLog.LogManager.LoadConfiguration("nlog.config");
             //Reconfigure log file to applicationpath
             var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.txt";
+            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             LogManager.ReconfigExistingLoggers();
 
             return serviceProvider;
@@ -828,8 +828,6 @@ namespace Shoko.Server
                 workerSetupDB.ReportProgress(100);
 
                 StartTime = DateTime.Now;
-
-                ServerSettings.Instance.SaveSettings();
                 e.Result = true;
             }
             catch (Exception ex)
@@ -1567,10 +1565,21 @@ namespace Shoko.Server
             config.RewriteLocalhost = true;
             config.AllowChunkedEncoding = false;*/
 
-            hostNancy = new WebHostBuilder().UseKestrel(options =>
-            {
-                options.ListenAnyIP(ServerSettings.Instance.ServerPort);
-            }).UseStartup<API.Startup>().Build();
+            hostNancy = new WebHostBuilder()
+                .UseKestrel(options =>
+                {
+                    options.ListenAnyIP(ServerSettings.Instance.ServerPort);
+                })
+                .UseStartup<API.Startup>()
+                #if DEBUG
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    logging.AddNLog();
+                })
+                #endif
+                .Build();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 

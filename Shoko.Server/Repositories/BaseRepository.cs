@@ -16,6 +16,7 @@ namespace Shoko.Server.Repositories
 {
     internal static class Lock
     {
+        // TODO Can be made ThreadLocal again later, but first we need to handle OptimisticConcurrencyExceptions
         internal static ReaderWriterLockSlim RepoLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
     }
 

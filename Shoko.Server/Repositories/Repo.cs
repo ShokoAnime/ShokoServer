@@ -262,7 +262,7 @@ namespace Shoko.Server.Repositories
             _repos.ForEach(r=>r.SwitchCache(CachedRepos.Contains(r.Name)));
         }
 
-        internal bool Start()
+        internal ShokoContextProvider GetProvider() 
         {
             string connStr;
             switch(ServerSettings.Instance.Database.Type)
@@ -279,8 +279,12 @@ namespace Shoko.Server.Repositories
                     connStr = $"data source={Path.Combine(ServerSettings.Instance.Database.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
                     break;
             }
+            return new ShokoContextProvider(ServerSettings.Instance.Database.Type, connStr);
+        }
 
-            Init(new ShokoContextProvider(ServerSettings.Instance.Database.Type, connStr), DefaultCached);
+        internal bool Start()
+        {
+            Init(GetProvider(), DefaultCached);
 
             return true;
         }

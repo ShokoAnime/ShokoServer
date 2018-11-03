@@ -102,7 +102,7 @@ namespace Shoko.Server.Commands
 
                 int animeID = 0;
 
-                if (aniFile == null)
+                if (aniFile == null || ForceAniDB)
                 {
                     // get info from AniDB
                     logger.Debug("Getting AniDB_File record from AniDB....");
@@ -112,7 +112,7 @@ namespace Shoko.Server.Commands
                     using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => Repo.Instance.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize)))
                     {
                         bool skip = false;
-                        if (!upd.IsUpdate)
+                        if (!upd.IsUpdate || ForceAniDB)
                         {
                             Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                             if (fileInfo != null)
@@ -135,8 +135,6 @@ namespace Shoko.Server.Commands
 
                             animeID = aniFile.AnimeID;
                         }
-
-                        upd.Commit();
                     }
                 }
 

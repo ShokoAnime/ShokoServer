@@ -51,9 +51,8 @@ namespace Shoko.Server.Commands
                 }
                 using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
                 {
-                    if (place.RefreshMediaInfo())
+                    if (place.RefreshMediaInfo(txn.Entity))
                     {
-                        place.VideoLocal.DeepCloneTo(txn.Entity);
                         txn.Commit();
                     }
                 }

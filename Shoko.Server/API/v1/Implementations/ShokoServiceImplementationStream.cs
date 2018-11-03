@@ -31,7 +31,7 @@ namespace Shoko.Server
         public const string ServerVersion = "Shoko Stream Server 1.0";
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        [HttpGet("/{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
+        [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -140,7 +140,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpHead("/{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
+        [HttpHead("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);

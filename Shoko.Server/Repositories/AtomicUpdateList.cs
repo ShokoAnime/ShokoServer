@@ -83,7 +83,10 @@ namespace Shoko.Server.Repositories
                 ctx.SaveChanges();
                 ctx.DetachRange(returns);
             }
-            foreach (T t in returns)
+
+            // TODO Needs a better way to index. r.Value and r.Key are not always the same, throwing an error on indexing
+            // At least the current references will work with this.
+            foreach (T t in savedObjects.Keys)
             {
                 if (savedObjects.ContainsKey(t))
                    _repo.EndSave(t, savedObjects[t], pars);

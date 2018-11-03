@@ -80,14 +80,14 @@ namespace Shoko.Server.Repositories
                         _repo.EndDelete(e, savedobjects[e], pars);
                 }
             }
+            savedobjects.Clear();
 
             List<T> returns = new List<T>();
             if (_references.Count > 0)
             {
-                Dictionary<T, object> savedObjects = new Dictionary<T, object>();
                 foreach (T t in _references.Keys)
                 {
-                    savedObjects[t] = _repo.BeginSave(t, _references[t], pars);
+                    savedobjects[t] = _repo.BeginSave(t, _references[t], pars);
                 }
 
                 var updates = _references.Where(a => a.Value != null).ToList();
@@ -120,10 +120,11 @@ namespace Shoko.Server.Repositories
                     ctx.DetachRange(returns);
                 }
 
-                foreach (T t in returns)
+                // At least the current references will work with this.
+                foreach (T t in savedobjects.Keys)
                 {
-                    if (savedObjects.ContainsKey(t))
-                        _repo.EndSave(t, savedObjects[t], pars);
+                    if (savedobjects.ContainsKey(t))
+                        _repo.EndSave(t, savedobjects[t], pars);
                 }
             }
 
