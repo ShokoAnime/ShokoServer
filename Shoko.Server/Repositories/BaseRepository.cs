@@ -33,7 +33,7 @@ namespace Shoko.Server.Repositories
 
         internal bool IsCached;
         internal PocoCache<TS, T> Cache;
-        internal IQueryable<T> Table;
+        internal IQueryable<T> Table => Provider.GetContext().Set<T>().AsNoTracking();
         internal ShokoContextProvider Provider;
         internal ReaderWriterLockSlim RepoLock = Lock.RepoLock;
 
@@ -42,7 +42,6 @@ namespace Shoko.Server.Repositories
         {
             TU repo = new TU();
             repo.Name = table.GetName();
-            repo.Table = table.AsNoTracking();
             repo.Provider = context;
             repo.SwitchCache(cache);
             return repo;
@@ -382,7 +381,6 @@ namespace Shoko.Server.Repositories
         public void SetContext(ShokoContextProvider db, DbSet<T> table)
         {
             Provider = db;
-            Table = table.AsNoTracking();
             Name = table.GetName();
         }
 
