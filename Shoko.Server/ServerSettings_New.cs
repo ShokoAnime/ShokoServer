@@ -66,7 +66,7 @@ namespace Shoko.Server
         public LogRotatorSettings LogRotator { get; set; } = new LogRotatorSettings();
 
         public DatabaseSettings Database { get; set; } = new DatabaseSettings();
-       
+
         public AniDbSettings AniDb { get; set; } = new AniDbSettings();
 
         public WebCacheSettings WebCache { get; set; } = new WebCacheSettings();
@@ -101,7 +101,9 @@ namespace Shoko.Server
         public DataSourceType SeriesDescriptionSource { get; set; } = DataSourceType.AniDB;
         public DataSourceType SeriesNameSource { get; set; } = DataSourceType.AniDB;
 
+        [JsonIgnore]
         public string _ImagesPath;
+
         public string ImagesPath
         {
             get => _ImagesPath;
@@ -119,7 +121,7 @@ namespace Shoko.Server
         public string VLCLocation { get; set; } = string.Empty;
 
         public bool MinimizeOnStartup { get; set; } = false;
-        
+
         public TraktSettings TraktTv { get; set; } = new TraktSettings();
 
         public string UpdateChannel { get; set; } = "Stable";
@@ -130,15 +132,12 @@ namespace Shoko.Server
 
         public static ServerSettings Instance { get; private set; } = new ServerSettings();
 
-
-
         public static void LoadSettings()
         {
             if (!Directory.Exists(ApplicationPath)) Directory.CreateDirectory(ApplicationPath);
             var path = Path.Combine(ApplicationPath, SettingsFilename);
             if (!File.Exists(path))
             {
-
                 var oldPath = Path.Combine(ApplicationPath, "settings.json");
                 if (File.Exists(Path.Combine(ApplicationPath, "settings.json"))) 
                     Instance = LoadLegacySettings();
@@ -325,7 +324,6 @@ namespace Shoko.Server
 
             File.WriteAllText(path, JsonConvert.SerializeObject(Instance, Formatting.Indented, new StringEnumConverter() { AllowIntegerValues = true }));
         }
-
 
         public CL_ServerSettings ToContract()
         {
@@ -540,7 +538,6 @@ namespace Shoko.Server
             logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDb.Anime_UpdateFrequency);
             logger.Info($"{nameof(AniDb.MaxRelationDepth)}: {AniDb.MaxRelationDepth}");
 
-
             logger.Info("WebCache_Address: {0}", WebCache.Address);
             logger.Info("WebCache_Anonymous: {0}", WebCache.Anonymous);
             logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache.XRefFileEpisode_Get);
@@ -587,7 +584,6 @@ namespace Shoko.Server
             logger.Info("BaseImagesPath: {0}", BaseImagesPath);
             logger.Info("BaseImagesPathIsDefault: {0}", BaseImagesPathIsDefault);
 
-
             logger.Info("-------------------------------------------------------");
         }
 
@@ -605,6 +601,5 @@ namespace Shoko.Server
             // ReSharper disable once UnusedAutoPropertyAccessor.Global
             public Exception Exception { get; set; }
         }
-
     }
 }
