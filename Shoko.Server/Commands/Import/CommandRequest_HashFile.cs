@@ -162,16 +162,18 @@ namespace Shoko.Server.Commands
 
                 // At least 1s between to ensure that size has the chance to change
                 // TODO make this a setting to allow fine tuning on various configs
-                Thread.Sleep(1000);
+                // TODO Make this able to be disabled. It adds 1.5s to hashing just waiting for the Linux/NAS use case
+                int seconds = 8;
+                int waitTime = seconds * 1000 / 2;
+                Thread.Sleep(waitTime);
                 numAttempts = 0;
 
                 //For systems with no locking
                 // TODO make this a setting as well
-                int seconds = 8;
                 while (FileModified(FileName, seconds, ref filesize, writeAccess) && numAttempts < 60)
                 {
                     numAttempts++;
-                    Thread.Sleep(seconds * 1000 / 2);
+                    Thread.Sleep(waitTime);
                     // Only show if it's more than 'seconds' past
                     if (numAttempts != 0 && numAttempts * 2 % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
                 }
