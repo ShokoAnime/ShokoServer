@@ -167,13 +167,13 @@ namespace Shoko.Server.Commands
 
                 //For systems with no locking
                 // TODO make this a setting as well
-                int seconds = 3;
+                int seconds = 8;
                 while (FileModified(FileName, seconds, ref filesize, writeAccess) && numAttempts < 60)
                 {
                     numAttempts++;
-                    Thread.Sleep(1000);
-                    // Only show if it's more than 3s past
-                    if (numAttempts != 0 && numAttempts % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
+                    Thread.Sleep(seconds * 1000 / 2);
+                    // Only show if it's more than 'seconds' past
+                    if (numAttempts != 0 && numAttempts * 2 % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
                 }
                 
                 // if we failed to access the file, get ouuta here
