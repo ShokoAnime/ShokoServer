@@ -235,6 +235,7 @@ namespace Shoko.Server.Models
 
             // update the video file to watched
             int mywatched = watched ? 1 : 0;
+            watchedDate = watched ? (watchedDate ?? DateTime.Now) : (DateTime?) null;
 
             if (user.IsAniDBUser == 0)
                 SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
@@ -255,7 +256,7 @@ namespace Shoko.Server.Models
                         upd.Entity.IsWatched = mywatched;
 
                         if (watched)
-                            upd.Entity.WatchedDate = watchedDate ?? DateTime.Now;
+                            upd.Entity.WatchedDate = watchedDate;
                         else
                             upd.Entity.WatchedDate = null;
 
