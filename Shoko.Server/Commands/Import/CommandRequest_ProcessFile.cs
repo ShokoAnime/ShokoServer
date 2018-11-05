@@ -297,25 +297,28 @@ namespace Shoko.Server.Commands
                             .ToList();
                     if (videoLocals != null)
                     {
-                        // Copy over watched states
-                        foreach (var user in RepoFactory.JMMUser.GetAll())
+                        if (ServerSettings.Import_UseExistingFileWatchedStatus)
                         {
-                            var watchedVideo = videoLocals.FirstOrDefault(a =>
-                                a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
-                            // No files that are watched
-                            if (watchedVideo == null) continue;
-
-                            var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-                            var userrecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                            // Copy over watched states
+                            foreach (var user in RepoFactory.JMMUser.GetAll())
                             {
-                                JMMUserID = user.JMMUserID,
-                                VideoLocalID = vidLocal.VideoLocalID,
-                            };
+                                var watchedVideo = videoLocals.FirstOrDefault(a =>
+                                    a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+                                // No files that are watched
+                                if (watchedVideo == null) continue;
 
-                            userrecord.WatchedDate = watchedRecord.WatchedDate;
-                            userrecord.ResumePosition = watchedRecord.ResumePosition;
+                                var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
+                                var userrecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                                {
+                                    JMMUserID = user.JMMUserID,
+                                    VideoLocalID = vidLocal.VideoLocalID,
+                                };
 
-                            RepoFactory.VideoLocalUser.Save(userrecord);
+                                userrecord.WatchedDate = watchedRecord.WatchedDate;
+                                userrecord.ResumePosition = watchedRecord.ResumePosition;
+
+                                RepoFactory.VideoLocalUser.Save(userrecord);
+                            }
                         }
 
                         if (ServerSettings.FileQualityFilterEnabled)
