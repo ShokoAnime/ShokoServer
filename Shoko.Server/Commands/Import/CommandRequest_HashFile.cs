@@ -93,10 +93,13 @@ namespace Shoko.Server.Commands
             try
             {
                 var lastWrite = File.GetLastWriteTime(FileName);
+                var creation = File.GetCreationTime(FileName);
                 var now = DateTime.Now;
                 // check that the size is also equal, since some copy utilities apply the previous modified date
                 var size = CanAccessFile(FileName, writeAccess);
-                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now || lastFileSize != size)
+                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now || 
+                    creation <= now && creation.AddSeconds(Seconds) > now || 
+                    lastFileSize != size)
                 {
                     lastFileSize = size;
                     return true;
@@ -142,7 +145,8 @@ namespace Shoko.Server.Commands
                 bool writeAccess = folder.IsDropSource == 1;
 
                 // Wait 1 minute before giving up on trying to access the file
-                while ((filesize = CanAccessFile(FileName, writeAccess)) == 0 && (numAttempts < 60))
+                // first only do read to not get in something's way
+                while ((filesize = CanAccessFile(FileName, false)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
@@ -157,16 +161,19 @@ namespace Shoko.Server.Commands
                 }
 
                 // At least 1s between to ensure that size has the chance to change
+                // TODO make this a setting to allow fine tuning on various configs
                 Thread.Sleep(1000);
                 numAttempts = 0;
 
                 //For systems with no locking
-                while (FileModified(FileName, 3, ref filesize, writeAccess) && numAttempts < 60)
+                // TODO make this a setting as well
+                int seconds = 3;
+                while (FileModified(FileName, seconds, ref filesize, writeAccess) && numAttempts < 60)
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
                     // Only show if it's more than 3s past
-                    if (numAttempts > 3) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
+                    if (numAttempts != 0 && numAttempts % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
                 }
                 
                 // if we failed to access the file, get ouuta here
