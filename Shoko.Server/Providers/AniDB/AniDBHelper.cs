@@ -15,6 +15,8 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Image;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -415,9 +417,7 @@ namespace Shoko.Server.Providers.AniDB
 
                     if (ServerSettings.Instance.AniDb.DownloadReleaseGroups)
                     {
-                        CommandRequest_GetReleaseGroup cmdRelgrp =
-                            new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
-                        cmdRelgrp.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBGetReleaseGroup(getInfoCmd.fileInfo.GroupID, false));
                     }
 
 
@@ -593,10 +593,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     // Run synchronously, but still do all of the stuff with Trakt and whatnot
                     // We are skipping the watched state settings, as we are setting them here
-                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
-                    // Initialize private parts
-                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
-                    addcmd.ProcessCommand();
+                    new CmdAniDBAddFileToMyList(hash.ED2KHash, false).Run();
                 }
             }
         }
@@ -628,10 +625,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     // Run synchronously, but still do all of the stuff with Trakt and whatnot
                     // We are skipping the watched state settings, as we are setting them here
-                    CommandRequest_AddFileToMyList addcmd = new CommandRequest_AddFileToMyList(hash.ED2KHash, false);
-                    // Initialize private parts
-                    addcmd.LoadFromDBCommand(addcmd.ToDatabaseObject());
-                    addcmd.ProcessCommand();
+                    new CmdAniDBAddFileToMyList(hash.ED2KHash, false).Run();
                 }
             }
         }
@@ -969,9 +963,7 @@ namespace Shoko.Server.Providers.AniDB
                         getCmd.GrpStatusCollection.LatestEpisodeNumber);
                     if (eps.Count == 0)
                     {
-                        CommandRequest_GetAnimeHTTP cr_anime =
-                            new CommandRequest_GetAnimeHTTP(animeID, true, false, 0);
-                        cr_anime.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(animeID, true, false, 0));
                     }
                     // update the missing episode stats on groups and children
                     SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
@@ -987,9 +979,7 @@ namespace Shoko.Server.Providers.AniDB
                         getCmd.GrpStatusCollection.LatestEpisodeNumber);
                     if (eps.Count == 0)
                     {
-                        CommandRequest_GetAnimeHTTP cr_anime =
-                            new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cr_anime.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(animeID, true, false));
                     }
                     // update the missing episode stats on groups and children
                     SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
@@ -1150,8 +1140,7 @@ namespace Shoko.Server.Providers.AniDB
                 // All images from AniDB are downloaded in this
                 if (validateImages)
                 {
-                    var cmd = new CommandRequest_DownloadAniDBImages(upd.Entity.AnimeID, false);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdImageDownloadAllAniDb(upd.Entity.AnimeID, false));
                 }
 
                 anime = upd.Commit();

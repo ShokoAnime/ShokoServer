@@ -24,9 +24,11 @@ using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Plex;
+using Shoko.Server.CommandQueue.Commands.Server;
+using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.Azure;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
@@ -171,8 +173,7 @@ namespace Shoko.Server
                 }
 
                 //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
-                CommandHelper.LoadCommands();
-
+                
                 try
                 {
                     UnhandledExceptionManager.AddHandler();
@@ -564,8 +565,7 @@ namespace Shoko.Server
                                     {
                                         logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
-                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                        cmd.Save();
+                                        CommandQueue.Queue.Instance.Add(new CmdServerHashFile(file, false));
                                     }
                                 }
                             }
@@ -577,8 +577,7 @@ namespace Shoko.Server
                                 {
                                     logger.Info("Found file {0}", evt.FullPath);
 
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                                    cmd.Save();
+                                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(evt.FullPath, false));
                                 }
                             }
                             // else it was deleted before we got here
@@ -733,20 +732,8 @@ namespace Shoko.Server
 
                 RestartAniDBSocket();
 
-                ShokoService.CmdProcessorGeneral.Stop();
-                ShokoService.CmdProcessorHasher.Stop();
-                ShokoService.CmdProcessorImages.Stop();
+                CommandQueue.Queue.Instance.Stop();
 
-
-                // wait until the queue count is 0
-                // ie the cancel has actuall worked
-                while (true)
-                {
-                    if (ShokoService.CmdProcessorGeneral.QueueCount == 0 &&
-                        ShokoService.CmdProcessorHasher.QueueCount == 0 &&
-                        ShokoService.CmdProcessorImages.QueueCount == 0) break;
-                    Thread.Sleep(250);
-                }
 
                 if (autoUpdateTimer != null) autoUpdateTimer.Enabled = false;
                 if (autoUpdateTimerShort != null) autoUpdateTimerShort.Enabled = false;
@@ -788,9 +775,8 @@ namespace Shoko.Server
 
 
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingQueue;
-                ShokoService.CmdProcessorGeneral.Init();
-                ShokoService.CmdProcessorHasher.Init();
-                ShokoService.CmdProcessorImages.Init();
+
+                CommandQueue.Queue.Instance.Start();
 
 
                 // timer for automatic updates
@@ -847,12 +833,7 @@ namespace Shoko.Server
         void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
         {
             // first build a list of files that we already know about, as we don't want to process them again
-            IReadOnlyList<SVR_VideoLocal> filesAll = Repo.Instance.VideoLocal.GetAll();
-            foreach (SVR_VideoLocal vl in filesAll)
-            {
-                CommandRequest_ReadMediaInfo cr = new CommandRequest_ReadMediaInfo(vl.VideoLocalID);
-                cr.Save();
-            }
+            CommandQueue.Queue.Instance.AddRange(Repo.Instance.VideoLocal.GetAll().Select(a=>new CmdServerReadMediaInfo(a.VideoLocalID)));
         }
 
         public static void RefreshAllMediaInfo()
@@ -957,9 +938,7 @@ namespace Shoko.Server
                                 // if not we will download it now
                                 if (Repo.Instance.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                                 {
-                                    CommandRequest_GetReleaseGroupStatus cmdStatus =
-                                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                                    cmdStatus.Save();
+                                    CommandQueue.Queue.Instance.Add(new CmdGetReleaseGroupStatus(anime.AnimeID, false));
                                 }
 
                                 // update stats
@@ -1000,8 +979,7 @@ namespace Shoko.Server
                             // Add this file to the users list
                             if (ServerSettings.Instance.AniDb.MyList_AddFiles)
                             {
-                                CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
-                                cmd.Save();
+                                CommandQueue.Queue.Instance.Add(new CmdAddFileToMyList(vid.ED2KHash));
                             }
 
                             ma2Progress.MigratedFiles = ma2Progress.MigratedFiles + 1;
@@ -1101,8 +1079,7 @@ namespace Shoko.Server
                 if (anime.EndDate.Value > dt) continue;
 
                 sentAnime++;
-                CommandRequest_Azure_SendAnimeXML cmd = new CommandRequest_Azure_SendAnimeXML(anime.AnimeID);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendAnimeXML(anime.AnimeID));
             }
 
             logger.Info($"Sent Anime XML to Cache: {sentAnime} out of {allAnime.Count}");
@@ -1142,8 +1119,7 @@ namespace Shoko.Server
             {
                 if (validAnimeIDs.ContainsKey(int.Parse(animeid)))
                 {
-                    CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(int.Parse(animeid), true, false);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(int.Parse(animeid), true, false));
                     cnt++;
                 }
             }
@@ -1676,7 +1652,7 @@ namespace Shoko.Server
                 if (!string.IsNullOrEmpty(user.PlexToken))
                 {
                     flag = true;
-                    new CommandRequest_PlexSyncWatched(user).Save();
+                    CommandQueue.Queue.Instance.Add(new CmdPlexSyncWatched(user));
                 }
             }
             return flag;
@@ -1762,9 +1738,6 @@ namespace Shoko.Server
         {
             if (!Utils.IsAdministrator()) return false;
 
-            ShokoService.CmdProcessorGeneral.Paused = true;
-            ShokoService.CmdProcessorHasher.Paused = true;
-            ShokoService.CmdProcessorImages.Paused = true;
 
             StopHost();
 
@@ -1777,9 +1750,6 @@ namespace Shoko.Server
                 throw new Exception("Failed to start all of the network hosts");
             }
 
-            ShokoService.CmdProcessorGeneral.Paused = false;
-            ShokoService.CmdProcessorHasher.Paused = false;
-            ShokoService.CmdProcessorImages.Paused = false;
             return true;
         }
 

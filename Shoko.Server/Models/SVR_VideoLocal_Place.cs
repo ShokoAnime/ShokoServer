@@ -12,6 +12,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -213,9 +214,7 @@ namespace Shoko.Server.Models
             {
                 if (updateMyListStatus)
                 {
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
                 }
 
                 using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
@@ -273,9 +272,7 @@ namespace Shoko.Server.Models
             {
                 if (updateMyListStatus)
                 {
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
                 }
 
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();

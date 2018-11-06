@@ -11,6 +11,8 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -449,9 +451,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             if (!excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
             {
-                CommandRequest_WebCacheSendXRefAniDBTrakt req =
-                    new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
-                req.Save();
+                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID));
             }
 
             return string.Empty;
@@ -472,11 +472,9 @@ namespace Shoko.Server.Providers.TraktTV
 
             if (ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
             {
-                CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
-                    new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,
+                CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteXRefAniDBTrakt(animeID,
                         (int)aniEpType, aniEpNumber,
-                        traktID, seasonNumber, traktEpNumber);
-                req.Save();
+                        traktID, seasonNumber, traktEpNumber));
             }
         }
 
@@ -504,8 +502,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                 if (anime.IsTraktLinkDisabled()) continue;
 
-                CommandRequest_TraktSearchAnime cmd = new CommandRequest_TraktSearchAnime(ser.AniDB_ID, false);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTraktSearchAnime(ser.AniDB_ID, false));
             }
         }
 
@@ -1270,8 +1267,7 @@ namespace Shoko.Server.Providers.TraktTV
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.Instance.CrossRef_AniDB_TraktV2.GetAll();
             foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
             {
-                CommandRequest_TraktUpdateInfo cmd = new CommandRequest_TraktUpdateInfo(xref.TraktID);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTraktUpdateInfo(xref.TraktID));
             }
         }
 

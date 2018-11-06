@@ -30,6 +30,7 @@ namespace Shoko.Server.Repositories
             T value = _originalItems.Keys.FirstOrDefault(predicate) ?? Create();
             return value;
         }
+
         public T Find(Func<T, bool> predicate)
         {
             return _originalItems.Keys.FirstOrDefault(predicate);
@@ -54,7 +55,12 @@ namespace Shoko.Server.Repositories
             _references[a] = null;
             return a;
         }
-
+        public T Create(T a)
+        {
+            _repo.Provider.GetContext().SetLocalKey(a, _repo.GetNextAutoGen);
+            _references[a] = null;
+            return a;
+        }
         public List<T> Commit(TT pars = default(TT))
         {
             Dictionary<T, object> savedobjects = new Dictionary<T, object>();

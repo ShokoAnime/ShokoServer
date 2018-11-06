@@ -8,7 +8,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Models.Server;
 using NLog;
-using Shoko.Server.Commands.Plex;
+
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Libraries;
@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
+using Shoko.Server.CommandQueue;
+using Shoko.Server.CommandQueue.Commands.Plex;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -166,7 +168,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("sync")]
         public ActionResult Sync()
         {
-            new CommandRequest_PlexSyncWatched(HttpContext.GetUser()).Save();
+            Queue.Instance.Add(new CmdPlexSyncWatched(HttpContext.GetUser()));
             return APIStatus.OK();
         }
 

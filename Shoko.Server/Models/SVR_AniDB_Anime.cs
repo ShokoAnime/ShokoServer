@@ -13,6 +13,11 @@ using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.MovieDB;
+using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Commands.TvDB;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -756,21 +761,17 @@ namespace Shoko.Server.Models
             // check for TvDB associations
             if (Restricted == 0)
             {
-                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBSearchAnime(AnimeID, forced: false));
 
                 // check for Trakt associations
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
-                    CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
-                    cmd2.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdTraktSearchAnime(AnimeID, forced: false));
                 }
 
                 if (AnimeType == (int)Shoko.Models.Enums.AnimeType.Movie)
                 {
-                    CommandRequest_MovieDBSearchAnime cmd3 =
-                        new CommandRequest_MovieDBSearchAnime(AnimeID, false);
-                    cmd3.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdMovieDBSearchAnime(AnimeID, false));
                 }
             }
 
@@ -1246,7 +1247,7 @@ namespace Shoko.Server.Models
         {
             if (rels == null) return;
 
-            List<CommandRequest_GetAnimeHTTP> cmdsToSave = new List<CommandRequest_GetAnimeHTTP>();
+            List<ICommand> cmdsToSave = new List<ICommand>();
 
             foreach (Raw_AniDB_RelatedAnime rawrel in rels)
             {
@@ -1263,15 +1264,14 @@ namespace Shoko.Server.Models
                         // basically we will download immediate relations, but not relations of relations
 
                         //CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
-                        CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(upd.Entity.RelatedAnimeID,
-                            false, false, relDepth + 1);
-                        cmdsToSave.Add(cr_anime);
+                        cmdsToSave.Add(new CmdAniDBGetAnimeHTTP(upd.Entity.RelatedAnimeID,
+                            false, false, relDepth + 1));
                     }
                 }
             }
 
             // this is not part of the session/transaction because it does other operations in the save
-            cmdsToSave.ForEach(s => s.Save());
+            CommandQueue.Queue.Instance.AddRange(cmdsToSave);
         }
 
         private void CreateSimilarAnime(List<Raw_AniDB_SimilarAnime> sims)

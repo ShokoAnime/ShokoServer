@@ -14,6 +14,7 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
 using Microsoft.AspNetCore.Http;
+using Shoko.Server.CommandQueue.Commands.AniDB;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -65,9 +66,8 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_AniDB_Anime aniDB_Anime = Repo.Instance.AniDB_Anime.GetByID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
-                Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
-                cr_anime.Save();
-
+                CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(bookmark.AnimeID, true, false));
+ 
                 Serie empty_serie = new Serie
                 {
                     id = -1,

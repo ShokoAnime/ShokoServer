@@ -15,6 +15,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
@@ -43,7 +45,16 @@ namespace Shoko.Server.Models
         public int MyListID { get; set; }
 
         [JsonIgnore]
-        public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
+        public string Info
+        {
+            get
+            {
+                string path = GetBestVideoLocalPlace(true).FilePath;
+                if (string.IsNullOrEmpty(path))
+                    return string.Empty;
+                return System.IO.Path.GetFileName(path);
+            }
+        }
 
 
         public const int MEDIA_VERSION = 3;
@@ -267,10 +278,8 @@ namespace Shoko.Server.Models
                     if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
                         (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
                     {
-                        CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
-                            Hash, watched, false,
-                            AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
-                        cmd.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBUpdateMyListFileStatus(Hash, watched, false,AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime())));
+
                     }
             }
 
@@ -324,9 +333,7 @@ namespace Shoko.Server.Models
                         if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
                             !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
-                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
-                            cmdSyncTrakt.Save();
+                            CommandQueue.Queue.Instance.Add(new CmdTraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add));
                         }
                     }
                 }
@@ -370,9 +377,7 @@ namespace Shoko.Server.Models
                         if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
                             !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
-                            CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
-                                new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);
-                            cmdSyncTrakt.Save();
+                            CommandQueue.Queue.Instance.Add(new CmdTraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove));
                         }
                     }
                 }

@@ -8,10 +8,14 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
+using Shoko.Server.CommandQueue;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
+using System.Reactive.Linq;
+using Shoko.Commons.Queue;
+using Shoko.Server.CommandQueue.Commands;
 
 namespace Shoko.Server
 {
@@ -54,15 +58,31 @@ namespace Shoko.Server
         {
             //RefreshImportFolders();
 
-            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += CmdProcessorGeneral_OnQueueCountChangedEvent;
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += CmdProcessorGeneral_OnQueueStateChangedEvent;
+            Queue.Instance.Subscribe((cmd) =>
+            {
+                if (cmd.Command.WorkType == WorkTypes.Image)
+                {
+                    ImagesQueueState = cmd;
+                }
+                else if (cmd.Command.WorkType == WorkTypes.Hashing)
+                {
+                    HasherQueueState = cmd;
+                }
+                else
+                {
+                    GeneralQueueState = cmd;
+                }
+            });
 
-            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += CmdProcessorHasher_OnQueueCountChangedEvent;
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += CmdProcessorHasher_OnQueueStateChangedEvent;
-
-            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
-
+            Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((_) =>
+            {
+                if (Repo.Instance != null)
+                {
+                    ImagesQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount(WorkTypes.AniDB);
+                    HasherQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount(WorkTypes.Hashing);
+                    GeneralQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount() - ImagesQueueCount - HasherQueueCount;
+                }
+            });
 
             //Populate Cloud Providers
             foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
@@ -80,35 +100,7 @@ namespace Shoko.Server
             }
         }
 
-        void CmdProcessorImages_OnQueueStateChangedEvent(QueueStateEventArgs ev)
-        {
-            ImagesQueueState = ev.QueueState.formatMessage();
-        }
-
-        void CmdProcessorImages_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-        {
-            ImagesQueueCount = ev.QueueCount;
-        }
-
-        void CmdProcessorHasher_OnQueueStateChangedEvent(QueueStateEventArgs ev)
-        {
-            HasherQueueState = ev.QueueState.formatMessage();
-        }
-
-        void CmdProcessorHasher_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-        {
-            HasherQueueCount = ev.QueueCount;
-        }
-
-        void CmdProcessorGeneral_OnQueueStateChangedEvent(QueueStateEventArgs ev)
-        {
-            GeneralQueueState = ev.QueueState.formatMessage();
-        }
-
-        void CmdProcessorGeneral_OnQueueCountChangedEvent(QueueCountEventArgs ev)
-        {
-            GeneralQueueCount = ev.QueueCount;
-        }
+        
 
         #region Observable Properties
 
@@ -154,9 +146,9 @@ namespace Shoko.Server
             set => this.SetField(() => hasherQueueCount, value);
         }
 
-        private string hasherQueueState = string.Empty;
+        private ICommandProgress hasherQueueState;
 
-        public string HasherQueueState
+        public ICommandProgress HasherQueueState
         {
             get => hasherQueueState;
             set => this.SetField(() => hasherQueueState, value);
@@ -170,9 +162,9 @@ namespace Shoko.Server
             set => this.SetField(() => imagesQueueCount, value);
         }
 
-        private string imagesQueueState = string.Empty;
+        private ICommandProgress imagesQueueState;
 
-        public string ImagesQueueState
+        public ICommandProgress ImagesQueueState
         {
             get => imagesQueueState;
             set => this.SetField(() => imagesQueueState, value);
@@ -186,9 +178,9 @@ namespace Shoko.Server
             set => this.SetField(() => generalQueueCount, value);
         }
 
-        private string generalQueueState = string.Empty;
+        private ICommandProgress generalQueueState;
 
-        public string GeneralQueueState
+        public ICommandProgress GeneralQueueState
         {
             get => generalQueueState;
             set => this.SetField(() => generalQueueState, value);

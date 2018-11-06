@@ -2,7 +2,7 @@
 using Shoko.Models.Server;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Shoko.Models.Client;
+
 
 namespace Shoko.Server.Databases
 {
@@ -487,14 +487,23 @@ namespace Shoko.Server.Databases
             }
             {
                 var model = builder.Entity<CommandRequest>();
-                model.ToTable("CommandRequest").HasKey(x => x.CommandRequestID);
-//                //model.HasIndex(x => x.CommandRequestID).IsUnique().ForSqlServerIsClustered().HasName("PK_CommandRequest");
-                model.Property(x => x.CommandRequestID).IsRequired().SetLocalValueGenerated();
+                model.ToTable("CommandRequest").HasKey(x => x.Id);
+                model.HasIndex(x => new { x.ExecutionDate, x.Priority }).HasName("IX_CommandRequest_DatePriority");
+                model.HasIndex(x => x.Batch).HasName("IX_CommandRequest_Batch");
+                model.HasIndex(x => x.Type).HasName("IX_CommandRequest_Type");
+                model.HasIndex(x => x.Class).HasName("IX_CommandRequest_Class");
+                model.Property(x => x.Id).IsRequired().SetLocalValueGenerated();
+                model.Property(x => x.Type).IsRequired();
+                model.Property(x => x.Class).IsRequired();
+                model.Property(x => x.ParallelTag).IsRequired();
+                model.Property(x => x.ParallelMax).IsRequired();
                 model.Property(x => x.Priority).IsRequired();
-                model.Property(x => x.CommandType).IsRequired();
-                model.Property(x => x.CommandID).IsRequired();
-                model.Property(x => x.CommandDetails).IsRequired();
-                model.Property(x => x.DateTimeUpdated).IsRequired();
+                model.Property(x => x.Batch).IsRequired();
+                model.Property(x => x.ExecutionDate).IsRequired();
+                model.Property(x => x.Retries).IsRequired();
+                model.Property(x => x.LastError).HasMaxLength(1024);
+                model.Property(x => x.Data).HasMaxLength(4096);
+                model.Property(x => x.ParallelMax).IsRequired();
             }
             {
                 var model = builder.Entity<CrossRef_AniDB_MAL>();

@@ -10,6 +10,9 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Server.CommandQueue.Commands.Image;
+using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Commands.TvDB;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -167,10 +170,7 @@ namespace Shoko.Server.Providers.TvDB
             {
                 // download and update series info, episode info and episode images
                 // will also download fanart, posters and wide banners
-                CommandRequest_TvDBUpdateSeries cmdSeriesEps =
-                    new CommandRequest_TvDBUpdateSeries(tvDBID,
-                        false);
-                cmdSeriesEps.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateSeries(tvDBID,false));
             }
             else
             {
@@ -196,9 +196,7 @@ namespace Shoko.Server.Providers.TvDB
                 if (trakt.Count != 0)
                     foreach (CrossRef_AniDB_TraktV2 a in trakt)
                         Repo.Instance.CrossRef_AniDB_TraktV2.Delete(a);
-
-                var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
-                cmd2.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTraktSearchAnime(animeID, false));
             }
         }
 
@@ -556,9 +554,8 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
                     if (fileExists && !forceDownload) continue;
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageFanartID,
-                        ImageEntityType.TvDB_FanArt, forceDownload);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdImageDownload(img.TvDB_ImageFanartID,
+                        ImageEntityType.TvDB_FanArt, forceDownload));
                     imageCount++;
                 }
                 else
@@ -583,9 +580,8 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
                     if (fileExists && !forceDownload) continue;
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImagePosterID,
-                        ImageEntityType.TvDB_Cover, forceDownload);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdImageDownload(img.TvDB_ImagePosterID,
+                        ImageEntityType.TvDB_Cover, forceDownload));
                     imageCount++;
                 }
                 else
@@ -610,9 +606,8 @@ namespace Shoko.Server.Providers.TvDB
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
                     if (fileExists && !forceDownload) continue;
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
-                        ImageEntityType.TvDB_Banner, forceDownload);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdImageDownload(img.TvDB_ImageWideBannerID,
+                        ImageEntityType.TvDB_Banner, forceDownload));
                     imageCount++;
                 }
                 else
@@ -734,10 +729,9 @@ namespace Shoko.Server.Providers.TvDB
                         bool fileExists = File.Exists(ep.GetFullImagePath());
                         if (!fileExists || forceRefresh)
                         {
-                            CommandRequest_DownloadImage cmd =
-                                new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
-                                    ImageEntityType.TvDB_Episode, forceRefresh);
-                            cmd.Save();
+
+                            CommandQueue.Queue.Instance.Add(new CmdImageDownload(ep.TvDB_EpisodeID,
+                                    ImageEntityType.TvDB_Episode, forceRefresh));
                         }
                     }
                 return ep;
@@ -786,9 +780,7 @@ namespace Shoko.Server.Providers.TvDB
                         existingEpIds.Add(item.Id);
 
                     string infoString = $"{tvSeries.SeriesName} - Episode {item.AbsoluteNumber?.ToString() ?? "X"}";
-                    CommandRequest_TvDBUpdateEpisode epcmd =
-                        new CommandRequest_TvDBUpdateEpisode(item.Id, infoString, downloadImages, forceRefresh);
-                    epcmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateEpisode(item.Id, infoString, downloadImages, forceRefresh));
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
@@ -844,8 +836,7 @@ namespace Shoko.Server.Providers.TvDB
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {
-                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(ser.AniDB_ID, false);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBSearchAnime(ser.AniDB_ID, false));
             }
         }
 
@@ -854,9 +845,7 @@ namespace Shoko.Server.Providers.TvDB
             IReadOnlyList<CrossRef_AniDB_TvDB> allCrossRefs = Repo.Instance.CrossRef_AniDB_TvDB.GetAll();
             foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
             {
-                CommandRequest_TvDBUpdateSeries cmd =
-                    new CommandRequest_TvDBUpdateSeries(xref.TvDBID, force);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateSeries(xref.TvDBID, force));
             }
         }
 

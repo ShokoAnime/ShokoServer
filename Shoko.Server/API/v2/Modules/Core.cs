@@ -16,6 +16,8 @@ using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -318,8 +320,7 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult SyncAniDBVotes()
         {
             //TODO APIv2: Command should be split into AniDb/MAL sepereate
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
+            CommandQueue.Queue.Instance.Add(new CmdAniDBSyncMyVotes());
             return APIStatus.OK();
         }
 
@@ -361,8 +362,7 @@ namespace Shoko.Server.API.v2.Modules
                     var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (xml == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(animeID, true, false));
                         updatedAnime++;
                         continue;
                     }
@@ -370,8 +370,7 @@ namespace Shoko.Server.API.v2.Modules
                     var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
                     if (rawAnime == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdAniDBGetAnimeHTTP(animeID, true, false));
                         updatedAnime++;
                     }
                 }
@@ -429,8 +428,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTraktSyncCollection(true));
                 return APIStatus.OK();
             }
 

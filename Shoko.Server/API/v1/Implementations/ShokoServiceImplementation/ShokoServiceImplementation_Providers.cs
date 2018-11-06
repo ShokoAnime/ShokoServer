@@ -9,9 +9,9 @@ using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.TvDB;
-using Shoko.Server.Databases;
+using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Commands.TvDB;
+
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -406,8 +406,7 @@ namespace Shoko.Server
         {
             try
             {
-                CommandRequest_TvDBUpdateSeries updateseries = new CommandRequest_TvDBUpdateSeries(seriesID, true);
-                updateseries.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateSeries(seriesID, true));
             }
             catch (Exception ex)
             {
@@ -534,9 +533,7 @@ namespace Shoko.Server
                 }
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-                CommandRequest_LinkAniDBTvDB cmdRequest =
-                    new CommandRequest_LinkAniDBTvDB(link.AnimeID, link.TvDBID, link.IsAdditive);
-                cmdRequest.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBLinkAniDB(link.AnimeID, link.TvDBID, link.IsAdditive));
 
                 return string.Empty;
             }
@@ -561,9 +558,7 @@ namespace Shoko.Server
                 Repo.Instance.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(link.AnimeID);
 
                 // we don't need to proactively remove the link here anymore, as all links are removed when it is not marked as additive
-                CommandRequest_LinkAniDBTvDB cmdRequest =
-                    new CommandRequest_LinkAniDBTvDB(link.AnimeID, link.TvDBID, link.IsAdditive);
-                cmdRequest.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTvDBLinkAniDB(link.AnimeID, link.TvDBID, link.IsAdditive));
 
                 var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(links);
                 foreach (var episodeOverride in overrides)
@@ -1119,11 +1114,8 @@ namespace Shoko.Server
 
                 SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
                 if (ser == null) return "Could not find Anime Series";
+                CommandQueue.Queue.Instance.Add(new CmdTraktSyncCollectionSeries(ser.AnimeSeriesID,ser.GetSeriesName()));
 
-                CommandRequest_TraktSyncCollectionSeries cmd =
-                    new CommandRequest_TraktSyncCollectionSeries(ser.AnimeSeriesID,
-                        ser.GetSeriesName());
-                cmd.Save();
 
                 return string.Empty;
             }

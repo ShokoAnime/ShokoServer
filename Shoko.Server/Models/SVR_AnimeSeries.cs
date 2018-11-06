@@ -14,6 +14,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -930,8 +931,7 @@ namespace Shoko.Server.Models
 
         public void QueueUpdateStats()
         {
-            CommandRequest_RefreshAnime cmdRefreshAnime = new CommandRequest_RefreshAnime(AniDB_ID);
-            cmdRefreshAnime.Save();
+            CommandQueue.Queue.Instance.Add(new CmdServerRefreshAnime(AniDB_ID));
         }
 
         public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)

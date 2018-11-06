@@ -10,6 +10,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -1311,9 +1312,7 @@ namespace Shoko.Server.Models
 
         public void QueueUpdate()
         {
-            CommandRequest_RefreshGroupFilter cmdRefreshGroupFilter =
-                new CommandRequest_RefreshGroupFilter(GroupFilterID);
-            cmdRefreshGroupFilter.Save();
+            CommandQueue.Queue.Instance.Add(new CmdServerRefreshGroupFilter(GroupFilterID));
         }
 
         public override bool Equals(object obj)

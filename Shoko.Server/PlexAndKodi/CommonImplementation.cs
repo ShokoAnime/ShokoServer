@@ -24,6 +24,7 @@ using Shoko.Server.Repositories;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 using Shoko.Server.API.v1;
+using Shoko.Server.CommandQueue.Commands.AniDB;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -800,9 +801,8 @@ namespace Shoko.Server.PlexAndKodi
                         upd.Commit();
                     }
 
-                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                        Convert.ToDecimal(vvalue));
-                    cmdVote.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBVoteAnime(anime.AnimeID, vt,
+                        Convert.ToDecimal(vvalue)));
                 }
 
                 if (vt == (int)AniDBVoteType.Anime)
@@ -838,9 +838,8 @@ namespace Shoko.Server.PlexAndKodi
                         upd.Commit();
                     }
 
-                    CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(anime.AnimeID, vt,
-                        Convert.ToDecimal(vvalue));
-                    cmdVote.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBVoteAnime(anime.AnimeID, vt,
+                        Convert.ToDecimal(vvalue)));
                 }
                 rsp.Code = "200";
                 rsp.Message = null;

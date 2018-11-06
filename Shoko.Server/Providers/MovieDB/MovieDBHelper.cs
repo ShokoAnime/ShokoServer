@@ -7,6 +7,9 @@ using Shoko.Models.Server;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.CommandQueue.Commands.Image;
+using Shoko.Server.CommandQueue.Commands.MovieDB;
+using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
@@ -84,9 +87,8 @@ namespace Shoko.Server.Providers.MovieDB
                         // download the image
                         if (!string.IsNullOrEmpty(poster.GetFullImagePath()) && !File.Exists(poster.GetFullImagePath()))
                         {
-                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(poster.MovieDB_PosterID,
-                                ImageEntityType.MovieDB_Poster, false);
-                            cmd.Save();
+                            CommandQueue.Queue.Instance.Add(new CmdImageDownload(poster.MovieDB_PosterID,
+                                ImageEntityType.MovieDB_Poster, false));
                             numPostersDownloaded++;
                         }
                     }
@@ -113,9 +115,8 @@ namespace Shoko.Server.Providers.MovieDB
                         // download the image
                         if (!string.IsNullOrEmpty(fanart.GetFullImagePath()) && !File.Exists(fanart.GetFullImagePath()))
                         {
-                            CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(fanart.MovieDB_FanartID,
-                                ImageEntityType.MovieDB_FanArt, false);
-                            cmd.Save();
+                            CommandQueue.Queue.Instance.Add(new CmdImageDownload(fanart.MovieDB_FanartID,
+                                ImageEntityType.MovieDB_FanArt, false));
                             numFanartDownloaded++;
                         }
                     }
@@ -245,9 +246,7 @@ namespace Shoko.Server.Providers.MovieDB
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 
-            CommandRequest_WebCacheSendXRefAniDBOther req =
-                new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
-            req.Save();
+            CommandQueue.Queue.Instance.Add(new CmdWebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID));
         }
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
@@ -256,10 +255,7 @@ namespace Shoko.Server.Providers.MovieDB
             if (xref == null) return;
 
             Repo.Instance.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
-
-            CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID,
-                CrossRefType.MovieDB);
-            req.Save();
+            CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteXRefAniDBOther(animeID,CrossRefType.MovieDB));
         }
 
         public static void ScanForMatches()
@@ -285,8 +281,7 @@ namespace Shoko.Server.Providers.MovieDB
 
                 logger.Trace("Found anime movie without MovieDB association: " + anime.MainTitle);
 
-                CommandRequest_MovieDBSearchAnime cmd = new CommandRequest_MovieDBSearchAnime(ser.AniDB_ID, false);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdMovieDBSearchAnime(ser.AniDB_ID, false));
             }
         }
     }

@@ -380,17 +380,14 @@ namespace Shoko.Server.Tasks
         {
 
 
-            bool cmdProcGeneralPaused = ShokoService.CmdProcessorGeneral.Paused;
-            bool cmdProcHasherPaused = ShokoService.CmdProcessorHasher.Paused;
-            bool cmdProcImagesPaused = ShokoService.CmdProcessorImages.Paused;
 
+
+            bool wasrunning = CommandQueue.Queue.Instance.Running;
             try
             {
                 // Pause queues
-                ShokoService.CmdProcessorGeneral.Paused = true;
-                ShokoService.CmdProcessorHasher.Paused = true;
-                ShokoService.CmdProcessorImages.Paused = true;
-
+                CommandQueue.Queue.Instance.Stop();
+ 
                 _log.Info("Beginning re-creation of all groups");
 
 
@@ -458,9 +455,8 @@ namespace Shoko.Server.Tasks
             finally
             {
                 // Un-pause queues (if they were previously running)
-                ShokoService.CmdProcessorGeneral.Paused = cmdProcGeneralPaused;
-                ShokoService.CmdProcessorHasher.Paused = cmdProcHasherPaused;
-                ShokoService.CmdProcessorImages.Paused = cmdProcImagesPaused;
+                if (wasrunning)
+                    CommandQueue.Queue.Instance.Start();
             }
         }
 

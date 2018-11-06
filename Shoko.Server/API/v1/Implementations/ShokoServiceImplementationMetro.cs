@@ -41,23 +41,32 @@ namespace Shoko.Server
 
             try
             {
-                contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-                contract.HashQueueState =
-                    ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.HashQueueStateId = (int) ShokoService.CmdProcessorHasher.QueueState.queueState;
-                contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+                contract.HashQueueCount = ServerInfo.Instance.HasherQueueCount;
+                if (ServerInfo.Instance.HasherQueueState != null)
+                {
+                    contract.HashQueueState = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.HashQueueStateId = (int)ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.queueState;
+                    contract.HashQueueStateParams = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.extraParams;
+                    contract.HashQueueStatePercentage = ServerInfo.Instance.HasherQueueState.Progress;
+                }
 
-                contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-                contract.GeneralQueueState =
-                    ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.GeneralQueueStateId = (int) ShokoService.CmdProcessorGeneral.QueueState.queueState;
-                contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+                contract.GeneralQueueCount = ServerInfo.Instance.GeneralQueueCount;
+                if (ServerInfo.Instance.GeneralQueueState != null)
+                {
+                    contract.GeneralQueueState = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.GeneralQueueStateId = (int)ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.queueState;
+                    contract.GeneralQueueStateParams = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.extraParams;
+                    contract.GeneralQueueStatePercentage = ServerInfo.Instance.GeneralQueueState.Progress;
+                }
 
-                contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-                contract.ImagesQueueState =
-                    ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
-                contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+                contract.ImagesQueueCount = ServerInfo.Instance.ImagesQueueCount;
+                if (ServerInfo.Instance.ImagesQueueState != null)
+                {
+                    contract.ImagesQueueState = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.ImagesQueueStateId = (int)ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.queueState;
+                    contract.ImagesQueueStateParams = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.extraParams;
+                    contract.ImagesQueueStatePercentage = ServerInfo.Instance.ImagesQueueState.Progress;
+                }
 
                 contract.IsBanned = ShokoService.AnidbProcessor.IsHttpBanned || ShokoService.AnidbProcessor.IsUdpBanned;
                 contract.BanReason = (ShokoService.AnidbProcessor.IsHttpBanned ? ShokoService.AnidbProcessor.HttpBanTime : ShokoService.AnidbProcessor.UdpBanTime).ToString();

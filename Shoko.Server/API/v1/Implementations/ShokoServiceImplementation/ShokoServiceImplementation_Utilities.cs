@@ -21,6 +21,8 @@ using Shoko.Commons.Utils;
 using Shoko.Server.Utilities;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Server;
 
 namespace Shoko.Server
 {
@@ -1023,8 +1025,7 @@ namespace Shoko.Server
         {
             foreach (CL_MissingFile missingFile in myListFiles)
             {
-                CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(missingFile.FileID);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(missingFile.FileID));
 
                 // For deletion of files from Trakt, we will rely on the Daily sync
                 // lets also try removing from the users trakt collecion
@@ -1137,8 +1138,7 @@ namespace Shoko.Server
 
                 foreach (SVR_VideoLocal vl in filesWithoutEpisode.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdServerProcessFile(vl.VideoLocalID, true));
                 }
             }
             catch (Exception ex)
@@ -1157,8 +1157,7 @@ namespace Shoko.Server
 
                 foreach (SVR_VideoLocal vl in files.Where(a => !string.IsNullOrEmpty(a.Hash)))
                 {
-                    CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdServerProcessFile(vl.VideoLocalID, true));
                 }
             }
             catch (Exception ex)

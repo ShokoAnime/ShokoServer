@@ -97,7 +97,7 @@ namespace Shoko.Server
             }
             set { lastAniDBPing = value; }
         }
-
+        /*
         private static CommandProcessorGeneral cmdProcessorGeneral = new CommandProcessorGeneral();
 
         public static CommandProcessorGeneral CmdProcessorGeneral
@@ -136,7 +136,7 @@ namespace Shoko.Server
                 }
             }
         }
-
+        */
         private static AniDBHelper anidbProcessor = new AniDBHelper();
 
         public static AniDBHelper AnidbProcessor

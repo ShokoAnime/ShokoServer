@@ -17,8 +17,6 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using System.IO;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Commands.TvDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
@@ -26,12 +24,15 @@ using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Models.TvDB;
-using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Hash;
+using Shoko.Server.CommandQueue.Commands.Server;
+using Shoko.Server.CommandQueue.Commands.WebCache;
 
 namespace Shoko.Server
 {
@@ -748,10 +749,7 @@ namespace Shoko.Server
                             return "Cannot remove associations created from AniDB data";
 
                         // delete cross ref from web cache
-                        CommandRequest_WebCacheDeleteXRefFileEpisode cr =
-                            new CommandRequest_WebCacheDeleteXRefFileEpisode(vid.Hash,
-                                ep.AniDB_EpisodeID);
-                        cr.Save();
+                        CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteXRefFileEpisode(vid.Hash, ep.AniDB_EpisodeID));
 
                         Repo.Instance.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
                     }
@@ -831,9 +829,7 @@ namespace Shoko.Server
                 SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(animeEpisodeID);
                 if (ep == null)
                     return "Could not find episode record";
-
-                var com = new CommandRequest_LinkFileManually(videoLocalID, animeEpisodeID);
-                com.Save();
+                CommandQueue.Queue.Instance.Add(new CmdServerLinkFileManually(videoLocalID, animeEpisodeID));
                 return "";
             }
             catch (Exception ex)
@@ -884,9 +880,7 @@ namespace Shoko.Server
                     SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (ep == null)
                         return "Could not find episode record";
-
-                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
-                    com.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdServerLinkFileManually(videoLocalID, ep.AnimeEpisodeID));
                 }
 
                 return "";
@@ -931,13 +925,13 @@ namespace Shoko.Server
                     SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(aniep.EpisodeID);
                     if (ep == null)
                         return "Could not find episode record";
-
-                    var com = new CommandRequest_LinkFileManually(videoLocalID, ep.AnimeEpisodeID);
+                   
+                    var com = new CmdServerLinkFileManually(videoLocalID, ep.AnimeEpisodeID);
                     if (singleEpisode)
                     {
                         com.Percentage = (int)Math.Round((double)count / total * 100);
                     }
-                    com.Save();
+                    CommandQueue.Queue.Instance.Add(com);
 
                     count++;
                     if (!singleEpisode) epNumber++;
@@ -964,8 +958,7 @@ namespace Shoko.Server
             {
                 SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return "File could not be found";
-                CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdAniDBGetFile(vid, true));
             }
             catch (Exception ex)
             {
@@ -984,8 +977,7 @@ namespace Shoko.Server
                 if (vid == null) return "File could not be found";
                 if (string.IsNullOrEmpty(vid.Hash))
                     return "Could not Update a cloud file without hash, hash it locally first";
-                CommandRequest_ProcessFile cmd = new CommandRequest_ProcessFile(vid.VideoLocalID, true);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdServerProcessFile(vid.VideoLocalID, true));
             }
             catch (Exception ex)
             {
@@ -1008,8 +1000,7 @@ namespace Shoko.Server
                     logger.Error("Unable to hash videolocal with id = {videoLocalID}, it has no assigned place");
                     return;
                 }
-                CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                cr_hashfile.Save();
+                CommandQueue.Queue.Instance.Add(new CmdServerHashFile(pl.FullServerPath, true));
             }
         }
 
@@ -1170,8 +1161,7 @@ namespace Shoko.Server
         [HttpDelete("AniDB/MyList/{fileID}")]
         public void DeleteFileFromMyList(int fileID)
         {
-            CommandRequest_DeleteFileFromMyList cmd = new CommandRequest_DeleteFileFromMyList(fileID);
-            cmd.Save();
+            CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(fileID));
         }
 
         [HttpPost("AniDB/MyList/{hash}")]
@@ -1179,8 +1169,7 @@ namespace Shoko.Server
         {
             try
             {
-                CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(hash);
-                cmdAddFile.Save();
+                CommandQueue.Queue.Instance.Add(new CmdAniDBAddFileToMyList(hash));
             }
             catch (Exception ex)
             {
@@ -1655,8 +1644,7 @@ namespace Shoko.Server
                 upd.Entity.VoteValue = iVoteValue;
             }
 
-            CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, voteType, voteValue);
-            cmdVote.Save();
+            CommandQueue.Queue.Instance.Add(new CmdAniDBVoteAnime(animeID, voteType, voteValue));
         }
 
         [HttpDelete("AniDB/Vote/{animeID}")]
@@ -1678,8 +1666,7 @@ namespace Shoko.Server
 
             if (thisVote == null) return;
 
-            CommandRequest_VoteAnime cmdVote = new CommandRequest_VoteAnime(animeID, thisVote.VoteType, -1);
-            cmdVote.Save();
+            CommandQueue.Queue.Instance.Add(new CmdAniDBVoteAnime(animeID, thisVote.VoteType, -1));
 
             Repo.Instance.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
         }
@@ -2379,9 +2366,7 @@ namespace Shoko.Server
                 // if not we will download it now
                 if (Repo.Instance.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
                 {
-                    CommandRequest_GetReleaseGroupStatus cmdStatus =
-                        new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                    cmdStatus.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBGetReleaseGroupStatus(anime.AnimeID, false));
                 }
 
                 // update stats
@@ -2419,14 +2404,11 @@ namespace Shoko.Server
                     if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBGetFile(vid, true));
                 }
 
                 // update group status information
-                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
-                    true);
-                cmdStatus.Save();
+                CommandQueue.Queue.Instance.Add(new CmdAniDBGetReleaseGroupStatus(animeID,true));
             }
             catch (Exception ex)
             {
@@ -2453,14 +2435,11 @@ namespace Shoko.Server
                     if (!aniFile.File_VideoResolution.Equals("0x0", StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    CommandRequest_GetFile cmd = new CommandRequest_GetFile(vid.VideoLocalID, true);
-                    cmd.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAniDBGetFile(vid, true));
                 }
 
                 // update group status information
-                CommandRequest_GetReleaseGroupStatus cmdStatus = new CommandRequest_GetReleaseGroupStatus(animeID,
-                    true);
-                cmdStatus.Save();
+                CommandQueue.Queue.Instance.Add(new CmdAniDBGetReleaseGroupStatus(animeID, true));
 
                 return anime?.Contract;
             }

@@ -20,8 +20,10 @@ namespace Shoko.Server.Repositories
     {
         void Update(T item);
         T Create();
+        T Create(T item);
         List<T> Commit(TT pars = default(TT));
         T FindOrCreate(Func<T, bool> predicate);
+        T Find(Func<T, bool> predicate);
 
     }
     public interface IAtomicList<T, TT> : IBaseAtomic<List<T>, TT>

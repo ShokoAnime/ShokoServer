@@ -16,12 +16,15 @@ using Shoko.Commons;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Commands.Plex;
+
 using Shoko.Server.Extensions;
 using Shoko.Server.Plex;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.CommandQueue;
+using Shoko.Server.CommandQueue.Commands;
+using Shoko.Server.CommandQueue.Commands.AniDB;
 
 namespace Shoko.Server
 {
@@ -233,23 +236,33 @@ namespace Shoko.Server
 
             try
             {
-                contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
-                contract.HashQueueState =
-                    ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.HashQueueStateId = (int) ShokoService.CmdProcessorHasher.QueueState.queueState;
-                contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
+                contract.HashQueueCount = ServerInfo.Instance.HasherQueueCount;
+                if (ServerInfo.Instance.HasherQueueState != null)
+                {
+                    contract.HashQueueState = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.HashQueueStateId = (int) ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.queueState;
+                    contract.HashQueueStateParams = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.extraParams;
+                    contract.HashQueueStatePercentage = ServerInfo.Instance.HasherQueueState.Progress;
+                }
 
-                contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
-                contract.GeneralQueueState =
-                    ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.GeneralQueueStateId = (int) ShokoService.CmdProcessorGeneral.QueueState.queueState;
-                contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
+                contract.GeneralQueueCount = ServerInfo.Instance.GeneralQueueCount;
+                if (ServerInfo.Instance.GeneralQueueState != null)
+                {
+                    contract.GeneralQueueState = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.GeneralQueueStateId = (int)ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.queueState;
+                    contract.GeneralQueueStateParams = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.extraParams;
+                    contract.GeneralQueueStatePercentage = ServerInfo.Instance.GeneralQueueState.Progress;
+                }
 
-                contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
-                contract.ImagesQueueState =
-                    ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
-                contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
-                contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
+                contract.ImagesQueueCount = ServerInfo.Instance.ImagesQueueCount;
+                if (ServerInfo.Instance.ImagesQueueState != null)
+                {
+                    contract.ImagesQueueState = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
+                    contract.ImagesQueueStateId = (int)ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.queueState;
+                    contract.ImagesQueueStateParams = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.extraParams;
+                    contract.ImagesQueueStatePercentage = ServerInfo.Instance.ImagesQueueState.Progress;
+                }
+
 
                 var helper = ShokoService.AnidbProcessor;
                 if (helper.IsHttpBanned)
@@ -672,8 +685,7 @@ namespace Shoko.Server
         [HttpPost("AniDB/Vote/Sync")]
         public void SyncVotes()
         {
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
+            CommandQueue.Queue.Instance.Add(new CmdAniDBSyncMyVotes());
         }
 
         #endregion
@@ -682,19 +694,25 @@ namespace Shoko.Server
         [HttpPost("CommandQueue/Hasher/{paused}")]
         public void SetCommandProcessorHasherPaused(bool paused)
         {
-            ShokoService.CmdProcessorHasher.Paused = paused;
+            //NO OP
+            //ShokoService.CmdProcessorHasher.Paused = paused;
         }
 
         [HttpPost("CommandQueue/General/{paused}")]
         public void SetCommandProcessorGeneralPaused(bool paused)
         {
-            ShokoService.CmdProcessorGeneral.Paused = paused;
+            if (paused)
+                Queue.Instance.Stop();
+            else
+                Queue.Instance.Start();
+//            ShokoService.CmdProcessorGeneral.Paused = paused;
         }
 
         [HttpPost("CommandQueue/Images/{paused}")]
         public void SetCommandProcessorImagesPaused(bool paused)
         {
-            ShokoService.CmdProcessorImages.Paused = paused;
+            //NO OP
+            //ShokoService.CmdProcessorImages.Paused = paused;
         }
 
         [HttpDelete("CommandQueue/Hasher")]
@@ -702,10 +720,7 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.CmdProcessorHasher.Stop();
-
-                Repo.Instance.CommandRequest.ClearHasherQueue();
-                ShokoService.CmdProcessorHasher.Init();
+                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Hashing);
             }
             catch (Exception ex)
             {
@@ -718,10 +733,7 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.CmdProcessorImages.Stop();
-
-                Repo.Instance.CommandRequest.ClearImageQueue();
-                ShokoService.CmdProcessorImages.Init();
+                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Image);
             }
             catch (Exception ex)
             {
@@ -734,10 +746,8 @@ namespace Shoko.Server
         {
             try
             {
-                ShokoService.CmdProcessorGeneral.Stop();
+                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Server, WorkTypes.AniDB, WorkTypes.MovieDB, WorkTypes.Plex,WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache);
 
-                Repo.Instance.CommandRequest.ClearGeneralQueue();
-                ShokoService.CmdProcessorGeneral.Init();
             }
             catch (Exception ex)
             {

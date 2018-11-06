@@ -13,6 +13,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
@@ -194,8 +195,8 @@ namespace Shoko.Server
         {
             if (RunScan != null && RunScan.GetScanStatus() != ScanStatus.Finish)
             {
-                bool paused = ShokoService.CmdProcessorHasher.Paused;
-                ShokoService.CmdProcessorHasher.Paused = true;
+                bool wasrunning = CommandQueue.Queue.Instance.Running;
+                CommandQueue.Queue.Instance.Stop();
                 SVR_Scan s = RunScan;
                 using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => s))
                 {
@@ -220,11 +221,11 @@ namespace Shoko.Server
                                 sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
-                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                                ServerInfo.Instance.HasherQueueState=FakeCommand.Create(new QueueStateStruct
                                 {
                                     queueState = QueueStateEnum.HashingFile,
                                     extraParams = new[] { sf.FullName }
-                                };
+                                },WorkTypes.Hashing);
                                 Hashes hashes =
                                     FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
@@ -267,7 +268,8 @@ namespace Shoko.Server
                 }
                 Refresh();
                 RunScan = null;
-                ShokoService.CmdProcessorHasher.Paused = paused;
+                if (wasrunning)
+                    CommandQueue.Queue.Instance.Start();
             }
         }
     }

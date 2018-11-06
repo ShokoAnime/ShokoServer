@@ -1,0 +1,78 @@
+﻿using System;
+using Shoko.Commons.Queue;
+using Shoko.Models.Queue;
+using Shoko.Models.Server;
+using Shoko.Server.Repositories;
+
+namespace Shoko.Server.CommandQueue.Commands.AniDB
+{
+
+    public class CmdAniDBUpdateMyListStats : BaseCommand<CmdAniDBUpdateMyListStats>, ICommand
+    {
+        public bool ForceRefresh { get; set; }
+
+        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public int ParallelMax { get; set; } = 1;
+        public int Priority { get; set; } = 7;
+        public string Id => "UpdateMyListStats";
+        public WorkTypes WorkType => WorkTypes.AniDB;
+
+        public QueueStateStruct PrettyDescription => new QueueStateStruct
+        {
+            queueState = QueueStateEnum.UpdateMyListStats,
+            extraParams = new [] { ForceRefresh.ToString()}
+        };
+
+     
+        public CmdAniDBUpdateMyListStats(string str) : base(str)
+        {
+        }
+
+        public CmdAniDBUpdateMyListStats(bool forced)
+        {
+            ForceRefresh = forced;
+        }
+
+        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        {
+            logger.Info("Processing CommandRequest_UpdateMyListStats");
+
+            try
+            {
+                InitProgress(progress);
+                // we will always assume that an anime was downloaded via http first
+
+                ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
+                UpdateAndReportProgress(progress,30);
+                if (sched != null)
+                {
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency);
+
+                    // if we have run this in the last 24 hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours)
+                    {
+                        if (!ForceRefresh) ReportFinishAndGetResult(progress);
+                    }
+                }
+
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
+                    () => sched,
+                    () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMylistStats, UpdateDetails = string.Empty }
+                    ))
+                {
+                    upd.Entity.LastUpdate = DateTime.Now;
+                    upd.Commit();
+                }
+                UpdateAndReportProgress(progress,60);
+
+                ShokoService.AnidbProcessor.UpdateMyListStats();
+                return ReportFinishAndGetResult(progress);
+            }
+            catch (Exception ex)
+            {
+                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.UpdateMyListStats: {ex}", ex);
+            }
+        }
+    }
+}

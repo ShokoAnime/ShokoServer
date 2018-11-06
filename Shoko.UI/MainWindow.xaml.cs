@@ -304,8 +304,7 @@ namespace Shoko.UI
 
                 try
                 {
-                    CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-                    cmdAzure.Save();
+                    CommandQueue.Queue.Instance.Add(new CmdAzure_SendAnimeFull(anime.AnimeID));
                 }
                 catch
                 {
@@ -980,8 +979,7 @@ namespace Shoko.UI
 
         void btnSyncVotes_Click(object sender, RoutedEventArgs e)
         {
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
+            CommandQueue.Queue.Instance.Add(new CmdSyncMyVotes());
             MessageBox.Show(Commons.Properties.Resources.Server_SyncVotes,
                 Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1001,8 +999,7 @@ namespace Shoko.UI
             Cursor = Cursors.Wait;
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
-                cmd.Save();
+                CommandQueue.Queue.Instance.Add(new CmdTraktSyncCollection(true));
             }
             Cursor = Cursors.Arrow;
             MessageBox.Show(Commons.Properties.Resources.Server_SyncTrakt,

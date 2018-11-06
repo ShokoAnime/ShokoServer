@@ -4,16 +4,21 @@ using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+
+using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
 namespace Shoko.Server.Repositories.Repos
 {
-    public class CommandRequestRepository : BaseRepository<CommandRequest, int>
+    public class CommandRequestRepository : BaseRepository<CommandRequest, string>, ICommandProvider
     {
-        private PocoIndex<int, CommandRequest, string> CommandIDs;
-        private PocoIndex<int, CommandRequest, int> CommandTypes;
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
 
+        private PocoIndex<string, CommandRequest, string> Batches;
+        private PocoIndex<string, CommandRequest, int> WorkTypes;
+        private PocoIndex<string, CommandRequest, string> Classes;
+
+        /*
         //TODO: Refactor to attributes.
         private static readonly HashSet<int> CommandTypesHasher = new HashSet<int>
         {
@@ -67,21 +72,152 @@ namespace Shoko.Server.Repositories.Repos
         private static readonly HashSet<int> CommandTypesGeneralFullBan = Enum.GetValues(typeof(CommandRequestType))
             .OfType<CommandRequestType>().Select(a => (int)a).Except(CommandTypesHasher).Except(CommandTypesImages)
             .Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
-
-        internal override int SelectKey(CommandRequest entity) => entity.CommandRequestID;
+            */
+        internal override string SelectKey(CommandRequest entity) => entity.Id;
 
 
         internal override void PopulateIndexes()
         {
-            CommandIDs = new PocoIndex<int, CommandRequest, string>(Cache, a => a.CommandID);
-            CommandTypes = new PocoIndex<int, CommandRequest, int>(Cache, GetQueueIndex);
+            Batches = new PocoIndex<string, CommandRequest, string>(Cache, a=>a.Batch);
+            WorkTypes = new PocoIndex<string, CommandRequest, int>(Cache, a=>a.Type);
+            Classes= new PocoIndex<string, CommandRequest, string>(Cache, a => a.Class);
         }
 
         internal override void ClearIndexes()
         {
-            CommandIDs = null;
-            CommandTypes = null;
+    
+            Batches = null;
+            WorkTypes = null;
+            Classes = null;
         }
+
+
+        public int GetQueuedCommandCount(params WorkTypes[] wt)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return wt.Sum(b=>WorkTypes.GetMultiple((int)b).Count(a => a.ExecutionDate <= DateTime.UtcNow));
+                List<int> ints = wt.Cast<int>().ToList();
+                return Table.Count(a => ints.Contains(a.Type) && a.ExecutionDate<=DateTime.UtcNow);
+            }
+        }
+        public Dictionary<string, int> GetByClasses()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Classes.GetIndexes().ToDictionary(a => a, a => Classes.GetMultiple(a).Count);
+                return Table.GroupBy(a => a.Class).ToDictionary(a => a.Key, a => a.Count());
+            }
+        }
+        public int GetQueuedCommandCount()
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Cache.Values.Count(a=>a.ExecutionDate<=DateTime.UtcNow);
+                return Table.Count(a => a.ExecutionDate <= DateTime.UtcNow);
+            }
+        }
+        public void ClearQueue(params WorkTypes[] wt)
+        {
+            FindAndDelete(() =>
+            {
+                if (IsCached)
+                    return wt.SelectMany(a => WorkTypes.GetMultiple((int)a)).ToList();
+                List<int> ints = wt.Cast<int>().ToList();
+                return Table.Where(a => ints.Contains(a.Type)).ToList();
+            });
+        }
+        public void ClearQueue()
+        {
+            FindAndDelete(() =>
+            {
+                if (IsCached)
+                    return Cache.Values.Where(a=>a.Type!=(int)CommandQueue.Commands.WorkTypes.Schedule).ToList();
+                return Table.Where(a => a.Type != (int) CommandQueue.Commands.WorkTypes.Schedule).ToList();
+            });
+        }
+
+        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits)
+        {
+            List<ICommand> cmds=new List<ICommand>();
+            Dictionary<string, int> localLimits = tagLimits.ToDictionary(a => a.Key, a => a.Value);
+            bool nomore = false;
+            do
+            {
+                FindAndDelete(() =>
+                {
+                    IQueryable<CommandRequest> req = Table.Where(a => a.ExecutionDate <= DateTime.UtcNow);
+                    //Filter already filled tags by the queue
+                    foreach (string k in localLimits.Where(a => a.Value == 0).Select(a => a.Key))
+                    {
+                        req = req.Where(a => a.ParallelTag != k);
+                    }
+                    List<string> ids = req.OrderBy(a => a.Priority).Take(qnty).Select(a => a.Id).ToList();
+                    if (ids.Count == 0)
+                    {
+                        nomore = true;
+                        return new List<CommandRequest>();
+                    }
+                    List<CommandRequest> crs = GetMany(ids);
+                    foreach (CommandRequest r in crs.ToList())
+                    {
+                        if (localLimits.ContainsKey(r.ParallelTag))
+                        {
+                            if (localLimits[r.ParallelTag] == 0)
+                                crs.Remove(r); //Sorry boy, already filled
+                            else
+                                localLimits[r.ParallelTag]--;
+                        }
+                    }
+
+                    cmds.AddRange(crs.Select(a => a.ToCommand()));
+                    return crs; //This ones needs to be deleted from DB.
+                });
+                if (nomore)
+                    break;
+            } while (cmds.Count < qnty);
+            return cmds;
+        }
+
+        public void Put(ICommand cmd, string batch="Server", int secondsInFuture = 0, string error=null, int retries=0)
+        {
+            using (var upd = BeginAddOrUpdate(() => GetByID(cmd.Id), cmd.ToCommandRequest))
+            {
+                if (upd.IsUpdate)
+                    return;
+                upd.Entity.Batch = batch;
+                upd.Entity.ExecutionDate = DateTime.UtcNow.AddSeconds(secondsInFuture);
+                upd.Entity.LastError = error;
+                upd.Entity.Retries = retries;
+                upd.Commit();
+            }
+        }
+
+        public void PutRange(IEnumerable<ICommand> cmds, string batch = "Server", int secondsInFuture = 0)
+        {
+            DateTime n = DateTime.UtcNow.AddSeconds(secondsInFuture);
+            using (var upd = BeginBatchUpdate(() => GetMany(cmds.Select(a => a.Id))))
+            {
+                foreach (ICommand cmd in cmds)
+                {
+                    CommandRequest r=upd.Find(a => a.Id == cmd.Id);
+                    if (r == null)
+                    {
+                        r = upd.Create(cmd.ToCommandRequest());
+                        r.Batch = batch;
+                        r.ExecutionDate = n;
+                        r.Retries = 0;
+                    }
+                }
+                upd.Commit();
+            }
+        }
+
+        /*
+
 
         /// <summary>
         /// Returns a numeric index for which queue to use
@@ -109,22 +245,7 @@ namespace Shoko.Server.Repositories.Repos
             {
                 return IsCached ? CommandIDs.GetOne(cmdid) : Table.FirstOrDefault(a => a.CommandID == cmdid);
             }
-            /*
-            if (string.IsNullOrEmpty(cmdid)) return null;
-            List<CommandRequest> cmds;
-            using (RepoLock.ReaderLock())
-            {
-                cmds = IsCached
-                    ? CommandIDs.GetMultiple(cmdid)
-                    : Table.Where(a => a.CommandID == cmdid).ToList();
-            }
 
-            CommandRequest cmd = cmds.FirstOrDefault();
-            if (cmds.Count <= 1) return cmd;
-            cmds.Remove(cmd);
-            Delete(cmds);
-            return cmd;
-                    */
         }
 
 
@@ -288,5 +409,7 @@ namespace Shoko.Server.Repositories.Repos
                 GetAllCommandRequestImages().ForEach(s => Delete(s));
             }
         }
+
+        */
     }
 }
