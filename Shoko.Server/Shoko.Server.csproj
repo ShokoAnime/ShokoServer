@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
     <Version>1.9.0.0</Version>
     <Company>ShokoAnime</Company>
     <Description>Shoko server is the core component of the Shoko suite and with it's client-server architecture which allows any program or plugin to access Shoko.</Description>
@@ -62,6 +62,7 @@
     <PackageReference Include="NLog" Version="4.5.10" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
     <PackageReference Include="SharpCompress" Version="0.22.0" />
+    <PackageReference Include="SQLitePCLRaw.provider.winsqlite3.net45" Version="1.1.11" Condition=" '$(TargetFramework)' == 'net47'"/>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="3.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
@@ -87,6 +88,11 @@
     <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
     <ProjectReference Include="..\TvDbSharper\TvDbSharper.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Web" Condition=" '$(TargetFramework)' == 'net47'">
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>

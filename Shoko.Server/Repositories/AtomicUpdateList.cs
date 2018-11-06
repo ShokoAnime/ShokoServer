@@ -63,11 +63,13 @@ namespace Shoko.Server.Repositories
                 ShokoContext ctx = _repo.Provider.GetContext();
                 foreach (KeyValuePair<T, T> r in updates)
                 {
-                    r.Key.DeepCloneTo(r.Value);   //Tried to be 100% atomic and failed miserably, so is 99%. 
-                                                  //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
-                                                  //So this is the best effort
-                    ctx.Attach(r.Value);
-                    ctx.Update(r.Value);
+                    ctx.UpdateChanges(r.Value, r.Key);
+                    /*
+                                        r.Key.DeepCloneTo(r.Value);   //Tried to be 100% atomic and failed miserably, so is 99%. 
+                                                                      //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
+                                                                      //So this is the best effort
+                                        ctx.Attach(r.Value);
+                                        ctx.Update(r.Value);*/
                     returns.Add(r.Value);
                 }
                 foreach (KeyValuePair<T, T> r in creates)
@@ -79,11 +81,15 @@ namespace Shoko.Server.Repositories
                 if (_repo.IsCached)
                     returns.ForEach(_repo.Cache.Update);
                 ctx.SaveChanges();
-                returns.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
+                ctx.DetachRange(returns);
             }
-            foreach (T t in returns)
+
+            // TODO Needs a better way to index. r.Value and r.Key are not always the same, throwing an error on indexing
+            // At least the current references will work with this.
+            foreach (T t in savedObjects.Keys)
             {
-                _repo.EndSave(t, savedObjects[t], pars);
+                if (savedObjects.ContainsKey(t))
+                   _repo.EndSave(t, savedObjects[t], pars);
             }
             return EntityList;
         }

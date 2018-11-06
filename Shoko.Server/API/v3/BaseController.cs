@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v3
 {
@@ -10,6 +11,9 @@ namespace Shoko.Server.API.v3
     /// </summary>
     public class BaseController : Controller
     {
+        // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
+        protected new SVR_JMMUser User => HttpContext.GetUser();
+        
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             base.OnActionExecuting(context);

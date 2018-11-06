@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Repos
                 ctx.AttachRange(series);
                 series.ForEach(a=>a.AnimeGroupID=0);
                 ctx.SaveChanges();
-                series.ForEach(a=>ctx.Entry(a).State=EntityState.Detached);
+                ctx.DetachRange(series);
             }
         }
         internal override object BeginDelete(SVR_AnimeSeries entity,

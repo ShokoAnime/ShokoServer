@@ -472,17 +472,9 @@ namespace Shoko.Server.API.v2.Modules
                 return APIStatus.BadRequest("You may only do this before server init");
             return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
 
-            /*if (ServerSettings.Instance.Database.Type.Equals(Constants.DatabaseType.MySQL,
-                    StringComparison.InvariantCultureIgnoreCase) && new MySQL().TestConnection())
-                return APIStatus.OK();
-
-            if (ServerSettings.Instance.Database.Type.Equals(Constants.DatabaseType.SqlServer,
-                    StringComparison.InvariantCultureIgnoreCase) && new SQLServer().TestConnection())
-                return APIStatus.OK();
-
-            if (ServerSettings.Instance.Database.Type.Equals(Constants.DatabaseType.Sqlite,
-                StringComparison.InvariantCultureIgnoreCase))
-                return APIStatus.OK();*/
+            if (new Repositories.Repo().GetProvider().GetContext() != null)
+                return Ok();
+            return BadRequest("Failed to connect");
 
             //return APIStatus.BadRequest("Failed to Connect");
         }

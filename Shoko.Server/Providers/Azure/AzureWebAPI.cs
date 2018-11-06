@@ -464,25 +464,26 @@ namespace Shoko.Server.Providers.Azure
                 // Wrap the request stream with a text-based writer
                 var encoding = Encoding.UTF8;
 
-                StreamWriter writer = new StreamWriter(req.GetRequestStream(), encoding);
-                // Write the XML text into the stream
-                writer.WriteLine(json);
-                writer.Close();
-                // Send the data to the webserver
-                rsp = req.GetResponse();
+                using (StreamWriter writer = new StreamWriter(req.GetRequestStream(), encoding))
+                {
+                    // Write the XML text into the stream
+                    writer.WriteLine(json);
+                    writer.Close();
+                    // Send the data to the webserver
+                    rsp = req.GetResponse();
 
-                TimeSpan ts = DateTime.Now - start;
-                logger.Trace("Sent Web Cache Update in {0} ms: {1}", ts.TotalMilliseconds, uri);
+                    TimeSpan ts = DateTime.Now - start;
+                    logger.Trace("Sent Web Cache Update in {0} ms: {1}", ts.TotalMilliseconds, uri);
+                }
             }
             catch (WebException webEx)
             {
                 if (webEx.Status == WebExceptionStatus.ProtocolError)
                 {
-                    var response = webEx.Response as HttpWebResponse;
-                    if (response != null)
+                    if (webEx.Response is HttpWebResponse response)
                     {
-                        if (!uri.Contains("Admin") || (int) response.StatusCode != 400)
-                            logger.Error("HTTP Status Code: " + (int) response.StatusCode);
+                        if (!uri.Contains("Admin") || (int)response.StatusCode != 400)
+                            logger.Error("HTTP Status Code: " + (int)response.StatusCode);
                         ret = response.StatusCode.ToString();
                     }
                 }
@@ -495,7 +496,6 @@ namespace Shoko.Server.Providers.Azure
             }
             finally
             {
-                req?.GetRequestStream().Close();
                 rsp?.GetResponseStream()?.Close();
             }
 

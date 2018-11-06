@@ -57,19 +57,22 @@ namespace Shoko.Server.Repositories
                 else
                 {
                     ret = Original;
+                    ctx.UpdateChanges(Original,Entity);
+/*
                     Entity.DeepCloneTo(Original); //Tried to be 100% atomic and failed miserably, so is 99%. 
                                                   //If we replace Original with Entity in cache (updating with 'this' as the model to update will not get the changes).
                                                   //So this is the best effort
                     ctx.Attach(Original);
-                    ctx.Update(Original);
+                    ctx.Update(Original);*/
                 }
                 Release();
                 if (_repo.IsCached)
                     _repo.Cache.Update(ret);
                 ctx.SaveChanges();
-                ctx.Entry(ret).State = EntityState.Detached;
+                ctx.Detach(ret);
             }
-            _repo.EndSave(ret, obj, pars);
+            if (obj!=null)
+                _repo.EndSave(ret, obj, pars);
             return ret;
         }
 

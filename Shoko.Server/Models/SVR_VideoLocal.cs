@@ -235,6 +235,7 @@ namespace Shoko.Server.Models
 
             // update the video file to watched
             int mywatched = watched ? 1 : 0;
+            watchedDate = watched ? (watchedDate ?? DateTime.Now) : (DateTime?) null;
 
             if (user.IsAniDBUser == 0)
                 SaveWatchedStatus(watched, userID, watchedDate, updateWatchedDate);
@@ -255,7 +256,7 @@ namespace Shoko.Server.Models
                         upd.Entity.IsWatched = mywatched;
 
                         if (watched)
-                            upd.Entity.WatchedDate = watchedDate ?? DateTime.Now;
+                            upd.Entity.WatchedDate = watchedDate;
                         else
                             upd.Entity.WatchedDate = null;
 
@@ -269,7 +270,7 @@ namespace Shoko.Server.Models
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
                             Hash, watched, false,
-                            watchedDate.HasValue ? AniDB.GetAniDBDateAsSeconds(watchedDate) : 0);
+                            AniDB.GetAniDBDateAsSeconds(watchedDate?.ToUniversalTime()));
                         cmd.Save();
                     }
             }
@@ -457,7 +458,7 @@ namespace Shoko.Server.Models
                         IObject src = f?.Resolve(pl.FullServerPath);
                         if (src?.Status == Status.Ok
                             && src is IFile
-                            && pl.RefreshMediaInfo())
+                            && pl.RefreshMediaInfo(upd.Entity))
                             upd.Commit(true);
                     }
                 }

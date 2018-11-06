@@ -16,7 +16,8 @@ namespace Shoko.Server.Repositories
 {
     internal static class Lock
     {
-        internal static ThreadLocal<ReaderWriterLockSlim> RepoLock = new ThreadLocal<ReaderWriterLockSlim>(() => new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
+        // TODO Can be made ThreadLocal again later, but first we need to handle OptimisticConcurrencyExceptions
+        internal static ReaderWriterLockSlim RepoLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
     }
 
     public abstract class BaseRepository<T, TS> : BaseRepository<T, TS, object> where T : class, new()
@@ -32,16 +33,15 @@ namespace Shoko.Server.Repositories
 
         internal bool IsCached;
         internal PocoCache<TS, T> Cache;
-        internal IQueryable<T> Table;
+        internal IQueryable<T> Table => Provider.GetContext().Set<T>().AsNoTracking();
         internal ShokoContextProvider Provider;
-        internal ReaderWriterLockSlim RepoLock = Lock.RepoLock.Value;
+        internal ReaderWriterLockSlim RepoLock = Lock.RepoLock;
 
 
         public static TU Create<TU>(ShokoContextProvider context, DbSet<T> table, bool cache) where TU : BaseRepository<T, TS,TT>,new()
         {
             TU repo = new TU();
             repo.Name = table.GetName();
-            repo.Table = table.AsNoTracking();
             repo.Provider = context;
             repo.SwitchCache(cache);
             return repo;
@@ -381,7 +381,6 @@ namespace Shoko.Server.Repositories
         public void SetContext(ShokoContextProvider db, DbSet<T> table)
         {
             Provider = db;
-            Table = table.AsNoTracking();
             Name = table.GetName();
         }
 

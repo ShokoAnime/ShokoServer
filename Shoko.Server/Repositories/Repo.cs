@@ -14,6 +14,9 @@ namespace Shoko.Server.Repositories
     {
         static Repo _instance;
         public static Repo Instance => _instance;
+        public static IProgress<InitProgress> ProgressMonitor { get; set; } = new DatabaseProgress();
+
+        public static event EventHandler<InitProgress> ProgressEvent;
 
         // DECLARE THESE IN ORDER OF DEPENDENCY
         public JMMUserRepository JMMUser { get; private set; }
@@ -262,7 +265,7 @@ namespace Shoko.Server.Repositories
             _repos.ForEach(r=>r.SwitchCache(CachedRepos.Contains(r.Name)));
         }
 
-        internal bool Start()
+        internal ShokoContextProvider GetProvider() 
         {
             string connStr;
             switch(ServerSettings.Instance.Database.Type)
@@ -279,8 +282,12 @@ namespace Shoko.Server.Repositories
                     connStr = $"data source={Path.Combine(ServerSettings.Instance.Database.MySqliteDirectory, "JMMServer.db3")}"; //";useutf16encoding=True";
                     break;
             }
+            return new ShokoContextProvider(ServerSettings.Instance.Database.Type, connStr);
+        }
 
-            Init(new ShokoContextProvider(ServerSettings.Instance.Database.Type, connStr), DefaultCached);
+        internal bool Start()
+        {
+            Init(GetProvider(), DefaultCached);
 
             return true;
         }
@@ -293,20 +300,19 @@ namespace Shoko.Server.Repositories
             return true;
         }
 
-        internal bool DoInit(IProgress<InitProgress> progress = null, int batchSize = 20)
+        internal bool DoInit(IProgress<InitProgress> progress, int batchSize = 20)
         {
-            progress = new ProgressShit();
             _repos.ForEach(a => a.PreInit(progress, batchSize));
             _repos.ForEach(a => a.PostInit(progress, batchSize));
             return true;
         }
 
 
-        public class ProgressShit : IProgress<InitProgress>
+        public class DatabaseProgress : IProgress<InitProgress>
         {
             public void Report(InitProgress value)
             {
-                //noop
+                ProgressEvent?.Invoke(this, value);
             }
         }
     }

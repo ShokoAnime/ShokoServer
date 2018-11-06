@@ -335,18 +335,18 @@ namespace Shoko.Server.Models
             if (aparts.Count > 0) info.AudioBitrate = aparts[0].Bitrate.ToString();
         }
 
-        public bool RefreshMediaInfo()
+        public bool RefreshMediaInfo(SVR_VideoLocal vl)
         {
             try
             {
                 logger.Trace("Getting media info for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
                 Media m = null;
-                if (VideoLocal == null)
+                if (vl == null)
                 {
                     logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                     return false;
                 }
-                List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
+                List<Azure_Media> webmedias = AzureWebAPI.Get_Media(vl.ED2KHash);
                 if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
                 {
                     m = webmedias.FirstOrDefault(a => a != null).ToMedia();
@@ -372,8 +372,7 @@ namespace Shoko.Server.Models
 
                 if (m != null)
                 {
-                    SVR_VideoLocal info = VideoLocal;
-                    FillVideoInfoFromMedia(info, m);
+                    FillVideoInfoFromMedia(vl, m);
 
                     m.Id = VideoLocalID;
                     List<Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
@@ -404,7 +403,7 @@ namespace Shoko.Server.Models
                             }
                         }
                     }
-                    info.Media = m;
+                    vl.Media = m;
                     return true;
                 }
                 logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");

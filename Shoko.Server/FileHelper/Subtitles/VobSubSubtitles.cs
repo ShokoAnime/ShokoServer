@@ -15,7 +15,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             string dirname = Path.GetDirectoryName(vplace.FullServerPath);
             string fname = Path.GetFileNameWithoutExtension(vplace.FilePath);
             if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
-                return null;
+                return new List<Stream>();
             string basename = Path.Combine(dirname, fname);
             List<Stream> streams = new List<Stream>();
             if (File.Exists(basename + ".idx") && File.Exists(basename + ".sub"))

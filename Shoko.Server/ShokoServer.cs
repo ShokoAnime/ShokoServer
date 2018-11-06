@@ -132,7 +132,7 @@ namespace Shoko.Server
             NLog.LogManager.LoadConfiguration("nlog.config");
             //Reconfigure log file to applicationpath
             var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.txt";
+            target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             LogManager.ReconfigExistingLoggers();
 
             return serviceProvider;
@@ -759,16 +759,11 @@ namespace Shoko.Server
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
-                //Repo.Init(new ShokoContext(ServerSettings.Instance.Database.Type, ))
                 var repo = new Repo();
-                if (!repo.Start() || !repo.Migrate() || !repo.DoInit())
-                //if (!DatabaseFactory.InitDB(out string errorMessage))
+                if (!repo.Start() || !repo.Migrate() || !repo.DoInit(Repo.ProgressMonitor))
                 {
                     ServerState.Instance.DatabaseAvailable = false;
-
-                    /*if (string.IsNullOrEmpty(ServerSettings.Instance.Database.Type))
-                        ServerState.Instance.CurrentSetupStatus =
-                            Resources.Server_DatabaseConfig;*/
+                    
                     e.Result = false;
                     ServerState.Instance.StartupFailed = true;
                     ServerState.Instance.StartupFailedMessage = "An error occured";//errorMessage;
@@ -828,8 +823,6 @@ namespace Shoko.Server
                 workerSetupDB.ReportProgress(100);
 
                 StartTime = DateTime.Now;
-
-                ServerSettings.Instance.SaveSettings();
                 e.Result = true;
             }
             catch (Exception ex)

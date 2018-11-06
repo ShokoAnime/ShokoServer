@@ -31,16 +31,18 @@ namespace Shoko.Server.API.Authentication
                     AuthenticateResult.Success(
                         new AuthenticationTicket(new ClaimsPrincipal(InitUser.Instance), Options.Scheme)));
             }
-            // Get Authorization header value
-            if (!Request.Headers.TryGetValue("apikey", out var authorization))
+            
+            
+            // Get Authorization header value and join with the query
+            var authkeys = Request.Headers["apikey"].Union(Request.Query["apikey"]).ToList();
+
+            if (authkeys.Count == 0)
             {
-                return Task.FromResult(AuthenticateResult.Fail("Cannot read authorization header."));
+                return Task.FromResult(AuthenticateResult.Fail("Cannot read authorization header or query."));
             }
-            //Join with the query as well.
-            var authkeys = authorization.Union(Request.Query["apikey"]);
 
             //Find authenticated user.
-            var user = authorization.Select(GetUserForKey).FirstOrDefault(s => s != null);
+            var user = authkeys.Select(GetUserForKey).FirstOrDefault(s => s != null);
 
             if (user == null) return Task.FromResult(AuthenticateResult.Fail("Invalid Authentication key"));
 

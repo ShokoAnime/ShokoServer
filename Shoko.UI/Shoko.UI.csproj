@@ -1,581 +1,103 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Project properties -->
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FFBA1303-E60F-4353-9ECA-434B263AF699}</ProjectGuid>
+    <LanguageTargets>
+      $(MSBuildExtensionsPath)\$(VisualStudioVersion)\Bin\Microsoft.CSharp.targets
+    </LanguageTargets>
+    <TargetFramework>net47</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>Shoko.UI</RootNamespace>
     <AssemblyName>ShokoServer</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
+    <RootNamespace>Shoko.UI</RootNamespace>
+    <ApplicationIcon />
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>latest</LangVersion>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>db.ico</ApplicationIcon>
-  </PropertyGroup>
+  <!-- mandatory packages -->
   <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Printing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
     <Reference Include="AppGlue">
       <HintPath>$(SolutionDir)Dependencies\AppGlue.dll</HintPath>
     </Reference>
     <Reference Include="Infralution.Localization.Wpf">
       <HintPath>$(SolutionDir)Dependencies\Infralution.Localization.Wpf.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfoExtended.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Smo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SmoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SmoExtended.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlClrProvider, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlClrProvider.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlEnum, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlEnum.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Win32.Registry, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Win32.Registry.4.5.0\lib\net461\Microsoft.Win32.Registry.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.WindowsAPICodePack-Core.1.1.0.0\lib\Microsoft.WindowsAPICodePack.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.WindowsAPICodePack.Shell, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.WindowsAPICodePack-Shell.1.1.0.0\lib\Microsoft.WindowsAPICodePack.Shell.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.WindowsAPICodePack.ShellExtensions, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.WindowsAPICodePack-Shell.1.1.0.0\lib\Microsoft.WindowsAPICodePack.ShellExtensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Nancy, Version=1.4.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Nancy.1.4.3\lib\net40\Nancy.dll</HintPath>
-    </Reference>
-    <Reference Include="NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.5.0.0-beta11\lib\net45\NLog.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Runtime" />
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Security.AccessControl, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.AccessControl.4.5.0\lib\net461\System.Security.AccessControl.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Principal.Windows, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Principal.Windows.4.5.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
-    </Reference>
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
   </ItemGroup>
+
+
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>db.ico</ApplicationIcon>
+  </PropertyGroup>
+
+
   <ItemGroup>
+    <!-- App.xaml -->
     <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </ApplicationDefinition>
-    <Compile Include="..\SharedAssemblyInfo.cs">
-      <Link>Properties\SharedAssemblyInfo.cs</Link>
-    </Compile>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Forms\AboutForm.xaml.cs">
-      <DependentUpon>AboutForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\AdminMessagesForm.xaml.cs">
-      <DependentUpon>AdminMessagesForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\AuthProvider.cs" />
-    <Compile Include="Forms\CloudAccountAdmin.xaml.cs">
-      <DependentUpon>CloudAccountAdmin.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\CloudAccountForm.xaml.cs">
-      <DependentUpon>CloudAccountForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\CloudFolderBrowser.xaml.cs">
-      <DependentUpon>CloudFolderBrowser.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\Converter\ByteArrayToBitmapConverter.cs" />
-    <Compile Include="Forms\HyperLinkStandard.xaml.cs">
-      <DependentUpon>HyperLinkStandard.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\ImportFolderAdmin.xaml.cs">
-      <DependentUpon>ImportFolderAdmin.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\ImportFolderForm.xaml.cs">
-      <DependentUpon>ImportFolderForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\InitialSetupForm.xaml.cs">
-      <DependentUpon>InitialSetupForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\Integrity.xaml.cs">
-      <DependentUpon>Integrity.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\LoginForm.xaml.cs">
-      <DependentUpon>LoginForm.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\Migration.xaml.cs">
-      <DependentUpon>Migration.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\PasswordBoxAssistant.cs" />
-    <Compile Include="Forms\ScanImportFolders.xaml.cs">
-      <DependentUpon>ScanImportFolders.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\UpdateForm.xaml.cs">
-      <DependentUpon>UpdateForm.xaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="MigrationForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MigrationForm.Designer.cs">
-      <DependentUpon>MigrationForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="MigrationForm.resx">
-      <DependentUpon>MigrationForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <None Include="packages.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
+
+    <!-- XAML elements -->
+    <Page Include="**\*.xaml" Exclude="App.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:UpdateDesignTimeXaml</Generator>
     </Page>
-    <Page Include="Forms\AboutForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\AdminMessagesForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\CloudAccountAdmin.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\CloudAccountForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\CloudFolderBrowser.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\HyperLinkStandard.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\ImportFolderAdmin.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\ImportFolderForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\InitialSetupForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\Integrity.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\LoginForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\Migration.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\ScanImportFolders.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\UIStyles.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Forms\UpdateForm.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
-      <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
-      <Name>NutzCode.CloudFileSystem</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj">
-      <Project>{e0399140-9902-4f38-909d-85e42717ec30}</Project>
-      <Name>Shoko.Commons</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
-      <Project>{F73F9DF6-580A-4341-B516-8717626F9D42}</Project>
-      <Name>Shoko.Models</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj">
-      <Project>{DA8F0783-0F82-4106-9860-6F09BA2EA522}</Project>
-      <Name>Shoko.Server</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
+    <Compile Update="**\*.xaml.cs" SubType="Code" DependentUpon="%(Filename)" />
+
+    <!-- Resources -->
+    <EmbeddedResource
+      Update="Properties\Resources.resx"
+      Generator="ResXFileCodeGenerator"
+      LastGenOutput="Resources.Designer.cs" />
+    <Compile
+      Update="Properties\Resources.Designer.cs"
+      AutoGen="True"
+      DependentUpon="Resources.resx"
+      DesignTime="True" />
+
+    <!-- Settings -->
+    <None
+      Update="Properties\Settings.settings"
+      Generator="SettingsSingleFileGenerator"
+      LastGenOutput="Settings.Designer.cs" />
+    <Compile
+      Update="Properties\Settings.Designer.cs"
+      AutoGen="True"
+      DependentUpon="Settings.settings" />
+    <!-- Assets -->
+    <Resource Include="Images\Flags\*.gif" />
+    <Resource Include="Images\*.png" />
+    <Resource Include="Images\db.ico" />
     <Resource Include="db.ico" />
   </ItemGroup>
+  <!-- NuGet packages -->
   <ItemGroup>
-    <Resource Include="Images\16_add.png" />
+    <PackageReference Include="Bundle.Microsoft.SqlServer.SMO" Version="12.0.2000" />
+    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
+    <PackageReference Include="WindowsAPICodePack" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\16_cancel.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_connect.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_delete.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_folder.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_folder_video.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_green_button.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_image.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_link.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_logs.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_pause.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_red_button.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_save.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_server_connect.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_server_hash.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_tick.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_update_data.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_warning.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_cloud.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder_down.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder_find.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder_up.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_info.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_key.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_mail.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_new.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_refresh.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_resume.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_sync.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_task.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\anidb.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\db.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ar.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\au_australia.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\bd.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\bg.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\br.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ca.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\cn.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\cz.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\de_germany.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\dk.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\es.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\et.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\fi.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\fr.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\gl.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\gr.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\hu.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\il.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\it.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\jp.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ko.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\lt.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\mn.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\my.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\nl.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\no.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\pl.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\pt.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ro.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ru.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\se.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\sk.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\sl.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\sr.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\sv.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\th.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\tr.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ua.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\uk_unitedkingdom.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\us.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\vi.gif" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>xcopy "$(SolutionDir)Dependencies\x64\*" "$(TargetDir)x64\" /S /R /I /Y
-      xcopy "$(SolutionDir)Dependencies\x86\*" "$(TargetDir)x86\" /S /R /I /Y
-
-REM For now, hasher isn't really in the solution.
-REM      xcopy "$(SolutionDir)hasher\$(ConfigurationName)\*.dll" "$(TargetDir)x86\" /S /R /I /Y
-REM      xcopy "$(SolutionDir)hasher\$(ConfigurationName)_x64\*.dll" "$(TargetDir)x64\" /S /R /I /Y
-
-      goto :exit
-      if $(ConfigurationName) == Debug goto :exit
-      cd "$(TargetDir)"
-      mkdir Merge
-      "$(SolutionDir)packages\ILMerge.2.14.1208\tools\ILMerge.exe" /t:winexe /wildcards /v4 /out:"Merge\ShokoServer.exe" ShokoServer.exe Shoko.Models.dll Shoko.Commons.dll "$(SolutionDir)Dependencies\AppGlue.dll" Pri.LongPath.dll NutzCode.*.dll /closed
-
-      del JMMServer.exe
-      del JMMServer.pdb
-      move Merge\* .
-      del Shoko.Models.*
-      del Shoko.commons.*
-      del NutzCode.*.*
-      del AppGlue.*
-      del Pri.LongPath.*
-      rmdir Merge
-
-      :exit
-</PostBuildEvent>
-  </PropertyGroup>
-  <Import Project="$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
-  </Target>
+    <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+  </ItemGroup>	
 </Project>
