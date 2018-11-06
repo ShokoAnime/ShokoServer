@@ -233,7 +233,7 @@ namespace Shoko.Server.Commands
                     CurrentCommand = null;
                 }
 
-                Repo.Instance.CommandRequest.Delete(crdb.CommandRequestID);
+                Repo.Instance.CommandRequest.FindAndDelete(() => Repo.Instance.CommandRequest.GetByCommandID(crdb.CommandID));
                 QueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCountImages();
             }
         }

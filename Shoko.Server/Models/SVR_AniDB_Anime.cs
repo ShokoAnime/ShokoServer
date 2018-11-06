@@ -947,7 +947,7 @@ namespace Shoko.Server.Models
                 if (AllTitles.Length > 0) AllTitles += "|";
                 AllTitles = AllTitles += rawtitle.Title;
             }
-            Repo.Instance.AniDB_Anime_Title.Delete(titlesToDelete);
+            Repo.Instance.AniDB_Anime_Title.FindAndDelete(() => titlesToDelete.Select(s => Repo.Instance.AniDB_Anime_Title.GetByID(s.AniDB_Anime_TitleID)));
             Repo.Instance.AniDB_Anime_Title.BeginAdd(titlesToSave).Commit();
         }
 

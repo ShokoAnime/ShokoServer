@@ -246,7 +246,7 @@ namespace Shoko.Server.Commands
                 }
 
                 logger.Trace("Deleting command request: {0}", crdb.CommandID);
-                Repo.Instance.CommandRequest.Delete(crdb);
+                Repo.Instance.CommandRequest.FindAndDelete(() => Repo.Instance.CommandRequest.GetByCommandID(crdb.CommandID));
 
                 QueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCountGeneral();
             }
