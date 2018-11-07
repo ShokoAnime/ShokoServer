@@ -77,7 +77,7 @@ namespace Shoko.Server.Repositories.Repos
 
         public SVR_AniDB_Anime GetByAnimeID(int animeID)
         {
-            return Table.FirstOrDefault(a => a.AniDB_AnimeID == animeID);
+            return Table.FirstOrDefault(a => a.AnimeID == animeID);
         }
 
         public List<SVR_AniDB_Anime> SearchByName(string queryText)
