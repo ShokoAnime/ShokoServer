@@ -16,25 +16,33 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Microsoft.SqlServer.Management.Smo;
+using Microsoft.Win32;
 //using Infralution.Localization.Wpf;
 
 using Microsoft.WindowsAPICodePack.Dialogs;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.Azure;
+
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Import;
+using Shoko.Server.CommandQueue;
+using Shoko.Server.CommandQueue.Commands;
+using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Shoko.UI.Forms;
 using Application = System.Windows.Application;
 using Cursors = System.Windows.Input.Cursors;
 using MessageBox = System.Windows.MessageBox;
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
+using OpenFileDialog = System.Windows.Forms.OpenFileDialog;
 
 namespace Shoko.UI
 {
@@ -304,7 +312,7 @@ namespace Shoko.UI
 
                 try
                 {
-                    CommandQueue.Queue.Instance.Add(new CmdAzure_SendAnimeFull(anime.AnimeID));
+                    Queue.Instance.Add(new CmdWebCacheSendAnimeFull(anime.AnimeID));
                 }
                 catch
                 {
@@ -317,10 +325,7 @@ namespace Shoko.UI
             btnImagesClear.IsEnabled = true;
             Task task = new Task(() =>
             {
-                ShokoService.CmdProcessorImages.Stop();
-
-                Repo.Instance.CommandRequest.ClearImageQueue();
-                ShokoService.CmdProcessorImages.Init();
+                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Image);
             });
 
             try
@@ -343,10 +348,7 @@ namespace Shoko.UI
             btnGeneralClear.IsEnabled = false;
             Task task = new Task(() =>
             {
-                ShokoService.CmdProcessorGeneral.Stop();
-
-                Repo.Instance.CommandRequest.ClearGeneralQueue();
-                ShokoService.CmdProcessorHasher.Init();
+                Repo.Instance.CommandRequest.ClearQueue(Repo.Instance.CommandRequest.GeneralWorkTypesExceptSchedule);
             });
 
             try
@@ -369,10 +371,7 @@ namespace Shoko.UI
             btnHasherClear.IsEnabled = false;
             Task task = new Task(() =>
             {
-                ShokoService.CmdProcessorHasher.Stop();
-
-                Repo.Instance.CommandRequest.ClearHasherQueue();
-                ShokoService.CmdProcessorHasher.Init();
+                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Hashing);
             });
 
             try
@@ -561,7 +560,7 @@ namespace Shoko.UI
 
                 if (ServerState.Instance.DatabaseIsSQLite)
                 {
-                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.Sqlite;
+                    ServerSettings.Instance.Database.Type = DatabaseTypes.Sqlite;
                 }
                 else if (ServerState.Instance.DatabaseIsSQLServer)
                 {
@@ -577,7 +576,7 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.SqlServer;
+                    ServerSettings.Instance.Database.Type = DatabaseTypes.SqlServer;
                     ServerSettings.Instance.Database.Schema = txtMSSQL_DatabaseName.Text;
                     ServerSettings.Instance.Database.Password = txtMSSQL_Password.Password;
                     ServerSettings.Instance.Database.Hostname = cboMSSQLServerList.Text;
@@ -597,7 +596,7 @@ namespace Shoko.UI
                         return;
                     }
 
-                    ServerSettings.Instance.Database.Type = Server.Databases.DatabaseTypes.MySql;
+                    ServerSettings.Instance.Database.Type = DatabaseTypes.MySql;
                     ServerSettings.Instance.Database.Schema = txtMySQL_DatabaseName.Text;
                     ServerSettings.Instance.Database.Password = txtMySQL_Password.Password;
                     ServerSettings.Instance.Database.Hostname = txtMySQL_ServerAddress.Text;
@@ -686,6 +685,24 @@ namespace Shoko.UI
             });
         }
 
+        private List<string> GetSQLServers()
+        {
+            List<string> ls=new List<string>();
+            RegistryKey rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Microsoft SQL Server");
+            String[] instances = (String[])rk.GetValue("InstalledInstances");
+            if (instances.Length > 0)
+            {
+                foreach (String element in instances)
+                {
+                    if (element == "MSSQLSERVER")
+                        ls.Add(Environment.MachineName);
+                    else
+                        ls.Add(Environment.MachineName+"\\"+element);
+                }
+            }
+
+            return ls;
+        }
         void btnRefreshMSSQLServerList_Click(object sender, RoutedEventArgs e)
         {
             btnSaveDatabaseSettings.IsEnabled = false;
@@ -696,11 +713,7 @@ namespace Shoko.UI
             {
                 Cursor = Cursors.Wait;
                 cboMSSQLServerList.Items.Clear();
-                DataTable dt = SmoApplication.EnumAvailableSqlServers();
-                foreach (DataRow dr in dt.Rows)
-                {
-                    cboMSSQLServerList.Items.Add(dr[0]);
-                }
+                GetSQLServers().ForEach(a=> cboMSSQLServerList.Items.Add(a));
             }
             catch (Exception ex)
             {
@@ -717,11 +730,11 @@ namespace Shoko.UI
 
         private void ShowDatabaseSetup()
         {
-            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.Sqlite)
+            if (ServerSettings.Instance.Database.Type == DatabaseTypes.Sqlite)
                 cboDatabaseType.SelectedIndex = 0;
-            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.SqlServer)
+            if (ServerSettings.Instance.Database.Type == DatabaseTypes.SqlServer)
                 cboDatabaseType.SelectedIndex = 1;
-            if (ServerSettings.Instance.Database.Type == Server.Databases.DatabaseTypes.MySql)
+            if (ServerSettings.Instance.Database.Type == DatabaseTypes.MySql)
                 cboDatabaseType.SelectedIndex = 2;
             cboDatabaseType.IsEnabled = true;
             btnSaveDatabaseSettings.IsEnabled = true;
@@ -979,7 +992,7 @@ namespace Shoko.UI
 
         void btnSyncVotes_Click(object sender, RoutedEventArgs e)
         {
-            CommandQueue.Queue.Instance.Add(new CmdSyncMyVotes());
+            Queue.Instance.Add(new CmdAniDBSyncMyVotes());
             MessageBox.Show(Commons.Properties.Resources.Server_SyncVotes,
                 Commons.Properties.Resources.Success,
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -999,7 +1012,7 @@ namespace Shoko.UI
             Cursor = Cursors.Wait;
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                CommandQueue.Queue.Instance.Add(new CmdTraktSyncCollection(true));
+                Queue.Instance.Add(new CmdTraktSyncCollection(true));
             }
             Cursor = Cursors.Arrow;
             MessageBox.Show(Commons.Properties.Resources.Server_SyncTrakt,
@@ -1025,32 +1038,32 @@ namespace Shoko.UI
 
         void btnGeneralResume_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorGeneral.Paused = false;
+            Queue.Instance.Start();
         }
 
         void btnGeneralPause_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorGeneral.Paused = true;
+            Queue.Instance.Stop();
         }
 
         void btnHasherResume_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorHasher.Paused = false;
+            //NOOP
         }
 
         void btnHasherPause_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorHasher.Paused = true;
+            //NOOP
         }
 
         void btnImagesResume_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorImages.Paused = false;
+            //NOOP
         }
 
         void btnImagesPause_Click(object sender, RoutedEventArgs e)
         {
-            ShokoService.CmdProcessorImages.Paused = true;
+            //NOOP
         }
 
         void btnToolbarShutdown_Click(object sender, RoutedEventArgs e)

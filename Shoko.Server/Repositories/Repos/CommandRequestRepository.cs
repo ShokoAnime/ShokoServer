@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
-using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
-
+using Shoko.Server.Repositories.Cache;
 namespace Shoko.Server.Repositories.Repos
 {
     public class CommandRequestRepository : BaseRepository<CommandRequest, string>, ICommandProvider
@@ -91,6 +90,8 @@ namespace Shoko.Server.Repositories.Repos
             Classes = null;
         }
 
+        public WorkTypes[] GeneralWorkTypesExceptSchedule => new [] {CommandQueue.Commands.WorkTypes.MovieDB, CommandQueue.Commands.WorkTypes.Hashing, CommandQueue.Commands.WorkTypes.Plex, CommandQueue.Commands.WorkTypes.Server, CommandQueue.Commands.WorkTypes.Trakt, CommandQueue.Commands.WorkTypes.TvDB, CommandQueue.Commands.WorkTypes.WebCache};
+        public WorkTypes[] GeneralWorkTypes => new [] { CommandQueue.Commands.WorkTypes.Schedule, CommandQueue.Commands.WorkTypes.MovieDB, CommandQueue.Commands.WorkTypes.Hashing, CommandQueue.Commands.WorkTypes.Plex, CommandQueue.Commands.WorkTypes.Server, CommandQueue.Commands.WorkTypes.Trakt, CommandQueue.Commands.WorkTypes.TvDB, CommandQueue.Commands.WorkTypes.WebCache };
 
         public int GetQueuedCommandCount(params WorkTypes[] wt)
         {

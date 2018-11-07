@@ -6,7 +6,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
-    public class CmdServerRefreshGroupFilter : BaseCommand<CmdServerRefreshGroupFilter>, ICommand
+    public class CmdServerRefreshGroupFilter : BaseCommand, ICommand
     {
         public int GroupFilterID { get; set; }
 
@@ -18,8 +18,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.RefreshGroupFilter,
-            extraParams = new[] {GroupFilterID.ToString()}
+            QueueState = QueueStateEnum.RefreshGroupFilter,
+            ExtraParams = new[] {GroupFilterID.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Server;
@@ -35,24 +35,28 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
                 SVR_GroupFilter gf = Repo.Instance.GroupFilter.GetByID(GroupFilterID);
-                if (gf == null) return ReportFinishAndGetResult(progress);
+                if (gf == null) 
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,10);
                 using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
                 {
                     upd.Entity.CalculateGroupsAndSeries();
                     upd.Commit();
                 }
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerRefreshGroupFilter: {GroupFilterID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerRefreshGroupFilter: {GroupFilterID} - {ex}", ex);
             }
         }      
     }

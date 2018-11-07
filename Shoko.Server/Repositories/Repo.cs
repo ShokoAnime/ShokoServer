@@ -4,9 +4,9 @@ using System.IO;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Repositories
 {

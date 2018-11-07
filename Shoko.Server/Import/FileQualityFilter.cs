@@ -7,7 +7,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 
-namespace Shoko.Server
+namespace Shoko.Server.Import
 {
     public static class FileQualityFilter
     {

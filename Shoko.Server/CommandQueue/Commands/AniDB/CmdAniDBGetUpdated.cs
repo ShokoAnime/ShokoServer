@@ -5,10 +5,12 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBGetUpdated : BaseCommand<CmdAniDBGetUpdated>, ICommand
+    public class CmdAniDBGetUpdated : BaseCommand, ICommand
     {
         public CmdAniDBGetUpdated(string str) : base(str)
         {
@@ -27,9 +29,9 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string Id => "GetUpdated";
         public WorkTypes WorkType => WorkTypes.AniDB;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.GetUpdatedAnime, extraParams = new [] { ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetUpdatedAnime, ExtraParams = new [] { ForceRefresh.ToString()}};
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetUpdated");
 
@@ -49,7 +51,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
-                        if (!ForceRefresh) return ReportFinishAndGetResult(progress);
+                        if (!ForceRefresh)
+                        {
+                            ReportFinishAndGetResult(progress);
+                            return;
+                        }
                     }
                 }
 
@@ -91,7 +97,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 if (animeIDsToUpdate.Count == 0)
                 {
                     logger.Info("No anime to be updated");
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
 
                 UpdateAndReportProgress(progress,60);
@@ -137,11 +144,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     Queue.Instance.AddRange(updates);
 
                 logger.Info("Updating {0} anime records, and {1} group status records", countAnime, countSeries);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing AniDb.GetUpdated: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing AniDb.GetUpdated: {ex}", ex);
             }
         }
     }

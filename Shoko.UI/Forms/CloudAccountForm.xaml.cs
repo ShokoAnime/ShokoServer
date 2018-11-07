@@ -12,6 +12,7 @@ using Shoko.Commons.Notification;
 using Shoko.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using Application = System.Windows.Application;
 
 namespace Shoko.UI.Forms

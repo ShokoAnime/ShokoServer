@@ -62,7 +62,46 @@ CREATE TABLE IF NOT EXISTS BookmarkedAnime( BookmarkedAnimeID INTEGER PRIMARY KE
 CREATE TABLE IF NOT EXISTS AniDB_MylistStats( AniDB_MylistStatsID INTEGER PRIMARY KEY AUTOINCREMENT, Animes int NOT NULL, Episodes int NOT NULL, Files int NOT NULL, SizeOfFiles INTEGER NOT NULL, AddedAnimes int NOT NULL, AddedEpisodes int NOT NULL, AddedFiles int NOT NULL, AddedGroups int NOT NULL, LeechPct int NOT NULL, GloryPct int NOT NULL, ViewedPct int NOT NULL, MylistPct int NOT NULL, ViewedMylistPct int NOT NULL, EpisodesViewed int NOT NULL, Votes int NOT NULL, Reviews int NOT NULL, ViewiedLength int NOT NULL );
 CREATE TABLE IF NOT EXISTS FileFfdshowPreset( FileFfdshowPresetID INTEGER PRIMARY KEY AUTOINCREMENT, Hash int NOT NULL, FileSize INTEGER NOT NULL, Preset text );
 CREATE TABLE IF NOT EXISTS RenameScript( RenameScriptID INTEGER PRIMARY KEY AUTOINCREMENT, ScriptName text, Script text, IsEnabledOnImport int NOT NULL , RenamerType TEXT NOT NULL DEFAULT 'Legacy', ExtraData TEXT);
-INSERT OR IGNORE INTO RenameScript VALUES(1,'Default',replace(replace('// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv\r\n// Sub group name\r\nDO ADD ''[%grp] ''\r\n// Anime Name, use english name if it exists, otherwise use the Romaji name\r\nIF I(eng) DO ADD ''%eng ''\r\nIF I(ann);I(!eng) DO ADD ''%ann ''\r\n// Episode Number, don''t use episode number for movies\r\nIF T(!Movie) DO ADD ''- %enr''\r\n// If the file version is v2 or higher add it here\r\nIF F(!1) DO ADD ''v%ver''\r\n// Video Resolution\r\nDO ADD '' (%res''\r\n// Video Source (only if blu-ray or DVD)\r\nIF R(DVD),R(Blu-ray) DO ADD '' %src''\r\n// Video Codec\r\nDO ADD '' %vid''\r\n// Video Bit Depth (only if 10bit)\r\nIF Z(10) DO ADD '' %bitbit''\r\nDO ADD '') ''\r\nDO ADD ''[%CRC]''\r\n\r\n// Replacement rules (cleanup)\r\nDO REPLACE '' '' ''_'' // replace spaces with underscores\r\nDO REPLACE ''H264/AVC'' ''H264''\r\nDO REPLACE ''0x0'' ''''\r\nDO REPLACE ''__'' ''_''\r\nDO REPLACE ''__'' ''_''\r\n\r\n// Replace all illegal file name characters\r\nDO REPLACE ''<'' ''(''\r\nDO REPLACE ''>'' '')''\r\nDO REPLACE '':'' ''-''\r\nDO REPLACE ''"'' ''`''\r\nDO REPLACE ''/'' ''_''\r\nDO REPLACE ''/'' ''_''\r\nDO REPLACE ''\'' ''_''\r\nDO REPLACE ''|'' ''_''\r\nDO REPLACE ''?'' ''_''\r\nDO REPLACE ''*'' ''_''\r\n','\r',char(13)),'\n',char(10)),0,'Legacy',NULL);
+INSERT OR IGNORE INTO RenameScript VALUES(1,'Default',replace(replace('// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv
+// Sub group name
+DO ADD ''[%grp] ''
+// Anime Name, use english name if it exists, otherwise use the Romaji name
+IF I(eng) DO ADD ''%eng ''
+IF I(ann);I(!eng) DO ADD ''%ann ''
+// Episode Number, don''t use episode number for movies
+IF T(!Movie) DO ADD ''- %enr''
+// If the file version is v2 or higher add it here
+IF F(!1) DO ADD ''v%ver''
+// Video Resolution
+DO ADD '' (%res''
+// Video Source (only if blu-ray or DVD)
+IF R(DVD),R(Blu-ray) DO ADD '' %src''
+// Video Codec
+DO ADD '' %vid''
+// Video Bit Depth (only if 10bit)
+IF Z(10) DO ADD '' %bitbit''
+DO ADD '') ''
+DO ADD ''[%CRC]''
+
+// Replacement rules (cleanup)
+DO REPLACE '' '' ''_'' // replace spaces with underscores
+DO REPLACE ''H264/AVC'' ''H264''
+DO REPLACE ''0x0'' ''''
+DO REPLACE ''__'' ''_''
+DO REPLACE ''__'' ''_''
+
+// Replace all illegal file name characters
+DO REPLACE ''<'' ''(''
+DO REPLACE ''>'' '')''
+DO REPLACE '':'' ''-''
+DO REPLACE ''"'' ''`''
+DO REPLACE ''/'' ''_''
+DO REPLACE ''/'' ''_''
+DO REPLACE ''\'' ''_''
+DO REPLACE ''|'' ''_''
+DO REPLACE ''?'' ''_''
+DO REPLACE ''*'' ''_''
+','\r',char(13)),'\n',char(10)),0,'Legacy',NULL);
 CREATE TABLE IF NOT EXISTS AniDB_Recommendation( AniDB_RecommendationID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, UserID int NOT NULL, RecommendationType int NOT NULL, RecommendationText text );
 CREATE TABLE IF NOT EXISTS CrossRef_AniDB_TraktV2( CrossRef_AniDB_TraktV2ID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, AniDBStartEpisodeType int NOT NULL, AniDBStartEpisodeNumber int NOT NULL, TraktID text, TraktSeasonNumber int NOT NULL, TraktStartEpisodeNumber int NOT NULL, TraktTitle text, CrossRefSource int NOT NULL );
 CREATE TABLE IF NOT EXISTS CrossRef_AniDB_Trakt_Episode( CrossRef_AniDB_Trakt_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID int NOT NULL, AniDBEpisodeID int NOT NULL, TraktID text, Season int NOT NULL, EpisodeNumber int NOT NULL );

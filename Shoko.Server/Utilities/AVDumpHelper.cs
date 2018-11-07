@@ -6,16 +6,16 @@ using NLog;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Common;
-using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 #if PRILONGPATH
 using Directory = Pri.LongPath.Directory;
 using File = Pri.LongPath.File;
 using Path = Pri.LongPath.Path;
 #endif
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public static class AVDumpHelper
     {

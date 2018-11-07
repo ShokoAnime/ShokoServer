@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-using Shoko.Models.Server;
-using Shoko.Models.Azure;
-using Shoko.Models.Enums;
-//using Shoko.Server.Commands.Azure;
+using System.Linq;
 using NLog;
-using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Image;
@@ -19,17 +16,20 @@ using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.TvDB;
 using Shoko.Server.CommandQueue.Commands.WebCache;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Providers.WebCache;
+using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Utils = Shoko.Server.Utilities.Utils;
 
-namespace Shoko.Server
+//using Shoko.Server.Commands.Azure;
+
+namespace Shoko.Server.Import
 {
     public class Importer
     {
@@ -112,106 +112,12 @@ namespace Shoko.Server
 
         public static void SyncMedia()
         {
-            List<SVR_VideoLocal> allfiles = Repo.Instance.VideoLocal.GetAll().ToList();
-            AzureWebAPI.Send_Media(allfiles);
+            WebCacheAPI.Send_Media(Repo.Instance.VideoLocal.GetAll().ToList());
         }
 
         public static void SyncHashes()
         {
-            bool wasrunning = CommandQueue.Queue.Instance.Running;
-            CommandQueue.Queue.Instance.Stop();
-            List<SVR_VideoLocal> allfiles = Repo.Instance.VideoLocal.GetAll().ToList();
-            List<SVR_VideoLocal> missfiles = allfiles.Where(
-                    a =>
-                        string.IsNullOrEmpty(a.CRC32) || string.IsNullOrEmpty(a.SHA1) ||
-                        string.IsNullOrEmpty(a.MD5) || a.SHA1 == "0000000000000000000000000000000000000000" ||
-                        a.MD5 == "00000000000000000000000000000000")
-                .ToList();
-            List<SVR_VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
-            Dictionary<int,(string ed2k, string crc32, string md5, string sha1)> updates=new Dictionary<int, (string ed2k, string crc32, string md5, string sha1)>();
-
-            //Check if we can populate md5,sha and crc from AniDB_Files
-            foreach (SVR_VideoLocal v in missfiles.ToList())
-            {
-                ServerInfo.Instance.HasherQueueState=FakeCommand.Create(new QueueStateStruct { queueState = QueueStateEnum.CheckingFile, extraParams = new[] { v.Info }},WorkTypes.Hashing);
-
-                SVR_AniDB_File file = Repo.Instance.AniDB_File.GetByHash(v.ED2KHash);
-                if (file != null)
-                {
-                    if (!string.IsNullOrEmpty(file.CRC) && !string.IsNullOrEmpty(file.SHA1) &&
-                        !string.IsNullOrEmpty(file.MD5))
-                    {
-                        updates[v.VideoLocalID]=(file.Hash, file.CRC,file.MD5,file.SHA1);
-                        missfiles.Remove(v);
-                        withfiles.Add(v);
-                        continue;
-                    }
-                }
-                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
-                if (ls != null)
-                {
-                    ls = ls.Where(
-                            a =>
-                                !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) &&
-                                !string.IsNullOrEmpty(a.SHA1))
-                        .ToList();
-                    if (ls.Count > 0)
-                    {
-                        updates[v.VideoLocalID] = (ls[0].ED2K.ToUpperInvariant(),ls[0].CRC32.ToUpperInvariant(), ls[0].MD5.ToUpperInvariant(), ls[0].SHA1.ToUpperInvariant());
-                        missfiles.Remove(v);
-                    }
-                }
-            }
-
-            //We need to recalculate the sha1, md5 and crc32 of the missing ones.
-            List<SVR_VideoLocal> tosend = new List<SVR_VideoLocal>();
-            foreach (SVR_VideoLocal v in missfiles)
-            {
-                try
-                {
-                    SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
-                    if (p != null && p.ImportFolder.CloudID == 0)
-                    {
-                        ServerInfo.Instance.HasherQueueState = FakeCommand.Create(new QueueStateStruct { queueState = QueueStateEnum.CheckingFile, extraParams = new[] { v.Info } }, WorkTypes.Hashing);
-                        Hashes h = FileHashHelper.GetHashInfo(p.FullServerPath, true, ShokoServer.OnHashProgress,
-                            true,
-                            true,
-                            true);
-                        updates[v.VideoLocalID] = (h.ED2K, h.CRC32, h.MD5, h.SHA1);
-                        v.Hash = h.ED2K;
-                        v.CRC32 = h.CRC32;
-                        v.MD5 = h.MD5;
-                        v.SHA1 = h.SHA1;
-                        v.HashSource = (int) HashSource.DirectHash;
-                        withfiles.Add(v);
-                    }
-                }
-                catch
-                {
-                    //Ignored
-                }
-            }
-            if (updates.Count > 0)
-            {
-                using (var upd = Repo.Instance.VideoLocal.BeginBatchUpdate(() => Repo.Instance.VideoLocal.GetMany(updates.Keys)))
-                {
-                    foreach (SVR_VideoLocal v in upd)
-                    {
-                        (string ed2k, string crc32, string md5, string sha1) t = updates[v.VideoLocalID];
-                        v.Hash = t.ed2k;
-                        v.CRC32 = t.crc32;
-                        v.MD5 = t.md5;
-                        v.SHA1 = t.sha1;
-                        upd.Update(v);
-                    }
-                    upd.Commit();
-                }
-            }
-            //Send the hashes
-            AzureWebAPI.Send_FileHash(withfiles);
-            logger.Info("Sync Hashes Complete");
-            if (wasrunning)
-                CommandQueue.Queue.Instance.Start();
+            CommandQueue.Queue.Instance.Add(new CmdServerSyncHashes());
         }
 
         public static void RunImport_ScanFolder(int importFolderID)
@@ -269,7 +175,7 @@ namespace Shoko.Server
                     filesFound++;
                     logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
-                    if (!FileHashHelper.IsVideo(fileName)) continue;
+                    if (!Utils.IsVideo(fileName)) continue;
 
                     videosFound++;
 
@@ -316,7 +222,7 @@ namespace Shoko.Server
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
-                if (!FileHashHelper.IsVideo(fileName)) continue;
+                if (!Utils.IsVideo(fileName)) continue;
 
                 videosFound++;
 
@@ -393,7 +299,7 @@ namespace Shoko.Server
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
-                if (!FileHashHelper.IsVideo(fileName)) continue;
+                if (!Utils.IsVideo(fileName)) continue;
 
                 videosFound++;
 
@@ -426,7 +332,7 @@ namespace Shoko.Server
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
-                if (!FileHashHelper.IsVideo(fileName)) continue;
+                if (!Utils.IsVideo(fileName)) continue;
 
                 videosFound++;
 
@@ -809,7 +715,7 @@ namespace Shoko.Server
                         foreach (SVR_VideoLocal_Place place in places)
                         {
                             if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
-                            logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
+                            logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.Info);
                             episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                 .DistinctBy(a => a.AnimeSeriesID));
@@ -827,7 +733,7 @@ namespace Shoko.Server
                     }
                     if (v.Places?.Count > 0) continue;
                     // delete video local record
-                    logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
+                    logger.Info("RemoveOrphanedVideoLocal : {0}", v.Info);
                     episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));

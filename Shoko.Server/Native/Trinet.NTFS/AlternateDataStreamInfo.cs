@@ -5,7 +5,7 @@ using System.IO;
 using System.Security;
 using System.Security.Permissions;
 
-namespace Trinet.Core.IO.Ntfs
+namespace Shoko.Server.Native.Trinet.NTFS
 {
 	/// <summary>
 	/// Represents the details of an alternative data stream.

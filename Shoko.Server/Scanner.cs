@@ -14,11 +14,10 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.FileHelper;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -223,9 +222,10 @@ namespace Shoko.Server
                             {
                                 ServerInfo.Instance.HasherQueueState=FakeCommand.Create(new QueueStateStruct
                                 {
-                                    queueState = QueueStateEnum.HashingFile,
-                                    extraParams = new[] { sf.FullName }
+                                    QueueState = QueueStateEnum.HashingFile,
+                                    ExtraParams = new[] { sf.FullName }
                                 },WorkTypes.Hashing);
+                                /* TODO REDO THE WHOLE THING INTO THE QUEUE
                                 Hashes hashes =
                                     FileHashHelper.GetHashInfo(sf.FullName, true, OnHashProgress, false, false, false);
                                 if (string.IsNullOrEmpty(hashes.ED2K))
@@ -240,6 +240,7 @@ namespace Shoko.Server
                                     else
                                         sf.Status = (int) ScanFileStatus.ProcessedOK;
                                 }
+                                */
                             }
                         }
                     }

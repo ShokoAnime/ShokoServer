@@ -2,17 +2,18 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBDeleteFileFromMyList : BaseCommand<CmdAniDBDeleteFileFromMyList>, ICommand
+    public class CmdAniDBDeleteFileFromMyList : BaseCommand, ICommand
     {
         public string Hash { get; set; }
         public long FileSize { get; set; }
         public int MyListID { get; set; }
 
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.AniDB_MyListDelete, extraParams = new[] {MyListID.ToString(),  Hash, FileSize.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.AniDB_MyListDelete, ExtraParams = new[] {MyListID.ToString(),  Hash, FileSize.ToString()}};
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
         public int ParallelMax { get; set; } = 1;
@@ -36,7 +37,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             if (MyListID > 0)
                 logger.Info("Processing CommandRequest_DeleteFileFromMyList: MyListID: {0}", MyListID);
@@ -113,11 +114,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         break;
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, !string.IsNullOrEmpty(Hash) ? $"Error processing Command AniDB.AddFileToMyList: Hash: {Hash} - {ex}" : $"Error processing Command AniDB.AddFileToMyList: MyListID: {MyListID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, !string.IsNullOrEmpty(Hash) ? $"Error processing Command AniDB.AddFileToMyList: Hash: {Hash} - {ex}" : $"Error processing Command AniDB.AddFileToMyList: MyListID: {MyListID} - {ex}", ex);
             }
         }
     }

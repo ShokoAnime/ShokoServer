@@ -1,6 +1,4 @@
-using System;
-
-namespace Trinet.Core.IO.Ntfs
+namespace Shoko.Server.Native.Trinet.NTFS
 {
 	/// <summary>
 	/// Represents the type of data in a stream.

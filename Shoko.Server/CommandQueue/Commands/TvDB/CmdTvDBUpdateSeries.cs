@@ -6,7 +6,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.TvDB
 {
-    public class CmdTvDBUpdateSeries : BaseCommand<CmdTvDBUpdateSeries>, ICommand
+    public class CmdTvDBUpdateSeries : BaseCommand, ICommand
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -21,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.GettingTvDBSeries,
-            extraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})", ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.GettingTvDBSeries,
+            ExtraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})", ForceRefresh.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.TvDB;
@@ -40,7 +40,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TvDBUpdateSeries: {0}", TvDBSeriesID);
 
@@ -48,11 +48,11 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             {
                 InitProgress(progress);
                 TvDBApiHelper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TvDBUpdateSeries: {TvDBSeriesID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBUpdateSeries: {TvDBSeriesID} - {ex}", ex);
             }
         }
 

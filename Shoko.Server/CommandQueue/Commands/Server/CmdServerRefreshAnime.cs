@@ -5,7 +5,7 @@ using Shoko.Server.Models;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
-    public class CmdServerRefreshAnime : BaseCommand<CmdServerRefreshAnime>, ICommand
+    public class CmdServerRefreshAnime : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
 
@@ -17,8 +17,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.Refresh,
-            extraParams = new[] {AnimeID.ToString()}
+            QueueState = QueueStateEnum.Refresh,
+            ExtraParams = new[] {AnimeID.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Server;
@@ -32,17 +32,17 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerRefreshAnime {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerRefreshAnime {AnimeID} - {ex}", ex);
             }
         }
     }

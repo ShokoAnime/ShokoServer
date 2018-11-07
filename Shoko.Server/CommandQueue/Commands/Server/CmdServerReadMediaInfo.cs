@@ -7,7 +7,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
 
-    public class CmdServerReadMediaInfo : BaseCommand<CmdServerReadMediaInfo>, ICommand
+    public class CmdServerReadMediaInfo : BaseCommand, ICommand
     {
         public int VideoLocalID { get; set; }
 
@@ -20,8 +20,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.ReadingMedia,
-            extraParams = new[] {VideoLocalID.ToString()}
+            QueueState = QueueStateEnum.ReadingMedia,
+            ExtraParams = new[] {VideoLocalID.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Server;
@@ -35,7 +35,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             VideoLocalID = vidID;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Reading Media Info for File: {0}", VideoLocalID);
 
@@ -48,7 +48,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 UpdateAndReportProgress(progress,50);
                 if (place == null)
                 {
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Could not find VideoLocal: {VideoLocalID}");
+                    ReportErrorAndGetResult(progress, $"Could not find VideoLocal: {VideoLocalID}");
+                    return;
                 }
                 using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
                 {
@@ -58,11 +59,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     }
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerReadMediaInfo: {VideoLocalID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerReadMediaInfo: {VideoLocalID} - {ex}", ex);
             }
         }
     }

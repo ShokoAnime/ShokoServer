@@ -5,7 +5,7 @@ using Shoko.Models.Queue;
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBGetAnimeHTTP : BaseCommand<CmdAniDBGetAnimeHTTP>, ICommand
+    public class CmdAniDBGetAnimeHTTP : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public bool DownloadRelations { get; set; }
@@ -17,8 +17,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public QueueStateStruct PrettyDescription => 
             new QueueStateStruct
             {
-                queueState = QueueStateEnum.AnimeInfo,
-                extraParams = new[] {AnimeID.ToString(), DownloadRelations.ToString(), ForceRefresh.ToString(), RelationDepth.ToString()}
+                QueueState = QueueStateEnum.AnimeInfo,
+                ExtraParams = new[] {AnimeID.ToString(), DownloadRelations.ToString(), ForceRefresh.ToString(), RelationDepth.ToString()}
             };
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
@@ -41,7 +41,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetAnimeHTTP: {0}", AnimeID);
 
@@ -64,11 +64,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 }*/
 
                 // Request an image download
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.GetAnimeHTTP: {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetAnimeHTTP: {AnimeID} - {ex}", ex);
             }
         }
     }

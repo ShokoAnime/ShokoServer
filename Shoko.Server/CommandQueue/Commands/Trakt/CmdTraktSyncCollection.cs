@@ -4,11 +4,13 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
 
-    public class CmdTraktSyncCollection : BaseCommand<CmdTraktSyncCollection>, ICommand
+    public class CmdTraktSyncCollection : BaseCommand, ICommand
     {
         public bool ForceRefresh { get; set; }
 
@@ -17,7 +19,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
         public int Priority { get; set; } = 8;
         public string Id => "TraktSyncCollection";
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncTrakt, extraParams = new [] { ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.SyncTrakt, ExtraParams = new [] { ForceRefresh.ToString()}};
         public WorkTypes WorkType => WorkTypes.Trakt;
 
 
@@ -30,14 +32,18 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             ForceRefresh = forced;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktSyncCollection");
 
             try
             {
                 InitProgress(progress);
-                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return ReportFinishAndGetResult(progress);
+                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
                     () => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync),
@@ -51,18 +57,21 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                         // if we have run this in the last xxx hours then exit
                         TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
                         if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
-                            return ReportFinishAndGetResult(progress);
+                        {
+                            ReportFinishAndGetResult(progress);
+                            return;
+                        }
                     }
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
                 }
                 UpdateAndReportProgress(progress,50);
                 TraktTVHelper.SyncCollectionToTrakt();
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TraktSyncCollection: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktSyncCollection: {ex}", ex);
             }
         }
     }

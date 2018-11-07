@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Models.WebCache;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.TvDB
 {
-    public class CmdTvDBSearchAnime : BaseCommand<CmdTvDBSearchAnime>, ICommand
+    public class CmdTvDBSearchAnime : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -26,8 +27,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SearchTvDB,
-            extraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.SearchTvDB,
+            ExtraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.TvDB;
@@ -42,7 +43,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             ForceRefresh = forced;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TvDBSearchAnime: {0}", AnimeID);
 
@@ -54,8 +55,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 {
                     try
                     {
-                        List<Azure_CrossRef_AniDB_TvDB> cacheResults =
-                            AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+                        List<WebCache_CrossRef_AniDB_TvDB> cacheResults =
+                            WebCacheAPI.Get_CrossRefAniDBTvDB(AnimeID);
                         UpdateAndReportProgress(progress,25);
                         if (cacheResults != null && cacheResults.Count > 0)
                         {
@@ -63,7 +64,11 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                             // this command was in the queue
                             List<CrossRef_AniDB_TvDB> xrefTemp =
                                 Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
-                            if (xrefTemp != null && xrefTemp.Count > 0) return ReportFinishAndGetResult(progress);
+                            if (xrefTemp != null && xrefTemp.Count > 0)
+                            {
+                                ReportFinishAndGetResult(progress);
+                                return;
+                            }
 
                             // Add overrides for specials
                             var specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
@@ -82,7 +87,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                                 }
                             }
                             UpdateAndReportProgress(progress, 75);
-                            foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
+                            foreach (WebCache_CrossRef_AniDB_TvDB xref in cacheResults)
                             {
                                 TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
                                 if (tvser != null)
@@ -91,7 +96,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                                     TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
                                 }
                             }
-                            return ReportFinishAndGetResult(progress);
+                            ReportFinishAndGetResult(progress);
+                            return;
                         }
                     }
                     catch (Exception)
@@ -100,7 +106,11 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                     }
                 }
 
-                if (!ServerSettings.Instance.TvDB.AutoLink) return ReportFinishAndGetResult(progress);
+                if (!ServerSettings.Instance.TvDB.AutoLink)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 // try to pull a link from a prequel/sequel
                 var relations = Repo.Instance.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
@@ -111,23 +121,36 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 if (tvDBID != null)
                 {
                     TvDBApiHelper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true);
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
                 UpdateAndReportProgress(progress, 50);
 
                 // search TvDB
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                if (anime == null) return ReportFinishAndGetResult(progress);
+                if (anime == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 var searchCriteria = anime.MainTitle;
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                 List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
                 logger.Trace("Found {0} tvdb results for {1} on TheTvDB", results.Count, searchCriteria);
-                if (ProcessSearchResults(results, searchCriteria)) return ReportFinishAndGetResult(progress);
+                if (ProcessSearchResults(results, searchCriteria))
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
 
-                if (results.Count != 0) return ReportFinishAndGetResult(progress);
+                if (results.Count != 0)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 bool foundResult = false;
                 UpdateAndReportProgress(progress, 75);
@@ -147,14 +170,18 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                     results = TvDBApiHelper.SearchSeries(searchCriteria);
                     if (results.Count > 0) foundResult = true;
                     logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
-                    if (ProcessSearchResults(results, title.Title)) return ReportFinishAndGetResult(progress); 
+                    if (ProcessSearchResults(results, title.Title))
+                    {
+                        ReportFinishAndGetResult(progress);
+                        return;
+                    } 
                 }
                 if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ex}", ex);
             }
         }
 

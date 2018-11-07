@@ -2,8 +2,8 @@
 using System.Linq;
 using Force.DeepCloner;
 using Microsoft.EntityFrameworkCore;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+using Shoko.Server.Repositories.Cache;
 
 namespace Shoko.Server.Repositories
 {

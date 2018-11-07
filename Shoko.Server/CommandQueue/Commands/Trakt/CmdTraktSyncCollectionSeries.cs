@@ -4,10 +4,11 @@ using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
-    public class CmdTraktSyncCollectionSeries : BaseCommand<CmdTraktSyncCollectionSeries>, ICommand
+    public class CmdTraktSyncCollectionSeries : BaseCommand, ICommand
     {
         public int AnimeSeriesID { get; set; }
         public string SeriesName { get; set; }
@@ -20,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SyncTraktSeries,
-            extraParams = new[] {SeriesName}
+            QueueState = QueueStateEnum.SyncTraktSeries,
+            ExtraParams = new[] {SeriesName}
         };
 
         public WorkTypes WorkType => WorkTypes.Trakt;
@@ -36,28 +37,33 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             SeriesName = seriesName;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktSyncCollectionSeries");
 
             try
             {
                 InitProgress(progress);
-                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return ReportFinishAndGetResult(progress);
+                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Could not find anime series: {AnimeSeriesID}");
+                    ReportErrorAndGetResult(progress, $"Could not find anime series: {AnimeSeriesID}");
+                    return;
                 }
 
                 UpdateAndReportProgress(progress,50);
                 TraktTVHelper.SyncCollectionToTrakt_Series(series);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Trakt.TraktSyncCollectionSeries: {AnimeSeriesID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Trakt.TraktSyncCollectionSeries: {AnimeSeriesID} - {ex}", ex);
             }
         }
     }

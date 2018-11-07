@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Cached;
-using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
-using Shoko.Server.Models;
+using Shoko.Server.Repositories.Cache;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+
 
 namespace Shoko.Server.Repositories.Repos
 {

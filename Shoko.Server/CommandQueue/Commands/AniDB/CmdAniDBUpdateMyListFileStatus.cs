@@ -11,7 +11,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBUpdateMyListFileStatus : BaseCommand<CmdAniDBUpdateMyListFileStatus>, ICommand
+    public class CmdAniDBUpdateMyListFileStatus : BaseCommand, ICommand
     {
         public string FullFileName { get; set; }
         public string Hash { get; set; }
@@ -28,8 +28,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.UpdateMyListInfo,
-            extraParams = new[] {FullFileName, Hash, Watched.ToString(), UpdateSeriesStats.ToString(), WatchedDateAsSecs.ToString()}
+            QueueState = QueueStateEnum.UpdateMyListInfo,
+            ExtraParams = new[] {FullFileName, Hash, Watched.ToString(), UpdateSeriesStats.ToString(), WatchedDateAsSecs.ToString()}
         };
 
 
@@ -46,7 +46,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             FullFileName = Repo.Instance.FileNameHash.GetByHash(Hash).FirstOrDefault()?.FileName;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_UpdateMyListFileStatus: {0}", Hash);
 
@@ -103,11 +103,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
 
                 }
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.UpdateMyListFileStatus: {Hash} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.UpdateMyListFileStatus: {Hash} - {ex}", ex);
             }
         }
     }

@@ -4,12 +4,12 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheSendXRefAniDBTvDB : BaseCommand<CmdWebCacheSendXRefAniDBTvDB>, ICommand
+    public class CmdWebCacheSendXRefAniDBTvDB : BaseCommand, ICommand
     {
         public int CrossRef_AniDB_TvDBID { get; set; }
 
@@ -23,8 +23,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheSendXRefAniDBTvDB,
-            extraParams = new[] {CrossRef_AniDB_TvDBID.ToString()}
+            QueueState = QueueStateEnum.WebCacheSendXRefAniDBTvDB,
+            ExtraParams = new[] {CrossRef_AniDB_TvDBID.ToString()}
         };
 
 
@@ -38,7 +38,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
@@ -46,17 +46,25 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                 //if (string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey)) return;
 
                 CrossRef_AniDB_TvDB xref = Repo.Instance.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
-                if (xref == null) return ReportFinishAndGetResult(progress);
+                if (xref == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,33);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(xref.AniDBID);
-                if (anime == null) return ReportFinishAndGetResult(progress);
+                if (anime == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress, 66);
-                AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheSendXRefAniDBTvDB {CrossRef_AniDB_TvDBID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendXRefAniDBTvDB {CrossRef_AniDB_TvDBID} - {ex}", ex);
             }
         }
 

@@ -1,8 +1,8 @@
 ﻿using Shoko.Models.Client;
 using Shoko.Models.Server;
-using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using System.ComponentModel.DataAnnotations.Schema;
+using Shoko.Server.Compression.LZ4;
 
 namespace Shoko.Server.Models
 {

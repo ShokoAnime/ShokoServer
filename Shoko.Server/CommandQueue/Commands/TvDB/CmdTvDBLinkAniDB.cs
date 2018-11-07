@@ -7,7 +7,7 @@ using Shoko.Server.Providers.TvDB;
 namespace Shoko.Server.CommandQueue.Commands.TvDB
 {
 
-    public class CmdTvDBLinkAniDB : BaseCommand<CmdTvDBLinkAniDB>, ICommand
+    public class CmdTvDBLinkAniDB : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public int TvDBID { get; set; }
@@ -21,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.LinkAniDBTvDB,
-            extraParams = new[] {AnimeID.ToString(), TvDBID.ToString()}
+            QueueState = QueueStateEnum.LinkAniDBTvDB,
+            ExtraParams = new[] {AnimeID.ToString(), TvDBID.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.TvDB;
@@ -38,7 +38,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             AdditiveLink = additiveLink;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_LinkAniDBTvDB: {0}", AnimeID);
 
@@ -48,11 +48,11 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 TvDBApiHelper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
                 UpdateAndReportProgress(progress,50);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_LinkAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_LinkAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
             }
         }
     }

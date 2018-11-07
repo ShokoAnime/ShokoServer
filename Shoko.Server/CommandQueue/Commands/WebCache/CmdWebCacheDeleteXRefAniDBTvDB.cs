@@ -1,11 +1,11 @@
 ﻿using System;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheDeleteXRefAniDBTvDB : BaseCommand<CmdWebCacheDeleteXRefAniDBTvDB>, ICommand
+    public class CmdWebCacheDeleteXRefAniDBTvDB : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public int AniDBStartEpisodeType { get; set; }
@@ -23,8 +23,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheDeleteXRefAniDBTvDB,
-            extraParams = new[] {AnimeID.ToString(), AniDBStartEpisodeType.ToString(), AniDBStartEpisodeNumber.ToString(), TvDBID.ToString(),TvDBSeasonNumber.ToString(), TvDBStartEpisodeNumber.ToString()}
+            QueueState = QueueStateEnum.WebCacheDeleteXRefAniDBTvDB,
+            ExtraParams = new[] {AnimeID.ToString(), AniDBStartEpisodeType.ToString(), AniDBStartEpisodeNumber.ToString(), TvDBID.ToString(),TvDBSeasonNumber.ToString(), TvDBStartEpisodeNumber.ToString()}
         };
 
 
@@ -46,18 +46,18 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             TvDBStartEpisodeNumber = tvDBStartEpisodeNumber;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
-                AzureWebAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID,
+                WebCacheAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID,
                     TvDBSeasonNumber, TvDBStartEpisodeNumber);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheDeleteXRefAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
             }
         }
 

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using AniDBAPI;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -12,7 +11,6 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Providers.TraktTV;
@@ -22,6 +20,9 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -44,27 +45,27 @@ namespace Shoko.Server
                 contract.HashQueueCount = ServerInfo.Instance.HasherQueueCount;
                 if (ServerInfo.Instance.HasherQueueState != null)
                 {
-                    contract.HashQueueState = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
-                    contract.HashQueueStateId = (int)ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.queueState;
-                    contract.HashQueueStateParams = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.extraParams;
+                    contract.HashQueueState = ServerInfo.Instance.HasherQueueState.PrettyDescription.FormatMessage(); //Deprecated since 3.6.0.0
+                    contract.HashQueueStateId = (int)ServerInfo.Instance.HasherQueueState.PrettyDescription.QueueState;
+                    contract.HashQueueStateParams = ServerInfo.Instance.HasherQueueState.PrettyDescription.ExtraParams;
                     contract.HashQueueStatePercentage = ServerInfo.Instance.HasherQueueState.Progress;
                 }
 
                 contract.GeneralQueueCount = ServerInfo.Instance.GeneralQueueCount;
                 if (ServerInfo.Instance.GeneralQueueState != null)
                 {
-                    contract.GeneralQueueState = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
-                    contract.GeneralQueueStateId = (int)ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.queueState;
-                    contract.GeneralQueueStateParams = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.extraParams;
+                    contract.GeneralQueueState = ServerInfo.Instance.GeneralQueueState.PrettyDescription.FormatMessage(); //Deprecated since 3.6.0.0
+                    contract.GeneralQueueStateId = (int)ServerInfo.Instance.GeneralQueueState.PrettyDescription.QueueState;
+                    contract.GeneralQueueStateParams = ServerInfo.Instance.GeneralQueueState.PrettyDescription.ExtraParams;
                     contract.GeneralQueueStatePercentage = ServerInfo.Instance.GeneralQueueState.Progress;
                 }
 
                 contract.ImagesQueueCount = ServerInfo.Instance.ImagesQueueCount;
                 if (ServerInfo.Instance.ImagesQueueState != null)
                 {
-                    contract.ImagesQueueState = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.formatMessage(); //Deprecated since 3.6.0.0
-                    contract.ImagesQueueStateId = (int)ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.queueState;
-                    contract.ImagesQueueStateParams = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.extraParams;
+                    contract.ImagesQueueState = ServerInfo.Instance.ImagesQueueState.PrettyDescription.FormatMessage(); //Deprecated since 3.6.0.0
+                    contract.ImagesQueueStateId = (int)ServerInfo.Instance.ImagesQueueState.PrettyDescription.QueueState;
+                    contract.ImagesQueueStateParams = ServerInfo.Instance.ImagesQueueState.PrettyDescription.ExtraParams;
                     contract.ImagesQueueStatePercentage = ServerInfo.Instance.ImagesQueueState.Progress;
                 }
 

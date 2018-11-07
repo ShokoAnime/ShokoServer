@@ -5,7 +5,7 @@ using Shoko.Models.Queue;
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBGetFileMyListStatus : BaseCommand<CmdAniDBGetFileMyListStatus>, ICommand
+    public class CmdAniDBGetFileMyListStatus : BaseCommand, ICommand
     {
         public int AniFileID { get; set; }
         public string FileName { get; set; }
@@ -17,8 +17,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.AniDB_MyListGetFile,
-            extraParams = new[] { FileName, AniFileID.ToString() }
+            QueueState = QueueStateEnum.AniDB_MyListGetFile,
+            ExtraParams = new[] { FileName, AniFileID.ToString() }
         };
 
         public WorkTypes WorkType => WorkTypes.AniDB;
@@ -33,18 +33,18 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             FileName = fileName;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info($"Processing CommandRequest_GetFileMyListStatus: {FileName} ({AniFileID})");
             try
             {
                 InitProgress(progress);
                 ShokoService.AnidbProcessor.GetMyListFileStatus(AniFileID);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDb.GetFileMyListStatus: {FileName} ({AniFileID}) - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetFileMyListStatus: {FileName} ({AniFileID}) - {ex}", ex);
             }
         }
     }

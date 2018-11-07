@@ -5,7 +5,7 @@ using System.Linq;
 using System.Security;
 using System.Security.Permissions;
 
-namespace Trinet.Core.IO.Ntfs
+namespace Shoko.Server.Native.Trinet.NTFS
 {
 	//using Resources = Properties.Resources;
 

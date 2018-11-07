@@ -4,7 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Threading;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public class AsyncObservableCollection<T> : ObservableCollection<T>
     {

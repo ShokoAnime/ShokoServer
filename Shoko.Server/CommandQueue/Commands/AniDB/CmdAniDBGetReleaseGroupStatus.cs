@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AniDBAPI;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBGetReleaseGroupStatus : BaseCommand<CmdAniDBGetReleaseGroupStatus>, ICommand
+    public class CmdAniDBGetReleaseGroupStatus : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -26,8 +27,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.GetReleaseGroup,
-            extraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.GetReleaseGroup,
+            ExtraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
         };
 
 
@@ -41,7 +42,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             ForceRefresh = forced;
         }
 
-        public CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetReleaseGroupStatus: {0}", AnimeID);
 
@@ -50,10 +51,18 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 InitProgress(progress);
                 // only get group status if we have an associated series
                 SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(AnimeID);
-                if (series == null) return ReportFinishAndGetResult(progress);
+                if (series == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,20);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                if (anime == null) return ReportFinishAndGetResult(progress);
+                if (anime == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,40);
 
                 // don't get group status if the anime has already ended more than 50 days ago
@@ -83,7 +92,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 if (skip)
                 {
                     logger.Info("Skipping group status command because anime has already ended: {0}", anime);
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
 
                 GroupStatusCollection grpCol = ShokoService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
@@ -94,11 +104,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     Queue.Instance.AddRange(grpCol.Groups.DistinctBy(a => a.GroupID).Select(a => new CmdAniDBGetReleaseGroup(a.GroupID, false)));
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDb.GetReleaseGroupStatus: {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetReleaseGroupStatus: {AnimeID} - {ex}", ex);
             }
         }
     }

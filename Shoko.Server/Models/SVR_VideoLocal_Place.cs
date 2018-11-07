@@ -9,21 +9,22 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.AniDB;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper.MediaInfo;
-using Shoko.Server.FileHelper.Subtitles;
+using Shoko.Server.Native.MediaInfo;
+using Shoko.Server.Native.MediaInfo.Subtitles;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Settings;
+using Status = NutzCode.CloudFileSystem.Status;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Models
 {
@@ -184,12 +185,7 @@ namespace Shoko.Server.Models
                     FilePath = upd.Entity.FilePath = tup.Item2; //Also update this, as we can't 
                     upd.Commit();
                 }
-                // just in case
-                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => VideoLocal))
-                {
-                    FilePath = upd.Entity.FileName = renamed; 
-                    upd.Commit();
-                }
+
             }
             catch (Exception ex)
             {
@@ -343,7 +339,7 @@ namespace Shoko.Server.Models
                     logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                     return false;
                 }
-                List<Azure_Media> webmedias = AzureWebAPI.Get_Media(vl.ED2KHash);
+                List<WebCache_Media> webmedias = WebCacheAPI.Get_Media(vl.ED2KHash);
                 if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
                 {
                     m = webmedias.FirstOrDefault(a => a != null).ToMedia();
@@ -363,7 +359,7 @@ namespace Shoko.Server.Models
                     if ((m?.Duration ?? 0) == 0)
                         m = null;
                     if (m != null)
-                        AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);
+                        WebCacheAPI.Send_Media(VideoLocal.ED2KHash, m);
                 }
 
 

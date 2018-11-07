@@ -1,24 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.WebCache;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
 
-    public class CmdServerLinkFileManually : BaseCommand<CmdServerLinkFileManually>, ICommand
+    public class CmdServerLinkFileManually : BaseCommand, ICommand
     {
-        private new static Logger logger = LogManager.GetCurrentClassLogger();
-
+        
         public int VideoLocalID { get; set; }
         public int EpisodeID { get; set; }
         public int Percentage { get; set; }
@@ -36,8 +35,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         public QueueStateStruct PrettyDescription =>
             new QueueStateStruct
             {
-                queueState = QueueStateEnum.LinkFileManually,
-                extraParams = new[] { vlocal.Info, episode.Title }
+                QueueState = QueueStateEnum.LinkFileManually,
+                ExtraParams = new[] { vlocal.Info, episode.Title }
             };
 
 
@@ -67,7 +66,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             if (ep!=null)
                 EpisodeID = ep.AnimeEpisodeID;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
@@ -83,12 +82,13 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 catch (Exception ex)
                 {
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error populating XREF: {vlocal.ToStringDetailed()}", ex);
+                    ReportErrorAndGetResult(progress, $"Error populating XREF: {vlocal.ToStringDetailed()}", ex);
+                    return;
                 }
                 UpdateAndReportProgress(progress,20);
                 List<ICommand> cmds=new List<ICommand>();
                 Repo.Instance.CrossRef_File_Episode.BeginAdd(xref).Commit();
-                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID));
+                Queue.Instance.Add(new CmdWebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID));
                 UpdateAndReportProgress(progress, 40);
 
                 if (ServerSettings.Instance.FileQualityFilterEnabled)
@@ -132,11 +132,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 if (cmds.Count>0)
                     Queue.Instance.AddRange(cmds);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception e)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerLinkFileManually: {VideoLocalID} - {EpisodeID} - {e}", e);
+                ReportErrorAndGetResult(progress, $"Error processing ServerLinkFileManually: {VideoLocalID} - {EpisodeID} - {e}", e);
             }            
         }
     }

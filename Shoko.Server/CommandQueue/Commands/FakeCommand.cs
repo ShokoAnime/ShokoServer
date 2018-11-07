@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Commons.Queue;
@@ -9,7 +7,7 @@ namespace Shoko.Server.CommandQueue.Commands
 {
     public class FakeCommand : ICommand
     {
-        public Task<CommandResult> RunAsync(IProgress<ICommandProgress> progress = null, CancellationToken token = default(CancellationToken))
+        public Task RunAsync(IProgress<ICommand> progress = null, CancellationToken token = default(CancellationToken))
         {
             throw new NotImplementedException();
         }
@@ -24,18 +22,21 @@ namespace Shoko.Server.CommandQueue.Commands
         public int Priority { get; set; }
         public string Id { get; set; } = string.Empty;
         public int Retries { get; set; }
+        public int MaxRetries { get; set; }
         public string Batch { get; set; }
         public QueueStateStruct PrettyDescription { get; set; }
         public WorkTypes WorkType { get; set; }
+        public double Progress { get; } = 0;
+        public CommandStatus Status { get; } = CommandStatus.Working;
+        public string Error { get; } = null;
 
-        public static CommandProgress<FakeCommand> Create(QueueStateStruct st, WorkTypes wt)
+        public static FakeCommand Create(QueueStateStruct st, WorkTypes wt)
 
         {
-            CommandProgress<FakeCommand> cc=new CommandProgress<FakeCommand>();
-            cc.Command=new FakeCommand();
-            cc.Command.PrettyDescription = st;
-            cc.Command.ParallelTag = wt.ToString();
-            cc.Command.WorkType = wt;
+            FakeCommand cc=new FakeCommand();
+            cc.PrettyDescription = st;
+            cc.ParallelTag = wt.ToString();
+            cc.WorkType = wt;
             return cc;
         }
     }

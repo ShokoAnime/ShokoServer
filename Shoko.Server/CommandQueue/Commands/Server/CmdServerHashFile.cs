@@ -6,24 +6,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.Hash;
-using Shoko.Server.Commands;
-using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Native.Hashing;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
     public class CmdServerHashFile : CmdHashFile
     {
         private readonly string _filePath;
-        private bool _hashingState;
         private readonly SVR_ImportFolder _importFolder;
+        private bool _hashingState;
 
 
         public CmdServerHashFile(string str) : base(str)
@@ -45,7 +45,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             _importFolder = folder;
             _filePath = filePath;
             IObject source = f.Resolve(filename);
-            if (source == null || source.Status != Status.Ok || !(source is IFile source_file))
+            if (source == null || source.Status != NutzCode.CloudFileSystem.Status.Ok || !(source is IFile source_file))
                 throw new IOException($"Could not access file: {filename}");
             File = source_file;
             Force = force;
@@ -63,7 +63,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         public override int Priority { get; set; } = 4;
         public override string Id => $"HashFile_{File.FullName}";
 
-        public override QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = _hashingState ? QueueStateEnum.HashingFile : QueueStateEnum.CheckingFile, extraParams = new[] {File.FullName}};
+        public override QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = _hashingState ? QueueStateEnum.HashingFile : QueueStateEnum.CheckingFile, ExtraParams = new[] {File.FullName}};
 
         //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
         private long CanAccessFile(string fileName, bool writeAccess)
@@ -106,7 +106,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             return false;
         }
 
-        public override async Task<CommandResult> RunAsync(IProgress<ICommandProgress> progress = null, CancellationToken token = default(CancellationToken))
+        public override async Task RunAsync(IProgress<ICommand> progress = null, CancellationToken token = default(CancellationToken))
         {
             logger.Trace($"Checking File For Hashes: {File.FullName}");
 
@@ -114,14 +114,15 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             {
                 InitProgress(progress);
                 // hash and read media info for file
-                int nshareID = -1;
+                int nshareID;
 
                 long filesize = 0;
                 if (_importFolder.CloudID == null) // Local Access
                 {
                     if (!System.IO.File.Exists(File.FullName))
                     {
-                        return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"File does not exist: {File.FullName}");
+                        ReportErrorAndGetResult(progress, $"File does not exist: {File.FullName}");
+                        return;
                     }
 
                     int numAttempts = 0;
@@ -138,7 +139,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     // if we failed to access the file, get ouuta here
                     if (numAttempts >= 60)
                     {
-                        return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Could not access file: {File.FullName}");
+                        ReportErrorAndGetResult(progress, $"Could not access file: {File.FullName}");
+                        return;
                     }
 
                     // At least 1s between to ensure that size has the chance to change
@@ -157,7 +159,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     // if we failed to access the file, get ouuta here
                     if (numAttempts >= 60)
                     {
-                        return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Could not access file: {File.FullName}");
+                        ReportErrorAndGetResult(progress, $"Could not access file: {File.FullName}");
+                        return;
                     }
                 }
 
@@ -202,7 +205,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 bool duplicate = false;
 
-                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vlocal, () =>
+                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => Repo.Instance.VideoLocal.GetByID(vlocal?.VideoLocalID ?? 0), () =>
                 {
                     logger.Trace("No existing VideoLocal, creating temporary record");
                     return new SVR_VideoLocal
@@ -219,7 +222,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     };
                 }))
                 {
-                    if (vlocal == null) vlocal = txn.Entity;
+                    vlocal = txn.Entity;
                     if (vlocalplace == null)
                     {
                         logger.Trace("No existing VideoLocal_Place, creating a new record");
@@ -277,7 +280,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         {
                             logger.Trace("No Hash found for cloud " + filename + " putting in videolocal table with empty ED2K");
                             vlocal = txn.Commit(true);
-                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => vlocalplace))
+                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => Repo.Instance.VideoLocal_Place.GetByID(vlocalplace?.VideoLocal_Place_ID ?? 0)))
                             {
                                 upd.Entity.VideoLocalID = vlocal.VideoLocalID;
                                 vlocalplace = upd.Commit();
@@ -285,7 +288,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                             if (vlocalplace.RefreshMediaInfo(vlocal))
                                 txn.Commit(true);
-                            return ReportFinishAndGetResult(progress);
+                            ReportFinishAndGetResult(progress);
+                            return;
                         }
 
                         // hash the file
@@ -296,7 +300,15 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             DateTime start = DateTime.Now;
                             // update the VideoLocal record with the Hash, since cloud support we calculate everything
                             Types = HashTypes.CRC | HashTypes.ED2K | HashTypes.MD5 | HashTypes.SHA1;
-                            await base.RunAsync(new ChildProgress<CmdHashFile> (20, 60, this, progress), token);
+                            Hasher h = new Hasher(File, Types);
+                            string error = await h.RunAsync(new ChildProgress(20, 60, this, progress), token);
+                            if (error != null)
+                            {
+                                ReportErrorAndGetResult(progress, error);
+                                return;
+                            }
+
+                            Result = h.Result;
                             TimeSpan ts = DateTime.Now - start;
                             logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, File.FullName, Utils.FormatByteSize(vlocal.FileSize));
                             vlocal.Hash = GetHashType(HashTypes.ED2K);
@@ -307,7 +319,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         }
 
                         _hashingState = false;
-                        FillMissingHashes(vlocal);
+                        await FillMissingHashes(vlocal, token, progress);
 
                         // We should have a hash by now
                         // before we save it, lets make sure there is not any other record with this hash (possible duplicate file)
@@ -335,7 +347,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                                 else
                                 {
                                     FileSystemResult dupFileSystemResult = (FileSystemResult) prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
-                                    if (dupFileSystemResult == null || dupFileSystemResult.Status != Status.Ok)
+                                    if (dupFileSystemResult == null || dupFileSystemResult.Status != NutzCode.CloudFileSystem.Status.Ok)
                                         Repo.Instance.VideoLocal_Place.Delete(prep);
                                 }
                             }
@@ -380,7 +392,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                     UpdateAndReportProgress(progress, 90);
 
-                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => vlocalplace))
+                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => Repo.Instance.VideoLocal_Place.GetByID(vlocalplace.VideoLocal_Place_ID)))
                     {
                         upd.Entity.VideoLocalID = vlocal.VideoLocalID;
                         vlocalplace = upd.Commit();
@@ -389,8 +401,9 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (duplicate)
                 {
-                    CommandQueue.Queue.Instance.Add(new CmdServerProcessFile(vlocal.VideoLocalID, false));
-                    return ReportFinishAndGetResult(progress);
+                    Queue.Instance.Add(new CmdServerProcessFile(vlocal.VideoLocalID, false));
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
 
                 // also save the filename to hash record
@@ -419,57 +432,63 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (vlocal.Media == null || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration == 0)
                 {
-                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vlocal))
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => Repo.Instance.VideoLocal.GetByID(vlocal.VideoLocalID)))
                         if (vlocalplace.RefreshMediaInfo(upd.Entity))
                             vlocal = upd.Commit(true);
                 }
 
                 // now add a command to process the file
-                CommandQueue.Queue.Instance.Add(new CmdServerProcessFile(vlocal.VideoLocalID, false));
-                return ReportFinishAndGetResult(progress);
+                Queue.Instance.Add(new CmdServerProcessFile(vlocal.VideoLocalID, false));
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerHashFile: {File.FullName}\n{ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerHashFile: {File.FullName}\n{ex}", ex);
             }
         }
 
 
-        private void FillMissingHashes(SVR_VideoLocal vlocal)
+        private async Task FillMissingHashes(SVR_VideoLocal vlocal, CancellationToken token, IProgress<ICommand> progress = null)
         {
-            bool needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
-            bool needmd5 = string.IsNullOrEmpty(vlocal.MD5);
-            bool needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-            if (needcrc32 || needmd5 || needsha1)
+            HashTypes types = 0;
+            if (string.IsNullOrEmpty(vlocal.CRC32))
+                types |= HashTypes.CRC;
+            if (string.IsNullOrEmpty(vlocal.MD5))
+                types |= HashTypes.MD5;
+            if (string.IsNullOrEmpty(vlocal.SHA1))
+                types |= HashTypes.SHA1;
+            if (types > 0)
                 FillVideoHashes(vlocal);
-            needcrc32 = string.IsNullOrEmpty(vlocal.CRC32);
-            needmd5 = string.IsNullOrEmpty(vlocal.MD5);
-            needsha1 = string.IsNullOrEmpty(vlocal.SHA1);
-            if (needcrc32 || needmd5 || needsha1)
+            types = 0;
+            if (string.IsNullOrEmpty(vlocal.CRC32))
+                types |= HashTypes.CRC;
+            if (string.IsNullOrEmpty(vlocal.MD5))
+                types |= HashTypes.MD5;
+            if (string.IsNullOrEmpty(vlocal.SHA1))
+                types |= HashTypes.SHA1;
+            if (types > 0)
             {
                 _hashingState = true;
                 DateTime start = DateTime.Now;
-                List<string> tp = new List<string>();
-                if (needsha1)
-                    tp.Add("SHA1");
-                if (needmd5)
-                    tp.Add("MD5");
-                if (needcrc32)
-                    tp.Add("CRC32");
-                logger.Trace("Calculating missing {1} hashes for: {0}", File.FullName, string.Join(",", tp));
+                logger.Trace("Calculating missing {1} hashes for: {0}", File.FullName, types.ToString("F"));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                Hashes hashes = FileHashHelper.GetHashInfo(File.FullName.Replace("/", $"{Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress, needcrc32, needmd5, needsha1);
+                Hasher h = new Hasher(File, Types);
+                string error = await h.RunAsync(new ChildProgress(20, 60, this, progress), token);
                 TimeSpan ts = DateTime.Now - start;
                 logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, File.FullName, Utils.FormatByteSize(vlocal.FileSize));
-                if (string.IsNullOrEmpty(vlocal.Hash))
-                    vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
-                if (needsha1)
-                    vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();
-                if (needmd5)
-                    vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
-                if (needcrc32)
-                    vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-                AzureWebAPI.Send_FileHash(new List<SVR_VideoLocal> {vlocal});
+                if (error != null)
+                    logger.Error("Unable to add additional hashes missing {1} hashes for: {0} Error {2}", File.FullName, types.ToString("F"), error);
+                else
+                {
+                    Result = h.Result;
+                    if ((types & HashTypes.CRC) > 0)
+                        vlocal.CRC32 = GetHashType(HashTypes.CRC);
+                    if ((types & HashTypes.MD5) > 0)
+                        vlocal.MD5 = GetHashType(HashTypes.MD5);
+                    if ((types & HashTypes.SHA1) > 0)
+                        vlocal.SHA1 = GetHashType(HashTypes.SHA1);
+                    WebCacheAPI.Send_FileHash(new List<SVR_VideoLocal> {vlocal});
+                }
             }
         }
 
@@ -571,7 +590,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
-                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<Azure_FileHash>();
+                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<WebCache_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
                 if (ls.Count > 0)
                 {
@@ -587,7 +606,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
             if (!string.IsNullOrEmpty(v.SHA1))
             {
-                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<Azure_FileHash>();
+                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<WebCache_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                 if (ls.Count > 0)
                 {
@@ -603,7 +622,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
             if (!string.IsNullOrEmpty(v.MD5))
             {
-                List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<Azure_FileHash>();
+                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<WebCache_FileHash>();
                 ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1) && !string.IsNullOrEmpty(a.ED2K)).ToList();
                 if (ls.Count > 0)
                 {
@@ -625,27 +644,6 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 FillHashesAgainstAniDBRepo(v);
             if (string.IsNullOrEmpty(v.CRC32) || string.IsNullOrEmpty(v.MD5) || string.IsNullOrEmpty(v.SHA1))
                 FillHashesAgainstWebCache(v);
-        }
-
-        public class ChildProgress<T> : IProgress<ICommandProgress> where T: ICommand
-        {
-            private readonly int _max;
-            private readonly IProgress<ICommandProgress> _orgp;
-            private readonly BaseCommand<T> _original;
-            private readonly int _start;
-
-            public ChildProgress(int start, int max, BaseCommand<T> original, IProgress<ICommandProgress> pro)
-            {
-                _start = start;
-                _max = max;
-                _original = original;
-                _orgp = pro;
-            }
-
-            public void Report(ICommandProgress value)
-            {
-                _original.UpdateAndReportProgress(_orgp, _start + value.Progress * _max / 100D);
-            }
         }
     }
 }

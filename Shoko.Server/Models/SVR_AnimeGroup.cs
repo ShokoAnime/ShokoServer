@@ -9,10 +9,10 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
+using Shoko.Server.Compression.LZ4;
 using Shoko.Server.Extensions;
-using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models

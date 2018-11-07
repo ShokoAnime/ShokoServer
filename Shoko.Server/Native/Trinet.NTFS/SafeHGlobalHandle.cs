@@ -2,7 +2,7 @@
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 
-namespace Trinet.Core.IO.Ntfs
+namespace Shoko.Server.Native.Trinet.NTFS
 {
 	/// <summary>
 	/// A <see cref="SafeHandle"/> for a global memory allocation.

@@ -4,10 +4,12 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
-     public class CmdTraktUpdateAllSeries : BaseCommand<CmdTraktUpdateAllSeries>, ICommand
+     public class CmdTraktUpdateAllSeries : BaseCommand, ICommand
     {
         public bool ForceRefresh { get; set; }
 
@@ -15,7 +17,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
         public string Id => "TraktUpdateAllSeries";
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.UpdateTrakt, extraParams = new [] { ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.UpdateTrakt, ExtraParams = new [] { ForceRefresh.ToString()}};
         public WorkTypes WorkType => WorkTypes.Trakt;
 
 
@@ -28,7 +30,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             ForceRefresh = forced;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktUpdateAllSeries");
 
@@ -48,7 +50,10 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                         // if we have run this in the last xxx hours then exit
                         TimeSpan tsLastRun = DateTime.Now - txn.Entity.LastUpdate;
                         if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
-                            return ReportFinishAndGetResult(progress);
+                        {
+                            ReportFinishAndGetResult(progress);
+                            return;
+                        }
                     }
                     txn.Entity.LastUpdate = DateTime.Now;
                     txn.Commit();
@@ -60,11 +65,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 UpdateAndReportProgress(progress, 60);
                 // scan for new matches
                 TraktTVHelper.ScanForMatches();
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TraktUpdateAllSeries: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktUpdateAllSeries: {ex}", ex);
             }
         }
 

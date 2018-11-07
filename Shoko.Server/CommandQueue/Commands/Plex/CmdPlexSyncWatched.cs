@@ -12,10 +12,11 @@ using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Plex
 {
-    public class CmdPlexSyncWatched : BaseCommand<CmdPlexSyncWatched>, ICommand
+    public class CmdPlexSyncWatched : BaseCommand, ICommand
     {
         public int UserId { get; set; }
         private readonly JMMUser _jmmuser;
@@ -30,8 +31,8 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SyncPlex,
-            extraParams = new[] { _jmmuser.Username }
+            QueueState = QueueStateEnum.SyncPlex,
+            ExtraParams = new[] { _jmmuser.Username }
         };
 
         public WorkTypes WorkType => WorkTypes.Plex;
@@ -48,7 +49,7 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info($"Syncing watched videos for: {_jmmuser.Username}, if nothing happens make sure you have your libraries configured in Shoko.");
             try
@@ -95,11 +96,11 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
                     }
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception e)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Plex.PlexSyncWatched: {UserId} - {e}", e);
+                ReportErrorAndGetResult(progress, $"Error processing Plex.PlexSyncWatched: {UserId} - {e}", e);
             }
            
         }

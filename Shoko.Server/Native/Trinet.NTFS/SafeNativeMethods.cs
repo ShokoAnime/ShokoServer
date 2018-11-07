@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 
-namespace Trinet.Core.IO.Ntfs
+namespace Shoko.Server.Native.Trinet.NTFS
 {
 	//using Resources = Properties.Resources;
 

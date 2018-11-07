@@ -5,8 +5,8 @@ using System.IO.Compression;
 using System.Text;
 using Shoko.Commons.Queue;
 using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 
 
@@ -14,9 +14,9 @@ using Shoko.Server.CommandQueue.Commands.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBGetTitles : BaseCommand<CmdAniDBGetTitles>, ICommand
+    public class CmdAniDBGetTitles : BaseCommand, ICommand
     { 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct { queueState = QueueStateEnum.AniDB_GetTitles, extraParams = new string[0] };
+        public QueueStateStruct PrettyDescription => new QueueStateStruct { QueueState = QueueStateEnum.AniDB_GetTitles, ExtraParams = new string[0] };
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
         public int ParallelMax { get; set; } = 1;
@@ -25,7 +25,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         private readonly DateTime _creation=DateTime.Now;
         public override string Serialize() => string.Empty;
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetAniDBTitles");
             try
@@ -33,7 +33,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 bool process = false;
 
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (!process) return new CommandResult();
+                if (!process) return;
 
                 string url = Constants.AniDBTitlesURL;
                 logger.Trace("Get AniDB Titles: {0}", url);
@@ -54,7 +54,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
 
                 string[] lines = b.ToString().Split('\n');
-                Dictionary<int, Azure_AnimeIDTitle> titles = new Dictionary<int, Azure_AnimeIDTitle>();
+                Dictionary<int, WebCache_AnimeIDTitle> titles = new Dictionary<int, WebCache_AnimeIDTitle>();
                 foreach (string line in lines)
                 {
                     if (line.Trim().Length == 0 || line.Trim().Substring(0, 1) == "#") continue;
@@ -69,14 +69,14 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     string titleValue = fields[3].Trim();
 
 
-                    Azure_AnimeIDTitle thisTitle;
+                    WebCache_AnimeIDTitle thisTitle;
                     if (titles.ContainsKey(animeID))
                     {
                         thisTitle = titles[animeID];
                     }
                     else
                     {
-                        thisTitle = new Azure_AnimeIDTitle {AnimeIDTitleId = 0, MainTitle = titleValue, AnimeID = animeID};
+                        thisTitle = new WebCache_AnimeIDTitle {AnimeIDTitleId = 0, MainTitle = titleValue, AnimeID = animeID};
                         titles[animeID] = thisTitle;
                     }
 
@@ -91,16 +91,16 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                 UpdateAndReportProgress(progress,60);
 
-                foreach (Azure_AnimeIDTitle aniTitle in titles.Values)
+                foreach (WebCache_AnimeIDTitle aniTitle in titles.Values)
                 {
                     Queue.Instance.Add(new CmdWebCacheSendAnimeTitle(aniTitle.AnimeID, aniTitle.MainTitle, aniTitle.Titles));
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.GetAniDBTitles: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetAniDBTitles: {ex}", ex);
             }
         }
     }

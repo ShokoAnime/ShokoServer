@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;

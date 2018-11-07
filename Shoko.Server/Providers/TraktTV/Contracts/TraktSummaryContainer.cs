@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
 using NLog;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.Providers.TraktTV
+namespace Shoko.Server.Providers.TraktTV.Contracts
 {
     public class TraktSummaryContainer
     {

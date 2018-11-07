@@ -2,7 +2,7 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 
 // ReSharper disable HeuristicUnreachableCode
@@ -10,7 +10,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
 
-    public class CmdWebCacheSendAnimeFull : BaseCommand<CmdWebCacheSendAnimeFull>, ICommand
+    public class CmdWebCacheSendAnimeFull : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
 
@@ -23,8 +23,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SendAnimeFull,
-            extraParams = new[] {AnimeID.ToString()}
+            QueueState = QueueStateEnum.SendAnimeFull,
+            ExtraParams = new[] {AnimeID.ToString()}
         };
 
 
@@ -37,28 +37,37 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             AnimeID = animeID;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 bool process = false;
 
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (!process) return new CommandResult();
+                if (!process) return;
 
 
                 InitProgress(progress);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                if (anime == null) return ReportFinishAndGetResult(progress);
-                if (anime.AllTags.ToUpper().Contains("18 RESTRICTED")) return ReportFinishAndGetResult(progress);
+                if (anime == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
+
+                if (anime.AllTags.ToUpper().Contains("18 RESTRICTED"))
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,50);
 
-                AzureWebAPI.Send_AnimeFull(anime);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_AnimeFull(anime);
+               ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheSendAnimeFull: {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendAnimeFull: {AnimeID} - {ex}", ex);
             }
         }
       

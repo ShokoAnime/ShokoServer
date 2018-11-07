@@ -5,18 +5,18 @@ using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
 
-    public class CmdTraktHistoryEpisode : BaseCommand<CmdTraktHistoryEpisode>, ICommand
+    public class CmdTraktHistoryEpisode : BaseCommand, ICommand
     {
         public int AnimeEpisodeID { get; set; }
         public int Action { get; set; }
 
         [JsonIgnore]
         public TraktSyncAction ActionEnum => (TraktSyncAction) Action;
-        public CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority9;
         public string ParallelTag { get; set; } = WorkTypes.Trakt.ToString();
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 9;
@@ -25,8 +25,8 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.TraktAddHistory,
-            extraParams = new[] {AnimeEpisodeID.ToString(), ActionEnum.ToString()}
+            QueueState = QueueStateEnum.TraktAddHistory,
+            ExtraParams = new[] {AnimeEpisodeID.ToString(), ActionEnum.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Trakt;
@@ -41,14 +41,18 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             Action = (int) action;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktHistoryEpisode: {0}-{1}", AnimeEpisodeID, Action);
 
             try
             {
                 InitProgress(progress);
-                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return ReportFinishAndGetResult(progress);
+                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 SVR_AnimeEpisode ep = Repo.Instance.AnimeEpisode.GetByID(AnimeEpisodeID);
                 UpdateAndReportProgress(progress,50);
@@ -59,11 +63,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                     TraktTVHelper.SyncEpisodeToTrakt(ep, syncType);
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TraktHistoryEpisode: {AnimeEpisodeID} - {Action} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktHistoryEpisode: {AnimeEpisodeID} - {Action} - {ex}", ex);
             }
         }
     }

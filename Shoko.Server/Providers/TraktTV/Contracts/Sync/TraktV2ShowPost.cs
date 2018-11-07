@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts.Sync
 {
     [DataContract(Name = "show")]
     public class TraktV2ShowPost

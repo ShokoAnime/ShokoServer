@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using Shoko.Server.Settings;
 
 
 namespace Shoko.Server

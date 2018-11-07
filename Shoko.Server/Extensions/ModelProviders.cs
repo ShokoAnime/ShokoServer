@@ -3,20 +3,20 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml;
-using AniDBAPI;
 using NLog;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.AniDB_API.Raws;
+using Shoko.Models.WebCache;
+using Shoko.Server.Compression.LZ4;
 using Shoko.Server.Models;
-using Shoko.Server.LZ4;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Extensions
 {
@@ -24,9 +24,9 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static Azure_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
+        public static WebCache_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
         {
-            return new Azure_CrossRef_AniDB_Other_Request
+            return new WebCache_CrossRef_AniDB_Other_Request
             {
                 CrossRef_AniDB_OtherID = c.CrossRef_AniDB_OtherID,
                 AnimeID = c.AnimeID,
@@ -36,9 +36,9 @@ namespace Shoko.Server.Extensions
             };
         }
 
-        public static Azure_FileHash_Request ToHashRequest(this AniDB_File anifile)
+        public static WebCache_FileHash_Request ToHashRequest(this AniDB_File anifile)
         {
-            Azure_FileHash_Request r = new Azure_FileHash_Request
+            WebCache_FileHash_Request r = new WebCache_FileHash_Request
             {
                 ED2K = anifile.Hash,
                 CRC32 = anifile.CRC,
@@ -54,9 +54,9 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_FileHash_Request ToHashRequest(this SVR_VideoLocal vl)
+        public static WebCache_FileHash_Request ToHashRequest(this SVR_VideoLocal vl)
         {
-            Azure_FileHash_Request r = new Azure_FileHash_Request
+            WebCache_FileHash_Request r = new WebCache_FileHash_Request
             {
                 ED2K = vl.Hash,
                 CRC32 = vl.CRC32,
@@ -72,7 +72,7 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Media ToMedia(this Azure_Media m)
+        public static Media ToMedia(this WebCache_Media m)
         {
             int size = (m.MediaInfo[0] << 24) | (m.MediaInfo[1] << 16) | (m.MediaInfo[2] << 8) | m.MediaInfo[3];
             byte[] data = new byte[m.MediaInfo.Length - 4];
@@ -80,9 +80,9 @@ namespace Shoko.Server.Extensions
             return CompressionHelper.DeserializeObject<Media>(data, size);
         }
 
-        public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
+        public static WebCache_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
-            Azure_Media_Request r = new Azure_Media_Request
+            WebCache_Media_Request r = new WebCache_Media_Request
             {
                 ED2K = v.ED2KHash
             };
@@ -121,9 +121,9 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_Media_Request ToMediaRequest(this Media m, string ed2k)
+        public static WebCache_Media_Request ToMediaRequest(this Media m, string ed2k)
         {
-            Azure_Media_Request r = new Azure_Media_Request();
+            WebCache_Media_Request r = new WebCache_Media_Request();
             byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
             r.ED2K = ed2k;
             r.MediaInfo = new byte[data.Length + 4];
@@ -140,9 +140,9 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
+        public static WebCache_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_Trakt_Request r = new Azure_CrossRef_AniDB_Trakt_Request
+            WebCache_CrossRef_AniDB_Trakt_Request r = new WebCache_CrossRef_AniDB_Trakt_Request
             {
                 AnimeID = xref.AnimeID,
                 AnimeName = animeName,
@@ -163,9 +163,9 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
+        public static WebCache_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
         {
-            Azure_CrossRef_AniDB_TvDB_Request r = new Azure_CrossRef_AniDB_TvDB_Request
+            WebCache_CrossRef_AniDB_TvDB_Request r = new WebCache_CrossRef_AniDB_TvDB_Request
             {
                 AnimeID = xref.AnimeID,
                 AnimeName = animeName,
@@ -184,9 +184,9 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
+        public static WebCache_CrossRef_File_Episode_Request ToRequest(this CrossRef_File_Episode xref)
         {
-            Azure_CrossRef_File_Episode_Request r = new Azure_CrossRef_File_Episode_Request
+            WebCache_CrossRef_File_Episode_Request r = new WebCache_CrossRef_File_Episode_Request
             {
                 Hash = xref.Hash,
                 AnimeID = xref.AnimeID,
@@ -667,10 +667,10 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static Azure_AnimeCharacter ToContractAzure(this AniDB_Character character,
+        public static WebCache_AnimeCharacter ToContractAzure(this AniDB_Character character,
             AniDB_Anime_Character charRel)
         {
-            Azure_AnimeCharacter contract = new Azure_AnimeCharacter
+            WebCache_AnimeCharacter contract = new WebCache_AnimeCharacter
             {
                 CharID = character.CharID,
                 CharName = character.CharName,
@@ -801,7 +801,7 @@ namespace Shoko.Server.Extensions
         public static void PopulateManually_RA(this CrossRef_File_Episode cross, SVR_VideoLocal vid, SVR_AnimeEpisode ep)
         {
             cross.Hash = vid.ED2KHash;
-            cross.FileName = vid.FileName;
+            cross.FileName = vid.Info;
             cross.FileSize = vid.FileSize;
             cross.CrossRefSource = (int) CrossRefSource.User;
             cross.AnimeID = ep.GetAnimeSeries().AniDB_ID;

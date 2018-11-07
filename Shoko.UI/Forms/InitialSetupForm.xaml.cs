@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.UI.Forms
 {

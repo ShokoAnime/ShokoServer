@@ -6,7 +6,7 @@ using Shoko.Server.Providers.TraktTV;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
-    public class CmdTraktUpdateInfo : BaseCommand<CmdTraktUpdateInfo>, ICommand
+    public class CmdTraktUpdateInfo : BaseCommand, ICommand
     {
         public string TraktID { get; set; }
 
@@ -19,8 +19,8 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
         public  QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.UpdateTraktData,
-            extraParams = new[] {TraktID}
+            QueueState = QueueStateEnum.UpdateTraktData,
+            ExtraParams = new[] {TraktID}
         };
 
         public WorkTypes WorkType => WorkTypes.Trakt;
@@ -37,7 +37,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktUpdateInfo: {0}", TraktID);
 
@@ -45,11 +45,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             {
                 InitProgress(progress);
                 TraktTVHelper.UpdateAllInfo(TraktID);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TraktUpdateInfo: {TraktID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktUpdateInfo: {TraktID} - {ex}", ex);
             }
         }
 

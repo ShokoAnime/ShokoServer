@@ -9,6 +9,7 @@ using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Utilities;
 using static Shoko.Models.Constants;
 
 namespace Shoko.Server.Renamer

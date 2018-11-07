@@ -4,12 +4,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
-using AniDBAPI;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models

@@ -11,10 +11,11 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
-    public class CmdServerValidateAllImages : BaseCommand<CmdServerValidateAllImages>, ICommand
+    public class CmdServerValidateAllImages : BaseCommand, ICommand
     {
         public string ParallelTag { get; set; } = WorkTypes.Server.ToString();
         public int ParallelMax { get; set; } = 8;
@@ -24,8 +25,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public QueueStateStruct PrettyDescription { get; set; } = new QueueStateStruct
         {
-            queueState = QueueStateEnum.ValidateAllImages,
-            extraParams = new[] {string.Empty}
+            QueueState = QueueStateEnum.ValidateAllImages,
+            ExtraParams = new[] {string.Empty}
         };
 
         public WorkTypes WorkType => WorkTypes.Server;
@@ -37,7 +38,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         public CmdServerValidateAllImages()
         {
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_ValidateAllImages");
             try
@@ -45,7 +46,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 QueueStateStruct queueState = PrettyDescription;
                 InitProgress(progress);
                 List<ICommand> cmds = new List<ICommand>();
-                queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBEpisodes};
+                queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_TvDBEpisodes};
                 int count = 0;
                 logger.Info("Scanning TvDB Episode thumbs for corrupted images");
                 var episodes = Repo.Instance.TvDB_Episode.GetAll().Where(fanart =>
@@ -62,7 +63,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     if (count % 10 == 1 || count==episodes.Count)
                     {
                         logger.Info($"Deleting and queueing for redownload {count}/{episodes.Count}");
-                        queueState.extraParams = new[]
+                        queueState.ExtraParams = new[]
                             {$"{Resources.Command_ValidateAllImages_TvDBEpisodes} - {count}/{episodes.Count}"};
                         UpdateAndReportProgress(progress, 10+(count*10/episodes.Count));
                     }
@@ -71,7 +72,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 if (ServerSettings.Instance.TvDB.AutoFanart)
                 {
                     count = 0;
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBFanarts};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_TvDBFanarts};
                     UpdateAndReportProgress(progress, 20);
                     logger.Info("Scanning TvDB Fanarts for corrupted images");
                     var fanarts = Repo.Instance.TvDB_ImageFanart.GetAll().Where(fanart =>
@@ -87,7 +88,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBFanarts} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 20 + (count * 10 / fanarts.Count));
                         }
@@ -97,7 +98,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 if (ServerSettings.Instance.TvDB.AutoPosters)
                 {
                     count = 0;
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBPosters};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_TvDBPosters};
                     UpdateAndReportProgress(progress, 30);
                     logger.Info("Scanning TvDB Posters for corrupted images");
                     var fanarts = Repo.Instance.TvDB_ImagePoster.GetAll().Where(fanart =>
@@ -113,7 +114,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBPosters} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 30 + (count * 10 / fanarts.Count));
                         }
@@ -124,7 +125,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 {
                     count = 0;
                     logger.Info("Scanning TvDB Banners for corrupted images");
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_TvDBBanners};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_TvDBBanners};
                     UpdateAndReportProgress(progress, 40);
                     var fanarts = Repo.Instance.TvDB_ImageWideBanner.GetAll().Where(fanart =>
                         !string.IsNullOrEmpty(fanart.GetFullImagePath()) &&
@@ -139,7 +140,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_TvDBBanners} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 40 + (count * 10 / fanarts.Count));
                         }
@@ -148,7 +149,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (ServerSettings.Instance.MovieDb.AutoPosters)
                 {
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBPosters};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_MovieDBPosters};
                     UpdateAndReportProgress(progress, 50);
                     count = 0;
                     logger.Info("Scanning MovieDB Posters for corrupted images");
@@ -165,7 +166,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_MovieDBPosters} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 50 + (count * 10 / fanarts.Count));
                         }
@@ -174,7 +175,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (ServerSettings.Instance.MovieDb.AutoFanart)
                 {
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_MovieDBFanarts};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_MovieDBFanarts};
                     UpdateAndReportProgress(progress, 60);
                     count = 0;
                     logger.Info("Scanning MovieDB Fanarts for corrupted images");
@@ -190,14 +191,14 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_MovieDBFanarts} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 60 + (count * 10 / fanarts.Count));
                         }
                     }
                 }
 
-                queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBPosters};
+                queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_AniDBPosters};
                 UpdateAndReportProgress(progress, 70);
                 count = 0;
                 logger.Info("Scanning AniDB Posters for corrupted images");
@@ -212,7 +213,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     if (count % 10 == 1 || count == posters.Count)
                     {
                         logger.Info($"Deleting and queueing for redownload {count}/{posters.Count}");
-                        queueState.extraParams = new[]
+                        queueState.ExtraParams = new[]
                             {$"{Resources.Command_ValidateAllImages_AniDBPosters} - {count}/{posters.Count}"};
                         UpdateAndReportProgress(progress, 70 + (count * 10 / posters.Count));
                     }
@@ -220,7 +221,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (ServerSettings.Instance.AniDb.DownloadCharacters)
                 {
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBCharacters};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_AniDBCharacters};
                     UpdateAndReportProgress(progress, 80);
                     count = 0;
                     logger.Info("Scanning AniDB Characters for corrupted images");
@@ -236,7 +237,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_AniDBCharacters} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 80 + (count * 10 / fanarts.Count));
                         }
@@ -245,7 +246,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 if (ServerSettings.Instance.AniDb.DownloadCreators)
                 {
-                    queueState.extraParams = new[] {Resources.Command_ValidateAllImages_AniDBSeiyuus};
+                    queueState.ExtraParams = new[] {Resources.Command_ValidateAllImages_AniDBSeiyuus};
                     UpdateAndReportProgress(progress, 90);
                     count = 0;
                     logger.Info("Scanning AniDB Seiyuus for corrupted images");
@@ -260,7 +261,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         if (count % 10 == 1 || count == fanarts.Count)
                         {
                             logger.Info($"Deleting and queueing for redownload {count}/{fanarts.Count}");
-                            queueState.extraParams = new[]
+                            queueState.ExtraParams = new[]
                                 {$"{Resources.Command_ValidateAllImages_AniDBSeiyuus} - {count}/{fanarts.Count}"};
                             UpdateAndReportProgress(progress, 90 + (count * 10 / fanarts.Count));
                         }
@@ -268,11 +269,12 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 if (cmds.Count>0)
                     Queue.Instance.AddRange(cmds);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
+
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerValidateAllImages: {ex.Message}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerValidateAllImages: {ex.Message}", ex);
             }
         }
 

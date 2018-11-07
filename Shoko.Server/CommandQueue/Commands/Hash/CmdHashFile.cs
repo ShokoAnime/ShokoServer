@@ -9,13 +9,14 @@ using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Server.Native.Hashing;
 using Shoko.Server.Repositories;
 
 #pragma warning disable 4014
 
 namespace Shoko.Server.CommandQueue.Commands.Hash
 {
-    public class CmdHashFile : BaseCommand<CmdHashFile>, ICommand
+    public class CmdHashFile : BaseCommand, ICommand
     {
         public bool Force { get; set; }
         public IFile File { get; internal set; }
@@ -34,7 +35,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
         //If Cloud, parallel tag will be the name of the account, max parallelization hardcoded to 4.
         // In this way, different drives could be parallelized in hashing.
         private string _parallelTag;
-        public virtual QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.HashingFile, extraParams = new[] {File.FullName,Types.ToString("F")}};
+        public virtual QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.HashingFile, ExtraParams = new[] {File.FullName,Types.ToString("F")}};
         public WorkTypes WorkType => Commands.WorkTypes.Hashing;
         public Dictionary<HashTypes, byte[]> Result { get; set; }
 
@@ -105,7 +106,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                 if (fs != null)
                 {
                     IObject obj = fs.Resolve(hf.FullName);
-                    if (obj.Status == Status.Ok && obj is IFile file)
+                    if (obj.Status == NutzCode.CloudFileSystem.Status.Ok && obj is IFile file)
                     {
                         File = file;
                         Types = hf.HType;
@@ -127,191 +128,42 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
         }
 
 
-        [DllImport("hasher.dll", EntryPoint = "Init", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        private static extern IntPtr Init(int hashtypes, long filesize);
-
-        [DllImport("hasher.dll", EntryPoint = "Update", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        private static extern void Update(IntPtr context, [MarshalAs(UnmanagedType.LPArray)] byte[] buffer, long size);
-
-        [DllImport("hasher.dll", EntryPoint = "Finish", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
-        private static extern void Finish(IntPtr context, byte[] hashes);
 
 
-        public override async Task<CommandResult> RunAsync(IProgress<ICommandProgress> progress = null, CancellationToken token = default(CancellationToken))
+        public override async Task RunAsync(IProgress<ICommand> progress = null, CancellationToken token = default(CancellationToken))
         {
-            Task t = null;
-            ThreadUnit tu = new ThreadUnit();
+            if (File == null)
+            {
+                ReportErrorAndGetResult(progress, "File not found");
+                return;
+            }
             try
             {
-                if (File == null)
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, "File not found");
-                FileSystemResult<Stream> fs = await File.OpenReadAsync();
-                if (fs.Status != Status.Ok)
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, fs.Error);
                 InitProgress(progress);
-                tu.WorkUnit = this;
-                tu.FileSize = File.Size;
-                tu.Buffer = new byte[2][];
-                tu.Buffer[0] = new byte[BUFFER_SIZE];
-                tu.Buffer[1] = new byte[BUFFER_SIZE];
-                tu.BufferNumber = 0;
-                t = Task.Factory.StartNew(HashWorker, tu, token, TaskCreationOptions.LongRunning, TaskScheduler.Current);
-                long read = 0;
-                do
+                Hasher h = new Hasher(File, Types);
+                string error = await h.RunAsync(new ChildProgress(0, 100, this, progress), token);
+                if (error != null)
                 {
-                    try
-                    {
-                        tu.CurrentSize = await fs.Result.ReadAsync(tu.Buffer[tu.BufferNumber], 0, BUFFER_SIZE, token);
-                        read += tu.CurrentSize;
-                        if (token.IsCancellationRequested)
-                            token.ThrowIfCancellationRequested();
-                        tu.WorkerAutoResetEvent.Set();
-                        UpdateAndReportProgress(progress,(double) read * 100 / tu.FileSize);
-                        if (tu.Abort)
-                            return new CommandResult(CommandResultStatus.Error, tu.Error);
-                        tu.MainAutoResetEvent.WaitOne();
-                        tu.BufferNumber ^= 1;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        tu.CancelWorker();
-                        return ReportErrorAndGetResult(progress, CommandResultStatus.Canceled, "Operation Canceled");
-                    }
-                    catch (Exception e)
-                    {
-                        tu.CancelWorker();
-                        return ReportErrorAndGetResult(progress, CommandResultStatus.Error, e.Message);
-                    }
-                } while (tu.CurrentSize != 0);
-
-                if (tu.Abort)
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, tu.Error);
-                tu.MainAutoResetEvent.WaitOne();
-                return ReportFinishAndGetResult(progress);
+                    ReportErrorAndGetResult(progress, CommandStatus.Error, error);
+                    return;
+                }
+                Result = h.Result;
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception e)
             {
-                if (t != null)
-                    tu.CancelWorker();
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, e.Message, e);
+                ReportErrorAndGetResult(progress, CommandStatus.Error, e.Message, e);
             }
         }
 
 
-        private static void HashWorker(object f)
-        {
-            ThreadUnit tu = (ThreadUnit) f;
-            IntPtr handle = Init((int) tu.WorkUnit.Types, tu.FileSize);
-            if (handle == IntPtr.Zero)
-            {
-                tu.WorkerError("Unable to Init Hash (failed Init)");
-                return;
-            }
-
-            do
-            {
-                tu.WorkerAutoResetEvent.WaitOne();
-                if (tu.Abort)
-                {
-                    tu.MainAutoResetEvent.Set();
-                    return;
-                }
-
-                int bufferposition = tu.BufferNumber;
-                int size = tu.CurrentSize;
-                tu.MainAutoResetEvent.Set();
-                try
-                {
-                    if (size != 0)
-                    {
-                        Update(handle, tu.Buffer[bufferposition], size);
-                    }
-                    else
-                    {
-                        byte[] returnhash = new byte[16 + 4 + 16 + 20];
-                        Finish(handle, returnhash);
-                        Dictionary<HashTypes, byte[]> hashes = new Dictionary<HashTypes, byte[]>();
-                        int pos = 0;
-                        if ((tu.WorkUnit.Types & HashTypes.ED2K) == HashTypes.ED2K)
-                        {
-                            byte[] buf = new byte[16];
-                            Array.Copy(returnhash, pos, buf, 0, 16);
-                            hashes.Add(HashTypes.ED2K, buf);
-                            pos += 16;
-                        }
-
-                        if ((tu.WorkUnit.Types & HashTypes.CRC) == HashTypes.CRC)
-                        {
-                            byte[] buf = new byte[4];
-                            Array.Copy(returnhash, pos, buf, 0, 4);
-                            hashes.Add(HashTypes.CRC, buf);
-                            pos += 4;
-                        }
-
-                        if ((tu.WorkUnit.Types & HashTypes.MD5) == HashTypes.MD5)
-                        {
-                            byte[] buf = new byte[16];
-                            Array.Copy(returnhash, pos, buf, 0, 16);
-                            hashes.Add(HashTypes.MD5, buf);
-                            pos += 4;
-                        }
-
-                        if ((tu.WorkUnit.Types & HashTypes.SHA1) == HashTypes.SHA1)
-                        {
-                            byte[] buf = new byte[20];
-                            Array.Copy(returnhash, pos, buf, 0, 20);
-                            hashes.Add(HashTypes.SHA1, buf);
-                        }
-
-                        tu.WorkUnit.Result = hashes;
-                        tu.MainAutoResetEvent.Set();
-                        return;
-                    }
-                }
-                catch (Exception e)
-                {
-                    tu.WorkerError(e.Message);
-                }
-            } while (tu.CurrentSize != 0);
-        }
-
+    
         private class InternalSerialize
         {
             public string FileSystemName { get; set; }
             public string FullName { get; set; }
             public HashTypes HType { get; set; }
             public bool Force { get; set; }
-        }
-
-        internal class ThreadUnit
-        {
-            public bool Abort;
-            public byte[][] Buffer;
-            public int BufferNumber;
-            public int CurrentSize;
-            public string Error;
-            public long FileSize;
-            public AutoResetEvent MainAutoResetEvent = new AutoResetEvent(false);
-            public AutoResetEvent WorkerAutoResetEvent = new AutoResetEvent(false);
-            public CmdHashFile WorkUnit;
-
-            public void CancelWorker()
-            {
-                if (!Abort)
-                {
-                    Abort = true;
-                    WorkerAutoResetEvent.Set();
-                    MainAutoResetEvent.WaitOne();
-                }
-            }
-
-            public void WorkerError(string error)
-            {
-                if (Abort)
-                    return;
-                Error = error;
-                Abort = true;
-            }
         }
     }
 }

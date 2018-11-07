@@ -1,11 +1,11 @@
 ﻿using System;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheDeleteXRefFileEpisode : BaseCommand<CmdWebCacheDeleteXRefFileEpisode>, ICommand
+    public class CmdWebCacheDeleteXRefFileEpisode : BaseCommand, ICommand
     {
         public string Hash { get; set; }
         public int EpisodeID { get; set; }
@@ -22,8 +22,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheDeleteXRefFileEpisode,
-            extraParams = new[] {Hash, EpisodeID.ToString()}
+            QueueState = QueueStateEnum.WebCacheDeleteXRefFileEpisode,
+            ExtraParams = new[] {Hash, EpisodeID.ToString()}
         };
 
 
@@ -36,17 +36,17 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             Hash = hash;
             EpisodeID = aniDBEpisodeID;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
-                AzureWebAPI.Delete_CrossRefFileEpisode(Hash);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Delete_CrossRefFileEpisode(Hash);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheDeleteXRefFileEpisode {Hash} - {EpisodeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefFileEpisode {Hash} - {EpisodeID} - {ex}", ex);
             }
         }
        

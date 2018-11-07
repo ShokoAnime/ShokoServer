@@ -3,9 +3,9 @@ using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+using Shoko.Server.Repositories.Cache;
 
 namespace Shoko.Server.Repositories.Repos
 {

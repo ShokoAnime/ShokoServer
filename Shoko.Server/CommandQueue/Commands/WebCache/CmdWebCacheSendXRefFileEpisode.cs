@@ -2,12 +2,12 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheSendXRefFileEpisode : BaseCommand<CmdWebCacheSendXRefFileEpisode>, ICommand
+    public class CmdWebCacheSendXRefFileEpisode : BaseCommand, ICommand
     {
         public int CrossRef_File_EpisodeID { get; set; }
 
@@ -21,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheSendXRefFileEpisode,
-            extraParams = new[] {CrossRef_File_EpisodeID.ToString()}
+            QueueState = QueueStateEnum.WebCacheSendXRefFileEpisode,
+            ExtraParams = new[] {CrossRef_File_EpisodeID.ToString()}
         };
 
 
@@ -37,20 +37,24 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
                 CrossRef_File_Episode xref = Repo.Instance.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
-                if (xref == null) return ReportFinishAndGetResult(progress); 
+                if (xref == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                } 
                 UpdateAndReportProgress(progress,50);
-                AzureWebAPI.Send_CrossRefFileEpisode(xref);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_CrossRefFileEpisode(xref);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheDeleteXRefAniDBOther: {CrossRef_File_EpisodeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {CrossRef_File_EpisodeID} - {ex}", ex);
             }
         }
       

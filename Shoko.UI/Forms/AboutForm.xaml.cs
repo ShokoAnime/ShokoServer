@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.UI.Forms
 {

@@ -3,7 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Shoko.Server;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 namespace Shoko.UI.Forms
 {

@@ -4,7 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 
-namespace Nito.AsyncEx
+namespace Shoko.Server.Utilities
 {
     /// <summary>
     /// An <see cref="IProgress{T}"/> that is disposable.

@@ -1,19 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AniDBAPI;
-using AniDBAPI.Commands;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Commands;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBSyncMyList : BaseCommand<CmdAniDBSyncMyList>, ICommand
+    public class CmdAniDBSyncMyList : BaseCommand, ICommand
     {
 
 
@@ -23,7 +26,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 7;
         public string Id => "SyncMyList";
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.SyncMyList, extraParams = new [] { ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.SyncMyList, ExtraParams = new [] { ForceRefresh.ToString()}};
         public WorkTypes WorkType => WorkTypes.AniDB;
         public CmdAniDBSyncMyList(string str) : base(str)
         {
@@ -33,7 +36,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         {
             ForceRefresh = forced;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_SyncMyList");
 
@@ -51,7 +54,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
-                        if (!ForceRefresh) return ReportFinishAndGetResult(progress);
+                        if (!ForceRefresh)
+                        {
+                            ReportFinishAndGetResult(progress);
+                            return;
+                        }
                     }
                 }
 
@@ -64,7 +71,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 if (ev != enHelperActivityType.GotMyListHTTP)
                 {
                     logger.Warn("AniDB did not return a successful code: " + ev);
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
 
                 int totalItems = 0;
@@ -243,11 +251,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     upd.Commit();
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDb.SyncMyList: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.SyncMyList: {ex}", ex);
             }
         }
     }

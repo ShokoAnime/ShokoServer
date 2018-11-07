@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.UI
 {

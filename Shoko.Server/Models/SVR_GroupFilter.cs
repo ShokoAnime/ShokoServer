@@ -5,15 +5,14 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using NLog;
-using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models
 {

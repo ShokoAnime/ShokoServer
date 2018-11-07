@@ -5,26 +5,25 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
-using AniDBAPI;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.MovieDB;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.TvDB;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
+using Shoko.Server.Compression.LZ4;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.LZ4;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models
@@ -697,7 +696,6 @@ namespace Shoko.Server.Models
             BeginYear = BeginYear = animeInfo.BeginYear;
 
             DateTimeDescUpdated = DateTimeDescUpdated = DateTime.Now;
-            DateTimeUpdated = DateTime.Now;
 
             Description = Description = animeInfo.Description ?? string.Empty;
             EndDate = EndDate = animeInfo.EndDate;
@@ -1701,13 +1699,13 @@ namespace Shoko.Server.Models
 
             Contract = cl;
         }
-        public Azure_AnimeFull ToAzure()
+        public WebCache_AnimeFull ToAzure()
         {
-            Azure_AnimeFull contract = new Azure_AnimeFull
+            WebCache_AnimeFull contract = new WebCache_AnimeFull
             {
-                Detail = new Azure_AnimeDetail(),
-                Characters = new List<Azure_AnimeCharacter>(),
-                Comments = new List<Azure_AnimeComment>()
+                Detail = new WebCache_AnimeDetail(),
+                Characters = new List<WebCache_AnimeCharacter>(),
+                Comments = new List<WebCache_AnimeComment>()
             };
             contract.Detail.AllTags = TagsString;
             contract.Detail.AllCategories = TagsString;
@@ -1758,7 +1756,7 @@ namespace Shoko.Server.Models
 
             foreach (AniDB_Recommendation rec in Repo.Instance.AniDB_Recommendation.GetByAnimeID(AnimeID))
             {
-                Azure_AnimeComment comment = new Azure_AnimeComment
+                WebCache_AnimeComment comment = new WebCache_AnimeComment
                 {
                     UserID = rec.UserID,
                     UserName = string.Empty,

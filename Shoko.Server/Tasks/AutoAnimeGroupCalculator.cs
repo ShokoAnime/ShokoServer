@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Tasks
 {

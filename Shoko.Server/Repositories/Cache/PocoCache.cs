@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NutzCode.InMemoryIndex
+namespace Shoko.Server.Repositories.Cache
 {
     //NOTE PocoCache is not thread SAFE
 

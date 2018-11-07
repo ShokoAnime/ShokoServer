@@ -1,17 +1,14 @@
 ﻿using System;
-
-using NLog;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Renamer;
-using Shoko.Server.Repositories;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using NLog;
+using Shoko.Models.Server;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
-namespace Shoko.Server
+namespace Shoko.Server.Renamer
 {
     public class RenameFileHelper
     {

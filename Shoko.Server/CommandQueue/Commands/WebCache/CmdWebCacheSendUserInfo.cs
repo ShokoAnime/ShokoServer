@@ -2,12 +2,12 @@
 using Newtonsoft.Json;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
 
-    public class CmdWebCacheSendUserInfo : BaseCommand<CmdWebCacheSendUserInfo>, ICommand
+    public class CmdWebCacheSendUserInfo : BaseCommand, ICommand
     {
         public string Username { get; set; }
 
@@ -20,8 +20,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SendAnonymousData,
-            extraParams = new string[0]
+            QueueState = QueueStateEnum.SendAnonymousData,
+            ExtraParams = new string[0]
         };
 
         public CmdWebCacheSendUserInfo(string usernameorjson)
@@ -35,17 +35,17 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         }
 
        
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
-                AzureWebAPI.Send_UserInfo();
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_UserInfo();
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheSendUserInfo {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendUserInfo {ex}", ex);
             }
         }        
     }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public static class TagFilter
     {

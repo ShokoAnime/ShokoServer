@@ -81,4 +81,43 @@ CREATE TABLE IF NOT EXISTS `VideoLocal_User` ( `VideoLocal_UserID` int(11) NOT N
 INSERT IGNORE INTO `CustomTag` (`CustomTagID`, `TagName`, `TagDescription`) VALUES (1, 'Dropped', 'Started watching this series, but have since dropped it'), (2, 'Pinned', 'Pinned this series for whatever reason you like'), (3, 'Ongoing', 'This series does not have an end date'), (4, 'Waiting for Series Completion', 'Will start watching this once this series is finished'), (5, 'Waiting for Blu-ray Completion', 'Will start watching this once all episodes are available in Blu-Ray');
 INSERT IGNORE INTO `GroupFilter` (`GroupFilterID`, `GroupFilterName`, `ApplyToSeries`, `BaseCondition`, `SortingCriteria`, `Locked`, `FilterType`, `GroupsIdsVersion`, `GroupsIdsString`, `GroupConditionsVersion`, `GroupConditions`, `ParentGroupFilterID`, `InvisibleInClients`, `SeriesIdsVersion`, `SeriesIdsString`) VALUES (1, 'Continue Watching (SYSTEM)', 0, 1, '4;2', 1, 2, 3, '{}', 1, '[{\"GroupFilterConditionID\":0,\"GroupFilterID\":1,\"ConditionType\":28,\"ConditionOperator\":1,\"ConditionParameter\":\"\"},{\"GroupFilterConditionID\":0,\"GroupFilterID\":1,\"ConditionType\":3,\"ConditionOperator\":1,\"ConditionParameter\":\"\"}]', NULL, 0, 2, '{}'), (2, 'All', 0, 1, '5;1', 1, 4, 3, '{}', 1, '[]', NULL, 0, 2, '{}'), (3, 'Tags', 0, 1, '13;1', 1, 24, 3, '{}', 1, '[]', NULL, 0, 2, '{}'), (4, 'Years', 0, 1, '13;1', 1, 40, 3, '{}', 1, '[]', NULL, 0, 2, '{}'), (5, 'Seasons', 0, 1, '13;1', 1, 72, 3, '{}', 1, '[]', NULL, 0, 2, '{}');
 INSERT IGNORE INTO `JMMUser` (`JMMUserID`, `Username`, `Password`, `IsAdmin`, `IsAniDBUser`, `IsTraktUser`, `HideCategories`, `CanEditServerSettings`, `PlexUsers`, `PlexToken`) VALUES (1, 'Default', '', 1, 1, 1, '', 1, NULL, NULL), (2, 'Family Friendly', '', 1, 1, 1, 'ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted', 1, NULL, NULL);
-INSERT IGNORE INTO `RenameScript` (`RenameScriptID`, `ScriptName`, `Script`, `IsEnabledOnImport`, `RenamerType`, `ExtraData`) VALUES (1, 'Default', '// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv\r\n// Sub group name\r\nDO ADD \'[%grp] \'\r\n// Anime Name, use english name if it exists, otherwise use the Romaji name\r\nIF I(eng) DO ADD \'%eng \'\r\nIF I(ann);I(!eng) DO ADD \'%ann \'\r\n// Episode Number, don\'t use episode number for movies\r\nIF T(!Movie) DO ADD \'- %enr\'\r\n// If the file version is v2 or higher add it here\r\nIF F(!1) DO ADD \'v%ver\'\r\n// Video Resolution\r\nDO ADD \' (%res\'\r\n// Video Source (only if blu-ray or DVD)\r\nIF R(DVD),R(Blu-ray) DO ADD \' %src\'\r\n// Video Codec\r\nDO ADD \' %vid\'\r\n// Video Bit Depth (only if 10bit)\r\nIF Z(10) DO ADD \' %bitbit\'\r\nDO ADD \') \'\r\nDO ADD \'[%CRC]\'\r\n\r\n// Replacement rules (cleanup)\r\nDO REPLACE \' \' \'_\' // replace spaces with underscores\r\nDO REPLACE \'H264/AVC\' \'H264\'\r\nDO REPLACE \'0x0\' \'\'\r\nDO REPLACE \'__\' \'_\'\r\nDO REPLACE \'__\' \'_\'\r\n\r\n// Replace all illegal file name characters\r\nDO REPLACE \'<\' \'(\'\r\nDO REPLACE \'>\' \')\'\r\nDO REPLACE \':\' \'-\'\r\nDO REPLACE \'\"\' \'`\'\r\nDO REPLACE \'/\' \'_\'\r\nDO REPLACE \'/\' \'_\'\r\nDO REPLACE \'\\\' \'_\'\r\nDO REPLACE \'|\' \'_\'\r\nDO REPLACE \'?\' \'_\'\r\nDO REPLACE \'*\' \'_\'\r\n', 0, 'Legacy', NULL);
+INSERT IGNORE INTO `RenameScript` (`RenameScriptID`, `ScriptName`, `Script`, `IsEnabledOnImport`, `RenamerType`, `ExtraData`) VALUES (1, 'Default', '// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv
+// Sub group name
+DO ADD \'[%grp] \'
+// Anime Name, use english name if it exists, otherwise use the Romaji name
+IF I(eng) DO ADD \'%eng \'
+IF I(ann);I(!eng) DO ADD \'%ann \'
+// Episode Number, don\'t use episode number for movies
+IF T(!Movie) DO ADD \'- %enr\'
+// If the file version is v2 or higher add it here
+IF F(!1) DO ADD \'v%ver\'
+// Video Resolution
+DO ADD \' (%res\'
+// Video Source (only if blu-ray or DVD)
+IF R(DVD),R(Blu-ray) DO ADD \' %src\'
+// Video Codec
+DO ADD \' %vid\'
+// Video Bit Depth (only if 10bit)
+IF Z(10) DO ADD \' %bitbit\'
+DO ADD \') \'
+DO ADD \'[%CRC]\'
+
+// Replacement rules (cleanup)
+DO REPLACE \' \' \'_\' // replace spaces with underscores
+DO REPLACE \'H264/AVC\' \'H264\'
+DO REPLACE \'0x0\' \'\'
+DO REPLACE \'__\' \'_\'
+DO REPLACE \'__\' \'_\'
+
+// Replace all illegal file name characters
+DO REPLACE \'<\' \'(\'
+DO REPLACE \'>\' \')\'
+DO REPLACE \':\' \'-\'
+DO REPLACE \'\"\' \'`\'
+DO REPLACE \'/\' \'_\'
+DO REPLACE \'/\' \'_\'
+DO REPLACE \'\\\' \'_\'
+DO REPLACE \'|\' \'_\'
+DO REPLACE \'?\' \'_\'
+DO REPLACE \'*\' \'_\'
+', 0, 'Legacy', NULL);

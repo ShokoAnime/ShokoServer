@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts.Sync
 {
     [DataContract]
     public class TraktV2SyncCollectionEpisodes

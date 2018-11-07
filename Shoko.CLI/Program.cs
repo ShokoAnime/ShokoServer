@@ -2,6 +2,8 @@
 using System;
 using NLog;
 using Shoko.Server.CommandQueue;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.CLI
 {
@@ -48,7 +50,7 @@ namespace Shoko.CLI
             };
             Queue.Instance.Subscribe((ev) =>
             {
-                Console.WriteLine($"Queue state change: {ev.Command.PrettyDescription.formatMessage()}");
+                Console.WriteLine($"Queue state change: {ev.PrettyDescription.FormatMessage()}");
             });
             while (running)
             {

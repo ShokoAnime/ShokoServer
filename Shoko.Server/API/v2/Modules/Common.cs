@@ -24,10 +24,11 @@ using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.CommandQueue.Commands.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -549,7 +550,7 @@ namespace Shoko.Server.API.v2.Modules
             QueueInfo queue = new QueueInfo
             {
                 count = ServerInfo.Instance.HasherQueueCount,
-                state = ServerInfo.Instance.HasherQueueState.Command.PrettyDescription.formatMessage()+" "+ ServerInfo.Instance.HasherQueueState.Progress+" %",
+                state = ServerInfo.Instance.HasherQueueState.PrettyDescription.FormatMessage()+" "+ ServerInfo.Instance.HasherQueueState.Progress+" %",
                 isrunning = ServerInfo.Instance.HasherQueueRunning,
                 ispause = ServerInfo.Instance.HasherQueuePaused
             };
@@ -566,7 +567,7 @@ namespace Shoko.Server.API.v2.Modules
             QueueInfo queue = new QueueInfo
             {
                 count = ServerInfo.Instance.GeneralQueueCount,
-                state = ServerInfo.Instance.GeneralQueueState.Command.PrettyDescription.formatMessage() + " " + ServerInfo.Instance.GeneralQueueState.Progress + " %",
+                state = ServerInfo.Instance.GeneralQueueState.PrettyDescription.FormatMessage() + " " + ServerInfo.Instance.GeneralQueueState.Progress + " %",
                 isrunning = ServerInfo.Instance.GeneralQueueRunning,
                 ispause = ServerInfo.Instance.GeneralQueuePaused
             };
@@ -583,7 +584,7 @@ namespace Shoko.Server.API.v2.Modules
             QueueInfo queue = new QueueInfo
             {
                 count = ServerInfo.Instance.ImagesQueueCount,
-                state = ServerInfo.Instance.ImagesQueueState.Command.PrettyDescription.formatMessage() + " " + ServerInfo.Instance.ImagesQueueState.Progress + " %",
+                state = ServerInfo.Instance.ImagesQueueState.PrettyDescription.FormatMessage() + " " + ServerInfo.Instance.ImagesQueueState.Progress + " %",
                 isrunning = ServerInfo.Instance.ImagesQueueRunning,
                 ispause = ServerInfo.Instance.ImagesQueuePaused
             };
@@ -685,8 +686,8 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.AniDB,WorkTypes.MovieDB,WorkTypes.Schedule,WorkTypes.Server,WorkTypes.Trakt,WorkTypes.TvDB,WorkTypes.WebCache);
-
+                Repo.Instance.CommandRequest.ClearQueue(Repo.Instance.CommandRequest.GeneralWorkTypesExceptSchedule);
+                
                 return APIStatus.OK();
             }
             catch

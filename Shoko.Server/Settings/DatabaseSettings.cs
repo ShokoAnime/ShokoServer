@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using Newtonsoft.Json;
-using Shoko.Server.Databases;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Settings
 {

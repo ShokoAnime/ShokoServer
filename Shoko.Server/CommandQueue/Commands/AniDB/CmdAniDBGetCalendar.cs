@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBGetCalendar : BaseCommand<CmdAniDBGetCalendar>, ICommand
+    public class CmdAniDBGetCalendar : BaseCommand, ICommand
     {
         public bool ForceRefresh { get; set; }
 
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.GetCalendar, extraParams = new [] { ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetCalendar, ExtraParams = new [] { ForceRefresh.ToString()}};
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
         public int ParallelMax { get; set; } = 1;
@@ -28,7 +30,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public CmdAniDBGetCalendar(string str) : base(str)
         {
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetCalendar");
 
@@ -49,7 +51,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     {
                         if (!ForceRefresh)
                         {
-                            return ReportFinishAndGetResult(progress);
+                            ReportFinishAndGetResult(progress);
+                            return;
                         }
                     }
                 }
@@ -67,7 +70,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
                 {
-                    return ReportErrorAndGetResult(progress, CommandResultStatus.Error, "Could not get calendar from AniDB");
+                    ReportErrorAndGetResult(progress, "Could not get calendar from AniDB");
+                    return;
                 }
 
                 UpdateAndReportProgress(progress,80);
@@ -110,11 +114,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 UpdateAndReportProgress(progress,90);
                 if (cmds.Count > 0)
                     Queue.Instance.AddRange(cmds);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.GetCalendar: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetCalendar: {ex}", ex);
             }
         }
     }

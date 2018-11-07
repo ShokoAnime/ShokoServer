@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Shoko.Models.Server;
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+using Shoko.Server.Repositories.Cache;
 
 namespace Shoko.Server.Repositories.Repos
 {

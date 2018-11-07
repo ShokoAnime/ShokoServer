@@ -8,10 +8,11 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Image
 {
-    public class CmdImageDownloadAllAniDb : BaseCommand<CmdImageDownloadAllAniDb>, ICommand
+    public class CmdImageDownloadAllAniDb : BaseCommand, ICommand
     {
 
 
@@ -25,7 +26,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
         public string Id => $"DownloadAniDBImages_{AnimeID}_{ForceDownload}";
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.DownloadImage, extraParams = new[] {Resources.Command_DownloadAniDBImages, AnimeID.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.DownloadImage, ExtraParams = new[] {Resources.Command_DownloadAniDBImages, AnimeID.ToString()}};
 
         public WorkTypes WorkType => WorkTypes.Image;
 
@@ -40,7 +41,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
             try
@@ -78,11 +79,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                     logger.Warn("Image failed to download: No URLs were generated. This should never happen");
                 else
                     Queue.Instance.AddRange(cmds); 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {ex}", ex);
             }
         }
     }

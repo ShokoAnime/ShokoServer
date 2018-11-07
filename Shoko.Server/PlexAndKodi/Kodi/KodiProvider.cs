@@ -1,6 +1,7 @@
 ﻿using Shoko.Models.PlexAndKodi;
 using System;
 using Microsoft.AspNetCore.Http;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.PlexAndKodi.Kodi
 {

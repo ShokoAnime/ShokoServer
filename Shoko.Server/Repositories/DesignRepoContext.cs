@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Design;
-using Shoko.Server.Databases;
 using System;
 using System.Collections.Generic;
 using System.Text;

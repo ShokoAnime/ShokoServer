@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using AniDBAPI;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -12,8 +11,6 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using NLog;
 using Shoko.Models.Plex.Connections;
@@ -25,6 +22,8 @@ using Directory = Shoko.Models.PlexAndKodi.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 using Shoko.Server.API.v1;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 // ReSharper disable FunctionComplexityOverflow
 
@@ -325,7 +324,7 @@ namespace Shoko.Server.PlexAndKodi
             SVR_VideoLocal vi = Repo.Instance.VideoLocal.GetByID(id);
             BaseObject ret =
                 new BaseObject(prov.NewMediaContainer(MediaContainerTypes.File,
-                    Path.GetFileNameWithoutExtension(vi.FileName ?? string.Empty),
+                    Path.GetFileNameWithoutExtension(vi.Info ?? string.Empty),
                     true, false, info));
             Video v2 = Helper.VideoFromVideoLocal(prov, vi, userid);
             List<Video> dirs = new List<Video>();

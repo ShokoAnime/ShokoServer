@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API.Commands;
-using Shoko.Server.AniDB_API.Raws;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Commands;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBSyncMyVotes : BaseCommand<CmdAniDBSyncMyVotes>, ICommand
+    public class CmdAniDBSyncMyVotes : BaseCommand, ICommand
     {
 
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
@@ -21,7 +22,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public WorkTypes WorkType => WorkTypes.AniDB;
 
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.Actions_SyncVotes, extraParams = new string[0]};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.Actions_SyncVotes, ExtraParams = new string[0]};
 
         // ReSharper disable once UnusedParameter.Local
         public CmdAniDBSyncMyVotes(string _)
@@ -31,7 +32,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public CmdAniDBSyncMyVotes()
         {
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_SyncMyVotes");
             try
@@ -83,12 +84,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     UpdateAndReportProgress(progress,90);
                     logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
                 }
-
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing AniDb.SyncMyVotes: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing AniDb.SyncMyVotes: {ex}", ex);
             }
         }
     }

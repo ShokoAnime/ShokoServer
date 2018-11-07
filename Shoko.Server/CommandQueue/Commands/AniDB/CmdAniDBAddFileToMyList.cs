@@ -8,20 +8,20 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.Trakt;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBAddFileToMyList : BaseCommand<CmdAniDBAddFileToMyList>, ICommand
+    public class CmdAniDBAddFileToMyList : BaseCommand, ICommand
     {
         public SVR_VideoLocal VideoLocal { get; set; }
         public bool ReadStates { get; set; }
         public int Priority { get; set; } = 6;
         public string Id => $"AddFileToMyList_{VideoLocal.Hash}";
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.AniDB_MyListAdd, extraParams = new[] {VideoLocal.Info}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.AniDB_MyListAdd, ExtraParams = new[] {VideoLocal.Info}};
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
         public int ParallelMax { get; set; } = 1;
@@ -71,13 +71,17 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             public string Hash { get; set; }
             public bool ReadStates { get; set; }
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info($"Processing CommandRequest_AddFileToMyList: {VideoLocal.Info} - {VideoLocal?.Hash} - {ReadStates}");
             try
             {
-                if (VideoLocal == null) return ReportErrorAndGetResult(progress, CommandResultStatus.Error, "Videlocal not found");
                 InitProgress(progress);
+                if (VideoLocal == null)
+                {
+                    ReportErrorAndGetResult(progress, "Videlocal not found");
+                    return;
+                }
 
                 // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
                 // if the file is already on the user's list
@@ -168,7 +172,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // if we don't have xrefs, then no series or eps.
                 if (xrefs.Count <= 0)
                 {
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
 
                 }
 
@@ -180,18 +185,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                 // lets also try adding to the users trakt collecion
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
-                {
-                    foreach (SVR_AnimeEpisode aep in VideoLocal.GetAnimeEpisodes())
-                    {
-                        //TODO COMMANDS
-                        CommandQueue.Queue.Instance.Add(new CmdTraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add));
-                    }
-                }
-                return ReportFinishAndGetResult(progress);
+                    Queue.Instance.AddRange(VideoLocal.GetAnimeEpisodes().Select(aep=> new CmdTraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add)));
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.AddFileToMyList: {VideoLocal?.Hash} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.AddFileToMyList: {VideoLocal?.Hash} - {ex}", ex);
             }
         }
     }

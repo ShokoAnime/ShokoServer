@@ -11,11 +11,11 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
@@ -187,7 +187,7 @@ namespace Shoko.Server.PlexAndKodi
                 Id = v.VideoLocalID,
                 Type = "episode",
                 Summary = "Episode Overview Not Available", //TODO Intenationalization
-                Title = Path.GetFileNameWithoutExtension(v.FileName),
+                Title = Path.GetFileNameWithoutExtension(v.Info),
                 AddedAt = v.DateTimeCreated.ToUnixTime(),
                 UpdatedAt = v.DateTimeUpdated.ToUnixTime(),
                 OriginallyAvailableAt = v.DateTimeCreated.ToPlexDate(),
@@ -296,7 +296,7 @@ namespace Shoko.Server.PlexAndKodi
             if (vids.Count > 0)
             {
                 //List<string> hashes = vids.Select(a => a.Hash).Distinct().ToList();
-                l.Title = Path.GetFileNameWithoutExtension(vids[0].FileName);
+                l.Title = Path.GetFileNameWithoutExtension(vids[0].Info);
                 l.AddedAt = vids[0].DateTimeCreated.ToUnixTime();
                 l.UpdatedAt = vids[0].DateTimeUpdated.ToUnixTime();
                 l.OriginallyAvailableAt = vids[0].DateTimeCreated.ToPlexDate();

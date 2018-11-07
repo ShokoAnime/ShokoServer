@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 

@@ -8,7 +8,7 @@ namespace Shoko.Server.CommandQueue.Commands
 {
     public interface ICommand 
     {
-        Task<CommandResult> RunAsync(IProgress<ICommandProgress> progress=null,CancellationToken token=default(CancellationToken));
+        Task RunAsync(IProgress<ICommand> progress=null,CancellationToken token=default(CancellationToken));
         string Serialize();
         [JsonIgnore]
         string ParallelTag { get; set; }
@@ -21,11 +21,19 @@ namespace Shoko.Server.CommandQueue.Commands
         [JsonIgnore]
         int Retries { get; set; }
         [JsonIgnore]
+        int MaxRetries { get; set; }
+        [JsonIgnore]
         string Batch { get; set; }
         [JsonIgnore]
         QueueStateStruct PrettyDescription { get; }
         [JsonIgnore]
         WorkTypes WorkType { get; }
+        [JsonIgnore]
+        double Progress { get;  }
+        [JsonIgnore]
+        CommandStatus Status { get;}
+        [JsonIgnore]
+        string Error { get; }
     }
 
 

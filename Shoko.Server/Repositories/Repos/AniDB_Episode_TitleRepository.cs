@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Repositories.Cache;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 
-namespace Shoko.Server.Repositories
+
+namespace Shoko.Server.Repositories.Repos
 {
     public class AniDB_Episode_TitleRepository : BaseRepository<AniDB_Episode_Title, int>//BaseCachedRepository<AniDB_Episode_Title, int>
     {

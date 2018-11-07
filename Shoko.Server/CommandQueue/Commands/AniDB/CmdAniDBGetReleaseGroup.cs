@@ -7,7 +7,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBGetReleaseGroup : BaseCommand<CmdAniDBGetReleaseGroup>, ICommand
+    public class CmdAniDBGetReleaseGroup : BaseCommand, ICommand
     {
         public int GroupID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -19,7 +19,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string Id => $"GetReleaseGroup_{GroupID}";
         public WorkTypes WorkType => WorkTypes.AniDB;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.GetReleaseInfo, extraParams = new[] {GroupID.ToString(), ForceRefresh.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetReleaseInfo, ExtraParams = new[] {GroupID.ToString(), ForceRefresh.ToString()}};
 
 
 
@@ -34,7 +34,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_GetReleaseGroup: {0}", GroupID);
 
@@ -49,11 +49,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDb.GetReleaseGroup: {GroupID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetReleaseGroup: {GroupID} - {ex}", ex);
             }
         }
     }

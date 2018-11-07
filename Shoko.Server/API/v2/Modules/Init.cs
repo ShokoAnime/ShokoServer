@@ -15,11 +15,14 @@ using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Databases;
 using Shoko.Server.Utilities;
 using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings;
+
 //using Microsoft.SqlServer.Management.Smo;
 
 namespace Shoko.Server.API.v2.Modules

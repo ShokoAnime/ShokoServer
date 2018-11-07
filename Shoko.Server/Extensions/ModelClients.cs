@@ -5,7 +5,6 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
@@ -49,7 +48,6 @@ namespace Shoko.Server.Extensions
                 TempVoteCount = anime.TempVoteCount,
                 AvgReviewRating = anime.AvgReviewRating,
                 ReviewCount = anime.ReviewCount,
-                DateTimeUpdated = anime.GetDateTimeUpdated(),
                 DateTimeDescUpdated = anime.DateTimeDescUpdated,
                 ImageEnabled = anime.ImageEnabled,
                 AwardList = anime.AwardList,

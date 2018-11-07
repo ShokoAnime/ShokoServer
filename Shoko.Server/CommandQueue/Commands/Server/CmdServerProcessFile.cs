@@ -2,20 +2,22 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using AniDBAPI;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.AniDB.Raws;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Server
 {
-    public class CmdServerProcessFile : BaseCommand<CmdServerProcessFile>, ICommand
+    public class CmdServerProcessFile : BaseCommand, ICommand
     {
         private readonly SVR_VideoLocal vidLocal;
 
@@ -47,16 +49,20 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public string Id => $"ProcessFile_{VideoLocalID}";
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.FileInfo, extraParams = new[] {vidLocal != null ? vidLocal.Info : VideoLocalID.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.FileInfo, ExtraParams = new[] {vidLocal != null ? vidLocal.Info : VideoLocalID.ToString()}};
 
         public WorkTypes WorkType => WorkTypes.Server;
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
-                if (vidLocal == null) return ReportFinishAndGetResult(progress);
+                if (vidLocal == null) 
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 //now that we have all the has info, we can get the AniDB Info
                 logger.Trace($"Checking for AniDB_File record for: {vidLocal.Hash} --- {vidLocal.Info}");
@@ -129,18 +135,19 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             // lets see if we can find the episode/anime info from the web cache
                             if (ServerSettings.Instance.WebCache.XRefFileEpisode_Get)
                             {
-                                List<Azure_CrossRef_File_Episode> xrefs = AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
+                                List<WebCache_CrossRef_File_Episode> xrefs = WebCacheAPI.Get_CrossRefFileEpisode(vidLocal);
 
                                 crossRefs = new List<CrossRef_File_Episode>();
                                 if (xrefs == null || xrefs.Count == 0)
                                 {
                                     logger.Debug($"Cannot find AniDB_File record or get cross ref from web cache record so exiting: {vidLocal.ED2KHash}");
-                                    return ReportFinishAndGetResult(progress);
+                                    ReportFinishAndGetResult(progress);
+                                    return;
                                 }
 
                                 string fileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
                                 fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.Info;
-                                foreach (Azure_CrossRef_File_Episode xref in xrefs)
+                                foreach (WebCache_CrossRef_File_Episode xref in xrefs)
                                 {
                                     CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
                                     {
@@ -172,7 +179,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             else
                             {
                                 logger.Debug($"Cannot get AniDB_File record so exiting: {vidLocal.ED2KHash}");
-                                return ReportFinishAndGetResult(progress);
+                                ReportFinishAndGetResult(progress);
+                                return;
                             }
                         }
 
@@ -315,12 +323,12 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     UpdateAndReportProgress(progress, 90);
                     if (cmds.Count > 0)
                         Queue.Instance.AddRange(cmds);
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
                 }
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing ServerProcessFile: {VideoLocalID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing ServerProcessFile: {VideoLocalID} - {ex}", ex);
             }
         }
     }

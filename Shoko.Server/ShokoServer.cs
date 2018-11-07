@@ -28,23 +28,24 @@ using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Plex;
 using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.WebCache;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper;
-using Shoko.Server.FileHelper.Subtitles;
+
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
-using Shoko.Server.MyAnime2Helper;
-using Shoko.Server.Providers.JMMAutoUpdates;
+
+using Shoko.Server.Native.Trinet.NTFS;
+using Shoko.Server.Providers.WebUpdates;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
-using Shoko.Server.UI;
-using Trinet.Core.IO.Ntfs;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.FileSystemWatcher;
 //using Trinet.Core.IO.Ntfs;
-using UPnP;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server
 {
@@ -95,7 +96,7 @@ namespace Shoko.Server
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
-        public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
+        public IOAuthProvider OAuthProvider { get; set; } = new AuthProviderNEEDREDO();
 
         internal IServiceProvider DepProvider { get; set; }
         private Mutex mutex;
@@ -561,7 +562,7 @@ namespace Shoko.Server
 
                                 foreach (string file in files)
                                 {
-                                    if (FileHashHelper.IsVideo(file))
+                                    if (Utils.IsVideo(file))
                                     {
                                         logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
@@ -573,7 +574,7 @@ namespace Shoko.Server
                             {
                                 logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                if (Utils.IsVideo(evt.FullPath))
                                 {
                                     logger.Info("Found file {0}", evt.FullPath);
 
@@ -1175,8 +1176,8 @@ namespace Shoko.Server
                 //verNew = verInfo.versions.ServerVersionAbs;
 
                 verNew =
-                    JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
-                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.Instance.UpdateChannel))
+                    AutoUpdatesHelper.ConvertToAbsoluteVersion(
+                        AutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.Instance.UpdateChannel))
                     ;
                 verCurrent = an.Version.Revision * 100 +
                              an.Version.Build * 100 * 100 +
@@ -1600,7 +1601,7 @@ namespace Shoko.Server
                     logger.Info("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
                 }
 
-                if (!FileHashHelper.IsVideo(fileName)) continue;
+                if (!Utils.IsVideo(fileName)) continue;
 
                 videosFound++;
             }

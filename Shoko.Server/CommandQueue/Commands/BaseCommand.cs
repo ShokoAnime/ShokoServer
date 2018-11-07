@@ -9,20 +9,23 @@ using NLog;
 
 namespace Shoko.Server.CommandQueue.Commands
 {
-    public class BaseCommand<T> where T: ICommand
+ 
+    public abstract class BaseCommand 
     {
         protected static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public BaseCommand()
         {
         }
+        public double Progress { get; set; }
+        public CommandStatus Status { get; set; } = CommandStatus.Canceled;
+        public string Error { get; set; }
+        public int MaxRetries { get; set; } = 3;
 
         protected BaseCommand(string str)
         {
             JsonConvert.PopulateObject(str, this, JsonSettings);
         }
-        [JsonIgnore]
-        public virtual CommandProgress<T> Progress { get; } = new CommandProgress<T>();
         public static JsonSerializerSettings JsonSettings { get; } = new JsonSerializerSettings {Formatting = Formatting.None, NullValueHandling = NullValueHandling.Ignore, ContractResolver = new InterfaceContractResolver()};
 
         public virtual string Serialize()
@@ -30,16 +33,16 @@ namespace Shoko.Server.CommandQueue.Commands
             return JsonConvert.SerializeObject(this, JsonSettings);
         }
 
-        public virtual async Task<CommandResult> RunAsync(IProgress<ICommandProgress> progress = null, CancellationToken token = default(CancellationToken))
+        public virtual async Task RunAsync(IProgress<ICommand> progress = null, CancellationToken token = default(CancellationToken))
         {
-            return await Task.FromResult(Run(progress));
+            await Task.Run(() => Run(progress), token);
         }
 
-        public virtual CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public virtual void Run(IProgress<ICommand> progress = null)
         {
             try
             {
-                return RunAsync(progress).GetAwaiter().GetResult();
+                RunAsync(progress).GetAwaiter().GetResult();
             }
             catch (AggregateException e)
             {
@@ -47,39 +50,47 @@ namespace Shoko.Server.CommandQueue.Commands
             }
         }
 
-        public void InitProgress(IProgress<ICommandProgress> prg, bool report = true)
+        public void InitProgress(IProgress<ICommand> prg, bool report = true)
         {
            
-            Progress.Progress = 0;
-            Progress.Command = (T)(object)this;
+            Progress = 0;
+            Status = CommandStatus.Working;
             if (report)
-                prg?.Report(Progress);
+                prg?.Report((ICommand)this);
         }
 
         
-        public void UpdateAndReportProgress(IProgress<ICommandProgress> prg, double value)
+        public void UpdateAndReportProgress(IProgress<ICommand> prg, double value)
         {
-            Progress.Progress = value;
-            prg?.Report(Progress);
+            Progress = value;
+            prg?.Report((ICommand)this);
         }
 
-        public CommandResult ReportErrorAndGetResult(IProgress<ICommandProgress> prg, CommandResultStatus status, string error, Exception e = null)
+        public void ReportErrorAndGetResult(IProgress<ICommand> prg, CommandStatus status, string error, Exception e = null)
         {
-            Progress.Status = status;
-            Progress.Error = error;
-            prg?.Report(Progress);
+            Status = status;
+            Error = error;
+            prg?.Report((ICommand)this);
             if (e != null)
                 logger.Error(e, error);
             else
                 logger.Error(error);
-            return new CommandResult(status, error);
         }
-
-        public CommandResult ReportFinishAndGetResult(IProgress<ICommandProgress> prg)
+        public void ReportErrorAndGetResult(IProgress<ICommand> prg, string error, Exception e = null)
         {
-            Progress.Progress = 100;
-            prg?.Report(Progress);
-            return new CommandResult();
+            Status = CommandStatus.Error;
+            Error = error;
+            prg?.Report((ICommand)this);
+            if (e != null)
+                logger.Error(e, error);
+            else
+                logger.Error(error);
+        }
+        public void ReportFinishAndGetResult(IProgress<ICommand> prg)
+        {
+            Progress = 100;
+            Status = CommandStatus.Finished;
+            prg?.Report((ICommand)this);
         }
         public int Retries { get; set; }
         public string Batch { get; set; }

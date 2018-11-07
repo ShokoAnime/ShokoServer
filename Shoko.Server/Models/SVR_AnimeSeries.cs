@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using Force.DeepCloner;
 using Newtonsoft.Json;
 using NLog;
-using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
@@ -15,14 +14,13 @@ using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.Server;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
+using Shoko.Server.Compression.LZ4;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.LZ4;
 using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Repos;
+using Shoko.Server.Settings;
 using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models

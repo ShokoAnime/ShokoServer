@@ -1,20 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Server.Providers.TraktTV.Contracts.Search;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Trakt
 {
 
-    public class CmdTraktSearchAnime : BaseCommand<CmdTraktSearchAnime>, ICommand
+    public class CmdTraktSearchAnime : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -27,8 +29,8 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
         public  QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SearchTrakt,
-            extraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.SearchTrakt,
+            ExtraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Trakt;
@@ -44,7 +46,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TraktSearchAnime: {0}", AnimeID);
 
@@ -60,11 +62,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                     {
                       
 
-                        List<Azure_CrossRef_AniDB_Trakt> resultsCache =
-                            AzureWebAPI.Get_CrossRefAniDBTrakt(AnimeID);
+                        List<WebCache_CrossRef_AniDB_Trakt> resultsCache =
+                            WebCacheAPI.Get_CrossRefAniDBTrakt(AnimeID);
                         if (resultsCache != null && resultsCache.Count > 0)
                         {
-                            foreach (Azure_CrossRef_AniDB_Trakt xref in resultsCache)
+                            foreach (WebCache_CrossRef_AniDB_Trakt xref in resultsCache)
                             {
                                 TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
                                 if (showInfo == null) continue;
@@ -78,7 +80,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                                 doReturn = true;
                             }
                             UpdateAndReportProgress(progress,30);
-                            if (doReturn) return ReportFinishAndGetResult(progress);
+                            if (doReturn) 
+                            {
+                                ReportFinishAndGetResult(progress);
+                                return;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -135,24 +141,44 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                         doReturn = true;
                         UpdateAndReportProgress(progress,60);
                     }
-                    if (doReturn) return ReportFinishAndGetResult(progress);
+                    if (doReturn) 
+                    {
+                        ReportFinishAndGetResult(progress);
+                        return;
+                    }
                 }
 
                 // Use TvDB setting due to similarity
-                if (!ServerSettings.Instance.TvDB.AutoLink) return ReportFinishAndGetResult(progress);
+                if (!ServerSettings.Instance.TvDB.AutoLink)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 // finally lets try searching Trakt directly
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                if (anime == null) return ReportFinishAndGetResult(progress);
+                if (anime == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 var searchCriteria = anime.MainTitle;
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                 List<TraktV2SearchShowResult> results = TraktTVHelper.SearchShowV2(searchCriteria);
                 logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
-                if (ProcessSearchResults(results, searchCriteria)) return ReportFinishAndGetResult(progress);
+                if (ProcessSearchResults(results, searchCriteria)) 
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
-                if (results.Count != 0) return ReportFinishAndGetResult(progress);
+                if (results.Count != 0)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
 
                 UpdateAndReportProgress(progress, 80);
                 foreach (AniDB_Anime_Title title in anime.GetTitles())
@@ -164,14 +190,18 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
                     results = TraktTVHelper.SearchShowV2(searchCriteria);
                     logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
-                    if (ProcessSearchResults(results, title.Title)) return ReportFinishAndGetResult(progress);
+                    if (ProcessSearchResults(results, title.Title))
+                    {
+                        ReportFinishAndGetResult(progress);
+                        return;
+                    }
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ForceRefresh} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ForceRefresh} - {ex}", ex);
             }
         }
 

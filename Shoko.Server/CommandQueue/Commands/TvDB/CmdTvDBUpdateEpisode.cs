@@ -9,7 +9,7 @@ using Shoko.Server.Repositories;
 namespace Shoko.Server.CommandQueue.Commands.TvDB
 {
 
-    public class CmdTvDBUpdateEpisode : BaseCommand<CmdTvDBUpdateEpisode>, ICommand
+    public class CmdTvDBUpdateEpisode : BaseCommand, ICommand
     {
         public int TvDBEpisodeID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -24,8 +24,8 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.GettingTvDBEpisode,
-            extraParams = new[] {$"{InfoString} ({TvDBEpisodeID})", DownloadImages.ToString(),ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.GettingTvDBEpisode,
+            ExtraParams = new[] {$"{InfoString} ({TvDBEpisodeID})", DownloadImages.ToString(),ForceRefresh.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.TvDB;
@@ -42,7 +42,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             InfoString = infoString;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TvDBUpdateEpisode: {0} ({1})", InfoString, TvDBEpisodeID);
 
@@ -50,10 +50,18 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             {
                 InitProgress(progress);
                 var ep = TvDBApiHelper.UpdateEpisode(TvDBEpisodeID, DownloadImages, ForceRefresh);
-                if (ep == null) return ReportFinishAndGetResult(progress);
+                if (ep == null) 
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,25);
                 var xref = Repo.Instance.CrossRef_AniDB_TvDB.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AniDBID);
-                if (xref == null) return ReportFinishAndGetResult(progress);
+                if (xref == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress, 50);
                 foreach (var crossRefAniDbTvDbv2 in xref)
                 {
@@ -69,11 +77,11 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                     anime.QueueUpdateStats();
                 }
 
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error Processing CommandRequest_TvDBUpdateEpisode: {InfoString} ({TvDBEpisodeID})", ex);
+                ReportErrorAndGetResult(progress, $"Error Processing CommandRequest_TvDBUpdateEpisode: {InfoString} ({TvDBEpisodeID})", ex);
             }
         }
 

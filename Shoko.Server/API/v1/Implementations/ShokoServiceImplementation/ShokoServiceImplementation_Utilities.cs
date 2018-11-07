@@ -4,25 +4,28 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using AniDBAPI;
-using AniDBAPI.Commands;
 using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Client;
 using NutzCode.CloudFileSystem;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Server.Utilities;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Server;
+using Shoko.Server.Import;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Commands;
+using Shoko.Server.Providers.AniDB.Raws;
+using Shoko.Server.Providers.WebCache;
+using Shoko.Server.Renamer;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -515,7 +518,7 @@ namespace Shoko.Server
 
                 int errorCount = 0;
                 string errorString = string.Empty;
-                string name = vid.FileName;
+                string name = vid.Info;
 
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
@@ -547,11 +550,8 @@ namespace Shoko.Server
                     ret.NewFileName = errorString;
                     return ret;
                 }
-                vid.FileName = name;
                 if (ret.VideoLocal == null)
-                    ret.VideoLocal = new CL_VideoLocal() { FileName = name, VideoLocalID = videoLocalID };
-                else
-                    ret.VideoLocal.FileName = name;
+                    ret.VideoLocal = new CL_VideoLocal() {VideoLocalID = videoLocalID };
             }
             catch (Exception ex)
             {
@@ -748,10 +748,10 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    List<Shoko.Models.Azure.Azure_AnimeIDTitle> titles = AzureWebAPI.Get_AnimeTitle(titleQuery);
+                    List<WebCache_AnimeIDTitle> titles = WebCacheAPI.Get_AnimeTitle(titleQuery);
 
 
-                    foreach (Shoko.Models.Azure.Azure_AnimeIDTitle tit in titles)
+                    foreach (WebCache_AnimeIDTitle tit in titles)
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
                         {

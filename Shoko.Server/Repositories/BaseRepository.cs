@@ -6,10 +6,9 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+using Shoko.Server.Repositories.Cache;
 
 namespace Shoko.Server.Repositories
 {

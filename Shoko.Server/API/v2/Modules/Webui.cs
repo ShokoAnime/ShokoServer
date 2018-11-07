@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules
 {

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization;
+using Shoko.Server.Providers.TraktTV.Contracts.Sync;
 
 namespace Shoko.Server.Providers.TraktTV.Contracts
 {

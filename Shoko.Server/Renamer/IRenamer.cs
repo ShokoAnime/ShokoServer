@@ -1,7 +1,6 @@
 ﻿using Shoko.Models.Server;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+
 
 namespace Shoko.Server.Renamer
 {

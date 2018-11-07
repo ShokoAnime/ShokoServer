@@ -1,6 +1,7 @@
 ﻿using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {

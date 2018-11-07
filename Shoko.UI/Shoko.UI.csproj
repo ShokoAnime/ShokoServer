@@ -66,25 +66,12 @@
     <Compile Update="**\*.xaml.cs" SubType="Code" DependentUpon="%(Filename)" />
 
     <!-- Resources -->
-    <EmbeddedResource
-      Update="Properties\Resources.resx"
-      Generator="ResXFileCodeGenerator"
-      LastGenOutput="Resources.Designer.cs" />
-    <Compile
-      Update="Properties\Resources.Designer.cs"
-      AutoGen="True"
-      DependentUpon="Resources.resx"
-      DesignTime="True" />
+    <EmbeddedResource Update="Properties\Resources.resx" Generator="ResXFileCodeGenerator" LastGenOutput="Resources.Designer.cs" />
+    <Compile Update="Properties\Resources.Designer.cs" AutoGen="True" DependentUpon="Resources.resx" DesignTime="True" />
 
     <!-- Settings -->
-    <None
-      Update="Properties\Settings.settings"
-      Generator="SettingsSingleFileGenerator"
-      LastGenOutput="Settings.Designer.cs" />
-    <Compile
-      Update="Properties\Settings.Designer.cs"
-      AutoGen="True"
-      DependentUpon="Settings.settings" />
+    <None Update="Properties\Settings.settings" Generator="SettingsSingleFileGenerator" LastGenOutput="Settings.Designer.cs" />
+    <Compile Update="Properties\Settings.Designer.cs" AutoGen="True" DependentUpon="Settings.settings" />
     <!-- Assets -->
     <Resource Include="Images\Flags\*.gif" />
     <Resource Include="Images\*.png" />
@@ -93,11 +80,19 @@
   </ItemGroup>
   <!-- NuGet packages -->
   <ItemGroup>
-    <PackageReference Include="Bundle.Microsoft.SqlServer.SMO" Version="12.0.2000" />
-    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
     <PackageReference Include="WindowsAPICodePack" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
-  </ItemGroup>	
+  </ItemGroup>
+  <ItemGroup>
+    <NativeDependenciesx86 Include="$(SolutionDir)Dependencies\x86\*.dll;$(SolutionDir)Shoko.Hasher\windows\$(ConfigurationName)\*.dll" />
+    <NativeDependenciesx64 Include="$(SolutionDir)Dependencies\x64\*.dll;$(SolutionDir)Shoko.Hasher\windows\$(ConfigurationName)_x64\*.dll" />
+  </ItemGroup>
+
+  <Target Name="CopyDependencies" AfterTargets="PostBuildEvent">
+    <Copy SourceFiles="@(NativeDependenciesx86)" DestinationFolder="$(TargetDir)x86" />
+    <Copy SourceFiles="@(NativeDependenciesx64)" DestinationFolder="$(TargetDir)x64" />
+  </Target>
+
 </Project>

@@ -3,6 +3,7 @@ using System.Text;
 using Shoko.Models.PlexAndKodi;
 using Nancy;
 using Microsoft.AspNetCore.Http;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.PlexAndKodi.Plex
 {

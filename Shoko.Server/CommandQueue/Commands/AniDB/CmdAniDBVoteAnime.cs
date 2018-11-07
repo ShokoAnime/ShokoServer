@@ -6,7 +6,7 @@ using Shoko.Models.Queue;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBVoteAnime : BaseCommand<CmdAniDBVoteAnime>, ICommand
+    public class CmdAniDBVoteAnime : BaseCommand, ICommand
     {
 
 
@@ -22,7 +22,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string Id => $"Vote_{AnimeID}_{VoteType}_{VoteValue}";
         public WorkTypes WorkType => WorkTypes.AniDB;
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.VoteAnime, extraParams = new[] {AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture), VoteType.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.VoteAnime, ExtraParams = new[] {AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture), VoteType.ToString()}};
 
 
         public CmdAniDBVoteAnime(string str) : base(str)
@@ -35,7 +35,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             VoteType = voteType;
             VoteValue = voteValue;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info($"Processing CommandRequest_Vote: {Id}");
 
@@ -44,11 +44,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             {
                 InitProgress(progress);
                 ShokoService.AnidbProcessor.VoteAnime(AnimeID, VoteValue, (AniDBVoteType) VoteType);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.Vote: {Id} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.Vote: {Id} - {ex}", ex);
             }
         }
     }

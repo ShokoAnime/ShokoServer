@@ -8,8 +8,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Timers;
-using AniDBAPI;
-using AniDBAPI.Commands;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -17,11 +15,12 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Image;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Commands;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB

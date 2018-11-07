@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 
-namespace UPnP
+namespace Shoko.Server.Utilities
 {
     public class NAT
     {
@@ -28,7 +28,7 @@ namespace UPnP
                          "HOST: 239.255.255.250:1900\r\n" +
                          "ST:upnp:rootdevice\r\n" +
                          "MAN:\"ssdp:discover\"\r\n" +
-                         "MX:3\r\n\r\n";
+                         "MX:3\r\n";
             byte[] data = Encoding.ASCII.GetBytes(req);
             IPEndPoint ipe = new IPEndPoint(IPAddress.Broadcast, 1900);
             byte[] buffer = new byte[0x1000];

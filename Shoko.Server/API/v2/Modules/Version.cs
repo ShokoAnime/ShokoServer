@@ -6,6 +6,7 @@ using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {

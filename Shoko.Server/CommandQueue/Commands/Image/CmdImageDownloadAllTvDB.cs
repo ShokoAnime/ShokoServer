@@ -5,7 +5,7 @@ using Shoko.Server.Providers.TvDB;
 
 namespace Shoko.Server.CommandQueue.Commands.Image
 {
-    public class CmdImageDownloadAllTvDB : BaseCommand<CmdImageDownloadAllTvDB>, ICommand
+    public class CmdImageDownloadAllTvDB : BaseCommand, ICommand
     {
         public int TvDBSeriesID { get; set; }
         public bool ForceRefresh { get; set; }
@@ -19,8 +19,8 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.DownloadTvDBImages,
-            extraParams = new[] {TvDBSeriesID.ToString(), ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.DownloadTvDBImages,
+            ExtraParams = new[] {TvDBSeriesID.ToString(), ForceRefresh.ToString()}
         };
 
         public WorkTypes WorkType => WorkTypes.Image;
@@ -38,7 +38,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
         }
 
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_TvDBDownloadImages: {0}", TvDBSeriesID);
 
@@ -46,11 +46,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
             {
                 InitProgress(progress);
                 TvDBApiHelper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing CommandRequest_TvDBDownloadImages: {TvDBSeriesID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBDownloadImages: {TvDBSeriesID} - {ex}", ex);
             }
         }
 

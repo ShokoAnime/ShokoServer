@@ -16,6 +16,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Import;
 using Shoko.Server.Models;
 using Shoko.Server.Properties;
 using Shoko.Server.Repositories;

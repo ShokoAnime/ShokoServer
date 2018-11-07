@@ -2,12 +2,12 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheSendXRefAniDBOther : BaseCommand<CmdWebCacheSendXRefAniDBOther>, ICommand
+    public class CmdWebCacheSendXRefAniDBOther : BaseCommand, ICommand
     {
         public int CrossRef_AniDB_OtherID { get; set; }
 
@@ -20,8 +20,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheSendXRefAniDBOther,
-            extraParams = new[] {CrossRef_AniDB_OtherID.ToString()}
+            QueueState = QueueStateEnum.WebCacheSendXRefAniDBOther,
+            ExtraParams = new[] {CrossRef_AniDB_OtherID.ToString()}
         };
 
 
@@ -34,20 +34,24 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             CrossRef_AniDB_OtherID = xrefID;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
                 CrossRef_AniDB_Other xref = Repo.Instance.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
-                if (xref == null) return ReportFinishAndGetResult(progress);
+                if (xref == null)
+                {
+                    ReportFinishAndGetResult(progress);
+                    return;
+                }
                 UpdateAndReportProgress(progress,50);
-                AzureWebAPI.Send_CrossRefAniDBOther(xref);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_CrossRefAniDBOther(xref);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_OtherID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_OtherID} - {ex}", ex);
             }
         }
 

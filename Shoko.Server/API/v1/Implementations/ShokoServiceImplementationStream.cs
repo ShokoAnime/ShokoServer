@@ -11,7 +11,6 @@ using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.v1;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;

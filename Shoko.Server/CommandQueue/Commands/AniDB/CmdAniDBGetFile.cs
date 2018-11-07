@@ -1,13 +1,13 @@
 ﻿using System;
-using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
-    public class CmdAniDBGetFile : BaseCommand<CmdAniDBGetFile>, ICommand
+    public class CmdAniDBGetFile : BaseCommand, ICommand
     {
         private SVR_VideoLocal vlocal;
 
@@ -21,7 +21,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public WorkTypes WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.GetFileInfo, extraParams = new[] { VideoLocalID.ToString(),vlocal != null ? vlocal.Info : VideoLocalID.ToString(), ForceAniDB.ToString() } };
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetFileInfo, ExtraParams = new[] { VideoLocalID.ToString(),vlocal != null ? vlocal.Info : VideoLocalID.ToString(), ForceAniDB.ToString() } };
 
         public CmdAniDBGetFile(string str) : base(str)
         {
@@ -34,7 +34,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             VideoLocalID = vl.VideoLocalID;
             ForceAniDB = forceAniDB;
         }
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Get AniDB file info: {0}", VideoLocalID);
 
@@ -44,7 +44,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 InitProgress(progress);
                 if (vlocal == null)
                     vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
-                if (vlocal == null) return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"VideoLocal with id {VideoLocalID} not found");
+                if (vlocal == null)
+                {
+                    ReportErrorAndGetResult(progress, $"VideoLocal with id {VideoLocalID} not found");
+                    return;
+                }
                 lock (vlocal)
                 {
                     SVR_AniDB_File aniFile = Repo.Instance.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
@@ -81,12 +85,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         series.UpdateStats(true, true, true);
                     }
 
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
                 }
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDb.GetFile: {VideoLocalID} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetFile: {VideoLocalID} - {ex}", ex);
             }
         }
     }

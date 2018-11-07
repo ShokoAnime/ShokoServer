@@ -3,23 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.TvDB;
 
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Server.Providers.TraktTV.Contracts.Search;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -139,7 +141,7 @@ namespace Shoko.Server
         {
             try
             {
-                string res = AzureWebAPI.Admin_AuthUser();
+                string res = WebCacheAPI.Admin_AuthUser();
                 return string.IsNullOrEmpty(res);
             }
             catch (Exception ex)
@@ -150,20 +152,20 @@ namespace Shoko.Server
         }
 
         [HttpGet("WebCache/RandomLinkForApproval/{linkType}")]
-        public Azure_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
+        public WebCache_AnimeLink Admin_GetRandomLinkForApproval(int linkType)
         {
             try
             {
                 AzureLinkType lType = (AzureLinkType) linkType;
-                Azure_AnimeLink link = null;
+                WebCache_AnimeLink link = null;
 
                 switch (lType)
                 {
                     case AzureLinkType.TvDB:
-                        link = AzureWebAPI.Admin_GetRandomTvDBLinkForApproval();
+                        link = WebCacheAPI.Admin_GetRandomTvDBLinkForApproval();
                         break;
                     case AzureLinkType.Trakt:
-                        link = AzureWebAPI.Admin_GetRandomTraktLinkForApproval();
+                        link = WebCacheAPI.Admin_GetRandomTraktLinkForApproval();
                         break;
                 }
 
@@ -178,16 +180,16 @@ namespace Shoko.Server
         }
 
         [HttpGet("WebCache/AdminMessages")]
-        public List<Azure_AdminMessage> GetAdminMessages()
+        public List<WebCache_AdminMessage> GetAdminMessages()
         {
             try
             {
-                return ServerInfo.Instance.AdminMessages?.ToList() ?? new List<Azure_AdminMessage>();
+                return ServerInfo.Instance.AdminMessages?.ToList() ?? new List<WebCache_AdminMessage>();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return new List<Azure_AdminMessage>();
+                return new List<WebCache_AdminMessage>();
             }
         }
 
@@ -198,7 +200,7 @@ namespace Shoko.Server
         {
             try
             {
-                return AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
+                return WebCacheAPI.Admin_Approve_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
             }
             catch (Exception ex)
             {
@@ -212,7 +214,7 @@ namespace Shoko.Server
         {
             try
             {
-                return AzureWebAPI.Admin_Revoke_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
+                return WebCacheAPI.Admin_Revoke_CrossRefAniDBTvDB(crossRef_AniDB_TvDBId);
             }
             catch (Exception ex)
             {
@@ -238,12 +240,12 @@ namespace Shoko.Server
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
-                List<Azure_CrossRef_AniDB_TvDB> results =
-                    AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                List<WebCache_CrossRef_AniDB_TvDB> results =
+                    WebCacheAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
                 bool foundLinks = false;
                 if (results != null)
                 {
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in results)
+                    foreach (WebCache_CrossRef_AniDB_TvDB xref in results)
                     {
                         if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -258,25 +260,25 @@ namespace Shoko.Server
                 // send the links to the web cache
                 foreach (CrossRef_AniDB_TvDB xref in xrefs)
                 {
-                    AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
+                    WebCacheAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
                 }
 
                 // now get the links back from the cache and approve them
-                results = AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                results = WebCacheAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
                 if (results != null)
                 {
-                    List<Azure_CrossRef_AniDB_TvDB> linksToApprove =
-                        new List<Azure_CrossRef_AniDB_TvDB>();
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in results)
+                    List<WebCache_CrossRef_AniDB_TvDB> linksToApprove =
+                        new List<WebCache_CrossRef_AniDB_TvDB>();
+                    foreach (WebCache_CrossRef_AniDB_TvDB xref in results)
                     {
                         if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
 
-                    foreach (Azure_CrossRef_AniDB_TvDB xref in linksToApprove)
+                    foreach (WebCache_CrossRef_AniDB_TvDB xref in linksToApprove)
                     {
-                        AzureWebAPI.Admin_Approve_CrossRefAniDBTvDB(
+                        WebCacheAPI.Admin_Approve_CrossRefAniDBTvDB(
                             xref.CrossRef_AniDB_TvDBV2ID);
                     }
                     return "Success";
@@ -300,7 +302,7 @@ namespace Shoko.Server
         {
             try
             {
-                return AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
+                return WebCacheAPI.Admin_Approve_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
             }
             catch (Exception ex)
             {
@@ -314,7 +316,7 @@ namespace Shoko.Server
         {
             try
             {
-                return AzureWebAPI.Admin_Revoke_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
+                return WebCacheAPI.Admin_Revoke_CrossRefAniDBTrakt(crossRef_AniDB_TraktId);
             }
             catch (Exception ex)
             {
@@ -340,12 +342,12 @@ namespace Shoko.Server
                 if (anime == null) return "Anime not found";
 
                 // make sure the user doesn't alreday have links
-                List<Azure_CrossRef_AniDB_Trakt> results =
-                    AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                List<WebCache_CrossRef_AniDB_Trakt> results =
+                    WebCacheAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
                 bool foundLinks = false;
                 if (results != null)
                 {
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in results)
+                    foreach (WebCache_CrossRef_AniDB_Trakt xref in results)
                     {
                         if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
@@ -360,25 +362,25 @@ namespace Shoko.Server
                 // send the links to the web cache
                 foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
                 {
-                    AzureWebAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
+                    WebCacheAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
                 }
 
                 // now get the links back from the cache and approve them
-                results = AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                results = WebCacheAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
                 if (results != null)
                 {
-                    List<Azure_CrossRef_AniDB_Trakt> linksToApprove =
-                        new List<Azure_CrossRef_AniDB_Trakt>();
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in results)
+                    List<WebCache_CrossRef_AniDB_Trakt> linksToApprove =
+                        new List<WebCache_CrossRef_AniDB_Trakt>();
+                    foreach (WebCache_CrossRef_AniDB_Trakt xref in results)
                     {
                         if (xref.Username.Equals(ServerSettings.Instance.AniDb.Username,
                             StringComparison.InvariantCultureIgnoreCase))
                             linksToApprove.Add(xref);
                     }
 
-                    foreach (Azure_CrossRef_AniDB_Trakt xref in linksToApprove)
+                    foreach (WebCache_CrossRef_AniDB_Trakt xref in linksToApprove)
                     {
-                        AzureWebAPI.Admin_Approve_CrossRefAniDBTrakt(
+                        WebCacheAPI.Admin_Approve_CrossRefAniDBTrakt(
                             xref.CrossRef_AniDB_TraktV2ID);
                     }
                     return "Success";
@@ -431,19 +433,19 @@ namespace Shoko.Server
         }
 
         [HttpGet("WebCache/CrossRef/TvDB/{animeID}/{isAdmin}")]
-        public List<Azure_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
+        public List<WebCache_CrossRef_AniDB_TvDB> GetTVDBCrossRefWebCache(int animeID, bool isAdmin)
         {
             try
             {
                 if (isAdmin)
-                    return AzureWebAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
+                    return WebCacheAPI.Admin_Get_CrossRefAniDBTvDB(animeID);
                 else
-                    return AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
+                    return WebCacheAPI.Get_CrossRefAniDBTvDB(animeID);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return new List<Azure_CrossRef_AniDB_TvDB>();
+                return new List<WebCache_CrossRef_AniDB_TvDB>();
             }
         }
 
@@ -807,19 +809,19 @@ namespace Shoko.Server
         }
 
         [HttpGet("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}")]
-        public List<Azure_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
+        public List<WebCache_CrossRef_AniDB_Trakt> GetTraktCrossRefWebCache(int animeID, bool isAdmin)
         {
             try
             {
                 if (isAdmin)
-                    return AzureWebAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
+                    return WebCacheAPI.Admin_Get_CrossRefAniDBTrakt(animeID);
                 else
-                    return AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
+                    return WebCacheAPI.Get_CrossRefAniDBTrakt(animeID);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return new List<Azure_CrossRef_AniDB_Trakt>();
+                return new List<WebCache_CrossRef_AniDB_Trakt>();
             }
         }
 
@@ -1235,7 +1237,7 @@ namespace Shoko.Server
         {
             try
             {
-                return AzureWebAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType) crossRefType);
+                return WebCacheAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType) crossRefType);
             }
             catch (Exception ex)
             {

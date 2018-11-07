@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
 using NLog;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Models.TvDB
+namespace Shoko.Server.Providers.TvDB
 {
     public class TvDBSummary
     {

@@ -14,3 +14,6 @@
 	path = Nancy.Rest.Annotations
 	url = https://github.com/maxpiva/Nancy.Rest.Annotations
 	branch = NetStandard20
+[submodule "Shoko.Hasher"]
+	path = Shoko.Hasher
+	url = https://github.com/ShokoAnime/Shoko.Hasher

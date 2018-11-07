@@ -11,16 +11,17 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.AniDB_API;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.Image
 {
 
-    public class CmdImageDownload : BaseCommand<CmdImageDownload>, ICommand
+    public class CmdImageDownload : BaseCommand, ICommand
     {
         public int EntityID { get; set; }
         public int EntityType { get; set; }
@@ -189,7 +190,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
         }
 
 
-        public QueueStateStruct PrettyDescription => new QueueStateStruct {queueState = QueueStateEnum.DownloadImage, extraParams = new[] {_info.FormatDescription, EntityID.ToString()}};
+        public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.DownloadImage, ExtraParams = new[] {_info.FormatDescription, EntityID.ToString()}};
 
 
 
@@ -206,7 +207,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
             _info = new ImageTypeInfo(EntityTypeEnum, EntityID);
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_DownloadImage: {0}", EntityID);
             string downloadURL = string.Empty;
@@ -217,14 +218,16 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                 if (_info.ValidateFunc == null)
                 {
                     logger.Warn($"Image failed to download: No implementation found for {EntityTypeEnum}");
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
                 var obj = _info.FindFunc();
                 if (!_info.ValidateFunc(obj))
                 {
                     logger.Warn(_info.Error);
                     _info.DeleteFunc?.Invoke();
-                    return ReportFinishAndGetResult(progress);
+                    ReportFinishAndGetResult(progress);
+                    return;
                 }
                 List<string> fileNames = new List<string>();
                 List<string> downloadURLs = new List<string>();
@@ -271,7 +274,8 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         {
                             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
                             logger.Warn(Resources.Command_DeleteError, fileName, ex.Message);
-                            return ReportFinishAndGetResult(progress);
+                            ReportFinishAndGetResult(progress);
+                            return;
                         }
 
                         // If this has any issues, it will throw an exception, so the catch below will handle it
@@ -296,11 +300,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                     }
 
                 }
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error,$"Error processing CommandRequest_DownloadImage: {downloadURL ?? ""} ({EntityTypeEnum}) - {EntityID}",ex);
+                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_DownloadImage: {downloadURL ?? ""} ({EntityTypeEnum}) - {EntityID}",ex);
             }
         }
 

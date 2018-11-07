@@ -6,7 +6,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public class GroupFilterHelper
     {

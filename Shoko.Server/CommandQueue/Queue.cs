@@ -1,21 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
 using Shoko.Commons.Extensions;
 using Shoko.Server.CommandQueue.Commands;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue
 {
-    public class Queue : ObservableProgress<ICommandProgress>
+    public class Queue : ObservableProgress<ICommand>
     {
         private static Queue _instance;
         public static Queue Instance => _instance ?? (_instance = new Queue());
         public int MaxThreads { get; set; } = 8;
-        public int MaxRetries { get; set; } = 3;
         public int DefaultCheckDelayInMilliseconds { get; set; } = 1000;
         public int NoWorkDelayInMilliseconds { get; set; } = 5000;
         public int RetryFutureSeconds { get; set; } = 60;
@@ -73,11 +71,11 @@ namespace Shoko.Server.CommandQueue
                     {
                         Task t = new Task(async () =>
                         {
-                            CommandResult r = await c.RunAsync(this, token);
-                            if (r.Status == CommandResultStatus.Error && c.Retries < 3)
+                            await c.RunAsync(this, token);
+                            if (c.Status == CommandStatus.Error && c.Retries < c.MaxRetries)
                             {
                                 c.Retries++;
-                                Provider.Put(c, c.Batch, RetryFutureSeconds, r.Error, c.Retries);
+                                Provider.Put(c, c.Batch, RetryFutureSeconds, c.Error, c.Retries);
                             }
                             using (await _lock.LockAsync(token))
                             {

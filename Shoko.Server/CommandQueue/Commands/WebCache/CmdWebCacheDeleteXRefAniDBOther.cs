@@ -2,11 +2,11 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Server.Providers.Azure;
+using Shoko.Server.Providers.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheDeleteXRefAniDBOther : BaseCommand<CmdWebCacheDeleteXRefAniDBOther>, ICommand
+    public class CmdWebCacheDeleteXRefAniDBOther : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public int CrossRefType { get; set; }
@@ -21,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public  QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther,
-            extraParams = new[] {AnimeID.ToString(), ((CrossRefType)CrossRefType).ToString()}
+            QueueState = QueueStateEnum.WebCacheDeleteXRefAniDBOther,
+            ExtraParams = new[] {AnimeID.ToString(), ((CrossRefType)CrossRefType).ToString()}
         };
 
 
@@ -36,17 +36,17 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             CrossRefType = (int) xrefType;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 InitProgress(progress);
-                AzureWebAPI.Delete_CrossRefAniDBOther(AnimeID, (CrossRefType) CrossRefType);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Delete_CrossRefAniDBOther(AnimeID, (CrossRefType) CrossRefType);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheDeleteXRefAniDBOther: {AnimeID} - {CrossRefType} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {AnimeID} - {CrossRefType} - {ex}", ex);
             }
         }
     }

@@ -13,12 +13,14 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.WebCache;
-using Shoko.Server.Commands;
-using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV.Contracts;
+using Shoko.Server.Providers.TraktTV.Contracts.Auth;
+using Shoko.Server.Providers.TraktTV.Contracts.Search;
+using Shoko.Server.Providers.TraktTV.Contracts.Sync;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.TraktTV

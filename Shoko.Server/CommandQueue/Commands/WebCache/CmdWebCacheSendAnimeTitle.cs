@@ -1,15 +1,15 @@
 ﻿using System;
 using Shoko.Commons.Queue;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
-using Shoko.Server.Providers.Azure;
+using Shoko.Models.WebCache;
+using Shoko.Server.Providers.WebCache;
 
 // ReSharper disable HeuristicUnreachableCode
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
 
-    public class CmdWebCacheSendAnimeTitle : BaseCommand<CmdWebCacheSendAnimeTitle>, ICommand
+    public class CmdWebCacheSendAnimeTitle : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public string MainTitle { get; set; }
@@ -25,8 +25,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.SendAnimeTitle,
-            extraParams = new[] {AnimeID.ToString(), MainTitle, Titles}
+            QueueState = QueueStateEnum.SendAnimeTitle,
+            ExtraParams = new[] {AnimeID.ToString(), MainTitle, Titles}
         };
 
 
@@ -42,28 +42,28 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             try
             {
                 bool process = false;
 
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (!process) return new CommandResult();
+                if (!process) return;
                 InitProgress(progress);
-                Azure_AnimeIDTitle thisTitle = new Azure_AnimeIDTitle
+                WebCache_AnimeIDTitle thisTitle = new WebCache_AnimeIDTitle
                 {
                     AnimeIDTitleId = 0,
                     MainTitle = MainTitle,
                     AnimeID = AnimeID,
                     Titles = Titles
                 };
-                AzureWebAPI.Send_AnimeTitle(thisTitle);
-                return ReportFinishAndGetResult(progress);
+                WebCacheAPI.Send_AnimeTitle(thisTitle);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing WebCacheSendAnimeTitle: {AnimeID} - {MainTitle} - {Titles} - {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendAnimeTitle: {AnimeID} - {MainTitle} - {Titles} - {ex}", ex);
             }
         }
        

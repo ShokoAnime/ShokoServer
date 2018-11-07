@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.WebCache;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server
+namespace Shoko.Server.Providers.TvDB
 {
     public static class TvDBLinkingHelper
     {
@@ -770,7 +770,7 @@ namespace Shoko.Server
         }
 
         public static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacy(
-            List<Azure_CrossRef_AniDB_TvDB> links)
+            List<WebCache_CrossRef_AniDB_TvDB> links)
         {
             var list = links.Select(a => (a.AnimeID, a.AniDBStartEpisodeType, a.AniDBStartEpisodeNumber, a.TvDBID,
                 a.TvDBSeasonNumber, a.TvDBStartEpisodeNumber)).ToList();

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories
 {

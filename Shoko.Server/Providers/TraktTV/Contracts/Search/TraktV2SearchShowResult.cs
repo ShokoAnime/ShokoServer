@@ -1,7 +1,7 @@
 ﻿using System.Runtime.Serialization;
 using Shoko.Models.Client;
 
-namespace Shoko.Server.Providers.TraktTV.Contracts
+namespace Shoko.Server.Providers.TraktTV.Contracts.Search
 {
     [DataContract]
     public class TraktV2SearchShowResult

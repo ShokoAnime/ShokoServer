@@ -1,6 +1,6 @@
 ﻿using Shoko.Models.Enums;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public class GroupFilterSortingCriteria
     {

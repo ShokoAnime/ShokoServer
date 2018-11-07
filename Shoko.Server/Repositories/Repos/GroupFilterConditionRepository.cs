@@ -1,5 +1,6 @@
 ﻿using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
+using Shoko.Server.Repositories.Cache;
 using System;
 using System.Collections.Generic;
 using System.Text;

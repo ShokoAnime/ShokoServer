@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Security.Policy;
+
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -17,14 +16,14 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Trakt;
-using Shoko.Server.Commands;
+using Shoko.Server.Compression.LZ4;
 using Shoko.Server.Extensions;
-using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
+
 using Shoko.Server.Repositories.Repos;
 using Shoko.Server.Security;
+using Shoko.Server.Settings;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
@@ -96,7 +95,7 @@ namespace Shoko.Server.Models
             sb.Append("VideoLocalID: " + VideoLocalID);
 
             sb.Append(Environment.NewLine);
-            sb.Append("FileName: " + FileName);
+            sb.Append("FileName: " + Info);
             sb.Append(Environment.NewLine);
             sb.Append("Hash: " + Hash);
             sb.Append(Environment.NewLine);
@@ -393,7 +392,7 @@ namespace Shoko.Server.Models
 
         public override string ToString()
         {
-            return $"{FileName} --- {Hash}";
+            return $"{Info} --- {Hash}";
         }
 
 
@@ -403,7 +402,7 @@ namespace Shoko.Server.Models
             {
                 CRC32 = CRC32,
                 DateTimeUpdated = DateTimeUpdated,
-                FileName = FileName,
+                FileName = Info,
                 FileSize = FileSize,
                 Hash = Hash,
                 HashSource = HashSource,
@@ -439,7 +438,7 @@ namespace Shoko.Server.Models
             if (!string.IsNullOrEmpty(MD5)) return false;
             if (!string.IsNullOrEmpty(CRC32)) return false;
             if (!string.IsNullOrEmpty(SHA1)) return false;
-            if (!string.IsNullOrEmpty(FileName)) return false;
+            if (!string.IsNullOrEmpty(Info)) return false;
             if (FileSize > 0) return false;
             return true;
         }
@@ -472,7 +471,7 @@ namespace Shoko.Server.Models
             if (n.Parts == null) return n;
             foreach (Part p in n.Parts)
             {
-                string name = UrlSafe.Replace(Path.GetFileName(FileName), " ")
+                string name = UrlSafe.Replace(Path.GetFileName(Info), " ")
                     .Replace("  ", " ")
                     .Replace("  ", " ")
                     .Trim();
@@ -512,7 +511,7 @@ namespace Shoko.Server.Models
             cl.CrossRefSource = xrefs[0].CrossRefSource;
             cl.AnimeEpisodeID = xrefs[0].EpisodeID;
 
-            cl.VideoLocal_FileName = FileName;
+            cl.VideoLocal_FileName = Info;
             cl.VideoLocal_Hash = Hash;
             cl.VideoLocal_FileSize = FileSize;
             cl.VideoLocalID = VideoLocalID;
@@ -613,7 +612,7 @@ namespace Shoko.Server.Models
             {
                 CRC32 = CRC32,
                 DateTimeUpdated = DateTimeUpdated,
-                FileName = FileName,
+                FileName = Info,
                 FileSize = FileSize,
                 Hash = Hash,
                 HashSource = HashSource,

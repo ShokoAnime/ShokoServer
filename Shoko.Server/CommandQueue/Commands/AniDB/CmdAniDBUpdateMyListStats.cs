@@ -3,11 +3,13 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
 
-    public class CmdAniDBUpdateMyListStats : BaseCommand<CmdAniDBUpdateMyListStats>, ICommand
+    public class CmdAniDBUpdateMyListStats : BaseCommand, ICommand
     {
         public bool ForceRefresh { get; set; }
 
@@ -19,8 +21,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
-            queueState = QueueStateEnum.UpdateMyListStats,
-            extraParams = new [] { ForceRefresh.ToString()}
+            QueueState = QueueStateEnum.UpdateMyListStats,
+            ExtraParams = new [] { ForceRefresh.ToString()}
         };
 
      
@@ -33,7 +35,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             ForceRefresh = forced;
         }
 
-        public override CommandResult Run(IProgress<ICommandProgress> progress = null)
+        public override void Run(IProgress<ICommand> progress = null)
         {
             logger.Info("Processing CommandRequest_UpdateMyListStats");
 
@@ -67,11 +69,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 UpdateAndReportProgress(progress,60);
 
                 ShokoService.AnidbProcessor.UpdateMyListStats();
-                return ReportFinishAndGetResult(progress);
+                ReportFinishAndGetResult(progress);
             }
             catch (Exception ex)
             {
-                return ReportErrorAndGetResult(progress, CommandResultStatus.Error, $"Error processing Command AniDB.UpdateMyListStats: {ex}", ex);
+                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.UpdateMyListStats: {ex}", ex);
             }
         }
     }

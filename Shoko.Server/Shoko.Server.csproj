@@ -23,17 +23,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="DatabasesOld\**" />
-    <Compile Remove="Databases\Extensions\**" />
     <Compile Remove="Mappings\**" />
     <Compile Remove="RepositoriesOld\**" />
     <Compile Remove="Workers\Commands\Import\**" />
     <EmbeddedResource Remove="DatabasesOld\**" />
-    <EmbeddedResource Remove="Databases\Extensions\**" />
     <EmbeddedResource Remove="Mappings\**" />
     <EmbeddedResource Remove="RepositoriesOld\**" />
     <EmbeddedResource Remove="Workers\Commands\Import\**" />
     <None Remove="DatabasesOld\**" />
-    <None Remove="Databases\Extensions\**" />
     <None Remove="RepositoriesOld\**" />
     <None Remove="Mappings\**" />
     <None Remove="Workers\Commands\Import\**" />
@@ -56,24 +53,23 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.1.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.1.1" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
-    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
     <PackageReference Include="MimeTypes" Version="1.1.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.3.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.Mysql" Version="2.1.2" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
-    <PackageReference Include="NLog" Version="4.5.10" />
+    <PackageReference Include="NLog" Version="4.5.11" />
     <PackageReference Include="Pri.LongPath" Version="2.0.45" Condition=" '$(TargetFramework)' == 'net47'" />
     <PackageReference Include="SharpCompress" Version="0.22.0" />
     <PackageReference Include="SQLitePCLRaw.provider.winsqlite3.net45" Version="1.1.11" Condition=" '$(TargetFramework)' == 'net47'" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="3.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="3.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="4.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="4.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="4.5.0" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.1" />
     <PackageReference Include="System.Reactive" Version="4.1.2" />
     <PackageReference Include="System.Reactive.Linq" Version="4.1.2" />
     <PackageReference Include="System.ServiceModel.Web" Version="1.0.0" />
-    <PackageReference Include="TaskScheduler" Version="2.8.5" />
+    <PackageReference Include="TaskScheduler" Version="2.8.6" />
     <PackageReference Include="TMDbLib" Version="1.2.0-alpha" />
   </ItemGroup>
   <ItemGroup>
