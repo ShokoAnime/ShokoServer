@@ -231,6 +231,8 @@ namespace Shoko.Server.API.v2.Modules
             });
             Get["/sync", true] = async (x, ct) => await Task.Factory.StartNew(() =>
             {
+                Analytics.PostEvent("Plex", "SyncOne");
+
                 new CommandRequest_PlexSyncWatched((JMMUser) this.Context.CurrentUser).Save();
                 return APIStatus.OK();
             });

@@ -498,6 +498,8 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Trakt_IsEnabled) return;
 
+            Analytics.PostEvent("TraktTV", nameof(ScanForMatches));
+
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll();
 
             IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
