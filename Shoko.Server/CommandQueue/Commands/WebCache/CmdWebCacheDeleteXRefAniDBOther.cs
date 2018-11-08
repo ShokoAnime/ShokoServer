@@ -40,13 +40,13 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 WebCacheAPI.Delete_CrossRefAniDBOther(AnimeID, (CrossRefType) CrossRefType);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {AnimeID} - {CrossRefType} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {AnimeID} - {CrossRefType} - {ex}", ex);
             }
         }
     }

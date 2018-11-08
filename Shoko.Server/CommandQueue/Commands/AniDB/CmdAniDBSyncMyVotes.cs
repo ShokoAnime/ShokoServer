@@ -37,12 +37,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             logger.Info("Processing CommandRequest_SyncMyVotes");
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
                 cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
                 enHelperActivityType ev = cmd.Process();
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
                 if (ev == enHelperActivityType.GotVotesHTTP)
                 {
                     List<ICommand> cmdstoAdd = new List<ICommand>();
@@ -81,14 +81,14 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
                     if (cmdstoAdd.Count>0)
                         Queue.Instance.AddRange(cmdstoAdd);
-                    UpdateAndReportProgress(progress,90);
+                    ReportUpdate(progress,90);
                     logger.Info("Processed Votes: {0} Items", cmd.MyVotes.Count);
                 }
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing AniDb.SyncMyVotes: {ex}", ex);
+                ReportError(progress, $"Error processing AniDb.SyncMyVotes: {ex}", ex);
             }
         }
     }

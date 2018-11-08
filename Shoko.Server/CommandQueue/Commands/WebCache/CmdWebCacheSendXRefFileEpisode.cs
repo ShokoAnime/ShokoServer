@@ -41,20 +41,20 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 CrossRef_File_Episode xref = Repo.Instance.CrossRef_File_Episode.GetByID(CrossRef_File_EpisodeID);
                 if (xref == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 } 
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 WebCacheAPI.Send_CrossRefFileEpisode(xref);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {CrossRef_File_EpisodeID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheDeleteXRefAniDBOther: {CrossRef_File_EpisodeID} - {ex}", ex);
             }
         }
       

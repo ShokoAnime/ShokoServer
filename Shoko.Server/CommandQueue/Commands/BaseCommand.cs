@@ -50,7 +50,7 @@ namespace Shoko.Server.CommandQueue.Commands
             }
         }
 
-        public void InitProgress(IProgress<ICommand> prg, bool report = true)
+        public void ReportInit(IProgress<ICommand> prg, bool report = true)
         {
            
             Progress = 0;
@@ -60,13 +60,13 @@ namespace Shoko.Server.CommandQueue.Commands
         }
 
         
-        public void UpdateAndReportProgress(IProgress<ICommand> prg, double value)
+        public void ReportUpdate(IProgress<ICommand> prg, double value)
         {
             Progress = value;
             prg?.Report((ICommand)this);
         }
 
-        public void ReportErrorAndGetResult(IProgress<ICommand> prg, CommandStatus status, string error, Exception e = null)
+        public void ReportError(IProgress<ICommand> prg, CommandStatus status, string error, Exception e = null)
         {
             Status = status;
             Error = error;
@@ -76,7 +76,7 @@ namespace Shoko.Server.CommandQueue.Commands
             else
                 logger.Error(error);
         }
-        public void ReportErrorAndGetResult(IProgress<ICommand> prg, string error, Exception e = null)
+        public void ReportError(IProgress<ICommand> prg, string error, Exception e = null)
         {
             Status = CommandStatus.Error;
             Error = error;
@@ -86,7 +86,7 @@ namespace Shoko.Server.CommandQueue.Commands
             else
                 logger.Error(error);
         }
-        public void ReportFinishAndGetResult(IProgress<ICommand> prg)
+        public void ReportFinish(IProgress<ICommand> prg)
         {
             Progress = 100;
             Status = CommandStatus.Finished;

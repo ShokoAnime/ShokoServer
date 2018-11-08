@@ -39,13 +39,13 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 WebCacheAPI.Send_UserInfo();
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendUserInfo {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendUserInfo {ex}", ex);
             }
         }        
     }

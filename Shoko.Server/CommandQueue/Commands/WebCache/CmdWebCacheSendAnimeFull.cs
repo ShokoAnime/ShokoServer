@@ -47,27 +47,27 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                 if (!process) return;
 
 
-                InitProgress(progress);
+                ReportInit(progress);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
                 if (anime.AllTags.ToUpper().Contains("18 RESTRICTED"))
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
 
                 WebCacheAPI.Send_AnimeFull(anime);
-               ReportFinishAndGetResult(progress);
+               ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendAnimeFull: {AnimeID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendAnimeFull: {AnimeID} - {ex}", ex);
             }
         }
       

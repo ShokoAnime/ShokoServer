@@ -40,13 +40,13 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 WebCacheAPI.Delete_CrossRefFileEpisode(Hash);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefFileEpisode {Hash} - {EpisodeID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheDeleteXRefFileEpisode {Hash} - {EpisodeID} - {ex}", ex);
             }
         }
        

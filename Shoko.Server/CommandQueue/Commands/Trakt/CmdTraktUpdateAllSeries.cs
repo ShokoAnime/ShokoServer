@@ -36,7 +36,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 using (var txn = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
                     () => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate),
                     () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktUpdate, UpdateDetails = string.Empty }
@@ -51,25 +51,25 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                         TimeSpan tsLastRun = DateTime.Now - txn.Entity.LastUpdate;
                         if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
                         {
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
                     }
                     txn.Entity.LastUpdate = DateTime.Now;
                     txn.Commit();
                 }
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
                 // update all info
                 TraktTVHelper.UpdateAllInfo();
 
-                UpdateAndReportProgress(progress, 60);
+                ReportUpdate(progress, 60);
                 // scan for new matches
                 TraktTVHelper.ScanForMatches();
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktUpdateAllSeries: {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TraktUpdateAllSeries: {ex}", ex);
             }
         }
 

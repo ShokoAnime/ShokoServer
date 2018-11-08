@@ -40,20 +40,20 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 AniDB_ReleaseGroup relGroup = Repo.Instance.AniDB_ReleaseGroup.GetByGroupID(GroupID);
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 if (ForceRefresh || relGroup == null)
                 {
                     // redownload anime details from http ap so we can get an update character list
                     ShokoService.AnidbProcessor.GetReleaseGroupUDP(GroupID);
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetReleaseGroup: {GroupID} - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDb.GetReleaseGroup: {GroupID} - {ex}", ex);
             }
         }
     }

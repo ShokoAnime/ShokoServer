@@ -21,7 +21,7 @@ namespace Shoko.Server.CommandQueue.Commands
 
         public void Report(double value)
         {
-            _original.UpdateAndReportProgress(_orgp, _start + value * _max / 100D);
+            _original.ReportUpdate(_orgp, _start + value * _max / 100D);
         }
     }
 }

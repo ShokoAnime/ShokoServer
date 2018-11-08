@@ -43,13 +43,13 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 TraktTVHelper.UpdateAllInfo(TraktID);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktUpdateInfo: {TraktID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TraktUpdateInfo: {TraktID} - {ex}", ex);
             }
         }
 

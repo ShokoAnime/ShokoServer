@@ -38,10 +38,10 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -58,20 +58,20 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                         TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
                         if (tsLastRun.TotalHours < freqHours && !ForceRefresh)
                         {
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
                     }
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
                 }
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 TraktTVHelper.SyncCollectionToTrakt();
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TraktSyncCollection: {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TraktSyncCollection: {ex}", ex);
             }
         }
     }

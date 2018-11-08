@@ -48,12 +48,12 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 if (!process) return;
-                InitProgress(progress);
+                ReportInit(progress);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                UpdateAndReportProgress(progress,33);
+                ReportUpdate(progress,33);
                 if (anime == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -72,7 +72,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                     rawXML = re.ReadToEnd();
                     re.Close();
                 }
-                UpdateAndReportProgress(progress, 66);
+                ReportUpdate(progress, 66);
 
                 WebCache_AnimeXML xml = new WebCache_AnimeXML
                 {
@@ -83,11 +83,11 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                     XMLContent = rawXML
                 };
                 WebCacheAPI.Send_AnimeXML(xml);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress,  $"Error processing WebCacheSendAnimeXML: {AnimeID} - {ex}", ex);
+                ReportError(progress,  $"Error processing WebCacheSendAnimeXML: {AnimeID} - {ex}", ex);
             }
         }      
     }

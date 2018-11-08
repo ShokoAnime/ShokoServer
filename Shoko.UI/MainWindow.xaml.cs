@@ -325,7 +325,7 @@ namespace Shoko.UI
             btnImagesClear.IsEnabled = true;
             Task task = new Task(() =>
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Image);
+                Queue.Instance.ClearWorkTypes(WorkTypes.Image);
             });
 
             try
@@ -348,7 +348,7 @@ namespace Shoko.UI
             btnGeneralClear.IsEnabled = false;
             Task task = new Task(() =>
             {
-                Repo.Instance.CommandRequest.ClearQueue(Repo.Instance.CommandRequest.GeneralWorkTypesExceptSchedule);
+                Queue.Instance.ClearWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
             });
 
             try
@@ -371,7 +371,7 @@ namespace Shoko.UI
             btnHasherClear.IsEnabled = false;
             Task task = new Task(() =>
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Hashing);
+                Queue.Instance.ClearWorkTypes(WorkTypes.Hashing);
             });
 
             try
@@ -1038,32 +1038,32 @@ namespace Shoko.UI
 
         void btnGeneralResume_Click(object sender, RoutedEventArgs e)
         {
-            Queue.Instance.Start();
+            Queue.Instance.ResumeWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
         }
 
         void btnGeneralPause_Click(object sender, RoutedEventArgs e)
         {
-            Queue.Instance.Stop();
+            Queue.Instance.PauseWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
         }
 
         void btnHasherResume_Click(object sender, RoutedEventArgs e)
         {
-            //NOOP
+            Queue.Instance.ResumeWorkTypes(WorkTypes.Hashing);
         }
 
         void btnHasherPause_Click(object sender, RoutedEventArgs e)
         {
-            //NOOP
+            Queue.Instance.PauseWorkTypes(WorkTypes.Hashing);
         }
 
         void btnImagesResume_Click(object sender, RoutedEventArgs e)
         {
-            //NOOP
+            Queue.Instance.ResumeWorkTypes(WorkTypes.Image);
         }
 
         void btnImagesPause_Click(object sender, RoutedEventArgs e)
         {
-            //NOOP
+            Queue.Instance.PauseWorkTypes(WorkTypes.Image);
         }
 
         void btnToolbarShutdown_Click(object sender, RoutedEventArgs e)

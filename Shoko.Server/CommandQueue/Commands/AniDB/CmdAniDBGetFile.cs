@@ -41,22 +41,22 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (vlocal == null)
                     vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 if (vlocal == null)
                 {
-                    ReportErrorAndGetResult(progress, $"VideoLocal with id {VideoLocalID} not found");
+                    ReportError(progress, $"VideoLocal with id {VideoLocalID} not found");
                     return;
                 }
                 lock (vlocal)
                 {
                     SVR_AniDB_File aniFile = Repo.Instance.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
-                    UpdateAndReportProgress(progress,20);
+                    ReportUpdate(progress,20);
                     Raw_AniDB_File fileInfo = null;
                     if (aniFile == null || ForceAniDB)
                         fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
-                    UpdateAndReportProgress(progress,40);
+                    ReportUpdate(progress,40);
 
                     if (fileInfo != null)
                     {
@@ -72,11 +72,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                             aniFile = upd.Commit();
                         }
 
-                        UpdateAndReportProgress(progress,55);
+                        ReportUpdate(progress,55);
                         aniFile.CreateLanguages();
-                        UpdateAndReportProgress(progress,70);
+                        ReportUpdate(progress,70);
                         aniFile.CreateCrossEpisodes(vlocal.Info);
-                        UpdateAndReportProgress(progress,85);
+                        ReportUpdate(progress,85);
 
                         //TODO: Look at why this might be worth it?
                         //SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
@@ -85,12 +85,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         series.UpdateStats(true, true, true);
                     }
 
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                 }
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetFile: {VideoLocalID} - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDb.GetFile: {VideoLocalID} - {ex}", ex);
             }
         }
     }

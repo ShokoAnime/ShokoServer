@@ -39,24 +39,24 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 SVR_GroupFilter gf = Repo.Instance.GroupFilter.GetByID(GroupFilterID);
                 if (gf == null) 
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress,10);
+                ReportUpdate(progress,10);
                 using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
                 {
                     upd.Entity.CalculateGroupsAndSeries();
                     upd.Commit();
                 }
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerRefreshGroupFilter: {GroupFilterID} - {ex}", ex);
+                ReportError(progress, $"Error processing ServerRefreshGroupFilter: {GroupFilterID} - {ex}", ex);
             }
         }      
     }

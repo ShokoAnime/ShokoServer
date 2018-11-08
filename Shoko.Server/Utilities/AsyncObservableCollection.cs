@@ -28,6 +28,10 @@ namespace Shoko.Server.Utilities
                 _synchronizationContext.Send(RaiseCollectionChanged, e);
         }
 
+        public void DoItemChange(T item)
+        {
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace,item,item,IndexOf(item)));
+        }
         private void RaiseCollectionChanged(object param)
         {
             base.OnCollectionChanged((NotifyCollectionChangedEventArgs) param);

@@ -314,7 +314,7 @@ namespace Shoko.Server.API.v2.Modules
             if (vl == null) return APIStatus.NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return APIStatus.NotFound("videolocal_place not found");
-            CommandQueue.Queue.Instance.Add(new CmdServerHashFile(pl.FullServerPath, true));
+            CommandQueue.Queue.Instance.Add(new CmdHashFile(pl.FullServerPath, true));
 
             return APIStatus.OK();
         }
@@ -333,7 +333,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(pl.FullServerPath, true));
+                    CommandQueue.Queue.Instance.Add(new CmdHashFile(pl.FullServerPath, true));
                 }
             }
             catch (Exception ex)
@@ -358,7 +358,7 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(pl.FullServerPath, true));
+                    CommandQueue.Queue.Instance.Add(new CmdHashFile(pl.FullServerPath, true));
                 }
             }
             catch (Exception ex)
@@ -598,7 +598,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/hasher/pause")]
         public ActionResult PauseHasherQueue()
         {
-            //NO OPShokoService.CmdProcessorHasher.Paused = true;
+            CommandQueue.Queue.Instance.PauseWorkTypes(WorkTypes.Hashing);
             return APIStatus.OK();
         }
 
@@ -609,7 +609,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/general/pause")]
         public ActionResult PauseGeneralQueue()
         {
-            CommandQueue.Queue.Instance.Stop();
+            CommandQueue.Queue.Instance.PauseWorkTypes(CommandQueue.Queue.GeneralWorkTypesExceptSchedule);
             return APIStatus.OK();
         }
 
@@ -620,7 +620,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/images/pause")]
         public ActionResult PauseImagesQueue()
         {
-            //NO OPShokoService.CmdProcessorImages.Paused = true;
+            CommandQueue.Queue.Instance.PauseWorkTypes(WorkTypes.Image);
             return APIStatus.OK();
         }
 
@@ -631,8 +631,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/hasher/start")]
         public ActionResult StartHasherQueue()
         {
-            
-            //NO OPShokoService.CmdProcessorHasher.Paused = false;
+            CommandQueue.Queue.Instance.ResumeWorkTypes(WorkTypes.Hashing);
             return APIStatus.OK();
         }
 
@@ -643,7 +642,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/general/start")]
         public ActionResult StartGeneralQueue()
         {
-            CommandQueue.Queue.Instance.Start();
+            CommandQueue.Queue.Instance.ResumeWorkTypes(CommandQueue.Queue.GeneralWorkTypesExceptSchedule);
             return APIStatus.OK();
         }
 
@@ -654,7 +653,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("queue/images/start")]
         public ActionResult StartImagesQueue()
         {
-            //NO OPShokoService.CmdProcessorImages.Paused = false;
+            CommandQueue.Queue.Instance.ResumeWorkTypes(WorkTypes.Image);
             return APIStatus.OK();
         }
 
@@ -667,8 +666,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Hashing);
-
+                CommandQueue.Queue.Instance.ClearWorkTypes(WorkTypes.Hashing);
                 return APIStatus.OK();
             }
             catch
@@ -686,8 +684,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(Repo.Instance.CommandRequest.GeneralWorkTypesExceptSchedule);
-                
+                CommandQueue.Queue.Instance.ClearWorkTypes(CommandQueue.Queue.GeneralWorkTypesExceptSchedule);                
                 return APIStatus.OK();
             }
             catch
@@ -706,9 +703,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Image);
-                
-
+                CommandQueue.Queue.Instance.ClearWorkTypes(WorkTypes.Image);
                 return APIStatus.OK();
             }
             catch

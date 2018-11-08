@@ -11,6 +11,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.CommandQueue.Commands.Image;
 using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.Trakt;
@@ -47,7 +48,7 @@ namespace Shoko.Server.Import
                 SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
                 if (p != null)
                 {
-                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(p.FullServerPath, false));
+                    CommandQueue.Queue.Instance.Add(new CmdHashFile(p.FullServerPath, false));
                 }
             }
 
@@ -60,7 +61,7 @@ namespace Shoko.Server.Import
                     SVR_VideoLocal_Place p = vl.GetBestVideoLocalPlace(true);
                     if (p != null)
                     {
-                        CommandQueue.Queue.Instance.Add(new CmdServerHashFile(p.FullServerPath, false));
+                        CommandQueue.Queue.Instance.Add(new CmdHashFile(p.FullServerPath, false));
                     }
                 }
                 catch (Exception ex)
@@ -182,7 +183,7 @@ namespace Shoko.Server.Import
 
 
 
-                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(fileName, false));
+                    CommandQueue.Queue.Instance.Add(new CmdHashFile(fileName, false));
                 }
                 logger.Debug("Found {0} new files", filesFound);
                 logger.Debug("Found {0} videos", videosFound);
@@ -226,7 +227,7 @@ namespace Shoko.Server.Import
 
                 videosFound++;
 
-                CommandQueue.Queue.Instance.Add(new CmdServerHashFile(fileName, false));
+                CommandQueue.Queue.Instance.Add(new CmdHashFile(fileName, false));
             }
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
@@ -303,7 +304,7 @@ namespace Shoko.Server.Import
 
                 videosFound++;
 
-                CommandQueue.Queue.Instance.Add(new CmdServerHashFile(fileName, false));
+                CommandQueue.Queue.Instance.Add(new CmdHashFile(fileName, false));
             }
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);
@@ -336,7 +337,7 @@ namespace Shoko.Server.Import
 
                 videosFound++;
 
-                CommandQueue.Queue.Instance.Add(new CmdServerHashFile(fileName, false));
+                CommandQueue.Queue.Instance.Add(new CmdHashFile(fileName, false));
             }
             logger.Debug("Found {0} files", filesFound);
             logger.Debug("Found {0} videos", videosFound);

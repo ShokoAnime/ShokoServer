@@ -43,27 +43,27 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
                 SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByID(AnimeSeriesID);
                 if (series == null)
                 {
-                    ReportErrorAndGetResult(progress, $"Could not find anime series: {AnimeSeriesID}");
+                    ReportError(progress, $"Could not find anime series: {AnimeSeriesID}");
                     return;
                 }
 
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 TraktTVHelper.SyncCollectionToTrakt_Series(series);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Trakt.TraktSyncCollectionSeries: {AnimeSeriesID} - {ex}", ex);
+                ReportError(progress, $"Error processing Trakt.TraktSyncCollectionSeries: {AnimeSeriesID} - {ex}", ex);
             }
         }
     }

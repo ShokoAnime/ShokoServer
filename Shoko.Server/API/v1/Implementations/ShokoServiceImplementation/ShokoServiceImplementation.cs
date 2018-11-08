@@ -694,25 +694,28 @@ namespace Shoko.Server
         [HttpPost("CommandQueue/Hasher/{paused}")]
         public void SetCommandProcessorHasherPaused(bool paused)
         {
-            //NO OP
-            //ShokoService.CmdProcessorHasher.Paused = paused;
+            if (paused)
+                Queue.Instance.PauseWorkTypes(WorkTypes.Hashing);
+            else
+                Queue.Instance.ResumeWorkTypes(WorkTypes.Hashing);
         }
 
         [HttpPost("CommandQueue/General/{paused}")]
         public void SetCommandProcessorGeneralPaused(bool paused)
         {
             if (paused)
-                Queue.Instance.Stop();
+                Queue.Instance.PauseWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
             else
-                Queue.Instance.Start();
-//            ShokoService.CmdProcessorGeneral.Paused = paused;
+                Queue.Instance.ResumeWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
         }
 
         [HttpPost("CommandQueue/Images/{paused}")]
         public void SetCommandProcessorImagesPaused(bool paused)
         {
-            //NO OP
-            //ShokoService.CmdProcessorImages.Paused = paused;
+            if (paused)
+                Queue.Instance.PauseWorkTypes(WorkTypes.Image);
+            else
+                Queue.Instance.ResumeWorkTypes(WorkTypes.Image);
         }
 
         [HttpDelete("CommandQueue/Hasher")]
@@ -720,7 +723,7 @@ namespace Shoko.Server
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Hashing);
+                Queue.Instance.ClearWorkTypes(WorkTypes.Hashing);
             }
             catch (Exception ex)
             {
@@ -733,7 +736,7 @@ namespace Shoko.Server
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(WorkTypes.Image);
+                Queue.Instance.ClearWorkTypes(WorkTypes.Image);
             }
             catch (Exception ex)
             {
@@ -746,8 +749,8 @@ namespace Shoko.Server
         {
             try
             {
-                Repo.Instance.CommandRequest.ClearQueue(Repo.Instance.CommandRequest.GeneralWorkTypesExceptSchedule);
-
+                Queue.Instance.ClearWorkTypes(Queue.GeneralWorkTypesExceptSchedule);
+                
             }
             catch (Exception ex)
             {

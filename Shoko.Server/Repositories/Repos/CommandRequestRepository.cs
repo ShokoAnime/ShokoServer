@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NLog;
 using Shoko.Models.Server;
-
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 using Shoko.Server.Repositories.Cache;
@@ -11,8 +9,6 @@ namespace Shoko.Server.Repositories.Repos
 {
     public class CommandRequestRepository : BaseRepository<CommandRequest, string>, ICommandProvider
     {
-        private readonly Logger logger = LogManager.GetCurrentClassLogger();
-
         private PocoIndex<string, CommandRequest, string> Batches;
         private PocoIndex<string, CommandRequest, int> WorkTypes;
         private PocoIndex<string, CommandRequest, string> Classes;
@@ -90,9 +86,20 @@ namespace Shoko.Server.Repositories.Repos
             Classes = null;
         }
 
-        public WorkTypes[] GeneralWorkTypesExceptSchedule => new [] {CommandQueue.Commands.WorkTypes.MovieDB, CommandQueue.Commands.WorkTypes.Hashing, CommandQueue.Commands.WorkTypes.Plex, CommandQueue.Commands.WorkTypes.Server, CommandQueue.Commands.WorkTypes.Trakt, CommandQueue.Commands.WorkTypes.TvDB, CommandQueue.Commands.WorkTypes.WebCache};
-        public WorkTypes[] GeneralWorkTypes => new [] { CommandQueue.Commands.WorkTypes.Schedule, CommandQueue.Commands.WorkTypes.MovieDB, CommandQueue.Commands.WorkTypes.Hashing, CommandQueue.Commands.WorkTypes.Plex, CommandQueue.Commands.WorkTypes.Server, CommandQueue.Commands.WorkTypes.Trakt, CommandQueue.Commands.WorkTypes.TvDB, CommandQueue.Commands.WorkTypes.WebCache };
+        public void Clear()
+        {
+            ClearQueue();
+        }
 
+        public int GetQueuedCommandCount(string batch)
+        {
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return Batches.GetMultiple(batch).Count(a => a.ExecutionDate <= DateTime.UtcNow);
+                return Table.Count(a => a.Batch==batch && a.ExecutionDate <= DateTime.UtcNow);
+            }
+        }
         public int GetQueuedCommandCount(params WorkTypes[] wt)
         {
             using (RepoLock.ReaderLock())
@@ -121,6 +128,9 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Count(a => a.ExecutionDate <= DateTime.UtcNow);
             }
         }
+
+
+
         public void ClearQueue(params WorkTypes[] wt)
         {
             FindAndDelete(() =>
@@ -141,7 +151,7 @@ namespace Shoko.Server.Repositories.Repos
             });
         }
 
-        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits)
+        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits, List<string> batchLimits, List<WorkTypes> workLimits)
         {
             List<ICommand> cmds=new List<ICommand>();
             Dictionary<string, int> localLimits = tagLimits.ToDictionary(a => a.Key, a => a.Value);
@@ -153,9 +163,11 @@ namespace Shoko.Server.Repositories.Repos
                     IQueryable<CommandRequest> req = Table.Where(a => a.ExecutionDate <= DateTime.UtcNow);
                     //Filter already filled tags by the queue
                     foreach (string k in localLimits.Where(a => a.Value == 0).Select(a => a.Key))
-                    {
                         req = req.Where(a => a.ParallelTag != k);
-                    }
+                    foreach (string s in batchLimits)
+                        req = req.Where(a => a.Batch != s);
+                    foreach (WorkTypes w in workLimits)
+                        req = req.Where(a => a.Type != (int) w);
                     List<string> ids = req.OrderBy(a => a.Priority).Take(qnty).Select(a => a.Id).ToList();
                     if (ids.Count == 0)
                     {
@@ -173,7 +185,6 @@ namespace Shoko.Server.Repositories.Repos
                                 localLimits[r.ParallelTag]--;
                         }
                     }
-
                     cmds.AddRange(crs.Select(a => a.ToCommand()));
                     return crs; //This ones needs to be deleted from DB.
                 });
@@ -215,6 +226,21 @@ namespace Shoko.Server.Repositories.Repos
                 }
                 upd.Commit();
             }
+        }
+
+        public void ClearBatch(string batch)
+        {
+            FindAndDelete(() =>
+            {
+                if (IsCached)
+                    return Batches.GetMultiple(batch);
+                return Table.Where(a => a.Batch==batch).ToList();
+            });
+        }
+
+        public void ClearWorkTypes(params WorkTypes[] worktypes)
+        {
+            ClearQueue(worktypes);
         }
 
         /*

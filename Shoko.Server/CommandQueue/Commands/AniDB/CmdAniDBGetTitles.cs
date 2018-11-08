@@ -37,9 +37,9 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                 string url = Constants.AniDBTitlesURL;
                 logger.Trace("Get AniDB Titles: {0}", url);
-                InitProgress(progress);
+                ReportInit(progress);
                 Stream s = Misc.DownloadWebBinary(url);
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
                 int bytes = 2048;
                 byte[] data = new byte[bytes]; //USE OF BYTES LENGTH VALUES FOR DATA SIZE
                 StringBuilder b = new StringBuilder();
@@ -89,18 +89,18 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     thisTitle.Titles += titleValue;
                 }
 
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
 
                 foreach (WebCache_AnimeIDTitle aniTitle in titles.Values)
                 {
                     Queue.Instance.Add(new CmdWebCacheSendAnimeTitle(aniTitle.AnimeID, aniTitle.MainTitle, aniTitle.Titles));
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetAniDBTitles: {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.GetAniDBTitles: {ex}", ex);
             }
         }
     }

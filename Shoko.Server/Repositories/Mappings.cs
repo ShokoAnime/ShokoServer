@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
+
 namespace Shoko.Server.Repositories
 {
     public static class Mappings
@@ -821,7 +822,7 @@ namespace Shoko.Server.Repositories
 
             }
             {
-                var model = builder.Entity<SVR_Scan>();
+                var model = builder.Entity<Scan>();
                 //model.ToTable("Scan").HasKey(x => new { x.ScanID, x.CreationTime, x.ImportFolders, x.Status });
                 model.ToTable("Scan").HasKey(x => x.ScanID);
 //                //model.HasIndex(x => new { x.ScanID, x.CreationTime , x.ImportFolders, x.Status }).IsUnique().ForSqlServerIsClustered().HasName("PK_Scan");

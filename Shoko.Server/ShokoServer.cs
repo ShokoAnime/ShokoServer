@@ -25,11 +25,12 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.CommandQueue.Commands.Plex;
 using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Extensions;
-
+using Shoko.Server.FileScanner;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Import;
 using Shoko.Server.Models;
@@ -566,7 +567,7 @@ namespace Shoko.Server
                                     {
                                         logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
-                                        CommandQueue.Queue.Instance.Add(new CmdServerHashFile(file, false));
+                                        CommandQueue.Queue.Instance.Add(new CmdHashFile(file, false));
                                     }
                                 }
                             }
@@ -578,7 +579,7 @@ namespace Shoko.Server
                                 {
                                     logger.Info("Found file {0}", evt.FullPath);
 
-                                    CommandQueue.Queue.Instance.Add(new CmdServerHashFile(evt.FullPath, false));
+                                    CommandQueue.Queue.Instance.Add(new CmdHashFile(evt.FullPath, false));
                                 }
                             }
                             // else it was deleted before we got here

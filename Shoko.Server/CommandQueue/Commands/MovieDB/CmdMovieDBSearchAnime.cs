@@ -51,7 +51,7 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
             try
             {
                 {
-                    InitProgress(progress);
+                    ReportInit(progress);
                     // first check if the user wants to use the web cache
                     if (ServerSettings.Instance.WebCache.TvDB_Get)
                     {
@@ -70,13 +70,13 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
                                     MovieDBHelper.UpdateMovieInfo(movieID, true);
                                     movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
                                 }
-                                UpdateAndReportProgress(progress, 20);
+                                ReportUpdate(progress, 20);
 
                                 if (movie != null)
                                 {
                                     // since we are using the web cache result, let's save it
                                     MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-                                    ReportFinishAndGetResult(progress);
+                                    ReportFinish(progress);
                                     return;
                                 }
                             }
@@ -90,16 +90,16 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
                     // Use TvDB setting
                     if (!ServerSettings.Instance.TvDB.AutoLink)
                     {
-                        ReportFinishAndGetResult(progress);
+                        ReportFinish(progress);
                         return;
                     }
 
-                    UpdateAndReportProgress(progress, 40);
+                    ReportUpdate(progress, 40);
                     
                     SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                     if (anime == null)
                     {
-                        ReportFinishAndGetResult(progress);
+                        ReportFinish(progress);
                         return;
                     }
 
@@ -108,14 +108,14 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
                     // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                     List<MovieDB_Movie_Result> results = MovieDBHelper.Search(searchCriteria);
                     logger.Trace("Found {0} moviedb results for {1} on TheTvDB", results.Count, searchCriteria);
-                    UpdateAndReportProgress(progress, 60);
+                    ReportUpdate(progress, 60);
                     if (ProcessSearchResults(results, searchCriteria))
                     {
-                        ReportFinishAndGetResult(progress);
+                        ReportFinish(progress);
                         return;
                     }
 
-                    UpdateAndReportProgress(progress, 80);
+                    ReportUpdate(progress, 80);
 
                     if (results.Count == 0)
                     {
@@ -130,18 +130,18 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
                             logger.Trace("Found {0} moviedb results for search on {1}", results.Count, title.Title);
                             if (ProcessSearchResults(results, title.Title))
                             {
-                                ReportFinishAndGetResult(progress);
+                                ReportFinish(progress);
                                 return;
                             }
                         }
                     }
 
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                 }
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ex}", ex);
             }
         }
 

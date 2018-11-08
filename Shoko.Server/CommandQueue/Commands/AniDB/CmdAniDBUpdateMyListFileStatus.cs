@@ -53,12 +53,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
                 SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByHash(Hash);
                 if (vid != null)
                 {
-                    UpdateAndReportProgress(progress,30);
+                    ReportUpdate(progress,30);
                     if (vid.GetAniDBFile() != null)
                     {
                         if (WatchedDateAsSecs > 0)
@@ -88,7 +88,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                                     episode.EpisodeNumber, Watched);
                         }
                     }
-                    UpdateAndReportProgress(progress,60);
+                    ReportUpdate(progress,60);
 
                     logger.Info("Updating file list status: {0} - {1}", vid, Watched);
 
@@ -103,11 +103,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
 
                 }
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.UpdateMyListFileStatus: {Hash} - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.UpdateMyListFileStatus: {Hash} - {ex}", ex);
             }
         }
     }

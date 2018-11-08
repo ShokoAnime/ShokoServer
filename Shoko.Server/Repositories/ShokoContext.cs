@@ -9,6 +9,7 @@ using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 
+
 namespace Shoko.Server.Repositories
 {
     public class ShokoContext : DbContext
@@ -336,7 +337,7 @@ namespace Shoko.Server.Repositories
         public DbSet<MovieDB_Movie> MovieDB_Movies { get; set; } // MovieDB_Movie
         public DbSet<MovieDB_Poster> MovieDB_Posters { get; set; } // MovieDB_Poster
         public DbSet<Playlist> Playlists { get; set; } // Playlist
-        public DbSet<SVR_Scan> Scans { get; set; } // Scan
+        public DbSet<Scan> Scans { get; set; } // Scan
         public DbSet<ScanFile> ScanFiles { get; set; } // ScanFile
         public DbSet<RenameScript> RenameScripts { get; set; } // RenameScript
         public DbSet<ScheduledUpdate> ScheduledUpdates { get; set; } // ScheduledUpdate

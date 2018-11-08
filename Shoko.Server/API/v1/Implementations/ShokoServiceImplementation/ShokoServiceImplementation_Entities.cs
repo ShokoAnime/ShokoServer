@@ -10,6 +10,7 @@ using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Extensions;
@@ -962,7 +963,7 @@ namespace Shoko.Server
                     return;
                 }
 
-                Queue.Instance.Add(new CmdServerHashFile(pl.FullServerPath, true));
+                Queue.Instance.Add(new CmdHashFile(pl.FullServerPath, true));
             }
         }
 

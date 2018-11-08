@@ -41,11 +41,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 // we will always assume that an anime was downloaded via http first
 
                 ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMylistStats);
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency);
@@ -54,7 +54,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
                     if (tsLastRun.TotalHours < freqHours)
                     {
-                        if (!ForceRefresh) ReportFinishAndGetResult(progress);
+                        if (!ForceRefresh) ReportFinish(progress);
                     }
                 }
 
@@ -66,14 +66,14 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
                 }
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
 
                 ShokoService.AnidbProcessor.UpdateMyListStats();
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.UpdateMyListStats: {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.UpdateMyListStats: {ex}", ex);
             }
         }
     }

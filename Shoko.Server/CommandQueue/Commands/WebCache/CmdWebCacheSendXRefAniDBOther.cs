@@ -38,20 +38,20 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 CrossRef_AniDB_Other xref = Repo.Instance.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
                 if (xref == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 WebCacheAPI.Send_CrossRefAniDBOther(xref);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_OtherID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_OtherID} - {ex}", ex);
             }
         }
 

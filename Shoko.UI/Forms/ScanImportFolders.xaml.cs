@@ -8,6 +8,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
+
 namespace Shoko.UI.Forms
 {
     /// <summary>
@@ -15,7 +16,7 @@ namespace Shoko.UI.Forms
     /// </summary>
     public partial class ScanImportFolders : Window
     {
-        public SVR_Scan SelectedScan { get; private set; }
+        public Scan SelectedScan { get; private set; }
 
         public class CheckedImportFolder : SVR_ImportFolder
         {
@@ -58,10 +59,10 @@ namespace Shoko.UI.Forms
             }
             if (ids.Count == 0)
                 return;
-            SVR_Scan s = new SVR_Scan
+            Scan s = new Scan
             {
                 Status = (int) ScanStatus.Standby,
-                CreationTIme = DateTime.Now,
+                CreationTime = DateTime.Now,
                 ImportFolders = string.Join(",", ids.Select(a => a.ToString()))
             };
             s = Repo.Instance.Scan.BeginAdd(s).Commit();

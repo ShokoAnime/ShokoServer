@@ -214,11 +214,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (_info.ValidateFunc == null)
                 {
                     logger.Warn($"Image failed to download: No implementation found for {EntityTypeEnum}");
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
                 var obj = _info.FindFunc();
@@ -226,7 +226,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                 {
                     logger.Warn(_info.Error);
                     _info.DeleteFunc?.Invoke();
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
                 List<string> fileNames = new List<string>();
@@ -252,7 +252,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                     try
                     {
                         double val = i * 80 / (double)fileNames.Count;
-                        UpdateAndReportProgress(progress,20+val);
+                        ReportUpdate(progress,20+val);
                         string fileName = fileNames[i];
                         downloadURL = downloadURLs[i];
 
@@ -274,7 +274,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         {
                             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
                             logger.Warn(Resources.Command_DeleteError, fileName, ex.Message);
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
 
@@ -300,11 +300,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                     }
 
                 }
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_DownloadImage: {downloadURL ?? ""} ({EntityTypeEnum}) - {EntityID}",ex);
+                ReportError(progress, $"Error processing CommandRequest_DownloadImage: {downloadURL ?? ""} ({EntityTypeEnum}) - {EntityID}",ex);
             }
         }
 

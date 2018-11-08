@@ -80,9 +80,9 @@ namespace Shoko.Server
             {
                 if (Repo.Instance != null)
                 {
-                    ImagesQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount(WorkTypes.AniDB);
-                    HasherQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount(WorkTypes.Hashing);
-                    GeneralQueueCount = Repo.Instance.CommandRequest.GetQueuedCommandCount() - ImagesQueueCount - HasherQueueCount;
+                    ImagesQueueCount = Queue.Instance.GetCommandCount(WorkTypes.AniDB);
+                    HasherQueueCount = Queue.Instance.GetCommandCount(WorkTypes.Hashing);
+                    GeneralQueueCount = Queue.Instance.GetCommandCount() - ImagesQueueCount - HasherQueueCount;
                 }
             });
 

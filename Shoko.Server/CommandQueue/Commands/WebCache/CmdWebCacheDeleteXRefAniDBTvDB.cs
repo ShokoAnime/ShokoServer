@@ -50,14 +50,14 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 WebCacheAPI.Delete_CrossRefAniDBTvDB(AnimeID, AniDBStartEpisodeType, AniDBStartEpisodeNumber, TvDBID,
                     TvDBSeasonNumber, TvDBStartEpisodeNumber);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheDeleteXRefAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheDeleteXRefAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
             }
         }
 

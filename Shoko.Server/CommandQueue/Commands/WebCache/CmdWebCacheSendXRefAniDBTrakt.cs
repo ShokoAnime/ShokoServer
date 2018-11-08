@@ -43,34 +43,34 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 CrossRef_AniDB_TraktV2 xref = Repo.Instance.CrossRef_AniDB_TraktV2.GetByID(CrossRef_AniDB_TraktID);
                 if (xref == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress,25);
+                ReportUpdate(progress,25);
                 Trakt_Show tvShow = Repo.Instance.Trakt_Show.GetByTraktSlug(xref.TraktID);
                 if (tvShow == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress, 50);
+                ReportUpdate(progress, 50);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(xref.AnimeID);
                 if (anime == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress, 75);
+                ReportUpdate(progress, 75);
                 WebCacheAPI.Send_CrossRefAniDBTrakt(xref, anime.MainTitle);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendXRefAniDBTrakt {CrossRef_AniDB_TraktID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendXRefAniDBTrakt {CrossRef_AniDB_TraktID} - {ex}", ex);
             }
         }
      

@@ -50,7 +50,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 if (!process) return;
-                InitProgress(progress);
+                ReportInit(progress);
                 WebCache_AnimeIDTitle thisTitle = new WebCache_AnimeIDTitle
                 {
                     AnimeIDTitleId = 0,
@@ -59,11 +59,11 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                     Titles = Titles
                 };
                 WebCacheAPI.Send_AnimeTitle(thisTitle);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendAnimeTitle: {AnimeID} - {MainTitle} - {Titles} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendAnimeTitle: {AnimeID} - {MainTitle} - {Titles} - {ex}", ex);
             }
         }
        

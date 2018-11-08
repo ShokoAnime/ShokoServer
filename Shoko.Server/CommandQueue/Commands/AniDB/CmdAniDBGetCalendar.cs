@@ -37,9 +37,9 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             try
             {
                 // we will always assume that an anime was downloaded via http first
-                InitProgress(progress);
+                ReportInit(progress);
                 ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
-                UpdateAndReportProgress(progress,20);
+                ReportUpdate(progress,20);
 
                 if (sched != null)
                 {
@@ -51,13 +51,13 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     {
                         if (!ForceRefresh)
                         {
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
                     }
                 }
 
-                UpdateAndReportProgress(progress,40);
+                ReportUpdate(progress,40);
 
                 using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty}))
                 {
@@ -65,16 +65,16 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     upd.Commit();
                 }
 
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
 
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
                 {
-                    ReportErrorAndGetResult(progress, "Could not get calendar from AniDB");
+                    ReportError(progress, "Could not get calendar from AniDB");
                     return;
                 }
 
-                UpdateAndReportProgress(progress,80);
+                ReportUpdate(progress,80);
                 List<ICommand> cmds = new List<ICommand>();
                 foreach (Calendar cal in colCalendars.Calendars)
                 {
@@ -111,14 +111,14 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
                 }
 
-                UpdateAndReportProgress(progress,90);
+                ReportUpdate(progress,90);
                 if (cmds.Count > 0)
                     Queue.Instance.AddRange(cmds);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetCalendar: {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.GetCalendar: {ex}", ex);
             }
         }
     }

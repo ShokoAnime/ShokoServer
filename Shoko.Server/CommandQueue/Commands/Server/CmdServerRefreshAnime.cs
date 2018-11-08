@@ -36,13 +36,13 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerRefreshAnime {AnimeID} - {ex}", ex);
+                ReportError(progress, $"Error processing ServerRefreshAnime {AnimeID} - {ex}", ex);
             }
         }
     }

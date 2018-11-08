@@ -46,13 +46,13 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 TvDBApiHelper.UpdateSeriesInfoAndImages(TvDBSeriesID, ForceRefresh, true);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBUpdateSeries: {TvDBSeriesID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TvDBUpdateSeries: {TvDBSeriesID} - {ex}", ex);
             }
         }
 

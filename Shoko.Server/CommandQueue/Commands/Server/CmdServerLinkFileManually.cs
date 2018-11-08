@@ -70,7 +70,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 CrossRef_File_Episode xref = new CrossRef_File_Episode();
                 try
                 {
@@ -82,14 +82,14 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 catch (Exception ex)
                 {
-                    ReportErrorAndGetResult(progress, $"Error populating XREF: {vlocal.ToStringDetailed()}", ex);
+                    ReportError(progress, $"Error populating XREF: {vlocal.ToStringDetailed()}", ex);
                     return;
                 }
-                UpdateAndReportProgress(progress,20);
+                ReportUpdate(progress,20);
                 List<ICommand> cmds=new List<ICommand>();
                 Repo.Instance.CrossRef_File_Episode.BeginAdd(xref).Commit();
                 Queue.Instance.Add(new CmdWebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID));
-                UpdateAndReportProgress(progress, 40);
+                ReportUpdate(progress, 40);
 
                 if (ServerSettings.Instance.FileQualityFilterEnabled)
                 {
@@ -109,7 +109,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         }
                     }
                 }
-                UpdateAndReportProgress(progress, 60);
+                ReportUpdate(progress, 60);
 
                 vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
@@ -122,7 +122,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                 //Update will re-save
                 ser.QueueUpdateStats();
-                UpdateAndReportProgress(progress, 80);
+                ReportUpdate(progress, 80);
 
                 Repo.Instance.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now);
 
@@ -132,11 +132,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 if (cmds.Count>0)
                     Queue.Instance.AddRange(cmds);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception e)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerLinkFileManually: {VideoLocalID} - {EpisodeID} - {e}", e);
+                ReportError(progress, $"Error processing ServerLinkFileManually: {VideoLocalID} - {EpisodeID} - {e}", e);
             }            
         }
     }

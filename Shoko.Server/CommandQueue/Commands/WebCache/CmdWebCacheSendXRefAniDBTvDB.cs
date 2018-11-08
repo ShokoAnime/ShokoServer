@@ -42,29 +42,29 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 //if (string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey)) return;
 
                 CrossRef_AniDB_TvDB xref = Repo.Instance.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
                 if (xref == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress,33);
+                ReportUpdate(progress,33);
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                 if (anime == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
-                UpdateAndReportProgress(progress, 66);
+                ReportUpdate(progress, 66);
                 WebCacheAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing WebCacheSendXRefAniDBTvDB {CrossRef_AniDB_TvDBID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendXRefAniDBTvDB {CrossRef_AniDB_TvDBID} - {ex}", ex);
             }
         }
 

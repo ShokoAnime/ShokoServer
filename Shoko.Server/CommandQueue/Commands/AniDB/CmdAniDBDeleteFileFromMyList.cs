@@ -46,7 +46,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 switch (ServerSettings.Instance.AniDb.MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
@@ -114,11 +114,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         break;
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, !string.IsNullOrEmpty(Hash) ? $"Error processing Command AniDB.AddFileToMyList: Hash: {Hash} - {ex}" : $"Error processing Command AniDB.AddFileToMyList: MyListID: {MyListID} - {ex}", ex);
+                ReportError(progress, !string.IsNullOrEmpty(Hash) ? $"Error processing Command AniDB.AddFileToMyList: Hash: {Hash} - {ex}" : $"Error processing Command AniDB.AddFileToMyList: MyListID: {MyListID} - {ex}", ex);
             }
         }
     }

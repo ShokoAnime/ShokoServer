@@ -44,15 +44,15 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 TvDBApiHelper.LinkAniDBTvDB(AnimeID, TvDBID, AdditiveLink);
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_LinkAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_LinkAniDBTvDB: {AnimeID} - {TvDBID} - {ex}", ex);
             }
         }
     }

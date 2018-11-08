@@ -91,16 +91,16 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
                             if (alreadyWatched && !isWatched) episode.Scrobble();
 
                             if (isWatched && !alreadyWatched) video.ToggleWatchedStatus(true, true, lastWatched, true, _jmmuser.JMMUserID, true, true);
-                            UpdateAndReportProgress(progress,pos);
+                            ReportUpdate(progress,pos);
                         }
                     }
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception e)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Plex.PlexSyncWatched: {UserId} - {e}", e);
+                ReportError(progress, $"Error processing Plex.PlexSyncWatched: {UserId} - {e}", e);
             }
            
         }

@@ -162,6 +162,7 @@ namespace Shoko.UI.Forms
                 contract.IsDropDestination = chkDropDestination.IsChecked ?? false ? 1 : 0;
                 contract.IsDropSource = chkDropSource.IsChecked ?? false ? 1 : 0;
                 contract.IsWatched = chkIsWatched.IsChecked ?? false ? 1 : 0;
+                contract.PhysicalTag = txtPyshicalTag.Text;
                 if (comboProvider.SelectedIndex == 0)
                     contract.CloudID = null;
                 else

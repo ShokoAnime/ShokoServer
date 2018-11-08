@@ -52,7 +52,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 bool doReturn = false;
 
                 // first check if the user wants to use the web cache
@@ -79,10 +79,10 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                                     xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
                                 doReturn = true;
                             }
-                            UpdateAndReportProgress(progress,30);
+                            ReportUpdate(progress,30);
                             if (doReturn) 
                             {
-                                ReportFinishAndGetResult(progress);
+                                ReportFinish(progress);
                                 return;
                             }
                         }
@@ -139,11 +139,11 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                             tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
                             true);
                         doReturn = true;
-                        UpdateAndReportProgress(progress,60);
+                        ReportUpdate(progress,60);
                     }
                     if (doReturn) 
                     {
-                        ReportFinishAndGetResult(progress);
+                        ReportFinish(progress);
                         return;
                     }
                 }
@@ -151,7 +151,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 // Use TvDB setting due to similarity
                 if (!ServerSettings.Instance.TvDB.AutoLink)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -159,7 +159,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -170,17 +170,17 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 logger.Trace("Found {0} trakt results for {1} ", results.Count, searchCriteria);
                 if (ProcessSearchResults(results, searchCriteria)) 
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
                 if (results.Count != 0)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
-                UpdateAndReportProgress(progress, 80);
+                ReportUpdate(progress, 80);
                 foreach (AniDB_Anime_Title title in anime.GetTitles())
                 {
                     if (!string.Equals(title.TitleType, Shoko.Models.Constants.AnimeTitleType.Official, StringComparison.InvariantCultureIgnoreCase))
@@ -192,16 +192,16 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                     logger.Trace("Found {0} trakt results for search on {1}", results.Count, title.Title);
                     if (ProcessSearchResults(results, title.Title))
                     {
-                        ReportFinishAndGetResult(progress);
+                        ReportFinish(progress);
                         return;
                     }
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ForceRefresh} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TvDBSearchAnime: {AnimeID} - {ForceRefresh} - {ex}", ex);
             }
         }
 

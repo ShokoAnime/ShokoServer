@@ -1,11 +1,12 @@
-﻿using Shoko.Server.Models;
+﻿using Shoko.Models.Server;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Repos
 {
-    public class ScanRepository : BaseRepository<SVR_Scan, int>
+    public class ScanRepository : BaseRepository<Scan, int>
     {
 
-        internal override int SelectKey(SVR_Scan entity) => entity.ScanID;
+        internal override int SelectKey(Scan entity) => entity.ScanID;
             
         internal override void PopulateIndexes()
         {

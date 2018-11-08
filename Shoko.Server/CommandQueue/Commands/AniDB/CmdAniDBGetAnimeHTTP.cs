@@ -47,7 +47,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 ShokoService.AnidbProcessor.GetAnimeInfoHTTP(AnimeID, ForceRefresh, DownloadRelations, RelationDepth);
 
                 // NOTE - related anime are downloaded when the relations are created
@@ -64,11 +64,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 }*/
 
                 // Request an image download
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.GetAnimeHTTP: {AnimeID} - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.GetAnimeHTTP: {AnimeID} - {ex}", ex);
             }
         }
     }

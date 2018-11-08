@@ -42,10 +42,10 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 // we will always assume that an anime was downloaded via http first
                 ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBMyListSync);
-                UpdateAndReportProgress(progress,15);
+                ReportUpdate(progress,15);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
@@ -56,7 +56,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     {
                         if (!ForceRefresh)
                         {
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
                     }
@@ -65,13 +65,13 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // Get the list from AniDB
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
                 cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
 
                 enHelperActivityType ev = cmd.Process();
                 if (ev != enHelperActivityType.GotMyListHTTP)
                 {
                     logger.Warn("AniDB did not return a successful code: " + ev);
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -82,7 +82,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // Add missing files on AniDB
                 var onlineFiles = cmd.MyListItems.ToLookup(a => a.FileID);
                 var dictAniFiles = Repo.Instance.AniDB_File.GetAll().ToLookup(a => a.Hash);
-                UpdateAndReportProgress(progress,45);
+                ReportUpdate(progress,45);
                 int missingFiles = 0;
                 List<ICommand> updates=new List<ICommand>();
                 foreach (SVR_VideoLocal vid in Repo.Instance.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
@@ -126,11 +126,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                     missingFiles++;
                 }
-                UpdateAndReportProgress(progress,55);
+                ReportUpdate(progress,55);
                 if (updates.Count > 0)
                     Queue.Instance.AddRange(updates);
 
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
                 logger.Info($"MYLIST Missing Files: {missingFiles} Added to queue for inclusion");
 
                 List<SVR_JMMUser> aniDBUsers = Repo.Instance.JMMUser.GetAniDBUsers();
@@ -232,7 +232,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
                 }
 
-                UpdateAndReportProgress(progress,80);
+                ReportUpdate(progress,80);
                 // Actually remove the files
                 if (filesToRemove.Count > 0)
                 {
@@ -240,7 +240,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     logger.Info($"MYLIST Missing Files: {filesToRemove.Count} Added to queue for deletion");
                 }
 
-                UpdateAndReportProgress(progress,90);
+                ReportUpdate(progress,90);
                 modifiedSeries.ForEach(a => a.QueueUpdateStats());
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
@@ -251,11 +251,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     upd.Commit();
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.SyncMyList: {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDb.SyncMyList: {ex}", ex);
             }
         }
     }

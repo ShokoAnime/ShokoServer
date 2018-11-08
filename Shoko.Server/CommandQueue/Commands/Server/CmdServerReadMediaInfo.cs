@@ -42,13 +42,13 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 SVR_VideoLocal vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
                 SVR_VideoLocal_Place place = vlocal?.GetBestVideoLocalPlace(true);
-                UpdateAndReportProgress(progress,50);
+                ReportUpdate(progress,50);
                 if (place == null)
                 {
-                    ReportErrorAndGetResult(progress, $"Could not find VideoLocal: {VideoLocalID}");
+                    ReportError(progress, $"Could not find VideoLocal: {VideoLocalID}");
                     return;
                 }
                 using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
@@ -59,11 +59,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     }
                 }
 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerReadMediaInfo: {VideoLocalID} - {ex}", ex);
+                ReportError(progress, $"Error processing ServerReadMediaInfo: {VideoLocalID} - {ex}", ex);
             }
         }
     }

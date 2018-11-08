@@ -38,13 +38,13 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             logger.Info($"Processing CommandRequest_GetFileMyListStatus: {FileName} ({AniFileID})");
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 ShokoService.AnidbProcessor.GetMyListFileStatus(AniFileID);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDb.GetFileMyListStatus: {FileName} ({AniFileID}) - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDb.GetFileMyListStatus: {FileName} ({AniFileID}) - {ex}", ex);
             }
         }
     }

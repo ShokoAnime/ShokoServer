@@ -10,6 +10,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Server;
+using Shoko.Server.FileScanner;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -23,8 +24,6 @@ namespace Shoko.UI.Forms
     public partial class CloudAccountForm : Window, INotifyPropertyChangedExt
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        public static Scanner Instance { get; set; } = new Scanner();
 
         public event PropertyChangedEventHandler PropertyChanged;
 

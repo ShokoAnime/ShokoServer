@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Shoko.Models.Server;
+using Shoko.Server.Native.Hashing;
 
 
 namespace Shoko.Server.CommandQueue.Commands
@@ -38,5 +41,14 @@ namespace Shoko.Server.CommandQueue.Commands
             c.Data = b.Serialize();
             return c;
         }
+
+        public static string GetHash(this Dictionary<HashTypes, byte[]> dic, HashTypes t)
+        {
+            if (!dic.ContainsKey(t))
+                return null;
+            byte[] data = dic.First(a => a.Key == t).Value;
+            return BitConverter.ToString(data).Replace("-", string.Empty);
+        }
+
     }
 }

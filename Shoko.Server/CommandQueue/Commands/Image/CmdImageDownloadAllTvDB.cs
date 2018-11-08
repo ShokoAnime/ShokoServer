@@ -44,13 +44,13 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 TvDBApiHelper.DownloadAutomaticImages(TvDBSeriesID, ForceRefresh);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_TvDBDownloadImages: {TvDBSeriesID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_TvDBDownloadImages: {TvDBSeriesID} - {ex}", ex);
             }
         }
 

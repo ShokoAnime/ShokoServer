@@ -8,6 +8,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories.Repos;
 using Shoko.Server.Settings;
 
+
 namespace Shoko.Server.Repositories
 {
     public class Repo
@@ -241,7 +242,7 @@ namespace Shoko.Server.Repositories
 
             AniDB_Anime_Character = Register<AniDB_Anime_CharacterRepository, AniDB_Anime_Character>(db.AniDB_Anime_Characters);
 
-            Scan = Register<ScanRepository, SVR_Scan>(db.Scans);
+            Scan = Register<ScanRepository, Scan>(db.Scans);
             ScanFile = Register<ScanFileRepository, ScanFile>(db.ScanFiles);
             AnimeStaff = Register<AnimeStaffRepository, AnimeStaff>(db.AnimeStaff);
             AnimeCharacter = Register<AnimeCharacterRepository, AnimeCharacter>(db.AnimeCharacter);

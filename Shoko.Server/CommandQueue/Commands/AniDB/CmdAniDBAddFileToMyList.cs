@@ -76,10 +76,10 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             logger.Info($"Processing CommandRequest_AddFileToMyList: {VideoLocal.Info} - {VideoLocal?.Hash} - {ReadStates}");
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (VideoLocal == null)
                 {
-                    ReportErrorAndGetResult(progress, "Videlocal not found");
+                    ReportError(progress, "Videlocal not found");
                     return;
                 }
 
@@ -108,7 +108,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(xref.AnimeID, xref.GetEpisode().EpisodeNumber, originalWatchedDate, ref state);
                 else
                     (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(VideoLocal, originalWatchedDate, ref state);
-                UpdateAndReportProgress(progress,15);
+                ReportUpdate(progress,15);
                 // never true for Manual Links, so no worries about the loop overwriting it
                 if (lid != null && lid.Value > 0)
                 {
@@ -119,7 +119,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
                 }
 
-                UpdateAndReportProgress(progress,30);
+                ReportUpdate(progress,30);
                 logger.Info($"Added File to MyList. File: {VideoLocal.Info}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {newWatchedDate != null}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
                 if (juser != null)
                 {
@@ -141,7 +141,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         }
                     }
 
-                    UpdateAndReportProgress(progress,45);
+                    ReportUpdate(progress,45);
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
                     if (watchedChanged || state != ServerSettings.Instance.AniDb.MyList_StorageState)
@@ -166,13 +166,13 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         }
                     }
 
-                    UpdateAndReportProgress(progress,60);
+                    ReportUpdate(progress,60);
                 }
 
                 // if we don't have xrefs, then no series or eps.
                 if (xrefs.Count <= 0)
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
 
                 }
@@ -181,16 +181,16 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // all the eps should belong to the same anime
                 ser.QueueUpdateStats();
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
-                UpdateAndReportProgress(progress,75);
+                ReportUpdate(progress,75);
 
                 // lets also try adding to the users trakt collecion
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                     Queue.Instance.AddRange(VideoLocal.GetAnimeEpisodes().Select(aep=> new CmdTraktCollectionEpisode(aep.AnimeEpisodeID, TraktSyncAction.Add)));
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing Command AniDB.AddFileToMyList: {VideoLocal?.Hash} - {ex}", ex);
+                ReportError(progress, $"Error processing Command AniDB.AddFileToMyList: {VideoLocal?.Hash} - {ex}", ex);
             }
         }
     }

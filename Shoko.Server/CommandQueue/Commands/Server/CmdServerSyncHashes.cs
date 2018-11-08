@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.WebCache;
+using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
@@ -33,7 +34,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 List<SVR_VideoLocal> allfiles = Repo.Instance.VideoLocal.GetAll().ToList();
                 List<SVR_VideoLocal> missfiles = allfiles.Where(
                         a =>
@@ -41,7 +42,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             string.IsNullOrEmpty(a.MD5) || a.SHA1 == "0000000000000000000000000000000000000000" ||
                             a.MD5 == "00000000000000000000000000000000")
                     .ToList();
-                UpdateAndReportProgress(progress,10);
+                ReportUpdate(progress,10);
                 List<SVR_VideoLocal> withfiles = allfiles.Except(missfiles).ToList();
                 Dictionary<int, (string ed2k, string crc32, string md5, string sha1)> updates = new Dictionary<int, (string ed2k, string crc32, string md5, string sha1)>();
 
@@ -63,7 +64,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             updates[v.VideoLocalID] = (file.Hash, file.CRC, file.MD5, file.SHA1);
                             missfiles.Remove(v);
                             withfiles.Add(v);
-                            UpdateAndReportProgress(progress,10+prog);
+                            ReportUpdate(progress,10+prog);
                             continue;
                         }
                     }
@@ -81,7 +82,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             missfiles.Remove(v);
                         }
                     }
-                    UpdateAndReportProgress(progress, 10 + prog);
+                    ReportUpdate(progress, 10 + prog);
                 }
 
                 //We need to recalculate the sha1, md5 and crc32 of the missing ones.
@@ -92,7 +93,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     {
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace();
                         if (p != null && p.ImportFolder.CloudID == 0)
-                            tohash.Add(new CmdServerHashFile(p.FullServerPath,true));
+                            tohash.Add(new CmdHashFile(p.FullServerPath,true));
                     }
                     catch
                     {
@@ -100,7 +101,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     }
                 }
                 Queue.Instance.AddRange(tohash);
-                UpdateAndReportProgress(progress,80);
+                ReportUpdate(progress,80);
                 if (updates.Count > 0)
                 {
                     using (var upd = Repo.Instance.VideoLocal.BeginBatchUpdate(() => Repo.Instance.VideoLocal.GetMany(updates.Keys)))
@@ -117,15 +118,15 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         upd.Commit();
                     }
                 }
-                UpdateAndReportProgress(progress, 90);
+                ReportUpdate(progress, 90);
                 //Send the hashes
                 WebCacheAPI.Send_FileHash(withfiles);
                 logger.Info("Sync Hashes Complete");
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerSyncHashes: {ex}", ex);
+                ReportError(progress, $"Error processing ServerSyncHashes: {ex}", ex);
             }
     }
     }

@@ -46,10 +46,10 @@ namespace Shoko.Server.CommandQueue.Commands.Image
             logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 List<ICommand> cmds = new List<ICommand>();
                 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByAnimeID(AnimeID);
-                UpdateAndReportProgress(progress,25);
+                ReportUpdate(progress,25);
                 if (anime == null)
                     logger.Warn($"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {AnimeID}");
                 else
@@ -58,7 +58,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                 if (ServerSettings.Instance.AniDb.DownloadCharacters)
                 {
                     var chrs = (from xref1 in Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID) select Repo.Instance.AniDB_Character.GetByCharID(xref1.CharID)).Where(a => !string.IsNullOrEmpty(a?.PicName)).DistinctBy(a => a.CharID).Select(a => a.CharID).ToList();
-                    UpdateAndReportProgress(progress,50);
+                    ReportUpdate(progress,50);
                     if (chrs.Count == 0)
                         logger.Warn($"AniDB Character image failed to download: Can't find Character for anime: {AnimeID}");
                     foreach (var chr in chrs)
@@ -68,7 +68,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                 if (ServerSettings.Instance.AniDb.DownloadCreators)
                 {
                     var creators = (from xref1 in Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID) from xref2 in Repo.Instance.AniDB_Character_Seiyuu.GetByCharID(xref1.CharID) select Repo.Instance.AniDB_Seiyuu.GetBySeiyuuID(xref2.SeiyuuID)).Where(a => !string.IsNullOrEmpty(a?.PicName)).DistinctBy(a => a.SeiyuuID).Select(a => a.SeiyuuID).ToList();
-                    UpdateAndReportProgress(progress,75);
+                    ReportUpdate(progress,75);
                     if (creators.Count == 0)
                         logger.Warn($"AniDB Seiyuu image failed to download: Can't find Seiyuus for anime: {AnimeID}");
                     foreach (var creator in creators)
@@ -79,11 +79,11 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                     logger.Warn("Image failed to download: No URLs were generated. This should never happen");
                 else
                     Queue.Instance.AddRange(cmds); 
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {ex}", ex);
+                ReportError(progress, $"Error processing CommandRequest_DownloadAniDBImages: {AnimeID} - {ex}", ex);
             }
         }
     }

@@ -57,10 +57,10 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         {
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 if (vidLocal == null) 
                 {
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
@@ -84,7 +84,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     // If cross refs were wiped, but the AniDB_File was not, we unfortunately need to requery the info
                     List<CrossRef_File_Episode> crossRefs = Repo.Instance.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                     if (crossRefs == null || crossRefs.Count == 0) aniFile = null;
-                    UpdateAndReportProgress(progress, 10);
+                    ReportUpdate(progress, 10);
                     int animeID = 0;
 
                     if (aniFile == null || ForceAniDB)
@@ -120,7 +120,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             }
                         }
 
-                        UpdateAndReportProgress(progress, 20);
+                        ReportUpdate(progress, 20);
                     }
 
                     bool missingEpisodes = false;
@@ -141,7 +141,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                                 if (xrefs == null || xrefs.Count == 0)
                                 {
                                     logger.Debug($"Cannot find AniDB_File record or get cross ref from web cache record so exiting: {vidLocal.ED2KHash}");
-                                    ReportFinishAndGetResult(progress);
+                                    ReportFinish(progress);
                                     return;
                                 }
 
@@ -179,12 +179,12 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             else
                             {
                                 logger.Debug($"Cannot get AniDB_File record so exiting: {vidLocal.ED2KHash}");
-                                ReportFinishAndGetResult(progress);
+                                ReportFinish(progress);
                                 return;
                             }
                         }
 
-                        UpdateAndReportProgress(progress, 30);
+                        ReportUpdate(progress, 30);
                         // we assume that all episodes belong to the same anime
                         foreach (CrossRef_File_Episode xref in crossRefs)
                         {
@@ -219,7 +219,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             }
                         }
 
-                        UpdateAndReportProgress(progress, 30);
+                        ReportUpdate(progress, 30);
                     }
 
                     // get from DB
@@ -243,7 +243,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true, ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                     }
 
-                    UpdateAndReportProgress(progress, 40);
+                    ReportUpdate(progress, 40);
                     // create the group/series/episode records if needed
                     if (anime != null)
                     {
@@ -267,7 +267,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         }
 
                         Repo.Instance.AnimeGroup.BatchAction(ser.AllGroupsAbove, ser.AllGroupsAbove.Count, (grp, _) => grp.EpisodeAddedDate = DateTime.Now, (true, false, false));
-                        UpdateAndReportProgress(progress, 50);
+                        ReportUpdate(progress, 50);
                         // We do this inside, as the info will not be available as needed otherwise
                         List<SVR_VideoLocal> videoLocals = aniFile?.EpisodeIDs?.SelectMany(a => Repo.Instance.VideoLocal.GetByAniDBEpisodeID(a)).Where(b => b != null).ToList();
                         if (videoLocals != null)
@@ -289,7 +289,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                                 }
                             }
 
-                            UpdateAndReportProgress(progress, 60);
+                            ReportUpdate(progress, 60);
                             if (ServerSettings.Instance.FileQualityFilterEnabled)
                             {
                                 videoLocals.Sort(FileQualityFilter.CompareTo);
@@ -302,7 +302,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             }
                         }
 
-                        UpdateAndReportProgress(progress, 70);
+                        ReportUpdate(progress, 70);
                         // update stats for groups and series
                         // update all the groups above this series in the heirarchy
                         SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
@@ -312,7 +312,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.Info}");
                     }
 
-                    UpdateAndReportProgress(progress, 80);
+                    ReportUpdate(progress, 80);
                     vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
                     // Add this file to the users list
                     if (ServerSettings.Instance.AniDb.MyList_AddFiles)
@@ -320,15 +320,15 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         cmds.Add(new CmdAniDBAddFileToMyList(vidLocal.Hash));
                     }
 
-                    UpdateAndReportProgress(progress, 90);
+                    ReportUpdate(progress, 90);
                     if (cmds.Count > 0)
                         Queue.Instance.AddRange(cmds);
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                 }
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing ServerProcessFile: {VideoLocalID} - {ex}", ex);
+                ReportError(progress, $"Error processing ServerProcessFile: {VideoLocalID} - {ex}", ex);
             }
         }
     }

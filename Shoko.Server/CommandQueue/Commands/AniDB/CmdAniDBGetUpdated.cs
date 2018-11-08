@@ -37,12 +37,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
             try
             {
-                InitProgress(progress);
+                ReportInit(progress);
                 List<int> animeIDsToUpdate = new List<int>();
 
                 // check the automated update table to see when the last time we ran this command
                 ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
-                UpdateAndReportProgress(progress,20);
+                ReportUpdate(progress,20);
                 if (sched != null)
                 {
                     int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
@@ -53,7 +53,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     {
                         if (!ForceRefresh)
                         {
-                            ReportFinishAndGetResult(progress);
+                            ReportFinish(progress);
                             return;
                         }
                     }
@@ -84,7 +84,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // get a list of updates from AniDB
                 // startTime will contain the date/time from which the updates apply to
                 ShokoService.AnidbProcessor.GetUpdated(ref animeIDsToUpdate, ref webUpdateTime);
-                UpdateAndReportProgress(progress,40);
+                ReportUpdate(progress,40);
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache
                 using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBUpdates}))
@@ -97,11 +97,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 if (animeIDsToUpdate.Count == 0)
                 {
                     logger.Info("No anime to be updated");
-                    ReportFinishAndGetResult(progress);
+                    ReportFinish(progress);
                     return;
                 }
 
-                UpdateAndReportProgress(progress,60);
+                ReportUpdate(progress,60);
 
 
                 int countAnime = 0;
@@ -144,11 +144,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     Queue.Instance.AddRange(updates);
 
                 logger.Info("Updating {0} anime records, and {1} group status records", countAnime, countSeries);
-                ReportFinishAndGetResult(progress);
+                ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportErrorAndGetResult(progress, $"Error processing AniDb.GetUpdated: {ex}", ex);
+                ReportError(progress, $"Error processing AniDb.GetUpdated: {ex}", ex);
             }
         }
     }
