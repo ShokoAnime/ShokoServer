@@ -6,12 +6,15 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Shoko.Server.Extensions;
+using NLog;
+using System.Globalization;
 
 namespace Shoko.Server
 {
     internal static class Analytics
     {
         private const string AnalyticsId = "UA-128934547-1";
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
 //#if !DEBUG
         //private const string Endpoint = "https://www.google-analytics.com/debug";
@@ -26,30 +29,51 @@ namespace Shoko.Server
         /// <param name="eventLabel">The label for the event</param>
         /// <param name="extraData">as per: https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ec </param>
         /// <returns></returns>
-        internal static bool PostEvent(string eventCategory, string eventAction, string eventLabel = null, IDictionary<string, string> extraData = default)
+        internal static bool PostEvent(string eventCategory, string eventAction, string eventLabel = null) => PostData("event", new Dictionary<string, string>
+            {
+                {"ea", eventAction},
+                {"ec", eventCategory},
+                {"el", eventLabel ?? "" }
+            });
+
+        internal static bool PostException(Exception ex, bool fatal = false) => PostData("exception",
+            new Dictionary<string, string>
+            {
+                {"exd", ex.GetType().FullName},
+                {"exf", (fatal ? 1 : 0).ToString()}
+            });
+
+        private static bool PostData(string type, IDictionary<string, string> extraData)
         {
             if (ServerSettings.GA_OptOutPlzDont) return false;
 
-            using (var client = new HttpClient())
+            try
             {
-                //
-                var data = new Dictionary<string, string>
+                using (var client = new HttpClient())
                 {
-                    {"an", "Shoko Server"},
-                    {"t", "event"},
-                    {"tid",  AnalyticsId},
-                    {"cid",  ServerSettings.GA_ClientId.ToString()},
-                    {"v", "1"},
-                    {"av", Utils.GetApplicationVersion()},
-                    {"ea", eventAction},
-                    {"ec", eventCategory},
-                    {"aip", "1"}
-                };
-                data.AddRange(extraData);
+                    var data = new Dictionary<string, string>
+                    {
+                        {"t", type},
+                        {"an", "Shoko Server"},
+                        {"tid", AnalyticsId},
+                        {"cid", ServerSettings.GA_ClientId.ToString()},
+                        {"v", "1"},
+                        {"av", Utils.GetApplicationVersion()},
+                        {"ul", CultureInfo.GetCultureInfo(ServerSettings.Culture).DisplayName},
+                        {"aip", "1"}
+                    };
+                    data.AddRange(extraData);
 
-                var resp = client.PostAsync($"{Endpoint}/collect", new FormUrlEncodedContent(data)).ConfigureAwait(false).GetAwaiter().GetResult();
+                    var resp = client.PostAsync($"{Endpoint}/collect", new FormUrlEncodedContent(data))
+                        .ConfigureAwait(false).GetAwaiter().GetResult();
 
-                return true;
+                    return true;
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Logger.Error("There was an error posting to Google Analytics", ex);
+                return false;
             }
         }
 
