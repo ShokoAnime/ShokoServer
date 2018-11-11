@@ -18,6 +18,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
+    // TODO THIS NEEDS TO BE ABLE TO HOOK INTO THE ApiInUse FIELD SOMEHOW.
     [ApiController]
     [Route("/Stream")]
     [ApiExplorerSettings(IgnoreApi = true)]
