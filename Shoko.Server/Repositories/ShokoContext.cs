@@ -314,12 +314,7 @@ namespace Shoko.Server.Repositories
         public DbSet<BookmarkedAnime> BookmarkedAnimes { get; set; } // BookmarkedAnime
         public DbSet<SVR_CloudAccount> CloudAccounts { get; set; } // CloudAccount
         public DbSet<CommandRequest> CommandRequests { get; set; } // CommandRequest
-        public DbSet<CrossRef_AniDB_MAL> CrossRef_AniDB_MALs { get; set; } // CrossRef_AniDB_MAL
-        public DbSet<CrossRef_AniDB_Other> CrossRef_AniDB_Other { get; set; } // CrossRef_AniDB_Other
-        public DbSet<CrossRef_AniDB_Trakt_Episode> CrossRef_AniDB_Trakt_Episodes { get; set; } // CrossRef_AniDB_Trakt_Episode
-        public DbSet<CrossRef_AniDB_TraktV2> CrossRef_AniDB_TraktV2 { get; set; } // CrossRef_AniDB_TraktV2
-        public DbSet<CrossRef_AniDB_TvDB_Episode> CrossRef_AniDB_TvDB_Episodes { get; set; } // CrossRef_AniDB_TvDB_Episode
-        public DbSet<CrossRef_AniDB_TvDBV2> CrossRef_AniDB_TvDBV2 { get; set; } // CrossRef_AniDB_TvDBV2
+        public DbSet<SVR_CrossRef_AniDB_Provider> CrossRef_AniDB_Provider { get; set; } // CrossRef_AniDB_Provider
         public DbSet<CrossRef_CustomTag> CrossRef_CustomTags { get; set; } // CrossRef_CustomTag
         public DbSet<CrossRef_File_Episode> CrossRef_File_Episodes { get; set; } // CrossRef_File_Episode
         public DbSet<CrossRef_Languages_AniDB_File> CrossRef_Languages_AniDB_Files { get; set; } // CrossRef_Languages_AniDB_File
@@ -353,8 +348,6 @@ namespace Shoko.Server.Repositories
         public DbSet<SVR_VideoLocal> VideoLocals { get; set; } // VideoLocal
         public DbSet<SVR_VideoLocal_Place> VideoLocal_Places { get; set; } // VideoLocal_Place
         public DbSet<VideoLocal_User> VideoLocal_Users { get; set; } // VideoLocal_User
-        public DbSet<CrossRef_AniDB_TvDB_Episode_Override> CrossRef_AniDB_TvDB_Episode_Override { get; internal set; }
-        public DbSet<CrossRef_AniDB_TvDB> CrossRef_AniDB_TvDB { get; internal set; }
         public DbSet<CrossRef_Anime_Staff> CrossRef_Anime_Staff { get; internal set; }
         public DbSet<AnimeStaff> AnimeStaff { get; internal set; }
         public DbSet<AnimeCharacter> AnimeCharacter { get; internal set; }

@@ -91,6 +91,21 @@ namespace Shoko.Server.Extensions
             };
         }
 
+        public static CL_CrossRef_AniDB_Provider ToClient(this SVR_CrossRef_AniDB_Provider c)
+        {
+            return new CL_CrossRef_AniDB_Provider
+            {
+                AnimeID = c.AnimeID,
+                CrossRef_AniDB_ProviderID = c.CrossRef_AniDB_ProviderID,
+                CrossRefID = c.CrossRefID,
+                CrossRefSource = c.CrossRefSource,
+                CrossRefType = c.CrossRefType,
+                Episodes = c.Episodes,
+                EpisodesData = c.EpisodesData,
+                EpisodesOverride = c.EpisodesOverride,
+                EpisodesOverrideData = c.EpisodesOverrideData
+            };
+        }
         public static CL_AniDB_GroupStatus ToClient(this AniDB_GroupStatus g)
         {
             return new CL_AniDB_GroupStatus

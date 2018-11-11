@@ -11,6 +11,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Extensions;
@@ -400,7 +401,7 @@ namespace Shoko.Server.Providers.TraktTV
         public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber,
             string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
         {
-            List<CrossRef_AniDB_TraktV2> xrefTemps = Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeIDEpTypeEpNumber(
+            List<CrossRef_AniDB_Provider> xrefTemps = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDEpTypeEpNumber(
                 animeID, (int)aniEpType, aniEpNumber);
             if (xrefTemps != null && xrefTemps.Count > 0)
             {
@@ -1149,16 +1150,16 @@ namespace Shoko.Server.Providers.TraktTV
                 if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                     return ret;
 
-                List<CrossRef_AniDB_TraktV2> traktXRefs =
-                    Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                List<SVR_CrossRef_AniDB_Provider> traktXRefs =
+                    Repo.Instance.CrossRef_AniDB_Provider.GetByType(CrossRefType.TraktTV);
                 if (traktXRefs == null || traktXRefs.Count == 0) return null;
 
                 // get a unique list of trakt id's
                 List<string> ids = new List<string>();
-                foreach (CrossRef_AniDB_TraktV2 xref in traktXRefs)
+                foreach (SVR_CrossRef_AniDB_Provider xref in traktXRefs)
                 {
-                    if (!ids.Contains(xref.TraktID))
-                        ids.Add(xref.TraktID);
+                    if (!ids.Contains(xref.CrossRefID))
+                        ids.Add(xref.CrossRefID);
                 }
 
                 foreach (string id in ids)
@@ -1266,10 +1267,10 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.Instance.CrossRef_AniDB_TraktV2.GetAll();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
+            IReadOnlyList<SVR_CrossRef_AniDB_Provider> allCrossRefs = Repo.Instance.CrossRef_AniDB_Provider.GetByType(CrossRefType.TraktTV);
+            foreach (SVR_CrossRef_AniDB_Provider xref in allCrossRefs)
             {
-                CommandQueue.Queue.Instance.Add(new CmdTraktUpdateInfo(xref.TraktID));
+                CommandQueue.Queue.Instance.Add(new CmdTraktUpdateInfo(xref.CrossRefID));
             }
         }
 
@@ -1409,12 +1410,12 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs =
-                        Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(col.show.ids.slug);
+                    List<SVR_CrossRef_AniDB_Provider> xrefs =
+                        Repo.Instance.CrossRef_AniDB_Provider.GetByProvider(CrossRefType.TraktTV,col.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (SVR_CrossRef_AniDB_Provider xref in xrefs)
                         {
                             SVR_AnimeSeries locSeries = Repo.Instance.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
@@ -1484,12 +1485,12 @@ namespace Shoko.Server.Providers.TraktTV
                     //continue;
 
                     // check if we have this series locally
-                    List<CrossRef_AniDB_TraktV2> xrefs =
-                        Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(wtch.show.ids.slug);
+                    List<SVR_CrossRef_AniDB_Provider> xrefs =
+                        Repo.Instance.CrossRef_AniDB_Provider.GetByProvider(CrossRefType.TraktTV, wtch.show.ids.slug);
 
                     if (xrefs.Count > 0)
                     {
-                        foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+                        foreach (SVR_CrossRef_AniDB_Provider xref in xrefs)
                         {
                             SVR_AnimeSeries locSeries = Repo.Instance.AnimeSeries.GetByAnimeID(xref.AnimeID);
                             if (locSeries == null) continue;
@@ -1631,18 +1632,18 @@ namespace Shoko.Server.Providers.TraktTV
         {
             // this means Trakt has no record of this slug.
             // 1. Delete any cross ref links
-            Repo.Instance.CrossRef_AniDB_TraktV2.Delete(Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(show.TraktID));
+            Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByProvider(CrossRefType.TraktTV, show.TraktID));
 
             // 2. Delete default image links
 
             // 3. Delete episodes
-            Repo.Instance.Trakt_Episode.Delete(Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
+            Repo.Instance.Trakt_Episode.FindAndDelete(() => Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID));
 
             // 5. Delete seasons
-            Repo.Instance.Trakt_Season.Delete(Repo.Instance.Trakt_Season.GetByShowID(show.Trakt_ShowID));
+            Repo.Instance.Trakt_Season.FindAndDelete(() => Repo.Instance.Trakt_Season.GetByShowID(show.Trakt_ShowID));
 
             // 6. Delete the show
-            Repo.Instance.Trakt_Show.Delete(show.Trakt_ShowID);
+            Repo.Instance.Trakt_Show.FindAndDelete(() => Repo.Instance.Trakt_Show.GetByID(show.Trakt_ShowID));
         }
 
         private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,

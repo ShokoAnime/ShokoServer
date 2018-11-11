@@ -11,6 +11,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.CommandQueue.Commands.AniDB;
@@ -117,9 +118,9 @@ namespace Shoko.Server.Models
         public List<TvDB_Episode> GetTvDBEpisodes()
         {
             List<TvDB_Episode> results = new List<TvDB_Episode>();
-            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-                results.AddRange(Repo.Instance.TvDB_Episode.GetBySeriesID(id).OrderBy(a => a.SeasonNumber)
+            string id = GetCrossRefTvDB().FirstOrDefault()?.CrossRefID;
+            if (id != null)
+                results.AddRange(Repo.Instance.TvDB_Episode.GetBySeriesID(int.Parse(id)).OrderBy(a => a.SeasonNumber)
                     .ThenBy(a => a.EpisodeNumber));
             return results;
         }
@@ -217,61 +218,61 @@ namespace Shoko.Server.Models
             return dictTvDBSeasonsSpecials;
         }
 
-        public List<CrossRef_AniDB_TvDB_Episode_Override> GetCrossRefTvDBEpisodes() => Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_ProviderEpisode> GetCrossRefTvDBEpisodes() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID,CrossRefType.TvDB).SelectMany(a=>a.EpisodesListOverride.Episodes).ToList();
 
-        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB() => Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+        public List<SVR_CrossRef_AniDB_Provider> GetCrossRefTvDB() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID, CrossRefType.TvDB);
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_Provider.GetTraktV2LinksFromAnime(AnimeID);
 
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL() => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
+        public List<SVR_CrossRef_AniDB_Provider> GetCrossRefMAL() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID,CrossRefType.MyAnimeList);
 
         public TvDB_Series GetTvDBSeries()
         {
-            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-            if (id == -1) return null;
-            return Repo.Instance.TvDB_Series.GetByTvDBID(id);
+            string id = GetCrossRefTvDB().FirstOrDefault()?.CrossRefID;
+            if (id == null) return null;
+            return Repo.Instance.TvDB_Series.GetByTvDBID(int.Parse(id));
         }
 
         public List<TvDB_ImageFanart> GetTvDBImageFanarts()
         {
             List<TvDB_ImageFanart> results = new List<TvDB_ImageFanart>();
-            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-                results.AddRange(Repo.Instance.TvDB_ImageFanart.GetBySeriesID(id));
+            string id = GetCrossRefTvDB().FirstOrDefault()?.CrossRefID;
+            if (id != null)
+                results.AddRange(Repo.Instance.TvDB_ImageFanart.GetBySeriesID(int.Parse(id)));
             return results;
         }
 
         public List<TvDB_ImagePoster> GetTvDBImagePosters()
         {
             List<TvDB_ImagePoster> results = new List<TvDB_ImagePoster>();
-            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-                results.AddRange(Repo.Instance.TvDB_ImagePoster.GetBySeriesID(id));
+            string id = GetCrossRefTvDB().FirstOrDefault()?.CrossRefID;
+            if (id != null)
+                results.AddRange(Repo.Instance.TvDB_ImagePoster.GetBySeriesID(int.Parse(id)));
             return results;
         }
 
         public List<TvDB_ImageWideBanner> GetTvDBImageWideBanners()
         {
             List<TvDB_ImageWideBanner> results = new List<TvDB_ImageWideBanner>();
-            int id = GetCrossRefTvDB()?.FirstOrDefault()?.TvDBID ?? -1;
-            if (id != -1)
-                results.AddRange(Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(id));
+            string id = GetCrossRefTvDB().FirstOrDefault()?.CrossRefID;
+            if (id != null)
+                results.AddRange(Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(int.Parse(id)));
             return results;
         }
 
-        public CrossRef_AniDB_Other GetCrossRefMovieDB() => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(AnimeID,
-            CrossRefType.MovieDB);
+        public SVR_CrossRef_AniDB_Provider GetCrossRefMovieDB() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID,
+            CrossRefType.MovieDB).FirstOrDefault();
 
         public MovieDB_Movie GetMovieDBMovie()
         {
-            CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
+            CrossRef_AniDB_Provider xref = GetCrossRefMovieDB();
             if (xref == null) return null;
             return Repo.Instance.MovieDb_Movie.GetByOnlineID(int.Parse(xref.CrossRefID));
         }
 
         public List<MovieDB_Fanart> GetMovieDBFanarts()
         {
-            CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
+            CrossRef_AniDB_Provider xref = GetCrossRefMovieDB();
             if (xref == null) return new List<MovieDB_Fanart>();
 
             return Repo.Instance.MovieDB_Fanart.GetByMovieID(int.Parse(xref.CrossRefID));
@@ -279,7 +280,7 @@ namespace Shoko.Server.Models
 
         public List<MovieDB_Poster> GetMovieDBPosters()
         {
-            CrossRef_AniDB_Other xref = GetCrossRefMovieDB();
+            CrossRef_AniDB_Provider xref = GetCrossRefMovieDB();
             if (xref == null) return new List<MovieDB_Poster>();
 
             return Repo.Instance.MovieDB_Poster.GetByMovieID(int.Parse(xref.CrossRefID));
@@ -1164,7 +1165,7 @@ namespace Shoko.Server.Models
         public void CreateResources(List<Raw_AniDB_ResourceLink> resources)
         {
             if (resources == null) return;
-            List<CrossRef_AniDB_MAL> malLinks = new List<CrossRef_AniDB_MAL>();
+            List<SVR_CrossRef_AniDB_Provider> malLinks = new List<SVR_CrossRef_AniDB_Provider>();
             foreach (Raw_AniDB_ResourceLink resource in resources)
             {
                 switch (resource.Type)
@@ -1223,14 +1224,12 @@ namespace Shoko.Server.Models
                         {
                             int id = resource.ID;
                             if (id == 0) break;
-                            if (Repo.Instance.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
-                            CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
+                            if (Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(id,CrossRefType.MyAnimeList).Count>0) continue;
+                            SVR_CrossRef_AniDB_Provider xref = new SVR_CrossRef_AniDB_Provider
                             {
                                 AnimeID = AnimeID,
-                                CrossRefSource = (int)CrossRefSource.AniDB,
-                                MALID = id,
-                                StartEpisodeNumber = 1,
-                                StartEpisodeType = 1
+                                CrossRefSource = CrossRefSource.AniDB,
+                                CrossRefID = id.ToString(),
                             };
 
                             malLinks.Add(xref);
@@ -1238,7 +1237,7 @@ namespace Shoko.Server.Models
                         }
                 }
             }
-            Repo.Instance.CrossRef_AniDB_MAL.BeginAdd(malLinks).Commit();
+            Repo.Instance.CrossRef_AniDB_Provider.BeginAdd(malLinks).Commit();
         }
 
         private void CreateRelations(List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations, int relDepth)

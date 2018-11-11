@@ -60,8 +60,8 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 {
                     try
                     {
-                      
-
+                      //NO OP Till cache rework
+                      /*
                         List<WebCache_CrossRef_AniDB_Trakt> resultsCache =
                             WebCacheAPI.Get_CrossRefAniDBTrakt(AnimeID);
                         if (resultsCache != null && resultsCache.Count > 0)
@@ -86,6 +86,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                                 return;
                             }
                         }
+                       */
                     }
                     catch (Exception ex)
                     {

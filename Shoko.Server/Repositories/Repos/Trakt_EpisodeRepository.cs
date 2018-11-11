@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
@@ -54,7 +55,11 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.FirstOrDefault(a => a.Trakt_ShowID == showID && a.Season == seasonNumber && a.EpisodeNumber==epnumber);
             }
         }
-
+        public Trakt_Episode GetByReference(string reference)
+        {
+            string[] sp = reference.Split('_');
+            return GetByShowIDSeasonAndEpisode(int.Parse(sp[0]), int.Parse(sp[1]), int.Parse(sp[2]));
+        }
         public List<int> GetSeasonNumbersForSeries(int showID)
         {
             using (RepoLock.ReaderLock())

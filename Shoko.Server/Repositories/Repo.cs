@@ -45,8 +45,7 @@ namespace Shoko.Server.Repositories
         public AniDB_VoteRepository AniDB_Vote { get; private set; }
         public TvDB_EpisodeRepository TvDB_Episode { get; private set; }
         public TvDB_SeriesRepository TvDB_Series { get; private set; }
-        public CrossRef_AniDB_TvDBV2Repository CrossRef_AniDB_TvDBV2 { get; private set; }
-        public CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; private set; }
+        public CrossRef_AniDB_ProviderRepository CrossRef_AniDB_Provider { get; private set; }
         public TvDB_ImagePosterRepository TvDB_ImagePoster { get; private set; }
         public TvDB_ImageFanartRepository TvDB_ImageFanart { get; private set; }
         public TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; private set; }
@@ -72,11 +71,6 @@ namespace Shoko.Server.Repositories
 
         public CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; private set; }
 
-        public CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; private set; }
-
-        public CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; private set; }
-
-        public CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; private set; }
         public BookmarkedAnimeRepository BookmarkedAnime { get; private set; }
         public AniDB_SeiyuuRepository AniDB_Seiyuu { get; private set; }
         public AniDB_ReviewRepository AniDB_Review { get; private set; }
@@ -111,9 +105,7 @@ namespace Shoko.Server.Repositories
 
 
         /************** Might need to be DEPRECATED **************/
-        public CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; private set; }
-        public CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; private set; }
-        public CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; private set; }
+
         public CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; internal set; }
 
 
@@ -140,8 +132,8 @@ namespace Shoko.Server.Repositories
             nameof(AniDB_File), nameof(AniDB_Tag), nameof(AniDB_Vote), nameof(AnimeCharacter),
             nameof(AnimeEpisode_User), nameof(AnimeEpisode), nameof(AnimeGroup_User),
             nameof(AnimeGroup), nameof(AnimeSeries_User), nameof(AnimeSeries), nameof(AnimeStaff),
-            nameof(AuthTokens), nameof(CloudAccount), nameof(CrossRef_AniDB_TvDB_Episode_Override),
-            nameof(CrossRef_AniDB_TvDB_Episode), nameof(CrossRef_AniDB_TvDB), nameof(CrossRef_Anime_Staff),
+            nameof(AuthTokens), nameof(CloudAccount), nameof(CrossRef_AniDB_Provider),
+            nameof(CrossRef_Anime_Staff),
             nameof(CrossRef_CustomTag), nameof(CrossRef_File_Episode), nameof(CustomTag),
             nameof(GroupFilter), nameof(ImportFolder), nameof(JMMUser), nameof(TvDB_Episode),
             nameof(TvDB_ImageFanart), nameof(TvDB_ImagePoster), nameof(TvDB_ImageWideBanner),
@@ -189,8 +181,7 @@ namespace Shoko.Server.Repositories
             AniDB_Vote = Register<AniDB_VoteRepository, AniDB_Vote>(db.AniDB_Votes);
             TvDB_Episode = Register<TvDB_EpisodeRepository, TvDB_Episode>(db.TvDB_Episodes);
             TvDB_Series = Register<TvDB_SeriesRepository, TvDB_Series>(db.TvDB_Series);
-            CrossRef_AniDB_TvDBV2 = Register<CrossRef_AniDB_TvDBV2Repository, CrossRef_AniDB_TvDBV2>(db.CrossRef_AniDB_TvDBV2);
-            CrossRef_AniDB_TvDB_Episode = Register<CrossRef_AniDB_TvDB_EpisodeRepository, CrossRef_AniDB_TvDB_Episode>(db.CrossRef_AniDB_TvDB_Episodes);
+            CrossRef_AniDB_Provider = Register<CrossRef_AniDB_ProviderRepository, SVR_CrossRef_AniDB_Provider>(db.CrossRef_AniDB_Provider);
             TvDB_ImagePoster = Register<TvDB_ImagePosterRepository, TvDB_ImagePoster>(db.TvDB_ImagePosters);
             TvDB_ImageFanart = Register<TvDB_ImageFanartRepository, TvDB_ImageFanart>(db.TvDB_ImageFanarts);
             TvDB_ImageWideBanner = Register<TvDB_ImageWideBannerRepository, TvDB_ImageWideBanner>(db.TvDB_ImageWideBanners);
@@ -211,16 +202,8 @@ namespace Shoko.Server.Repositories
             FileNameHash = Register<FileNameHashRepository, FileNameHash>(db.FileNameHashes);
             FileFfdshowPreset = Register<FileFfdshowPresetRepository, FileFfdshowPreset>(db.FileFfdshowPresets);
             DuplicateFile = Register<DuplicateFileRepository, DuplicateFile>(db.DuplicateFiles);
-
             CrossRef_Subtitles_AniDB_File = Register<CrossRef_Subtitles_AniDB_FileRepository, CrossRef_Subtitles_AniDB_File>(db.CrossRef_Subtitles_AniDB_Files);
-
             CrossRef_Languages_AniDB_File = Register<CrossRef_Languages_AniDB_FileRepository, CrossRef_Languages_AniDB_File>(db.CrossRef_Languages_AniDB_Files);
-
-            CrossRef_AniDB_TraktV2 = Register<CrossRef_AniDB_TraktV2Repository, CrossRef_AniDB_TraktV2>(db.CrossRef_AniDB_TraktV2);
-
-            CrossRef_AniDB_Other = Register<CrossRef_AniDB_OtherRepository, CrossRef_AniDB_Other>(db.CrossRef_AniDB_Other);
-
-            CrossRef_AniDB_MAL = Register<CrossRef_AniDB_MALRepository, CrossRef_AniDB_MAL>(db.CrossRef_AniDB_MALs);
             BookmarkedAnime = Register<BookmarkedAnimeRepository, BookmarkedAnime>(db.BookmarkedAnimes);
             AniDB_Seiyuu = Register<AniDB_SeiyuuRepository, AniDB_Seiyuu>(db.AniDB_Seiyuus);
             AniDB_Review = Register<AniDB_ReviewRepository, AniDB_Review>(db.AniDB_Reviews);
@@ -250,9 +233,6 @@ namespace Shoko.Server.Repositories
 
 
             /************** Might need to be DEPRECATED **************/
-            CrossRef_AniDB_Trakt_Episode = Register<CrossRef_AniDB_Trakt_EpisodeRepository, CrossRef_AniDB_Trakt_Episode>(db.CrossRef_AniDB_Trakt_Episodes);
-            CrossRef_AniDB_TvDB_Episode_Override = Register<CrossRef_AniDB_TvDB_Episode_OverrideRepository, CrossRef_AniDB_TvDB_Episode_Override>(db.CrossRef_AniDB_TvDB_Episode_Override);
-            CrossRef_AniDB_TvDB = Register<CrossRef_AniDB_TvDBRepository, CrossRef_AniDB_TvDB>(db.CrossRef_AniDB_TvDB);
             CrossRef_Anime_Staff = Register<CrossRef_Anime_StaffRepository, CrossRef_Anime_Staff>(db.CrossRef_Anime_Staff);
             Adhoc = new AdhocRepository();
         }

@@ -55,6 +55,9 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 {
                     try
                     {
+                        //NO OP
+                        //Till Webache operational
+                        /*
                         List<WebCache_CrossRef_AniDB_TvDB> cacheResults =
                             WebCacheAPI.Get_CrossRefAniDBTvDB(AnimeID);
                         ReportUpdate(progress,25);
@@ -99,6 +102,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                             ReportFinish(progress);
                             return;
                         }
+                            */
                     }
                     catch (Exception)
                     {
@@ -114,13 +118,13 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
                 // try to pull a link from a prequel/sequel
                 var relations = Repo.Instance.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);
-                int? tvDBID = relations.SelectMany(a => Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(a))
-                    .FirstOrDefault(a => a != null)?.TvDBID;
+                string tvDBID = relations.SelectMany(a => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(a,CrossRefType.TvDB))
+                    .FirstOrDefault(a => a != null)?.CrossRefID;
                 ReportUpdate(progress, 25);
 
                 if (tvDBID != null)
                 {
-                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, tvDBID.Value, true);
+                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, int.Parse(tvDBID), true);
                     ReportFinish(progress);
                     return;
                 }
@@ -230,16 +234,16 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         private static void AddCrossRef_AniDB_TvDBV2(int animeID, int tvdbID, CrossRefSource source)
         {
-            CrossRef_AniDB_TvDB xref =
-                Repo.Instance.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvdbID);
-            if (xref != null) return;
-            xref = new CrossRef_AniDB_TvDB
+            if (Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TvDB, animeID, tvdbID.ToString()).Count>0) return;
+
+            SVR_CrossRef_AniDB_Provider xref = new SVR_CrossRef_AniDB_Provider
             {
-                AniDBID = animeID,
-                TvDBID = tvdbID,
-                CrossRefSource = source
+                AnimeID = animeID,
+                CrossRefID = tvdbID.ToString(),
+                CrossRefSource = source,
+                CrossRefType = CrossRefType.TvDB
             };
-            Repo.Instance.CrossRef_AniDB_TvDB.BeginAdd(xref).Commit();
+            Repo.Instance.CrossRef_AniDB_Provider.BeginAdd(xref).Commit();
         }
 
     }

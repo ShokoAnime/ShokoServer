@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -34,7 +35,10 @@ namespace Shoko.Server.CommandQueue.Commands
         CommandStatus Status { get;}
         [JsonIgnore]
         string Error { get; }
+        [JsonIgnore]
+        int RetryFutureInSeconds { get; set; }
+        [JsonIgnore]
+        List<Type> GenericPreconditions { get; set; }
+
     }
-
-
 }

@@ -151,7 +151,7 @@ namespace Shoko.Server.Repositories.Repos
             });
         }
 
-        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits, List<string> batchLimits, List<WorkTypes> workLimits)
+        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits, List<string> batchLimits, List<WorkTypes> workLimits, List<string> preconditionLimits)
         {
             List<ICommand> cmds=new List<ICommand>();
             Dictionary<string, int> localLimits = tagLimits.ToDictionary(a => a.Key, a => a.Value);
@@ -161,6 +161,9 @@ namespace Shoko.Server.Repositories.Repos
                 FindAndDelete(() =>
                 {
                     IQueryable<CommandRequest> req = Table.Where(a => a.ExecutionDate <= DateTime.UtcNow);
+                    //Filter prconditions
+                    foreach (string k in preconditionLimits)
+                        req = req.Where(a => a.PreconditionClass1 != k && a.PreconditionClass2 != k && a.PreconditionClass3 != k && a.PreconditionClass4 != k && a.PreconditionClass5 != k && a.PreconditionClass6 != k);
                     //Filter already filled tags by the queue
                     foreach (string k in localLimits.Where(a => a.Value == 0).Select(a => a.Key))
                         req = req.Where(a => a.ParallelTag != k);

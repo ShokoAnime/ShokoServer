@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
@@ -8,6 +9,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+using TMDbLib.Objects.Lists;
 
 namespace Shoko.Server.CommandQueue
 {
@@ -16,26 +18,41 @@ namespace Shoko.Server.CommandQueue
         public static WorkTypes[] GeneralWorkTypesExceptSchedule => new[] { WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
         public static WorkTypes[] GeneralWorkTypes => new[] { WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
 
-        private static Queue _instance;
         private readonly AsyncLock _lock = new AsyncLock();
         private CancellationTokenSource _src;
         private readonly List<string> PausedBatches = new List<string>();
         private readonly List<string> PausedTags = new List<string>();
         private readonly List<WorkTypes> PausedWorkTypes = new List<WorkTypes>();
         private readonly List<ICommand> workingtasks = new List<ICommand>();
-        public static Queue Instance => _instance ?? (_instance = new Queue());
+
+        private static readonly Lazy<Queue> _instance = new Lazy<Queue>(() => new Queue());
+        public static Queue Instance => _instance.Value;
+
         public int MaxThreads { get; set; } = 8;
         public int DefaultCheckDelayInMilliseconds { get; set; } = 1000;
         public int NoWorkDelayInMilliseconds { get; set; } = 5000;
-        public int RetryFutureSeconds { get; set; } = 60;
 
         public int BatchSize { get; set; } = 20;
 
         public ICommandProvider Provider { get; set; }= Repo.Instance.CommandRequest;
 
+        private Dictionary<IPrecondition,string> _genericPreconditions = new Dictionary<IPrecondition,string>();
+
         public bool Running { get; private set; }
 
-
+        public Queue()
+        {
+            foreach (Type t in Resolver.Instance.GenericPreconditionToString.Keys)
+            {
+                ConstructorInfo ctor = t.GetConstructor(new Type[0]);
+                if (ctor == null)
+                    continue;
+                IPrecondition prec = (IPrecondition) ctor.Invoke(new object[0]);
+                if (prec==null)
+                    continue;
+                _genericPreconditions.Add(prec, Resolver.Instance.GenericPreconditionToString[t]);
+            }
+        }
         public void Start()
         {
             if (Running)
@@ -201,7 +218,15 @@ namespace Shoko.Server.CommandQueue
                 Dictionary<string, int> usedtags = new Dictionary<string, int>();
                 List<string> batchlimits;
                 List<WorkTypes> workLimits;
+                List<string> preconditionLimits=new List<string>();
+
                 int count;
+                //Execute Generic preconditions
+                foreach (IPrecondition p in _genericPreconditions.Keys)
+                {
+                    if (!p.CanExecute())
+                        preconditionLimits.Add(_genericPreconditions[p]);
+                }
                 using (await _lock.LockAsync(token))
                 {
                     count = MaxThreads - workingtasks.Count;
@@ -227,17 +252,25 @@ namespace Shoko.Server.CommandQueue
                 bool nowork = false;
                 if (count > 0)
                 {
-                    List<ICommand> cmds = Provider.Get(count, usedtags, batchlimits, workLimits);
+                    List<ICommand> cmds = Provider.Get(count, usedtags, batchlimits, workLimits,preconditionLimits);
                     nowork = cmds.Count == 0;
                     foreach (ICommand c in cmds)
                     {
+                        if (c is IPrecondition d)
+                        {
+                            if (!d.CanExecute())
+                            {
+                                Provider.Put(c,c.Batch,d.PreconditionRetryFutureInSeconds);
+                                continue;
+                            }
+                        }
                         Task t = new Task(async () =>
                         {
                             await c.RunAsync(this, token);
                             if (c.Status == CommandStatus.Error && c.Retries < c.MaxRetries)
                             {
                                 c.Retries++;
-                                Provider.Put(c, c.Batch, RetryFutureSeconds, c.Error, c.Retries);
+                                Provider.Put(c, c.Batch, c.RetryFutureInSeconds, c.Error, c.Retries);
                             }
 
                             using (await _lock.LockAsync(token))

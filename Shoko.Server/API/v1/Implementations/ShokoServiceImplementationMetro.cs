@@ -20,6 +20,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -116,13 +117,13 @@ namespace Shoko.Server
                 contract.AniDB_DiscussURL = string.Format(Constants.URLS.AniDB_SeriesDiscussion, animeID);
 
                 // MAL
-                List<CrossRef_AniDB_MAL> malRef = anime.GetCrossRefMAL();
+                List<CrossRef_AniDB_Provider> malRef = anime.GetCrossRefMAL();
                 if (malRef != null && malRef.Count > 0)
                 {
-                    contract.MAL_ID = malRef[0].MALID.ToString();
-                    contract.MAL_URL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
+                    contract.MAL_ID = malRef[0].CrossRefID;
+                    contract.MAL_URL = string.Format(Constants.URLS.MAL_Series, malRef[0].CrossRefID);
                     //contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_SeriesDiscussion, malRef[0].MALID, malRef[0].MALTitle);
-                    contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
+                    contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_Series, malRef[0].CrossRefID);
                 }
 
                 // TvDB

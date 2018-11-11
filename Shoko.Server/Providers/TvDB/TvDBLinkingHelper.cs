@@ -5,6 +5,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Models.WebCache;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -18,56 +19,73 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
+         
             // wipe old links except User Verified
             if (!skipMatchClearing)
-                Repo.Instance.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
-
-            List<CrossRef_AniDB_TvDB> tvxrefs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
-            int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
-
-            var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
-
-            foreach (var match in matches)
             {
-                if (match.AniDB == null || match.TvDB == null) continue;
-                using (var upd = Repo.Instance.CrossRef_AniDB_TvDB_Episode.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID, match.TvDB.Id)))
+                using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginBatchUpdate(() =>
+                  {
+                      List<SVR_CrossRef_AniDB_Provider> provs = new List<SVR_CrossRef_AniDB_Provider>();
+                      Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB).ForEach(a =>
+                      {
+                          a.EpisodesList.DeleteAllUnverifiedLinks();
+                          if (a.EpisodesList.NeedPersitance)
+                              provs.Add(a);
+                      });
+                      return provs;
+                  }))
                 {
-                    // Don't touch User Verified links
-                    if (upd.Entity?.MatchRating == MatchRating.UserVerified) continue;
+                    upd.ForEach(a=>upd.Update(a));
+                    upd.Commit();
+                }
+            }
+            Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID,CrossRefType.TvDB).ForEach(a=>
+            {
+                a.EpisodesList.DeleteAllUnverifiedLinks();
+            });
 
-                    // check for duplicates only if we skip clearing the links
-                    if (skipMatchClearing && upd.IsUpdate)
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginBatchUpdate(()=> Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB)))
+            {
+                foreach (SVR_CrossRef_AniDB_Provider cap in upd)
+                {
+                    var matches = GetTvDBEpisodeMatches(animeID, Int32.Parse(cap.CrossRefID));
+
+                    foreach (var match in matches)
                     {
-                        if (upd.Entity.MatchRating != match.Rating)
-                            upd.Entity.MatchRating = match.Rating;
-                        upd.Commit();
-                        continue;
+                        if (match.AniDB == null || match.TvDB == null) continue;
+                        // Don't touch User Verified links
+                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID)?.MatchRating == MatchRating.UserVerified)
+                            continue;
+                        // check for duplicates only if we skip clearing the links Still needed?
+                        if ((cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID) !=null) && skipMatchClearing)
+                            cap.EpisodesList.AddOrUpdate(match.AniDB.AniDB_EpisodeID, match.TvDB.Id.ToString(), match.Rating);
+                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID)==null && cap.EpisodesList.GetByProviderId(match.TvDB.Id.ToString())==null)
+                            cap.EpisodesList.AddOrUpdate(match.AniDB.AniDB_EpisodeID, match.TvDB.Id.ToString(), match.Rating);
                     }
 
-                    upd.Entity.AniDBEpisodeID = match.AniDB.EpisodeID;
-                    upd.Entity.TvDBEpisodeID = match.TvDB.Id;
-                    upd.Entity.MatchRating = match.Rating;
+                    if (cap.EpisodesList.NeedPersitance)
+                        upd.Commit();
                 }
             }
         }
 
-        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
+        public static List<CrossRef_AniDB_ProviderEpisode> GetMatchPreview(int animeID, int tvdbID)
         {
             var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
             return matches.Where(a => a.AniDB != null && a.TvDB != null).OrderBy(a => a.AniDB.EpisodeType)
-                .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_TvDB_Episode
+                .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_ProviderEpisode
                 {
                     AniDBEpisodeID = match.AniDB.EpisodeID,
-                    TvDBEpisodeID = match.TvDB.Id,
+                    ProviderEpisodeID = match.TvDB.Id.ToString(),
                     MatchRating = match.Rating
                 }).ToList();
         }
 
-        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreviewWithOverrides(int animeID, int tvdbID)
+        public static List<CrossRef_AniDB_ProviderEpisode> GetMatchPreviewWithOverrides(int animeID, int tvdbID)
         {
             var matches = GetMatchPreview(animeID, tvdbID);
-            var overrides = Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
-            List<CrossRef_AniDB_TvDB_Episode> result = new List<CrossRef_AniDB_TvDB_Episode>();
+            var overrides = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB).SelectMany(a=>a.EpisodesListOverride.Episodes);
+            List<CrossRef_AniDB_ProviderEpisode> result = new List<CrossRef_AniDB_ProviderEpisode>();
             foreach (var match in matches)
             {
                 var match_override = overrides.FirstOrDefault(a => a.AniDBEpisodeID == match.AniDBEpisodeID);
@@ -77,10 +95,10 @@ namespace Shoko.Server.Providers.TvDB
                 }
                 else
                 {
-                    var new_match = new CrossRef_AniDB_TvDB_Episode
+                    var new_match = new CrossRef_AniDB_ProviderEpisode
                     {
                         AniDBEpisodeID = match_override.AniDBEpisodeID,
-                        TvDBEpisodeID = match_override.TvDBEpisodeID,
+                        ProviderEpisodeID = match_override.ProviderEpisodeID.ToString(),
                         MatchRating = MatchRating.UserVerified
                     };
                     result.Add(new_match);
@@ -403,9 +421,9 @@ namespace Shoko.Server.Providers.TvDB
                         {
                             // only check the relations if they have the same TvDB Series ID
                             var relations = Repo.Instance.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Prequel" && Repo.Instance.CrossRef_AniDB_TvDB
-                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
-                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
+                                .Where(a => a?.RelationType == "Prequel" && Repo.Instance.CrossRef_AniDB_Provider
+                                                .GetByAnimeIDAndType(a.RelatedAnimeID,CrossRefType.TvDB).Any(b =>
+                                                    season.Select(c => c.SeriesID).Contains(int.Parse(b.CrossRefID)))).ToList();
 
                             List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
                             allPrequels.AddRange(relations);
@@ -459,9 +477,9 @@ namespace Shoko.Server.Providers.TvDB
                         {
                             // only check the relations if they have the same TvDB Series ID
                             var relations = Repo.Instance.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Sequel" && Repo.Instance.CrossRef_AniDB_TvDB
-                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
-                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
+                                .Where(a => a?.RelationType == "Sequel" && Repo.Instance.CrossRef_AniDB_Provider
+                                                .GetByAnimeIDAndType(a.RelatedAnimeID,CrossRefType.TvDB).Any(b =>
+                                                    season.Select(c => c.SeriesID).Contains(int.Parse(b.CrossRefID)))).ToList();
 
                             List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
                             allSequels.AddRange(relations);

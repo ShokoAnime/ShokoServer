@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -17,6 +18,8 @@ namespace Shoko.Server.CommandQueue.Commands
         public BaseCommand()
         {
         }
+        public virtual List<Type> GenericPreconditions { get; set; }=new List<Type>();
+        public int RetryFutureInSeconds { get; set; } = 60;
         public double Progress { get; set; }
         public CommandStatus Status { get; set; } = CommandStatus.Canceled;
         public string Error { get; set; }
