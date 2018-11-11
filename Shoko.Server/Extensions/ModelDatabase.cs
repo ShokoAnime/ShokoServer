@@ -57,7 +57,7 @@ namespace Shoko.Server.Extensions
             // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
             foreach (var videoLocal in existingEp.GetVideoLocals())
             {
-                var videoLocalUsers = Repo.Instance.VideoLocalUser.GetByVideoLocalID(videoLocal.VideoLocalID);
+                var videoLocalUsers = Repo.Instance.VideoLocal_User.GetByVideoLocalID(videoLocal.VideoLocalID);
                 if (videoLocalUsers.Count > 0)
                 {
                     foreach (var videoLocalUser in videoLocalUsers)

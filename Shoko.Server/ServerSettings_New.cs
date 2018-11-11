@@ -129,6 +129,23 @@ namespace Shoko.Server
         public LinuxSettings Linux { get; set; } = new LinuxSettings();
 
         public bool TraceLog { get; set; } = false;
+        
+        [JsonIgnore]
+        public Guid GA_Client
+        {
+            get
+            {
+                if (Guid.TryParse(GA_ClientId, out var val)) return val;
+                val = Guid.NewGuid();
+                GA_ClientId = val.ToString();
+                return val;
+            }
+            set => GA_ClientId = value.ToString();
+        }
+        
+        public string GA_ClientId { get; set; }
+
+        public bool GA_OptOutPlzDont { get; set; } = false;
 
         public static ServerSettings Instance { get; private set; } = new ServerSettings();
 
