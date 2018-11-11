@@ -67,8 +67,36 @@ namespace Shoko.Server.Extensions
             existingEp.Populate(episode);
             existingEp.AnimeSeriesID = animeSeriesID;
             RepoFactory.AnimeEpisode.Save(existingEp);
-            foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+            // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
+            foreach (var videoLocal in existingEp.GetVideoLocals())
+            {
+                var videoLocalUsers = RepoFactory.VideoLocalUser.GetByVideoLocalID(videoLocal.VideoLocalID);
+                if (videoLocalUsers.Count > 0)
+                {
+                    foreach (var videoLocalUser in videoLocalUsers)
+                    {
+                        var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(videoLocalUser.JMMUserID,
+                                existingEp.AnimeEpisodeID) ?? new SVR_AnimeEpisode_User
+                            {
+                                JMMUserID = videoLocalUser.JMMUserID,
+                                WatchedDate = videoLocalUser.WatchedDate,
+                                PlayedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0,
+                                WatchedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0,
+                                AnimeSeriesID = animeSeriesID,
+                                AnimeEpisodeID = existingEp.AnimeEpisodeID
+                            };
+                        RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, epUser);
+                    }
+                }
+                else
+                {
+                    // these will probably never exist, but if they do, cover our bases
+                    foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
+                    {
+                        RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+                    }
+                }
+            }
         }
 
         public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)

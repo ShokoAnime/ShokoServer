@@ -86,6 +86,8 @@ namespace Shoko.Server.API.v2.Modules
 
             // Start the server
             Get["/startserver"] = ctx => StartServer();
+
+            Get["/inuse"] = ctx => ServerState.Instance.ApiInUse;
         }
 
         /// <summary>

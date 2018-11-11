@@ -1,33 +1,103 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Nancy.Rest.Module;
 using Shoko.Models.Server;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using System.Timers;
+using Nancy;
+using Nancy.Authentication.Stateless;
+using Nancy.Bootstrapper;
+using Nancy.Conventions;
+using Nancy.Diagnostics;
+using Nancy.ErrorHandling;
+using Nancy.Gzip;
+using Nancy.TinyIoc;
+using NLog;
 
 namespace Shoko.Server.API
 {
-    using Nancy;
-    using Nancy.Authentication.Stateless;
-    using Nancy.Bootstrapper;
-    using Nancy.Conventions;
-    using Nancy.TinyIoc;
-    using System.Linq;
-    using Nancy.ErrorHandling;
-    using Pri.LongPath;
-    using Nancy.Diagnostics;
-    using NLog;
-    using System;
-    using Nancy.Gzip;
 
     public class Bootstrapper : RestBootstrapper
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        
+        /// <summary>
+        ///  A list of open connections to the API
+        /// </summary>
+        private static HashSet<string> _openConnections = new HashSet<string>();
+        /// <summary>
+        /// blur the connection state to 5s, as most media players and calls are spread.
+        /// This prevents flickering of the state for UI
+        /// </summary>
+        private static Timer _connectionTimer;
+
+        private static void AddConnection(NancyContext ctx)
+        {
+            Guid guid = Guid.NewGuid();
+            string id = guid.ToString();
+            ctx.Items["ContextGUID"] = id;
+            lock (_openConnections)
+            {
+                _openConnections.Add(id);
+                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+            }
+        }
+        
+        private static void RemoveConnection(NancyContext ctx)
+        {
+            if (!ctx.Items.ContainsKey("ContextGUID")) return;
+            lock (_openConnections)
+            {
+                _openConnections.Remove((string) ctx.Items["ContextGUID"]);
+            }
+            ResetTimer();
+        }
+
+        private static void ResetTimer()
+        {
+            lock (_connectionTimer)
+            {
+                DisposeTimer();
+                CreateTimer();
+                _connectionTimer.Start();
+            }
+        }
+
+        /// <summary>
+        /// Destroy the timer and unsubscribe events, etc.
+        /// </summary>
+        private static void DisposeTimer()
+        {
+            if (_connectionTimer == null) return;
+            _connectionTimer.Stop();
+            _connectionTimer.Elapsed -= TimerElapsed;
+            _connectionTimer.Dispose();
+        }
+
+        /// <summary>
+        /// Create and start the timer
+        /// </summary>
+        private static void CreateTimer()
+        {
+            _connectionTimer = new Timer { Interval = 5000 };
+            _connectionTimer.Elapsed += TimerElapsed;
+        }
+
+        private static void TimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            lock (_openConnections)
+            {
+                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+            }
+        }
 
         protected override NancyInternalConfiguration InternalConfiguration
         {
-            //RestBootstraper with use a custom json.net serializer,no need to readd something in here
+            //RestBootstrapper with use a custom json.net serializer,no need to readd something in here
             get
             {
                 NancyInternalConfiguration nac = base.InternalConfiguration;
@@ -142,11 +212,20 @@ namespace Shoko.Server.API
                 };
             }
 
+            if (!ctx.Request.Path.StartsWith("/webui") && !ctx.Request.Path.StartsWith("/api/init/"))
+            {
+                AddConnection(ctx);
+            }
+
             return null;
         }
 
         private void AfterProcessing(NancyContext ctx)
         {
+            if (!ctx.Request.Path.StartsWith("/webui") && !ctx.Request.Path.StartsWith("/api/init/"))
+            {
+                RemoveConnection(ctx);
+            }
             if (ctx.Request.Method.Equals("OPTIONS", StringComparison.Ordinal))
             {
                 Dictionary<string, string> headers = HttpExtensions.GetOptions();

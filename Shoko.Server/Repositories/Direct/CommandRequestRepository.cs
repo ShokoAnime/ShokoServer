@@ -46,6 +46,8 @@ namespace Shoko.Server.Repositories.Direct
 
         private static readonly HashSet<int> AniDbHttpCommands = new HashSet<int>
         {
+            // This will try to add or update the anime, which is HTTP, so it goes in both
+            (int) CommandRequestType.AniDB_GetFileUDP,
             (int) CommandRequestType.AniDB_GetAnimeHTTP,
             (int) CommandRequestType.AniDB_SyncMyList,
             (int) CommandRequestType.AniDB_SyncVotes,

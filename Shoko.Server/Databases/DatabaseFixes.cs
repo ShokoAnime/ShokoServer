@@ -435,6 +435,13 @@ namespace Shoko.Server.Databases
 
         public static void PopulateMyListIDs()
         {
+            // Don't even bother on new DBs
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                int vlCount = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult<int>();
+                if (vlCount == 0) return;
+            }
+
             // Get the list from AniDB
             AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
             cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
