@@ -166,6 +166,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("sync")]
         public ActionResult Sync()
         {
+            Analytics.PostEvent("Plex", "SyncOne");
             new CommandRequest_PlexSyncWatched(HttpContext.GetUser()).Save();
             return APIStatus.OK();
         }

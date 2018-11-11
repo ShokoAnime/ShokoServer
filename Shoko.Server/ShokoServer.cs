@@ -144,6 +144,9 @@ namespace Shoko.Server
 
             try
             {
+                Analytics.PostEvent("Server", "Startup");
+                if (Utils.IsLinux)
+                    Analytics.PostEvent("Server", "Linux Startup");
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 // Check if any of the DLL are blocked, common issue with daily builds
@@ -292,6 +295,7 @@ namespace Shoko.Server
 
                 SetupNetHosts();
 
+                Analytics.PostEvent("Server", "StartupFinished");
                 return true;
             }
             catch (Exception e)
@@ -1293,6 +1297,7 @@ namespace Shoko.Server
             AniDBDispose();
             StopHost();
             ServerShutdown?.Invoke(this, null);
+            Analytics.PostEvent("Server", "Shutdown");
         }
 
 #endregion
@@ -1423,12 +1428,16 @@ namespace Shoko.Server
 
         public static void RunImport()
         {
+            Analytics.PostEvent("Importer", "Run");
+
             if (!workerImport.IsBusy)
                 workerImport.RunWorkerAsync();
         }
 
         public static void RemoveMissingFiles()
         {
+            Analytics.PostEvent("Importer", "RemoveMissing");
+
             if (!workerRemoveMissing.IsBusy)
                 workerRemoveMissing.RunWorkerAsync();
         }
@@ -1665,6 +1674,8 @@ namespace Shoko.Server
         /// <returns>true if there was any commands added to the queue, flase otherwise</returns>
         public bool SyncPlex()
         {
+            Analytics.PostEvent("Plex", "SyncAll");
+
             bool flag = false;
             foreach (SVR_JMMUser user in Repo.Instance.JMMUser.GetAll())
             {

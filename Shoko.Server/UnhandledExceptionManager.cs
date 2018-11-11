@@ -274,6 +274,7 @@ namespace Shoko.Server
 
         private static void GenericExceptionHandler(Exception objException)
         {
+            Analytics.PostException(objException, true);
             //-- turn the exception into an informative string
             try
             {
