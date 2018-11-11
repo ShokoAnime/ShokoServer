@@ -33,7 +33,12 @@ namespace Shoko.Server.API
         /// blur the connection state to 5s, as most media players and calls are spread.
         /// This prevents flickering of the state for UI
         /// </summary>
-        private static Timer _connectionTimer;
+        private static Timer _connectionTimer = new Timer(5000);
+
+        static Bootstrapper()
+        {
+            _connectionTimer.Elapsed += TimerElapsed;
+        }
 
         private static void AddConnection(NancyContext ctx)
         {
@@ -61,30 +66,9 @@ namespace Shoko.Server.API
         {
             lock (_connectionTimer)
             {
-                DisposeTimer();
-                CreateTimer();
+                _connectionTimer.Stop();
                 _connectionTimer.Start();
             }
-        }
-
-        /// <summary>
-        /// Destroy the timer and unsubscribe events, etc.
-        /// </summary>
-        private static void DisposeTimer()
-        {
-            if (_connectionTimer == null) return;
-            _connectionTimer.Stop();
-            _connectionTimer.Elapsed -= TimerElapsed;
-            _connectionTimer.Dispose();
-        }
-
-        /// <summary>
-        /// Create and start the timer
-        /// </summary>
-        private static void CreateTimer()
-        {
-            _connectionTimer = new Timer { Interval = 5000 };
-            _connectionTimer.Elapsed += TimerElapsed;
         }
 
         private static void TimerElapsed(object sender, ElapsedEventArgs e)
