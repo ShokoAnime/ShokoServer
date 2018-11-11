@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/version")]
-    public class Version : Controller
+    public class Version : BaseController
     {
         /// <summary>
         /// Return current version of ShokoServer and several modules
