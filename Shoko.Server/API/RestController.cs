@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Shoko.Server.API
 {
-    public class RestController : Controller
+    public class RestController : BaseController
     {
 
     }
