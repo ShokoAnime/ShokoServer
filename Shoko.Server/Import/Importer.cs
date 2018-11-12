@@ -741,12 +741,16 @@ namespace Shoko.Server
 
         public static void ValidateAllImages()
         {
+            Analytics.PostEvent("Management", nameof(ValidateAllImages));
+
             CommandRequest_ValidateAllImages cmd = new CommandRequest_ValidateAllImages();
             cmd.Save();
         }
 
         public static void RunImport_ScanTvDB()
         {
+            Analytics.PostEvent("Management", nameof(RunImport_ScanTvDB));
+
             TvDBApiHelper.ScanForMatches();
         }
 
@@ -758,16 +762,21 @@ namespace Shoko.Server
 
         public static void RunImport_ScanMovieDB()
         {
+            Analytics.PostEvent("Management", nameof(RunImport_ScanMovieDB));
             MovieDBHelper.ScanForMatches();
         }
 
         public static void RunImport_UpdateTvDB(bool forced)
         {
+            Analytics.PostEvent("Management", nameof(RunImport_UpdateTvDB));
+
             TvDBApiHelper.UpdateAllInfo(forced);
         }
 
         public static void RunImport_UpdateAllAniDB()
         {
+            Analytics.PostEvent("Management", nameof(RunImport_UpdateAllAniDB));
+
             foreach (SVR_AniDB_Anime anime in Repo.Instance.AniDB_Anime.GetAll())
             {
                 CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false);
@@ -991,6 +1000,7 @@ namespace Shoko.Server
 
         public static void UpdateAllStats()
         {
+            Analytics.PostEvent("Management", "Update All Stats");
             foreach (SVR_AnimeSeries ser in Repo.Instance.AnimeSeries.GetAll())
             {
                 ser.QueueUpdateStats();

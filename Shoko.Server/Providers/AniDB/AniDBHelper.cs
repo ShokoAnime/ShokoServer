@@ -71,6 +71,7 @@ namespace Shoko.Server.Providers.AniDB
                         httpBanResetTimer.Stop(); //re-start implies stop
                     }
                     httpBanResetTimer.Start();
+                    Analytics.PostEvent("AniDB", "Http Banned");
                 }
                 else
                 {
@@ -107,6 +108,7 @@ namespace Shoko.Server.Providers.AniDB
                         udpBanResetTimer.Stop(); // re-start implies stop
                     }
                     udpBanResetTimer.Start();
+                    Analytics.PostEvent("AniDB", "Udp Banned");
                 }
                 else
                 {

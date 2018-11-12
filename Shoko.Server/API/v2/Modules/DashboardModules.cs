@@ -16,7 +16,7 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [ApiController]
     [Route("/api/modules")]
-    public class DashboardModules : Controller
+    public class DashboardModules : BaseController
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)  
 

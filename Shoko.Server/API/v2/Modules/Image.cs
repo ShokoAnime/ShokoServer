@@ -24,7 +24,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/image")]
-    public class Image : Controller
+    public class Image : BaseController
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 

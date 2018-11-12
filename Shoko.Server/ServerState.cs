@@ -254,6 +254,14 @@ namespace Shoko.Server
             set => this.SetField(() => startupFailedMessage, value);
         }
 
+        private bool apiInUse = false;
+
+        public bool ApiInUse
+        {
+            get => apiInUse;
+            set => this.SetField(() => apiInUse, value);
+        }
+
         /* Swith this to "Registry" when we no longer need elevated run level */
         public readonly AutostartMethod autostartMethod = AutostartMethod.Registry;
 

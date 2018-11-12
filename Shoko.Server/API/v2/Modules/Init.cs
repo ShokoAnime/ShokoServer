@@ -27,7 +27,7 @@ namespace Shoko.Server.API.v2.Modules
     // ReSharper disable once UnusedMember.Global
     [Route("/api/init")]
     [ApiController]
-    public class Init : Controller
+    public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
         /// <inheritdoc />
@@ -223,6 +223,16 @@ namespace Shoko.Server.API.v2.Modules
             return status;
         }
 
+        /// <summary>
+        /// Gets whether anything is actively using the API
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("inuse")]
+        public bool ApiInUse()
+        {
+            return ServerState.Instance.ApiInUse;
+        }
+        
         /// <summary>
         /// Gets the Default user's credentials. Will only return on first run
         /// </summary>

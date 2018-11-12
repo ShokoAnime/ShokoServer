@@ -31,7 +31,7 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [Route("/api")]
 
-    public class Common : Controller
+    public class Common : BaseController
     {
         //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
 

@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/plex")]
-    public class PlexWebhook : Controller
+    public class PlexWebhook : BaseController
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -166,6 +166,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("sync")]
         public ActionResult Sync()
         {
+            Analytics.PostEvent("Plex", "SyncOne");
             new CommandRequest_PlexSyncWatched(HttpContext.GetUser()).Save();
             return APIStatus.OK();
         }

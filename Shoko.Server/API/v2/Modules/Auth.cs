@@ -7,7 +7,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/auth")]
-    public class Auth : Controller
+    public class Auth : BaseController
     {
         /// <summary>
         /// Authentication module
