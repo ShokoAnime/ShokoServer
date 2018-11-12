@@ -2,34 +2,37 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using NLog;
 using Shoko.Server;
 
 namespace AniDBAPI.Commands
 {
     public class AniDBHTTPCommand_GetMyList : AniDBHTTPCommand, IAniDBHTTPCommand
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+        
         private List<Raw_AniDB_MyListFile> myListItems = new List<Raw_AniDB_MyListFile>();
 
         public List<Raw_AniDB_MyListFile> MyListItems
         {
-            get { return myListItems; }
-            set { myListItems = value; }
+            get => myListItems;
+            set => myListItems = value;
         }
 
         private string username = string.Empty;
 
         public string Username
         {
-            get { return username; }
-            set { username = value; }
+            get => username;
+            set => username = value;
         }
 
         private string password = string.Empty;
 
         public string Password
         {
-            get { return password; }
-            set { password = value; }
+            get => password;
+            set => password = value;
         }
 
         public string GetKey()
@@ -50,7 +53,7 @@ namespace AniDBAPI.Commands
                 Directory.CreateDirectory(filePath);
 
             //string fileName = string.Format("MyList_{0}_{1}.xml", DateTime.Now.ToString("yyyyMMdd"), DateTime.Now.ToString("HHmmss"));
-            string fileName = string.Format("MyList.xml");
+            string fileName = "MyList.xml";
             string fileNameWithPath = Path.Combine(filePath, fileName);
 
             StreamWriter sw;
@@ -66,7 +69,7 @@ namespace AniDBAPI.Commands
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
 
-            string fileName = string.Format("MyList.xml");
+            string fileName = "MyList.xml";
             string fileNameWithPath = Path.Combine(filePath, fileName);
 
             XmlDocument docAnime = null;
@@ -85,19 +88,23 @@ namespace AniDBAPI.Commands
 
         public virtual enHelperActivityType Process()
         {
-            string xmlResult = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password);
-            XmlDocument docAnime = null;
-            if (0 < xmlResult.Trim().Length)
+            try
             {
-                WriteAnimeMyListToFile(xmlResult);
-                docAnime = new XmlDocument();
-                docAnime.LoadXml(xmlResult);
+                XmlDocument docAnime;
+                string xmlResult = AniDBHTTPHelper.GetMyListXMLFromAPI(username, password);
+                if (!string.IsNullOrWhiteSpace(xmlResult))
+                {
+                    WriteAnimeMyListToFile(xmlResult);
+                    docAnime = new XmlDocument();
+                    docAnime.LoadXml(xmlResult);
+                    myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
+                    if (myListItems != null)
+                        return enHelperActivityType.GotMyListHTTP;
+                }
             }
-            if (null != docAnime)
+            catch (Exception ex)
             {
-                myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
-                if (myListItems != null)
-                	return enHelperActivityType.GotMyListHTTP;
+                logger.Error(ex);
             }
 
             return enHelperActivityType.NoSuchAnime;
