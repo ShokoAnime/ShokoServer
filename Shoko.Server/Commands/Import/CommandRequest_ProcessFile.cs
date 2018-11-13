@@ -112,9 +112,10 @@ namespace Shoko.Server.Commands
                     using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => Repo.Instance.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize)))
                     {
                         bool skip = false;
+                        Raw_AniDB_File fileInfo = null;
                         if (!upd.IsUpdate || ForceAniDB)
                         {
-                            Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                            fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                             if (fileInfo != null)
                                 upd.Entity.Populate_RA(fileInfo);
                             else skip = true;
@@ -130,8 +131,10 @@ namespace Shoko.Server.Commands
                             upd.Entity.FileName = localFileName;
 
                             aniFile = upd.Commit(false);
+                            if (fileInfo != null)
+                                aniFile.Populate_RA(fileInfo);
                             aniFile.CreateLanguages();
-                            aniFile.CreateCrossEpisodes(localFileName);
+                                .aniFile.CreateCrossEpisodes(localFileName);
 
                             animeID = aniFile.AnimeID;
                         }
