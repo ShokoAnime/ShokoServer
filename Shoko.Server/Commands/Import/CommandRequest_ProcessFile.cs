@@ -134,7 +134,7 @@ namespace Shoko.Server.Commands
                             if (fileInfo != null)
                                 aniFile.Populate_RA(fileInfo);
                             aniFile.CreateLanguages();
-                                .aniFile.CreateCrossEpisodes(localFileName);
+                            aniFile.CreateCrossEpisodes(localFileName);
 
                             animeID = aniFile.AnimeID;
                         }
