@@ -45,6 +45,10 @@ namespace Shoko.Server
 
         private static bool PostData(string type, IDictionary<string, string> extraData)
         {
+#if DEBUG
+            return false;
+#endif
+
             if (ServerSettings.Instance.GA_OptOutPlzDont) return false;
 
             try

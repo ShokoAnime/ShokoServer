@@ -53,11 +53,11 @@ namespace Shoko.Server.Repositories
         public T GetByID(TS id)
         {
             using (RepoLock.ReaderLock())
-                return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => SelectKey(a).Equals(id));
+                return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => id.Equals(SelectKey(a)));
         }
         private T InternalGetByID(TS id)
         {
-            return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => SelectKey(a).Equals(id));
+            return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => id.Equals(SelectKey(a)));
         }
 
 
@@ -140,7 +140,7 @@ namespace Shoko.Server.Repositories
             {
                 if (IntAutoGen == -1)
                 {
-                    if (Table.Count() == 0) IntAutoGen = 0;
+                    if (!Table.Any()) IntAutoGen = 0;
                     else IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
                 }
                 IntAutoGen++;
