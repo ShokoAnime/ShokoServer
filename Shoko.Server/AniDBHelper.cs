@@ -80,7 +80,18 @@ namespace Shoko.Server
                     if (httpBanResetTimer.Enabled)
                     {
                         httpBanResetTimer.Stop();
-                        logger.Info("HTTP ban timer stopped");
+                        logger.Info("HTTP ban timer stopped. Resuming queue if not paused.");
+                        // Skip if paused
+                        if (!ShokoService.CmdProcessorGeneral.Paused)
+                        {
+                            // Needs to have something to do first
+                            if (ShokoService.CmdProcessorGeneral.QueueCount > 0)
+                            {
+                                // Not really a new command, but this will start the queue if it's not running,
+                                // with handling for problems
+                                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                            }
+                        }
                     }
                     if (!IsUdpBanned)
                     {
@@ -117,7 +128,18 @@ namespace Shoko.Server
                     if (udpBanResetTimer.Enabled)
                     {
                         udpBanResetTimer.Stop();
-                        logger.Info("UDP ban timer stopped");
+                        logger.Info("UDP ban timer stopped. Resuming if not Paused");
+                        // Skip if paused
+                        if (!ShokoService.CmdProcessorGeneral.Paused)
+                        {
+                            // Needs to have something to do first
+                            if (ShokoService.CmdProcessorGeneral.QueueCount > 0)
+                            {
+                                // Not really a new command, but this will start the queue if it's not running,
+                                // with handling for problems
+                                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
+                            }
+                        }
                     }
                     if (!IsHttpBanned)
                     {
