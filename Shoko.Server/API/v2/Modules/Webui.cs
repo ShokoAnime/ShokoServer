@@ -13,6 +13,7 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [ApiController]
     [Route("/api/webui")]
+    [ApiVersion("2.0")]
     public class Webui : BaseController
     {
         /// <summary>

@@ -27,6 +27,7 @@ namespace Shoko.Server.API.v2.Modules
     // ReSharper disable once UnusedMember.Global
     [Route("/api/init")]
     [ApiController]
+    [ApiVersion("2.0")]
     public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();

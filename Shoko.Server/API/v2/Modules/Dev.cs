@@ -7,6 +7,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/dev")]
+    [ApiVersion("2.0")]
     public class Dev : BaseController
     {
         /*public Dev() : base("")

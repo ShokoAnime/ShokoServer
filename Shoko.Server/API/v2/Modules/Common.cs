@@ -30,6 +30,7 @@ namespace Shoko.Server.API.v2.Modules
     //As responds for this API we throw object that will be converted to json/xml
     [Authorize]
     [Route("/api")]
+    [ApiVersion("2.0")]
 
     public class Common : BaseController
     {

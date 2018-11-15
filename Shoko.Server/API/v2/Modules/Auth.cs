@@ -7,6 +7,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/auth")]
+    [ApiVersion("2.0")]
     public class Auth : BaseController
     {
         /// <summary>
@@ -21,10 +22,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="auth">The authentiction details for the user.</param>
         /// <returns>HTTP 400, 401 or 200 with an APIKey response.</returns>
-        [HttpPost("")]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(200)]
+        [HttpPost(""), ProducesResponseType(400), ProducesResponseType(401), ProducesResponseType(200)]
         public ActionResult<dynamic> Login([FromBody] AuthUser auth)
         {
             if (!ModelState.IsValid || string.IsNullOrEmpty(auth.user?.Trim()))

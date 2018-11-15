@@ -28,6 +28,7 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [ApiController]// As this module requireAuthentication all request need to have apikey in header.
     [Route("/api/core")]
+    [ApiVersion("2.0")]
     public class Core : BaseController
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();

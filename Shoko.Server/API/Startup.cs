@@ -17,6 +17,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Versioning;
 
 namespace Shoko.Server.API
 {
@@ -37,7 +40,7 @@ namespace Shoko.Server.API
 
         public void ConfigureServices(IServiceCollection services)
         {
-            
+
 
             services.AddAuthentication(options =>
             {
@@ -47,19 +50,56 @@ namespace Shoko.Server.API
 
             services.AddAuthorization(auth =>
             {
-                auth.AddPolicy("admin", policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
+                auth.AddPolicy("admin",
+                    policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             });
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "Shoko Server API", Version = "v1" });
+                c.SwaggerDoc("v1", new Info {Title = "Shoko Desktop API", Version = "v1.0"});
+                c.DocInclusionPredicate((docName, apiDesc) =>
+                {
+                    var actionApiVersionModel = apiDesc.ActionDescriptor?.GetApiVersion();
+                    // would mean this action is unversioned and should be included everywhere
+                    if (actionApiVersionModel == null)
+                    {
+                        return true;
+                    }
+
+                    if (actionApiVersionModel.DeclaredApiVersions.Any())
+                    {
+                        return actionApiVersionModel.DeclaredApiVersions.Any(v => $"v{v}" == docName);
+                    }
+
+                    return actionApiVersionModel.ImplementedApiVersions.Any(v => $"v{v}" == docName);
+                });
             });
 
-            services.ConfigureSwaggerGen(options =>
-            {               
-                options.CustomSchemaIds(x => x.FullName);
+            services.ConfigureSwaggerGen(options => { options.CustomSchemaIds(x => x.FullName); });
+
+            services.AddApiVersioning(o =>
+            {
+                o.ReportApiVersions = true;
+                o.AssumeDefaultVersionWhenUnspecified = true;
+                o.DefaultApiVersion = new ApiVersion(1, 0);
+
+                //APIv1
+                o.Conventions.Controller<ShokoServiceImplementation>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationImage>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationKodi>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationMetro>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationPlex>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationStream>()
+                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+
             });
-            
+
+
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc()
                 .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
@@ -84,7 +124,7 @@ namespace Shoko.Server.API
             app.UseStaticFiles(new StaticFileOptions()
             {
                 FileProvider = new PhysicalFileProvider(dir.FullName),
-                RequestPath  = "/webui"
+                RequestPath = "/webui"
             });
 
             /*app.Use((ctx, next) =>
@@ -139,8 +179,19 @@ namespace Shoko.Server.API
                     // ignore
                 }
             }
+
             AuthTokens auth = Repo.Instance.AuthTokens.GetByToken(apikey);
             return auth != null ? Repo.Instance.JMMUser.GetByID(auth.UserID) : null;
+        }
+    }
+
+    internal static class ApiExtensions
+    { 
+        public static ApiVersionModel GetApiVersion(this ActionDescriptor actionDescriptor)
+        {
+            return actionDescriptor?.Properties
+                .Where(kvp => (Type)kvp.Key == typeof(ApiVersionModel))
+                .Select(kvp => kvp.Value as ApiVersionModel).FirstOrDefault();
         }
     }
 }

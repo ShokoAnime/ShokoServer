@@ -21,6 +21,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/plex")]
+    [ApiVersion("2.0")]
     public class PlexWebhook : BaseController
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
