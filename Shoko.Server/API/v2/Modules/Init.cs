@@ -278,7 +278,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("startserver")]
-        private ActionResult StartServer()
+        public ActionResult StartServer()
         {
             if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
             if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
