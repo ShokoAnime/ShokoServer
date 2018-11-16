@@ -27,6 +27,7 @@ namespace Shoko.Server.API.v2.Modules
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [HttpPost]
+        [ApiVersionNeutral]
         public ActionResult WebhookPost([FromForm] PlexEvent eventData)
         {
             /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,

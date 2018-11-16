@@ -7,7 +7,8 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/auth")]
-    [ApiVersion("2.0")]
+    //[ApiVersion("2.0")]
+    [ApiVersionNeutral]
     public class Auth : BaseController
     {
         /// <summary>

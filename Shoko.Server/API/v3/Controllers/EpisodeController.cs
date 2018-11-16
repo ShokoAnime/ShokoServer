@@ -1,13 +1,13 @@
 using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController]
+    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
-    [Route("/apiv3/episode")]
     public class EpisodeController : BaseController
     {
         [HttpGet("{id}/watched/{watched}")]

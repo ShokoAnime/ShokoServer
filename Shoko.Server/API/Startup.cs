@@ -1,14 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Nancy.Rest.Annotations.Atributes;
 using Shoko.Models.Server;
 using Shoko.Server.API.Authentication;
-using Shoko.Server.API.MVCRouter;
 using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -19,7 +16,9 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Shoko.Server.API
 {
@@ -54,26 +53,49 @@ namespace Shoko.Server.API
                     policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             });
 
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new Info {Title = "Shoko Desktop API", Version = "v1.0"});
-                c.DocInclusionPredicate((docName, apiDesc) =>
+            //services.AddSwaggerGen(c =>
+            //{
+            //    c.SwaggerDoc("v1.0", new Info {Title = "Shoko Desktop API", Version = "v1.0"});
+            //    c.SwaggerDoc("v2.0", new Info {Title = "Shoko API v2", Version = "v2.0"});
+            //    c.SwaggerDoc("v3.0", new Info {Title = "Shoko API v3", Version = "v3.0"});
+            //    c.DocInclusionPredicate((docName, apiDesc) =>
+            //    {
+            //        var actionApiVersionModel = apiDesc.ActionDescriptor?.GetApiVersion();
+            //        // would mean this action is unversioned and should be included everywhere
+            //        if (actionApiVersionModel == null)
+            //        {
+            //            return true;
+            //        }
+
+            //        if (actionApiVersionModel.DeclaredApiVersions.Any())
+            //        {
+            //            return actionApiVersionModel.DeclaredApiVersions.Any(v => $"v{v}" == docName);
+            //        }
+
+            //        return actionApiVersionModel.ImplementedApiVersions.Any(v => $"v{v}" == docName);
+            //    });
+            //});
+
+            services.AddSwaggerGen(
+                options =>
                 {
-                    var actionApiVersionModel = apiDesc.ActionDescriptor?.GetApiVersion();
-                    // would mean this action is unversioned and should be included everywhere
-                    if (actionApiVersionModel == null)
+                    // resolve the IApiVersionDescriptionProvider service
+                    // note: that we have to build a temporary service provider here because one has not been created yet
+                    var provider = services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
+
+                    // add a swagger document for each discovered API version
+                    // note: you might choose to skip or document deprecated API versions differently
+                    foreach (var description in provider.ApiVersionDescriptions)
                     {
-                        return true;
+                        options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
                     }
 
-                    if (actionApiVersionModel.DeclaredApiVersions.Any())
-                    {
-                        return actionApiVersionModel.DeclaredApiVersions.Any(v => $"v{v}" == docName);
-                    }
+                    // add a custom operation filter which sets default values
+                    options.OperationFilter<SwaggerDefaultValues>();
 
-                    return actionApiVersionModel.ImplementedApiVersions.Any(v => $"v{v}" == docName);
+                    // integrate xml comments
+                    //options.IncludeXmlComments(XmlCommentsFilePath);
                 });
-            });
 
             services.ConfigureSwaggerGen(options => { options.CustomSchemaIds(x => x.FullName); });
 
@@ -82,8 +104,12 @@ namespace Shoko.Server.API
                 o.ReportApiVersions = true;
                 o.AssumeDefaultVersionWhenUnspecified = true;
                 o.DefaultApiVersion = new ApiVersion(1, 0);
-                o.ApiVersionReader =  new HeaderApiVersionReader("api-version");
-                
+                o.ApiVersionReader = ApiVersionReader.Combine(
+                    new QueryStringApiVersionReader(),
+                    new HeaderApiVersionReader("api-version"),
+                    new ShokoApiReader()
+                );
+
                 //APIv1
                 o.Conventions.Controller<ShokoServiceImplementation>()      .HasDeprecatedApiVersion(new ApiVersion(1, 0));
                 o.Conventions.Controller<ShokoServiceImplementationImage>() .IsApiVersionNeutral();
@@ -91,16 +117,15 @@ namespace Shoko.Server.API
                 o.Conventions.Controller<ShokoServiceImplementationMetro>() .HasDeprecatedApiVersion(new ApiVersion(1, 0));
                 o.Conventions.Controller<ShokoServiceImplementationPlex>()  .HasDeprecatedApiVersion(new ApiVersion(1, 0));
                 o.Conventions.Controller<ShokoServiceImplementationStream>().HasDeprecatedApiVersion(new ApiVersion(1, 0));
-
             });
-
+            services.AddVersionedApiExplorer();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc()
                 .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApiVersionDescriptionProvider provider)
         {
             //var appConfig = new AppConfiguration();
             //ConfigurationBinder.Bind(config, appConfig);
@@ -123,12 +148,45 @@ namespace Shoko.Server.API
             });
 
             app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
-
+            app.UseSwaggerUI(
+                options =>
+                {
+                    // build a swagger endpoint for each discovered API version
+                    foreach (var description in provider.ApiVersionDescriptions)
+                    {
+                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                    }
+                });
             // Important for first run at least
             app.UseAuthentication();
 
             app.UseMvc();
+        }
+
+        //static string XmlCommentsFilePath
+        //{
+        //    get
+        //    {
+        //        var fileName = typeof(Startup).GetTypeInfo().Assembly. + ".xml";
+        //        return Path.Combine(basePath, fileName);
+        //    }
+        //}
+
+        static Info CreateInfoForApiVersion(ApiVersionDescription description)
+        {
+            var info = new Info()
+            {
+                Title = $"Shoko API {description.ApiVersion}",
+                Version = description.ApiVersion.ToString(),
+                Description = "Shoko Server API.",
+            };
+
+            if (description.IsDeprecated)
+            {
+                info.Description += " This API version has been deprecated.";
+            }
+
+            return info;
         }
 
         private static SVR_JMMUser GetRequestUser(HttpContext ctx)
@@ -150,6 +208,60 @@ namespace Shoko.Server.API
 
             AuthTokens auth = Repo.Instance.AuthTokens.GetByToken(apikey);
             return auth != null ? Repo.Instance.JMMUser.GetByID(auth.UserID) : null;
+        }
+    }
+
+    internal class ShokoApiReader : IApiVersionReader
+    {
+        public void AddParameters(IApiVersionParameterDescriptionContext context)
+        {
+            context.AddParameter(null, ApiVersionParameterLocation.Path);
+        }
+
+        public string Read(HttpRequest request)
+        {
+            return request.Path.StartsWithSegments("/api") ? "2.0" : null;
+        }
+    }
+
+    public class SwaggerDefaultValues : IOperationFilter
+    {
+        /// <summary>
+        /// Applies the filter to the specified operation using the given context.
+        /// </summary>
+        /// <param name="operation">The operation to apply the filter to.</param>
+        /// <param name="context">The current operation filter context.</param>
+        public void Apply(Operation operation, OperationFilterContext context)
+        {
+            if (operation.Parameters == null)
+            {
+                return;
+            }
+
+            // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
+            // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
+            foreach (var parameter in operation.Parameters.OfType<NonBodyParameter>())
+            {
+                var description = context.ApiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
+                var routeInfo = description.RouteInfo;
+
+                if (parameter.Description == null)
+                {
+                    parameter.Description = description.ModelMetadata?.Description;
+                }
+
+                if (routeInfo == null)
+                {
+                    continue;
+                }
+
+                if (parameter.Default == null)
+                {
+                    parameter.Default = routeInfo.DefaultValue;
+                }
+
+                parameter.Required |= !routeInfo.IsOptional;
+            }
         }
     }
 

@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController]
+    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
-    [Route("/apiv3/file")]
     public class FileController : BaseController
     {
-        [HttpGet("{id}/watched/{watched}")]
+        [HttpPost("{id}/watched/{watched}")]
         public ActionResult SetWatchedStatusOnFile(int id, bool watched)
         {
             var file = Repo.Instance.VideoLocal.GetByID(id);

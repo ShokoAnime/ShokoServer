@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController]
+    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
-    [Route("/apiv3")]
     public class ImportFolderController : BaseController
     {
         /// <summary>
@@ -18,15 +18,15 @@ namespace Shoko.Server.API.v3
         /// List all saved Import Folders
         /// </summary>
         /// <returns>List<ImportFolder></returns>
-        [HttpGet("importfolder")]
+        [HttpGet]
         public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
 
         /// <summary>
         /// Handle /api/folder/add
-        /// Add Folder to Import Folders Repo.Instance.itory
+        /// Add Folder to Import Folders repository
         /// </summary>
         /// <returns>APIStatus</returns>
-        [HttpPost("importfolder")]
+        [HttpPost]
         public ActionResult AddFolder(ImportFolder folder)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -53,10 +53,10 @@ namespace Shoko.Server.API.v3
 
         /// <summary>
         /// Handle /api/folder/edit
-        /// Edit folder giving fulll ImportFolder object with ID
+        /// Edit folder giving full ImportFolder object with ID
         /// </summary>
         /// <returns>APIStatus</returns>
-        [HttpPatch("folder")]
+        [HttpPatch]
         public ActionResult EditFolder(ImportFolder folder)
         {
             if (!String.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
@@ -87,10 +87,10 @@ namespace Shoko.Server.API.v3
 
         /// <summary>
         /// Handle /api/folder/delete
-        /// Delete Import Folder out of Import Folder Repo.Instance.itory
+        /// Delete Import Folder out of Import Folder repository
         /// </summary>
         /// <returns>APIStatus</returns>
-        [HttpDelete("folder")]
+        [HttpDelete]
         public ActionResult DeleteFolder(int folderId)
         {
             if (folderId != 0)
