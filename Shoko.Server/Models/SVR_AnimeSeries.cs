@@ -150,19 +150,19 @@ namespace Shoko.Server.Models
 
         #region TvDB
 
-        public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
+        public List<SVR_CrossRef_AniDB_Provider> GetCrossRefTvDB()
         {
-            return Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AniDB_ID);
+            return Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_ID, CrossRefType.TvDB);
         }
 
         public List<TvDB_Series> GetTvDBSeries()
         {
             List<TvDB_Series> sers = new List<TvDB_Series>();
 
-            List<CrossRef_AniDB_TvDB> xrefs = GetCrossRefTvDB();
+            List<SVR_CrossRef_AniDB_Provider> xrefs = GetCrossRefTvDB();
             if (xrefs == null || xrefs.Count == 0) return sers;
 
-            foreach (CrossRef_AniDB_TvDB xref in xrefs)
+            foreach (SVR_CrossRef_AniDB_Provider xref in xrefs)
                 sers.Add(xref.GetTvDBSeries());
 
             return sers;
@@ -172,16 +172,16 @@ namespace Shoko.Server.Models
 
         #region Trakt
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
-
+        public List<SVR_CrossRef_AniDB_Provider> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_ID, CrossRefType.TraktTV);
+        
         public List<Trakt_Show> GetTraktShow()
         {
             List<Trakt_Show> sers = new List<Trakt_Show>();
 
-            List<CrossRef_AniDB_TraktV2> xrefs = GetCrossRefTraktV2();
+            List<SVR_CrossRef_AniDB_Provider> xrefs = GetCrossRefTraktV2();
             if (xrefs == null || xrefs.Count == 0) return sers;
 
-            foreach (CrossRef_AniDB_TraktV2 xref in xrefs)
+            foreach (SVR_CrossRef_AniDB_Provider xref in xrefs)
                 sers.Add(xref.GetByTraktShow());
 
             return sers;
@@ -190,10 +190,10 @@ namespace Shoko.Server.Models
         #endregion
 
         [NotMapped]
-        public CrossRef_AniDB_Other CrossRefMovieDB => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
+        public SVR_CrossRef_AniDB_Provider CrossRefMovieDB => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB).FirstOrDefault();
 
         [NotMapped]
-        public List<CrossRef_AniDB_MAL> CrossRefMAL => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeID(AniDB_ID);
+        public List<SVR_CrossRef_AniDB_Provider> CrossRefMAL => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MyAnimeList);
 
         public CL_AnimeSeries_User GetUserContract(int userid, HashSet<GroupFilterConditionType> types = null)
         {
@@ -463,12 +463,12 @@ namespace Shoko.Server.Models
                 return grpFilterCondTypesPerSeries;
 
             var animeIds = new Lazy<int[]>(() => seriesBatch.Select(s => s.AniDB_ID).ToArray(), false);
-            var tvDbByAnime = new Lazy<ILookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)>>(
+            var tvDbByAnime = new Lazy<ILookup<int, (SVR_CrossRef_AniDB_Provider, TvDB_Series)>>(
                 () => Repo.Instance.TvDB_Series.GetByAnimeIDs(animeIds.Value), false);
-            var movieByAnime = new Lazy<Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>>(
+            var movieByAnime = new Lazy<Dictionary<int, (SVR_CrossRef_AniDB_Provider, MovieDB_Movie)>>(
                 () => Repo.Instance.MovieDb_Movie.GetByAnimeIDs(animeIds.Value), false);
-            var malXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
-                () => Repo.Instance.CrossRef_AniDB_MAL.GetByAnimeIDs(animeIds.Value), false);
+            var malXrefByAnime = new Lazy<ILookup<int, SVR_CrossRef_AniDB_Provider>>(
+                () => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDsAndType(animeIds.Value,CrossRefType.MyAnimeList), false);
             var defImagesByAnime = new Lazy<Dictionary<int, DefaultAnimeImages>>(
                 () => Repo.Instance.AniDB_Anime.GetDefaultImagesByAnime(animeIds.Value), false);
 
@@ -530,16 +530,16 @@ namespace Shoko.Server.Models
                     foreach (var missingTvDbSeries in tvDbCrossRefs.Where(cr => cr.Item2 == null)
                         .Select(cr => cr.Item1))
                         logger.Warn("You are missing database information for TvDB series: {0} - {1}",
-                            missingTvDbSeries.TvDBID, missingTvDbSeries.GetTvDBSeries()?.SeriesName ?? "Series Not Found");
+                            missingTvDbSeries.CrossRefID, missingTvDbSeries.GetTvDBSeries()?.SeriesName ?? "Series Not Found");
 
-                    contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(series.AniDB_ID);
+                    contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(series.AniDB_ID, CrossRefType.TvDB).Select(a => a.ToClient()).ToList();
                     contract.TvDB_Series = tvDbCrossRefs
                         .Select(s => s.Item2)
                         .ToList();
 
                     // MovieDB contracts
 
-                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out (CrossRef_AniDB_Other, MovieDB_Movie) movieDbInfo))
+                    if (movieByAnime.Value.TryGetValue(series.AniDB_ID, out (SVR_CrossRef_AniDB_Provider, MovieDB_Movie) movieDbInfo))
                     {
                         contract.CrossRefAniDBMovieDB = movieDbInfo.Item1;
                         contract.MovieDB_Movie = movieDbInfo.Item2;
@@ -551,7 +551,7 @@ namespace Shoko.Server.Models
                     }
 
                     // MAL contracts
-                    contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID].ToList();
+                    contract.CrossRefAniDBMAL = malXrefByAnime.Value[series.AniDB_ID].Select(a=>a.ToClient()).ToList();
                 }
 
                 HashSet<GroupFilterConditionType> typesChanged = GetConditionTypesChanged(series.Contract, contract);
@@ -602,19 +602,19 @@ namespace Shoko.Server.Models
                     return types2;
                 }
                 SVR_AniDB_Anime animeRec = GetAnime();
-                List<CrossRef_AniDB_TvDB> tvDBCrossRefs = GetCrossRefTvDB();
-                CrossRef_AniDB_Other movieDBCrossRef = CrossRefMovieDB;
+                List<SVR_CrossRef_AniDB_Provider> tvDBCrossRefs = GetCrossRefTvDB();
+                SVR_CrossRef_AniDB_Provider movieDBCrossRef = CrossRefMovieDB;
                 MovieDB_Movie movie = null;
                 if (movieDBCrossRef != null)
                     movie = movieDBCrossRef.GetMovieDB_Movie();
                 List<TvDB_Series> sers = new List<TvDB_Series>();
-                foreach (CrossRef_AniDB_TvDB xref in tvDBCrossRefs)
+                foreach (SVR_CrossRef_AniDB_Provider xref in tvDBCrossRefs)
                 {
                     TvDB_Series tvser = xref.GetTvDBSeries();
                     if (tvser != null)
                         sers.Add(tvser);
                     else
-                        logger.Warn("You are missing database information for TvDB series: {0}", xref.TvDBID);
+                        logger.Warn("You are missing database information for TvDB series: {0}", xref.CrossRefID);
                 }
                 // get AniDB data
                 if (animeRec != null)
@@ -647,8 +647,8 @@ namespace Shoko.Server.Models
                     contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
                 }
 
-                contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
-
+                contract.CrossRefAniDBTvDBV2 = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_ID,CrossRefType.TvDB).Select(a=>a.ToClient()).ToList();
+                   
 
                 contract.TvDB_Series = sers;
                 contract.CrossRefAniDBMovieDB = null;
@@ -657,7 +657,7 @@ namespace Shoko.Server.Models
                     contract.CrossRefAniDBMovieDB = movieDBCrossRef;
                     contract.MovieDB_Movie = movie;
                 }
-                contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+                contract.CrossRefAniDBMAL = CrossRefMAL?.Select(a=>a.ToClient()).ToList() ?? new List<CL_CrossRef_AniDB_Provider>();
                 HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
                 Contract = contract;
                 return types;

@@ -14,8 +14,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.AniDB_MyListDelete, ExtraParams = new[] {MyListID.ToString(),  Hash, FileSize.ToString()}};
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 10;
         public string Id => $"DeleteFileFromMyList_{Hash}_{MyListID}";

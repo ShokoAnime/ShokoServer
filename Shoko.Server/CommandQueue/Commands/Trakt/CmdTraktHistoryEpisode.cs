@@ -17,7 +17,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
         [JsonIgnore]
         public TraktSyncAction ActionEnum => (TraktSyncAction) Action;
-        public string ParallelTag { get; set; } = WorkTypes.Trakt.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Trakt;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 9;
 
@@ -29,7 +29,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             ExtraParams = new[] {AnimeEpisodeID.ToString(), ActionEnum.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.Trakt;
+        public string WorkType => WorkTypes.Trakt;
 
         public CmdTraktHistoryEpisode(string str) : base(str)
         {

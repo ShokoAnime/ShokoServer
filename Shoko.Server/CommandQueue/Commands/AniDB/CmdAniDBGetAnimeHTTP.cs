@@ -20,8 +20,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 QueueState = QueueStateEnum.AnimeInfo,
                 ExtraParams = new[] {AnimeID.ToString(), DownloadRelations.ToString(), ForceRefresh.ToString(), RelationDepth.ToString()}
             };
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 2;
         public string Id => $"GetAnimeHTTP_{AnimeID}";

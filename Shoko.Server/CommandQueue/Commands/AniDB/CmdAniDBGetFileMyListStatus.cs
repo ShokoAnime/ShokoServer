@@ -10,7 +10,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int AniFileID { get; set; }
         public string FileName { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 6;
         public string Id => $"GetFileMyListStatus_{AniFileID}";
@@ -21,7 +21,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             ExtraParams = new[] { FileName, AniFileID.ToString() }
         };
 
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
 
         public CmdAniDBGetFileMyListStatus(string str) : base(str)
         {

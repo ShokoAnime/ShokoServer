@@ -17,8 +17,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
     public class CmdAniDBGetTitles : BaseCommand, ICommand
     { 
         public QueueStateStruct PrettyDescription => new QueueStateStruct { QueueState = QueueStateEnum.AniDB_GetTitles, ExtraParams = new string[0] };
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 10;
         public string Id => $"_GetAniDBTitles_{_creation}";

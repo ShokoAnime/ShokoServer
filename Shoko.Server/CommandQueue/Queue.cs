@@ -15,14 +15,15 @@ namespace Shoko.Server.CommandQueue
 {
     public class Queue : ObservableProgress<ICommand>
     {
-        public static WorkTypes[] GeneralWorkTypesExceptSchedule => new[] { WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
-        public static WorkTypes[] GeneralWorkTypes => new[] { WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
+        public static string[] GeneralWorkTypesExceptSchedule => new[] { WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
+        public static string[] GeneralWorkTypes => new[] { WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
+        public static string[] AllWorkTypes => new[] { WorkTypes.Image,WorkTypes.AniDB, WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
 
         private readonly AsyncLock _lock = new AsyncLock();
         private CancellationTokenSource _src;
         private readonly List<string> PausedBatches = new List<string>();
         private readonly List<string> PausedTags = new List<string>();
-        private readonly List<WorkTypes> PausedWorkTypes = new List<WorkTypes>();
+        private readonly List<string> PausedWorkTypes = new List<string>();
         private readonly List<ICommand> workingtasks = new List<ICommand>();
 
         private static readonly Lazy<Queue> _instance = new Lazy<Queue>(() => new Queue());
@@ -77,24 +78,24 @@ namespace Shoko.Server.CommandQueue
             using (_lock.Lock())
             {
                 if (PausedWorkTypes.Count > 0)
-                    return GetCommandCountInternal(Enum.GetValues(typeof(WorkTypes)).Cast<WorkTypes>().ToArray());
+                    return GetCommandCountInternal(AllWorkTypes);
                 return Provider.GetQueuedCommandCount()+workingtasks.Count;
             }
 
         }
 
-        private int GetCommandCountInternal(WorkTypes[] worktypes)
+        private int GetCommandCountInternal(string[] worktypes)
         {
 
-            List<WorkTypes> wk = worktypes.ToList();
-            foreach (WorkTypes w in worktypes)
+            List<string> wk = worktypes.ToList();
+            foreach (string w in worktypes)
             {
                 if (PausedWorkTypes.Contains(w))
                     wk.Remove(w);
             }
             return Provider.GetQueuedCommandCount(wk.ToArray());
         }
-        public int GetCommandCount(params WorkTypes[] worktypes)
+        public int GetCommandCount(params string[] worktypes)
         {
             using (_lock.Lock())
             {
@@ -108,11 +109,11 @@ namespace Shoko.Server.CommandQueue
                 return Provider.GetQueuedCommandCount(batch)+ workingtasks.Count(a => a.Batch == batch);
             }
         }
-        public bool AreWorkTypesPaused(params WorkTypes[] worktypes)
+        public bool AreWorkTypesPaused(params string[] worktypes)
         {
             using (_lock.Lock())
             {
-                foreach (WorkTypes w in worktypes)
+                foreach (string w in worktypes)
                 {
                     if (!PausedWorkTypes.Contains(w))
                         return false;
@@ -148,11 +149,11 @@ namespace Shoko.Server.CommandQueue
             }
         }
 
-        public void PauseWorkTypes(params WorkTypes[] types)
+        public void PauseWorkTypes(params string[] types)
         {
             using (_lock.Lock())
             {
-                foreach (WorkTypes w in types)
+                foreach (string w in types)
                 {
                     if (!PausedWorkTypes.Contains(w))
                         PausedWorkTypes.Add(w);
@@ -160,11 +161,11 @@ namespace Shoko.Server.CommandQueue
             }
         }
 
-        public void ResumeWorkTypes(params WorkTypes[] types)
+        public void ResumeWorkTypes(params string[] types)
         {
             using (_lock.Lock())
             {
-                foreach (WorkTypes w in types)
+                foreach (string w in types)
                 {
                     if (PausedWorkTypes.Contains(w))
                         PausedWorkTypes.Remove(w);
@@ -197,7 +198,7 @@ namespace Shoko.Server.CommandQueue
                 Provider.ClearBatch(batch);
             }
         }
-        public void ClearWorkTypes(params WorkTypes[] wk)
+        public void ClearWorkTypes(params string[] wk)
         {
             using (_lock.Lock())
             {
@@ -217,14 +218,15 @@ namespace Shoko.Server.CommandQueue
             {
                 Dictionary<string, int> usedtags = new Dictionary<string, int>();
                 List<string> batchlimits;
-                List<WorkTypes> workLimits;
+                List<string> workLimits;
                 List<string> preconditionLimits=new List<string>();
 
                 int count;
                 //Execute Generic preconditions
                 foreach (IPrecondition p in _genericPreconditions.Keys)
                 {
-                    if (!p.CanExecute())
+                    var res = p.CanExecute();
+                    if (!res.CanRun)
                         preconditionLimits.Add(_genericPreconditions[p]);
                 }
                 using (await _lock.LockAsync(token))
@@ -258,9 +260,11 @@ namespace Shoko.Server.CommandQueue
                     {
                         if (c is IPrecondition d)
                         {
-                            if (!d.CanExecute())
+                            var res = d.CanExecute();
+                            if (!res.CanRun)
                             {
-                                Provider.Put(c,c.Batch,d.PreconditionRetryFutureInSeconds);
+                                if (res.RetryIn!=null && res.RetryIn.Milliseconds>0)    
+                                    Provider.Put(c,c.Batch,(int)res.RetryIn.TotalSeconds);
                                 continue;
                             }
                         }

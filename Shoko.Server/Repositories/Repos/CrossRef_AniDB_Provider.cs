@@ -119,13 +119,13 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => a.CrossRefType==type && a.CrossRefID==providerid).ToList();
             }
         }
-        public List<SVR_CrossRef_AniDB_Provider> GetByAnimeIdAndProvider(CrossRefType type, int animeid, string providerid)
+        public SVR_CrossRef_AniDB_Provider GetByAnimeIdAndProvider(CrossRefType type, int animeid, string providerid)
         {
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return CrossRefs.GetMultiple(type, providerid).Where(a=>a.AnimeID==animeid).ToList();
-                return Table.Where(a => a.CrossRefType == type && a.CrossRefID == providerid && a.AnimeID==animeid).ToList();
+                    return CrossRefs.GetMultiple(type, providerid).FirstOrDefault(a => a.AnimeID == animeid);
+                return Table.FirstOrDefault(a => a.CrossRefType == type && a.CrossRefID == providerid && a.AnimeID==animeid);
             }
         }
         public List<SVR_AnimeSeries> GetSeriesWithoutLinks(CrossRefType type)
@@ -138,9 +138,9 @@ namespace Shoko.Server.Repositories.Repos
                 return !GetByAnimeIDAndType(a.AniDB_ID,type).Any();
             }).ToList();
         }
-        
 
-        public List<CrossRef_AniDB_TvDBV2> GetTvDBV2LinksFromAnime(int animeID)
+        /*
+        public List<SVR_CrossRef_AniDB_Provider> GetTvDBV2LinksFromAnime(int animeID)
         {
             List<(AniDB_Episode AniDB, TvDB_Episode TvDB)> eplinks = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB).
                 SelectMany(a => a.GetEpisodesWithOverrides()).
@@ -164,7 +164,7 @@ namespace Shoko.Server.Repositories.Repos
 
                 if (i == 0)
                 {
-                    if (b.AniDB == null || b.TvDB == null) return new List<CrossRef_AniDB_TvDBV2>();
+                    if (b.AniDB == null || b.TvDB == null) return new List<SVR_CrossRef_AniDB_Provider>();
                     output.Add((b.AniDB.EpisodeType, b.AniDB.EpisodeNumber, b.TvDB.SeriesID, b.TvDB.SeasonNumber,
                         b.TvDB.EpisodeNumber));
                     continue;
@@ -255,6 +255,6 @@ namespace Shoko.Server.Repositories.Repos
                 TraktStartEpisodeNumber = a.TraktNumber,
                 TraktTitle = Repo.Instance.Trakt_Show.GetByTraktSlug(a.TraktSeries.ToString())?.Title
             }).ToList();
-        }
+        }*/
     }
 }

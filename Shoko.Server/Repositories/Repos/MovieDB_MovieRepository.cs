@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 using Shoko.Server.Repositories.Cache;
 
@@ -47,12 +48,12 @@ namespace Shoko.Server.Repositories.Repos
         }
 
 
-        public Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)> GetByAnimeIDs(IEnumerable<int> animeIds)
+        public Dictionary<int, (SVR_CrossRef_AniDB_Provider, MovieDB_Movie)> GetByAnimeIDs(IEnumerable<int> animeIds)
         {
             if (animeIds == null)
-                return new Dictionary<int, (CrossRef_AniDB_Other, MovieDB_Movie)>();
+                return new Dictionary<int, (SVR_CrossRef_AniDB_Provider, MovieDB_Movie)>();
 
-            Dictionary<int, CrossRef_AniDB_Other> crosses = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDsAndTypes(animeIds, CrossRefType.MovieDB).ToDictionary(a => a.Key, a => a.Value[0]);
+            Dictionary<int, SVR_CrossRef_AniDB_Provider> crosses = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDsAndTypes(animeIds, CrossRefType.MovieDB).ToDictionary(a => a.Key, a => a.Value[0]);
             List<int> movids = crosses.Select(a => a.Value).Distinct().Select(a => int.Parse(a.CrossRefID)).ToList();
             Dictionary<int, MovieDB_Movie> images = GetByMoviesIds(movids).ToDictionary(a => a.Key, a => a.Value[0]);
             return crosses.ToDictionary(a => a.Key, a => (a.Value, images.ContainsKey(int.Parse(a.Value.CrossRefID)) ? images[int.Parse(a.Value.CrossRefID)] : null));

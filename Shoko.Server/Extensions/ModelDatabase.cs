@@ -55,21 +55,25 @@ namespace Shoko.Server.Extensions
             Repo.Instance.AnimeEpisode_User.Touch(() => Repo.Instance.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
         }
 
-        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
+        public static MovieDB_Movie GetMovieDB_Movie(this SVR_CrossRef_AniDB_Provider cross)
         {
-            if (cross.CrossRefType != (int) CrossRefType.MovieDB)
+            if (cross.CrossRefType != CrossRefType.MovieDB)
                 return null;
             return Repo.Instance.MovieDb_Movie.GetByOnlineID(int.Parse(cross.CrossRefID));
         }
 
-        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
+        public static Trakt_Show GetByTraktShow(this SVR_CrossRef_AniDB_Provider cross)
         {
-            return Repo.Instance.Trakt_Show.GetByTraktSlug(cross.TraktID);
+            if (cross.CrossRefType != CrossRefType.TraktTV)
+                return null;
+            return Repo.Instance.Trakt_Show.GetByTraktSlug(cross.CrossRefID);
         }
 
-        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
+        public static TvDB_Series GetTvDBSeries(this SVR_CrossRef_AniDB_Provider cross)
         {
-            return Repo.Instance.TvDB_Series.GetByTvDBID(cross.TvDBID);
+            if (cross.CrossRefType != CrossRefType.TvDB)
+                return null;
+            return Repo.Instance.TvDB_Series.GetByTvDBID(int.Parse(cross.CrossRefID));
         }
 
         public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)

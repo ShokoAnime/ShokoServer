@@ -19,7 +19,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
     {
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
-        public string ParallelTag { get; set; } = WorkTypes.TvDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.TvDB;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
 
@@ -31,7 +31,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             ExtraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.TvDB;
+        public string WorkType => WorkTypes.TvDB;
 
         public CmdTvDBSearchAnime(string str) : base(str)
         {

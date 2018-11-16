@@ -25,13 +25,13 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         private SVR_AnimeEpisode episode;
         private SVR_VideoLocal vlocal;
 
-        public string ParallelTag { get; set; } = WorkTypes.Server.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Server;
         public int ParallelMax { get; set; } = 8;
         public int Priority { get; set; } = 3;
 
         public string Id => $"LinkFileManually_{VideoLocalID}_{EpisodeID}";
 
-        public WorkTypes WorkType => WorkTypes.Server;
+        public string WorkType => WorkTypes.Server;
         public QueueStateStruct PrettyDescription =>
             new QueueStateStruct
             {

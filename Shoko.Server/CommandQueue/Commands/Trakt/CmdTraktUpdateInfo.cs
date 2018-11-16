@@ -11,7 +11,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
         public string TraktID { get; set; }
 
 
-        public string ParallelTag { get; set; } = WorkTypes.Trakt.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Trakt;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
 
@@ -23,7 +23,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             ExtraParams = new[] {TraktID}
         };
 
-        public WorkTypes WorkType => WorkTypes.Trakt;
+        public string WorkType => WorkTypes.Trakt;
 
         public CmdTraktUpdateInfo(string traktidorjson) 
         {

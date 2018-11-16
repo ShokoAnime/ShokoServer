@@ -222,7 +222,7 @@ namespace Shoko.Server.Models
 
         public List<SVR_CrossRef_AniDB_Provider> GetCrossRefTvDB() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID, CrossRefType.TvDB);
 
-        public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_Provider.GetTraktV2LinksFromAnime(AnimeID);
+        public List<SVR_CrossRef_AniDB_Provider> GetCrossRefTraktV2() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID, CrossRefType.TraktTV);
 
         public List<SVR_CrossRef_AniDB_Provider> GetCrossRefMAL() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID,CrossRefType.MyAnimeList);
 

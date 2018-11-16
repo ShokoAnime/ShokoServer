@@ -15,11 +15,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
     public class CmdAniDBSyncMyVotes : BaseCommand, ICommand
     {
 
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 7;
         public string Id => "SyncMyVotes";
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
 
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.Actions_SyncVotes, ExtraParams = new string[0]};

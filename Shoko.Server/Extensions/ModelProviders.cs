@@ -23,7 +23,7 @@ namespace Shoko.Server.Extensions
     public static class ModelProviders
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
+        /*
         public static WebCache_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
         {
             return new WebCache_CrossRef_AniDB_Other_Request
@@ -35,7 +35,7 @@ namespace Shoko.Server.Extensions
                 CrossRefType = c.CrossRefType,
             };
         }
-
+        */
         public static WebCache_FileHash_Request ToHashRequest(this AniDB_File anifile)
         {
             WebCache_FileHash_Request r = new WebCache_FileHash_Request
@@ -139,7 +139,7 @@ namespace Shoko.Server.Extensions
             r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey) ? string.Empty : ServerSettings.Instance.WebCache.AuthKey;
             return r;
         }
-
+        /*
         public static WebCache_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
         {
             WebCache_CrossRef_AniDB_Trakt_Request r = new WebCache_CrossRef_AniDB_Trakt_Request
@@ -200,7 +200,7 @@ namespace Shoko.Server.Extensions
                 r.Username = Constants.AnonWebCacheUsername;
             return r;
         }
-
+        */
         public static FileNameHash ToFileNameHash(this CrossRef_File_Episode cfe)
         {
             return new FileNameHash
@@ -844,15 +844,6 @@ namespace Shoko.Server.Extensions
             animeep_ra.DateTimeCreated = DateTime.Now;
         }
 
-        public static CrossRef_AniDB_TvDBV2 ToV2Model(this CrossRef_AniDB_TvDB xref)
-        {
-            return new CrossRef_AniDB_TvDBV2
-            {
-                AnimeID = xref.AniDBID,
-                CrossRefSource = (int) xref.CrossRefSource,
-                TvDBID = xref.TvDBID
-            };
-        }
 
         public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
         {

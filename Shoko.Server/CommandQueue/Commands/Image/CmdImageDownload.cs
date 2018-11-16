@@ -47,13 +47,13 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
         public int Priority { get; set; } = 2;
         public string Id => $"DownloadImage_{EntityID}_{EntityType}";
-        public WorkTypes WorkType => _info.WorkType;
+        public string WorkType => _info.WorkType;
 
         private class ImageTypeInfo
         {
             public string Tag;
             public string FormatDescription;
-            public WorkTypes WorkType;
+            public string WorkType;
             public int MaxThreads;
             public Func<object> FindFunc;
             public Func<object, string> FileNameFunc;
@@ -156,7 +156,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         UrlFunc = a => string.Format(Constants.URLS.AniDB_Images, ((AniDB_Anime) a).Picname);
                         MaxThreads = 1;
                         WorkType = WorkTypes.Image;
-                        Tag = WorkTypes.AniDB.ToString();
+                        Tag = WorkTypes.AniDB;
                         Error = $"AniDB poster image failed to download: Can't find AniDB_Anime with ID: {entityId}";
                         break;
                     case ImageEntityType.AniDB_Character:
@@ -169,7 +169,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         UrlFunc = a => string.Format(Constants.URLS.AniDB_Images, ((AniDB_Character) a).PicName);
                         MaxThreads = 1;
                         WorkType = WorkTypes.Image;
-                        Tag = WorkTypes.AniDB.ToString();
+                        Tag = WorkTypes.AniDB;
                         Error = $"AniDB Character image failed to download: Can't find AniDB Character with ID: {entityId}";
                         break;
                     case ImageEntityType.AniDB_Creator:
@@ -182,7 +182,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         UrlFunc = a => string.Format(Constants.URLS.AniDB_Images, ((AniDB_Seiyuu)a).PicName);
                         MaxThreads = 1;
                         WorkType = WorkTypes.Image;
-                        Tag = WorkTypes.AniDB.ToString();
+                        Tag = WorkTypes.AniDB;
                         Error = $"AniDB Seiyuu image failed to download: Can't find Seiyuu with ID: {entityId}";
                         break;
                 }
@@ -279,7 +279,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
                         }
 
                         // If this has any issues, it will throw an exception, so the catch below will handle it
-                        RecursivelyRetryDownload(downloadURL, ref tempName, 0, 5, _info.Tag == WorkTypes.AniDB.ToString());
+                        RecursivelyRetryDownload(downloadURL, ref tempName, 0, 5, _info.Tag == WorkTypes.AniDB);
 
                         // move the file to it's final location
                         // check that the final folder exists

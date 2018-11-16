@@ -1,6 +1,7 @@
 ﻿using System;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
@@ -16,7 +17,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
         public bool DownloadImages { get; set; }
         public string InfoString { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.TvDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.TvDB;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
 
@@ -28,7 +29,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             ExtraParams = new[] {$"{InfoString} ({TvDBEpisodeID})", DownloadImages.ToString(),ForceRefresh.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.TvDB;
+        public string WorkType => WorkTypes.TvDB;
 
         public CmdTvDBUpdateEpisode(string str) : base(str)
         {
@@ -56,7 +57,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                     return;
                 }
                 ReportUpdate(progress,25);
-                var xref = Repo.Instance.CrossRef_AniDB_TvDB.GetByTvDBID(ep.SeriesID).DistinctBy(a => a.AniDBID);
+                var xref = Repo.Instance.CrossRef_AniDB_Provider.GetByProvider(CrossRefType.TvDB,ep.SeriesID.ToString()).DistinctBy(a => a.AnimeID);
                 if (xref == null)
                 {
                     ReportFinish(progress);
@@ -65,7 +66,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 ReportUpdate(progress, 50);
                 foreach (var crossRefAniDbTvDbv2 in xref)
                 {
-                    var anime = Repo.Instance.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AniDBID);
+                    var anime = Repo.Instance.AnimeSeries.GetByAnimeID(crossRefAniDbTvDbv2.AnimeID);
                     if (anime == null) continue;
                     var episodes = Repo.Instance.AnimeEpisode.GetBySeriesID(anime.AnimeSeriesID);
                     foreach (SVR_AnimeEpisode episode in episodes)

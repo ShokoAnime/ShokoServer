@@ -13,7 +13,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
         public int TvDBID { get; set; }
         public bool AdditiveLink { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.TvDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.TvDB;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 5;
 
@@ -25,7 +25,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             ExtraParams = new[] {AnimeID.ToString(), TvDBID.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.TvDB;
+        public string WorkType => WorkTypes.TvDB;
 
         public CmdTvDBLinkAniDB(string str) : base(str)
         {

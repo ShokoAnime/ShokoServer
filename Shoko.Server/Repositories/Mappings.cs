@@ -519,35 +519,7 @@ namespace Shoko.Server.Repositories
                 model.Property(x => x.EpisodesOverrideData).HasMaxLength(100000);
             }
 
-            {
-                var model = builder.Entity<CrossRef_AniDB_TraktV2>();
-                model.ToTable("CrossRef_AniDB_TraktV2").HasKey(x => x.CrossRef_AniDB_TraktV2ID);
-//                //model.HasIndex(x => x.CrossRef_AniDB_TraktV2ID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TraktV2");
-                model.HasIndex(x => new { x.AnimeID, x.TraktSeasonNumber, x.TraktStartEpisodeNumber, x.AniDBStartEpisodeType, x.AniDBStartEpisodeNumber}).IsUnique().HasName("UIX_CrossRef_AniDB_TraktV2");
-                model.Property(x => x.CrossRef_AniDB_TraktV2ID).IsRequired().SetLocalValueGenerated();
-                model.Property(x => x.AnimeID).IsRequired();
-                model.Property(x => x.AniDBStartEpisodeType).IsRequired();
-                model.Property(x => x.AniDBStartEpisodeNumber).IsRequired();
-                model.Property(x => x.TraktID).HasMaxLength(500);
-                model.Property(x => x.TraktSeasonNumber).IsRequired();
-                model.Property(x => x.TraktStartEpisodeNumber).IsRequired();
-                model.Property(x => x.CrossRefSource).IsRequired();
-            }
-            {
-                //todo, this shouldn't be v2...?
-                var model = builder.Entity<CrossRef_AniDB_TvDBV2>();
-                model.ToTable("CrossRef_AniDB_TvDBV2").HasKey(x => x.CrossRef_AniDB_TvDBV2ID);
-//                //model.HasIndex(x => x.CrossRef_AniDB_TvDBV2ID).IsUnique().ForSqlServerIsClustered().HasName("PK_CrossRef_AniDB_TvDBV2");
-                model.HasIndex(x => new { x.AnimeID, x.TvDBID, x.TvDBSeasonNumber, x.TvDBStartEpisodeNumber, x.AniDBStartEpisodeType, x.AniDBStartEpisodeNumber}).IsUnique().HasName("UIX_CrossRef_AniDB_TvDBV2");
-                model.Property(x => x.CrossRef_AniDB_TvDBV2ID).IsRequired().SetLocalValueGenerated();
-                model.Property(x => x.AnimeID).IsRequired();
-                model.Property(x => x.AniDBStartEpisodeType).IsRequired();
-                model.Property(x => x.AniDBStartEpisodeNumber).IsRequired();
-                model.Property(x => x.TvDBID).IsRequired();
-                model.Property(x => x.TvDBSeasonNumber).IsRequired();
-                model.Property(x => x.TvDBStartEpisodeNumber).IsRequired();
-                model.Property(x => x.CrossRefSource).IsRequired();
-            }
+          
             {
                 var model = builder.Entity<CrossRef_Anime_Staff>();
                 model.ToTable("CrossRef_Anime_Staff").HasKey(x => x.CrossRef_Anime_StaffID);

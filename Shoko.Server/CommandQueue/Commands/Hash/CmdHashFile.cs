@@ -85,7 +85,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = _hashingState ? QueueStateEnum.HashingFile : QueueStateEnum.CheckingFile, ExtraParams = new[] {File.FullName}};
         public int Priority { get; set; } = 4;
         public string Id => $"HashFile_{FullName}";
-        public WorkTypes WorkType => WorkTypes.Hashing;
+        public string WorkType => WorkTypes.Hashing;
 
         public string ParallelTag
         {

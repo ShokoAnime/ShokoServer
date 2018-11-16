@@ -22,7 +22,7 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
         private readonly JMMUser _jmmuser;
 
 
-        public string ParallelTag { get; set; } = WorkTypes.Plex.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Plex;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 7;
 
@@ -35,7 +35,7 @@ namespace Shoko.Server.CommandQueue.Commands.Plex
             ExtraParams = new[] { _jmmuser.Username }
         };
 
-        public WorkTypes WorkType => WorkTypes.Plex;
+        public string WorkType => WorkTypes.Plex;
 
         public CmdPlexSyncWatched(string str) : base(str)
         {

@@ -13,11 +13,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
     {
         public bool ForceRefresh { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 7;
         public string Id => "UpdateMyListStats";
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {

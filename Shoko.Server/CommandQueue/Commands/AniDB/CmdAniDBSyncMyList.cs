@@ -22,12 +22,12 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public bool ForceRefresh { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 7;
         public string Id => "SyncMyList";
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.SyncMyList, ExtraParams = new [] { ForceRefresh.ToString()}};
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
         public CmdAniDBSyncMyList(string str) : base(str)
         {
         }

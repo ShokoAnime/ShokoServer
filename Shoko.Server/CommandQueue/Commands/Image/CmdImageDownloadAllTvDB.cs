@@ -23,7 +23,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
             ExtraParams = new[] {TvDBSeriesID.ToString(), ForceRefresh.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.Image;
+        public string WorkType => WorkTypes.Image;
 
 
         public CmdImageDownloadAllTvDB(string str) : base(str)

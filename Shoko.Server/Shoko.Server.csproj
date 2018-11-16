@@ -36,7 +36,16 @@
     <None Remove="Workers\Commands\Import\**" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="Providers\TvDB\TvDBLinkingHelper.cs" />
     <Compile Remove="Repositories\AtomicBatchUpdate.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_MALRepository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_OtherRepository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_TraktV2Repository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_TvDBRepository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_TvDBV2Repository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
+    <Compile Remove="Repositories\Repos\CrossRef_AniDB_TvDB_Episode_OverrideRepository.cs" />
     <Compile Remove="Tasks\ContractExtractor.cs" />
     <Compile Remove="UPnPServerBrowserDialog.cs" />
   </ItemGroup>

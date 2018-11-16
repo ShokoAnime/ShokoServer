@@ -13,7 +13,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
         public string SeriesTitle { get; set; }
 
 
-        public string ParallelTag { get; set; } = WorkTypes.TvDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.TvDB;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
 
@@ -25,7 +25,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
             ExtraParams = new[] {$"{SeriesTitle} ({TvDBSeriesID})", ForceRefresh.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.TvDB;
+        public string WorkType => WorkTypes.TvDB;
 
         public CmdTvDBUpdateSeries(string str) : base(str)
         {

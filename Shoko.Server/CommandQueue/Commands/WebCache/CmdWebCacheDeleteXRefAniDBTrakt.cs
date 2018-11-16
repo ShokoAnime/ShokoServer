@@ -17,10 +17,10 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
 
 
 
-        public string ParallelTag { get; set; } = WorkTypes.WebCache.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.WebCache;
         public int ParallelMax { get; set; } = 2;
         public int Priority { get; set; } = 10;
-        public WorkTypes WorkType => WorkTypes.WebCache;
+        public string WorkType => WorkTypes.WebCache;
 
         public string Id => $"WebCacheDeleteXRefAniDBTrakt_{AnimeID}";
 

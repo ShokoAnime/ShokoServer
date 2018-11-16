@@ -23,11 +23,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public bool ForceRefresh { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 4;
         public string Id => "GetUpdated";
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetUpdatedAnime, ExtraParams = new [] { ForceRefresh.ToString()}};
 

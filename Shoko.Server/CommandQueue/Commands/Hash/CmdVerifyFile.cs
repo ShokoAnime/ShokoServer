@@ -59,7 +59,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
 
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.VerifyFile, ExtraParams = new[] {FullName}};
-        public WorkTypes WorkType => WorkTypes.Hashing;
+        public string WorkType => WorkTypes.Hashing;
 
         public string ParallelTag
         {

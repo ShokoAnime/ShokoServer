@@ -22,8 +22,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int Priority { get; set; } = 6;
         public string Id => $"AddFileToMyList_{VideoLocal.Hash}";
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.AniDB_MyListAdd, ExtraParams = new[] {VideoLocal.Info}};
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
 
         public CmdAniDBAddFileToMyList(SVR_VideoLocal vlocal, bool readstates=true)

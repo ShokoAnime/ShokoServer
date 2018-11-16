@@ -28,7 +28,7 @@ namespace Shoko.Server.CommandQueue.Commands
         [JsonIgnore]
         QueueStateStruct PrettyDescription { get; }
         [JsonIgnore]
-        WorkTypes WorkType { get; }
+        string WorkType { get; }
         [JsonIgnore]
         double Progress { get;  }
         [JsonIgnore]

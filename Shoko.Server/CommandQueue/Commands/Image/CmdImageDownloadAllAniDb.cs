@@ -28,7 +28,7 @@ namespace Shoko.Server.CommandQueue.Commands.Image
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.DownloadImage, ExtraParams = new[] {Resources.Command_DownloadAniDBImages, AnimeID.ToString()}};
 
-        public WorkTypes WorkType => WorkTypes.Image;
+        public string WorkType => WorkTypes.Image;
 
         public CmdImageDownloadAllAniDb(string str) : base(str)
         {

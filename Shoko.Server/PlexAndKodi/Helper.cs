@@ -11,6 +11,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -220,8 +221,7 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
-            KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
+        public static Video VideoFromAnimeEpisode(IProvider prov, List<SVR_CrossRef_AniDB_Provider> cross, KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
             Video v = e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
@@ -270,13 +270,9 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (cross != null && cross.Count > 0)
                 {
-                    CrossRef_AniDB_TvDBV2 c2 =
-                        cross.FirstOrDefault(
-                            a =>
-                                a.AniDBStartEpisodeType == v.EpisodeType &&
-                                a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
-                    if (c2?.TvDBSeasonNumber > 0)
-                        v.ParentIndex = c2.TvDBSeasonNumber;
+                    CrossRef_AniDB_ProviderEpisode ep = cross.Select(a => a.GetEpisodesWithOverrides().FirstOrDefault(b => b.AniDBEpisodeID == e.Key.AniDB_EpisodeID)).FirstOrDefault(a=>a!=null);
+                    if (ep != null && ep.Season > 0)
+                        v.ParentIndex = ep.Season;
                 }
                 AddLinksToAnimeEpisodeVideo(prov, v, userid);
             }
@@ -773,14 +769,14 @@ namespace Shoko.Server.PlexAndKodi
                                 Repo.Instance.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
             if (vote != null) p.UserRating = (int)(vote.VoteValue / 100D);
 
-            List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
+            List<CL_CrossRef_AniDB_Provider> ls = ser.CrossRefAniDBTvDBV2;
             if (ls != null && ls.Count > 0)
             {
-                foreach (CrossRef_AniDB_TvDBV2 c in ls)
+                CrossRef_AniDB_ProviderEpisode ep = ls.Select(a => a.GetEpisodesWithOverrides().FirstOrDefault()).FirstOrDefault(a => a != null);
+                if (ep != null)
                 {
-                    if (c.TvDBSeasonNumber == 0) continue;
-                    p.Season = c.TvDBSeasonNumber.ToString();
-                    p.Index = c.TvDBSeasonNumber;
+                    p.Season = ep.Season.ToString();
+                    p.Index = ep.Season;
                 }
             }
             p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster(null);

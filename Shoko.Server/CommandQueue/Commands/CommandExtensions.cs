@@ -56,7 +56,7 @@ namespace Shoko.Server.CommandQueue.Commands
             CommandRequest c = new CommandRequest();
             c.Id = b.Id;
             c.Class = b.GetType().ToString();
-            c.Type = (int) b.WorkType;
+            c.Type = b.WorkType;
             c.ParallelMax = b.ParallelMax;
             c.ParallelTag = b.ParallelTag;
             c.Priority = b.Priority;

@@ -13,13 +13,13 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 {
     public class CmdServerSyncHashes : BaseCommand, ICommand
     {
-        public string ParallelTag { get; set; } =  WorkTypes.Server.ToString();
+        public string ParallelTag { get; set; } =  WorkTypes.Server;
         public int ParallelMax { get; set; } = 8;
         public int Priority { get; set; } = 1;
         public string Id => "SyncHashes";
 
         public QueueStateStruct PrettyDescription { get; } = new QueueStateStruct {QueueState = QueueStateEnum.SyncHashes, ExtraParams = new string[0]};
-        public WorkTypes WorkType => WorkTypes.Server;
+        public string WorkType => WorkTypes.Server;
 
         public CmdServerSyncHashes(string str)
         {

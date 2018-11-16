@@ -43,7 +43,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         public bool ForceAniDB { get; set; }
 
 
-        public string ParallelTag { get; set; } = WorkTypes.Server.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Server;
         public int ParallelMax { get; set; } = 8;
         public int Priority { get; set; } = 3;
 
@@ -51,7 +51,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.FileInfo, ExtraParams = new[] {vidLocal != null ? vidLocal.Info : VideoLocalID.ToString()}};
 
-        public WorkTypes WorkType => WorkTypes.Server;
+        public string WorkType => WorkTypes.Server;
 
         public override void Run(IProgress<ICommand> progress = null)
         {

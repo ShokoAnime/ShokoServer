@@ -10,7 +10,7 @@ namespace Shoko.Server.Repositories.Repos
     public class CommandRequestRepository : BaseRepository<CommandRequest, string>, ICommandProvider
     {
         private PocoIndex<string, CommandRequest, string> Batches;
-        private PocoIndex<string, CommandRequest, int> WorkTypes;
+        private PocoIndex<string, CommandRequest, string> WorkTypes;
         private PocoIndex<string, CommandRequest, string> Classes;
 
         /*
@@ -74,7 +74,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override void PopulateIndexes()
         {
             Batches = new PocoIndex<string, CommandRequest, string>(Cache, a=>a.Batch);
-            WorkTypes = new PocoIndex<string, CommandRequest, int>(Cache, a=>a.Type);
+            WorkTypes = new PocoIndex<string, CommandRequest, string>(Cache, a=>a.Type);
             Classes= new PocoIndex<string, CommandRequest, string>(Cache, a => a.Class);
         }
 
@@ -100,14 +100,14 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Count(a => a.Batch==batch && a.ExecutionDate <= DateTime.UtcNow);
             }
         }
-        public int GetQueuedCommandCount(params WorkTypes[] wt)
+        public int GetQueuedCommandCount(params string[] wt)
         {
             using (RepoLock.ReaderLock())
             {
                 if (IsCached)
-                    return wt.Sum(b=>WorkTypes.GetMultiple((int)b).Count(a => a.ExecutionDate <= DateTime.UtcNow));
-                List<int> ints = wt.Cast<int>().ToList();
-                return Table.Count(a => ints.Contains(a.Type) && a.ExecutionDate<=DateTime.UtcNow);
+                    return wt.Sum(b=>WorkTypes.GetMultiple(b).Count(a => a.ExecutionDate <= DateTime.UtcNow));
+                List<string> ls = wt.ToList();
+                return Table.Count(a => ls.Contains(a.Type) && a.ExecutionDate<=DateTime.UtcNow);
             }
         }
         public Dictionary<string, int> GetByClasses()
@@ -131,14 +131,14 @@ namespace Shoko.Server.Repositories.Repos
 
 
 
-        public void ClearQueue(params WorkTypes[] wt)
+        public void ClearQueue(params string[] wt)
         {
             FindAndDelete(() =>
             {
                 if (IsCached)
-                    return wt.SelectMany(a => WorkTypes.GetMultiple((int)a)).ToList();
-                List<int> ints = wt.Cast<int>().ToList();
-                return Table.Where(a => ints.Contains(a.Type)).ToList();
+                    return wt.SelectMany(a => WorkTypes.GetMultiple(a)).ToList();
+                List<string> ls = wt.ToList();
+                return Table.Where(a => ls.Contains(a.Type)).ToList();
             });
         }
         public void ClearQueue()
@@ -146,12 +146,12 @@ namespace Shoko.Server.Repositories.Repos
             FindAndDelete(() =>
             {
                 if (IsCached)
-                    return Cache.Values.Where(a=>a.Type!=(int)CommandQueue.Commands.WorkTypes.Schedule).ToList();
-                return Table.Where(a => a.Type != (int) CommandQueue.Commands.WorkTypes.Schedule).ToList();
+                    return Cache.Values.Where(a=>a.Type!=CommandQueue.Commands.WorkTypes.Schedule).ToList();
+                return Table.Where(a => a.Type != CommandQueue.Commands.WorkTypes.Schedule).ToList();
             });
         }
 
-        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits, List<string> batchLimits, List<WorkTypes> workLimits, List<string> preconditionLimits)
+        public List<ICommand> Get(int qnty, Dictionary<string, int> tagLimits, List<string> batchLimits, List<string> workLimits, List<string> preconditionLimits)
         {
             List<ICommand> cmds=new List<ICommand>();
             Dictionary<string, int> localLimits = tagLimits.ToDictionary(a => a.Key, a => a.Value);
@@ -169,8 +169,8 @@ namespace Shoko.Server.Repositories.Repos
                         req = req.Where(a => a.ParallelTag != k);
                     foreach (string s in batchLimits)
                         req = req.Where(a => a.Batch != s);
-                    foreach (WorkTypes w in workLimits)
-                        req = req.Where(a => a.Type != (int) w);
+                    foreach (string w in workLimits)
+                        req = req.Where(a => a.Type != w);
                     List<string> ids = req.OrderBy(a => a.Priority).Take(qnty).Select(a => a.Id).ToList();
                     if (ids.Count == 0)
                     {
@@ -241,7 +241,7 @@ namespace Shoko.Server.Repositories.Repos
             });
         }
 
-        public void ClearWorkTypes(params WorkTypes[] worktypes)
+        public void ClearWorkTypes(params string[] worktypes)
         {
             ClearQueue(worktypes);
         }

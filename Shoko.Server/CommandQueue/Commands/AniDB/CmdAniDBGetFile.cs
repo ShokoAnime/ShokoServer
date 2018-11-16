@@ -18,8 +18,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 3;
         public string Id => $"GetFile_{VideoLocalID}";
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetFileInfo, ExtraParams = new[] { VideoLocalID.ToString(),vlocal != null ? vlocal.Info : VideoLocalID.ToString(), ForceAniDB.ToString() } };
 

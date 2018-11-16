@@ -17,8 +17,8 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetCalendar, ExtraParams = new [] { ForceRefresh.ToString()}};
-        public WorkTypes WorkType => WorkTypes.AniDB;
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string WorkType => WorkTypes.AniDB;
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 5;
         public string Id => "GetCalendar";

@@ -21,7 +21,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
         public int AnimeID { get; set; }
         public bool ForceRefresh { get; set; }
 
-        public string ParallelTag { get; set; } = WorkTypes.Trakt.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Trakt;
         public int ParallelMax { get; set; } = 4;
         public int Priority { get; set; } = 6;
 
@@ -33,7 +33,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
             ExtraParams = new[] {AnimeID.ToString(), ForceRefresh.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.Trakt;
+        public string WorkType => WorkTypes.Trakt;
 
         public CmdTraktSearchAnime(string str) : base(str)
         {

@@ -12,7 +12,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
         public int VideoLocalID { get; set; }
 
 
-        public string ParallelTag { get; set; } = WorkTypes.Server.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.Server;
         public int ParallelMax { get; set; } = 8;
         public int Priority { get; set; } = 4;
 
@@ -24,7 +24,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             ExtraParams = new[] {VideoLocalID.ToString()}
         };
 
-        public WorkTypes WorkType => WorkTypes.Server;
+        public string WorkType => WorkTypes.Server;
 
         public CmdServerReadMediaInfo(string str) : base(str)
         {

@@ -16,11 +16,11 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
 
         public string Info => AnimeID.ToString();
-        public string ParallelTag { get; set; } = WorkTypes.AniDB.ToString();
+        public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 6;
         public string Id => $"Vote_{AnimeID}_{VoteType}_{VoteValue}";
-        public WorkTypes WorkType => WorkTypes.AniDB;
+        public string WorkType => WorkTypes.AniDB;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.VoteAnime, ExtraParams = new[] {AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture), VoteType.ToString()}};
 

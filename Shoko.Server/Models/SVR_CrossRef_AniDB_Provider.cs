@@ -32,21 +32,7 @@ namespace Shoko.Server.Models
 
         public override List<CrossRef_AniDB_ProviderEpisode> EpisodesOverride => EpisodesListOverride.Episodes;
 
-        public List<CrossRef_AniDB_ProviderEpisode> GetEpisodesWithOverrides()
-        {
-            List<CrossRef_AniDB_ProviderEpisode> orig = EpisodesList.Episodes;
-            foreach (CrossRef_AniDB_ProviderEpisode c in EpisodesListOverride.Episodes)
-            {
-                CrossRef_AniDB_ProviderEpisode cd = EpisodesList.GetByAnimeEpisodeId(c.AniDBEpisodeID);
-                if (cd != null && orig.Contains(cd))
-                    orig.Remove(cd);
-                cd = EpisodesList.GetByProviderId(c.ProviderEpisodeID);
-                if (cd!=null && orig.Contains(cd))
-                    orig.Remove(cd);
-            }
-            orig.AddRange(EpisodesListOverride.Episodes);
-            return orig.OrderBy(a => a.AniDBEpisodeID).ToList();
-        }
+
 
 
         public class ProviderEpisodeList
@@ -141,18 +127,21 @@ namespace Shoko.Server.Models
                     }
                 }
             }
-            public void AddOrUpdate(int animeepisodeId, string providerEpisodeId, MatchRating rating)
+            public void AddOrUpdate(int animeepisodeId, string providerEpisodeId, int season, int episodeNumber, EpisodeType type, MatchRating rating)
             {
                 lock (_dict)
                 {
                     if (_dict.ContainsKey(animeepisodeId))
                     {
                         CrossRef_AniDB_ProviderEpisode r = _dict[animeepisodeId];
-                        if (r.ProviderEpisodeID != providerEpisodeId || r.MatchRating != rating)
+                        if (r.ProviderEpisodeID != providerEpisodeId || r.MatchRating != rating || r.Season!=season || r.Number!=episodeNumber || r.Type!=type)
                         {
                             _providerDict.Remove(r.ProviderEpisodeID);
                             r.ProviderEpisodeID = providerEpisodeId;
                             r.MatchRating = rating;
+                            r.Season = season;
+                            r.Number = episodeNumber;
+                            r.Type = type;
                             _providerDict.Add(r.ProviderEpisodeID, animeepisodeId);
                             _needPersistance = true;
                         }
@@ -163,6 +152,9 @@ namespace Shoko.Server.Models
                         r.AniDBEpisodeID = animeepisodeId;
                         r.ProviderEpisodeID = providerEpisodeId;
                         r.MatchRating = rating;
+                        r.Season = season;
+                        r.Number = episodeNumber;
+                        r.Type = type;
                         _dict.Add(animeepisodeId, r);
                         _providerDict[providerEpisodeId] = animeepisodeId;
                         _needPersistance = true;

@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Commons.Collections;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 using Shoko.Server.Repositories.Cache;
 
@@ -44,15 +46,15 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => ids.Contains(a.SeriesID)).ToDictionary(a => a.SeriesID, a => a);
             }
         }
-        public Dictionary<int, List<(CrossRef_AniDB_TvDBV2, TvDB_Series)>> GetByAnimeIDsV2(IEnumerable<int> animeIds)
+        public Dictionary<int, List<(SVR_CrossRef_AniDB_Provider, TvDB_Series)>> GetByAnimeIDsV2(IEnumerable<int> animeIds)
         {
             if (animeIds == null)
-                return new Dictionary<int, List<(CrossRef_AniDB_TvDBV2, TvDB_Series)>>();
-            Dictionary<int, List<CrossRef_AniDB_TvDBV2>> animetvdb = Repo.Instance.CrossRef_AniDB_TvDBV2.GetByAnimeIDs(animeIds).ToDictionary(a=>a.Key,a=>a.Value);
-            return animetvdb.ToDictionary(a => a.Key, a => a.Value.Select(b => (b, GetByTvDBID(b.TvDBID))).ToList());
+                return new Dictionary<int, List<(SVR_CrossRef_AniDB_Provider, TvDB_Series)>>();
+            Dictionary<int, List<SVR_CrossRef_AniDB_Provider>> animetvdb = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDsAndTypes(animeIds,CrossRefType.TvDB).ToDictionary(a=>a.Key,a=>a.Value);
+            return animetvdb.ToDictionary(a => a.Key, a => a.Value.Select(b => (b, GetByTvDBID(int.Parse(b.CrossRefID)))).ToList());
         }
 
-        internal ILookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)> GetByAnimeIDs(int[] animeIds)
+        internal ILookup<int, (SVR_CrossRef_AniDB_Provider, TvDB_Series)> GetByAnimeIDs(int[] animeIds)
         {
             /*
             var tvDbSeriesByAnime = session.CreateSQLQuery(@"
@@ -73,10 +75,10 @@ namespace Shoko.Server.Repositories.Repos
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
             if (animeIds.Length == 0)
-                return EmptyLookup<int, (CrossRef_AniDB_TvDB, TvDB_Series)>.Instance;
+                return EmptyLookup<int, (SVR_CrossRef_AniDB_Provider, TvDB_Series)>.Instance;
 
             using (RepoLock.ReaderLock())
-                return GetAll().Join(Repo.Instance.CrossRef_AniDB_TvDB.GetAll(), s => s.SeriesID, x => x.AniDBID, (series, xref) => (xref, series)).ToLookup(a => a.xref.AniDBID);
+                return GetAll().Join(Repo.Instance.CrossRef_AniDB_Provider.GetByType(CrossRefType.TvDB), s => s.SeriesID, x => x.AnimeID, (series, xref) => (xref, series)).ToLookup(a => a.xref.AnimeID);
         }
     }
 }
