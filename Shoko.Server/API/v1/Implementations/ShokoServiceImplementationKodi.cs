@@ -11,9 +11,7 @@ using Stream = System.IO.Stream;
 
 namespace Shoko.Server.API.v1.Implementations
 {
-    [ApiController]
-    [Route("/api/Kodi")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ApiController, Route("/api/Kodi"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationKodi : IShokoServerKodi, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }

@@ -18,9 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
-    [ApiController]
-    [Route("/api/Image")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ApiController, Route("/api/Image"), ApiVersionNeutral]
     public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }

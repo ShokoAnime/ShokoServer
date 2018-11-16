@@ -101,7 +101,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("folder/edit")]
         public ActionResult EditFolder(ImportFolder folder)
         {
-            if (!String.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
+            if (!string.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
             {
                 try
                 {
@@ -137,16 +137,9 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("folder/delete")]
         public ActionResult DeleteFolder(int folderId)
         {
-            if (folderId != 0)
-            {
-                string res = Importer.DeleteImportFolder(folderId);
-                if (res == string.Empty)
-                {
-                    return APIStatus.OK();
-                }
-                return new APIMessage(500, res);
-            }
-            return new APIMessage(400, "ImportFolderID missing");
+            if (folderId == 0) return new APIMessage(400, "ImportFolderID missing");
+            string res = Importer.DeleteImportFolder(folderId);
+            return string.IsNullOrEmpty(res) ? APIStatus.OK() : new APIMessage(500, res);
         }
 
         /// <summary>

@@ -19,9 +19,7 @@ using Shoko.Server.Utilities;
 namespace Shoko.Server
 {
     // TODO THIS NEEDS TO BE ABLE TO HOOK INTO THE ApiInUse FIELD SOMEHOW.
-    [ApiController]
-    [Route("/Stream")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ApiController, Route("/Stream"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationStream : IShokoServerStream, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }

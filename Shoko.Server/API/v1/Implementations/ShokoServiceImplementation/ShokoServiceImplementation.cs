@@ -25,9 +25,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Shoko.Server
 {
-    [ApiController]
-    [Route("/v1")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ApiController, Route("/v1"), ApiExplorerSettings(IgnoreApi = true)]
     public partial class ShokoServiceImplementation : IShokoServer, IHttpContextAccessor
     {
         HttpContext _ctx;

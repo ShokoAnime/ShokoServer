@@ -109,14 +109,6 @@ namespace Shoko.Server.API
                     new HeaderApiVersionReader("api-version"),
                     new ShokoApiReader()
                 );
-
-                //APIv1
-                o.Conventions.Controller<ShokoServiceImplementation>()      .HasDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationImage>() .IsApiVersionNeutral();
-                o.Conventions.Controller<ShokoServiceImplementationKodi>()  .HasDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationMetro>() .HasDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationPlex>()  .HasDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationStream>().HasDeprecatedApiVersion(new ApiVersion(1, 0));
             });
             services.AddVersionedApiExplorer();
 
@@ -220,7 +212,33 @@ namespace Shoko.Server.API
 
         public string Read(HttpRequest request)
         {
-            return request.Path.StartsWithSegments("/api") ? "2.0" : null;
+            PathString[] apiv1 =
+            {
+                "/v1", "/api/Image", "/api/Kodi",
+                "/api/Metro", "/api/Plex"
+            };
+
+            PathString[] apiv2 =
+            {
+                "/api/webui", "/api/version", "/plex", "/api/init",
+                /* "/api/image" */ "/api/dev", "/api/modules",
+                "/api/core", "/api/links",  "/api/cast", "/api/group",
+                "/api/filter", "/api/cloud", "/api/serie", "/api/ep",
+                "/api/file", "/api/queue", "/api/myid",  "/api/news",
+                "/api/search", "/api/remove_missing_files",
+                "/api/stats_update", "/api/medainfo_update", "/api/hash",
+                "/api/rescan", "/api/rescanunlinked", "/api/folder",
+                "/api/rescanmanuallinks", "/api/rehash",
+                "/api/rehashunlinked", "/api/rehashmanuallinks",
+            };
+
+            if (apiv1.Any(request.Path.StartsWithSegments))
+                return "1.0";
+
+            if (apiv2.Any(request.Path.StartsWithSegments))
+                return "2.0";
+
+            return null;
         }
     }
 
