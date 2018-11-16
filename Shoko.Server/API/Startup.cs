@@ -82,20 +82,15 @@ namespace Shoko.Server.API
                 o.ReportApiVersions = true;
                 o.AssumeDefaultVersionWhenUnspecified = true;
                 o.DefaultApiVersion = new ApiVersion(1, 0);
-
+                o.ApiVersionReader =  new HeaderApiVersionReader("api-version");
+                
                 //APIv1
-                o.Conventions.Controller<ShokoServiceImplementation>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationImage>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationKodi>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationMetro>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationPlex>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
-                o.Conventions.Controller<ShokoServiceImplementationStream>()
-                    .AdvertisesDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementation>()      .HasDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationImage>() .IsApiVersionNeutral();
+                o.Conventions.Controller<ShokoServiceImplementationKodi>()  .HasDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationMetro>() .HasDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationPlex>()  .HasDeprecatedApiVersion(new ApiVersion(1, 0));
+                o.Conventions.Controller<ShokoServiceImplementationStream>().HasDeprecatedApiVersion(new ApiVersion(1, 0));
 
             });
 
@@ -127,26 +122,6 @@ namespace Shoko.Server.API
                 RequestPath = "/webui"
             });
 
-            /*app.Use((ctx, next) =>
-            {
-                SVR_JMMUser identity = GetRequestUser(ctx);
-                if (identity != null)
-                    ctx.User = new System.Security.Claims.ClaimsPrincipal(identity);
-
-                return next();
-            });*/
-
-            /*app.UseRouter(routes =>
-            {
-                routes
-                    .RouteFor(new ShokoServiceImplementation())
-                    .RouteFor(new ShokoServiceImplementationImage())
-                    .RouteFor(new ShokoServiceImplementationKodi())
-                    .RouteFor(new ShokoServiceImplementationMetro())
-                    .RouteFor(new ShokoServiceImplementationPlex())
-                    .RouteFor(new ShokoServiceImplementationStream());
-            });*/
-
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
 
@@ -154,13 +129,6 @@ namespace Shoko.Server.API
             app.UseAuthentication();
 
             app.UseMvc();
-
-            /*app.UseOwin(x => {
-                x.UseNancy(opt => {
-                    opt.Bootstrapper = new Bootstrapper();
-                    opt.PassThroughWhenStatusCodesAre(Nancy.HttpStatusCode.NotFound);
-                });
-            });*/
         }
 
         private static SVR_JMMUser GetRequestUser(HttpContext ctx)
