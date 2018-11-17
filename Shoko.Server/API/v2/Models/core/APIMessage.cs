@@ -58,14 +58,11 @@ namespace Shoko.Server.API.v2.Models.core
         public override void ExecuteResult(ActionContext context)
         {
             context.HttpContext.Response.StatusCode = code;
-            var a = new
-            {
-                code, message, details
-            };
+            context.HttpContext.Response.ContentType = "application/json";
 
             var serializer = new JsonSerializer();
             using (StreamWriter writer = new StreamWriter(context.HttpContext.Response.Body))
-                serializer.Serialize(writer, a);
+                serializer.Serialize(writer, new { code, message, details });
         }
     }
 

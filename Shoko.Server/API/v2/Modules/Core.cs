@@ -27,7 +27,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [Authorize]
     [ApiController]// As this module requireAuthentication all request need to have apikey in header.
-    [Route("/api/core")]
+    [Route("/api")]
     [ApiVersion("2.0")]
     public class Core : BaseController
     {
@@ -790,45 +790,6 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             return dir;
-        }
-
-        #endregion
-
-        #region 09.Cloud Accounts
-
-        [HttpGet("cloud/list")]
-        public ActionResult GetCloudAccounts()
-        {
-            // TODO APIv2: Cloud
-            return APIStatus.NotImplemented();
-        }
-
-        [HttpGet("cloud/count")]
-        public ActionResult GetCloudAccountsCount()
-        {
-            // TODO APIv2: Cloud
-            return APIStatus.NotImplemented();
-        }
-
-        [HttpPost("cloud/add")]
-        public ActionResult AddCloudAccount()
-        {
-            // TODO APIv2: Cloud
-            return APIStatus.NotImplemented();
-        }
-
-        [HttpPost("cloud/delete")]
-        public ActionResult DeleteCloudAccount()
-        {
-            // TODO APIv2: Cloud
-            return APIStatus.NotImplemented();
-        }
-
-        [HttpGet("cloud/import")]
-        public ActionResult RunCloudImport()
-        {
-            ShokoServer.RunImport();
-            return APIStatus.OK();
         }
 
         #endregion

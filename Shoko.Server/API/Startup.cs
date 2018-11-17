@@ -228,7 +228,7 @@ namespace Shoko.Server.API
                 "/api/search", "/api/remove_missing_files",
                 "/api/stats_update", "/api/medainfo_update", "/api/hash",
                 "/api/rescan", "/api/rescanunlinked", "/api/folder",
-                "/api/rescanmanuallinks", "/api/rehash",
+                "/api/rescanmanuallinks", "/api/rehash", "/api/config",
                 "/api/rehashunlinked", "/api/rehashmanuallinks",
             };
 
