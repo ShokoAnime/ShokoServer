@@ -787,7 +787,7 @@ namespace Shoko.Server.Providers.TvDB
             TvDB_Episode tvep = Repo.Instance.TvDB_Episode.GetByID(tvDBID);
             using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TvDB, ep.AnimeID, tvep.SeriesID.ToString())))
             {
-                upd.Entity.EpisodesListOverride.AddOrUpdate(aniDBID, tvDBID.ToString(), MatchRating.UserVerified);
+                upd.Entity.EpisodesListOverride.AddOrUpdate(aniDBID, tvDBID.ToString(),tvep.SeasonNumber,ep.EpisodeNumber,ep.GetEpisodeTypeEnum(), MatchRating.UserVerified);
                 if (upd.Entity.EpisodesListOverride.NeedPersitance)
                     upd.Commit();
             }

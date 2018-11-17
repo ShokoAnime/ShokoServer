@@ -36,9 +36,9 @@ namespace Shoko.Server.Extensions
             };
         }
         */
-        public static WebCache_FileHash_Request ToHashRequest(this AniDB_File anifile)
+        public static WebCache_FileHash ToHashRequest(this AniDB_File anifile)
         {
-            WebCache_FileHash_Request r = new WebCache_FileHash_Request
+            WebCache_FileHash r = new WebCache_FileHash
             {
                 ED2K = anifile.Hash,
                 CRC32 = anifile.CRC,
@@ -46,17 +46,12 @@ namespace Shoko.Server.Extensions
                 SHA1 = anifile.SHA1,
                 FileSize = anifile.FileSize
             };
-            r.Username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey) ? string.Empty : ServerSettings.Instance.WebCache.AuthKey;
-
             return r;
         }
-
-        public static WebCache_FileHash_Request ToHashRequest(this SVR_VideoLocal vl)
+        
+        public static WebCache_FileHash ToHashRequest(this SVR_VideoLocal vl)
         {
-            WebCache_FileHash_Request r = new WebCache_FileHash_Request
+            WebCache_FileHash r = new WebCache_FileHash
             {
                 ED2K = vl.Hash,
                 CRC32 = vl.CRC32,
@@ -64,11 +59,6 @@ namespace Shoko.Server.Extensions
                 SHA1 = vl.SHA1,
                 FileSize = vl.FileSize
             };
-            r.Username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey) ? string.Empty : ServerSettings.Instance.WebCache.AuthKey;
-
             return r;
         }
 
