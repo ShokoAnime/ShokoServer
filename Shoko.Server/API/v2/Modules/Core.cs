@@ -472,9 +472,20 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                Repo.Instance.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
-                Repo.Instance.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
+                using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginBatchUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByType(Shoko.Models.Enums.CrossRefType.TvDB)))
+                {
+                    foreach(SVR_CrossRef_AniDB_Provider p in upd)
+                    {
+                        p.EpisodesList.DeleteAllUnverifiedLinks();
+                        if (p.EpisodesList.NeedPersitance)
+                        {
+                            p.EpisodesList.Persist();
+                            upd.Update(p);
+                        }
+                    }
+                    upd.Commit();
+                }
+                Repo.Instance.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries => LinkingHelper.GenerateEpisodeMatches(animeseries.AniDB_ID, Shoko.Models.Enums.CrossRefType.TvDB, true));
             }
             catch (Exception e)
             {
@@ -566,27 +577,27 @@ namespace Shoko.Server.API.v2.Modules
                 var result = new List<EpisodeMatchComparison>();
                 foreach (var animeseries in list)
                 {
-                    List<CrossRef_AniDB_TvDB> tvxrefs =
-                        Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
-                    int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
-                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
+                    List<SVR_CrossRef_AniDB_Provider> tvxrefs =
+                        Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeseries.AnimeID,Shoko.Models.Enums.CrossRefType.TvDB);
+                    int tvdbID = int.Parse(tvxrefs.FirstOrDefault()?.CrossRefID ?? "0");
+                    var matches = LinkingHelper.GetEpisodeMatches(animeseries.AnimeID, tvdbID.ToString(), Shoko.Models.Enums.CrossRefType.TvDB).Select(a => (
                         AniDB: new AniEpSummary
                         {
                             AniDBEpisodeType = a.AniDB.EpisodeType,
                             AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
                             AniDBEpisodeName = a.AniDB.GetEnglishTitle()
                         },
-                        TvDB: a.TvDB == null ? null : new TvDBEpSummary
+                        TvDB: a.Cross == null ? null : new TvDBEpSummary
                         {
-                            TvDBSeason = a.TvDB.SeasonNumber,
-                            TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
-                            TvDBEpisodeName = a.TvDB.EpisodeName
+                            TvDBSeason = a.Cross.Season,
+                            TvDBEpisodeNumber = a.Cross.Number,
+                            TvDBEpisodeName = a.Cross.Title
                         })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                    var currentMatches = Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                    var currentMatches = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeseries.AnimeID, Shoko.Models.Enums.CrossRefType.TvDB).SelectMany(a=>a.Episodes)
                         .Select(a =>
                         {
                             var AniDB = Repo.Instance.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
-                            var TvDB = Repo.Instance.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            var TvDB = Repo.Instance.TvDB_Episode.GetByTvDBID(int.Parse(a.ProviderEpisodeID));
                             return (AniDB: new AniEpSummary
                                 {
                                     AniDBEpisodeType = AniDB.EpisodeType,

@@ -5,12 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.Server.Media;
 using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.Extensions;
@@ -303,8 +305,11 @@ namespace Shoko.Server.Models
             return fobj.Result as IFile;
         }
 
-        public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
+        public static void FillVideoInfoFromMedia(SVR_VideoLocal info)
         {
+            Media m = info.Media;
+            if (m == null)
+                return;
             info.VideoResolution = m.Width != 0 && m.Height != 0 ? m.Width + "x" + m.Height : string.Empty;
             info.VideoCodec = !string.IsNullOrEmpty(m.VideoCodec)
                 ? m.VideoCodec
@@ -314,7 +319,7 @@ namespace Shoko.Server.Models
                 : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == 2)?.CodecID ?? string.Empty;
 
 
-            info.Duration = m.Duration;
+            info.Duration = (long)Math.Round(m.Duration);
 
             info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
             List<Stream> vparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == 1).ToList();
@@ -333,17 +338,13 @@ namespace Shoko.Server.Models
             try
             {
                 logger.Trace("Getting media info for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
-                Media m = null;
+                MediaStoreInfo m = null;
                 if (vl == null)
                 {
                     logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                     return false;
                 }
-                List<WebCache_Media> webmedias = WebCacheAPI.Get_Media(vl.ED2KHash);
-                if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
-                {
-                    m = webmedias.FirstOrDefault(a => a != null).ToMedia();
-                }
+                m = WebCacheAPI.Instance.GetMediaInfo(vl.ED2KHash);
                 if (m == null && FullServerPath != null)
                 {
                     if (GetFile() == null)
@@ -355,48 +356,21 @@ namespace Shoko.Server.Models
                         ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider)null).ReplaceSchemeHost(((IProvider)null).ConstructVideoLocalStream(0,
                             VideoLocalID, "file", false));
-                    m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
-                    if ((m?.Duration ?? 0) == 0)
+                    m = MediaConvert.GetMediaInfo(name, GetFile()); //Mediainfo should have libcurl.dll for http
+                    if (m==null || m.MediaInfo==null)
                         m = null;
                     if (m != null)
-                        WebCacheAPI.Send_Media(VideoLocal.ED2KHash, m);
+                        WebCacheAPI.Instance.AddMediaInfo(m.ToMediaRequest(VideoLocal.ED2KHash));
                 }
 
 
                 if (m != null)
                 {
-                    FillVideoInfoFromMedia(vl, m);
-
-                    m.Id = VideoLocalID;
+                    vl.MediaInfo = m;
                     List<Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
-                    {
-                        m.Parts[0].Streams.AddRange(subs);
-                    }
-                    foreach (Part p in m.Parts)
-                    {
-                        p.Id = 0;
-                        p.Accessible = 1;
-                        p.Exists = 1;
-                        bool vid = false;
-                        bool aud = false;
-                        bool txt = false;
-                        foreach (Stream ss in p.Streams.ToArray())
-                        {
-                            if (ss.StreamType == 1 && !vid) vid = true;
-                            if (ss.StreamType == 2 && !aud)
-                            {
-                                aud = true;
-                                ss.Selected = 1;
-                            }
-                            if (ss.StreamType == 3 && !txt)
-                            {
-                                txt = true;
-                                ss.Selected = 1;
-                            }
-                        }
-                    }
-                    vl.Media = m;
+                        vl.SubtitleStreams = JsonConvert.SerializeObject(subs, Formatting.None);
+                    FillVideoInfoFromMedia(vl);
                     return true;
                 }
                 logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to read MediaInfo");

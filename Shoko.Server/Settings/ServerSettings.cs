@@ -197,15 +197,12 @@ namespace Shoko.Server.Settings
                 WebCache = new WebCacheSettings()
                 {
                     Address = Legacy.WebCache_Address,
-                    Anonymous = Legacy.WebCache_Anonymous,
-                    AuthKey = Legacy.WebCacheAuthKey,
                     XRefFileEpisode_Get = Legacy.WebCache_XRefFileEpisode_Get,
                     XRefFileEpisode_Send = Legacy.WebCache_XRefFileEpisode_Send,
                     TvDB_Get = Legacy.WebCache_TvDB_Get,
                     TvDB_Send = Legacy.WebCache_TvDB_Send,
                     Trakt_Get = Legacy.WebCache_Trakt_Get,
                     Trakt_Send = Legacy.WebCache_Trakt_Send,
-                    UserInfo = Legacy.WebCache_UserInfo,
                 },
                 TvDB = new TvDBSettings()
                 {
@@ -359,14 +356,12 @@ namespace Shoko.Server.Settings
 
                 // Web Cache
                 WebCache_Address = WebCache.Address,
-                WebCache_Anonymous = WebCache.Anonymous,
                 WebCache_XRefFileEpisode_Get = WebCache.XRefFileEpisode_Get,
                 WebCache_XRefFileEpisode_Send = WebCache.XRefFileEpisode_Send,
                 WebCache_TvDB_Get = WebCache.TvDB_Get,
                 WebCache_TvDB_Send = WebCache.TvDB_Send,
                 WebCache_Trakt_Get = WebCache.Trakt_Get,
                 WebCache_Trakt_Send = WebCache.Trakt_Send,
-                WebCache_UserInfo = WebCache.UserInfo,
 
                 // TvDB
                 TvDB_AutoLink = TvDB.AutoLink,
@@ -537,7 +532,6 @@ namespace Shoko.Server.Settings
 
 
             logger.Info("WebCache_Address: {0}", WebCache.Address);
-            logger.Info("WebCache_Anonymous: {0}", WebCache.Anonymous);
             logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache.XRefFileEpisode_Get);
             logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache.XRefFileEpisode_Send);
             logger.Info("WebCache_TvDB_Get: {0}", WebCache.TvDB_Get);

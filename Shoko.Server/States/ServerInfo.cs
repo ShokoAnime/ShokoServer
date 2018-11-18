@@ -51,7 +51,6 @@ namespace Shoko.Server
         {
             ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
             CloudAccounts = new AsyncObservableCollection<SVR_CloudAccount>();
-            AdminMessages = new AsyncObservableCollection<WebCache_AdminMessage>();
             CloudProviders = new AsyncObservableCollection<CloudProvider>();
             FolderProviders = new AsyncObservableCollection<SVR_CloudAccount>();
         }
@@ -106,39 +105,7 @@ namespace Shoko.Server
 
         #region Observable Properties
 
-        public AsyncObservableCollection<WebCache_AdminMessage> AdminMessages { get; set; }
 
-        public void RefreshAdminMessages()
-        {
-            AdminMessages.Clear();
-
-            try
-            {
-                List<WebCache_AdminMessage> msgs = WebCacheAPI.Get_AdminMessages();
-                if (msgs == null || msgs.Count == 0)
-                {
-                    AdminMessagesAvailable = false;
-                    return;
-                }
-
-                foreach (WebCache_AdminMessage msg in msgs)
-                    AdminMessages.Add(msg);
-
-                AdminMessagesAvailable = true;
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        private bool adminMessagesAvailable = false;
-
-        public bool AdminMessagesAvailable
-        {
-            get => adminMessagesAvailable;
-            set => this.SetField(() => adminMessagesAvailable, value);
-        }
 
         private int hasherQueueCount = 0;
 

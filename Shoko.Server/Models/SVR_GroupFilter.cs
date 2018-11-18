@@ -986,7 +986,7 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedTvDBInfo:
-                    bool tvDBInfoMissing = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
+                    bool tvDBInfoMissing = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(contractSerie.AniDB_ID,CrossRefType.TvDB).Count == 0;
                     bool supposedToHaveTvDBLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType !=
                                                   (int)AnimeType.Movie &&
                                                   !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
@@ -1019,7 +1019,7 @@ namespace Shoko.Server.Models
                     bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
                     bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && !restricted;
                     bool tvlinkMissing =
-                        Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
+                        Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(contractSerie.AniDB_ID,CrossRefType.TvDB).Count == 0 &&
                         !restricted;
                     bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;

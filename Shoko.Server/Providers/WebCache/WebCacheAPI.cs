@@ -1,1061 +1,289 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Models.Server.CrossRef;
 using Shoko.Models.WebCache;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Providers.WebCache
 {
-    public static class WebCacheAPI
+    public class WebCacheAPI
     {
-        private static readonly string azureHostBaseAddress = "jmm.azurewebsites.net";
-        //private static readonly string azureHostBaseAddress = "localhost:50994";
-
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        #region TvDB
-
-        public static void Delete_CrossRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber,
-            int tvDBID,
-            int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
+        private static ThreadLocal<WebCacheAPI> instances = new ThreadLocal<WebCacheAPI>(() => new WebCacheAPI());
+        public static WebCacheAPI Instance => instances.Value;
+        private static Regex ban = new Regex("Banned:\\s(.*?)\\sExpiration:\\s(.*)", RegexOptions.Compiled);
+        private WebCacheAPI()
         {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-            // p4 = TvDBID
-            // p5 = TvDBSeasonNumber
-            // p6 = TvDBStartEpisodeNumber
-            // p7 = auth key
-
-            //localhost:50994
-            //jmm.azurewebsites.net
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB/{animeID}?p={
-                    ServerSettings.Instance.AniDb.Username
-                }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={tvDBID}&p5={tvDBSeasonNumber}&p6={
-                    tvDBStartEpisodeNumber
-                }&p7={ServerSettings.Instance.WebCache.AuthKey}";
-
-
-            DeleteDataJson(uri);
         }
 
-        public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
+        private readonly Client cclient = new Client(ServerSettings.Instance.WebCache.Address, new HttpClient());
+
+        private string GetToken()
         {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB";
-
-            WebCache_CrossRef_AniDB_TvDB_Request input = data.ToRequest(animeName);
-            string json = JSONHelper.Serialize(input);
-            SendData(uri, json, "POST");
+            if (ServerSettings.Instance.WebCache.Session == null)
+                return null;
+            if (ServerSettings.Instance.WebCache.Session.Expiration.AddSeconds(-10) < DateTime.UtcNow)
+                return null;
+            return ServerSettings.Instance.WebCache.Session.Token;
         }
-
-        public static List<WebCache_CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
+       
+        private string Authenticate()
         {
-            try
+            string token = GetToken();
+            if (token == null)
             {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
+                if (ServerSettings.Instance.WebCache.BannedExpiration.HasValue && ServerSettings.Instance.WebCache.BannedExpiration.HasValue && ServerSettings.Instance.WebCache.BannedExpiration.Value > DateTime.UtcNow)
+                    return null;
+                CookieContainer cookieContainer = new CookieContainer();
+                using (var handler = new HttpClientHandler {CookieContainer = cookieContainer})
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 Edge/16.16241");
+                    Uri uri = new Uri("http://anidb.net/perl-bin/animedb.pl"); //MOVE TO Properties              
+                    string post = $"show=userpage&xuser={HttpUtility.UrlEncode(ServerSettings.Instance.AniDb.Username)}&xpass={HttpUtility.UrlEncode(ServerSettings.Instance.AniDb.Password)}&do.auth=login";
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, uri);
+                    request.Headers.Referrer = uri;
+                    request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(post));
+                    Uri host = new Uri(uri.Scheme + "://" + uri.Host);
+                    HttpResponseMessage response = Task.Run(async () => await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)).GetAwaiter().GetResult();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        List<Cookie> cookies = cookieContainer.GetCookies(host).Cast<Cookie>().ToList();
+                        if (!cookies.Any(a => a.Name == "adbsess" && !string.IsNullOrEmpty(a.Value)))
+                            return null;
+                        WebCache_AniDBLoggedInfo logged = new WebCache_AniDBLoggedInfo();
+                        logged.Cookies = cookies.ToDictionary(a => a.Name, a => a.Value);
+                        logged.UserName = ServerSettings.Instance.AniDb.Username;
+                        try
+                        {
+                            WebCache_SessionInfo session = cclient.Verify(logged);
+                            ServerSettings.Instance.WebCache.Session = session;
+                            ServerSettings.Instance.SaveSettings();
+                            return GetToken();
 
+                        }
+                        catch (SwaggerException e)
+                        {
+                            if (e.StatusCode == 403)
+                            {
+                                ServerSettings.Instance.WebCache.BannedReason = "Unable to login to AniDB";
+                                ServerSettings.Instance.WebCache.BannedExpiration = DateTime.UtcNow.AddHours(1);
+                                logger.Error("Unable to login to AniDB, waiting for 1 hour. Error:" + e);
+                                return null;
+                            }
 
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB/{animeID}?p={username}";
-                string msg = $"Getting AniDB/TvDB Cross Ref From Cache: {animeID}";
+                            logger.Error("Unable to login to AniDB. Error: " + e);
+                            return null;
+                        }
 
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
+                    }
 
-                string json = GetDataJson(uri);
+                    ServerSettings.Instance.WebCache.BannedReason = "Unable to login to AniDB";
+                    ServerSettings.Instance.WebCache.BannedExpiration = DateTime.UtcNow.AddHours(1);
+                    logger.Error("Unable to login to AniDB, waiting for 1 hour");
+                }
 
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/TvDB Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<WebCache_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<WebCache_CrossRef_AniDB_TvDB>>(json);
-
-                return xrefs ?? new List<WebCache_CrossRef_AniDB_TvDB>();
-            }
-            catch
-            {
-                return new List<WebCache_CrossRef_AniDB_TvDB>();
-            }
-        }
-
-        #endregion
-
-        #region Trakt
-
-        public static List<WebCache_CrossRef_AniDB_Trakt> Get_CrossRefAniDBTrakt(int animeID)
-        {
-            try
-            {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={username}";
-                string msg = $"Getting AniDB/Trakt Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/Trakt Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<WebCache_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<WebCache_CrossRef_AniDB_Trakt>>(json);
-
-                return xrefs ?? new List<WebCache_CrossRef_AniDB_Trakt>();
-            }
-            catch
-            {
-                return new List<WebCache_CrossRef_AniDB_Trakt>();
-            }
-        }
-
-        public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
-        {
-            if (!ServerSettings.Instance.WebCache.Trakt_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt";
-
-            WebCache_CrossRef_AniDB_Trakt_Request input = data.ToRequest(animeName);
-            string json = JSONHelper.Serialize(input);
-            SendData(uri, json, "POST");
-        }
-
-        public static void Delete_CrossRefAniDBTrakt(int animeID, int aniDBStartEpisodeType,
-            int aniDBStartEpisodeNumber,
-            string traktID,
-            int traktSeasonNumber, int traktStartEpisodeNumber)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-            // p4 = traktID
-            // p5 = traktSeasonNumber
-            // p6 = traktStartEpisodeNumber
-            // p7 = auth key
-
-            if (!ServerSettings.Instance.WebCache.Trakt_Send) return;
-
-            //localhost:50994
-            //jmm.azurewebsites.net
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={
-                    ServerSettings.Instance.AniDb.Username
-                }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={traktID}&p5={traktSeasonNumber}&p6={
-                    traktStartEpisodeNumber
-                }&p7={ServerSettings.Instance.WebCache.AuthKey}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
-        #region Cross Ref Other
-
-        public static WebCache_CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
-        {
-            try
-            {
-                if (!ServerSettings.Instance.WebCache.TvDB_Get) return null;
-
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other/{animeID}?p={username}&p2={
-                            (int) xrefType
-                        }";
-                string msg = $"Getting AniDB/Other Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/MAL Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                WebCache_CrossRef_AniDB_Other xref = JSONHelper.Deserialize<WebCache_CrossRef_AniDB_Other>(json);
-
-                return xref;
-            }
-            catch
-            {
                 return null;
             }
+
+            return token;
         }
 
-        public static void Send_CrossRefAniDBOther(CrossRef_AniDB_Other data)
+        private bool WrapAuthentication(Action<string> act)
         {
-            if (!ServerSettings.Instance.WebCache.TvDB_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other";
-
-            WebCache_CrossRef_AniDB_Other_Request input = data.ToRequest();
-            string json = JSONHelper.Serialize(input);
-
-            SendData(uri, json, "POST");
-        }
-
-        public static void Delete_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-
-            if (!ServerSettings.Instance.WebCache.TvDB_Send) return;
-
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other/{animeID}?p={username}&p2={(int) xrefType}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
-        #region Cross Ref File Episode
-
-
-        public static List<WebCache_CrossRef_File_Episode> Get_CrossRefFileEpisode(SVR_VideoLocal vid)
-        {
-            try
+            int retries = 0;
+            do
             {
-                if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Get) return new List<WebCache_CrossRef_File_Episode>();
-
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode/{vid.Hash}?p={username}";
-                string msg = $"Getting File/Episode Cross Ref From Cache: {vid.Hash}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got File/Episode Cross Ref From Cache: {vid.Hash} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<WebCache_CrossRef_File_Episode> xrefs =
-                    JSONHelper.Deserialize<List<WebCache_CrossRef_File_Episode>>(json);
-
-                return xrefs ?? new List<WebCache_CrossRef_File_Episode>();
-            }
-            catch
-            {
-                return new List<WebCache_CrossRef_File_Episode>();
-            }
-        }
-
-        public static void Send_CrossRefFileEpisode(CrossRef_File_Episode data)
-        {
-            if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode";
-
-            WebCache_CrossRef_File_Episode_Request input = data.ToRequest();
-            string json = JSONHelper.Serialize(input);
-
-            SendData(uri, json, "POST");
-        }
-
-        public static void Delete_CrossRefFileEpisode(string hash)
-        {
-            if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_File_Episode/{hash}?p={username}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
-        #region Anime
-
-        public static string Get_AnimeXML(int animeID)
-        {
-            try
-            {
-                //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/animexml/{animeID}";
-
-                DateTime start = DateTime.Now;
-                string msg = $"Getting Anime XML Data From Cache: {animeID}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string xml = GetDataXML(uri);
-
-                // remove the string container
-                int iStart = xml.IndexOf("<?xml", StringComparison.Ordinal);
-                if (iStart > 0)
-                {
-                    int iEnd = xml.IndexOf("</string>", StringComparison.Ordinal);
-                    if (iEnd > 0) xml = xml.Substring(iStart, iEnd - iStart - 1);
-                }
-
-                TimeSpan ts = DateTime.Now - start;
-                string content = xml;
-                if (content.Length > 100) content = content.Substring(0, 100);
-                msg = $"Got Anime XML Data From Cache: {animeID} - {ts.TotalMilliseconds} - {content}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                return xml;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public static void Send_AnimeFull(SVR_AniDB_Anime data)
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/animefull";
-            WebCache_AnimeFull obj = data.ToAzure();
-            string json = JSONHelper.Serialize(obj);
-            SendData(uri, json, "POST");
-        }
-
-        public static void Send_AnimeXML(WebCache_AnimeXML data)
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/animexml";
-            string json = JSONHelper.Serialize(data);
-            SendData(uri, json, "POST");
-        }
-
-        #endregion
-
-        #region Anime Titles
-
-        public static void Send_AnimeTitle(WebCache_AnimeIDTitle data)
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle";
-            string json = JSONHelper.Serialize(data);
-            SendData(uri, json, "POST");
-        }
-
-        public static List<WebCache_AnimeIDTitle> Get_AnimeTitle(string query)
-        {
-            try
-            {
-                //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-                string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle/{query}";
-                string msg = $"Getting Anime Title Data From Cache: {query}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got Anime Title Data From Cache: {query} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<WebCache_AnimeIDTitle> titles = JSONHelper.Deserialize<List<WebCache_AnimeIDTitle>>(json);
-
-                return titles ?? new List<WebCache_AnimeIDTitle>();
-            }
-            catch
-            {
-                return new List<WebCache_AnimeIDTitle>();
-            }
-        }
-
-        #endregion
-
-        #region Admin Messages
-
-        public static List<WebCache_AdminMessage> Get_AdminMessages()
-        {
-            try
-            {
-                string uri = $@"http://{azureHostBaseAddress}/api/AdminMessage/{"all"}";
-                string json = GetDataJson(uri);
-
-                List<WebCache_AdminMessage> msgs = JSONHelper.Deserialize<List<WebCache_AdminMessage>>(json);
-
-                return msgs ?? new List<WebCache_AdminMessage>();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error(2) in XMLServiceQueue.SendData: {0}");
-            }
-
-            return new List<WebCache_AdminMessage>();
-        }
-
-        #endregion
-
-        #region User Info
-
-        public static void Send_UserInfo()
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            WebCache_UserInfo uinfo = GetUserInfoData();
-            if (uinfo == null) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/userinfo";
-            string json = JSONHelper.Serialize(uinfo);
-            SendData(uri, json, "POST");
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private static string SendData(string uri, string json, string verb)
-        {
-            string ret = string.Empty;
-            WebRequest req = null;
-            WebResponse rsp = null;
-            try
-            {
-                DateTime start = DateTime.Now;
-
-                req = WebRequest.Create(uri);
-                //req.Method = "POST";        // Post method
-                req.Method = verb; // Post method, or PUT
-                req.ContentType = "application/json; charset=UTF-8"; // content type
-                req.Proxy = null;
-
-                // Wrap the request stream with a text-based writer
-                var encoding = Encoding.UTF8;
-
-                StreamWriter writer = new StreamWriter(req.GetRequestStream(), encoding);
-                // Write the XML text into the stream
-                writer.WriteLine(json);
-                writer.Close();
-                // Send the data to the webserver
-                rsp = req.GetResponse();
-
-                TimeSpan ts = DateTime.Now - start;
-                logger.Trace("Sent Web Cache Update in {0} ms: {1}", ts.TotalMilliseconds, uri);
-            }
-            catch (WebException webEx)
-            {
-                if (webEx.Status == WebExceptionStatus.ProtocolError)
-                {
-                    var response = webEx.Response as HttpWebResponse;
-                    if (response != null)
-                    {
-                        if (!uri.Contains("Admin") || (int) response.StatusCode != 400)
-                            logger.Error("HTTP Status Code: " + (int) response.StatusCode);
-                        ret = response.StatusCode.ToString();
-                    }
-                }
-                if (!uri.Contains("Admin"))
-                    logger.Error("Error(1) in XMLServiceQueue.SendData: {0}", webEx);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error(2) in XMLServiceQueue.SendData: {0}");
-            }
-            finally
-            {
-                req?.GetRequestStream().Close();
-                rsp?.GetResponseStream()?.Close();
-            }
-
-            return ret;
-        }
-
-        private static string GetDataJson(string uri)
-        {
-            try
-            {
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
-                webReq.Timeout = 30000; // 30 seconds
-                webReq.Proxy = null;
-                webReq.Method = "GET";
-                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-                webReq.ContentType = "application/json; charset=UTF-8"; // content type
-                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-
-                using (HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse())
-                {
-                    using (Stream responseStream = webResponse.GetResponseStream())
-                    {
-                        if (responseStream == null) return string.Empty;
-                        Encoding encoding = Encoding.UTF8;
-                        StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                        string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
-
-                        return output;
-                    }
-                }
-            }
-            catch (WebException webEx)
-            {
-                logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
-            }
-
-            return string.Empty;
-        }
-
-        // ReSharper disable once UnusedMethodReturnValue.Local
-        private static string DeleteDataJson(string uri)
-        {
-            try
-            {
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
-                webReq.Timeout = 30000; // 30 seconds
-                webReq.Proxy = null;
-                webReq.Method = "DELETE";
-                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-                webReq.ContentType = "application/json; charset=UTF-8"; // content type
-                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-
-                using (HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse())
-                {
-                    using (Stream responseStream = WebResponse.GetResponseStream())
-                    {
-                        if (responseStream == null) return string.Empty;
-                        Encoding encoding = Encoding.UTF8;
-                        StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                        string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
-
-                        return output;
-                    }
-                }
-            }
-            catch (WebException webEx)
-            {
-                logger.Error("Error(1) in AzureWebAPI.GetData: {0}", webEx);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error(2) in AzureWebAPI.GetData: {0}");
-            }
-
-            return string.Empty;
-        }
-
-        private static string GetDataXML(string uri)
-        {
-            try
-            {
-                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
-                webReq.Timeout = 30000; // 30 seconds
-                webReq.Proxy = null;
-                webReq.Method = "GET";
-                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-                webReq.ContentType = "text/xml"; // content type
-                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-
-                using (var webResponse = (HttpWebResponse) webReq.GetResponse())
-                {
-                    using (Stream responseStream = webResponse.GetResponseStream())
-                    {
-                        if (responseStream == null) return string.Empty;
-                        string enco = webResponse.CharacterSet;
-                        Encoding encoding = null;
-                        if (!string.IsNullOrEmpty(enco))
-                            encoding = Encoding.GetEncoding(enco);
-                        if (encoding == null)
-                            encoding = Encoding.Default;
-                        StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                        string output = Reader.ReadToEnd();
-                        output = HttpUtility.HtmlDecode(output);
-
-                        return output;
-                    }
-                }
-            }
-            catch (WebException webEx)
-            {
-                // Azure is broken here, just suppress it
-                // logger.Error("WebError in AzureWebAPI.GetData: {0}", webEx);
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Error in AzureWebAPI.GetData: {ex}");
-            }
-
-            return string.Empty;
-        }
-
-        public static WebCache_UserInfo GetUserInfoData(string vidPlayer = "")
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username)) return null;
-
-                WebCache_UserInfo uinfo = new WebCache_UserInfo
-                {
-                    DateTimeUpdated = DateTime.Now,
-                    DateTimeUpdatedUTC = 0,
-
-                    // Optional JMM Desktop data
-                    DashboardType = null,
-                    VideoPlayer = vidPlayer
-                };
-                System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
+                string token = Authenticate();
+                if (token == null)
+                    return false;
                 try
                 {
-                    if (a != null) uinfo.JMMServerVersion = Utils.GetApplicationVersion(a);
+                    act(token);
+                    return true;
                 }
-                catch
+                catch (SwaggerException e)
                 {
-                    // ignored
+                    if (e.StatusCode == 403)
+                    {
+                        if (e.Response.Contains("Banned"))
+                        {
+                            Match m = ban.Match(e.Response);
+                            if (m.Success)
+                            {
+                                ServerSettings.Instance.WebCache.BannedReason = m.Groups[1].Value;
+                                DateTime dt = DateTime.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+                                ServerSettings.Instance.WebCache.BannedExpiration = dt;
+                                return false;
+                            }
+                        }
+                    }
+
+                    if (e.StatusCode == 404)
+                        return true;
                 }
 
-                uinfo.UsernameHash = Utils.GetMd5Hash(ServerSettings.Instance.AniDb.Username);
-                uinfo.DatabaseType = ServerSettings.Instance.Database.Type.ToString();
-                uinfo.WindowsVersion = Utils.GetOSInfo();
-                uinfo.TraktEnabled = ServerSettings.Instance.TraktTv.Enabled ? 1 : 0;
+                retries++;
+            } while (retries<=3);
 
-                uinfo.CountryLocation = string.Empty;
-
-                // this field is not actually used
-                uinfo.LastEpisodeWatchedAsDate = DateTime.Now.AddDays(-5);
-
-                uinfo.LocalUserCount = (int) Repo.Instance.JMMUser.GetTotalRecordCount();
-
-                uinfo.FileCount = Repo.Instance.VideoLocal.GetTotalRecordCount();
-
-                SVR_AnimeEpisode_User rec = Repo.Instance.AnimeEpisode_User.GetLastWatchedEpisode();
-                uinfo.LastEpisodeWatched = 0;
-                if (rec != null)
-                    uinfo.LastEpisodeWatched = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
-
-                return uinfo;
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return null;
-            }
+            return false;
         }
-
-        #endregion
-
-        #region Admin - General
-
-        public static string Admin_AuthUser()
+        private T WrapAuthentication<T>(Func<string,T> act) where T: class
         {
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/Admin/{username}?p={ServerSettings.Instance.WebCache.AuthKey}";
-            //string uri = string.Format(@"http://{0}/api/Admin/{1}?p={2}", azureHostBaseAddress, username, string.Empty);
-            string json = string.Empty;
-
-            return SendData(uri, json, "POST");
-        }
-
-        #endregion
-
-        #region Admin - TvDB
-
-        public static List<WebCache_CrossRef_AniDB_TvDB> Admin_Get_CrossRefAniDBTvDB(int animeID)
-        {
-            try
+            int retries = 0;
+            do
             {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{animeID}?p={username}&p2={
-                            ServerSettings.Instance.WebCache.AuthKey
-                        }";
-
-                string json = GetDataJson(uri);
-
-                List<WebCache_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<WebCache_CrossRef_AniDB_TvDB>>(json);
-
-                return xrefs ?? new List<WebCache_CrossRef_AniDB_TvDB>();
-            }
-            catch
-            {
-                return new List<WebCache_CrossRef_AniDB_TvDB>();
-            }
-        }
-
-        public static string Admin_Approve_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
-        {
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{crossRef_AniDB_TvDBId}?p={username}&p2={
-                    ServerSettings.Instance.WebCache.AuthKey
-                }";
-            string json = string.Empty;
-
-            return SendData(uri, json, "POST");
-        }
-
-        public static string Admin_Revoke_CrossRefAniDBTvDB(int crossRef_AniDB_TvDBId)
-        {
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{crossRef_AniDB_TvDBId}?p={username}&p2={
-                    ServerSettings.Instance.WebCache.AuthKey
-                }";
-            string json = string.Empty;
-
-            return SendData(uri, json, "PUT");
-        }
-
-        public static WebCache_AnimeLink Admin_GetRandomTvDBLinkForApproval()
-        {
-            try
-            {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_TvDB/{(int) AzureLinkType.TvDB}?p={
-                            username
-                        }&p2={ServerSettings.Instance.WebCache.AuthKey}&p3=dummy";
-                string json = GetDataJson(uri);
-
-                return JSONHelper.Deserialize<WebCache_AnimeLink>(json);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region Admin - Trakt
-
-        public static List<WebCache_CrossRef_AniDB_Trakt> Admin_Get_CrossRefAniDBTrakt(int animeID)
-        {
-            try
-            {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{animeID}?p={username}&p2={
-                            ServerSettings.Instance.WebCache.AuthKey
-                        }";
-
-                string json = GetDataJson(uri);
-
-                List<WebCache_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<WebCache_CrossRef_AniDB_Trakt>>(json);
-
-                return xrefs ?? new List<WebCache_CrossRef_AniDB_Trakt>();
-            }
-            catch
-            {
-                return new List<WebCache_CrossRef_AniDB_Trakt>();
-            }
-        }
-
-        public static string Admin_Approve_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
-        {
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{
-                    crossRef_AniDB_TraktId
-                }?p={username}&p2={ServerSettings.Instance.WebCache.AuthKey}";
-            string json = string.Empty;
-
-            return SendData(uri, json, "POST");
-        }
-
-        public static string Admin_Revoke_CrossRefAniDBTrakt(int crossRef_AniDB_TraktId)
-        {
-            string username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{
-                    crossRef_AniDB_TraktId
-                }?p={username}&p2={ServerSettings.Instance.WebCache.AuthKey}";
-            string json = string.Empty;
-
-            return SendData(uri, json, "PUT");
-        }
-
-        public static WebCache_AnimeLink Admin_GetRandomTraktLinkForApproval()
-        {
-            try
-            {
-                string username = ServerSettings.Instance.AniDb.Username;
-                if (ServerSettings.Instance.WebCache.Anonymous)
-                    username = Constants.AnonWebCacheUsername;
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/Admin_CrossRef_AniDB_Trakt/{(int) AzureLinkType.Trakt}?p={
-                            username
-                        }&p2={ServerSettings.Instance.WebCache.AuthKey}&p3=dummy";
-                string json = GetDataJson(uri);
-
-                return JSONHelper.Deserialize<WebCache_AnimeLink>(json);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region File Hashes
-
-        // ReSharper disable once UnusedMember.Global
-        public static void Send_FileHash(List<SVR_AniDB_File> aniFiles)
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/FileHash";
-
-            List<WebCache_FileHash_Request> inputs = new List<WebCache_FileHash_Request>();
-            // send a max of 25 at a time
-            foreach (SVR_AniDB_File aniFile in aniFiles)
-            {
-                WebCache_FileHash_Request input = aniFile.ToHashRequest();
-                if (inputs.Count < 25)
-                    inputs.Add(input);
-                else
-                {
-                    string json = JSONHelper.Serialize(inputs);
-                    SendData(uri, json, "POST");
-                    inputs.Clear();
-                }
-            }
-
-            if (inputs.Count > 0)
-            {
-                string json = JSONHelper.Serialize(inputs);
-                SendData(uri, json, "POST");
-            }
-        }
-
-        public static void Send_FileHash(List<SVR_VideoLocal> locals)
-        {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/FileHash";
-
-            List<WebCache_FileHash_Request> inputs = new List<WebCache_FileHash_Request>();
-            // send a max of 25 at a time
-            foreach (SVR_VideoLocal v in locals)
-            {
-                WebCache_FileHash_Request input = v.ToHashRequest();
-                if (inputs.Count < 25)
-                    inputs.Add(input);
-                else
-                {
-                    string json = JSONHelper.Serialize(inputs);
-                    SendData(uri, json, "POST");
-                    inputs.Clear();
-                }
-            }
-
-            if (inputs.Count > 0)
-            {
-                string json = JSONHelper.Serialize(inputs);
-                SendData(uri, json, "POST");
-            }
-        }
-
-        /// <summary>
-        /// Get File hash details from the web cache
-        /// When the hash type is a CRC, the hash details value should be a combination of the CRC and the FileSize with an under score in between
-        /// e.g. CRC32 = 8b4b52f4, File Size = 380580947.......hashDetails = 8b4b52f4_380580947
-        /// </summary>
-        /// <param name="hashType"></param>
-        /// <param name="hashDetails"></param>
-        /// <returns></returns>
-        public static List<WebCache_FileHash> Get_FileHash(FileHashType hashType, string hashDetails)
-        {
-            return Get_FileHashWithTaskAsync(hashType, hashDetails).Result;
-        }
-
-        // TODO wrap the rest of these in timeout tasks
-        public static async Task<List<WebCache_FileHash>> Get_FileHashWithTaskAsync(FileHashType hashType, string hashDetails)
-        {
-            Task<List<WebCache_FileHash>> task = new Task<List<WebCache_FileHash>>(() =>
-            {
+                string token = Authenticate();
+                if (token == null)
+                    return null;
                 try
                 {
-                    string uri = $@"http://{azureHostBaseAddress}/api/FileHash/{(int) hashType}?p={hashDetails}";
-                    string msg = $"Getting File Hash From Cache: {hashType} - {hashDetails}";
-
-                    DateTime start = DateTime.Now;
-                    ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                    string json = GetDataJson(uri);
-
-                    TimeSpan ts = DateTime.Now - start;
-                    msg = $"Got File Hash From Cache: {hashDetails} - {ts.TotalMilliseconds}";
-                    ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                    return JSONHelper.Deserialize<List<WebCache_FileHash>>(json);
+                    return act(token);
                 }
-                catch
+                catch (SwaggerException e)
                 {
-                    return new List<WebCache_FileHash>();
+                    if (e.StatusCode == 403)
+                    {
+                        if (e.Response.Contains("Banned"))
+                        {
+                            Match m = ban.Match(e.Response);
+                            if (m.Success)
+                            {
+                                ServerSettings.Instance.WebCache.BannedReason = m.Groups[1].Value;
+                                DateTime dt = DateTime.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+                                ServerSettings.Instance.WebCache.BannedExpiration = dt;
+                                return null;
+                            }
+                        }
+                    }
+
+                    if (e.StatusCode == 404)
+                        return null;
                 }
+
+                retries++;
+            } while (retries <= 3);
+            return null;
+        }
+        public bool AddHash(IEnumerable<WebCache_FileHash> hashes)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddHashesAsync(token, hashes).GetAwaiter().GetResult();
             });
-
-            if (await Task.WhenAny(task, Task.Delay(30000)) == task) return await task;
-            return await Task.FromResult(new List<WebCache_FileHash>());
         }
 
-        #endregion
-
-        #region Media
-
-        public static void Send_Media(List<SVR_VideoLocal> locals)
+        public bool RefreshToken()
         {
-            //if (!ServerSettings.Instance.WebCache.XRefFileEpisode_Send) return;
-            if (locals == null || locals.Count == 0) return;
-
-            try
-            {
-                string uri = $@"http://{azureHostBaseAddress}/api/Media";
-    
-                List<WebCache_Media_Request> inputs = new List<WebCache_Media_Request>();
-                // send a max of 25 at a time
-                // send a max of 25 at a time
-                foreach (SVR_VideoLocal v in locals.Where(a => a.MediaBlob?.Length > 0
-                                                               && a.MediaVersion == SVR_VideoLocal.MEDIA_VERSION
-                                                               && !string.IsNullOrEmpty(a.ED2KHash)))
-                {
-                    WebCache_Media_Request input = v.ToMediaRequest();
-                    if (inputs.Count < 25)
-                        inputs.Add(input);
-                    else
-                    {
-                        string json = JSONHelper.Serialize(inputs);
-                        //json = Newtonsoft.Json.JsonConvert.SerializeObject(inputs);
-                        SendData(uri, json, "POST");
-                        inputs.Clear();
-                    }
-                }
-    
-                if (inputs.Count <= 0)
-                {
-                    string json = JSONHelper.Serialize(inputs);
-                    SendData(uri, json, "POST");
-                }
+            WebCache_SessionInfo ws=WrapAuthentication((token) => cclient.RefreshSession(token));
+            if (ws != null)
+            { 
+                ServerSettings.Instance.WebCache.Session = ws;
+                ServerSettings.Instance.SaveSettings();
+                return true;
             }
-            catch (Exception ex)
-            {
-                logger.Warn($"There was an error sending MediaInfo to WebCache for {locals.FirstOrDefault().ED2KHash}: {ex.Message}");
-            }
+            return false;
         }
 
-        public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
+        public WebCache_FileHash GetHash(WebCache_HashType type, string hash, long size=0)
         {
-            if (string.IsNullOrEmpty(ed2k)) return;
-
-            try
-            {
-                string uri = $@"http://{azureHostBaseAddress}/api/Media";
-
-                List<WebCache_Media_Request> inputs = new List<WebCache_Media_Request>();
-                WebCache_Media_Request input = media.ToMediaRequest(ed2k);
-                inputs.Add(input);
-                string json = JSONHelper.Serialize(inputs);
-                SendData(uri, json, "POST");
-            }
-            catch (Exception ex)
-            {
-                logger.Warn($"There was an error sending MediaInfo to WebCache for {ed2k}: {ex.Message}");
-            }
+            return WrapAuthentication((token) => cclient.GetHash(token,(int)type,hash,size));
         }
-
-        public static List<WebCache_Media> Get_Media(string ed2k)
+        public bool AddHashes(IEnumerable<WebCache_FileHash> hashes)
         {
-            if (string.IsNullOrEmpty(ed2k)) return new List<WebCache_Media>();
-            try
+            return WrapAuthentication((token) =>
             {
-                string uri = $@"http://{azureHostBaseAddress}/api/Media/{ed2k}/{SVR_VideoLocal.MEDIA_VERSION}";
-                string msg = $"Getting Media Info From Cache for ED2K: {ed2k} Version : {SVR_VideoLocal.MEDIA_VERSION}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Getting Media Info From Cache for ED2K: {ed2k} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<WebCache_Media> medias = JSONHelper.Deserialize<List<WebCache_Media>>(json) ??
-                                           new List<WebCache_Media>();
-
-                return medias;
-            }catch
-            {
-                return new List<WebCache_Media>();
-            }
+                cclient.AddHashes(token, hashes);
+            });
         }
 
-        #endregion
+
+        public List<WebCache_FileHash_Collision_Info> GetCollisions()
+        {
+            return WrapAuthentication((token) => cclient.GetCollisions(token));
+        }
+        public bool ApproveCollision(int id)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.ApproveCollision(token,id);
+            });
+        }
+        public WebCache_Media GetMediaInfo(string ed2k)
+        {
+            return WrapAuthentication((token) => cclient.GetMediaInfo(token, ed2k));
+        }
+
+        public bool AddMediaInfo(WebCache_Media media)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddMediaInfo(token, media);
+            });
+        }
+
+        public List<WebCache_CrossRef_AniDB_Provider> GetCrossRef_AniDB_Provider(int animeId, CrossRefType type)
+        {
+            return WrapAuthentication((token) => cclient.GetProvider(token, animeId,(int)type));
+        }
+        public List<WebCache_CrossRef_AniDB_Provider> GetRandomCrossRef_AniDB_Provider(CrossRefType type)
+        {
+            return WrapAuthentication((token) => cclient.GetRandomProvider(token, (int)type));
+        }
+        public bool DeleteCrossRef_AniDB_Provider(int animeId, CrossRefType type)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.DeleteProvider(token,animeId, (int)type);
+            });
+        }
+
+        public bool AddCrossRef_AniDB_Provider(CrossRef_AniDB_Provider cross, bool approve)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddProvider(cross,token,approve);
+            });
+        }
+        public bool ManageCrossRef_AniDB_Provider(int id, bool approve)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddProviderManage(token,id,approve);
+            });
+        }
+        public CrossRef_File_Episode GetCrossRef_File_Episode(string hash)
+        {
+            return WrapAuthentication((token) => cclient.GetFileEpisode(token, hash));
+
+        }
+        public bool DeleteCrossRef_File_Episode(string hash)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.DeleteFileEpisode(token, hash);
+            });
+        }
+        public bool AddCrossRef_File_Episode(CrossRef_File_Episode episode)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddFileEpisode(token, episode);
+            });
+        }
+
     }
 }

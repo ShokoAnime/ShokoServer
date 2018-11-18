@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using NutzCode.CloudFileSystem;
@@ -10,12 +11,14 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Native.Hashing;
 using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Repos;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.CommandQueue.Commands.Hash
 {
@@ -526,7 +529,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                         vlocal.MD5 = h.Result.GetHash(HashTypes.MD5);
                     if ((types & HashTypes.SHA1) > 0)
                         vlocal.SHA1 = h.Result.GetHash(HashTypes.SHA1);
-                    WebCacheAPI.Send_FileHash(new List<SVR_VideoLocal> {vlocal});
+                    WebCacheAPI.Instance.AddHash(new List<WebCache_FileHash> {vlocal.ToHashRequest()});
                 }
             }
         }
@@ -629,48 +632,36 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
         {
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
-                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ?? new List<WebCache_FileHash>();
-                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.SHA1)).ToList();
-                if (ls.Count > 0)
+                WebCache_FileHash ls = WebCacheAPI.Instance.GetHash(WebCache_HashType.ED2K, v.ED2KHash);
+                if (ls!=null)
                 {
-                    if (!string.IsNullOrEmpty(ls[0].SHA1))
-                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].CRC32))
-                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].MD5))
-                        v.MD5 = ls[0].MD5.ToUpperInvariant();
+                    v.SHA1 = ls.SHA1.ToUpperInvariant();
+                    v.CRC32 = ls.CRC32.ToUpperInvariant();
+                    v.MD5 = ls.MD5.ToUpperInvariant();
                     return;
                 }
             }
 
             if (!string.IsNullOrEmpty(v.SHA1))
             {
-                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.SHA1, v.SHA1) ?? new List<WebCache_FileHash>();
-                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) && !string.IsNullOrEmpty(a.ED2K)).ToList();
-                if (ls.Count > 0)
+                WebCache_FileHash ls = WebCacheAPI.Instance.GetHash(WebCache_HashType.SHA1, v.SHA1);
+                if (ls != null)
                 {
-                    if (!string.IsNullOrEmpty(ls[0].ED2K))
-                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].CRC32))
-                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].MD5))
-                        v.MD5 = ls[0].MD5.ToUpperInvariant();
+                    v.ED2KHash = ls.ED2K.ToUpperInvariant();
+                    v.CRC32 = ls.CRC32.ToUpperInvariant();
+                    v.MD5 = ls.MD5.ToUpperInvariant();
                     return;
                 }
             }
 
             if (!string.IsNullOrEmpty(v.MD5))
             {
-                List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.MD5, v.MD5) ?? new List<WebCache_FileHash>();
-                ls = ls.Where(a => !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.SHA1) && !string.IsNullOrEmpty(a.ED2K)).ToList();
-                if (ls.Count > 0)
+                WebCache_FileHash ls = WebCacheAPI.Instance.GetHash(WebCache_HashType.MD5, v.MD5);
+                if (ls != null)
                 {
-                    if (!string.IsNullOrEmpty(ls[0].ED2K))
-                        v.ED2KHash = ls[0].ED2K.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].CRC32))
-                        v.CRC32 = ls[0].CRC32.ToUpperInvariant();
-                    if (!string.IsNullOrEmpty(ls[0].SHA1))
-                        v.SHA1 = ls[0].SHA1.ToUpperInvariant();
+                    v.ED2KHash = ls.ED2K.ToUpperInvariant();
+                    v.CRC32 = ls.CRC32.ToUpperInvariant();
+                    v.SHA1 = ls.SHA1.ToUpperInvariant();
                 }
             }
         }

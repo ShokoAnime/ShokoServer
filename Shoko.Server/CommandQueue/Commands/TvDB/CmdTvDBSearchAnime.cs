@@ -234,7 +234,7 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
 
         private static void AddCrossRef_AniDB_TvDBV2(int animeID, int tvdbID, CrossRefSource source)
         {
-            if (Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TvDB, animeID, tvdbID.ToString()).Count>0) return;
+            if (Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TvDB, animeID, tvdbID.ToString())==null) return;
 
             SVR_CrossRef_AniDB_Provider xref = new SVR_CrossRef_AniDB_Provider
             {

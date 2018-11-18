@@ -538,14 +538,12 @@ namespace Shoko.Server
 
                 // Web Cache
                 ServerSettings.Instance.WebCache.Address = contractIn.WebCache_Address;
-                ServerSettings.Instance.WebCache.Anonymous = contractIn.WebCache_Anonymous;
                 ServerSettings.Instance.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
                 ServerSettings.Instance.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
                 ServerSettings.Instance.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
                 ServerSettings.Instance.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
                 ServerSettings.Instance.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
                 ServerSettings.Instance.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
-                ServerSettings.Instance.WebCache.UserInfo = contractIn.WebCache_UserInfo;
 
                 // TvDB
                 ServerSettings.Instance.TvDB.AutoLink = contractIn.TvDB_AutoLink;

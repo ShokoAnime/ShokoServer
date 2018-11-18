@@ -8,8 +8,10 @@ using System.Threading;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server.Media;
 using Shoko.Models.WebCache;
 using Shoko.Server.Import;
+using Shoko.Server.Models;
 using SeekOrigin = System.IO.SeekOrigin;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 using Video = TMDbLib.Objects.General.Video;
@@ -488,7 +490,7 @@ namespace Shoko.Server.Native.MediaInfo
                 return int.Parse(m.Groups[1].Value) * 1000000 + int.Parse(m.Groups[2].Value) * 10000;
             return 0;            
         }
-        public static WebCache_Media GetMediaInfoJSON(string filename, IFile file)
+        public static MediaStoreInfo GetMediaInfo(string filename, IFile file)
         {
             if (file == null)
                 return null;
@@ -496,7 +498,7 @@ namespace Shoko.Server.Native.MediaInfo
             {
                 lock (_lock)
                 {
-                    WebCache_Media m = null;
+                    MediaStoreInfo m = null;
                     Thread mediaInfoThread = new Thread(() =>
                     {
                         if (minstance == null)
@@ -506,7 +508,7 @@ namespace Shoko.Server.Native.MediaInfo
                         minstance.Option("Complete", "1");
                         minstance.Option("SkipBinaryData", "1");
                         string version = minstance.Option("Info_Version");
-                        m=new WebCache_Media();
+                        m=new MediaStoreInfo();
                         string minfo= minstance.Inform();
                         //Remove @ref
                         m.MediaInfo= remref.Replace(minfo, string.Empty);
@@ -578,7 +580,7 @@ namespace Shoko.Server.Native.MediaInfo
             double.TryParse(value, out val);
             return val;
         }
-        public static Media ConvertToPlexMedia(string mediainfo)
+        public static Media ConvertToPlexMedia(string mediainfo, SVR_VideoLocal vl)
         {
             Shoko.Models.MediaInfo.MediaInfo minfo = JsonConvert.DeserializeObject<Shoko.Models.MediaInfo.MediaInfo>(mediainfo);
             Media m = new Media();
@@ -758,6 +760,39 @@ namespace Shoko.Server.Native.MediaInfo
                 streams = streams.OrderBy(a => a.idx).ToList();
             }
             p.Streams = streams;
+            m.Id = vl.VideoLocalID;
+            if (string.IsNullOrEmpty(vl.SubtitleStreams))
+                return m;
+            List<Stream> subs = JsonConvert.DeserializeObject<List<Stream>>(vl.SubtitleStreams);
+            if (subs!=null && subs.Count>0)
+            {
+                m.Parts[0].Streams.AddRange(subs);
+            }
+
+            foreach (Part pa in m.Parts)
+            {
+                pa.Id = 0;
+                pa.Accessible = 1;
+                pa.Exists = 1;
+                bool vid = false;
+                bool aud = false;
+                bool txt = false;
+                foreach (Stream ss in pa.Streams.ToArray())
+                {
+                    if (ss.StreamType == 1 && !vid) vid = true;
+                    if (ss.StreamType == 2 && !aud)
+                    {
+                        aud = true;
+                        ss.Selected = 1;
+                    }
+
+                    if (ss.StreamType == 3 && !txt)
+                    {
+                        txt = true;
+                        ss.Selected = 1;
+                    }
+                }
+            }
             return m;
         }
 

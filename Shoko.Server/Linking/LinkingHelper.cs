@@ -19,7 +19,8 @@ namespace Shoko.Server.Providers.TvDB
         #region Matching
         public static void GenerateEpisodeMatches(int animeID, CrossRefType reftype, bool skipMatchClearing = false)
         {
-
+            if (reftype != CrossRefType.TvDB && reftype != CrossRefType.TraktTV)
+                return;
             // wipe old links except User Verified
             if (!skipMatchClearing)
             {

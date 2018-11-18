@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Providers\TvDB\TvDBLinkingHelper.cs" />
+    <Compile Remove="Providers\WebCache\WebCacheAPIold.cs" />
     <Compile Remove="Repositories\AtomicBatchUpdate.cs" />
     <Compile Remove="Repositories\Repos\CrossRef_AniDB_MALRepository.cs" />
     <Compile Remove="Repositories\Repos\CrossRef_AniDB_OtherRepository.cs" />
@@ -64,6 +65,10 @@
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
     <PackageReference Include="MimeTypes" Version="1.1.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.3.0" />
+    <PackageReference Include="NSwag.MSBuild" Version="12.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Pomelo.EntityFrameworkCore.Mysql" Version="2.1.2" />
     <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
     <PackageReference Include="NLog" Version="4.5.11" />
@@ -124,5 +129,7 @@
     <EmbeddedResource Include="Migrations\Pomelo.EntityFrameworkCore.MySql.sql" />
     <EmbeddedResource Include="Migrations\Microsoft.EntityFrameworkCore.Sqlite.sql" />
   </ItemGroup>
-
+  <Target Name="NSwag" BeforeTargets="Build">
+    <Exec Command="$(NSwagExe) swagger2csclient /input:https://localhost:44307/swagger/v1/swagger.json /namespace:Shoko.Server.Providers.WebCache /AdditionalNamespaceUsages:Shoko.Models.WebCache,Shoko.Models.Server.CrossRef,Shoko.Models.Server /ResponseArrayType:System.Collections.Generic.List /GenerateDtoTypes:false /GenerateSyncMethods:true /output:&quot;$(ProjectPath)Providers\WebCache\Client_Generated.cs&quot;" />
+  </Target>
 </Project>

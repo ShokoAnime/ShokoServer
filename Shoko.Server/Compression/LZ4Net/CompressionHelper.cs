@@ -19,7 +19,17 @@ namespace Shoko.Server.Compression.LZ4
         {
             is64bit = Environment.Is64BitProcess;
         }
-
+        public static byte[] SerializeString(string obj, out int originalsize)
+        {
+            if (obj == null)
+            {
+                originalsize = 0;
+                return null;
+            }
+            byte[] data = Encoding.UTF8.GetBytes(obj);
+            originalsize = data.Length;
+            return Encode(data, 0, data.Length);
+        }
         public static byte[] SerializeObject(object obj, out int originalsize, bool multiinheritance = false)
         {
             if (obj == null)
@@ -35,7 +45,19 @@ namespace Shoko.Server.Compression.LZ4
             originalsize = data.Length;
             return Encode(data, 0, data.Length);
         }
-
+        public static string DeserializeString(byte[] data, int originalsize)
+        {
+            if (data == null || data.Length == 0)
+                return null;
+            try
+            {
+                return Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize));
+            }
+            catch
+            {
+                return null;
+            }
+        }
         public static T DeserializeObject<T>(byte[] data, int originalsize) where T : class
         {
             if (data == null || data.Length == 0)

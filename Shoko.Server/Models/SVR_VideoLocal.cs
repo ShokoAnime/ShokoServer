@@ -14,6 +14,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.Server.Media;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.Compression.LZ4;
@@ -37,6 +38,7 @@ namespace Shoko.Server.Models
         public int MediaVersion { get; set; }
         public byte[] MediaBlob { get; set; }
         public int MediaSize { get; set; }
+        public string SubtitleStreams { get; set; }
 
         #endregion
 
@@ -66,19 +68,37 @@ namespace Shoko.Server.Models
         {
             get
             {
-                if ((_media == null) && (MediaBlob != null) && (MediaBlob.Length > 0) && (MediaSize > 0))
-                    _media = CompressionHelper.DeserializeObject<Media>(MediaBlob, MediaSize);
+                if (_media == null && MediaInfo != null && MediaInfo.MediaInfo!=null)
+                {
+                    _media = Native.MediaInfo.MediaConvert.ConvertToPlexMedia(MediaInfo.MediaInfo, this);
+                }
                 return _media;
+            }
+
+        }
+        internal MediaStoreInfo _mediaInfo;
+
+        [NotMapped]
+        public virtual MediaStoreInfo MediaInfo
+        {
+            get
+            {
+                if ((_mediaInfo == null) && (MediaBlob != null) && (MediaBlob.Length > 0) && (MediaSize > 0))
+                {
+                    _mediaInfo=new MediaStoreInfo();
+                    _mediaInfo.MediaInfo = CompressionHelper.DeserializeString(MediaBlob, MediaSize);
+                    _mediaInfo.Version = MediaVersion;
+                }
+                return _mediaInfo;
             }
             set
             {
-                _media = value;
-                MediaBlob = CompressionHelper.SerializeObject(value, out int outsize);
+                _mediaInfo = value;
+                MediaBlob = CompressionHelper.SerializeString(value.MediaInfo, out int outsize);
                 MediaSize = outsize;
-                MediaVersion = MEDIA_VERSION;
+                MediaVersion = value.Version;
             }
         }
-
         [NotMapped]
         public List<SVR_VideoLocal_Place> Places => Repo.Instance.VideoLocal_Place.GetByVideoLocal(VideoLocalID);
 

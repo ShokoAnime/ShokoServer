@@ -45,7 +45,11 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => a.AnimeID == animeID && a.CrossRefType == xrefType).ToList();
             }
         }
-
+        internal override void EndSave(SVR_CrossRef_AniDB_Provider entity, object returnFromBeginSave, object parameters)
+        {
+            base.EndSave(entity, returnFromBeginSave, parameters);
+            Providers.TvDB.LinkingHelper.GenerateEpisodeMatches(entity.AnimeID, entity.CrossRefType);
+        }
 
         public Dictionary<int, List<SVR_CrossRef_AniDB_Provider>> GetByAnimeIDsAndTypes(IEnumerable<int> animeIds, params CrossRefType[] xrefTypes)
         {

@@ -5,9 +5,11 @@ using System.Linq;
 using System.Xml;
 using NLog;
 using Shoko.Models.Enums;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Metro;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Models.Server.Media;
 using Shoko.Models.TvDB;
 using Shoko.Models.WebCache;
 using Shoko.Server.Compression.LZ4;
@@ -62,72 +64,28 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Media ToMedia(this WebCache_Media m)
+
+
+        public static WebCache_Media ToMediaRequest(this SVR_VideoLocal v)
         {
-            int size = (m.MediaInfo[0] << 24) | (m.MediaInfo[1] << 16) | (m.MediaInfo[2] << 8) | m.MediaInfo[3];
-            byte[] data = new byte[m.MediaInfo.Length - 4];
-            Array.Copy(m.MediaInfo, 4, data, 0, data.Length);
-            return CompressionHelper.DeserializeObject<Media>(data, size);
+            if (v.MediaInfo == null)
+                return null;
+            WebCache_Media m = new WebCache_Media {ED2K = v.ED2KHash};
+            m.MediaInfo = v.MediaInfo.MediaInfo;
+            m.Version = v.MediaInfo.Version;
+            return m;
+
         }
 
-        public static WebCache_Media_Request ToMediaRequest(this SVR_VideoLocal v)
+        public static WebCache_Media ToMediaRequest(this MediaStoreInfo m, string ed2k)
         {
-            WebCache_Media_Request r = new WebCache_Media_Request
-            {
-                ED2K = v.ED2KHash
-            };
-            //Cleanup any File subtitles from media information.
-            Media m = (Media) v.Media.Clone();
-            if (m.Parts != null && m.Parts.Count > 0)
-            {
-                foreach (Part p in m.Parts)
-                {
-                    if (p.Streams != null)
-                    {
-                        List<Stream> streams = p.Streams
-                            .Where(a => a.StreamType == 3 && !string.IsNullOrEmpty(a.File))
-                            .ToList();
-                        if (streams.Count > 0)
-                            streams.ForEach(a => p.Streams.Remove(a));
-                    }
-                }
-            }
-            //Cleanup the VideoLocal id
-            m.Id = 0;
-            byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
-            r.ED2K = v.ED2KHash;
-            r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte)(outsize >> 24);
-            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte)(outsize & 0xFF);
-            Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-            r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey) ? string.Empty : ServerSettings.Instance.WebCache.AuthKey;
+            if (m == null)
+                return null;
+            WebCache_Media n = new WebCache_Media { ED2K = ed2k };
+            n.MediaInfo = m.MediaInfo;
+            n.Version = m.Version;
+            return n;
 
-            return r;
-        }
-
-        public static WebCache_Media_Request ToMediaRequest(this Media m, string ed2k)
-        {
-            WebCache_Media_Request r = new WebCache_Media_Request();
-            byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
-            r.ED2K = ed2k;
-            r.MediaInfo = new byte[data.Length + 4];
-            r.MediaInfo[0] = (byte)(outsize >> 24);
-            r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
-            r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
-            r.MediaInfo[3] = (byte)(outsize & 0xFF);
-            Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-            r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.Instance.AniDb.Username;
-            if (ServerSettings.Instance.WebCache.Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.Instance.WebCache.AuthKey) ? string.Empty : ServerSettings.Instance.WebCache.AuthKey;
-            return r;
         }
         /*
         public static WebCache_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
@@ -657,29 +615,7 @@ namespace Shoko.Server.Extensions
             return contract;
         }
 
-        public static WebCache_AnimeCharacter ToContractAzure(this AniDB_Character character,
-            AniDB_Anime_Character charRel)
-        {
-            WebCache_AnimeCharacter contract = new WebCache_AnimeCharacter
-            {
-                CharID = character.CharID,
-                CharName = character.CharName,
-                CharKanjiName = character.CharKanjiName,
-                CharDescription = character.CharDescription,
-                CharType = charRel.CharType,
-                CharImageURL = string.Format(Constants.URLS.AniDB_Images, character.PicName)
-            };
-            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
-            if (seiyuu != null)
-            {
-                contract.SeiyuuID = seiyuu.SeiyuuID;
-                contract.SeiyuuName = seiyuu.SeiyuuName;
-                contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
-            }
-
-            return contract;
-        }
-
+   
         public static void Populate_RA(this AniDB_Episode episode, Raw_AniDB_Episode epInfo)
         {
             episode.AirDate = epInfo.AirDate;

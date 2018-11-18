@@ -198,8 +198,6 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
         {
-            // check for Trakt associations
-            Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TraktTV));
             Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB));
             if (updateStats) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
