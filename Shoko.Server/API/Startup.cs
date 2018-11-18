@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Newtonsoft.Json.Serialization;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Shoko.Server.API
@@ -114,7 +115,14 @@ namespace Shoko.Server.API
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc()
-                .AddJsonOptions(json => json.SerializerSettings.MaxDepth = 10);
+                .AddJsonOptions(json =>
+                {
+                    json.SerializerSettings.MaxDepth = 10;
+                    json.SerializerSettings.ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new DefaultNamingStrategy()
+                    };
+                });
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApiVersionDescriptionProvider provider)
