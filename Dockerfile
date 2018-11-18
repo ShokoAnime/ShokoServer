@@ -27,8 +27,8 @@ RUN apk add --update libmediainfo rhash-libs \
 RUN mkdir /home/shoko
 RUN chmod 777 /home/shoko
 
-RUN ln -s /usr/lib/librhash.so.0 /app/librhash.so &&
-	ln -s /usr/lib/libmediainfo.so.0 /app/libmediainfo.so
+RUN ln -s /usr/lib/librhash.so.0 /app/librhash.so && \
+    ln -s /usr/lib/libmediainfo.so.0 /app/libmediainfo.so
 
 
 USER 1000:100
