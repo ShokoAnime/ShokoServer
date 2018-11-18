@@ -304,10 +304,10 @@ namespace Shoko.Server.Models
         public IFile GetFile()
         {
             IFileSystem fs = ImportFolder?.FileSystem;
-            FileSystemResult<IObject> fobj = (FileSystemResult<IObject>) fs?.Resolve(FullServerPath);
-            if (fobj == null || fobj.Status != Status.Ok || fobj.Result is IDirectory)
+            IObject fobj = fs?.Resolve(FullServerPath);
+            if (fobj == null || fobj.Status != Status.Ok || fobj is IDirectory)
                 return null;
-            return fobj.Result as IFile;
+            return fobj as IFile;
         }
 
         public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
