@@ -7,6 +7,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Models.WebCache;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Providers.WebCache;
@@ -55,58 +56,29 @@ namespace Shoko.Server.CommandQueue.Commands.TvDB
                 {
                     try
                     {
-                        //NO OP
-                        //Till Webache operational
-                        /*
-                        List<WebCache_CrossRef_AniDB_TvDB> cacheResults =
-                            WebCacheAPI.Get_CrossRefAniDBTvDB(AnimeID);
-                        ReportUpdate(progress,25);
-                        if (cacheResults != null && cacheResults.Count > 0)
+
+                        List<WebCache_CrossRef_AniDB_Provider> resultsCache = WebCacheAPI.Instance.GetCrossRef_AniDB_Provider(AnimeID, CrossRefType.TvDB);
+                        ReportUpdate(progress, 30);
+                        if (resultsCache != null && resultsCache.Count > 0)
                         {
-                            // check again to see if there are any links, user may have manually added links while
-                            // this command was in the queue
-                            List<CrossRef_AniDB_TvDB> xrefTemp =
-                                Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
-                            if (xrefTemp != null && xrefTemp.Count > 0)
+                            List<WebCache_CrossRef_AniDB_Provider> best = resultsCache.BestProvider();
+                            if (best.Count > 0)
                             {
+                                TvDBApiHelper.RemoveAllAniDBTvDBLinks(AnimeID, false);
+                                ReportUpdate(progress, 70);
+                                foreach (WebCache_CrossRef_AniDB_Provider xref in best)
+                                    TvDBApiHelper.LinkAniDBTvDBFromWebCache(xref);
+                                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+                                logger.Trace("Changed trakt association: {0}", AnimeID);
                                 ReportFinish(progress);
                                 return;
                             }
-
-                            // Add overrides for specials
-                            var specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
-                                .OrderBy(a => a.AniDBStartEpisodeType).ThenBy(a => a.AniDBStartEpisodeNumber)
-                                .ToList();
-                            ReportUpdate(progress, 50);
-                            if (specialXRefs.Count != 0)
-                            {
-                                foreach (var episodeOverride in TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs))
-                                {
-                                    var exists =
-                                        Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
-                                            episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
-                                    if (exists != null) continue;
-                                    Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.Touch(() => episodeOverride);
-                                }
-                            }
-                            ReportUpdate(progress, 75);
-                            foreach (WebCache_CrossRef_AniDB_TvDB xref in cacheResults)
-                            {
-                                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
-                                if (tvser != null)
-                                {
-                                    logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
-                                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
-                                }
-                            }
-                            ReportFinish(progress);
-                            return;
                         }
-                            */
+
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        //Ignore
+                        logger.Error(ex, ex.ToString());
                     }
                 }
 

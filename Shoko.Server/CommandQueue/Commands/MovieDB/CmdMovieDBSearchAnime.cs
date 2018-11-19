@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.WebCache;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.WebCache;
@@ -57,26 +59,30 @@ namespace Shoko.Server.CommandQueue.Commands.MovieDB
                     {
                         try
                         {
-                            WebCache_CrossRef_AniDB_Other crossRef =
-                                WebCacheAPI.Get_CrossRefAniDBOther(AnimeID,
-                                    CrossRefType.MovieDB);
-                            if (crossRef != null)
+                            List<WebCache_CrossRef_AniDB_Provider> resultsCache = WebCacheAPI.Instance.GetCrossRef_AniDB_Provider(AnimeID, CrossRefType.MovieDB);
+                            ReportUpdate(progress, 30);
+                            if (resultsCache != null && resultsCache.Count > 0)
                             {
-                                int movieID = int.Parse(crossRef.CrossRefID);
-                                MovieDB_Movie movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
-                                if (movie == null)
+                                List<WebCache_CrossRef_AniDB_Provider> best = resultsCache.BestProvider();
+                                if (best.Count > 0)
                                 {
-                                    // update the info from online
-                                    MovieDBHelper.UpdateMovieInfo(movieID, true);
-                                    movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
-                                }
-                                ReportUpdate(progress, 20);
+                                    int movieID = int.Parse(best.First().CrossRefID);
+                                    MovieDB_Movie movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
+                                    if (movie == null)
+                                    {
+                                        // update the info from online
+                                        MovieDBHelper.UpdateMovieInfo(movieID, true);
+                                        movie = Repo.Instance.MovieDb_Movie.GetByOnlineID(movieID);
+                                    }
+                                    ReportUpdate(progress, 20);
 
-                                if (movie != null)
-                                {
-                                    // since we are using the web cache result, let's save it
-                                    MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
-                                    ReportFinish(progress);
+                                    if (movie != null)
+                                    {
+                                        // since we are using the web cache result, let's save it
+                                        MovieDBHelper.LinkAniDBMovieDB(AnimeID, movieID, true);
+                                        ReportFinish(progress);
+                                        return;
+                                    }
                                     return;
                                 }
                             }

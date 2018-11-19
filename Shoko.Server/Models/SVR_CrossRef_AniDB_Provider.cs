@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server.CrossRef;
@@ -20,6 +21,7 @@ namespace Shoko.Server.Models
         {
             _episodes = new Lazy<ProviderEpisodeList>(() => new ProviderEpisodeList(EpisodesData, (str) => EpisodesData = str));
             _episodesOverride = new Lazy<ProviderEpisodeList>(() => new ProviderEpisodeList(EpisodesOverrideData, (str) => EpisodesOverrideData = str));
+
         }
 
         [JsonIgnore]
@@ -33,8 +35,19 @@ namespace Shoko.Server.Models
         public override List<CrossRef_AniDB_ProviderEpisode> EpisodesOverride => EpisodesListOverride.Episodes;
 
 
-
-
+        public CrossRef_AniDB_ProviderEpisode GetFromAniDBEpisode(int episodeid)
+        {
+            return EpisodesListOverride.GetByAnimeEpisodeId(episodeid) ?? EpisodesList.GetByAnimeEpisodeId(episodeid);
+        }
+        public CrossRef_AniDB_ProviderEpisode GetFromCrossRefEpisode(string crossrefepisodeid)
+        {
+            return EpisodesListOverride.GetByProviderId(crossrefepisodeid) ?? EpisodesList.GetByProviderId(crossrefepisodeid);
+        }
+        public CrossRef_AniDB_ProviderEpisode GetFromCrossRefEpisode(int crossrefepisodeid)
+        {
+            string cr = crossrefepisodeid.ToString();
+            return EpisodesListOverride.GetByProviderId(cr) ?? EpisodesList.GetByProviderId(cr);
+        }
         public class ProviderEpisodeList
         {
             private readonly Dictionary<int, CrossRef_AniDB_ProviderEpisode> _dict = new Dictionary<int, CrossRef_AniDB_ProviderEpisode>();

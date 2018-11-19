@@ -22,14 +22,17 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="API\v3\Helpers\**" />
     <Compile Remove="DatabasesOld\**" />
     <Compile Remove="Mappings\**" />
     <Compile Remove="RepositoriesOld\**" />
     <Compile Remove="Workers\Commands\Import\**" />
+    <EmbeddedResource Remove="API\v3\Helpers\**" />
     <EmbeddedResource Remove="DatabasesOld\**" />
     <EmbeddedResource Remove="Mappings\**" />
     <EmbeddedResource Remove="RepositoriesOld\**" />
     <EmbeddedResource Remove="Workers\Commands\Import\**" />
+    <None Remove="API\v3\Helpers\**" />
     <None Remove="DatabasesOld\**" />
     <None Remove="RepositoriesOld\**" />
     <None Remove="Mappings\**" />
@@ -88,7 +91,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="API\v3\Controllers\Utility" />
-    <Folder Include="API\v3\Helpers" />
     <Folder Include="API\Views\" />
   </ItemGroup>
   <ItemGroup>
@@ -130,6 +132,6 @@
     <EmbeddedResource Include="Migrations\Microsoft.EntityFrameworkCore.Sqlite.sql" />
   </ItemGroup>
   <Target Name="NSwag" BeforeTargets="Build">
-    <Exec Command="$(NSwagExe) swagger2csclient /input:https://localhost:44307/swagger/v1/swagger.json /namespace:Shoko.Server.Providers.WebCache /AdditionalNamespaceUsages:Shoko.Models.WebCache,Shoko.Models.Server.CrossRef,Shoko.Models.Server /ResponseArrayType:System.Collections.Generic.List /GenerateDtoTypes:false /GenerateSyncMethods:true /output:&quot;$(ProjectPath)Providers\WebCache\Client_Generated.cs&quot;" />
+    <Exec Command="$(NSwagExe) swagger2csclient /input:&quot;$(SolutionDir)WebReferences\webcache.json&quot; /namespace:Shoko.Server.Providers.WebCache /AdditionalNamespaceUsages:Shoko.Models.WebCache,Shoko.Models.Server.CrossRef,Shoko.Models.Server /ResponseArrayType:System.Collections.Generic.List /GenerateDtoTypes:false /GenerateSyncMethods:true /output:&quot;$(SolutionDir)Shoko.Server\Providers\WebCache\Client_Generated.cs&quot;" />
   </Target>
 </Project>

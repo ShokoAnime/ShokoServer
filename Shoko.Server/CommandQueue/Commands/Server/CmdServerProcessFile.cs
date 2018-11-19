@@ -135,7 +135,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             // lets see if we can find the episode/anime info from the web cache
                             if (ServerSettings.Instance.WebCache.XRefFileEpisode_Get)
                             {
-                                List<WebCache_CrossRef_File_Episode> xrefs = WebCacheAPI.Get_CrossRefFileEpisode(vidLocal);
+                                List<CrossRef_File_Episode> xrefs = WebCacheAPI.Instance.GetCrossRef_File_Episodes(vidLocal.Hash);
+
 
                                 crossRefs = new List<CrossRef_File_Episode>();
                                 if (xrefs == null || xrefs.Count == 0)
@@ -147,7 +148,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
 
                                 string fileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
                                 fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.Info;
-                                foreach (WebCache_CrossRef_File_Episode xref in xrefs)
+                                foreach (CrossRef_File_Episode xref in xrefs)
                                 {
                                     CrossRef_File_Episode xrefEnt = new CrossRef_File_Episode
                                     {

@@ -12,6 +12,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.Server.CrossRef;
+using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.Trakt;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Extensions;
@@ -397,22 +398,20 @@ namespace Shoko.Server.Providers.TraktTV
         #endregion
 
         #region Linking
-
-        public static string LinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber,
-            string traktID, int seasonNumber, int traktEpNumber, bool excludeFromWebCache)
+        public static void RemoveAllAniDBTraktLinks(int animeID, bool updateStats = true)
         {
-            List<CrossRef_AniDB_Provider> xrefTemps = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDEpTypeEpNumber(
-                animeID, (int)aniEpType, aniEpNumber);
-            if (xrefTemps != null && xrefTemps.Count > 0)
+            Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TraktTV));
+            if (updateStats) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        }
+        public static string LinkAniDBTrakt(int animeID, string traktID, bool additiveLink=false)
+        {
+            if (!additiveLink)
             {
-                foreach (CrossRef_AniDB_TraktV2 xrefTemp in xrefTemps)
-                {
-                    // delete the existing one if we are updating
-                    RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType)xrefTemp.AniDBStartEpisodeType,
-                        xrefTemp.AniDBStartEpisodeNumber,
-                        xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
-                }
+                // remove all current links
+                logger.Info($"Removing All Trakt Links for: {animeID}");
+                RemoveAllAniDBTraktLinks(animeID, false);
             }
+
 
             // check if we have this information locally
             // if not download it now
@@ -424,75 +423,81 @@ namespace Shoko.Server.Providers.TraktTV
                 GetShowInfoV2(traktID);
                 traktShow = Repo.Instance.Trakt_Show.GetByTraktSlug(traktID);
             }
-
-            // download and update series info, episode info and episode images
-            CrossRef_AniDB_TraktV2 xref;
-            using (var upd = Repo.Instance.CrossRef_AniDB_TraktV2.BeginAddOrUpdate(
-                () => Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber, traktEpNumber, animeID, (int)aniEpType, aniEpNumber)))
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TraktTV, animeID, traktID)))
             {
+                upd.Entity.CrossRefSource = CrossRefSource.User;
                 upd.Entity.AnimeID = animeID;
-                upd.Entity.AniDBStartEpisodeType = (int)aniEpType;
-                upd.Entity.AniDBStartEpisodeNumber = aniEpNumber;
-
-                upd.Entity.TraktID = traktID;
-                upd.Entity.TraktSeasonNumber = seasonNumber;
-                upd.Entity.TraktStartEpisodeNumber = traktEpNumber;
-                if (traktShow != null)
-                    upd.Entity.TraktTitle = traktShow.Title;
-
-                if (excludeFromWebCache)
-                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
-                else
-                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
-
-                xref = upd.Commit();
+                upd.Entity.CrossRefID = traktID;
+                upd.Entity.CrossRefType = CrossRefType.TraktTV;
+                SVR_CrossRef_AniDB_Provider xref=upd.Commit();
+                if (ServerSettings.Instance.WebCache.Trakt_Send)
+                    CommandQueue.Queue.Instance.Add(new CmdWebCacheSendAniDBXRef(xref.CrossRef_AniDB_ProviderID));
             }
+
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
-            {
-                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID));
-            }
 
             return string.Empty;
         }
-
-        public static void RemoveLinkAniDBTrakt(int animeID, EpisodeType aniEpType, int aniEpNumber, string traktID,
-            int seasonNumber, int traktEpNumber)
+        public static void LinkAniDBTraktFromWebCache(WebCache_CrossRef_AniDB_Provider cache)
         {
-            CrossRef_AniDB_TraktV2 xref = Repo.Instance.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
-                traktEpNumber, animeID,
-                (int)aniEpType,
-                aniEpNumber);
-            if (xref == null) return;
 
-            Repo.Instance.CrossRef_AniDB_TraktV2.Delete(xref.CrossRef_AniDB_TraktV2ID);
 
-            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
-
-            if (ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
+            // check if we have this information locally
+            // if not download it now
+            Trakt_Show traktShow = Repo.Instance.Trakt_Show.GetByTraktSlug(cache.CrossRefID);
+            if (traktShow == null)
             {
-                CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteXRefAniDBTrakt(animeID,
-                        (int)aniEpType, aniEpNumber,
-                        traktID, seasonNumber, traktEpNumber));
+                // we download the series info here just so that we have the basic info in the
+                // database before the queued task runs later
+                GetShowInfoV2(cache.CrossRefID);
+                traktShow = Repo.Instance.Trakt_Show.GetByTraktSlug(cache.CrossRefID);
+            }
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TraktTV, cache.AnimeID, cache.CrossRefID)))
+            {
+                upd.Entity.CrossRefSource = CrossRefSource.WebCache;
+                upd.Entity.AnimeID = cache.AnimeID;
+                upd.Entity.CrossRefID = cache.CrossRefID;
+                upd.Entity.CrossRefType = CrossRefType.TraktTV;
+                upd.Entity.EpisodesOverrideData = cache.EpisodesOverrideData;
+                upd.Entity.IsAdditive = cache.IsAdditive;
+                upd.Commit();
             }
         }
+        public static void LinkAniDBTraktEpisode(int aniDBID, int traktEpId)
+        {
+            AniDB_Episode ep = Repo.Instance.AniDB_Episode.GetByEpisodeID(aniDBID);
+            Trakt_Episode tvep = Repo.Instance.Trakt_Episode.GetByID(traktEpId);
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TraktTV, ep.AnimeID, tvep.Trakt_ShowID.ToString())))
+            {
+                upd.Entity.EpisodesListOverride.AddOrUpdate(aniDBID, traktEpId.ToString(), tvep.Season, ep.EpisodeNumber, ep.GetEpisodeTypeEnum(), MatchRating.UserVerified);
+                if (upd.Entity.EpisodesListOverride.NeedPersitance)
+                    upd.Commit();
+            }
 
+            using (var upd = Repo.Instance.AnimeEpisode.BeginAddOrUpdate(() => Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(aniDBID)))
+            {
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(ep.AnimeID);
+                upd.Commit();
+            }
+
+            logger.Trace($"Changed trakt episode association: {aniDBID}");
+        }
+        public static void RemoveLinkAniDBTrakt(int animeID, string traktId)
+        {
+            Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TraktTV, animeID, traktId));
+            SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+        }
         public static void ScanForMatches()
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
 
             IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
-            IReadOnlyList<CrossRef_AniDB_TraktV2> allCrossRefs = Repo.Instance.CrossRef_AniDB_TraktV2.GetAll();
-            List<int> alreadyLinked = new List<int>();
-            foreach (CrossRef_AniDB_TraktV2 xref in allCrossRefs)
-            {
-                alreadyLinked.Add(xref.AnimeID);
-            }
+            List<int> alreadyLinked = Repo.Instance.CrossRef_AniDB_Provider.GetByType(CrossRefType.TraktTV).Select(a => a.AnimeID).Distinct().ToList();
 
             foreach (SVR_AnimeSeries ser in allSeries)
             {
@@ -544,6 +549,16 @@ namespace Shoko.Server.Providers.TraktTV
             {
                 if (traktSummary == null) return null;
                 int? traktEpId = null;
+
+                CrossRef_AniDB_ProviderEpisode rep = traktSummary.CrossRefTraktV2.Select(a => a.GetFromAniDBEpisode(ep.AniDB_EpisodeID)).FirstOrDefault(b => b != null);
+                if (rep == null)
+                    return null;
+                traktID = traktSummary.CrossRefTraktV2.First(b => b.GetEpisodesWithOverrides().Contains(rep)).CrossRefID;
+                season = rep.Season;
+                epNumber = rep.Number;
+                traktEpId = int.Parse(rep.ProviderEpisodeID);
+                return traktEpId;
+                /*
 
                 #region normal episodes
 
@@ -664,8 +679,8 @@ namespace Shoko.Server.Providers.TraktTV
                 }
 
                 #endregion
-
                 return traktEpId;
+                        */
             }
             catch (Exception ex)
             {
@@ -674,17 +689,17 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        #endregion
+                #endregion
 
-        /// <summary>
-        /// Updates the followung
-        /// 1. Series Info
-        /// 2. Episode Info
-        /// 3. Episode Images
-        /// 4. Fanart, Poster Images
-        /// </summary>
-        /// <param name="traktID"></param>
-        public static void UpdateAllInfo(string traktID)
+                /// <summary>
+                /// Updates the followung
+                /// 1. Series Info
+                /// 2. Episode Info
+                /// 3. Episode Images
+                /// 4. Fanart, Poster Images
+                /// </summary>
+                /// <param name="traktID"></param>
+                public static void UpdateAllInfo(string traktID)
         {
             GetShowInfoV2(traktID);
         }
@@ -1090,17 +1105,22 @@ namespace Shoko.Server.Providers.TraktTV
                 // delete episodes if they no longer exist on Trakt
                 if (seasons.Count > 0)
                 {
-                    foreach (Trakt_Episode epTemp in Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
+                    Repo.Instance.Trakt_Episode.FindAndDelete(() =>
                     {
-                        TraktV2Episode ep = null;
-                        TraktV2Season sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
-                        if (sea != null)
-                            ep = sea.episodes.FirstOrDefault(x => x.number == epTemp.EpisodeNumber);
+                        List<Trakt_Episode> to_delete = new List<Trakt_Episode>();
+                        foreach (Trakt_Episode epTemp in Repo.Instance.Trakt_Episode.GetByShowID(show.Trakt_ShowID))
+                        {
+                            TraktV2Episode ep = null;
+                            TraktV2Season sea = seasons.FirstOrDefault(x => x.number == epTemp.Season);
+                            if (sea != null)
+                                ep = sea.episodes.FirstOrDefault(x => x.number == epTemp.EpisodeNumber);
 
-                        // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
-                        if (ep == null)
-                            Repo.Instance.Trakt_Episode.Delete(epTemp.Trakt_EpisodeID);
-                    }
+                            // if the episode is null, it means it doesn't exist on Trakt, so we should delete it
+                            if (ep == null)
+                                to_delete.Add(epTemp);
+                        }
+                        return to_delete;
+                    });
                 }
 
                 foreach (TraktV2Season sea in seasons)

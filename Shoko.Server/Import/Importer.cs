@@ -113,7 +113,7 @@ namespace Shoko.Server.Import
 
         public static void SyncMedia()
         {
-            WebCacheAPI.Send_Media(Repo.Instance.VideoLocal.GetAll().ToList());
+            WebCacheAPI.Instance.AddMediaInfo(Repo.Instance.VideoLocal.GetAll().Select(a=>a.ToMediaRequest()));
         }
 
         public static void SyncHashes()
@@ -1064,7 +1064,7 @@ namespace Shoko.Server.Import
                 upd.Commit();
             }
 
-            CommandQueue.Queue.Instance.Add(new CmdWebCacheSendUserInfo(ServerSettings.Instance.AniDb.Username));
+           // CommandQueue.Queue.Instance.Add(new CmdWebCacheSendUserInfo(ServerSettings.Instance.AniDb.Username));
         }
 
         public static void CheckForAnimeUpdate(bool forceRefresh)
@@ -1330,7 +1330,7 @@ namespace Shoko.Server.Import
                 upd.Entity.LastUpdate = DateTime.Now;
                 upd.Commit();
             }
-            CommandQueue.Queue.Instance.Add(new CmdAniDBGetTitles());
+            //CommandQueue.Queue.Instance.Add(new CmdAniDBGetTitles());
         }
     }
 }

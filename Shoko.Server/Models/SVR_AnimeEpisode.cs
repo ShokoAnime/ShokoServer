@@ -74,11 +74,8 @@ namespace Shoko.Server.Models
         {
             get
             {
-                // Try Overrides first, then regular
-                return Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => Repo.Instance.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
-                    .Select(a => Repo.Instance.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                return Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AniDB_Episode.AnimeID,CrossRefType.TvDB).
+                    Select(a=>a.GetFromAniDBEpisode(AniDB_EpisodeID)).Where(a=>a!=null).Select(a => Repo.Instance.TvDB_Episode.GetByTvDBID(int.Parse(a.ProviderEpisodeID))).Where(a => a != null)
                     .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
             }
         }

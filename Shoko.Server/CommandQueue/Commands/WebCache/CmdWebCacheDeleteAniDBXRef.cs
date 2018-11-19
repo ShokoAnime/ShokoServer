@@ -6,7 +6,7 @@ using Shoko.Server.Providers.WebCache;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheDeleteXRefAniDBOther : BaseCommand, ICommand
+    public class CmdWebCacheDeleteAniDBXRef : BaseCommand, ICommand
     {
         public int AnimeID { get; set; }
         public int CrossRefType { get; set; }
@@ -17,7 +17,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         public int Priority { get; set; } = 10;
         public string WorkType => WorkTypes.WebCache;
 
-        public string Id => $"WebCacheDeleteXRefAniDBOther_{AnimeID}-{CrossRefType}";
+        public string Id => $"WebCacheDeleteAniDBXRef_{AnimeID}-{CrossRefType}";
 
         public  QueueStateStruct PrettyDescription => new QueueStateStruct
         {
@@ -26,11 +26,11 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
         };
 
 
-        public CmdWebCacheDeleteXRefAniDBOther(string str) : base(str)
+        public CmdWebCacheDeleteAniDBXRef(string str) : base(str)
         {
         }
 
-        public CmdWebCacheDeleteXRefAniDBOther(int animeID, CrossRefType xrefType)
+        public CmdWebCacheDeleteAniDBXRef(int animeID, CrossRefType xrefType)
         {
             AnimeID = animeID;
             CrossRefType = (int) xrefType;
@@ -41,7 +41,8 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             try
             {
                 ReportInit(progress);
-                WebCacheAPI.Delete_CrossRefAniDBOther(AnimeID, (CrossRefType) CrossRefType);
+
+                WebCacheAPI.Instance.DeleteCrossRef_AniDB_Provider(AnimeID, (CrossRefType) CrossRefType);
                 ReportFinish(progress);
             }
             catch (Exception ex)

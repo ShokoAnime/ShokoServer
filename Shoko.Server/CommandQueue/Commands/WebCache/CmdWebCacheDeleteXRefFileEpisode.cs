@@ -41,7 +41,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             try
             {
                 ReportInit(progress);
-                WebCacheAPI.Delete_CrossRefFileEpisode(Hash);
+                WebCacheAPI.Instance.DeleteCrossRef_File_Episode(Hash, EpisodeID);
                 ReportFinish(progress);
             }
             catch (Exception ex)

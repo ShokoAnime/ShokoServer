@@ -745,37 +745,7 @@ namespace Shoko.Server
                         retTitles.Add(res);
                     }
                 }
-                else
-                {
-                    // title search so look at the web cache
-                    List<WebCache_AnimeIDTitle> titles = WebCacheAPI.Get_AnimeTitle(titleQuery);
-
-
-                    foreach (WebCache_AnimeIDTitle tit in titles)
-                    {
-                        CL_AnimeSearch res = new CL_AnimeSearch
-                        {
-                            AnimeID = tit.AnimeID,
-                            MainTitle = tit.MainTitle,
-                            Titles =
-                            new HashSet<string>(tit.Titles.Split(new char[] { '|' },
-                                StringSplitOptions.RemoveEmptyEntries))
-                        };
-
-                        // check for existing series and group details
-                        SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(tit.AnimeID);
-                        if (ser != null)
-                        {
-                            res.SeriesExists = true;
-                            res.AnimeSeriesID = ser.AnimeSeriesID;
-                            res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
-                        }
-                        else
-                            res.SeriesExists = false;
-
-                        retTitles.Add(res);
-                    }
-                }
+               
             }
             catch (Exception ex)
             {

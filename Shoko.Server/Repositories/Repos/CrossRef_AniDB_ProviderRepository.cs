@@ -48,7 +48,8 @@ namespace Shoko.Server.Repositories.Repos
         internal override void EndSave(SVR_CrossRef_AniDB_Provider entity, object returnFromBeginSave, object parameters)
         {
             base.EndSave(entity, returnFromBeginSave, parameters);
-            Providers.TvDB.LinkingHelper.GenerateEpisodeMatches(entity.AnimeID, entity.CrossRefType);
+            if (!entity.EpisodesList.NeedPersitance && !entity.EpisodesListOverride.NeedPersitance)
+                Providers.TvDB.LinkingHelper.GenerateEpisodeMatches(entity.AnimeID, entity.CrossRefType);
         }
 
         public Dictionary<int, List<SVR_CrossRef_AniDB_Provider>> GetByAnimeIDsAndTypes(IEnumerable<int> animeIds, params CrossRefType[] xrefTypes)
@@ -63,7 +64,18 @@ namespace Shoko.Server.Repositories.Repos
                 return Table.Where(a => animeIds.Contains(a.AnimeID) && types.Contains(a.CrossRefType)).GroupBy(a=>a.AnimeID).ToDictionary(a=>a.Key,a=>a.ToList());
             }
         }
-
+        public Dictionary<int, List<string>> GetByAnimeIDsAndTypesCrossRefs(IEnumerable<int> animeIds, params CrossRefType[] xrefTypes)
+        {
+            if (xrefTypes == null || xrefTypes.Length == 0 || animeIds == null)
+                return new Dictionary<int, List<string>>();
+            List<CrossRefType> types = xrefTypes.ToList();
+            using (RepoLock.ReaderLock())
+            {
+                if (IsCached)
+                    return animeIds.ToDictionary(a => a, a => Animes.GetMultiple(a).Where(b => types.Contains(b.CrossRefType)).Select(c=>c.CrossRefID).ToList());
+                return Table.Where(a => animeIds.Contains(a.AnimeID) && types.Contains(a.CrossRefType)).GroupBy(a => a.AnimeID).ToDictionary(a => a.Key, a => a.Select(c=>c.CrossRefID).ToList());
+            }
+        }
         /// <summary>
         /// Gets other cross references by anime ID.
         /// </summary>

@@ -152,7 +152,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginSave(SVR_VideoLocal entity, SVR_VideoLocal original_entity, bool updateEpisodes)
         {
             if (original_entity == null)
-                entity.Media = null;
+                entity.MediaInfo = null;
             UpdateMediaContracts_RA(entity);
             return null;
         }

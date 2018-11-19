@@ -221,7 +221,7 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        public static Video VideoFromAnimeEpisode(IProvider prov, List<SVR_CrossRef_AniDB_Provider> cross, KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
+        public static Video VideoFromAnimeEpisode(IProvider prov, List<CL_CrossRef_AniDB_Provider> cross, KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
             Video v = e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
@@ -270,7 +270,7 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (cross != null && cross.Count > 0)
                 {
-                    CrossRef_AniDB_ProviderEpisode ep = cross.Select(a => a.GetEpisodesWithOverrides().FirstOrDefault(b => b.AniDBEpisodeID == e.Key.AniDB_EpisodeID)).FirstOrDefault(a=>a!=null);
+                    CrossRef_AniDB_ProviderEpisode ep = cross.Select(a => a.GetEpisodesWithOverrides().FirstOrDefault(b=>b.AniDBEpisodeID==e.Key.AniDB_EpisodeID)).FirstOrDefault(a=>a!=null);
                     if (ep != null && ep.Season > 0)
                         v.ParentIndex = ep.Season;
                 }

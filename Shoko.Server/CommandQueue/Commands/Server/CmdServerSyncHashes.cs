@@ -5,6 +5,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.Hash;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
@@ -68,19 +69,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                             continue;
                         }
                     }
-                    List<WebCache_FileHash> ls = WebCacheAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash);
+                   WebCache_FileHash ls = WebCacheAPI.Instance.GetHash(WebCache_HashType.ED2K, v.ED2KHash);
                     if (ls != null)
                     {
-                        ls = ls.Where(
-                                a =>
-                                    !string.IsNullOrEmpty(a.CRC32) && !string.IsNullOrEmpty(a.MD5) &&
-                                    !string.IsNullOrEmpty(a.SHA1))
-                            .ToList();
-                        if (ls.Count > 0)
-                        {
-                            updates[v.VideoLocalID] = (ls[0].ED2K.ToUpperInvariant(), ls[0].CRC32.ToUpperInvariant(), ls[0].MD5.ToUpperInvariant(), ls[0].SHA1.ToUpperInvariant());
-                            missfiles.Remove(v);
-                        }
+                        updates[v.VideoLocalID] = (ls.ED2K.ToUpperInvariant(), ls.CRC32.ToUpperInvariant(), ls.MD5.ToUpperInvariant(), ls.SHA1.ToUpperInvariant());
+                        missfiles.Remove(v);
                     }
                     ReportUpdate(progress, 10 + prog);
                 }
@@ -120,7 +113,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                 }
                 ReportUpdate(progress, 90);
                 //Send the hashes
-                WebCacheAPI.Send_FileHash(withfiles);
+                WebCacheAPI.Instance.AddHashes(withfiles.Select(a=>a.ToHashRequest()));
                 logger.Info("Sync Hashes Complete");
                 ReportFinish(progress);
             }

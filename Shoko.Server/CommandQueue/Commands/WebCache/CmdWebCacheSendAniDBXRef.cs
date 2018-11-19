@@ -2,36 +2,37 @@
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.WebCache
 {
-    public class CmdWebCacheSendXRefAniDBOther : BaseCommand, ICommand
+    public class CmdWebCacheSendAniDBXRef : BaseCommand, ICommand
     {
-        public int CrossRef_AniDB_OtherID { get; set; }
+        public int CrossRef_AniDB_ProviderID { get; set; }
 
         public string ParallelTag { get; set; } = WorkTypes.WebCache;
         public int ParallelMax { get; set; } = 2;
         public int Priority { get; set; } = 10;
         public string WorkType => WorkTypes.WebCache;
 
-        public string Id => $"WebCacheSendXRefAniDBOther_{CrossRef_AniDB_OtherID}";
+        public string Id => $"WebCacheSendXRefAniDB_{CrossRef_AniDB_ProviderID}";
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             QueueState = QueueStateEnum.WebCacheSendXRefAniDBOther,
-            ExtraParams = new[] {CrossRef_AniDB_OtherID.ToString()}
+            ExtraParams = new[] { CrossRef_AniDB_ProviderID.ToString()}
         };
 
 
-        public CmdWebCacheSendXRefAniDBOther(string str) : base(str)
+        public CmdWebCacheSendAniDBXRef(string str) : base(str)
         {
         }
 
-        public CmdWebCacheSendXRefAniDBOther(int xrefID)
+        public CmdWebCacheSendAniDBXRef(int xrefID)
         {
-            CrossRef_AniDB_OtherID = xrefID;
+            CrossRef_AniDB_ProviderID = xrefID;
         }
 
         public override void Run(IProgress<ICommand> progress = null)
@@ -39,19 +40,19 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
             try
             {
                 ReportInit(progress);
-                CrossRef_AniDB_Other xref = Repo.Instance.CrossRef_AniDB_Other.GetByID(CrossRef_AniDB_OtherID);
+                Models.SVR_CrossRef_AniDB_Provider xref = Repo.Instance.CrossRef_AniDB_Provider.GetByID(CrossRef_AniDB_ProviderID);
                 if (xref == null)
                 {
                     ReportFinish(progress);
                     return;
                 }
                 ReportUpdate(progress,50);
-                WebCacheAPI.Send_CrossRefAniDBOther(xref);
+                WebCacheAPI.Instance.AddCrossRef_AniDB_Provider(xref.ToWebCache(), false);
                 ReportFinish(progress);
             }
             catch (Exception ex)
             {
-                ReportError(progress, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_OtherID} - {ex}", ex);
+                ReportError(progress, $"Error processing WebCacheSendXRefAniDBOther {CrossRef_AniDB_ProviderID} - {ex}", ex);
             }
         }
 

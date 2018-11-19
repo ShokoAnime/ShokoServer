@@ -323,11 +323,11 @@ namespace Shoko.Server.API.v2.Models.common
         public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics, int pic)
         {
             Random rand = new Random();
-            var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+            var tvdbIDs = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(anime.AnimeID,CrossRefType.TvDB).ToList();
             var fanarts = tvdbIDs
-                .SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+                .SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(int.Parse(a.CrossRefID))).ToList();
             var banners = tvdbIDs
-                .SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+                .SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(int.Parse(a.CrossRefID))).ToList();
 
             if (allpics || pic > 1)
             {

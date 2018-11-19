@@ -229,33 +229,31 @@ namespace Shoko.Server.Providers.MovieDB
 
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
-            CrossRef_AniDB_Other xref;
-            using (var upd = Repo.Instance.CrossRef_AniDB_Other.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB)))
+            ;
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB).FirstOrDefault()))
             {
                 upd.Entity.AnimeID= animeID;
                 if (fromWebCache)
-                    upd.Entity.CrossRefSource = (int)CrossRefSource.WebCache;
+                    upd.Entity.CrossRefSource = CrossRefSource.WebCache;
                 else
-                    upd.Entity.CrossRefSource = (int)CrossRefSource.User;
+                    upd.Entity.CrossRefSource = CrossRefSource.User;
 
-                upd.Entity.CrossRefType = (int)CrossRefType.MovieDB;
+                upd.Entity.CrossRefType = CrossRefType.MovieDB;
                 upd.Entity.CrossRefID = movieDBID.ToString();
-                xref = upd.Commit();
+                SVR_CrossRef_AniDB_Provider xref = upd.Commit();
+                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendAniDBXRef(xref.CrossRef_AniDB_ProviderID));
             }          
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 
-            CommandQueue.Queue.Instance.Add(new CmdWebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID));
+            
         }
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            if (xref == null) return;
-
-            Repo.Instance.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
-            CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteXRefAniDBOther(animeID,CrossRefType.MovieDB));
+            Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB));
+            CommandQueue.Queue.Instance.Add(new CmdWebCacheDeleteAniDBXRef(animeID,CrossRefType.MovieDB));
         }
 
         public static void ScanForMatches()

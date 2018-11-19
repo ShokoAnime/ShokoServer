@@ -1230,6 +1230,7 @@ namespace Shoko.Server.Models
                                 AnimeID = AnimeID,
                                 CrossRefSource = CrossRefSource.AniDB,
                                 CrossRefID = id.ToString(),
+                                CrossRefType = CrossRefType.MyAnimeList
                             };
 
                             malLinks.Add(xref);
@@ -1704,14 +1705,10 @@ namespace Shoko.Server.Models
 
         public static void UpdateStatsByAnimeID(int id)
         {
-            SVR_AniDB_Anime an = Repo.Instance.AniDB_Anime.GetByAnimeID(id);
-            if (an != null)
-                Repo.Instance.AniDB_Anime.Touch(() => an);
-
-            SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(id);
-            if (series != null)
+            Repo.Instance.AniDB_Anime.Touch(() => Repo.Instance.AniDB_Anime.GetByAnimeID(id));
+            using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByAnimeID(id)))
             {
-                using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => series))
+                if (txn.IsUpdate)
                 {
                     // Update more than just stats in case the xrefs have changed
                     txn.Entity.UpdateStats(true, true, true);

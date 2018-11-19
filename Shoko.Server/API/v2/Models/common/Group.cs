@@ -151,11 +151,11 @@ namespace Shoko.Server.API.v2.Models.common
 
             foreach (var anime in animes.Randomize())
             {
-                var tvdbIDs = Repo.Instance.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
+                var tvdbIDs = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(anime.AnimeID,CrossRefType.TvDB).ToList();
                 var fanarts = tvdbIDs
-                    .SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
+                    .SelectMany(a => Repo.Instance.TvDB_ImageFanart.GetBySeriesID(int.Parse(a.CrossRefID))).ToList();
                 var banners = tvdbIDs
-                    .SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+                    .SelectMany(a => Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(int.Parse(a.CrossRefID))).ToList();
 
                 var posters = anime.AllPosters;
                 if (allpics || pic > 1)

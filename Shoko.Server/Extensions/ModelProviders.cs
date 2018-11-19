@@ -807,5 +807,39 @@ namespace Shoko.Server.Extensions
 
             return number;
         }
+
+
+        public static List<WebCache_CrossRef_AniDB_Provider> BestProvider(this List<WebCache_CrossRef_AniDB_Provider> list, bool prefer_user=false)
+        {
+            if (list == null || list.Count == 0)
+                return new List<WebCache_CrossRef_AniDB_Provider>();
+            if (prefer_user)
+            {
+                List<WebCache_CrossRef_AniDB_Provider> bst = list.Where(a => a.Type == WebCache_ReliabilityType.User).ToList();
+                if (bst != null)
+                    return bst;
+            }
+            WebCache_CrossRef_AniDB_Provider best = list.FirstOrDefault(a => a.Type == WebCache_ReliabilityType.AdminVerified);
+            if (best==null)
+                best = list.FirstOrDefault(a => a.Type == WebCache_ReliabilityType.ModeratorVerified);
+            if (best == null)
+                best = list.FirstOrDefault(a => a.Type == WebCache_ReliabilityType.User);
+            if (best == null)
+                best = list.OrderByDescending(a => a.PopularityCount).First();
+            return list.Where(a => a.AniDBUserId == best.AniDBUserId).ToList();
+
+        }
+
+        public static WebCache_CrossRef_AniDB_Provider ToWebCache(this  SVR_CrossRef_AniDB_Provider pr)
+        {
+            WebCache_CrossRef_AniDB_Provider w=new WebCache_CrossRef_AniDB_Provider();
+            w.CrossRefID = pr.CrossRefID;
+            w.AnimeID = pr.AnimeID;
+            w.CrossRefSource = pr.CrossRefSource;
+            w.CrossRefType = pr.CrossRefType;
+            w.EpisodesOverrideData = pr.EpisodesOverrideData;
+            w.IsAdditive = pr.IsAdditive;
+            return w;
+        }
     }
 }

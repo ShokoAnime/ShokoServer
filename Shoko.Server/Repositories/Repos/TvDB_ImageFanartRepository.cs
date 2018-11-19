@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 using Shoko.Server.Repositories.Cache;
+using Shoko.Models.Enums;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -60,8 +61,8 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
-            Dictionary<int, List<int>> animetvdb = Repo.Instance.CrossRef_AniDB_TvDBV2.GetTvsIdByAnimeIDs(animeIds);
-            return animetvdb.ToDictionary(a => a.Key, a => GetBySeriesIDs(a.Value).Values.SelectMany(b=>b).ToList());
+            Dictionary<int, List<string>> animetvdb = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDsAndTypesCrossRefs(animeIds, CrossRefType.TvDB);
+            return animetvdb.ToDictionary(a => a.Key, a => GetBySeriesIDs(a.Value.Select(int.Parse)).Values.SelectMany(b=>b).ToList());
         }
 
 

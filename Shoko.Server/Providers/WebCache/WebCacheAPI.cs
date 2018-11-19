@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.Server.CrossRef;
@@ -204,13 +205,26 @@ namespace Shoko.Server.Providers.WebCache
         }
         public bool AddHashes(IEnumerable<WebCache_FileHash> hashes)
         {
-            return WrapAuthentication((token) =>
+            foreach (WebCache_FileHash[] subhashes in hashes.Batch(20))
             {
-                cclient.AddHashes(token, hashes);
-            });
+                bool ret=WrapAuthentication((token) =>
+                {
+                    cclient.AddHashes(token, subhashes);
+                });
+                if (!ret)
+                    return false;
+            }
+
+            return true;
         }
 
-
+        public bool AddHash(WebCache_FileHash hash)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddHash(token, hash);
+            });
+        }
         public List<WebCache_FileHash_Collision_Info> GetCollisions()
         {
             return WrapAuthentication((token) => cclient.GetCollisions(token));
@@ -234,7 +248,19 @@ namespace Shoko.Server.Providers.WebCache
                 cclient.AddMediaInfo(token, media);
             });
         }
-
+        public bool AddMediaInfo(IEnumerable<WebCache_Media> medias)
+        {
+            foreach (WebCache_Media[] submedias in medias.Batch(5))
+            {
+                bool ret = WrapAuthentication((token) =>
+                {
+                    cclient.AddMediaInfoBatch(token, submedias);
+                });
+                if (!ret)
+                    return false;
+            }
+            return true;
+        }
         public List<WebCache_CrossRef_AniDB_Provider> GetCrossRef_AniDB_Provider(int animeId, CrossRefType type)
         {
             return WrapAuthentication((token) => cclient.GetProvider(token, animeId,(int)type));
@@ -251,30 +277,51 @@ namespace Shoko.Server.Providers.WebCache
             });
         }
 
-        public bool AddCrossRef_AniDB_Provider(CrossRef_AniDB_Provider cross, bool approve)
+        public bool AddCrossRef_AniDB_Provider(WebCache_CrossRef_AniDB_Provider cross, bool approve)
         {
             return WrapAuthentication((token) =>
             {
                 cclient.AddProvider(cross,token,approve);
             });
         }
+        public bool AddCrossRef_AniDB_Provider(List<WebCache_CrossRef_AniDB_Provider> crosses, bool approve)
+        {
+            foreach (WebCache_CrossRef_AniDB_Provider[] subcrosses in crosses.Batch(20))
+            {
+                bool ret = WrapAuthentication((token) =>
+                {
+                    cclient.AddProviderBatch(subcrosses, token, approve);
+                });
+                if (!ret)
+                    return false;
+            }
+
+            return true;
+        }
         public bool ManageCrossRef_AniDB_Provider(int id, bool approve)
         {
             return WrapAuthentication((token) =>
             {
-                cclient.AddProviderManage(token,id,approve);
+                cclient.ProviderManage(token,id,approve);
             });
         }
-        public CrossRef_File_Episode GetCrossRef_File_Episode(string hash)
+        public List<CrossRef_File_Episode> GetCrossRef_File_Episodes(string hash)
         {
-            return WrapAuthentication((token) => cclient.GetFileEpisode(token, hash));
+            return WrapAuthentication((token) => cclient.GetFileEpisodes(token, hash));
 
         }
-        public bool DeleteCrossRef_File_Episode(string hash)
+        public bool DeleteCrossRef_File_Episode(string hash, int episodeid)
         {
             return WrapAuthentication((token) =>
             {
-                cclient.DeleteFileEpisode(token, hash);
+                cclient.DeleteFileEpisode(token, hash,episodeid);
+            });
+        }
+        public bool DeleteCrossRef_File_Episodes(string hash)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.DeleteFileEpisodes(token, hash);
             });
         }
         public bool AddCrossRef_File_Episode(CrossRef_File_Episode episode)
@@ -284,6 +331,12 @@ namespace Shoko.Server.Providers.WebCache
                 cclient.AddFileEpisode(token, episode);
             });
         }
-
+        public bool AddCrossRef_File_Episode(List<CrossRef_File_Episode> episode)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.AddFileEpisodeBatch(token, episode);
+            });
+        }
     }
 }

@@ -49,7 +49,7 @@ namespace Shoko.Server.CommandQueue.Commands.WebCache
                     return;
                 } 
                 ReportUpdate(progress,50);
-                WebCacheAPI.Send_CrossRefFileEpisode(xref);
+                WebCacheAPI.Instance.AddCrossRef_File_Episode(xref);
                 ReportFinish(progress);
             }
             catch (Exception ex)

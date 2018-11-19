@@ -20,6 +20,7 @@ using Shoko.Server.Settings;
 using TvDbSharper;
 using TvDbSharper.Dto;
 using Language = TvDbSharper.Dto.Language;
+using Shoko.Models.WebCache;
 
 namespace Shoko.Server.Providers.TvDB
 {
@@ -182,6 +183,7 @@ namespace Shoko.Server.Providers.TvDB
                 upd.Entity.CrossRefSource = CrossRefSource.User;
                 upd.Entity.AnimeID = animeID;
                 upd.Entity.CrossRefID = tvDBID.ToString();
+                upd.Entity.CrossRefType = CrossRefType.TvDB;
                 upd.Commit();
             }
 
@@ -190,12 +192,31 @@ namespace Shoko.Server.Providers.TvDB
 
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
-                // check for Trakt associations
-                Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TraktTV));
                 CommandQueue.Queue.Instance.Add(new CmdTraktSearchAnime(animeID, false));
             }
         }
+        public static void LinkAniDBTvDBFromWebCache(WebCache_CrossRef_AniDB_Provider cache)
+        {
 
+
+            // check if we have this information locally
+            // if not download it now
+            int tvDBID = int.Parse(cache.CrossRefID);
+            TvDB_Series tvSeries = Repo.Instance.TvDB_Series.GetByTvDBID(tvDBID);
+
+            if (tvSeries == null)
+                tvSeries = Task.Run(async () => await GetSeriesInfoOnlineAsync(tvDBID, true)).GetAwaiter().GetResult();
+            using (var upd = Repo.Instance.CrossRef_AniDB_Provider.BeginAddOrUpdate(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIdAndProvider(CrossRefType.TvDB, cache.AnimeID, cache.CrossRefID)))
+            {
+                upd.Entity.CrossRefSource = CrossRefSource.WebCache;
+                upd.Entity.AnimeID = cache.AnimeID;
+                upd.Entity.CrossRefID = cache.CrossRefID;
+                upd.Entity.CrossRefType = CrossRefType.TvDB;
+                upd.Entity.EpisodesOverrideData = cache.EpisodesOverrideData;
+                upd.Entity.IsAdditive = cache.IsAdditive;
+                upd.Commit();
+            }
+        }
         public static void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
         {
             Repo.Instance.CrossRef_AniDB_Provider.FindAndDelete(() => Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(animeID, CrossRefType.TvDB));

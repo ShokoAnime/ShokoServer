@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.WebCache;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
@@ -60,33 +63,25 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                 {
                     try
                     {
-                      //NO OP Till cache rework
-                      /*
-                        List<WebCache_CrossRef_AniDB_Trakt> resultsCache =
-                            WebCacheAPI.Get_CrossRefAniDBTrakt(AnimeID);
+
+                        List<WebCache_CrossRef_AniDB_Provider> resultsCache = WebCacheAPI.Instance.GetCrossRef_AniDB_Provider(AnimeID, CrossRefType.TraktTV);
+                        ReportUpdate(progress, 30);
                         if (resultsCache != null && resultsCache.Count > 0)
                         {
-                            foreach (WebCache_CrossRef_AniDB_Trakt xref in resultsCache)
+                            List<WebCache_CrossRef_AniDB_Provider> best = resultsCache.BestProvider();
+                            if (best.Count > 0)
                             {
-                                TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(xref.TraktID);
-                                if (showInfo == null) continue;
-
-                                logger.Trace("Found trakt match on web cache for {0} - id = {1}", AnimeID,
-                                    showInfo.title);
-                                TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                                    (EpisodeType) xref.AniDBStartEpisodeType,
-                                    xref.AniDBStartEpisodeNumber,
-                                    xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber, true);
-                                doReturn = true;
-                            }
-                            ReportUpdate(progress,30);
-                            if (doReturn) 
-                            {
+                                TraktTVHelper.RemoveAllAniDBTraktLinks(AnimeID, false);
+                                ReportUpdate(progress, 70);
+                                foreach (WebCache_CrossRef_AniDB_Provider xref in best)
+                                    TraktTVHelper.LinkAniDBTraktFromWebCache(xref);
+                                SVR_AniDB_Anime.UpdateStatsByAnimeID(AnimeID);
+                                logger.Trace("Changed trakt association: {0}", AnimeID);
                                 ReportFinish(progress);
                                 return;
                             }
                         }
-                       */
+
                     }
                     catch (Exception ex)
                     {
@@ -97,16 +92,14 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
 
                 // lets try to see locally if we have a tvDB link for this anime
                 // Trakt allows the use of TvDB ID's or their own Trakt ID's
-                List<CrossRef_AniDB_TvDBV2>
-                    xrefTvDBs = Repo.Instance.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AnimeID);
+                List<SVR_CrossRef_AniDB_Provider>
+                    xrefTvDBs = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(AnimeID, CrossRefType.TvDB);
                 if (xrefTvDBs != null && xrefTvDBs.Count > 0)
                 {
-                    foreach (CrossRef_AniDB_TvDBV2 tvXRef in xrefTvDBs)
+                    foreach (SVR_CrossRef_AniDB_Provider tvXRef in xrefTvDBs)
                     {
                         // first search for this show by the TvDB ID
-                        List<TraktV2SearchTvDBIDShowResult> searchResults =
-                            TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,
-                                tvXRef.TvDBID.ToString());
+                        List<TraktV2SearchTvDBIDShowResult> searchResults = TraktTVHelper.SearchShowByIDV2(TraktSearchIDType.tvdb,tvXRef.CrossRefID);
                         if (searchResults == null || searchResults.Count <= 0) continue;
                         // since we are searching by ID, there will only be one 'show' result
                         TraktV2Show resShow = null;
@@ -127,18 +120,12 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                             Repo.Instance.Trakt_Show.GetByTraktSlug(showInfo.ids.slug);
                         if (traktShow == null) continue;
 
-                        Trakt_Season traktSeason = Repo.Instance.Trakt_Season.GetByShowIDAndSeason(
-                            traktShow.Trakt_ShowID,
-                            tvXRef.TvDBSeasonNumber);
+                        Trakt_Season traktSeason = Repo.Instance.Trakt_Season.GetByShowIDAndSeason(traktShow.Trakt_ShowID,tvXRef.GetEpisodesWithOverrides().FirstOrDefault()?.Season ?? 0);
                         if (traktSeason == null) continue;
 
                         logger.Trace("Found trakt match using TvDBID locally {0} - id = {1}",
                             AnimeID, showInfo.title);
-                        TraktTVHelper.LinkAniDBTrakt(AnimeID,
-                            (EpisodeType) tvXRef.AniDBStartEpisodeType,
-                            tvXRef.AniDBStartEpisodeNumber, showInfo.ids.slug,
-                            tvXRef.TvDBSeasonNumber, tvXRef.TvDBStartEpisodeNumber,
-                            true);
+                        TraktTVHelper.LinkAniDBTrakt(AnimeID,showInfo.ids.slug,true);
                         doReturn = true;
                         ReportUpdate(progress,60);
                     }
@@ -219,9 +206,7 @@ namespace Shoko.Server.CommandQueue.Commands.Trakt
                     TraktV2ShowExtended showInfo = TraktTVHelper.GetShowInfoV2(results[0].show.ids.slug);
                     if (showInfo != null)
                     {
-                        TraktTVHelper.LinkAniDBTrakt(AnimeID, EpisodeType.Episode, 1,
-                            results[0].show.ids.slug, 1, 1,
-                            true);
+                        TraktTVHelper.LinkAniDBTrakt(AnimeID, results[0].show.ids.slug, true);
                         return true;
                     }
                 }

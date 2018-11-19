@@ -1068,24 +1068,7 @@ namespace Shoko.Server
             logger.Info(aids);
         }
 
-        private void SendToAzureXML()
-        {
-            DateTime dt = DateTime.Now.AddYears(-2);
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.Instance.AniDB_Anime.GetAll();
 
-            int sentAnime = 0;
-            foreach (SVR_AniDB_Anime anime in allAnime)
-            {
-                if (!anime.EndDate.HasValue) continue;
-
-                if (anime.EndDate.Value > dt) continue;
-
-                sentAnime++;
-                CommandQueue.Queue.Instance.Add(new CmdWebCacheSendAnimeXML(anime.AnimeID));
-            }
-
-            logger.Info($"Sent Anime XML to Cache: {sentAnime} out of {allAnime.Count}");
-        }
 
         private void SendToAzure()
         {
@@ -1243,30 +1226,13 @@ namespace Shoko.Server
             autoUpdateTimerShort.Enabled = false;
             //ShokoService.CmdProcessorImages.NotifyOfNewCommand();
 
-            CheckForAdminMesages();
-
+       
 
             autoUpdateTimerShort.Interval = 30 * 1000; // 30 seconds
             autoUpdateTimerShort.Enabled = true;
         }
 
-        private void CheckForAdminMesages()
-        {
-            try
-            {
-                TimeSpan lastUpdate = DateTime.Now - lastAdminMessage;
 
-                if (lastUpdate.TotalHours > 5)
-                {
-                    lastAdminMessage = DateTime.Now;
-                    ServerInfo.Instance.RefreshAdminMessages();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
 #region Tray Minimize
 

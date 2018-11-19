@@ -5,6 +5,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.ReaderWriterLockExtensions;
 using Shoko.Server.Repositories.Cache;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Repos
 {
@@ -67,7 +68,7 @@ namespace Shoko.Server.Repositories.Repos
         {
             if (animeIds == null)
                 return new Dictionary<int, List<MovieDB_Fanart>>();
-            ILookup<int, CrossRef_AniDB_Other> crosses = Repo.Instance.CrossRef_AniDB_Other.GetByAnimeIDsAndType(animeIds.ToList(), CrossRefType.MovieDB);
+            ILookup<int, SVR_CrossRef_AniDB_Provider> crosses = Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDsAndType(animeIds.ToList(), CrossRefType.MovieDB);
             List<int> movids = crosses.SelectMany(a => a).Distinct().Select(s => s.CrossRefID).Select(int.Parse).ToList();
             Dictionary<int, List<MovieDB_Fanart>> images = GetByMoviesIds(movids);
             return crosses.ToDictionary(a => a.Key, a => a.SelectMany(b => images.ContainsKey(int.Parse(b.CrossRefID)) ? images[int.Parse(b.CrossRefID)] : new List<MovieDB_Fanart>()).ToList());

@@ -117,7 +117,7 @@ namespace Shoko.Server
                 contract.AniDB_DiscussURL = string.Format(Constants.URLS.AniDB_SeriesDiscussion, animeID);
 
                 // MAL
-                List<CrossRef_AniDB_Provider> malRef = anime.GetCrossRefMAL();
+                List<SVR_CrossRef_AniDB_Provider> malRef = anime.GetCrossRefMAL();
                 if (malRef != null && malRef.Count > 0)
                 {
                     contract.MAL_ID = malRef[0].CrossRefID;
@@ -127,19 +127,19 @@ namespace Shoko.Server
                 }
 
                 // TvDB
-                List<CrossRef_AniDB_TvDB> tvdbRef = anime.GetCrossRefTvDB();
+                List<SVR_CrossRef_AniDB_Provider> tvdbRef = anime.GetCrossRefTvDB();
                 if (tvdbRef != null && tvdbRef.Count > 0)
                 {
-                    contract.TvDB_ID = tvdbRef[0].TvDBID.ToString();
-                    contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef[0].TvDBID);
+                    contract.TvDB_ID = tvdbRef[0].CrossRefID;
+                    contract.TvDB_URL = string.Format(Constants.URLS.TvDB_Series, tvdbRef[0].CrossRefID);
                 }
 
                 // Trakt
-                List<CrossRef_AniDB_TraktV2> traktRef = anime.GetCrossRefTraktV2();
+                List<SVR_CrossRef_AniDB_Provider> traktRef = anime.GetCrossRefTraktV2();
                 if (traktRef != null && traktRef.Count > 0)
                 {
-                    contract.Trakt_ID = traktRef[0].TraktID;
-                    contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef[0].TraktID);
+                    contract.Trakt_ID = traktRef[0].CrossRefID;
+                    contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef[0].CrossRefID);
                 }
             }
             catch (Exception ex)
@@ -847,10 +847,13 @@ namespace Shoko.Server
         [NonAction]
         public static void SetTvDBInfo(TvDBSummary tvSummary, AniDB_Episode ep, ref Metro_Anime_Episode contract)
         {
-            var override_link = Repo.Instance.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(ep.EpisodeID);
-            if (override_link.Any(a => a != null))
+            List<SVR_CrossRef_AniDB_Provider> provs=Repo.Instance.CrossRef_AniDB_Provider.GetByAnimeIDAndType(ep.AnimeID, CrossRefType.TvDB);
+
+
+            var override_link = provs.SelectMany(a=>a.EpisodesOverride).FirstOrDefault(a => a.AniDBEpisodeID==ep.EpisodeID);
+            if (override_link!=null)
             {
-                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(override_link.FirstOrDefault().TvDBEpisodeID);
+                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(int.Parse(override_link.ProviderEpisodeID));
                 contract.EpisodeName = tvep.EpisodeName;
                 contract.EpisodeOverview = tvep.Overview;
                 contract.ImageID = tvep.Id;
@@ -858,10 +861,10 @@ namespace Shoko.Server
                 return;
             }
 
-            var link = Repo.Instance.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(ep.EpisodeID);
-            if (link.Any(a => a != null))
+            var link = provs.SelectMany(a => a.Episodes).FirstOrDefault(a => a.AniDBEpisodeID == ep.EpisodeID);
+            if (link!=null)
             {
-                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(link.FirstOrDefault().TvDBEpisodeID);
+                var tvep = Repo.Instance.TvDB_Episode.GetByTvDBID(int.Parse(link.ProviderEpisodeID));
                 contract.EpisodeName = tvep.EpisodeName;
                 contract.EpisodeOverview = tvep.Overview;
                 contract.ImageID = tvep.Id;

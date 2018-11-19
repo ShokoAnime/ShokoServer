@@ -1933,14 +1933,14 @@ namespace Shoko.Server.Settings.Migration
 
                 // Web Cache
                 WebCache_Address = WebCache_Address,
-                WebCache_Anonymous = WebCache_Anonymous,
+             
                 WebCache_XRefFileEpisode_Get = WebCache_XRefFileEpisode_Get,
                 WebCache_XRefFileEpisode_Send = WebCache_XRefFileEpisode_Send,
                 WebCache_TvDB_Get = WebCache_TvDB_Get,
                 WebCache_TvDB_Send = WebCache_TvDB_Send,
                 WebCache_Trakt_Get = WebCache_Trakt_Get,
                 WebCache_Trakt_Send = WebCache_Trakt_Send,
-                WebCache_UserInfo = WebCache_UserInfo,
+          
 
                 // TvDB
                 TvDB_AutoLink = TvDB_AutoLink,
