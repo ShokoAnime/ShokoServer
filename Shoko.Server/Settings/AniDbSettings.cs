@@ -1,12 +1,16 @@
+using System.ComponentModel.DataAnnotations;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings
 {
     public class AniDbSettings
     {
+        [Required(AllowEmptyStrings = false)]
         public string Username { get; set; }
+        [Required(AllowEmptyStrings = false)]
         public string Password { get; set; }
 
+        [Required(AllowEmptyStrings = false)]
         public string ServerAddress { get; set; } = "api.anidb.info";
 
         public ushort ServerPort { get; set; } = 9000;
@@ -52,6 +56,7 @@ namespace Shoko.Server.Settings
 
         public bool DownloadCreators { get; set; } = true;
 
+        [Range(0, 5, ErrorMessage = "Max Relation Depth may only be between 0 and 5")]
         public int MaxRelationDepth { get; set; } = 3;
 
     }

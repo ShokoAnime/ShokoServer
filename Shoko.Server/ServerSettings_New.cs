@@ -11,6 +11,7 @@ using Shoko.Server.Settings;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -23,7 +24,7 @@ namespace Shoko.Server
     public class ServerSettings
     {
         private const string SettingsFilename = "settings-server.json";
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         //in this way, we could host two ShokoServers int the same machine
         [JsonIgnore]
@@ -49,6 +50,7 @@ namespace Shoko.Server
 
         public ushort ServerPort { get; set; } = 8111;
 
+        [Range(0, 1, ErrorMessage = "PluginAutoWatchThreshold must be between 0 and 1")]
         public double PluginAutoWatchThreshold { get; set; } = 0.89;
 
         public string Culture { get; set; } = "en";
@@ -155,11 +157,7 @@ namespace Shoko.Server
             var path = Path.Combine(ApplicationPath, SettingsFilename);
             if (!File.Exists(path))
             {
-                var oldPath = Path.Combine(ApplicationPath, "settings.json");
-                if (File.Exists(Path.Combine(ApplicationPath, "settings.json"))) 
-                    Instance = LoadLegacySettings();
-                else
-                    Instance = new ServerSettings();
+                Instance = File.Exists(Path.Combine(ApplicationPath, "settings.json")) ? LoadLegacySettings() : new ServerSettings();
                 Instance.SaveSettings();
                 return;
             }
@@ -168,7 +166,7 @@ namespace Shoko.Server
 
         private static ServerSettings LoadLegacySettings()
         {
-            ServerSettings_Legacy.LoadSettings();
+            Legacy.LoadSettings();
             var settings = new ServerSettings()
             {
                 ImagesPath = Legacy.ImagesPath,
@@ -332,6 +330,14 @@ namespace Shoko.Server
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
             Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path));
+            var context = new ValidationContext(Instance, serviceProvider: null, items: null);
+            var results = new List<ValidationResult>();
+
+            if (!Validator.TryValidateObject(Instance, context, results))
+            {
+                results.ForEach(s => Logger.Error(s.ErrorMessage));
+                throw new ValidationException();
+            }
             if(delete) File.Delete(path);
         }
 
@@ -339,7 +345,16 @@ namespace Shoko.Server
         {
             string path = Path.Combine(ApplicationPath, SettingsFilename);
 
-            File.WriteAllText(path, JsonConvert.SerializeObject(Instance, Formatting.Indented, new StringEnumConverter() { AllowIntegerValues = true }));
+            var context = new ValidationContext(Instance, serviceProvider: null, items: null);
+            var results = new List<ValidationResult>();
+
+            if (!Validator.TryValidateObject(Instance, context, results))
+            {
+                results.ForEach(s => Logger.Error(s.ErrorMessage));
+                throw new ValidationException();
+            }
+
+            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented, new StringEnumConverter { AllowIntegerValues = true }));
         }
 
         public CL_ServerSettings ToContract()
@@ -453,17 +468,17 @@ namespace Shoko.Server
         {
             #region System Info
 
-            logger.Info("-------------------- SYSTEM INFO -----------------------");
+            Logger.Info("-------------------- SYSTEM INFO -----------------------");
 
             Assembly a = Assembly.GetEntryAssembly();
             try
             {
                 if (Utils.GetApplicationVersion(a) != null)
-                    logger.Info($"Shoko Server Version: v{Utils.GetApplicationVersion(a)}");
+                    Logger.Info($"Shoko Server Version: v{Utils.GetApplicationVersion(a)}");
             }
             catch (Exception ex)
             {
-                logger.Warn($"Error in log (server version lookup): {ex}");
+                Logger.Warn($"Error in log (server version lookup): {ex}");
             }
             /*
             try
@@ -477,7 +492,7 @@ namespace Shoko.Server
                 logger.Warn("Error in log (database version lookup: {0}", ex.Message);
             }
             */
-            logger.Info($"Operating System: {Utils.GetOSInfo()}");
+            Logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
             try
             {
@@ -494,7 +509,7 @@ namespace Shoko.Server
                     mediaInfoVersion =
                         $"MediaInfo DLL {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
                 }
-                logger.Info(mediaInfoVersion);
+                Logger.Info(mediaInfoVersion);
 
                 string hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
@@ -505,103 +520,103 @@ namespace Shoko.Server
 
                 if (File.Exists(fullHasherexepath))
                     hasherInfoVersion = $"Hasher DLL found at {fullHasherexepath}";
-                logger.Info(hasherInfoVersion);
+                Logger.Info(hasherInfoVersion);
             }
             catch (Exception ex)
             {
-                logger.Error("Error in log (hasher / info): {0}", ex.Message);
+                Logger.Error("Error in log (hasher / info): {0}", ex.Message);
             }
 
-            logger.Info("-------------------------------------------------------");
+            Logger.Info("-------------------------------------------------------");
 
             #endregion
 
-            logger.Info("----------------- SERVER SETTINGS ----------------------");
+            Logger.Info("----------------- SERVER SETTINGS ----------------------");
 
-            logger.Info("DatabaseType: {0}", Database.Type);
-            logger.Info("MSSQL DatabaseServer: {0}", Database.Hostname);
-            logger.Info("MSSQL DatabaseName: {0}", Database.Schema);
-            logger.Info("MSSQL DatabaseUsername: {0}",
+            Logger.Info("DatabaseType: {0}", Database.Type);
+            Logger.Info("MSSQL DatabaseServer: {0}", Database.Hostname);
+            Logger.Info("MSSQL DatabaseName: {0}", Database.Schema);
+            Logger.Info("MSSQL DatabaseUsername: {0}",
                 string.IsNullOrEmpty(Database.Username) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("MSSQL DatabasePassword: {0}",
+            Logger.Info("MSSQL DatabasePassword: {0}",
                 string.IsNullOrEmpty(Database.Password) ? "NOT SET" : "***HIDDEN***");
 
-            logger.Info("SQLITE DatabaseFile: {0}", Database.SQLite_DatabaseFile);
+            Logger.Info("SQLITE DatabaseFile: {0}", Database.SQLite_DatabaseFile);
 
-            logger.Info("MySQL_Hostname: {0}", Database.Hostname);
-            logger.Info("MySQL_SchemaName: {0}", Database.Schema);
-            logger.Info("MySQL_Username: {0}", string.IsNullOrEmpty(Database.Username) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("MySQL_Password: {0}", string.IsNullOrEmpty(Database.Password) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("MySQL_Hostname: {0}", Database.Hostname);
+            Logger.Info("MySQL_SchemaName: {0}", Database.Schema);
+            Logger.Info("MySQL_Username: {0}", string.IsNullOrEmpty(Database.Username) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("MySQL_Password: {0}", string.IsNullOrEmpty(Database.Password) ? "NOT SET" : "***HIDDEN***");
 
-            logger.Info("AniDB_Username: {0}", string.IsNullOrEmpty(AniDb.Username) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_Password: {0}", string.IsNullOrEmpty(AniDb.Password) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_ServerAddress: {0}", AniDb.ServerAddress);
-            logger.Info("AniDB_ServerPort: {0}", AniDb.ServerPort);
-            logger.Info("AniDB_ClientPort: {0}", AniDb.ClientPort);
-            logger.Info("AniDB_AVDumpKey: {0}", string.IsNullOrEmpty(AniDb.AVDumpKey) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("AniDB_AVDumpClientPort: {0}", AniDb.AVDumpClientPort);
-            logger.Info("AniDB_DownloadRelatedAnime: {0}", AniDb.DownloadRelatedAnime);
-            logger.Info("AniDB_DownloadSimilarAnime: {0}", AniDb.DownloadSimilarAnime);
-            logger.Info("AniDB_DownloadReviews: {0}", AniDb.DownloadReviews);
-            logger.Info("AniDB_DownloadReleaseGroups: {0}", AniDb.DownloadReleaseGroups);
-            logger.Info("AniDB_MyList_AddFiles: {0}", AniDb.MyList_AddFiles);
-            logger.Info("AniDB_MyList_StorageState: {0}", AniDb.MyList_StorageState);
-            logger.Info("AniDB_MyList_ReadUnwatched: {0}", AniDb.MyList_ReadUnwatched);
-            logger.Info("AniDB_MyList_ReadWatched: {0}", AniDb.MyList_ReadWatched);
-            logger.Info("AniDB_MyList_SetWatched: {0}", AniDb.MyList_SetWatched);
-            logger.Info("AniDB_MyList_SetUnwatched: {0}", AniDb.MyList_SetUnwatched);
-            logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDb.MyList_UpdateFrequency);
-            logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDb.Calendar_UpdateFrequency);
-            logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDb.Anime_UpdateFrequency);
-            logger.Info($"{nameof(AniDb.MaxRelationDepth)}: {AniDb.MaxRelationDepth}");
+            Logger.Info("AniDB_Username: {0}", string.IsNullOrEmpty(AniDb.Username) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("AniDB_Password: {0}", string.IsNullOrEmpty(AniDb.Password) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("AniDB_ServerAddress: {0}", AniDb.ServerAddress);
+            Logger.Info("AniDB_ServerPort: {0}", AniDb.ServerPort);
+            Logger.Info("AniDB_ClientPort: {0}", AniDb.ClientPort);
+            Logger.Info("AniDB_AVDumpKey: {0}", string.IsNullOrEmpty(AniDb.AVDumpKey) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("AniDB_AVDumpClientPort: {0}", AniDb.AVDumpClientPort);
+            Logger.Info("AniDB_DownloadRelatedAnime: {0}", AniDb.DownloadRelatedAnime);
+            Logger.Info("AniDB_DownloadSimilarAnime: {0}", AniDb.DownloadSimilarAnime);
+            Logger.Info("AniDB_DownloadReviews: {0}", AniDb.DownloadReviews);
+            Logger.Info("AniDB_DownloadReleaseGroups: {0}", AniDb.DownloadReleaseGroups);
+            Logger.Info("AniDB_MyList_AddFiles: {0}", AniDb.MyList_AddFiles);
+            Logger.Info("AniDB_MyList_StorageState: {0}", AniDb.MyList_StorageState);
+            Logger.Info("AniDB_MyList_ReadUnwatched: {0}", AniDb.MyList_ReadUnwatched);
+            Logger.Info("AniDB_MyList_ReadWatched: {0}", AniDb.MyList_ReadWatched);
+            Logger.Info("AniDB_MyList_SetWatched: {0}", AniDb.MyList_SetWatched);
+            Logger.Info("AniDB_MyList_SetUnwatched: {0}", AniDb.MyList_SetUnwatched);
+            Logger.Info("AniDB_MyList_UpdateFrequency: {0}", AniDb.MyList_UpdateFrequency);
+            Logger.Info("AniDB_Calendar_UpdateFrequency: {0}", AniDb.Calendar_UpdateFrequency);
+            Logger.Info("AniDB_Anime_UpdateFrequency: {0}", AniDb.Anime_UpdateFrequency);
+            Logger.Info($"{nameof(AniDb.MaxRelationDepth)}: {AniDb.MaxRelationDepth}");
 
-            logger.Info("WebCache_Address: {0}", WebCache.Address);
-            logger.Info("WebCache_Anonymous: {0}", WebCache.Anonymous);
-            logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache.XRefFileEpisode_Get);
-            logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache.XRefFileEpisode_Send);
-            logger.Info("WebCache_TvDB_Get: {0}", WebCache.TvDB_Get);
-            logger.Info("WebCache_TvDB_Send: {0}", WebCache.TvDB_Send);
+            Logger.Info("WebCache_Address: {0}", WebCache.Address);
+            Logger.Info("WebCache_Anonymous: {0}", WebCache.Anonymous);
+            Logger.Info("WebCache_XRefFileEpisode_Get: {0}", WebCache.XRefFileEpisode_Get);
+            Logger.Info("WebCache_XRefFileEpisode_Send: {0}", WebCache.XRefFileEpisode_Send);
+            Logger.Info("WebCache_TvDB_Get: {0}", WebCache.TvDB_Get);
+            Logger.Info("WebCache_TvDB_Send: {0}", WebCache.TvDB_Send);
 
-            logger.Info("TvDB_AutoFanart: {0}", TvDB.AutoFanart);
-            logger.Info("TvDB_AutoFanartAmount: {0}", TvDB.AutoFanartAmount);
-            logger.Info("TvDB_AutoWideBanners: {0}", TvDB.AutoWideBanners);
-            logger.Info("TvDB_AutoPosters: {0}", TvDB.AutoPosters);
-            logger.Info("TvDB_UpdateFrequency: {0}", TvDB.UpdateFrequency);
-            logger.Info("TvDB_Language: {0}", TvDB.Language);
+            Logger.Info("TvDB_AutoFanart: {0}", TvDB.AutoFanart);
+            Logger.Info("TvDB_AutoFanartAmount: {0}", TvDB.AutoFanartAmount);
+            Logger.Info("TvDB_AutoWideBanners: {0}", TvDB.AutoWideBanners);
+            Logger.Info("TvDB_AutoPosters: {0}", TvDB.AutoPosters);
+            Logger.Info("TvDB_UpdateFrequency: {0}", TvDB.UpdateFrequency);
+            Logger.Info("TvDB_Language: {0}", TvDB.Language);
 
-            logger.Info("MovieDB_AutoFanart: {0}", MovieDb.AutoFanart);
-            logger.Info("MovieDB_AutoFanartAmount: {0}", MovieDb.AutoFanartAmount);
-            logger.Info("MovieDB_AutoPosters: {0}", MovieDb.AutoPosters);
+            Logger.Info("MovieDB_AutoFanart: {0}", MovieDb.AutoFanart);
+            Logger.Info("MovieDB_AutoFanartAmount: {0}", MovieDb.AutoFanartAmount);
+            Logger.Info("MovieDB_AutoPosters: {0}", MovieDb.AutoPosters);
 
-            logger.Info("VideoExtensions: {0}", Import.VideoExtensions);
-            logger.Info("DefaultSeriesLanguage: {0}", Import.DefaultSeriesLanguage);
-            logger.Info("DefaultEpisodeLanguage: {0}", Import.DefaultEpisodeLanguage);
-            logger.Info("RunImportOnStart: {0}", Import.RunOnStart);
-            logger.Info("Hash_CRC32: {0}", Import.Hash_CRC32);
-            logger.Info("Hash_MD5: {0}", Import.Hash_MD5);
-            logger.Info("Hash_SHA1: {0}", Import.Hash_SHA1);
-            logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import.UseExistingFileWatchedStatus);
+            Logger.Info("VideoExtensions: {0}", Import.VideoExtensions);
+            Logger.Info("DefaultSeriesLanguage: {0}", Import.DefaultSeriesLanguage);
+            Logger.Info("DefaultEpisodeLanguage: {0}", Import.DefaultEpisodeLanguage);
+            Logger.Info("RunImportOnStart: {0}", Import.RunOnStart);
+            Logger.Info("Hash_CRC32: {0}", Import.Hash_CRC32);
+            Logger.Info("Hash_MD5: {0}", Import.Hash_MD5);
+            Logger.Info("Hash_SHA1: {0}", Import.Hash_SHA1);
+            Logger.Info("Import_UseExistingFileWatchedStatus: {0}", Import.UseExistingFileWatchedStatus);
 
-            logger.Info("Trakt_IsEnabled: {0}", TraktTv.Enabled);
-            logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(TraktTv.AuthToken) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("Trakt_RefreshToken: {0}",
+            Logger.Info("Trakt_IsEnabled: {0}", TraktTv.Enabled);
+            Logger.Info("Trakt_AuthToken: {0}", string.IsNullOrEmpty(TraktTv.AuthToken) ? "NOT SET" : "***HIDDEN***");
+            Logger.Info("Trakt_RefreshToken: {0}",
                 string.IsNullOrEmpty(TraktTv.RefreshToken) ? "NOT SET" : "***HIDDEN***");
-            logger.Info("Trakt_UpdateFrequency: {0}", TraktTv.UpdateFrequency);
-            logger.Info("Trakt_SyncFrequency: {0}", TraktTv.SyncFrequency);
+            Logger.Info("Trakt_UpdateFrequency: {0}", TraktTv.UpdateFrequency);
+            Logger.Info("Trakt_SyncFrequency: {0}", TraktTv.SyncFrequency);
 
-            logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
-            logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
-            logger.Info("FileQualityFilterEnabled: {0}", FileQualityFilterEnabled);
-            logger.Info("FileQualityFilterPreferences: {0}", FileQualityFilterPreferences);
-            logger.Info("LanguagePreference: {0}", LanguagePreference);
-            logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
-            logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
-            logger.Info("SeriesDescriptionSource: {0}", SeriesDescriptionSource);
-            logger.Info("SeriesNameSource: {0}", SeriesNameSource);
-            logger.Info("BaseImagesPath: {0}", BaseImagesPath);
-            logger.Info("BaseImagesPathIsDefault: {0}", BaseImagesPathIsDefault);
+            Logger.Info("AutoGroupSeries: {0}", AutoGroupSeries);
+            Logger.Info("AutoGroupSeriesRelationExclusions: {0}", AutoGroupSeriesRelationExclusions);
+            Logger.Info("FileQualityFilterEnabled: {0}", FileQualityFilterEnabled);
+            Logger.Info("FileQualityFilterPreferences: {0}", FileQualityFilterPreferences);
+            Logger.Info("LanguagePreference: {0}", LanguagePreference);
+            Logger.Info("LanguageUseSynonyms: {0}", LanguageUseSynonyms);
+            Logger.Info("EpisodeTitleSource: {0}", EpisodeTitleSource);
+            Logger.Info("SeriesDescriptionSource: {0}", SeriesDescriptionSource);
+            Logger.Info("SeriesNameSource: {0}", SeriesNameSource);
+            Logger.Info("BaseImagesPath: {0}", BaseImagesPath);
+            Logger.Info("BaseImagesPathIsDefault: {0}", BaseImagesPathIsDefault);
 
-            logger.Info("-------------------------------------------------------");
+            Logger.Info("-------------------------------------------------------");
         }
 
         public static event EventHandler<ReasonedEventArgs> ServerShutdown;
