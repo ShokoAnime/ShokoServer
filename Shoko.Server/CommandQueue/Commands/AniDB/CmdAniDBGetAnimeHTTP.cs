@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
@@ -25,7 +27,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 2;
         public string Id => $"GetAnimeHTTP_{AnimeID}";
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBHttpBan) };
         public CmdAniDBGetAnimeHTTP(int animeid, bool forced, bool downloadRelations, int relationDepth = 0)
         {
 

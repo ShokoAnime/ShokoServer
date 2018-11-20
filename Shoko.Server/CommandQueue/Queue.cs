@@ -37,10 +37,16 @@ namespace Shoko.Server.CommandQueue
 
         public ICommandProvider Provider { get; set; }= Repo.Instance.CommandRequest;
 
-        private Dictionary<IPrecondition,string> _genericPreconditions = new Dictionary<IPrecondition,string>();
+        private Dictionary<IPrecondition, PreConditionState> _genericPreconditions = new Dictionary<IPrecondition, PreConditionState>();
 
         public bool Running { get; private set; }
 
+        internal class PreConditionState
+        {
+            public string Name { get; set; }
+            public bool CanExecute { get; set; }
+            public DateTime CheckTime { get; set; }
+        }
         public Queue()
         {
             foreach (Type t in Resolver.Instance.GenericPreconditionToString.Keys)
@@ -51,7 +57,7 @@ namespace Shoko.Server.CommandQueue
                 IPrecondition prec = (IPrecondition) ctor.Invoke(new object[0]);
                 if (prec==null)
                     continue;
-                _genericPreconditions.Add(prec, Resolver.Instance.GenericPreconditionToString[t]);
+                _genericPreconditions.Add(prec, new PreConditionState{Name=Resolver.Instance.GenericPreconditionToString[t], CanExecute = true, CheckTime = DateTime.Now});
             }
         }
         public void Start()
@@ -219,15 +225,18 @@ namespace Shoko.Server.CommandQueue
                 Dictionary<string, int> usedtags = new Dictionary<string, int>();
                 List<string> batchlimits;
                 List<string> workLimits;
-                List<string> preconditionLimits=new List<string>();
 
                 int count;
                 //Execute Generic preconditions
                 foreach (IPrecondition p in _genericPreconditions.Keys)
                 {
-                    var res = p.CanExecute();
-                    if (!res.CanRun)
-                        preconditionLimits.Add(_genericPreconditions[p]);
+                    PreConditionState state = _genericPreconditions[p];
+                    if (state.CheckTime < DateTime.Now)
+                    {
+                        var res = p.CanExecute();
+                        state.CheckTime = DateTime.Now.Add(res.RetryIn);
+                        state.CanExecute = res.CanRun;
+                    }
                 }
                 using (await _lock.LockAsync(token))
                 {
@@ -254,7 +263,7 @@ namespace Shoko.Server.CommandQueue
                 bool nowork = false;
                 if (count > 0)
                 {
-                    List<ICommand> cmds = Provider.Get(count, usedtags, batchlimits, workLimits,preconditionLimits);
+                    List<ICommand> cmds = Provider.Get(count, usedtags, batchlimits, workLimits, _genericPreconditions.Values.Where(a => !a.CanExecute).Select(a => a.Name).ToList());
                     nowork = cmds.Count == 0;
                     foreach (ICommand c in cmds)
                     {

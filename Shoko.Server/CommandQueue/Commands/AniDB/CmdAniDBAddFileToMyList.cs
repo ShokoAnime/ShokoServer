@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.CommandQueue.Commands.Trakt;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -26,6 +27,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string ParallelTag { get; set; } = WorkTypes.AniDB;
         public int ParallelMax { get; set; } = 1;
 
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public CmdAniDBAddFileToMyList(SVR_VideoLocal vlocal, bool readstates=true)
         {
             VideoLocal = vlocal;

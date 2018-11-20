@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
@@ -23,7 +25,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string WorkType => WorkTypes.AniDB;
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.VoteAnime, ExtraParams = new[] {AnimeID.ToString(), VoteValue.ToString(CultureInfo.InvariantCulture), VoteType.ToString()}};
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
 
         public CmdAniDBVoteAnime(string str) : base(str)
         {

@@ -8,6 +8,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.WebCache;
 using Shoko.Server.CommandQueue.Commands.AniDB;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Import;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Raws;
@@ -20,6 +21,10 @@ namespace Shoko.Server.CommandQueue.Commands.Server
     public class CmdServerProcessFile : BaseCommand, ICommand
     {
         private readonly SVR_VideoLocal vidLocal;
+
+
+        //Process File uses, AniDBUDP and AniDBHTTP
+        public override List<Type> GenericPreconditions => new List<Type> {typeof(AniDBHttpBan), typeof(AniDBUDPBan)};
 
         public CmdServerProcessFile(string str) : base(str)
         {
@@ -103,7 +108,8 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                                 fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                                 if (fileInfo != null)
                                     upd.Entity.Populate_RA(fileInfo);
-                                else skip = true;
+                                else
+                                    skip = true;
                             }
 
                             if (!skip)

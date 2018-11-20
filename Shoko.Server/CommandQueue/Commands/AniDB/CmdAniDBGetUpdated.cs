@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -28,7 +29,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int Priority { get; set; } = 4;
         public string Id => "GetUpdated";
         public string WorkType => WorkTypes.AniDB;
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBHttpBan), typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetUpdatedAnime, ExtraParams = new [] { ForceRefresh.ToString()}};
 
         public override void Run(IProgress<ICommand> progress = null)

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
@@ -19,7 +21,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 10;
         public string Id => $"DeleteFileFromMyList_{Hash}_{MyListID}";
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public CmdAniDBDeleteFileFromMyList(string hash, long filesize)
         {
             Hash = hash;

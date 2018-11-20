@@ -5,6 +5,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
@@ -24,7 +25,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int Priority { get; set; } = 5;
         public string Id => $"GetReleaseGroupStatus_{AnimeID}";
         public string WorkType => WorkTypes.AniDB;
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             QueueState = QueueStateEnum.GetReleaseGroup,

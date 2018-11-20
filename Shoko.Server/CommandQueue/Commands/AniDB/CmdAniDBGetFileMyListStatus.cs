@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
 {
@@ -14,7 +16,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int ParallelMax { get; set; } = 1;
         public int Priority { get; set; } = 6;
         public string Id => $"GetFileMyListStatus_{AniFileID}";
-
+        public override List<Type> GenericPreconditions => new List<Type> {  typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             QueueState = QueueStateEnum.AniDB_MyListGetFile,

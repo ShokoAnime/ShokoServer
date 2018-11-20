@@ -54,6 +54,10 @@ namespace Shoko.Server.Providers.AniDB
         private bool _isHttpBanned;
         private bool _isUdpBanned;
 
+        public TimeSpan UdpBanRetryTime => UdpBanTime.Value.AddMilliseconds(udpBanResetTimer.Interval).Subtract(DateTime.Now);
+
+        public TimeSpan HttpBanRetryTime => HttpBanTime.Value.AddMilliseconds(httpBanResetTimer.Interval).Subtract(DateTime.Now);
+
         public bool IsHttpBanned
         {
             get => _isHttpBanned;

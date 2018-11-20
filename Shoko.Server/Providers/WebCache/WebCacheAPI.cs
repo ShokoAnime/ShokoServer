@@ -338,5 +338,19 @@ namespace Shoko.Server.Providers.WebCache
                 cclient.AddFileEpisodeBatch(token, episode);
             });
         }
+        public bool Ban(int anidbuserid, string reason, int hours)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.Ban(token, new WebCache_Ban  {AniDBUserId = anidbuserid, Reason=reason, Hours = hours});
+            });
+        }
+        public bool SetRole(int anidbuserid, WebCache_RoleType rt)
+        {
+            return WrapAuthentication((token) =>
+            {
+                cclient.SetRole(token, anidbuserid, (int)rt);
+            });
+        }
     }
 }

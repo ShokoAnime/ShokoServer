@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -18,7 +20,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int Priority { get; set; } = 7;
         public string Id => "UpdateMyListStats";
         public string WorkType => WorkTypes.AniDB;
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             QueueState = QueueStateEnum.UpdateMyListStats,

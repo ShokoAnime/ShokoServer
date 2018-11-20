@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.CommandQueue.Commands.AniDB
@@ -21,7 +23,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetReleaseInfo, ExtraParams = new[] {GroupID.ToString(), ForceRefresh.ToString()}};
 
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
 
         public CmdAniDBGetReleaseGroup(string str) : base(str)
         {

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Raws;
 using Shoko.Server.Repositories;
@@ -20,7 +22,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public string Id => $"GetFile_{VideoLocalID}";
         public string WorkType => WorkTypes.AniDB;
         public string ParallelTag { get; set; } = WorkTypes.AniDB;
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct {QueueState = QueueStateEnum.GetFileInfo, ExtraParams = new[] { VideoLocalID.ToString(),vlocal != null ? vlocal.Info : VideoLocalID.ToString(), ForceAniDB.ToString() } };
 
         public CmdAniDBGetFile(string str) : base(str)

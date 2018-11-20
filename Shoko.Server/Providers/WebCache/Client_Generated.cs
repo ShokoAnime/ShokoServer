@@ -45,20 +45,20 @@ namespace Shoko.Server.Providers.WebCache
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
     
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task TokenAsync(string code, string state, string encoded)
+        public System.Threading.Tasks.Task TokenAsync(string code, string state, string error, string encoded)
         {
-            return TokenAsync(code, state, encoded, System.Threading.CancellationToken.None);
+            return TokenAsync(code, state, error, encoded, System.Threading.CancellationToken.None);
         }
     
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
-        public void Token(string code, string state, string encoded)
+        public void Token(string code, string state, string error, string encoded)
         {
-            System.Threading.Tasks.Task.Run(async () => await TokenAsync(code, state, encoded, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
+            System.Threading.Tasks.Task.Run(async () => await TokenAsync(code, state, error, encoded, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
         }
     
         /// <exception cref="SwaggerException">A server side error occurred.</exception>
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        public async System.Threading.Tasks.Task TokenAsync(string code, string state, string encoded, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task TokenAsync(string code, string state, string error, string encoded, System.Threading.CancellationToken cancellationToken)
         {
             if (encoded == null)
                 throw new System.ArgumentNullException("encoded");
@@ -73,6 +73,10 @@ namespace Shoko.Server.Providers.WebCache
             if (state != null) 
             {
                 urlBuilder_.Append("state=").Append(System.Uri.EscapeDataString(ConvertToString(state, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
+            }
+            if (error != null) 
+            {
+                urlBuilder_.Append("error=").Append(System.Uri.EscapeDataString(ConvertToString(error, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
             }
             urlBuilder_.Length--;
     
@@ -105,12 +109,6 @@ namespace Shoko.Server.Providers.WebCache
                         {
                             var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
                             throw new SwaggerException("Bad Request", (int)response_.StatusCode, responseData_, headers_, null);
-                        }
-                        else
-                        if (status_ == "404") 
-                        {
-                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
-                            throw new SwaggerException("Not Found", (int)response_.StatusCode, responseData_, headers_, null);
                         }
                         else
                         if (status_ != "200" && status_ != "204")
@@ -211,6 +209,168 @@ namespace Shoko.Server.Providers.WebCache
                         }
             
                         return default(WebCache_SessionInfo);
+                    }
+                    finally
+                    {
+                        if (response_ != null)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+            }
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public System.Threading.Tasks.Task BanAsync(string token, WebCache_Ban ban)
+        {
+            return BanAsync(token, ban, System.Threading.CancellationToken.None);
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public void Ban(string token, WebCache_Ban ban)
+        {
+            System.Threading.Tasks.Task.Run(async () => await BanAsync(token, ban, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public async System.Threading.Tasks.Task BanAsync(string token, WebCache_Ban ban, System.Threading.CancellationToken cancellationToken)
+        {
+            if (token == null)
+                throw new System.ArgumentNullException("token");
+    
+            var urlBuilder_ = new System.Text.StringBuilder();
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/Auth/Ban/{token}");
+            urlBuilder_.Replace("{token}", System.Uri.EscapeDataString(ConvertToString(token, System.Globalization.CultureInfo.InvariantCulture)));
+    
+            var client_ = _httpClient;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var content_ = new System.Net.Http.StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(ban, _settings.Value));
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+    
+                    PrepareRequest(client_, request_, urlBuilder_);
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                    PrepareRequest(client_, request_, url_);
+    
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+    
+                        ProcessResponse(client_, response_);
+    
+                        var status_ = ((int)response_.StatusCode).ToString();
+                        if (status_ == "403") 
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            throw new SwaggerException("Forbidden", (int)response_.StatusCode, responseData_, headers_, null);
+                        }
+                        else
+                        if (status_ != "200" && status_ != "204")
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            throw new SwaggerException("The HTTP status code of the response was not expected (" + (int)response_.StatusCode + ").", (int)response_.StatusCode, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (response_ != null)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+            }
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public System.Threading.Tasks.Task SetRoleAsync(string token, int anidbuserid, int role)
+        {
+            return SetRoleAsync(token, anidbuserid, role, System.Threading.CancellationToken.None);
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        public void SetRole(string token, int anidbuserid, int role)
+        {
+            System.Threading.Tasks.Task.Run(async () => await SetRoleAsync(token, anidbuserid, role, System.Threading.CancellationToken.None)).GetAwaiter().GetResult();
+        }
+    
+        /// <exception cref="SwaggerException">A server side error occurred.</exception>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public async System.Threading.Tasks.Task SetRoleAsync(string token, int anidbuserid, int role, System.Threading.CancellationToken cancellationToken)
+        {
+            if (token == null)
+                throw new System.ArgumentNullException("token");
+    
+            if (anidbuserid == null)
+                throw new System.ArgumentNullException("anidbuserid");
+    
+            if (role == null)
+                throw new System.ArgumentNullException("role");
+    
+            var urlBuilder_ = new System.Text.StringBuilder();
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/Auth/SetRole/{token}/{anidbuserid}/{role}");
+            urlBuilder_.Replace("{token}", System.Uri.EscapeDataString(ConvertToString(token, System.Globalization.CultureInfo.InvariantCulture)));
+            urlBuilder_.Replace("{anidbuserid}", System.Uri.EscapeDataString(ConvertToString(anidbuserid, System.Globalization.CultureInfo.InvariantCulture)));
+            urlBuilder_.Replace("{role}", System.Uri.EscapeDataString(ConvertToString(role, System.Globalization.CultureInfo.InvariantCulture)));
+    
+            var client_ = _httpClient;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+    
+                    PrepareRequest(client_, request_, urlBuilder_);
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+                    PrepareRequest(client_, request_, url_);
+    
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        var headers_ = System.Linq.Enumerable.ToDictionary(response_.Headers, h_ => h_.Key, h_ => h_.Value);
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+    
+                        ProcessResponse(client_, response_);
+    
+                        var status_ = ((int)response_.StatusCode).ToString();
+                        if (status_ == "403") 
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            throw new SwaggerException("Forbidden", (int)response_.StatusCode, responseData_, headers_, null);
+                        }
+                        else
+                        if (status_ == "404") 
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            throw new SwaggerException("Not Found", (int)response_.StatusCode, responseData_, headers_, null);
+                        }
+                        else
+                        if (status_ != "200" && status_ != "204")
+                        {
+                            var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false); 
+                            throw new SwaggerException("The HTTP status code of the response was not expected (" + (int)response_.StatusCode + ").", (int)response_.StatusCode, responseData_, headers_, null);
+                        }
                     }
                     finally
                     {

@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
+using Shoko.Server.CommandQueue.Preconditions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -25,7 +26,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
         public int Priority { get; set; } = 6;
         public string Id => $"UpdateMyListFileStatus_{Hash}_{Guid.NewGuid().ToString()}";
         public string WorkType => WorkTypes.AniDB;
-
+        public override List<Type> GenericPreconditions => new List<Type> { typeof(AniDBUDPBan) };
         public QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             QueueState = QueueStateEnum.UpdateMyListInfo,
