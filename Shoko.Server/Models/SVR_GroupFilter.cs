@@ -55,7 +55,7 @@ namespace Shoko.Server.Models
                 if (_groupsId.Count == 0 && GroupsIdsVersion == GROUPFILTER_VERSION)
                 {
                     Dictionary<int, List<int>> vals =
-                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(GroupsIdsString);
+                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(GroupsIdsString ?? "");
                     if (vals != null)
                         _groupsId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
                 }
@@ -72,7 +72,7 @@ namespace Shoko.Server.Models
                 if (_seriesId.Count == 0 && SeriesIdsVersion == SERIEFILTER_VERSION)
                 {
                     Dictionary<int, List<int>> vals =
-                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(SeriesIdsString);
+                        JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(SeriesIdsString ?? "");
                     if (vals != null)
                         _seriesId = vals.ToDictionary(a => a.Key, a => new HashSet<int>(a.Value));
                 }

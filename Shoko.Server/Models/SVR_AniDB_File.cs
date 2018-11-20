@@ -388,7 +388,7 @@ namespace Shoko.Server.Models
 
             fileEps = new List<CrossRef_File_Episode>();
 
-            char apostrophe = "'".ToCharArray()[0];
+            char apostrophe = '\'';
             char epiSplit = ',';
             if (episodesRAW.Contains(apostrophe))
                 epiSplit = apostrophe;
@@ -422,7 +422,7 @@ namespace Shoko.Server.Models
             }
             fileEps = fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList();
             // There is a chance that AniDB returned a dup, however unlikely
-            Repo.Instance.CrossRef_File_Episode.BeginAdd(fileEps);
+            Repo.Instance.CrossRef_File_Episode.BeginAdd(fileEps).Commit();
         }
   
         public string ToXML()

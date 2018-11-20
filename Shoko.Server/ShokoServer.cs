@@ -36,6 +36,7 @@ using Shoko.Server.Import;
 using Shoko.Server.Models;
 
 using Shoko.Server.Native.Trinet.NTFS;
+using Shoko.Server.Providers.WebCache;
 using Shoko.Server.Providers.WebUpdates;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -765,11 +766,13 @@ namespace Shoko.Server
                 }
 
                 ServerState.Instance.DatabaseAvailable = true;
-
-                logger.Info("Initializing Session Factory...");
+                
 
                 Scanner.Instance.Init();
+                logger.Info("Logging into WebCache if needed...");
+                WebCacheAPI.Instance.RefreshToken();
 
+                logger.Info("Initializing Session Factory...");
 
                 //init session factory
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingSession;

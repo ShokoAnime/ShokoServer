@@ -30,7 +30,8 @@ namespace Shoko.Server.API.v2.Modules
     // ReSharper disable once UnusedMember.Global
     [Route("/api/init")]
     [ApiController]
-    public class Init : Controller
+    [ApiVersion("2.0")]
+    public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
         /// <inheritdoc />
@@ -227,6 +228,16 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
+        /// Gets whether anything is actively using the API
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("inuse")]
+        public bool ApiInUse()
+        {
+            return ServerState.Instance.ApiInUse;
+        }
+        
+        /// <summary>
         /// Gets the Default user's credentials. Will only return on first run
         /// </summary>
         /// <returns></returns>
@@ -270,7 +281,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("startserver")]
-        private ActionResult StartServer()
+        public ActionResult StartServer()
         {
             if (ServerState.Instance.ServerOnline) return APIStatus.BadRequest("Already Running");
             if (ServerState.Instance.ServerStarting) return APIStatus.BadRequest("Already Starting");
@@ -338,7 +349,7 @@ namespace Shoko.Server.API.v2.Modules
                 ServerSettings.Instance.AniDb.ServerAddress,
                 ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-            if (!ShokoService.AnidbProcessor.Login()) return APIStatus.Unauthorized();
+            if (!ShokoService.AnidbProcessor.Login()) return APIStatus.BadRequest("Failed to log in");
             ShokoService.AnidbProcessor.ForceLogout();
 
             return APIStatus.OK();
@@ -469,15 +480,12 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>200 if connection successful, 400 otherwise</returns>
         [HttpGet("database/test")]
-        public ActionResult TestDatabaseConnection()
+        public ActionResult<APIMessage> TestDatabaseConnection()
         {
             if (ServerState.Instance.ServerOnline || ServerState.Instance.ServerStarting)
                 return APIStatus.BadRequest("You may only do this before server init");
-            return APIStatus.NotImplemented(); //TODO: Needs to be redone for EFCore.
 
-            if (new Repositories.Repo().GetProvider().GetContext() != null)
-                return Ok();
-            return BadRequest("Failed to connect");
+            return new Repositories.Repo().GetProvider().GetContext() != null ? APIStatus.OK() : APIStatus.BadRequest("Failed to connect");
 
             //return APIStatus.BadRequest("Failed to Connect");
         }

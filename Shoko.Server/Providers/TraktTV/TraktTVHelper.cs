@@ -495,6 +495,8 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (!ServerSettings.Instance.TraktTv.Enabled) return;
 
+            Analytics.PostEvent("TraktTV", nameof(ScanForMatches));
+
             IReadOnlyList<SVR_AnimeSeries> allSeries = Repo.Instance.AnimeSeries.GetAll();
 
             List<int> alreadyLinked = Repo.Instance.CrossRef_AniDB_Provider.GetByType(CrossRefType.TraktTV).Select(a => a.AnimeID).Distinct().ToList();

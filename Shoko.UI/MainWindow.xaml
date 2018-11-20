@@ -970,6 +970,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -990,7 +991,9 @@
                                              HorizontalAlignment="Right" FontWeight="Bold"
                                              DisplayText="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Toolbar_Contribute}"
                                              URL="{Resx ResxName=Shoko.Commons.Properties.Resources, Key=Link_Contribute}" />
-
+                    <Image Height="16" Width="16" Source="/Images/16_green_button.png" Margin="10,0,5,0"
+                           Grid.Column="6"
+                           Visibility="{Binding Source={x:Static server:ServerState.Instance}, Path=ApiInUse, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
 
 

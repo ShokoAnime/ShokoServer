@@ -51,11 +51,11 @@ namespace Shoko.Server.Repositories
         public T GetByID(TS id)
         {
             using (RepoLock.ReaderLock())
-                return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => SelectKey(a).Equals(id));
+                return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => id.Equals(SelectKey(a)));
         }
         private T InternalGetByID(TS id)
         {
-            return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => SelectKey(a).Equals(id));
+            return IsCached ? Cache.Get(id) : Table.FirstOrDefault(a => id.Equals(SelectKey(a)));
         }
 
 
@@ -138,7 +138,7 @@ namespace Shoko.Server.Repositories
             {
                 if (IntAutoGen == -1)
                 {
-                    if (Table.Count() == 0) IntAutoGen = 0;
+                    if (!Table.Any()) IntAutoGen = 0;
                     else IntAutoGen = (int) Table.Max(a=>prop.GetValue(a,null));
                 }
                 IntAutoGen++;
@@ -177,12 +177,12 @@ namespace Shoko.Server.Repositories
             return true;
         }
 
-        public bool FindAndDelete(Func<List<T>> find_function, TT pars = default(TT))
+        public bool FindAndDelete(Func<IEnumerable<T>> find_function, TT pars = default(TT))
         {
             using (RepoLock.WriterLock())
             {
-                List<T> objs = find_function();
-                if (objs.Count==0)
+                IEnumerable<T> objs = find_function().Where(s => !(s is null));
+                if (!objs.Any())
                     return false;
                 Dictionary<T, object> savedobjects = new Dictionary<T, object>();
                 foreach (T e in objs)

@@ -1,7 +1,9 @@
 ﻿
+using System;
+
 namespace Shoko.Server.Repositories
 {
-    public class InitProgress
+    public class InitProgress : EventArgs
     {
         public string Title { get; set; }
         public int Step { get; set; }

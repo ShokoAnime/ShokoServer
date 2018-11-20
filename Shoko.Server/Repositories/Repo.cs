@@ -15,6 +15,9 @@ namespace Shoko.Server.Repositories
     {
         static Repo _instance;
         public static Repo Instance => _instance;
+        public static IProgress<InitProgress> ProgressMonitor { get; set; } = new DatabaseProgress();
+
+        public static event EventHandler<InitProgress> ProgressEvent;
 
         // DECLARE THESE IN ORDER OF DEPENDENCY
         public JMMUserRepository JMMUser { get; private set; }
@@ -280,18 +283,17 @@ namespace Shoko.Server.Repositories
 
         internal bool DoInit(IProgress<InitProgress> progress = null, int batchSize = 20)
         {
-            progress = new ProgressShit();
             _repos.ForEach(a => a.PreInit(progress, batchSize));
             _repos.ForEach(a => a.PostInit(progress, batchSize));
             return true;
         }
 
 
-        public class ProgressShit : IProgress<InitProgress>
+        public class DatabaseProgress : IProgress<InitProgress>
         {
             public void Report(InitProgress value)
             {
-                //noop
+                ProgressEvent?.Invoke(this, value);
             }
         }
     }

@@ -28,7 +28,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static void AddRange<K, V>(this Dictionary<K, V> dict, Dictionary<K, V> otherdict)
+        public static void AddRange<K, V>(this IDictionary<K, V> dict, IDictionary<K, V> otherdict)
         {
             if (dict == null || otherdict == null) return;
             otherdict.ForEach(a =>

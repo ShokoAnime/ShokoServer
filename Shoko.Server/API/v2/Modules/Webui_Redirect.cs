@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Shoko.Server.API.v2.Modules
 {
     [Route("/")]
-
+    [ApiVersionNeutral]
     public class Webui_Redirect : Controller
     {
         [HttpGet]

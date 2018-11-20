@@ -128,10 +128,11 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                     bool writeAccess = _importFolder.IsDropSource == 1;
 
                     // Wait 1 minute before giving up on trying to access the file
-                    while ((filesize = CanAccessFile(File.FullName, writeAccess)) == 0 && numAttempts < 60)
+                    // first only do read to not get in something's way
+                    while ((filesize = CanAccessFile(File.FullName, false)) == 0 && (numAttempts < 60))
                     {
                         numAttempts++;
-                        await Task.Delay(1000);
+                        Thread.Sleep(1000);
                         logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {File.FullName}");
                     }
 
@@ -143,16 +144,21 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                     }
 
                     // At least 1s between to ensure that size has the chance to change
-                    await Task.Delay(1000);
+                    // TODO make this a setting to allow fine tuning on various configs
+                    // TODO Make this able to be disabled. It adds 1.5s to hashing just waiting for the Linux/NAS use case
+                    int seconds = 8;
+                    int waitTime = seconds * 1000 / 2;
+                    Thread.Sleep(waitTime);
                     numAttempts = 0;
 
                     //For systems with no locking
-                    while (FileModified(File.FullName, 3, ref filesize, writeAccess) && numAttempts < 60)
+                    // TODO make this a setting as well
+                    while (FileModified(File.FullName, seconds, ref filesize, writeAccess) && numAttempts < 60)
                     {
                         numAttempts++;
-                        await Task.Delay(1000);
-                        // Only show if it's more than 3s past
-                        if (numAttempts > 3) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {File.FullName}");
+                        Thread.Sleep(waitTime);
+                        // Only show if it's more than 'seconds' past
+                        if (numAttempts != 0 && numAttempts * 2 % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {File.FullName}");
                     }
 
                     // if we failed to access the file, get ouuta here
@@ -473,10 +479,13 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
             try
             {
                 var lastWrite = System.IO.File.GetLastWriteTime(FileName);
+                var creation = System.IO.File.GetCreationTime(FileName);
                 var now = DateTime.Now;
                 // check that the size is also equal, since some copy utilities apply the previous modified date
                 var size = CanAccessFile(FileName, writeAccess);
-                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now || lastFileSize != size)
+                if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now ||
+                    creation <= now && creation.AddSeconds(Seconds) > now ||
+                    lastFileSize != size)
                 {
                     lastFileSize = size;
                     return true;

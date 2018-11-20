@@ -1,11 +1,10 @@
 ﻿using System;
-using System.IO;
-using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using NLog;
 using Shoko.Server.Settings;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace Shoko.Server.Providers.AniDB.Commands
 {
@@ -135,15 +134,14 @@ namespace Shoko.Server.Providers.AniDB.Commands
                         if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
                         {
                             //deflate
-                            Byte[] input = new byte[received - 2];
+                            var buff = new byte[65536];
+                            var input = new byte[received - 2];
                             Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
-                            MemoryStream mstream=new MemoryStream(input);
-                            MemoryStream output=new MemoryStream();
-                            mstream.Position = 0;
-                            DeflateStream stream = new DeflateStream(mstream, CompressionMode.Decompress);
-                            stream.CopyTo(output);
-                            byReceivedAdd = output.ToArray();
-                            received = (int) byReceivedAdd.Length;
+                            var inf = new Inflater(false);
+                            inf.SetInput(input);
+                            inf.Inflate(buff);
+                            byReceivedAdd = buff;
+                            received = (int)inf.TotalOut;
                         }
                     }
                     catch (SocketException sex)

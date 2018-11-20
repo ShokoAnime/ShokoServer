@@ -2,12 +2,12 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.API.Annotations;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController]
+    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
-    [Route("/apiv3/series")]
     public class SeriesController : BaseController
     {
         [HttpGet("{id}")]

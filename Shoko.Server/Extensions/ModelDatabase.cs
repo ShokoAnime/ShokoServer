@@ -52,7 +52,36 @@ namespace Shoko.Server.Extensions
                 upd.Entity.AnimeSeriesID = animeSeriesID;
                 existingEp = upd.Commit();
             }
-            Repo.Instance.AnimeEpisode_User.Touch(() => Repo.Instance.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
+            
+            // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
+            foreach (var videoLocal in existingEp.GetVideoLocals())
+            {
+                var videoLocalUsers = Repo.Instance.VideoLocal_User.GetByVideoLocalID(videoLocal.VideoLocalID);
+                if (videoLocalUsers.Count > 0)
+                {
+                    foreach (var videoLocalUser in videoLocalUsers)
+                    {
+                        using (var upd = Repo.Instance.AnimeEpisode_User.BeginAddOrUpdate(() =>
+                            Repo.Instance.AnimeEpisode_User.GetByUserIDAndEpisodeID(
+                                videoLocalUser.JMMUserID,
+                                existingEp.AnimeEpisodeID)))
+                        {
+                            upd.Entity.JMMUserID = videoLocalUser.JMMUserID;
+                            upd.Entity.WatchedDate = videoLocalUser.WatchedDate;
+                            upd.Entity.PlayedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0;
+                            upd.Entity.WatchedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0;
+                            upd.Entity.AnimeSeriesID = animeSeriesID;
+                            upd.Entity.AnimeEpisodeID = existingEp.AnimeEpisodeID;
+                            upd.Commit();
+                        }
+                    }
+                }
+                else
+                {
+                    // these will probably never exist, but if they do, cover our bases
+                    Repo.Instance.AnimeEpisode_User.Touch(() => Repo.Instance.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID));
+                }
+            }
         }
 
         public static MovieDB_Movie GetMovieDB_Movie(this SVR_CrossRef_AniDB_Provider cross)

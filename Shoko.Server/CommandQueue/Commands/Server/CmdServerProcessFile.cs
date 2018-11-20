@@ -97,9 +97,10 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => Repo.Instance.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vidLocal.FileSize)))
                         {
                             bool skip = false;
+                            Raw_AniDB_File fileInfo = null;
                             if (!upd.IsUpdate || ForceAniDB)
                             {
-                                Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                                fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                                 if (fileInfo != null)
                                     upd.Entity.Populate_RA(fileInfo);
                                 else skip = true;
@@ -111,11 +112,11 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                                 string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
                                 localFileName = !string.IsNullOrEmpty(localFileName) ? Path.GetFileName(localFileName) : vidLocal.Info;
                                 upd.Entity.FileName = localFileName;
-
+                                if (fileInfo != null)
+                                    upd.Entity.Populate_RA(fileInfo);
                                 aniFile = upd.Commit();
                                 aniFile.CreateLanguages();
                                 aniFile.CreateCrossEpisodes(localFileName);
-
                                 animeID = aniFile.AnimeID;
                             }
                         }
@@ -273,20 +274,23 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                         List<SVR_VideoLocal> videoLocals = aniFile?.EpisodeIDs?.SelectMany(a => Repo.Instance.VideoLocal.GetByAniDBEpisodeID(a)).Where(b => b != null).ToList();
                         if (videoLocals != null)
                         {
-                            // Copy over watched states
-                            foreach (var user in Repo.Instance.JMMUser.GetAll())
+                            if (ServerSettings.Instance.Import.UseExistingFileWatchedStatus)
                             {
-                                var watchedVideo = videoLocals.FirstOrDefault(a => a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
-                                // No files that are watched
-                                if (watchedVideo == null) continue;
-
-                                var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-
-                                using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(() => vidLocal.GetUserRecord(user.JMMUserID), () => new VideoLocal_User {JMMUserID = user.JMMUserID, VideoLocalID = vidLocal.VideoLocalID}))
+                                // Copy over watched states
+                                foreach (var user in Repo.Instance.JMMUser.GetAll())
                                 {
-                                    upd.Entity.WatchedDate = watchedRecord.WatchedDate;
-                                    upd.Entity.ResumePosition = watchedRecord.ResumePosition;
-                                    upd.Commit();
+                                    var watchedVideo = videoLocals.FirstOrDefault(a => a?.GetUserRecord(user.JMMUserID)?.WatchedDate != null);
+                                    // No files that are watched
+                                    if (watchedVideo == null) continue;
+
+                                    var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
+
+                                    using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(() => vidLocal.GetUserRecord(user.JMMUserID), () => new VideoLocal_User {JMMUserID = user.JMMUserID, VideoLocalID = vidLocal.VideoLocalID}))
+                                    {
+                                        upd.Entity.WatchedDate = watchedRecord.WatchedDate;
+                                        upd.Entity.ResumePosition = watchedRecord.ResumePosition;
+                                        upd.Commit();
+                                    }
                                 }
                             }
 

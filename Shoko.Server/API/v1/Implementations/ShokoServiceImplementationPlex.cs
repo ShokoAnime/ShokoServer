@@ -10,9 +10,7 @@ using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 
 namespace Shoko.Server.API.v1.Implementations
 {
-    [ApiController]
-    [Route("/api/Plex")]
-    [ApiExplorerSettings(IgnoreApi = true)]
+    [ApiController, Route("/api/Plex"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }

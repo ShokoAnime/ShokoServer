@@ -1896,6 +1896,24 @@ namespace Shoko.Server.Settings.Migration
             set { Set(nameof(TraceLog), value.ToString()); }
         }
 
+        public static Guid GA_ClientId
+        {
+            get
+            {
+                if (Guid.TryParse(Get(nameof(GA_ClientId)), out var val)) return val;
+                val = Guid.NewGuid();
+                Set(nameof(GA_ClientId), val.ToString());
+                return val;
+            }
+            set => Set(nameof(GA_ClientId), value.ToString());
+        }
+
+        public static bool GA_OptOutPlzDont
+        {
+            get => bool.TryParse(Get(nameof(GA_OptOutPlzDont)), out var val) && val;
+            set => Set(nameof(GA_OptOutPlzDont), value.ToString());
+        }
+
         public static CL_ServerSettings ToContract()
         {
             CL_ServerSettings contract = new CL_ServerSettings

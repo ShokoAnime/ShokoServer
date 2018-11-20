@@ -303,21 +303,7 @@ namespace Shoko.UI
 
         void btnUploadAzureCache_Click(object sender, RoutedEventArgs e)
         {
-            IReadOnlyList<SVR_AniDB_Anime> allAnime = Repo.Instance.AniDB_Anime.GetAll();
-            int cnt = 0;
-            foreach (SVR_AniDB_Anime anime in allAnime)
-            {
-                cnt++;
-                logger.Info($"Uploading anime {cnt} of {allAnime.Count} - {anime.MainTitle}");
 
-                try
-                {
-                    Queue.Instance.Add(new CmdWebCacheSendAnimeFull(anime.AnimeID));
-                }
-                catch
-                {
-                }
-            }
         }
 
         async void btnImagesClear_Click(object sender, RoutedEventArgs e)

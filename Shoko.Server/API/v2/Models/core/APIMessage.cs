@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace Shoko.Server.API.v2.Models.core
 {
@@ -56,6 +58,11 @@ namespace Shoko.Server.API.v2.Models.core
         public override void ExecuteResult(ActionContext context)
         {
             context.HttpContext.Response.StatusCode = code;
+            context.HttpContext.Response.ContentType = "application/json";
+
+            var serializer = new JsonSerializer();
+            using (StreamWriter writer = new StreamWriter(context.HttpContext.Response.Body))
+                serializer.Serialize(writer, new { code, message, details });
         }
     }
 

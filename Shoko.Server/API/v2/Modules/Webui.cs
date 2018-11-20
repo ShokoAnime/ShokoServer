@@ -14,7 +14,8 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [ApiController]
     [Route("/api/webui")]
-    public class Webui : Controller
+    [ApiVersion("2.0")]
+    public class Webui : BaseController
     {
         /// <summary>
         /// Download and install latest stable version of WebUI
