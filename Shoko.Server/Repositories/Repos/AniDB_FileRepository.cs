@@ -85,7 +85,7 @@ namespace Shoko.Server.Repositories.Repos
             using (RepoLock.ReaderLock())
             {
                 return IsCached
-                    ? hash.Select(a => Hashes.GetOne(a)).Select(a => a.File_Source).Distinct().ToList()
+                    ? hash.Select(a => Hashes.GetOne(a)).Select(a => a?.File_Source).Distinct().ToList()
                     : Table.Where(a => hash.Contains(a.Hash)).Select(a => a.File_Source).Distinct().ToList();
             }
         }
