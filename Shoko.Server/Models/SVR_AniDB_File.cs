@@ -384,7 +384,7 @@ namespace Shoko.Server.Models
             List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
 
             foreach (CrossRef_File_Episode fileEp in fileEps)
-                Repo.Instance.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+                Repo.Instance.CrossRef_File_Episode.FindAndDelete(() => Repo.Instance.CrossRef_File_Episode.GetByID(fileEp.CrossRef_File_EpisodeID));
 
             fileEps = new List<CrossRef_File_Episode>();
 
