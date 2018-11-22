@@ -26,6 +26,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Repos;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using AniDB_Episode = Shoko.Models.Server.AniDB_Episode;
 
 namespace Shoko.Server.Models
 {
@@ -874,8 +875,8 @@ namespace Shoko.Server.Models
             EpisodeCountSpecial = EpisodeCountSpecial = 0;
             EpisodeCountNormal = EpisodeCountNormal = 0;
 
-            HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
-            List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
+            HashSet<int> animeEpsToDelete = new HashSet<int>();
+            List<int> aniDBEpsToDelete = new List<int>();
 
             foreach (Raw_AniDB_Episode epraw in eps)
             {
@@ -892,8 +893,8 @@ namespace Shoko.Server.Models
                         // first delete any AnimeEpisode records that point to the new anidb episode
                         SVR_AnimeEpisode aniep = Repo.Instance.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
                         if (aniep != null)
-                            animeEpsToDelete.Add(aniep);
-                        aniDBEpsToDelete.Add(epOld);
+                            animeEpsToDelete.Add(aniep.AnimeEpisodeID);
+                        aniDBEpsToDelete.Add(epOld.AniDB_EpisodeID);
                     }
                 }
             }
@@ -902,12 +903,12 @@ namespace Shoko.Server.Models
             var series = Repo.Instance.AnimeSeries.GetByAnimeID(AnimeID);
             if (series != null)
             {
-                var allEps = Repo.Instance.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID);
+                var allEps = Repo.Instance.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID).Select(a=>a.AnimeEpisodeID);
                 animeEpsToDelete.UnionWith(allEps);
             }
 
-            Repo.Instance.AnimeEpisode.Delete(animeEpsToDelete);
-            Repo.Instance.AniDB_Episode.Delete(aniDBEpsToDelete);
+            Repo.Instance.AnimeEpisode.FindAndDelete(() => Repo.Instance.AnimeEpisode.GetMany(animeEpsToDelete));
+            Repo.Instance.AniDB_Episode.FindAndDelete(()=>Repo.Instance.AniDB_Episode.GetMany(aniDBEpsToDelete));
 
 
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
@@ -957,10 +958,9 @@ namespace Shoko.Server.Models
 
             AllTags = AllTags = string.Empty;
 
-            List<AniDB_Anime_Tag> xrefsToDelete = new List<AniDB_Anime_Tag>();
 
             // find all the current links, and then later remove the ones that are no longer relevant
-            List<AniDB_Anime_Tag> currentTags = Repo.Instance.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
+
             List<int> newTagIDs = new List<int>();
 
             foreach (Raw_AniDB_Tag rawtag in tags)
@@ -970,17 +970,19 @@ namespace Shoko.Server.Models
                     if (upd.IsNew())
                     {
                         // There are situations in which an ID may have changed, this is usually due to it being moved
-                        var existingTags = Repo.Instance.AniDB_Tag.GetByName(rawtag.TagName).ToList();
-                        var xrefsToRemap = existingTags.Select(s => Repo.Instance.AniDB_Anime_Tag.GetByID(s.AniDB_TagID))
-                            .ToList();
+                        List<AniDB_Anime_Tag> xrefsToRemap =null;
+                        // Delete the obsolete tag(s)
+                        Repo.Instance.AniDB_Tag.FindAndDelete(() =>
+                        {
+                            List<AniDB_Tag> existingTags = Repo.Instance.AniDB_Tag.GetByName(rawtag.TagName).ToList();
+                            xrefsToRemap = existingTags.Select(s => Repo.Instance.AniDB_Anime_Tag.GetByID(s.AniDB_TagID)).ToList();
+                            return existingTags;
+                        });
                         Repo.Instance.AniDB_Anime_Tag.BatchAction(xrefsToRemap, xrefsToRemap.Count, (xref, _) => xref.TagID = rawtag.TagID);
 
-                        // Delete the obsolete tag(s)
-                        Repo.Instance.AniDB_Tag.Delete(existingTags);
 
                         // While we're at it, clean up other unreferenced tags
-                        Repo.Instance.AniDB_Tag.Delete(Repo.Instance.AniDB_Tag.GetAll()
-                            .Where(a => !Repo.Instance.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+                        Repo.Instance.AniDB_Tag.FindAndDelete(()=>Repo.Instance.AniDB_Tag.GetAll().Where(a => !Repo.Instance.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
                     }
 
                     if (!upd.Entity.Populate(rawtag)) continue;
@@ -998,12 +1000,18 @@ namespace Shoko.Server.Models
                 }
             }
 
-            foreach (AniDB_Anime_Tag curTag in currentTags)
+            Repo.Instance.AniDB_Anime_Tag.FindAndDelete(() =>
             {
-                if (!newTagIDs.Contains(curTag.TagID))
-                    xrefsToDelete.Add(curTag);
-            }
-            Repo.Instance.AniDB_Anime_Tag.Delete(xrefsToDelete);
+                List<AniDB_Anime_Tag> xrefsToDelete = new List<AniDB_Anime_Tag>();
+                foreach (AniDB_Anime_Tag curTag in Repo.Instance.AniDB_Anime_Tag.GetByAnimeID(AnimeID))
+                {
+                    if (!newTagIDs.Contains(curTag.TagID))
+                        xrefsToDelete.Add(curTag);
+                }
+
+                return xrefsToDelete;
+            });
+
         }
 
         private void CreateCharacters(List<Raw_AniDB_Character> chars)
@@ -1011,12 +1019,9 @@ namespace Shoko.Server.Models
             if (chars == null) return;
 
             // delete all the existing cross references just in case one has been removed
-            List<AniDB_Anime_Character> animeChars =
-                Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID);
-
             try
             {
-                Repo.Instance.AniDB_Anime_Character.Delete(animeChars);
+                Repo.Instance.AniDB_Anime_Character.FindAndDelete(()=> Repo.Instance.AniDB_Anime_Character.GetByAnimeID(AnimeID));
             }
             catch (Exception ex)
             {
@@ -1029,18 +1034,22 @@ namespace Shoko.Server.Models
             List<AniDB_Character_Seiyuu> seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
 
             // delete existing relationships to seiyuu's
-            List<AniDB_Character_Seiyuu> charSeiyuusToDelete = new List<AniDB_Character_Seiyuu>();
-            foreach (Raw_AniDB_Character rawchar in chars)
-            {
-                // delete existing relationships to seiyuu's
-                List<AniDB_Character_Seiyuu> allCharSei =
-                    Repo.Instance.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharID);
-                foreach (AniDB_Character_Seiyuu xref in allCharSei)
-                    charSeiyuusToDelete.Add(xref);
-            }
+
             try
             {
-                Repo.Instance.AniDB_Character_Seiyuu.Delete(charSeiyuusToDelete);
+                Repo.Instance.AniDB_Character_Seiyuu.FindAndDelete(() =>
+                {
+                    List<AniDB_Character_Seiyuu> charSeiyuusToDelete = new List<AniDB_Character_Seiyuu>();
+                    foreach (Raw_AniDB_Character rawchar in chars)
+                    {
+                        // delete existing relationships to seiyuu's
+                        List<AniDB_Character_Seiyuu> allCharSei = Repo.Instance.AniDB_Character_Seiyuu.GetByCharID(rawchar.CharID);
+                        foreach (AniDB_Character_Seiyuu xref in allCharSei)
+                            charSeiyuusToDelete.Add(xref);
+                    }
+
+                    return charSeiyuusToDelete;
+                });
             }
             catch (Exception ex)
             {
@@ -1314,9 +1323,7 @@ namespace Shoko.Server.Models
                     return;
 
                 //Delete old if changed
-                List<AniDB_Anime_Review> animeReviews = Repo.Instance.AniDB_Anime_Review.GetByAnimeID(AnimeID);
-                foreach (AniDB_Anime_Review xref in animeReviews)
-                    Repo.Instance.AniDB_Anime_Review.Delete(xref.AniDB_Anime_ReviewID);
+                Repo.Instance.AniDB_Anime_Review.FindAndDelete(()=>Repo.Instance.AniDB_Anime_Review.GetByAnimeID(AnimeID));
 
 
                 string[] revs = reviewIDListRAW.Split(',');

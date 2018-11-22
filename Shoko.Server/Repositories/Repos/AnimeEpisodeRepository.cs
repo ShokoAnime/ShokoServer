@@ -24,7 +24,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override void EndDelete(SVR_AnimeEpisode entity, object returnFromBeginDelete, object parameters)
         {
-            Repo.Instance.AnimeEpisode_User.Delete(entity.AnimeEpisodeID);
+            Repo.Instance.AnimeEpisode_User.FindAndDelete(()=>Repo.Instance.AnimeEpisode_User.GetByEpisodeID(entity.AnimeEpisodeID));
         }
 
         internal override int SelectKey(SVR_AnimeEpisode entity)

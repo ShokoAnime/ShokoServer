@@ -728,7 +728,7 @@ namespace Shoko.Server.Import
                             episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                 .DistinctBy(a => a.AnimeSeriesID));
-                            Repo.Instance.VideoLocal_Place.Delete(place);
+                            Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(place.VideoLocal_Place_ID));
                         }
                     }
                     // Remove duplicate places
@@ -738,7 +738,7 @@ namespace Shoko.Server.Import
                     {
                         places = places.DistinctBy(a => a.FullServerPath).ToList();
                         places = v.Places?.Except(places).ToList();
-                        Repo.Instance.VideoLocal_Place.Delete(places);
+                        Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetMany(places.Select(a=>a.VideoLocal_Place_ID)));
                     }
                     if (v.Places?.Count > 0) continue;
                     // delete video local record
@@ -747,7 +747,7 @@ namespace Shoko.Server.Import
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
                     CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
-                    Repo.Instance.VideoLocal.Delete(v);
+                    Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
                 }
 
                 // Clean up failed imports
@@ -782,6 +782,7 @@ namespace Shoko.Server.Import
 
         public static string DeleteCloudAccount(int cloudaccountID)
         {
+            
             SVR_CloudAccount cl = Repo.Instance.CloudAccount.GetByID(cloudaccountID);
             if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
             foreach (SVR_ImportFolder f in Repo.Instance.ImportFolder.GetByCloudId(cl.CloudID))
@@ -790,7 +791,7 @@ namespace Shoko.Server.Import
                 if (!string.IsNullOrEmpty(r))
                     return r;
             }
-            Repo.Instance.CloudAccount.Delete(cloudaccountID);
+            Repo.Instance.CloudAccount.FindAndDelete(()=> Repo.Instance.CloudAccount.GetByID(cloudaccountID));
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
             return string.Empty;
@@ -824,20 +825,20 @@ namespace Shoko.Server.Import
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v?.Places.Count == 1)
                     {
-                        Repo.Instance.VideoLocal_Place.Delete(vid);
-                        Repo.Instance.VideoLocal.Delete(v);
+                        Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetByID(vid.VideoLocal_Place_ID));
+                        Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
                         CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
                     }
                     else
-                        Repo.Instance.VideoLocal_Place.Delete(vid);
+                        Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(vid.VideoLocal_Place_ID));
                 }
 
                 // delete any duplicate file records which reference this folder
-                Repo.Instance.DuplicateFile.Delete(Repo.Instance.DuplicateFile.GetByImportFolder1(importFolderID));
-                Repo.Instance.DuplicateFile.Delete(Repo.Instance.DuplicateFile.GetByImportFolder2(importFolderID));
+                Repo.Instance.DuplicateFile.FindAndDelete(()=>Repo.Instance.DuplicateFile.GetByImportFolder1(importFolderID));
+                Repo.Instance.DuplicateFile.FindAndDelete(()=>Repo.Instance.DuplicateFile.GetByImportFolder2(importFolderID));
 
                 // delete the import folder
-                Repo.Instance.ImportFolder.Delete(importFolderID);
+                Repo.Instance.ImportFolder.FindAndDelete(()=>Repo.Instance.ImportFolder.GetByID(importFolderID));
 
                 //TODO APIv2: Delete this hack after migration to headless
                 //hack until gui id dead

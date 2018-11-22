@@ -417,7 +417,7 @@ namespace Shoko.Server.Tasks
                 }
 
                 UpdateAnimeSeriesContractsAndSave(animeSeries);
-                Repo.Instance.AnimeGroup.Delete(tempGroup); // We should no longer need the temporary group we created earlier
+                Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(tempGroup.AnimeGroupID)); // We should no longer need the temporary group we created earlier
 
                 // We need groups and series cached for updating of AnimeGroup contracts to work
                 Repo.Instance.AnimeGroup.PopulateCache();

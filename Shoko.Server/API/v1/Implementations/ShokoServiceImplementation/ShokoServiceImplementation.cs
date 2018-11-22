@@ -94,9 +94,6 @@ namespace Shoko.Server
             {
                 if (!Repo.Instance.BookmarkedAnime.FindAndDelete(()=> Repo.Instance.BookmarkedAnime.GetByID(bookmarkedAnimeID)))
                     return "Bookmarked not found";
-
-                Repo.Instance.BookmarkedAnime.Delete(bookmarkedAnimeID);
-
                 return string.Empty;
             }
             catch (Exception ex)
@@ -971,11 +968,7 @@ namespace Shoko.Server
                 {
                     // this mean we are removing an image as deafult
                     // which esssential means deleting the record
-
-                    AniDB_Anime_DefaultImage img =
-                        Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
-                    if (img != null)
-                        Repo.Instance.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
+                    Repo.Instance.AniDB_Anime_DefaultImage.FindAndDelete(() => Repo.Instance.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType));
                 }
                 else
                 {
@@ -989,9 +982,7 @@ namespace Shoko.Server
                         txn.Commit();
                     }
                 }
-
-                SVR_AnimeSeries series = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
-                Repo.Instance.AnimeSeries.Touch(() => series, (false, false, false, false));
+                Repo.Instance.AnimeSeries.Touch(()=> Repo.Instance.AnimeSeries.GetByAnimeID(animeID), (false, false, false, false));
 
                 return string.Empty;
             }

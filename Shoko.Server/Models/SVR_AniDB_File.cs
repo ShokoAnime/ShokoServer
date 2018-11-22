@@ -381,12 +381,8 @@ namespace Shoko.Server.Models
         public void CreateCrossEpisodes(string localFileName)
         {
             if (episodesRAW == null) return;
-            List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(Hash);
-
-            foreach (CrossRef_File_Episode fileEp in fileEps)
-                Repo.Instance.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
-
-            fileEps = new List<CrossRef_File_Episode>();
+            Repo.Instance.CrossRef_File_Episode.FindAndDelete(()=>Repo.Instance.CrossRef_File_Episode.GetByHash(Hash));
+            List<CrossRef_File_Episode> fileEps = new List<CrossRef_File_Episode>();
 
             char apostrophe = '\'';
             char epiSplit = ',';

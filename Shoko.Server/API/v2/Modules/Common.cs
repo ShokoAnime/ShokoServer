@@ -1440,21 +1440,11 @@ namespace Shoko.Server.API.v2.Modules
             BookmarkedAnime ba = null;
             if (id != 0)
             {
-                ba = Repo.Instance.BookmarkedAnime.GetByAnimeID(id);
-                if (ba != null)
-                {
-                    Repo.Instance.BookmarkedAnime.Delete(ba);
-                    return APIStatus.OK();
-                }
-                else
-                {
+                if (!Repo.Instance.BookmarkedAnime.FindAndDelete(()=> Repo.Instance.BookmarkedAnime.GetByAnimeID(id)))
                     return APIStatus.NotFound();
-                }
+                return APIStatus.OK();
             }
-            else
-            {
-                return APIStatus.BadRequest();
-            }
+            return APIStatus.BadRequest();
         }
 
         /// <summary>

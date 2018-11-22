@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Repos
             if (cr==null || cr.Count == 0)
                 return null;
             if (cr.Count > 1)
-               Delete(cr.GetRange(1, cr.Count - 1));
+                FindAndDelete(() => cr.GetRange(1, cr.Count - 1));
             return cr[0];
         }
 

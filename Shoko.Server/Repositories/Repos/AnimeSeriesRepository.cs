@@ -113,7 +113,7 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginDelete(SVR_AnimeSeries entity,
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
-            Repo.Instance.AnimeSeries_User.Delete(entity.AnimeSeriesID);
+            Repo.Instance.AnimeSeries_User.FindAndDelete(() => Repo.Instance.AnimeSeries_User.GetBySeriesID(entity.AnimeSeriesID));
             lock(Changes)
                 Changes.Remove(entity.AnimeSeriesID);
             return null;

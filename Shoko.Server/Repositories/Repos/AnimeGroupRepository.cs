@@ -53,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginDelete(SVR_AnimeGroup entity, (bool updategrpcontractstats, bool recursive, bool verifylockedFilters) parameters)
         {
-            Repo.Instance.AnimeGroup_User.Delete(entity.AnimeGroupID);
+            Repo.Instance.AnimeGroup_User.FindAndDelete(()=>Repo.Instance.AnimeGroup_User.GetByGroupID(entity.AnimeGroupID));
             entity.DeleteFromFilters();
             return null;
         }

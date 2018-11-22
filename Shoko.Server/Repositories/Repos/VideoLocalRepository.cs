@@ -23,8 +23,8 @@ namespace Shoko.Server.Repositories.Repos
         internal override object BeginDelete(SVR_VideoLocal entity, bool updateEpisodes)
         {
             List<int> eps= entity.GetAnimeEpisodes().Select(a=>a.AnimeEpisodeID).ToList();
-            Repo.Instance.VideoLocal_Place.Delete(entity.Places);
-            Repo.Instance.VideoLocal_User.Delete(Repo.Instance.VideoLocal_User.GetByVideoLocalID(entity.VideoLocalID));
+            Repo.Instance.VideoLocal_Place.FindAndDelete(()=> Repo.Instance.VideoLocal_Place.GetMany(entity.Places.Select(a=>a.VideoLocal_Place_ID)));
+            Repo.Instance.VideoLocal_User.FindAndDelete(()=>Repo.Instance.VideoLocal_User.GetByVideoLocalID(entity.VideoLocalID));
             return eps;
 
         }
@@ -69,7 +69,7 @@ namespace Shoko.Server.Repositories.Repos
                 progress.Report(regen);
                 foreach (SVR_VideoLocal vl in emptylist)
                 {
-                    Delete(vl);
+                    FindAndDelete(()=>GetByID(vl.VideoLocalID));
                     regen.Step++;
                     progress.Report(regen);
                 }
@@ -107,7 +107,7 @@ namespace Shoko.Server.Repositories.Repos
                     progress.Report(regen);
                     toRemove.AddRange(froms);
                 }
-                Delete(toRemove);
+                FindAndDelete(()=>GetMany(toRemove.Select(a=>a.VideoLocalID)));
             }
 
             List<CrossRef_File_Episode> frags = WhereAll().SelectMany(a => Repo.Instance.CrossRef_File_Episode.GetByHash(a.Hash)).AsQueryable().Where(a => Repo.Instance.AniDB_Anime.GetByID(a.AnimeID) == null || a.GetEpisode() == null).ToList();
@@ -116,7 +116,7 @@ namespace Shoko.Server.Repositories.Repos
                 regen.Step = 0;
                 regen.Total = frags.Count;
                 regen.Title = string.Format(Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Cleaning Fragmented Records");
-                Repo.Instance.CrossRef_File_Episode.Delete(frags);
+                Repo.Instance.CrossRef_File_Episode.FindAndDelete(() => Repo.Instance.CrossRef_File_Episode.GetMany(frags.Select(a => a.CrossRef_File_EpisodeID)));
             }
         }
 

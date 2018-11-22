@@ -75,9 +75,7 @@ namespace Shoko.Server.Repositories.Repos
 
         internal override object BeginDelete(SVR_VideoLocal_Place entity, object parameters)
         {
-            var dups = Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(entity.FilePath, entity.ImportFolderID);
-            if (dups != null && dups.Count > 0)
-                Repo.Instance.DuplicateFile.Delete(dups);
+            Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetByFilePathAndImportFolder(entity.FilePath, entity.ImportFolderID));
             return null;
         }
 

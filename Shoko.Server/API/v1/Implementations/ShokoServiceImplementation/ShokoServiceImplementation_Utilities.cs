@@ -281,11 +281,7 @@ namespace Shoko.Server
             {
                 SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByID(videoLocalID);
                 if (vid == null) return;
-
-                FileFfdshowPreset ffd = Repo.Instance.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize);
-                if (ffd == null) return;
-
-                Repo.Instance.FileFfdshowPreset.Delete(ffd.FileFfdshowPresetID);
+                Repo.Instance.FileFfdshowPreset.FindAndDelete(() => Repo.Instance.FileFfdshowPreset.GetByHashAndSize(vid.Hash, vid.FileSize));
             }
             catch (Exception ex)
             {
@@ -671,10 +667,8 @@ namespace Shoko.Server
         {
             try
             {
-                RenameScript df = Repo.Instance.RenameScript.GetByID(renameScriptID);
-                if (df == null) return "Database entry does not exist";
-                Repo.Instance.RenameScript.Delete(renameScriptID);
-
+                if (!Repo.Instance.RenameScript.FindAndDelete(()=> Repo.Instance.RenameScript.GetByID(renameScriptID)))
+                    return "Database entry does not exist";
                 return string.Empty;
             }
             catch (Exception ex)
@@ -779,10 +773,7 @@ namespace Shoko.Server
         {
             try
             {
-                IgnoreAnime ignore = Repo.Instance.IgnoreAnime.GetByID(ignoreAnimeID);
-                if (ignore == null) return;
-
-                Repo.Instance.IgnoreAnime.Delete(ignoreAnimeID);
+                Repo.Instance.IgnoreAnime.FindAndDelete(() => Repo.Instance.IgnoreAnime.GetByID(ignoreAnimeID));
             }
             catch (Exception ex)
             {
@@ -1271,44 +1262,41 @@ namespace Shoko.Server
         {
             try
             {
-                foreach (DuplicateFile df in Repo.Instance.DuplicateFile.GetAll())
+                Repo.Instance.DuplicateFile.FindAndDelete(() =>
                 {
-                    if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
+                    List<DuplicateFile> todelete = new List<DuplicateFile>();
+                    foreach (DuplicateFile df in Repo.Instance.DuplicateFile.GetAll())
                     {
-                        string msg =
-                            string.Format(
-                                "Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}",
-                                df.FilePathFile1, df.FilePathFile2);
-                        logger.Info(msg);
-                        Repo.Instance.DuplicateFile.Delete(df.DuplicateFileID);
-                        continue;
+                        if (df.GetImportFolder1() == null || df.GetImportFolder2() == null)
+                        {
+                            string msg = string.Format("Deleting duplicate file record as one of the import folders can't be found: {0} --- {1}", df.FilePathFile1, df.FilePathFile2);
+                            logger.Info(msg);
+                            todelete.Add(df);
+                            continue;
+                        }
+
+                        // make sure that they are not actually the same file
+                        if (df.GetFullServerPath1().Equals(df.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            string msg = string.Format("Deleting duplicate file record as they are actually point to the same file: {0}", df.GetFullServerPath1());
+                            logger.Info(msg);
+                            todelete.Add(df);
+                            continue;
+                        }
+
+                        // check if both files still exist
+                        IFile file1 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath1());
+                        IFile file2 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath2());
+                        if (file1 == null || file2 == null)
+                        {
+                            string msg = string.Format("Deleting duplicate file record as one of the files can't be found: {0} --- {1}", df.GetFullServerPath1(), df.GetFullServerPath2());
+                            logger.Info(msg);
+                            todelete.Add(df);
+                        }
                     }
 
-                    // make sure that they are not actually the same file
-                    if (df.GetFullServerPath1()
-                        .Equals(df.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        string msg =
-                            string.Format(
-                                "Deleting duplicate file record as they are actually point to the same file: {0}",
-                                df.GetFullServerPath1());
-                        logger.Info(msg);
-                        Repo.Instance.DuplicateFile.Delete(df.DuplicateFileID);
-                    }
-
-                    // check if both files still exist
-                    IFile file1 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath1());
-                    IFile file2 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath2());
-                    if (file1 == null || file2 == null)
-                    {
-                        string msg =
-                            string.Format(
-                                "Deleting duplicate file record as one of the files can't be found: {0} --- {1}",
-                                df.GetFullServerPath1(), df.GetFullServerPath2());
-                        logger.Info(msg);
-                        Repo.Instance.DuplicateFile.Delete(df.DuplicateFileID);
-                    }
-                }
+                    return todelete;
+                });
             }
             catch (Exception ex)
             {

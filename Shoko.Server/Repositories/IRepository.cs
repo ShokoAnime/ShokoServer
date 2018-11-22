@@ -9,9 +9,9 @@ namespace Shoko.Server.Repositories
         T GetByID(S id);
         List<T> GetAll();
         List<T> GetMany(IEnumerable<S> ids);
-        void Delete(S id, TT pars);
-        void Delete(T obj, TT pars);
-        void Delete(IEnumerable<T> objs, TT pars);
+        //void Delete(S id, TT pars);
+        //void Delete(T obj, TT pars);
+        //void Delete(IEnumerable<T> objs, TT pars);
         IAtomic<T, TT> BeginAdd();
         IAtomic<T, TT> BeginAdd(T obj);
         IAtomicList<T, TT> BeginAdd(IEnumerable<T> objs);

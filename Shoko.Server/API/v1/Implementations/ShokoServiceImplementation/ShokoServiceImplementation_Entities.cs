@@ -704,17 +704,21 @@ namespace Shoko.Server
                     if (ep.AniDB_EpisodeID != animeEpisodeID) continue;
 
                     animeSeriesID = ep.AnimeSeriesID;
-                    CrossRef_File_Episode xref = Repo.Instance.CrossRef_File_Episode.GetByHashAndEpisodeID(vid.Hash, ep.AniDB_EpisodeID);
-                    if (xref != null)
+                    bool repoisanidb = false;
+                    Repo.Instance.CrossRef_File_Episode.FindAndDelete(() =>
                     {
+                        CrossRef_File_Episode xref = Repo.Instance.CrossRef_File_Episode.GetByHashAndEpisodeID(vid.Hash, ep.AniDB_EpisodeID);
+                        if (xref == null)
+                            return null;
                         if (xref.CrossRefSource == (int) CrossRefSource.AniDB)
-                            return "Cannot remove associations created from AniDB data";
-
-                        // delete cross ref from web cache
-                        Queue.Instance.Add(new CmdWebCacheDeleteXRefFileEpisode(vid.Hash, ep.AniDB_EpisodeID));
-
-                        Repo.Instance.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
-                    }
+                        {
+                            repoisanidb = true;
+                            return null;
+                        }
+                        return xref;
+                    });
+                    if (repoisanidb)
+                        return "Cannot remove associations created from AniDB data";
                 }
 
                 if (animeSeriesID.HasValue)
@@ -808,10 +812,8 @@ namespace Shoko.Server
         private void RemoveXRefsForFile(int VideoLocalID)
         {
             SVR_VideoLocal vlocal = Repo.Instance.VideoLocal.GetByID(VideoLocalID);
-            List<CrossRef_File_Episode> fileEps = Repo.Instance.CrossRef_File_Episode.GetByHash(vlocal.Hash);
-
-            foreach (CrossRef_File_Episode fileEp in fileEps)
-                Repo.Instance.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
+            if (vlocal!=null)
+                Repo.Instance.CrossRef_File_Episode.FindAndDelete(() => Repo.Instance.CrossRef_File_Episode.GetByHash(vlocal.Hash));
         }
 
         [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
@@ -1604,9 +1606,9 @@ namespace Shoko.Server
 
             if (thisVote == null) return;
 
+            Repo.Instance.AniDB_Vote.FindAndDelete(() => Repo.Instance.AniDB_Vote.GetByID(thisVote.AniDB_VoteID));
             Queue.Instance.Add(new CmdAniDBVoteAnime(animeID, thisVote.VoteType, -1));
 
-            Repo.Instance.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
         }
 
         /// <summary>
@@ -1902,7 +1904,7 @@ namespace Shoko.Server
                     if (change)
                     {
                         if (gf.Conditions.Count == 0)
-                            Repo.Instance.GroupFilter.Delete(gf.GroupFilterID);
+                            Repo.Instance.GroupFilter.FindAndDelete(()=> Repo.Instance.GroupFilter.GetByID(gf.GroupFilterID));
                         else
                         {
                             using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
@@ -1914,7 +1916,7 @@ namespace Shoko.Server
                     }
                 }
 
-                Repo.Instance.AnimeGroup.Delete(grp.AnimeGroupID);
+                Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(grp.AnimeGroupID));
 
                 // finally update stats
 
@@ -2114,7 +2116,7 @@ namespace Shoko.Server
                     SVR_AnimeGroup topGroup = grp.TopLevelAnimeGroup;
                     if (grp.GetAllSeries().Count == 0)
                     {
-                        Repo.Instance.AnimeGroup.Delete(grp.AnimeGroupID);
+                        Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(grp.AnimeGroupID));
                     }
 
                     if (topGroup.AnimeGroupID != grp.AnimeGroupID)
@@ -2574,10 +2576,10 @@ namespace Shoko.Server
                         }
                     }
 
-                    Repo.Instance.AnimeEpisode.Delete(ep.AnimeEpisodeID);
+                    Repo.Instance.AnimeEpisode.FindAndDelete(()=>Repo.Instance.AnimeEpisode.GetByID(ep.AnimeEpisodeID));
                 }
 
-                Repo.Instance.AnimeSeries.Delete(ser.AnimeSeriesID);
+                Repo.Instance.AnimeSeries.FindAndDelete(()=>Repo.Instance.AnimeSeries.GetByID(ser.AnimeSeriesID));
 
                 // finally update stats
                 SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
@@ -2978,12 +2980,8 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_GroupFilter gf = Repo.Instance.GroupFilter.GetByID(groupFilterID);
-                if (gf == null)
+                if (!Repo.Instance.GroupFilter.FindAndDelete(() => Repo.Instance.GroupFilter.GetByID(groupFilterID)))
                     return "Group Filter not found";
-
-                Repo.Instance.GroupFilter.Delete(groupFilterID);
-
                 return "";
             }
             catch (Exception ex)
@@ -3218,12 +3216,8 @@ namespace Shoko.Server
         {
             try
             {
-                Playlist pl = Repo.Instance.Playlist.GetByID(playlistID);
-                if (pl == null)
+                if (!Repo.Instance.Playlist.FindAndDelete(()=>Repo.Instance.Playlist.GetByID(playlistID)))
                     return "Playlist not found";
-
-                Repo.Instance.Playlist.Delete(playlistID);
-
                 return "";
             }
             catch (Exception ex)
@@ -3310,12 +3304,8 @@ namespace Shoko.Server
         {
             try
             {
-                CrossRef_CustomTag pl = Repo.Instance.CrossRef_CustomTag.GetByID(xrefID);
-                if (pl == null)
+                if (!Repo.Instance.CrossRef_CustomTag.FindAndDelete(()=>Repo.Instance.CrossRef_CustomTag.GetByID(xrefID)))
                     return "Custom Tag not found";
-
-                Repo.Instance.CrossRef_CustomTag.Delete(xrefID);
-
                 return "";
             }
             catch (Exception ex)
@@ -3330,12 +3320,8 @@ namespace Shoko.Server
         {
             try
             {
-                List<CrossRef_CustomTag> xrefs = Repo.Instance.CrossRef_CustomTag.GetByUniqueID(customTagID, crossRefType, crossRefID);
-
-                if (xrefs == null || xrefs.Count == 0)
+                if (!Repo.Instance.CrossRef_CustomTag.FindAndDelete(()=>Repo.Instance.CrossRef_CustomTag.GetByUniqueID(customTagID, crossRefType, crossRefID)))
                     return "Custom Tag not found";
-
-                Repo.Instance.CrossRef_CustomTag.Delete(xrefs[0].CrossRef_CustomTagID);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(crossRefID);
                 return "";
             }
@@ -3394,22 +3380,11 @@ namespace Shoko.Server
         {
             try
             {
-                CustomTag pl = Repo.Instance.CustomTag.GetByID(customTagID);
-                if (pl == null)
-                    return "Custom Tag not found";
-
                 // first get a list of all the anime that referenced this tag
-                List<CrossRef_CustomTag> xrefs = Repo.Instance.CrossRef_CustomTag.GetByCustomTagID(customTagID);
-
-                Repo.Instance.CustomTag.Delete(customTagID);
-
-                // update cached data for any anime that were affected
-                foreach (CrossRef_CustomTag xref in xrefs)
-                {
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(xref.CrossRefID);
-                }
-
-
+                List<int> crossrefs = Repo.Instance.CrossRef_CustomTag.GetByCustomTagID(customTagID).Select(a => a.CrossRefID).ToList();
+                if (!Repo.Instance.CustomTag.FindAndDelete(() => Repo.Instance.CustomTag.GetByID(customTagID)))
+                    return "Custom Tag not found";
+                crossrefs.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
                 return "";
             }
             catch (Exception ex)
@@ -3619,13 +3594,13 @@ namespace Shoko.Server
                     if (!adminExists) return "At least one user must be an administrator";
                 }
 
-                Repo.Instance.JMMUser.Delete(userID);
+                Repo.Instance.JMMUser.FindAndDelete(()=>Repo.Instance.JMMUser.GetByID(userID));
 
                 // delete all user records
-                Repo.Instance.AnimeSeries_User.Delete(Repo.Instance.AnimeSeries_User.GetByUserID(userID));
-                Repo.Instance.AnimeGroup_User.Delete(Repo.Instance.AnimeGroup_User.GetByUserID(userID));
-                Repo.Instance.AnimeEpisode_User.Delete(Repo.Instance.AnimeEpisode_User.GetByUserID(userID));
-                Repo.Instance.VideoLocal_User.Delete(Repo.Instance.VideoLocal_User.GetByUserID(userID));
+                Repo.Instance.AnimeSeries_User.FindAndDelete(()=>Repo.Instance.AnimeSeries_User.GetByUserID(userID));
+                Repo.Instance.AnimeGroup_User.FindAndDelete(()=>Repo.Instance.AnimeGroup_User.GetByUserID(userID));
+                Repo.Instance.AnimeEpisode_User.FindAndDelete(()=>Repo.Instance.AnimeEpisode_User.GetByUserID(userID));
+                Repo.Instance.VideoLocal_User.FindAndDelete(()=>Repo.Instance.VideoLocal_User.GetByUserID(userID));
             }
             catch (Exception ex)
             {

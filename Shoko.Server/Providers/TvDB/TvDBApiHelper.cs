@@ -389,9 +389,17 @@ namespace Shoko.Server.Providers.TvDB
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImageFanart img in Repo.Instance.TvDB_ImageFanart.GetBySeriesID(seriesID))
-                    if (!validIDs.Contains(img.Id))
-                        Repo.Instance.TvDB_ImageFanart.Delete(img);
+                Repo.Instance.TvDB_ImageFanart.FindAndDelete(() =>
+                {
+                    List<TvDB_ImageFanart> todelete = new List<TvDB_ImageFanart>();
+                    foreach (TvDB_ImageFanart img in Repo.Instance.TvDB_ImageFanart.GetBySeriesID(seriesID))
+                    {
+                        if (!validIDs.Contains(img.Id))
+                            todelete.Add(img);
+                    }
+
+                    return todelete;
+                });
             }
             catch (TvDbServerException exception)
             {
@@ -455,9 +463,17 @@ namespace Shoko.Server.Providers.TvDB
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImagePoster img in Repo.Instance.TvDB_ImagePoster.GetBySeriesID(seriesID))
-                    if (!validIDs.Contains(img.Id))
-                        Repo.Instance.TvDB_ImagePoster.Delete(img.TvDB_ImagePosterID);
+                Repo.Instance.TvDB_ImagePoster.FindAndDelete(() =>
+                {
+                    List<TvDB_ImagePoster> todelete = new List<TvDB_ImagePoster>();
+                    foreach (TvDB_ImagePoster img in Repo.Instance.TvDB_ImagePoster.GetBySeriesID(seriesID))
+                    {
+                        if (!validIDs.Contains(img.Id))
+                            todelete.Add(img);
+                    }
+
+                    return todelete;
+                });
             }
             catch (TvDbServerException exception)
             {
@@ -520,9 +536,18 @@ namespace Shoko.Server.Providers.TvDB
                 }
 
                 // delete any images from the database which are no longer valid
-                foreach (TvDB_ImageWideBanner img in Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
-                    if (!validIDs.Contains(img.Id))
-                        Repo.Instance.TvDB_ImageWideBanner.Delete(img.TvDB_ImageWideBannerID);
+                Repo.Instance.TvDB_ImageWideBanner.FindAndDelete(() =>
+                {
+                    List<TvDB_ImageWideBanner> todelete = new List<TvDB_ImageWideBanner>();
+                    foreach (TvDB_ImageWideBanner img in Repo.Instance.TvDB_ImageWideBanner.GetBySeriesID(seriesID))
+                    {
+                        if (!validIDs.Contains(img.Id))
+                            todelete.Add(img);
+                    }
+
+                    return todelete;
+                });
+
             }
             catch (TvDbServerException exception)
             {
@@ -568,7 +593,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImageFanart.Delete(img.TvDB_ImageFanartID);
+                        Repo.Instance.TvDB_ImageFanart.FindAndDelete(()=>Repo.Instance.TvDB_ImageFanart.GetByID(img.TvDB_ImageFanartID));
                 }
         }
 
@@ -594,7 +619,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImagePoster.Delete(img);
+                        Repo.Instance.TvDB_ImagePoster.FindAndDelete(()=>Repo.Instance.TvDB_ImagePoster.GetByID(img.TvDB_ImagePosterID));
                 }
         }
 
@@ -620,7 +645,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImageWideBanner.Delete(img);
+                        Repo.Instance.TvDB_ImageWideBanner.FindAndDelete(() => Repo.Instance.TvDB_ImageWideBanner.GetByID(img.TvDB_ImageWideBannerID));
                 }
         }
 
@@ -788,10 +813,21 @@ namespace Shoko.Server.Providers.TvDB
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
-                List<TvDB_Episode> allEps = Repo.Instance.TvDB_Episode.GetBySeriesID(seriesID);
-                foreach (TvDB_Episode oldEp in allEps)
-                    if (!existingEpIds.Contains(oldEp.Id))
-                        Repo.Instance.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
+    
+                Repo.Instance.TvDB_Episode.FindAndDelete(() =>
+                {
+                    List<TvDB_Episode> todelete = new List<TvDB_Episode>();
+                    foreach (TvDB_Episode oldEp in Repo.Instance.TvDB_Episode.GetBySeriesID(seriesID))
+                    {
+                        if (!existingEpIds.Contains(oldEp.Id))
+                            todelete.Add(oldEp);
+                    }
+
+                    return todelete;
+                });
+
+
+
                 // Not updating stats as it will happen with the episodes
             }
             catch (Exception ex)

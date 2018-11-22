@@ -68,7 +68,7 @@ namespace Shoko.Server.Repositories.Repos
         }
         public void DeleteForAnime(int animeid)
         {
-            Delete(GetByAnimeID(animeid));
+            FindAndDelete(() => GetByAnimeID(animeid));
         }
     }
 }

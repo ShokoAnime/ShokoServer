@@ -192,11 +192,11 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                         {
                             if (vlocal.Places.Count == 1)
                             {
-                                Repo.Instance.VideoLocal.Delete(vlocal);
+                                Repo.Instance.VideoLocal.FindAndDelete(()=>Repo.Instance.VideoLocal.GetByID(vlocal.VideoLocalID));
                                 vlocal = null;
                             }
 
-                            Repo.Instance.VideoLocal_Place.Delete(vlocalplace);
+                            Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetByID(vlocalplace.VideoLocal_Place_ID));
                             vlocalplace = null;
                         }
 
@@ -256,26 +256,25 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                         // try getting the hash from the LOCAL cache
                         if (!Force && string.IsNullOrEmpty(vlocal.Hash))
                         {
-                            List<FileNameHash> fnhashes = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-                            if (fnhashes != null && fnhashes.Count > 1)
+                            Repo.Instance.FileNameHash.FindAndDelete(() =>
                             {
-                                // if we have more than one record it probably means there is some sort of corruption
-                                // lets delete the local records
-                                foreach (FileNameHash fnh in fnhashes)
+                                List<FileNameHash> fnhashes = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                                if (fnhashes != null && fnhashes.Count > 1)
                                 {
-                                    Repo.Instance.FileNameHash.Delete(fnh.FileNameHashID);
+                                    // if we have more than one record it probably means there is some sort of corruption
+                                    // lets delete the local records
+                                    return fnhashes;
                                 }
-                            }
+
+                                return new List<FileNameHash>();
+                            });
 
                             // reinit this to check if we erased them
-                            fnhashes = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                            FileNameHash fnhash = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize).FirstOrDefault();
 
-                            if (fnhashes != null && fnhashes.Count == 1)
-                            {
-                                logger.Trace("Got hash from LOCAL cache: {0} ({1})", File.FullName, fnhashes[0].Hash);
-                                vlocal.Hash = fnhashes[0].Hash;
-                                vlocal.HashSource = (int) HashSource.WebCacheFileName;
-                            }
+                            logger.Trace("Got hash from LOCAL cache: {0} ({1})", File.FullName, fnhash.Hash);
+                            vlocal.Hash = fnhash.Hash;
+                            vlocal.HashSource = (int) HashSource.WebCacheFileName;
                         }
 
                         if (string.IsNullOrEmpty(vlocal.Hash))
@@ -347,13 +346,13 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                                 // clean up, if there is a 'duplicate file' that is invalid, remove it.
                                 if (prep.FullServerPath == null)
                                 {
-                                    Repo.Instance.VideoLocal_Place.Delete(prep);
+                                    Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(prep.VideoLocal_Place_ID));
                                 }
                                 else
                                 {
                                     IResult dupFileSystemResult = prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
                                     if (dupFileSystemResult == null || dupFileSystemResult.Status != NutzCode.CloudFileSystem.Status.Ok)
-                                        Repo.Instance.VideoLocal_Place.Delete(prep);
+                                        Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(prep.VideoLocal_Place_ID));
                                 }
                             }
 
@@ -414,20 +413,23 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
 
                 // also save the filename to hash record
                 // replace the existing records just in case it was corrupt
-                List<FileNameHash> fnhashes2 = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
-                if (fnhashes2 != null && fnhashes2.Count > 1)
+                Repo.Instance.FileNameHash.FindAndDelete(() =>
                 {
-                    // if we have more than one record it probably means there is some sort of corruption
-                    // lets delete the local records
-                    foreach (FileNameHash fnh in fnhashes2)
+                    List<FileNameHash> fnhashes = Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize);
+                    if (fnhashes != null && fnhashes.Count > 1)
                     {
-                        Repo.Instance.FileNameHash.Delete(fnh.FileNameHashID);
+                        // if we have more than one record it probably means there is some sort of corruption
+                        // lets delete the local records
+                        return fnhashes;
                     }
-                }
+
+                    return new List<FileNameHash>();
+                });
+
 
                 ReportUpdate(progress, 95);
 
-                using (var upd = Repo.Instance.FileNameHash.BeginAddOrUpdate(() => fnhashes2?.Count == 1 ? fnhashes2[0] : null))
+                using (var upd = Repo.Instance.FileNameHash.BeginAddOrUpdate(() => Repo.Instance.FileNameHash.GetByFileNameAndSize(filename, vlocal.FileSize).FirstOrDefault()))
                 {
                     upd.Entity.FileName = filename;
                     upd.Entity.FileSize = vlocal.FileSize;

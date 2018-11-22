@@ -138,7 +138,7 @@ namespace Shoko.Server.Models
             else
             {
                 if (epUserRecord != null)
-                    Repo.Instance.AnimeEpisode_User.Delete(epUserRecord.AnimeEpisode_UserID);
+                    Repo.Instance.AnimeEpisode_User.FindAndDelete(()=>Repo.Instance.AnimeEpisode_User.GetByID(epUserRecord.AnimeEpisode_UserID));
             }
         }
 
