@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Server.CommandQueue.Commands;
 using Shoko.Server.Repositories;
@@ -15,6 +16,7 @@ namespace Shoko.Server.CommandQueue
 {
     public class Queue : ObservableProgress<ICommand>
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         public static string[] GeneralWorkTypesExceptSchedule => new[] { WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
         public static string[] GeneralWorkTypes => new[] { WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
         public static string[] AllWorkTypes => new[] { WorkTypes.Image,WorkTypes.AniDB, WorkTypes.Schedule, WorkTypes.MovieDB, WorkTypes.Hashing, WorkTypes.Plex, WorkTypes.Server, WorkTypes.Trakt, WorkTypes.TvDB, WorkTypes.WebCache };
@@ -233,9 +235,17 @@ namespace Shoko.Server.CommandQueue
                     PreConditionState state = _genericPreconditions[p];
                     if (state.CheckTime < DateTime.Now)
                     {
-                        var res = p.CanExecute();
-                        state.CheckTime = DateTime.Now.Add(res.RetryIn);
-                        state.CanExecute = res.CanRun;
+                        try
+                        {
+                            var res = p.CanExecute();
+                            state.CheckTime = DateTime.Now.Add(res.RetryIn);
+                            state.CanExecute = res.CanRun;
+                        }
+                        catch (Exception e)
+                        {
+                            //Ignore, log and recheck again
+                            logger.Error(e,$"Error in Queue: Generic IPrecondition {p.GetType().Name} failed on CanExecute Error: {e.Message}");
+                        }
                     }
                 }
                 using (await _lock.LockAsync(token))
@@ -269,23 +279,51 @@ namespace Shoko.Server.CommandQueue
                     {
                         if (c is IPrecondition d)
                         {
-                            var res = d.CanExecute();
-                            if (!res.CanRun)
+                            try
                             {
-                                if (res.RetryIn!=null && res.RetryIn.Milliseconds>0)    
-                                    Provider.Put(c,c.Batch,(int)res.RetryIn.TotalSeconds);
-                                continue;
+                                try
+                                {
+                                    var res = d.CanExecute();
+                                    if (!res.CanRun)
+                                    {
+                                        if (res.RetryIn != null && res.RetryIn.Milliseconds > 0)
+                                            Provider.Put(c, c.Batch, (int)res.RetryIn.TotalSeconds);
+                                        continue;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    //Ignore, asume execution and log
+                                    logger.Error(e, $"Error in Queue: Command IPrecondition {c.GetType().Name} failed on CanExecute Error: {e.Message}");
+                                }
+
+                            }
+                            catch (Exception e)
+                            {
+
                             }
                         }
                         Task t = new Task(async () =>
                         {
-                            await c.RunAsync(this, token);
-                            if (c.Status == CommandStatus.Error && c.Retries < c.MaxRetries)
+                            try
                             {
-                                c.Retries++;
-                                Provider.Put(c, c.Batch, c.RetryFutureInSeconds, c.Error, c.Retries);
+                                await c.RunAsync(this, token);
+                                if (c.Status == CommandStatus.Error && c.Retries < c.MaxRetries)
+                                {
+                                    c.Retries++;
+                                    Provider.Put(c, c.Batch, c.RetryFutureInSeconds, c.Error, c.Retries);
+                                }
                             }
+                            catch (Exception e)
+                            {
+                                logger.Error(e, $"Error Executing Command: {c.GetType().Name} Retries: {c.Retries} failed on with Error: {e.Message}");
+                                if (c.Retries < c.MaxRetries)
+                                {
+                                    c.Retries++;
+                                    Provider.Put(c, c.Batch, c.RetryFutureInSeconds, e.Message, c.Retries);
 
+                                }
+                            }
                             using (await _lock.LockAsync(token))
                             {
                                 workingtasks.Remove(c);

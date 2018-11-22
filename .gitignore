@@ -242,3 +242,5 @@ JMMServer/Images/Unused/
 #EF stuff, when defaulting to SQLite.
 /Shoko.CLI/shoko.db
 **/*.dmw
+/Shoko.Avalonia.Server
+/Shoko.Tray
