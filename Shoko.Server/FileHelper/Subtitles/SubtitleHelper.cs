@@ -17,7 +17,9 @@ namespace Shoko.Server.FileHelper.Subtitles
         public static List<Stream> GetSubtitleStreams(SVR_VideoLocal_Place vplace)
         {
             List<Stream> ls = new VobSubSubtitles().Process(vplace);
-            ls.AddRange(new TextSubtitles().Process(vplace));
+            var textSubtitles = new TextSubtitles().Process(vplace);
+            if (textSubtitles != null)
+                ls.AddRange(textSubtitles);
             return ls;
         }
 

@@ -371,8 +371,7 @@ namespace Shoko.Server.Commands
                             }
                             else
                             {
-                                FileSystemResult dupFileSystemResult =
-                                    (FileSystemResult)prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
+                                IObject dupFileSystemResult = prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
                                 if (dupFileSystemResult == null || dupFileSystemResult.Status != Status.Ok)
                                     Repo.Instance.VideoLocal_Place.Delete(prep);
                             }
