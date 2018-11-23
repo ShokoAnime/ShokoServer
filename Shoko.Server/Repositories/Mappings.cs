@@ -17,9 +17,8 @@ namespace Shoko.Server.Repositories
             }
             {
                 var model = builder.Entity<SVR_AniDB_Anime>();
-                model.ToTable("AniDB_Anime").HasKey(x => x.AniDB_AnimeID);
+                model.ToTable("AniDB_Anime").HasKey(x => x.AnimeID);
 //                //model.HasIndex(x => x.AnimeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_AnimeID");
-                model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.EpisodeCount).IsRequired();
                 model.Property(x => x.BeginYear).IsRequired();
                 model.Property(x => x.EndYear).IsRequired();
@@ -97,11 +96,9 @@ namespace Shoko.Server.Repositories
             }
             {
                 var model = builder.Entity<AniDB_Anime_Review>();
-                model.ToTable("AniDB_Anime_Review").HasKey(x => x.AniDB_Anime_ReviewID);
+                model.ToTable("AniDB_Anime_Review").HasKey(x => x.ReviewID);
 //                //model.HasIndex(x => x.AniDB_Anime_ReviewID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Review");
-                model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Review_AnimeID");
                 model.HasIndex(x => new { x.AnimeID, x.ReviewID }).IsUnique().HasName("UIX_AniDB_Anime_Review_AnimeID_ReviewID");
-                model.Property(x => x.AniDB_Anime_ReviewID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.ReviewID).IsRequired();
             }
@@ -151,9 +148,8 @@ namespace Shoko.Server.Repositories
             }
             {
                 var model = builder.Entity<AniDB_Character>();
-                model.ToTable("AniDB_Character").HasKey(x => x.AniDB_CharacterID);
+                model.ToTable("AniDB_Character").HasKey(x => x.CharID);
 //                //model.HasIndex(x => x.AniDB_CharacterID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_CharacterID");
-                model.Property(x => x.AniDB_CharacterID).IsRequired();
                 model.Property(x => x.CharID).IsRequired();
                 model.Property(x => x.CharName).IsRequired().HasMaxLength(200);
                 model.Property(x => x.PicName).IsRequired().HasMaxLength(100);
@@ -163,11 +159,9 @@ namespace Shoko.Server.Repositories
             }
             {
                 var model = builder.Entity<AniDB_Episode>();
-                model.ToTable("AniDB_Episode").HasKey(x => x.AniDB_EpisodeID);
+                model.ToTable("AniDB_Episode").HasKey(x => x.EpisodeID);
 //                //model.HasIndex(x => x.AniDB_EpisodeID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Episode");
                 model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Episode_AnimeID");
-                model.HasIndex(x => x.EpisodeID).IsUnique().HasName("UIX_AniDB_Episode_EpisodeID");
-                model.Property(x => x.AniDB_EpisodeID).IsRequired().SetLocalValueGenerated();
                 model.Property(x => x.EpisodeID).IsRequired();
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.LengthSeconds).IsRequired();
@@ -182,10 +176,9 @@ namespace Shoko.Server.Repositories
             }
             {
                 var model = builder.Entity<SVR_AniDB_File>();
-                model.ToTable("AniDB_File").HasKey(x => x.AniDB_FileID);
+                model.ToTable("AniDB_File").HasKey(x => x.FileID);
 //                //model.HasIndex(x => x.FileID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_FileID");
                 model.HasIndex(x => x.Hash).IsUnique().HasName("UIX_AniDB_File_Hash");
-                model.Property(x => x.FileID).IsRequired();
                 model.Property(x => x.Hash).IsRequired().HasMaxLength(50);
                 model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.GroupID).IsRequired();
@@ -283,31 +276,26 @@ namespace Shoko.Server.Repositories
                 model.Property(x => x.Picname).IsRequired().HasMaxLength(200);
             }
             {
-                var model = builder.Entity<AniDB_Review>();
-                model.ToTable("AniDB_Review").HasKey(x => x.AniDB_ReviewID);
-//                //model.HasIndex(x => x.ReviewID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_ReviewID");
+                var model = builder.Entity<AniDB_Anime_Review>();
+                model.ToTable("AniDB_Anime_Review").HasKey(x => x.AniDB_Anime_ReviewID);
+                //                //model.HasIndex(x => x.AniDB_Anime_ReviewID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_Anime_Review");
+                model.HasIndex(x => x.AnimeID).HasName("IX_AniDB_Anime_Review_AnimeID");
+                model.HasIndex(x => new { x.AnimeID, x.ReviewID }).IsUnique().HasName("UIX_AniDB_Anime_Review_AnimeID_ReviewID");
+                model.Property(x => x.AniDB_Anime_ReviewID).IsRequired().SetLocalValueGenerated();
+                model.Property(x => x.AnimeID).IsRequired();
                 model.Property(x => x.ReviewID).IsRequired();
-                model.Property(x => x.AuthorID).IsRequired();
-                model.Property(x => x.RatingAnimation).IsRequired();
-                model.Property(x => x.RatingSound).IsRequired();
-                model.Property(x => x.RatingStory).IsRequired();
-                model.Property(x => x.RatingCharacter).IsRequired();
-                model.Property(x => x.RatingValue).IsRequired();
-                model.Property(x => x.RatingEnjoyment).IsRequired();
-                model.Property(x => x.ReviewText).IsRequired();
             }
             {
                 var model = builder.Entity<AniDB_Seiyuu>();
-                model.ToTable("AniDB_Seiyuu").HasKey(x => x.AniDB_SeiyuuID);
+                model.ToTable("AniDB_Seiyuu").HasKey(x => x.SeiyuuID);
 //                //model.HasIndex(x => x.SeiyuuID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_SeiyuuID");
-                model.Property(x => x.SeiyuuID).IsRequired();
                 model.Property(x => x.SeiyuuName).IsRequired().HasMaxLength(200);
                 model.Property(x => x.PicName).IsRequired().HasMaxLength(100);
 
             }
             {
                 var model = builder.Entity<AniDB_Tag>();
-                model.ToTable("AniDB_Tag").HasKey(x => x.AniDB_TagID);
+                model.ToTable("AniDB_Tag").HasKey(x => x.TagID);
 //                //model.HasIndex(x => x.TagID).IsUnique().ForSqlServerIsClustered().HasName("PK_AniDB_TagID");
                 model.Property(x => x.TagID).IsRequired();
                 model.Property(x => x.Spoiler).IsRequired();

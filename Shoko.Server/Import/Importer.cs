@@ -686,7 +686,7 @@ namespace Shoko.Server.Import
 
                 List<SVR_VideoLocal> videoLocalsAll = Repo.Instance.VideoLocal.GetAll().ToList();
                 // remove empty videolocals
-                Repo.Instance.VideoLocal.FindAndDelete(() => videoLocalsAll.Where(a => a.IsEmpty()).ToList());
+                Repo.Instance.VideoLocal.Delete(videoLocalsAll.Where(a => a.IsEmpty()));
 
                 // Remove duplicate videolocals
                 Dictionary<string, List<SVR_VideoLocal>> locals = videoLocalsAll
@@ -713,7 +713,7 @@ namespace Shoko.Server.Import
                     toRemove.AddRange(froms);
                 }
 
-                Repo.Instance.VideoLocal.FindAndDelete(() => toRemove);
+                Repo.Instance.VideoLocal.Delete(toRemove);
 
                 // Remove files in invalid import folders
                 foreach (SVR_VideoLocal v in videoLocalsAll)
@@ -728,7 +728,7 @@ namespace Shoko.Server.Import
                             episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                             seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                 .DistinctBy(a => a.AnimeSeriesID));
-                            Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(place.VideoLocal_Place_ID));
+                            Repo.Instance.VideoLocal_Place.Delete(place);
                         }
                     }
                     // Remove duplicate places
@@ -738,7 +738,7 @@ namespace Shoko.Server.Import
                     {
                         places = places.DistinctBy(a => a.FullServerPath).ToList();
                         places = v.Places?.Except(places).ToList();
-                        Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetMany(places.Select(a=>a.VideoLocal_Place_ID)));
+                        Repo.Instance.VideoLocal_Place.Delete(places);
                     }
                     if (v.Places?.Count > 0) continue;
                     // delete video local record
@@ -747,7 +747,7 @@ namespace Shoko.Server.Import
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
                     CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
-                    Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
+                    Repo.Instance.VideoLocal.Delete(v);
                 }
 
                 // Clean up failed imports
@@ -791,7 +791,7 @@ namespace Shoko.Server.Import
                 if (!string.IsNullOrEmpty(r))
                     return r;
             }
-            Repo.Instance.CloudAccount.FindAndDelete(()=> Repo.Instance.CloudAccount.GetByID(cloudaccountID));
+            Repo.Instance.CloudAccount.Delete(cloudaccountID);
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
             return string.Empty;
@@ -825,12 +825,12 @@ namespace Shoko.Server.Import
                     logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
                     if (v?.Places.Count == 1)
                     {
-                        Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetByID(vid.VideoLocal_Place_ID));
-                        Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
+                        Repo.Instance.VideoLocal_Place.Delete(vid);
+                        Repo.Instance.VideoLocal.Delete(v);
                         CommandQueue.Queue.Instance.Add(new CmdAniDBDeleteFileFromMyList(v.MyListID));
                     }
                     else
-                        Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(vid.VideoLocal_Place_ID));
+                        Repo.Instance.VideoLocal_Place.Delete(vid);
                 }
 
                 // delete any duplicate file records which reference this folder
@@ -838,7 +838,7 @@ namespace Shoko.Server.Import
                 Repo.Instance.DuplicateFile.FindAndDelete(()=>Repo.Instance.DuplicateFile.GetByImportFolder2(importFolderID));
 
                 // delete the import folder
-                Repo.Instance.ImportFolder.FindAndDelete(()=>Repo.Instance.ImportFolder.GetByID(importFolderID));
+                Repo.Instance.ImportFolder.Delete(importFolderID);
 
                 //TODO APIv2: Delete this hack after migration to headless
                 //hack until gui id dead
@@ -933,12 +933,22 @@ namespace Shoko.Server.Import
 
         public static void CheckForDayFilters()
         {
-            ScheduledUpdate sched =
-                Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.DayFiltersUpdate);
-            if (sched != null)
+            
+
+
+            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.DayFiltersUpdate), () => new ScheduledUpdate
             {
-                if (DateTime.Now.Day == sched.LastUpdate.Day)
-                    return;
+                UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate,
+                UpdateDetails = string.Empty
+            }))
+            {
+                if (upd.IsUpdate())
+                {
+                    if (DateTime.Now.Day == upd.Entity.LastUpdate.Day)
+                        return;
+                }
+                upd.Entity.LastUpdate = DateTime.Now;
+                upd.Commit();
             }
             //Get GroupFiters that change daily
 
@@ -957,42 +967,40 @@ namespace Shoko.Server.Import
                 .ToList();
 
             Repo.Instance.GroupFilter.BatchAction(evalfilters, evalfilters.Count, (g, _) => g.CalculateGroupsAndSeries());
-
-            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
-            {
-                return new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.DayFiltersUpdate,
-                    UpdateDetails = string.Empty
-                };
-            }))
-            {
-                upd.Entity.LastUpdate = DateTime.Now;
-                upd.Commit();
-            }
         }
 
         public static void CheckForTvDBUpdates(bool forceRefresh)
         {
             if (ServerSettings.Instance.TvDB.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
             int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TvDB.UpdateFrequency);
-
-            // update tvdb info every 12 hours
-
-            ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TvDBInfo);
-            if (sched != null)
-            {
-                // if we have run this in the last 12 hours and are not forcing it, then exit
-                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
             List<int> tvDBIDs = new List<int>();
             bool tvDBOnline = false;
             string serverTime = TvDBApiHelper.IncrementalTvDBUpdate(ref tvDBIDs, ref tvDBOnline);
+
+            // update tvdb info every 12 hours
+
+
+
+
+            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TvDBInfo), () => new ScheduledUpdate
+            {
+                UpdateType = (int)ScheduledUpdateType.TvDBInfo
+            }))
+            {
+                if (upd.IsUpdate())
+                {
+                    // if we have run this in the last 12 hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours)
+                    {
+                        if (!forceRefresh) return;
+                    }
+                }
+                upd.Entity.LastUpdate = DateTime.Now;
+                upd.Entity.UpdateDetails = serverTime;
+                upd.Commit();
+            }
+
 
             if (tvDBOnline)
             {
@@ -1000,21 +1008,8 @@ namespace Shoko.Server.Import
                 {
                     // download and update series info, episode info and episode images
                     // will also download fanart, posters and wide banners
-                    CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateSeries(tvid,true));
+                    CommandQueue.Queue.Instance.Add(new CmdTvDBUpdateSeries(tvid, true));
                 }
-            }
-
-            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
-            {
-                return new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.TvDBInfo
-                };
-            }))
-            {
-                upd.Entity.LastUpdate = DateTime.Now;
-                upd.Entity.UpdateDetails = serverTime;
-                upd.Commit();
             }
 
             TvDBApiHelper.ScanForMatches();
@@ -1049,27 +1044,21 @@ namespace Shoko.Server.Import
             // update the anonymous user info every 12 hours
             // we will always assume that an anime was downloaded via http first
 
-            ScheduledUpdate sched =
-                Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AzureUserInfo);
-            if (sched != null)
+            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AzureUserInfo), () => new ScheduledUpdate
             {
-                // if we have run this in the last 6 hours and are not forcing it, then exit
-                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < 6)
-                {
-                    if (!forceRefresh) return;
-                }
-            }
-
-            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
-            {
-                return new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
-                    UpdateDetails = string.Empty
-                };
+                UpdateType = (int)ScheduledUpdateType.AzureUserInfo,
+                UpdateDetails = string.Empty
             }))
             {
+                if (upd.IsUpdate())
+                {
+                    // if we have run this in the last 6 hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                    if (tsLastRun.TotalHours < 6)
+                    {
+                        if (!forceRefresh) return;
+                    }
+                }
                 upd.Entity.LastUpdate = DateTime.Now;
                 upd.Commit();
             }
@@ -1199,33 +1188,28 @@ namespace Shoko.Server.Import
                 // by updating the Trakt token regularly, the user won't need to authorize again
                 int freqHours = 24; // we need to update this daily
 
-                ScheduledUpdate sched =
-                    Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktToken);
-                if (sched != null)
-                {
-                    // if we have run this in the last xxx hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    logger.Trace("Last Trakt Token Update: {0} minutes ago", tsLastRun.TotalMinutes);
-                    if (tsLastRun.TotalHours < freqHours)
-                    {
-                        if (!forceRefresh) return;
-                    }
-                }
 
-                TraktTVHelper.RefreshAuthToken();
-
-                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken), () => new ScheduledUpdate
                 {
-                    return new ScheduledUpdate
-                    {
-                        UpdateType = (int)ScheduledUpdateType.TraktToken,
-                        UpdateDetails = string.Empty
-                    };
+                    UpdateType = (int)ScheduledUpdateType.TraktToken,
+                    UpdateDetails = string.Empty
                 }))
                 {
+                    if (upd.IsUpdate())
+                    {
+                        // if we have run this in the last xxx hours and are not forcing it, then exit
+                        TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                        logger.Trace("Last Trakt Token Update: {0} minutes ago", tsLastRun.TotalMinutes);
+                        if (tsLastRun.TotalHours < freqHours)
+                        {
+                            if (!forceRefresh) return;
+                        }
+                    }
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
                 }
+
+                TraktTVHelper.RefreshAuthToken();
             }
             catch (Exception ex)
             {
@@ -1240,18 +1224,24 @@ namespace Shoko.Server.Import
 
             // check for any updated anime info every 12 hours
 
-            ScheduledUpdate sched =
-                Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBFileUpdates);
-            if (sched != null)
+            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates), () => new ScheduledUpdate
             {
-                // if we have run this in the last 12 hours and are not forcing it, then exit
-                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours && !forceRefresh)
+                UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
+                UpdateDetails = string.Empty
+            }))
+            {
+                if (upd.IsUpdate())
                 {
-                    return;
+                    // if we have run this in the last 12 hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours && !forceRefresh)
+                    {
+                        return;
+                    }
                 }
+                upd.Entity.LastUpdate = DateTime.Now;
+                upd.Commit();
             }
-
             UpdateAniDBFileData(true, false, false);
 
             // files which have been hashed, but don't have an associated episode
@@ -1264,50 +1254,11 @@ namespace Shoko.Server.Import
 
             // now check for any files which have been manually linked and are less than 30 days old
 
-            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
-            {
-                return new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
-                    UpdateDetails = string.Empty
-                };
-            }))
-            {
-                upd.Entity.LastUpdate = DateTime.Now;
-                upd.Commit();
-            }
         }
 
         public static void CheckForPreviouslyIgnored()
         {
-            try
-            {
-                IReadOnlyList<SVR_VideoLocal> filesAll = Repo.Instance.VideoLocal.GetAll();
-                IReadOnlyList<SVR_VideoLocal> filesIgnored = Repo.Instance.VideoLocal.GetIgnoredVideos();
-
-                foreach (SVR_VideoLocal vl in filesAll)
-                {
-                    if (vl.IsIgnored == 0)
-                    {
-                        // Check if we have this file marked as previously ignored, matches only if it has the same hash
-                        List<SVR_VideoLocal> resultVideoLocalsIgnored =
-                            filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
-
-                        if (resultVideoLocalsIgnored.Any())
-                        {
-                            using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vl))
-                            {
-                                upd.Entity.IsIgnored = 1;
-                                upd.Commit(false);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, string.Format("Error in CheckForPreviouslyIgnored: {0}", ex));
-            }
+            //This cannot happens anymore, or we have a corrupt videolocal
         }
 
         public static void UpdateAniDBTitles()
@@ -1320,23 +1271,18 @@ namespace Shoko.Server.Import
 
             // check for any updated anime info every 100 hours
 
-            ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBTitles);
-            if (sched != null)
+            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBTitles), () => new ScheduledUpdate
             {
-                // if we have run this in the last 100 hours and are not forcing it, then exit
-                TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours) return;
-            }
-
-            using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () =>
-            {
-                return new ScheduledUpdate
-                {
-                    UpdateType = (int)ScheduledUpdateType.AniDBTitles,
-                    UpdateDetails = string.Empty
-                };
+                UpdateType = (int)ScheduledUpdateType.AniDBTitles,
+                UpdateDetails = string.Empty
             }))
             {
+                if (upd.IsUpdate())
+                {
+                    // if we have run this in the last 100 hours and are not forcing it, then exit
+                    TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                    if (tsLastRun.TotalHours < freqHours) return;
+                }
                 upd.Entity.LastUpdate = DateTime.Now;
                 upd.Commit();
             }

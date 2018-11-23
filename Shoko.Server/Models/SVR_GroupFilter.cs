@@ -147,7 +147,7 @@ namespace Shoko.Server.Models
         {
             if (Conditions.FirstOrDefault(a => a.GroupFilterID == 0) != null)
             {
-                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(this))
                 {
                     Conditions.ForEach(a => a.GroupFilterID = GroupFilterID);
                     upd.Entity.Conditions = Conditions;
@@ -1327,7 +1327,7 @@ namespace Shoko.Server.Models
             if (other.SortingCriteria != SortingCriteria) return false;
             if (Conditions == null || Conditions.Count == 0)
             {
-                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(this))
                 {
                     upd.Entity.Conditions = Conditions = Repo.Instance.GroupFilterCondition.GetByGroupFilterID(GroupFilterID);
                     upd.Commit();
@@ -1335,7 +1335,7 @@ namespace Shoko.Server.Models
             }
             if (other.Conditions == null || other.Conditions.Count == 0)
             {
-                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(this))
                 {
                     upd.Entity.Conditions = other.Conditions = Repo.Instance.GroupFilterCondition.GetByGroupFilterID(other.GroupFilterID);
                     upd.Commit();

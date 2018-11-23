@@ -101,9 +101,9 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                         {
                             if (vid.MyListID == 0)
                             {
-                                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vid))
+                                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(vid))
                                 {
-                                    vid.MyListID = file.ListID;
+                                    upd.Entity.MyListID = file.ListID;
                                     upd.Commit();
                                 }
                             }
@@ -147,7 +147,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                         string hash = string.Empty;
 
-                        SVR_AniDB_File anifile = Repo.Instance.AniDB_File.GetByFileID(myitem.FileID);
+                        SVR_AniDB_File anifile = Repo.Instance.AniDB_File.GetByID(myitem.FileID);
                         if (anifile != null)
                         {
                             hash = anifile.Hash;
@@ -245,7 +245,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
 
                 logger.Info($"Process MyList: {totalItems} Items, {missingFiles} Added, {filesToRemove.Count} Deleted, {watchedItems} Watched, {modifiedItems} Modified");
 
-                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty}))
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBMyListSync, UpdateDetails = string.Empty}))
                 {
                     sched.LastUpdate = DateTime.Now;
                     upd.Commit();

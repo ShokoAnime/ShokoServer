@@ -182,7 +182,7 @@ namespace Shoko.Server.Models
                     Repo.Instance.FileNameHash.BeginAdd(fnhash).Commit();
                 }
 
-                using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(this))
                 {
                     FilePath = upd.Entity.FilePath = tup.Item2; //Also update this, as we can't 
                     upd.Commit();
@@ -217,14 +217,14 @@ namespace Shoko.Server.Models
 
                 using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
-                    Repo.Instance.VideoLocal_Place.FindAndDelete(()=> Repo.Instance.VideoLocal_Place.GetByID(this.VideoLocal_Place_ID));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
 
                     episodesToUpdate.AddRange(v.GetAnimeEpisodes());
                     seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                         .Select(a => a.GetAnimeSeries()));
-                    Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
+                    Repo.Instance.VideoLocal.Delete(v);
                     if (dupFiles != null)
-                        Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetMany(dupFiles.Select(a => a.DuplicateFileID)));
+                        Repo.Instance.DuplicateFile.Delete(dupFiles);
                     transaction.Commit();
                 }
             }
@@ -232,16 +232,16 @@ namespace Shoko.Server.Models
             {
                 using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
-                    Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(this.VideoLocal_Place_ID));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
                     if (dupFiles != null)
-                        Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetMany(dupFiles.Select(a => a.DuplicateFileID)));
+                        Repo.Instance.DuplicateFile.Delete(dupFiles);
                     transaction.Commit();
                 }
             }
             episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
             try
             {
-                Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetMany(episodesToUpdate.Select(a => a.AnimeEpisodeID)));
+                Repo.Instance.AnimeEpisode.Touch(episodesToUpdate);
             }
             catch (Exception ex)
             {
@@ -276,10 +276,10 @@ namespace Shoko.Server.Models
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
-                    Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(this.VideoLocal_Place_ID));
-                    Repo.Instance.VideoLocal.FindAndDelete(() => Repo.Instance.VideoLocal.GetByID(v.VideoLocalID));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
+                    Repo.Instance.VideoLocal.Delete(v.VideoLocalID);
                     if (dupFiles != null)
-                        Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetMany(dupFiles.Select(a => a.DuplicateFileID)));
+                        Repo.Instance.DuplicateFile.Delete(dupFiles);
                     transaction.Commit();
                 }
             }
@@ -287,9 +287,9 @@ namespace Shoko.Server.Models
             {
                 using (var transaction = Repo.Instance.Provider.GetContext().Database.BeginTransaction())
                 {
-                    Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(this.VideoLocal_Place_ID));
+                    Repo.Instance.VideoLocal_Place.Delete(this);
                     if (dupFiles != null)
-                        Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetMany(dupFiles.Select(a => a.DuplicateFileID)));
+                        Repo.Instance.DuplicateFile.Delete(dupFiles);
                     transaction.Commit();
                 }
             }
@@ -725,12 +725,12 @@ namespace Shoko.Server.Models
                     // validate the dup file
                     // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                     if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                        Repo.Instance.DuplicateFile.FindAndDelete(()=>Repo.Instance.DuplicateFile.GetByID(dup.DuplicateFileID));
+                        Repo.Instance.DuplicateFile.Delete(dup);
                 }
                 dups.Commit();
             }
 
-            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
+            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(this))
             {
                 upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                 upd.Entity.FilePath = FilePath = newFilePath;
@@ -1007,13 +1007,13 @@ namespace Shoko.Server.Models
                                     // validate the dup file
                                     // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                                     if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                        Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetByID(dup.DuplicateFileID));
+                                        Repo.Instance.DuplicateFile.Delete(dup);
                                 }
 
                                 upd.Commit();
                             }
 
-                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(this))
                             {
                                 upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                                 upd.Entity.FilePath = FilePath = newFilePath;
@@ -1100,12 +1100,12 @@ namespace Shoko.Server.Models
                             // validate the dup file
                             // There are cases where a dup file was not cleaned up before, so we'll do it here, too
                             if (dup.GetFullServerPath1().Equals(dup.GetFullServerPath2(), StringComparison.InvariantCultureIgnoreCase))
-                                Repo.Instance.DuplicateFile.FindAndDelete(() => Repo.Instance.DuplicateFile.GetByID(dup.DuplicateFileID));
+                                Repo.Instance.DuplicateFile.Delete(dup);
                         }
                         dups.Commit();
                     }
 
-                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => this))
+                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(this))
                     {
                         upd.Entity.ImportFolderID = ImportFolderID = destFolder.ImportFolderID;
                         upd.Entity.FilePath = FilePath = newFilePath;

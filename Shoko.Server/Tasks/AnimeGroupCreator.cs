@@ -53,7 +53,7 @@ namespace Shoko.Server.Tasks
         {
             DateTime now = DateTime.Now;
             SVR_AnimeGroup tempGroup;
-            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => Repo.Instance.AnimeGroup.GetByID(0)))
+            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(0))
             {
                 upd.Entity.GroupName = TempGroupName;
                 upd.Entity.Description = TempGroupName;
@@ -188,12 +188,12 @@ namespace Shoko.Server.Tasks
             foreach (SVR_AnimeSeries s in seriesList)
             {
                 SVR_AnimeGroup grp;
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => null))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAdd())
                 {
-                    upd.Entity.Populate_RA(s,now);
+                    upd.Entity.Populate_RA(s, now);
                     grp = upd.Commit((false, false, false));
                 }
-                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByID(s.AnimeSeriesID)))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(s))
                 {
                     upd.Entity.AnimeGroupID = grp.AnimeGroupID;
                     upd.Commit((false, false, true, false));
@@ -233,12 +233,12 @@ namespace Shoko.Server.Tasks
                 int mainAnimeId = groupAndSeries.Key;
                 SVR_AnimeSeries mainSeries = groupAndSeries.FirstOrDefault(series => series.AniDB_ID == mainAnimeId);
                 SVR_AnimeGroup grp;
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => null))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAdd())
                 {
-                    CreateAnimeGroup_RA(upd.Entity,mainSeries, mainAnimeId, now);
+                    CreateAnimeGroup_RA(upd.Entity, mainSeries, mainAnimeId, now);
                     grp = upd.Commit((false, false, false));
                 }
-                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => Repo.Instance.AnimeSeries.GetByID(mainSeries.AnimeSeriesID)))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(mainSeries))
                 {
                     upd.Entity.AnimeGroupID = grp.AnimeGroupID;
                     upd.Commit((false, false, true, false));
@@ -417,7 +417,7 @@ namespace Shoko.Server.Tasks
                 }
 
                 UpdateAnimeSeriesContractsAndSave(animeSeries);
-                Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(tempGroup.AnimeGroupID)); // We should no longer need the temporary group we created earlier
+                Repo.Instance.AnimeGroup.Delete(tempGroup); // We should no longer need the temporary group we created earlier
 
                 // We need groups and series cached for updating of AnimeGroup contracts to work
                 Repo.Instance.AnimeGroup.PopulateCache();

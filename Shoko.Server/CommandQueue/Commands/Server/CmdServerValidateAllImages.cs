@@ -232,7 +232,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     foreach (var fanart in fanarts)
                     {
                         logger.Trace($"Corrupt image found! Attempting Redownload: {fanart.GetPosterPath()}");
-                        RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Character, fanart.AniDB_CharacterID, fanart,cmds);
+                        RemoveImageAndQueueRedownload(ImageEntityType.AniDB_Character, fanart.CharID, fanart,cmds);
                         count++;
                         if (count % 10 == 1 || count == fanarts.Count)
                         {

@@ -51,7 +51,7 @@ namespace Shoko.Server.CommandQueue.Commands.Server
                     ReportError(progress, $"Could not find VideoLocal: {VideoLocalID}");
                     return;
                 }
-                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => place.VideoLocal))
+                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(place.VideoLocalID))
                 {
                     if (place.RefreshMediaInfo(txn.Entity))
                     {

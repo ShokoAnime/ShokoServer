@@ -203,7 +203,7 @@ namespace Shoko.Server.Models
                 if (contract == null)
                 {
                     logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
-                    _contract = Repo.Instance.AnimeSeries.Touch(() => this, (false, false, true, false))._contract?.DeepClone();
+                    _contract = Repo.Instance.AnimeSeries.Touch(this, (false, false, true, false))._contract?.DeepClone();
                 }
 
                 if (contract == null)
@@ -620,7 +620,7 @@ namespace Shoko.Server.Models
                 if (animeRec != null)
                 {
                     if (animeRec.Contract == null)
-                        animeRec = Repo.Instance.AniDB_Anime.Touch(() => animeRec);
+                        animeRec = Repo.Instance.AniDB_Anime.Touch(animeRec);
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
@@ -934,7 +934,7 @@ namespace Shoko.Server.Models
 
         public void UpdateStats(bool watchedStats, bool missingEpsStats, bool updateAllGroupsAbove)
         {
-            using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => this))
+            using (var txn = Repo.Instance.AnimeSeries.BeginAddOrUpdate(this))
             {
                 DateTime start = DateTime.Now;
                 logger.Info(

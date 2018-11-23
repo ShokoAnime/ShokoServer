@@ -39,7 +39,7 @@ namespace Shoko.Server.FileScanner
                 if (pl != null)
                 {
                     info.ErrorFiles.Remove(sf);
-                    Repo.Instance.ScanFile.FindAndDelete(() => Repo.Instance.ScanFile.GetByID(sf.ScanFileID));
+                    Repo.Instance.ScanFile.Delete(sf);
                     Queue.Instance.Add(new CmdVerifyFile(pl),BatchName+si.Scan.ScanID);
                 }
             }
@@ -54,7 +54,7 @@ namespace Shoko.Server.FileScanner
                 if (locals.Count>0)
                 {
                     si.ErrorFiles.Clear();
-                    Repo.Instance.ScanFile.FindAndDelete(() => Repo.Instance.ScanFile.GetMany(files.Select(a=>a.ScanID)));
+                    Repo.Instance.ScanFile.Delete(files);
                     Queue.Instance.AddRange(locals.Select(a=>new CmdVerifyFile(a)), BatchName + si.Scan.ScanID);
                 }
             }
@@ -111,7 +111,7 @@ namespace Shoko.Server.FileScanner
                         int cnt = Queue.Instance.GetCommandCount(vf.Batch) - 1; //Current command didnt finish yet (thats why 1)
                         if (cnt <= 0)
                         {
-                            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => Repo.Instance.Scan.GetByID(scanid)))
+                            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(scanid))
                             {
                                 upd.Entity.Status = (int) ScanStatus.Finish;
                                 upd.Commit();
@@ -146,14 +146,14 @@ namespace Shoko.Server.FileScanner
             Cancel(info);
             Repo.Instance.ScanFile.FindAndDelete(() => Repo.Instance.ScanFile.GetByScanID(info.Scan.ScanID));
             Scans.Remove(info);
-            Repo.Instance.Scan.FindAndDelete(() => Repo.Instance.Scan.GetByID(info.Scan.ScanID));
+            Repo.Instance.Scan.Delete(info.Scan);
         }
         public void Start(ScannerInfo info)
         {
             if (info.Scan.Status == (int) ScanStatus.Running || GetQueueCount(info.Scan) > 0)
                 return;
             int id = info.Scan.ScanID;
-            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => Repo.Instance.Scan.GetByID(id)))
+            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(id))
             {
                 upd.Entity.Status = (int) ScanStatus.Standby;
                 upd.Commit();
@@ -170,7 +170,7 @@ namespace Shoko.Server.FileScanner
                 }
             }
 
-            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => Repo.Instance.Scan.GetByID(id)))
+            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(id))
             {
                 upd.Entity.Status = (int) ScanStatus.Running;
                 upd.Commit();
@@ -203,7 +203,7 @@ namespace Shoko.Server.FileScanner
         {
             int id = info.Scan.ScanID;
             Queue.Instance.ClearBatch(BatchName + id);
-            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(() => Repo.Instance.Scan.GetByID(id)))
+            using (var upd = Repo.Instance.Scan.BeginAddOrUpdate(id))
             {
                 upd.Entity.Status = (int) ScanStatus.Standby;
                 upd.Commit();

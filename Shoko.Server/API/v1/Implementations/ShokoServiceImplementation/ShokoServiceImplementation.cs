@@ -63,9 +63,9 @@ namespace Shoko.Server
             };
             try
             {
-                using (var upd = Repo.Instance.BookmarkedAnime.BeginAddOrUpdate(() =>  Repo.Instance.BookmarkedAnime.GetByID(contract.AnimeID)))
+                using (var upd = Repo.Instance.BookmarkedAnime.BeginAddOrUpdate(() =>  Repo.Instance.BookmarkedAnime.GetByAnimeID(contract.AnimeID)))
                 {
-                    if (contract.AnimeID != 0 && upd.Original == null)
+                    if (upd.IsNew())
                     {
                         contractRet.ErrorMessage = "Could not find existing Bookmark with ID: " +contract.AnimeID;
                         return contractRet;
@@ -92,7 +92,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!Repo.Instance.BookmarkedAnime.FindAndDelete(()=> Repo.Instance.BookmarkedAnime.GetByID(bookmarkedAnimeID)))
+                if (!Repo.Instance.BookmarkedAnime.Delete(bookmarkedAnimeID))
                     return "Bookmarked not found";
                 return string.Empty;
             }
@@ -869,60 +869,60 @@ namespace Shoko.Server
                 switch (imgType)
                 {
                     case ImageEntityType.AniDB_Cover:
-                        SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(imageID);
-                        if (anime == null) return "Could not find anime";
-                        using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                        using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find anime";
                             upd.Entity.ImageEnabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
                         break;
 
                     case ImageEntityType.TvDB_Banner:
-                        TvDB_ImageWideBanner banner = Repo.Instance.TvDB_ImageWideBanner.GetByID(imageID);
-                        if (banner == null) return "Could not find image";
-                        using (var upd = Repo.Instance.TvDB_ImageWideBanner.BeginAddOrUpdate(() => banner))
+                        using (var upd = Repo.Instance.TvDB_ImageWideBanner.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find image";
                             upd.Entity.Enabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
                         break;
 
                     case ImageEntityType.TvDB_Cover:
-                        TvDB_ImagePoster poster = Repo.Instance.TvDB_ImagePoster.GetByID(imageID);
-                        if (poster == null) return "Could not find image";
-                        using (var upd = Repo.Instance.TvDB_ImagePoster.BeginAddOrUpdate(() => poster))
+                        using (var upd = Repo.Instance.TvDB_ImagePoster.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find image";
                             upd.Entity.Enabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
                         break;
 
                     case ImageEntityType.TvDB_FanArt:
-                        TvDB_ImageFanart fanart = Repo.Instance.TvDB_ImageFanart.GetByID(imageID);
-                        if (fanart == null) return "Could not find image";
-                        using (var upd = Repo.Instance.TvDB_ImageFanart.BeginAddOrUpdate(() => fanart))
+                        using (var upd = Repo.Instance.TvDB_ImageFanart.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find image";
                             upd.Entity.Enabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
                         break;
 
                     case ImageEntityType.MovieDB_Poster:
-                        MovieDB_Poster moviePoster = Repo.Instance.MovieDB_Poster.GetByID(imageID);
-                        if (moviePoster == null) return "Could not find image";
-                        using (var upd = Repo.Instance.MovieDB_Poster.BeginAddOrUpdate(() => moviePoster))
+                        using (var upd = Repo.Instance.MovieDB_Poster.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find image";
                             upd.Entity.Enabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
                         break;
 
                     case ImageEntityType.MovieDB_FanArt:
-                        MovieDB_Fanart movieFanart = Repo.Instance.MovieDB_Fanart.GetByID(imageID);
-                        if (movieFanart == null) return "Could not find image";
-                        using (var upd = Repo.Instance.MovieDB_Fanart.BeginAddOrUpdate(() => movieFanart))
+                        using (var upd = Repo.Instance.MovieDB_Fanart.BeginAddOrUpdate(imageID))
                         {
+                            if (upd.IsNew())
+                                return "Could not find image";
                             upd.Entity.Enabled = enabled ? 1 : 0;
                             upd.Commit();
                         }
@@ -982,7 +982,7 @@ namespace Shoko.Server
                         txn.Commit();
                     }
                 }
-                Repo.Instance.AnimeSeries.Touch(()=> Repo.Instance.AnimeSeries.GetByAnimeID(animeID), (false, false, false, false));
+                Repo.Instance.AnimeSeries.Touch(animeID, (false, false, false, false));
 
                 return string.Empty;
             }

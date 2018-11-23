@@ -162,7 +162,7 @@ namespace Shoko.Server.Models
                     // rename the group if it only has one direct child Anime Series
                     if (list.Count == 1)
                     {
-                        using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
+                        using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(grp))
                         {
                             string newTitle = list[0].GetSeriesName();
                             upd.Entity.GroupName = newTitle;
@@ -225,7 +225,7 @@ namespace Shoko.Server.Models
                                     .GetSeriesName();
                             if (hasCustomName) newTitle = grp.GroupName;
                             // reset tags, description, etc to new series
-                            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
+                            using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(grp))
                             {
                                 upd.Entity.Populate_RA(series);
                                 upd.Entity.GroupName = newTitle;
@@ -477,7 +477,7 @@ namespace Shoko.Server.Models
             if (missingEpsStats)
             {
                 UpdateMissingEpisodeStats(this, seriesList);
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => this))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(this))
                 {
                     UpdateMissingEpisodeStats(upd.Entity, seriesList);
                     upd.Commit((true, false, false));
@@ -492,7 +492,7 @@ namespace Shoko.Server.Models
                 {
                     // Now update the stats for the groups
                     logger.Trace("Updating stats for {0}", ToString());
-                    Repo.Instance.AnimeGroup_User.Touch(() => userRecord);
+                    Repo.Instance.AnimeGroup_User.Touch(userRecord);
                 });
             }
         }
@@ -1015,7 +1015,7 @@ namespace Shoko.Server.Models
             foreach (SVR_GroupFilter gf in Repo.Instance.GroupFilter.GetAll())
             {
                 bool change = false;
-                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(gf))
                 {
                     foreach (int k in upd.Entity.GroupsIds.Keys)
                         if (upd.Entity.GroupsIds[k].Contains(AnimeGroupID))

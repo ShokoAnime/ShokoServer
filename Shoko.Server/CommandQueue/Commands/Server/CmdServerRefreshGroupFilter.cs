@@ -40,15 +40,14 @@ namespace Shoko.Server.CommandQueue.Commands.Server
             try
             {
                 ReportInit(progress);
-                SVR_GroupFilter gf = Repo.Instance.GroupFilter.GetByID(GroupFilterID);
-                if (gf == null) 
-                {
-                    ReportFinish(progress);
-                    return;
-                }
                 ReportUpdate(progress,10);
-                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
+                using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(GroupFilterID))
                 {
+                    if (upd.IsNew())
+                    {
+                        ReportFinish(progress);
+                        return;
+                    }
                     upd.Entity.CalculateGroupsAndSeries();
                     upd.Commit();
                 }

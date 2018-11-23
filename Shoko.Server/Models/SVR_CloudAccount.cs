@@ -52,7 +52,7 @@ namespace Shoko.Server.Models
                 {
                     ServerState.Instance.ConnectedFileSystems[Name] = Connect();
                     if (NeedSave)
-                        Repo.Instance.CloudAccount.Touch(() => this);
+                        Repo.Instance.CloudAccount.Touch(this);
                 }
 
                 return ServerState.Instance.ConnectedFileSystems[Name];

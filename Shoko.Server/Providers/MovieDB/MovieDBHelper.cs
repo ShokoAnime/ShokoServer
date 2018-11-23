@@ -99,7 +99,7 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(poster.GetFullImagePath()))
                         {
-                            Repo.Instance.MovieDB_Poster.FindAndDelete(()=>Repo.Instance.MovieDB_Poster.GetByID(poster.MovieDB_PosterID));
+                            Repo.Instance.MovieDB_Poster.Delete(poster);
                         }
                     }
                 }
@@ -127,7 +127,7 @@ namespace Shoko.Server.Providers.MovieDB
                         // first we check if file was downloaded
                         if (!File.Exists(fanart.GetFullImagePath()))
                         {
-                            Repo.Instance.MovieDB_Fanart.FindAndDelete(()=>Repo.Instance.MovieDB_Fanart.GetByID(fanart.MovieDB_FanartID));
+                            Repo.Instance.MovieDB_Fanart.Delete(fanart);
                         }
                     }
                 }

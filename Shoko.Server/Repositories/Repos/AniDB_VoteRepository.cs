@@ -32,7 +32,7 @@ namespace Shoko.Server.Repositories.Repos
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetByID(entity.EntityID));
+                    Repo.Instance.AnimeEpisode.Touch(entity.EntityID);
                     break;
             }
         }
@@ -46,7 +46,7 @@ namespace Shoko.Server.Repositories.Repos
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(entity.EntityID);
                     break;
                 case (int)AniDBVoteType.Episode:
-                    Repo.Instance.AnimeEpisode.Touch(() => Repo.Instance.AnimeEpisode.GetByID(entity.EntityID));
+                    Repo.Instance.AnimeEpisode.Touch(entity.EntityID);
                     break;
             }
         }
@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Repos
             if (cr==null || cr.Count == 0)
                 return null;
             if (cr.Count > 1)
-                FindAndDelete(() => cr.GetRange(1, cr.Count - 1));
+                this.Delete(cr.GetRange(1, cr.Count - 1));
             return cr[0];
         }
 

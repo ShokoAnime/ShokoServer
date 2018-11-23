@@ -66,7 +66,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                             }
                         }
 
-                        using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(() => thisVote, () => new AniDB_Vote {EntityID = myVote.EntityID}))
+                        using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(thisVote, () => new AniDB_Vote {EntityID = myVote.EntityID}))
                         {
                             upd.Entity.VoteType = (int) myVote.VoteType;
                             upd.Entity.VoteValue = myVote.VoteValue;

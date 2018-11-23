@@ -593,7 +593,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImageFanart.FindAndDelete(()=>Repo.Instance.TvDB_ImageFanart.GetByID(img.TvDB_ImageFanartID));
+                        Repo.Instance.TvDB_ImageFanart.Delete(img);
                 }
         }
 
@@ -619,7 +619,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImagePoster.FindAndDelete(()=>Repo.Instance.TvDB_ImagePoster.GetByID(img.TvDB_ImagePosterID));
+                        Repo.Instance.TvDB_ImagePoster.Delete(img);
                 }
         }
 
@@ -645,7 +645,7 @@ namespace Shoko.Server.Providers.TvDB
                     // we should clean those image that we didn't download because those dont exists in local repo
                     // first we check if file was downloaded
                     if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        Repo.Instance.TvDB_ImageWideBanner.FindAndDelete(() => Repo.Instance.TvDB_ImageWideBanner.GetByID(img.TvDB_ImageWideBannerID));
+                        Repo.Instance.TvDB_ImageWideBanner.Delete(img);
                 }
         }
 

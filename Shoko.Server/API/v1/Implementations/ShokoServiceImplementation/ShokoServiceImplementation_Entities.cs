@@ -740,17 +740,14 @@ namespace Shoko.Server
         public string SetIgnoreStatusOnFile(int videoLocalID, bool isIgnored)
         {
             try
-            {
-                SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByID(videoLocalID);
-                if (vid == null)
-                    return "Could not find video record";
-
-                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vid))
+            { 
+                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(videoLocalID))
                 {
+                    if (upd.IsNew())
+                        return "Could not find video record";
                     upd.Entity.IsIgnored = isIgnored ? 1 : 0;
                     upd.Commit(false);
                 }
-
                 return "";
             }
             catch (Exception ex)
@@ -765,11 +762,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_VideoLocal vid = Repo.Instance.VideoLocal.GetByID(videoLocalID);
-                if (vid == null)
-                    return "Could not find video record";
-                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vid))
+                using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(videoLocalID))
                 {
+                    if (upd.IsNew())
+                        return "Could not find video record";
                     upd.Entity.IsVariation = isVariation ? 1 : 0;
                     upd.Commit(false);
                 }
@@ -1567,9 +1563,7 @@ namespace Shoko.Server
             logger.Info(msg);
 
             // lets save to the database and assume it will work
-            AniDB_Vote thisVote = Repo.Instance.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ?? Repo.Instance.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
-
-            using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(() => thisVote, () => new AniDB_Vote {EntityID = animeID}))
+            using (var upd = Repo.Instance.AniDB_Vote.BeginAddOrUpdate(() => Repo.Instance.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ?? Repo.Instance.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime), () => new AniDB_Vote {EntityID = animeID}))
             {
                 upd.Entity.VoteType = voteType;
 
@@ -1606,7 +1600,7 @@ namespace Shoko.Server
 
             if (thisVote == null) return;
 
-            Repo.Instance.AniDB_Vote.FindAndDelete(() => Repo.Instance.AniDB_Vote.GetByID(thisVote.AniDB_VoteID));
+            Repo.Instance.AniDB_Vote.Delete(thisVote);
             Queue.Instance.Add(new CmdAniDBVoteAnime(animeID, thisVote.VoteType, -1));
 
         }
@@ -1904,10 +1898,10 @@ namespace Shoko.Server
                     if (change)
                     {
                         if (gf.Conditions.Count == 0)
-                            Repo.Instance.GroupFilter.FindAndDelete(()=> Repo.Instance.GroupFilter.GetByID(gf.GroupFilterID));
+                            Repo.Instance.GroupFilter.Delete(gf.GroupFilterID);
                         else
                         {
-                            using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
+                            using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(gf))
                             {
                                 upd.Entity.CalculateGroupsAndSeries();
                                 upd.Commit();
@@ -1916,7 +1910,7 @@ namespace Shoko.Server
                     }
                 }
 
-                Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(grp.AnimeGroupID));
+                Repo.Instance.AnimeGroup.Delete(grp);
 
                 // finally update stats
 
@@ -2014,18 +2008,24 @@ namespace Shoko.Server
             CL_Response<CL_AnimeGroup_User> contractout = new CL_Response<CL_AnimeGroup_User> {ErrorMessage = "", Result = null};
             try
             {
-                SVR_AnimeGroup grp = null;
-                if (contract.AnimeGroupID.HasValue && contract.AnimeGroupID != 0)
-                {
-                    grp = Repo.Instance.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
-                    if (grp == null)
-                    {
-                        contractout.ErrorMessage = "Could not find existing group with ID: " + contract.AnimeGroupID.Value.ToString();
-                        return contractout;
-                    }
-                }
 
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp, () => new SVR_AnimeGroup
+
+                bool error = false;
+                SVR_AnimeGroup fgrp=null;
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() =>
+                {
+                    SVR_AnimeGroup grp = null;
+                    if (contract.AnimeGroupID.HasValue && contract.AnimeGroupID != 0)
+                    {
+                        grp = Repo.Instance.AnimeGroup.GetByID(contract.AnimeGroupID.Value);
+                        if (grp == null)
+                        {
+                            error = true;
+                            return null;
+                        }
+                    }
+                    return grp;
+                }, () => new SVR_AnimeGroup
                 {
                     Description = "",
                     IsManuallyNamed = 0,
@@ -2037,6 +2037,11 @@ namespace Shoko.Server
                     OverrideDescription = 0
                 }))
                 {
+                    if (error)
+                    {
+                        contractout.ErrorMessage = "Could not find existing group with ID: " + contract.AnimeGroupID.Value.ToString();
+                        return contractout;
+                    }
                     if (string.IsNullOrEmpty(contract.GroupName))
                     {
                         contractout.ErrorMessage = "Must specify a group name";
@@ -2052,18 +2057,15 @@ namespace Shoko.Server
 
                     upd.Entity.SortName = string.IsNullOrEmpty(contract.SortName) ? contract.GroupName : contract.SortName;
 
-                    upd.Commit();
+                    fgrp=upd.Commit();
                 }
-
-                using (var upd = Repo.Instance.AnimeGroup_User.BeginAddOrUpdate(() => grp.GetUserRecord(userID), () => new SVR_AnimeGroup_User(userID, grp.AnimeGroupID)))
+                using (var upd = Repo.Instance.AnimeGroup_User.BeginAddOrUpdate(() => fgrp.GetUserRecord(userID), () => new SVR_AnimeGroup_User(userID, fgrp.AnimeGroupID)))
                 {
                     upd.Entity.IsFave = contract.IsFave;
                     upd.Commit();
                 }
 
-                contractout.Result = grp.GetUserContract(userID);
-
-
+                contractout.Result = fgrp.GetUserContract(userID);
                 return contractout;
             }
             catch (Exception ex)
@@ -2116,7 +2118,7 @@ namespace Shoko.Server
                     SVR_AnimeGroup topGroup = grp.TopLevelAnimeGroup;
                     if (grp.GetAllSeries().Count == 0)
                     {
-                        Repo.Instance.AnimeGroup.FindAndDelete(()=>Repo.Instance.AnimeGroup.GetByID(grp.AnimeGroupID));
+                        Repo.Instance.AnimeGroup.Delete(grp);
                     }
 
                     if (topGroup.AnimeGroupID != grp.AnimeGroupID)
@@ -2282,9 +2284,9 @@ namespace Shoko.Server
                 }
 
                 // update stats
-                Repo.Instance.AnimeSeries.Touch(() => ser, (false, false, false, false));
+                Repo.Instance.AnimeSeries.Touch(ser, (false, false, false, false));
 
-                Repo.Instance.AnimeGroup.Touch(() => ser.AllGroupsAbove, (true, false, true));
+                Repo.Instance.AnimeGroup.Touch(ser.AllGroupsAbove, (true, false, true));
 
                 response.Result = ser.GetUserContract(userID);
                 return response;
@@ -2367,11 +2369,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
-                if (anime == null) return;
-
-                using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(animeID))
                 {
+                    if (upd.IsNew())
+                        return;
                     upd.Entity.DisableExternalLinksFlag = flags;
                     upd.Commit();
                 }
@@ -2387,14 +2388,13 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
-                if (grp == null) return;
-
                 SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null) return;
 
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(animeGroupID))
                 {
+                    if (upd.IsNew())
+                        return;
                     upd.Entity.DefaultAnimeSeriesID = animeSeriesID;
                     upd.Commit();
                 }
@@ -2410,11 +2410,10 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
-                if (grp == null) return;
-
-                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(() => grp))
+                using (var upd = Repo.Instance.AnimeGroup.BeginAddOrUpdate(animeGroupID))
                 {
+                    if (upd.IsNew())
+                        return;
                     upd.Entity.DefaultAnimeSeriesID = null;
                     upd.Commit();
                 }
@@ -2576,10 +2575,10 @@ namespace Shoko.Server
                         }
                     }
 
-                    Repo.Instance.AnimeEpisode.FindAndDelete(()=>Repo.Instance.AnimeEpisode.GetByID(ep.AnimeEpisodeID));
+                    Repo.Instance.AnimeEpisode.Delete(ep);
                 }
 
-                Repo.Instance.AnimeSeries.FindAndDelete(()=>Repo.Instance.AnimeSeries.GetByID(ser.AnimeSeriesID));
+                Repo.Instance.AnimeSeries.Delete(ser);
 
                 // finally update stats
                 SVR_AnimeGroup grp = Repo.Instance.AnimeGroup.GetByID(animeGroupID);
@@ -2962,10 +2961,7 @@ namespace Shoko.Server
                     return response;
                 }
             }
-
-            gf = SVR_GroupFilter.FromClient(contract);
-
-            using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => gf))
+            using (var upd = Repo.Instance.GroupFilter.BeginAddOrUpdate(() => SVR_GroupFilter.FromClient(contract)))
             {
                 upd.Entity.CalculateGroupsAndSeries();
                 gf = upd.Commit();
@@ -2980,7 +2976,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!Repo.Instance.GroupFilter.FindAndDelete(() => Repo.Instance.GroupFilter.GetByID(groupFilterID)))
+                if (!Repo.Instance.GroupFilter.Delete(groupFilterID))
                     return "Group Filter not found";
                 return "";
             }
@@ -3171,25 +3167,35 @@ namespace Shoko.Server
             try
             {
                 // Process the playlist
-                Playlist pl = null;
-                if (contract.PlaylistID != 0)
-                {
-                    pl = Repo.Instance.Playlist.GetByID(contract.PlaylistID);
-                    if (pl == null)
-                    {
-                        contractRet.ErrorMessage = "Could not find existing Playlist with ID: " + contract.PlaylistID.ToString();
-                        return contractRet;
-                    }
-                }
 
+                Playlist pl;
                 if (string.IsNullOrEmpty(contract.PlaylistName))
                 {
                     contractRet.ErrorMessage = "Playlist must have a name";
                     return contractRet;
                 }
 
-                using (var upd = Repo.Instance.Playlist.BeginAddOrUpdate(() => pl))
+                bool error = false;
+                using (var upd = Repo.Instance.Playlist.BeginAddOrUpdate(() =>
                 {
+                    pl = null;
+                    if (contract.PlaylistID != 0)
+                    {
+                        pl = Repo.Instance.Playlist.GetByID(contract.PlaylistID);
+                        if (pl == null)
+                        {
+                            error = true;
+                            return null;
+                        }
+                    }
+                    return pl;
+                }))
+                {
+                    if (error)
+                    {
+                        contractRet.ErrorMessage = "Could not find existing Playlist with ID: " + contract.PlaylistID.ToString();
+                        return contractRet;
+                    }
                     upd.Entity.DefaultPlayOrder = contract.DefaultPlayOrder;
                     upd.Entity.PlaylistItems = contract.PlaylistItems;
                     upd.Entity.PlaylistName = contract.PlaylistName;
@@ -3216,7 +3222,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!Repo.Instance.Playlist.FindAndDelete(()=>Repo.Instance.Playlist.GetByID(playlistID)))
+                if (!Repo.Instance.Playlist.Delete(playlistID))
                     return "Playlist not found";
                 return "";
             }
@@ -3275,7 +3281,7 @@ namespace Shoko.Server
                 /*else
                     xref = new CrossRef_CustomTag();*/
 
-                using (var upd = Repo.Instance.CrossRef_CustomTag.BeginAddOrUpdate(() => xref))
+                using (var upd = Repo.Instance.CrossRef_CustomTag.BeginAdd())
                 {
                     //TODO: Custom Tags - check if the CustomTagID is valid
                     //TODO: Custom Tags - check if the CrossRefID is valid
@@ -3304,7 +3310,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!Repo.Instance.CrossRef_CustomTag.FindAndDelete(()=>Repo.Instance.CrossRef_CustomTag.GetByID(xrefID)))
+                if (!Repo.Instance.CrossRef_CustomTag.Delete(xrefID))
                     return "Custom Tag not found";
                 return "";
             }
@@ -3340,24 +3346,32 @@ namespace Shoko.Server
             {
                 // this is an update
                 CustomTag ctag = null;
-                if (contract.CustomTagID != 0)
-                {
-                    ctag = Repo.Instance.CustomTag.GetByID(contract.CustomTagID);
-                    if (ctag == null)
-                    {
-                        contractRet.ErrorMessage = "Could not find existing custom tag with ID: " + contract.CustomTagID.ToString();
-                        return contractRet;
-                    }
-                }
-
                 if (string.IsNullOrEmpty(contract.TagName))
                 {
                     contractRet.ErrorMessage = "Custom Tag must have a name";
                     return contractRet;
                 }
 
-                using (var txn = Repo.Instance.CustomTag.BeginAddOrUpdate(() => ctag))
+                bool error = false;
+                using (var txn = Repo.Instance.CustomTag.BeginAddOrUpdate(() =>
                 {
+                    if (contract.CustomTagID != 0)
+                    {
+                        ctag = Repo.Instance.CustomTag.GetByID(contract.CustomTagID);
+                        if (ctag == null)
+                        {
+                            error = true;
+                            return null;
+                        }
+                    }
+                    return ctag;
+                }))
+                {
+                    if (error)
+                    {
+                        contractRet.ErrorMessage = "Could not find existing custom tag with ID: " + contract.CustomTagID.ToString();
+                        return contractRet;
+                    }
                     txn.Entity.TagName = contract.TagName;
                     txn.Entity.TagDescription = contract.TagDescription;
                     ctag = txn.Commit();
@@ -3382,7 +3396,7 @@ namespace Shoko.Server
             {
                 // first get a list of all the anime that referenced this tag
                 List<int> crossrefs = Repo.Instance.CrossRef_CustomTag.GetByCustomTagID(customTagID).Select(a => a.CrossRefID).ToList();
-                if (!Repo.Instance.CustomTag.FindAndDelete(() => Repo.Instance.CustomTag.GetByID(customTagID)))
+                if (!Repo.Instance.CustomTag.Delete(customTagID))
                     return "Custom Tag not found";
                 crossrefs.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
                 return "";
@@ -3451,13 +3465,14 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_JMMUser jmmUser = Repo.Instance.JMMUser.GetByID(userID);
-                if (jmmUser == null) return "User not found";
 
-                using (var upd = Repo.Instance.JMMUser.BeginAddOrUpdate(() => jmmUser))
+                SVR_JMMUser jmmUser = null;
+                using (var upd = Repo.Instance.JMMUser.BeginAddOrUpdate(userID))
                 {
-                    upd.Entity.Password = Digest.Hash(newPassword);
-                    upd.Commit();
+                    if (upd.IsNew())
+                        return "User not found";
+                   upd.Entity.Password = Digest.Hash(newPassword);
+                   jmmUser=upd.Commit();
                 }
 
                 if (revokeapikey)
@@ -3502,7 +3517,7 @@ namespace Shoko.Server
                 string hcat = string.Join(",", user.HideCategories);
                 if (jmmUser.HideCategories != hcat)
                     updateGf = true;
-                using (var upd = Repo.Instance.JMMUser.BeginAddOrUpdate(() => jmmUser))
+                using (var upd = Repo.Instance.JMMUser.BeginAddOrUpdate(jmmUser))
                 {
                     upd.Entity.HideCategories = hcat;
                     upd.Entity.IsAniDBUser = user.IsAniDBUser;
@@ -3594,7 +3609,7 @@ namespace Shoko.Server
                     if (!adminExists) return "At least one user must be an administrator";
                 }
 
-                Repo.Instance.JMMUser.FindAndDelete(()=>Repo.Instance.JMMUser.GetByID(userID));
+                Repo.Instance.JMMUser.Delete(userID);
 
                 // delete all user records
                 Repo.Instance.AnimeSeries_User.FindAndDelete(()=>Repo.Instance.AnimeSeries_User.GetByUserID(userID));
@@ -3697,7 +3712,7 @@ namespace Shoko.Server
                     {
                         if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 && (contract.ImportFolderID == 0 || contract.ImportFolderID != imf.ImportFolderID))
                         {
-                            using (var txn = Repo.Instance.ImportFolder.BeginAddOrUpdate(() => imf))
+                            using (var txn = Repo.Instance.ImportFolder.BeginAddOrUpdate(imf.ImportFolderID))
                             {
                                 txn.Entity.IsDropDestination = 0;
                                 txn.Commit();
@@ -3720,7 +3735,7 @@ namespace Shoko.Server
                     }
                 }
 
-                using (var txn = Repo.Instance.ImportFolder.BeginAddOrUpdate(() => ns))
+                using (var txn = Repo.Instance.ImportFolder.BeginAddOrUpdate(ns))
                 {
                     txn.Entity.ImportFolderName = contract.ImportFolderName;
                     txn.Entity.ImportFolderLocation = contract.ImportFolderLocation;

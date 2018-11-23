@@ -362,7 +362,6 @@ namespace Shoko.Server.Extensions
             var titles = Repo.Instance.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
             return new CL_AniDB_Episode
             {
-                AniDB_EpisodeID = ep.AniDB_EpisodeID,
                 EpisodeID = ep.EpisodeID,
                 AnimeID = ep.AnimeID,
                 LengthSeconds = ep.LengthSeconds,

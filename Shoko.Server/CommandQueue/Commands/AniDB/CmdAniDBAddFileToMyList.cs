@@ -114,10 +114,10 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 // never true for Manual Links, so no worries about the loop overwriting it
                 if (lid != null && lid.Value > 0)
                 {
-                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => VideoLocal)) //TODO: Test if this will work{
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(VideoLocal)) //TODO: Test if this will work{
                     {
                         upd.Entity.MyListID = lid.Value;
-                        upd.Commit();
+                        VideoLocal=upd.Commit();
                     }
                 }
 

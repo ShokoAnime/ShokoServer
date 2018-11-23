@@ -192,11 +192,11 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                         {
                             if (vlocal.Places.Count == 1)
                             {
-                                Repo.Instance.VideoLocal.FindAndDelete(()=>Repo.Instance.VideoLocal.GetByID(vlocal.VideoLocalID));
+                                Repo.Instance.VideoLocal.Delete(vlocal);
                                 vlocal = null;
                             }
 
-                            Repo.Instance.VideoLocal_Place.FindAndDelete(()=>Repo.Instance.VideoLocal_Place.GetByID(vlocalplace.VideoLocal_Place_ID));
+                            Repo.Instance.VideoLocal_Place.Delete(vlocalplace);
                             vlocalplace = null;
                         }
 
@@ -211,7 +211,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                 bool duplicate = false;
 
                 SVR_VideoLocal vlocal1 = vlocal;
-                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => Repo.Instance.VideoLocal.GetByID(vlocal1?.VideoLocalID ?? 0), () =>
+                using (var txn = Repo.Instance.VideoLocal.BeginAddOrUpdate(vlocal1?.VideoLocalID ?? 0, () =>
                 {
                     logger.Trace("No existing VideoLocal, creating temporary record");
                     return new SVR_VideoLocal
@@ -286,7 +286,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                             logger.Trace("No Hash found for cloud " + filename + " putting in videolocal table with empty ED2K");
                             vlocal = txn.Commit(true);
                             int vlpid = vlocalplace.VideoLocalID;
-                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => Repo.Instance.VideoLocal_Place.GetByID(vlpid)))
+                            using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(vlpid))
                             {
                                 upd.Entity.VideoLocalID = vlocal.VideoLocalID;
                                 vlocalplace = upd.Commit();
@@ -346,13 +346,13 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                                 // clean up, if there is a 'duplicate file' that is invalid, remove it.
                                 if (prep.FullServerPath == null)
                                 {
-                                    Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(prep.VideoLocal_Place_ID));
+                                    Repo.Instance.VideoLocal_Place.Delete(prep);
                                 }
                                 else
                                 {
                                     IResult dupFileSystemResult = prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
                                     if (dupFileSystemResult == null || dupFileSystemResult.Status != NutzCode.CloudFileSystem.Status.Ok)
-                                        Repo.Instance.VideoLocal_Place.FindAndDelete(() => Repo.Instance.VideoLocal_Place.GetByID(prep.VideoLocal_Place_ID));
+                                        Repo.Instance.VideoLocal_Place.Delete(prep);
                                 }
                             }
 
@@ -397,7 +397,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                     ReportUpdate(progress, 90);
 
                     int vlplid = vlocalplace.VideoLocalID;
-                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(() => Repo.Instance.VideoLocal_Place.GetByID(vlplid)))
+                    using (var upd = Repo.Instance.VideoLocal_Place.BeginAddOrUpdate(vlplid))
                     {
                         upd.Entity.VideoLocalID = vlocal.VideoLocalID;
                         vlocalplace = upd.Commit();
@@ -441,7 +441,7 @@ namespace Shoko.Server.CommandQueue.Commands.Hash
                 if (vlocal.Media == null || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration == 0)
                 {
                     int vid = vlocal.VideoLocalID;
-                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => Repo.Instance.VideoLocal.GetByID(vid)))
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(vid))
                         if (vlocalplace.RefreshMediaInfo(upd.Entity))
                             vlocal = upd.Commit(true);
                 }

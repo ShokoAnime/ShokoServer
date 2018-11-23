@@ -55,13 +55,13 @@ namespace Shoko.Server.Providers.TvDB
                     {
                         if (match.AniDB == null || match.Cross == null) continue;
                         // Don't touch User Verified links
-                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID)?.MatchRating == MatchRating.UserVerified)
+                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.EpisodeID)?.MatchRating == MatchRating.UserVerified)
                             continue;
                         // check for duplicates only if we skip clearing the links Still needed?
-                        if ((cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID) != null) && skipMatchClearing)
-                            cap.EpisodesList.AddOrUpdate(match.AniDB.AniDB_EpisodeID, match.Cross.Id, match.Cross.Season,match.AniDB.EpisodeNumber,match.AniDB.GetEpisodeTypeEnum(), match.Rating);
-                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.AniDB_EpisodeID) == null && cap.EpisodesList.GetByProviderId(match.Cross.Id) == null)
-                            cap.EpisodesList.AddOrUpdate(match.AniDB.AniDB_EpisodeID, match.Cross.Id, match.Cross.Season, match.AniDB.EpisodeNumber, match.AniDB.GetEpisodeTypeEnum(), match.Rating);
+                        if ((cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.EpisodeID) != null) && skipMatchClearing)
+                            cap.EpisodesList.AddOrUpdate(match.AniDB.EpisodeID, match.Cross.Id, match.Cross.Season,match.AniDB.EpisodeNumber,match.AniDB.GetEpisodeTypeEnum(), match.Rating);
+                        if (cap.EpisodesList.GetByAnimeEpisodeId(match.AniDB.EpisodeID) == null && cap.EpisodesList.GetByProviderId(match.Cross.Id) == null)
+                            cap.EpisodesList.AddOrUpdate(match.AniDB.EpisodeID, match.Cross.Id, match.Cross.Season, match.AniDB.EpisodeNumber, match.AniDB.GetEpisodeTypeEnum(), match.Rating);
                     }
 
                     if (cap.EpisodesList.NeedPersitance)

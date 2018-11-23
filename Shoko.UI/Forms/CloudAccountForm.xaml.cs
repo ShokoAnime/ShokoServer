@@ -63,7 +63,7 @@ namespace Shoko.UI.Forms
                         SaveAccount.FileSystem = null;
                         SaveAccount = WorkingAccount;
                     }
-                    using (var upd = Repo.Instance.CloudAccount.BeginAddOrUpdate(() => SaveAccount))
+                    using (var upd = Repo.Instance.CloudAccount.BeginAddOrUpdate(SaveAccount.CloudID))
                     {
                         upd.Entity.FileSystem = WorkingAccount.FileSystem;
                         SaveAccount = upd.Commit();

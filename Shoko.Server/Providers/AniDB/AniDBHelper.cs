@@ -462,7 +462,7 @@ catch (Exception ex)
 return null;
 }
 
-public void GetMyListFileStatus(int aniDBFileID)
+public void GetMyListFileStatus(int fileID)
 {
 if (!ServerSettings.Instance.AniDb.MyList_ReadWatched) return;
 
@@ -471,7 +471,7 @@ if (!Login()) return;
 lock (lockAniDBConnections)
 {
 AniDBCommand_GetMyListFileInfo cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
-cmdGetFileStatus.Init(aniDBFileID);
+cmdGetFileStatus.Init(fileID);
 SetWaitingOnResponse(true);
 enHelperActivityType ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
     new UnicodeEncoding(true, false));
@@ -488,7 +488,7 @@ switch (ev)
             return;
 }
 if (cmdGetFileStatus.MyListFile?.WatchedDate == null) return;
-var aniFile = Repo.Instance.AniDB_File.GetByFileID(aniDBFileID);
+var aniFile = Repo.Instance.AniDB_File.GetByID(fileID);
 var vids = aniFile.EpisodeIDs.SelectMany(a => Repo.Instance.VideoLocal.GetByAniDBEpisodeID(a)).Where(a => a != null).ToList();
 foreach (var vid in vids)
 {
@@ -936,7 +936,7 @@ SetWaitingOnResponse(false);
 }
 
 if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
-using (var upd = Repo.Instance.AniDB_ReleaseGroup.BeginAddOrUpdate(() => Repo.Instance.AniDB_ReleaseGroup.GetByID(groupID)))
+using (var upd = Repo.Instance.AniDB_ReleaseGroup.BeginAddOrUpdate(groupID))
 {
 upd.Entity.Populate_RA(getCmd.Group);
 upd.Commit();
@@ -980,7 +980,7 @@ if (getCmd.GrpStatusCollection.LatestEpisodeNumber > 0)
 SVR_AniDB_Anime anime = Repo.Instance.AniDB_Anime.GetByID(animeID);
 if (anime != null)
 {
-    using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
+    using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(anime))
     {
         upd.Entity.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
         anime = upd.Commit();
@@ -1059,7 +1059,7 @@ SetWaitingOnResponse(false);
 
 if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
 {
-using (var upd = Repo.Instance.AniDB_Review.BeginAddOrUpdate(()=>Repo.Instance.AniDB_Review.GetByID(reviewID)))
+using (var upd = Repo.Instance.AniDB_Review.BeginAddOrUpdate(reviewID))
 {
     upd.Entity.Populate_RA(cmd.ReviewInfo);
     return upd.Commit();
@@ -1155,7 +1155,7 @@ if (forceRefresh)
             logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
 
             SVR_AniDB_Anime anime;
-            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => Repo.Instance.AniDB_Anime.GetByID(animeID)))
+            using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(animeID))
             {
                 if (!upd.Entity.PopulateFromHTTP(getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles,
                     getAnimeCmd.Categories, getAnimeCmd.Tags,
@@ -1178,7 +1178,7 @@ if (forceRefresh)
             SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(animeID);
             if (ser != null)
             {
-                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(() => ser))
+                using (var upd = Repo.Instance.AnimeSeries.BeginAddOrUpdate(ser))
                 {
                     upd.Entity.CreateAnimeEpisodes();
                     upd.Commit();

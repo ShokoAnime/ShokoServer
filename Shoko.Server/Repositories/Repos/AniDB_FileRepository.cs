@@ -15,7 +15,6 @@ namespace Shoko.Server.Repositories.Repos
         private PocoIndex<int, SVR_AniDB_File, string> Hashes;
         private PocoIndex<int, SVR_AniDB_File, string> SHA1s;
         private PocoIndex<int, SVR_AniDB_File, string> MD5s;
-        private PocoIndex<int, SVR_AniDB_File, int> FileIds;
         private PocoIndex<int, SVR_AniDB_File, int> Animes;
         private PocoIndex<int, SVR_AniDB_File, string> Resolutions;
         private PocoIndex<int, SVR_AniDB_File, int> InternalVersions;
@@ -48,7 +47,6 @@ namespace Shoko.Server.Repositories.Repos
             Hashes = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.Hash);
             SHA1s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.SHA1);
             MD5s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.MD5);
-            FileIds = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.FileID);
             Animes = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.AnimeID);
             Resolutions = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.File_VideoResolution);
             InternalVersions = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.InternalVersion);
@@ -59,7 +57,6 @@ namespace Shoko.Server.Repositories.Repos
             InternalVersions = null;
             Resolutions = null;
             Animes = null;
-            FileIds = null;
             MD5s = null;
             SHA1s = null;
             Hashes = null;
@@ -140,13 +137,6 @@ namespace Shoko.Server.Repositories.Repos
             }
         }
 
-        public SVR_AniDB_File GetByFileID(int fileID)
-        {
-            using (RepoLock.ReaderLock())
-            {
-                return IsCached ? FileIds.GetOne(fileID) : Table.FirstOrDefault(a => a.FileID == fileID);
-            }
-        }
 
 
         public List<SVR_AniDB_File> GetByAnimeID(int animeID)

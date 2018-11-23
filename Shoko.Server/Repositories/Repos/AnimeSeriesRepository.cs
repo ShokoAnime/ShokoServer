@@ -60,11 +60,11 @@ namespace Shoko.Server.Repositories.Repos
             if (parameters.updateGroups && !isMigrating)
             {
                 logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}", entity.AnimeSeriesID);
-                Repo.Instance.AnimeGroup.Touch(() => Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID), (true, true, true));
+                Repo.Instance.AnimeGroup.Touch(entity.AnimeGroupID, (true, true, true));
                 if (oldGroup != 0)
                 {
                     logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",oldGroup);
-                    Repo.Instance.AnimeGroup.Touch(() => Repo.Instance.AnimeGroup.GetByID(oldGroup), (true, true, true));
+                    Repo.Instance.AnimeGroup.Touch(oldGroup, (true, true, true));
                 }
             }
             if (!parameters.skipgroupfilters && !isMigrating)
@@ -126,7 +126,7 @@ namespace Shoko.Server.Repositories.Repos
             if (entity.AnimeGroupID != 0)
             {
                 logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}", entity.AnimeGroupID);
-                Repo.Instance.AnimeGroup.Touch(()=>Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID),(true, true, true));
+                Repo.Instance.AnimeGroup.Touch(entity.AnimeGroupID,(true, true, true));
             }
         }
 

@@ -63,7 +63,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     if (fileInfo != null)
                     {
                         SVR_AniDB_File file = aniFile;
-                        using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => file))
+                        using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(file))
                         {
                             upd.Entity.Populate_RA(fileInfo);
 

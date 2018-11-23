@@ -60,8 +60,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                     }
                 }
 
-                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(
-                    () => sched,
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(sched,
                     () => new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBMylistStats, UpdateDetails = string.Empty }
                     ))
                 {

@@ -39,34 +39,29 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
             {
                 // we will always assume that an anime was downloaded via http first
                 ReportInit(progress);
-                ScheduledUpdate sched = Repo.Instance.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBCalendar);
-                ReportUpdate(progress,20);
 
-                if (sched != null)
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => Repo.Instance.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar), () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty}))
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
-
-                    // if we have run this in the last 12 hours and are not forcing it, then exit
-                    TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
-                    if (tsLastRun.TotalHours < freqHours)
+                    if (upd.IsUpdate())
                     {
-                        if (!ForceRefresh)
+                        int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
+
+                        // if we have run this in the last 12 hours and are not forcing it, then exit
+                        TimeSpan tsLastRun = DateTime.Now - upd.Entity.LastUpdate;
+                        if (tsLastRun.TotalHours < freqHours)
                         {
-                            ReportFinish(progress);
-                            return;
+                            if (!ForceRefresh)
+                            {
+                                ReportFinish(progress);
+                                return;
+                            }
                         }
                     }
-                }
-
-                ReportUpdate(progress,40);
-
-                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBCalendar, UpdateDetails = string.Empty}))
-                {
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Commit();
                 }
 
-                ReportUpdate(progress,60);
+                ReportUpdate(progress,50);
 
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
                 if (colCalendars == null || colCalendars.Calendars == null)
@@ -94,15 +89,15 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                             // update the release date even if we don't update the anime record
                             if (anime.AirDate != cal.ReleaseDate)
                             {
-                                using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(() => anime))
+                                using (var upd = Repo.Instance.AniDB_Anime.BeginAddOrUpdate(anime))
                                 {
                                     upd.Entity.AirDate = cal.ReleaseDate;
-                                    upd.Commit();
+                                    anime=upd.Commit();
                                 }
 
                                 SVR_AnimeSeries ser = Repo.Instance.AnimeSeries.GetByAnimeID(anime.AnimeID);
                                 if (ser != null)
-                                    Repo.Instance.AnimeSeries.Touch(() => ser, (true, false, false, false));
+                                    Repo.Instance.AnimeSeries.Touch(ser, (true, false, false, false));
                             }
                         }
                     }

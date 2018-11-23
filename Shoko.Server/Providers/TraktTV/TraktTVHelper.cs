@@ -552,7 +552,7 @@ namespace Shoko.Server.Providers.TraktTV
                 if (traktSummary == null) return null;
                 int? traktEpId = null;
 
-                CrossRef_AniDB_ProviderEpisode rep = traktSummary.CrossRefTraktV2.Select(a => a.GetFromAniDBEpisode(ep.AniDB_EpisodeID)).FirstOrDefault(b => b != null);
+                CrossRef_AniDB_ProviderEpisode rep = traktSummary.CrossRefTraktV2.Select(a => a.GetFromAniDBEpisode(ep.EpisodeID)).FirstOrDefault(b => b != null);
                 if (rep == null)
                     return null;
                 traktID = traktSummary.CrossRefTraktV2.First(b => b.GetEpisodesWithOverrides().Contains(rep)).CrossRefID;
@@ -1665,7 +1665,7 @@ namespace Shoko.Server.Providers.TraktTV
             Repo.Instance.Trakt_Season.FindAndDelete(() => Repo.Instance.Trakt_Season.GetByShowID(show.Trakt_ShowID));
 
             // 6. Delete the show
-            Repo.Instance.Trakt_Show.FindAndDelete(() => Repo.Instance.Trakt_Show.GetByID(show.Trakt_ShowID));
+            Repo.Instance.Trakt_Show.Delete(show);
         }
 
         private static EpisodeSyncDetails ReconSyncTraktEpisode(SVR_AnimeSeries ser, SVR_AnimeEpisode ep,

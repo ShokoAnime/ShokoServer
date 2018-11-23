@@ -177,7 +177,7 @@ namespace Shoko.Server.Models
             VideoLocal_User vidUserRecord = GetUserRecord(userID);
             if (watched)
             {
-                using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
+                using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(vidUserRecord))
                 {
                     upd.Entity.WatchedDate = DateTime.Now;
                     upd.Entity.JMMUserID = userID;
@@ -189,7 +189,7 @@ namespace Shoko.Server.Models
                 }
             }
             else if (vidUserRecord != null)
-                using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(() => vidUserRecord))
+                using (var upd = Repo.Instance.VideoLocal_User.BeginAddOrUpdate(vidUserRecord))
                 {
                     upd.Entity.WatchedDate = null;
                     upd.Commit();
@@ -281,7 +281,7 @@ namespace Shoko.Server.Models
                 SVR_AniDB_File aniFile = Repo.Instance.AniDB_File.GetByHash(Hash);
                 if (aniFile != null)
                 {
-                    using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(() => aniFile))
+                    using (var upd = Repo.Instance.AniDB_File.BeginAddOrUpdate(aniFile))
                     {
                         upd.Entity.IsWatched = mywatched;
 
@@ -476,7 +476,7 @@ namespace Shoko.Server.Models
                 SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
                 if (pl?.FullServerPath != null)
                 {
-                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => pl.VideoLocal))
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(pl.VideoLocalID))
                     {
                         IFileSystem f = pl.ImportFolder.FileSystem;
                         IObject src = f?.Resolve(pl.FullServerPath);

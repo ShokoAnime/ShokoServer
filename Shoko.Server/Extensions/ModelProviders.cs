@@ -601,7 +601,7 @@ namespace Shoko.Server.Extensions
                 CharType = charRel.CharType,
 
                 ImageType = (int)ImageEntityType.AniDB_Character,
-                ImageID = character.AniDB_CharacterID
+                ImageID = character.CharID
             };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
@@ -609,7 +609,7 @@ namespace Shoko.Server.Extensions
                 contract.SeiyuuID = seiyuu.SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
                 contract.SeiyuuImageType = (int) ImageEntityType.AniDB_Creator;
-                contract.SeiyuuImageID = seiyuu.AniDB_SeiyuuID;
+                contract.SeiyuuImageID = seiyuu.SeiyuuID;
             }
 
             return contract;

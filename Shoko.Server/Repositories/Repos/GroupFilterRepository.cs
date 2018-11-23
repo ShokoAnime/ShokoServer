@@ -118,7 +118,7 @@ namespace Shoko.Server.Repositories.Repos
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
             HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
             List<SVR_GroupFilter> notin = all.Except(set).ToList();
-            FindAndDelete(() => GetMany(notin.Select(a => a.GroupFilterID)));
+            this.Delete(notin.Select(a => a.GroupFilterID));
             PostProcessFilters = null;
             lock (Changes)
             {
@@ -613,7 +613,7 @@ namespace Shoko.Server.Repositories.Repos
                     }
                 });
 
-                FindAndDelete(() => toRemove);
+                this.Delete(toRemove);
 
                 return somethingDictionary.Keys.ToDictionary(key => key, key => somethingDictionary[key]
                     .SelectMany(p => p.Value, Tuple.Create)

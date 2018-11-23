@@ -17,7 +17,7 @@ namespace Shoko.Server.Repositories
         private IDisposable _lock;
         private readonly Dictionary<T, T> _originalItems;
 
-        internal AtomicLockBatchUpdate(BaseRepository<T, TS, TT> repo, Func<List<T>> find_original_items = null, bool delete_not_updated = false)
+        internal AtomicLockBatchUpdate(BaseRepository<T, TS, TT> repo, Func<IEnumerable<T>> find_original_items = null, bool delete_not_updated = false)
         {
             _repo = repo;
             _lock = _repo.RepoLock.WriterLock();

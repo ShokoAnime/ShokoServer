@@ -88,7 +88,7 @@ namespace Shoko.Server.CommandQueue.Commands.AniDB
                 ReportUpdate(progress,40);
                 // now save the update time from AniDB
                 // we will use this next time as a starting point when querying the web cache
-                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(() => sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBUpdates}))
+                using (var upd = Repo.Instance.ScheduledUpdate.BeginAddOrUpdate(sched, () => new ScheduledUpdate {UpdateType = (int) ScheduledUpdateType.AniDBUpdates}))
                 {
                     upd.Entity.LastUpdate = DateTime.Now;
                     upd.Entity.UpdateDetails = webUpdateTimeNew.ToString();

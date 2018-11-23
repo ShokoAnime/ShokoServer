@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Repos
             if (entity.AnimeGroupParentID.HasValue && entity.AnimeGroupParentID.Value > 0 && entity.AnimeGroupParentID!=entity.AnimeGroupID)
             {
                 logger.Trace("Updating group stats by group from AnimeGroupRepository.Delete: {0}", entity.AnimeGroupParentID.Value);
-                Repo.Instance.AnimeGroup.Touch(()=>Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupParentID.Value),(false, true, true));
+                Repo.Instance.AnimeGroup.Touch(entity.AnimeGroupParentID.Value,(false, true, true));
             }
         }
 

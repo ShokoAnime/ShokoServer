@@ -205,7 +205,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                 if (pl != null)
-                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => v))
+                    using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(v))
                     {
                         if (pl.RefreshMediaInfo(upd.Entity)) upd.Commit(true);
                     }
@@ -228,7 +228,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null && (v.Medias == null || v.Medias.Count == 0))
             {
-                using (var upd = Repo.Instance.AnimeEpisode.BeginAddOrUpdate(() => e.Key))
+                using (var upd = Repo.Instance.AnimeEpisode.BeginAddOrUpdate(e.Key))
                 {
 
                     foreach (SVR_VideoLocal vl2 in upd.Entity.GetVideoLocals())
@@ -237,7 +237,7 @@ namespace Shoko.Server.PlexAndKodi
                         SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
 
                         if (pl != null)
-                            using (var upd2 = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => vl2))
+                            using (var upd2 = Repo.Instance.VideoLocal.BeginAddOrUpdate(vl2))
                             {
                                 if (pl.RefreshMediaInfo(upd2.Entity)) upd2.Commit(true);
                             }
@@ -304,7 +304,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
                         if (pl != null)
-                            using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(() => v))
+                            using (var upd = Repo.Instance.VideoLocal.BeginAddOrUpdate(v))
                             {
                                 if (pl.RefreshMediaInfo(upd.Entity)) upd.Commit(true);
                             }
@@ -600,7 +600,7 @@ namespace Shoko.Server.PlexAndKodi
                             Value = seiyuu?.SeiyuuName
                         };
                         if (seiyuu != null)
-                            t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
+                            t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.SeiyuuID);
                         t.Role = ch;
                         t.RoleDescription = c?.CharDescription;
                         t.RolePicture = Helper.ConstructCharacterImage(null, c.CharID);
@@ -825,7 +825,7 @@ namespace Shoko.Server.PlexAndKodi
                         Value = seiyuu?.SeiyuuName
                     };
                     if (seiyuu != null)
-                        t.TagPicture = ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
+                        t.TagPicture = ConstructSeiyuuImage(null, seiyuu.SeiyuuID);
                     t.Role = ch;
                     t.RoleDescription = c?.CharDescription;
                     t.RolePicture = ConstructCharacterImage(null, c.CharID);

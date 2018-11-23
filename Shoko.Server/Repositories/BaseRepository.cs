@@ -247,7 +247,7 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public List<T> Touch(Func<List<T>> find_function, TT pars = default(TT))
+        public List<T> Touch(Func<IEnumerable<T>> find_function, TT pars = default(TT))
         {
             using (var upd = new AtomicLockBatchUpdate<T, TS, TT>(this, find_function))
             {

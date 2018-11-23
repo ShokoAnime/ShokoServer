@@ -638,7 +638,7 @@ namespace Shoko.Server
                     Repo.Instance.RenameScript.BatchAction(scripts, scripts.Count, (rs, orig) => { if (contract.RenameScriptID == 0 || contract.RenameScriptID != rs.RenameScriptID) rs.IsEnabledOnImport = 0; });
                 }
 
-                using (var upd = Repo.Instance.RenameScript.BeginAddOrUpdate(() => script))
+                using (var upd = Repo.Instance.RenameScript.BeginAddOrUpdate(script))
                 {
                     upd.Entity.IsEnabledOnImport = contract.IsEnabledOnImport;
                     upd.Entity.Script = contract.Script;
@@ -667,7 +667,7 @@ namespace Shoko.Server
         {
             try
             {
-                if (!Repo.Instance.RenameScript.FindAndDelete(()=> Repo.Instance.RenameScript.GetByID(renameScriptID)))
+                if (!Repo.Instance.RenameScript.Delete(renameScriptID))
                     return "Database entry does not exist";
                 return string.Empty;
             }
@@ -773,7 +773,7 @@ namespace Shoko.Server
         {
             try
             {
-                Repo.Instance.IgnoreAnime.FindAndDelete(() => Repo.Instance.IgnoreAnime.GetByID(ignoreAnimeID));
+                Repo.Instance.IgnoreAnime.Delete(ignoreAnimeID);
             }
             catch (Exception ex)
             {
@@ -885,7 +885,7 @@ namespace Shoko.Server
                         // let's check if the file on AniDB actually exists in the user's local collection
                         string hash = string.Empty;
 
-                        AniDB_File anifile = Repo.Instance.AniDB_File.GetByFileID(myitem.FileID);
+                        AniDB_File anifile = Repo.Instance.AniDB_File.GetByID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else

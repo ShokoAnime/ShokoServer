@@ -40,7 +40,7 @@ namespace Shoko.Server.Repositories.Repos
             AuthTokens auth = tokens.FirstOrDefault();
             if (tokens.Count <= 1) return auth;
             tokens.Remove(auth);
-            FindAndDelete(()=>GetMany(tokens.Select(a=>a.AuthID)));
+            this.Delete(tokens);
             return auth;
         }
 
@@ -53,7 +53,7 @@ namespace Shoko.Server.Repositories.Repos
                     ? UserIDs.GetMultiple(userID).ToList()
                     : Table.Where(a => a.UserID==userID).ToList();
             }
-            FindAndDelete(() => GetMany(tokens.Select(a => a.AuthID)));
+            this.Delete(tokens);
         }
 
         public void DeleteWithToken(string token)
@@ -66,7 +66,7 @@ namespace Shoko.Server.Repositories.Repos
                     ? Tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList()
                     : Table.Where(a => a.Token == token.ToLowerInvariant().Trim()).ToList();
             }
-            FindAndDelete(() => GetMany(tokens.Select(a => a.AuthID)));
+            this.Delete(tokens);
 
         }
 
@@ -100,7 +100,7 @@ namespace Shoko.Server.Repositories.Repos
             if (tokens.Count > 1)
             {
                 if (auth != null) tokens.Remove(auth);
-                FindAndDelete(() => GetMany(tokens.Select(a => a.AuthID)));
+                this.Delete(tokens);
             }
             string apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
 
