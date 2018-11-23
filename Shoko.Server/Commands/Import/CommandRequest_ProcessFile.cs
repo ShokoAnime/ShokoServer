@@ -118,12 +118,20 @@ namespace Shoko.Server.Commands
 
                     if (ForceAniDB)
                     {
-                        Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
-                        if (fileInfo != null)
+                        if (!ShokoService.AnidbProcessor.IsUdpBanned)
                         {
-                            SVR_AniDB_File.Populate(aniFile, fileInfo);
+                            Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
+                            if (fileInfo != null)
+                            {
+                                SVR_AniDB_File.Populate(aniFile, fileInfo);
+                            }
+                            else aniFile = null;
                         }
-                        else aniFile = null;
+                        else
+                        {
+                            CommandRequest_GetFile fileCommand = new CommandRequest_GetFile(vlocal.VideoLocalID, true);
+                            fileCommand.Save();
+                        }
                     }
 
                     if (aniFile != null)
@@ -343,6 +351,9 @@ namespace Shoko.Server.Commands
                 else
                 {
                     logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
+                    logger.Warn($"Queuing GET for AniDB_Anime: {animeID}");
+                    CommandRequest_GetAnimeHTTP animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true);
+                    animeCommand.Save();
                 }
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
