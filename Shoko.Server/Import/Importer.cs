@@ -802,8 +802,8 @@ namespace Shoko.Server
 
                     foreach (SVR_VideoLocal_Place vl in filesAll[folder])
                     {
-                        FileSystemResult<IObject> obj = null;
-                        if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = (FileSystemResult<IObject>)fs.Resolve(vl.FullServerPath);
+                        IObject obj = null;
+                        if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
                         if (obj != null && obj.Status == Status.Ok) continue;
                         // delete video local record
                         logger.Info("Removing Missing File: {0}", vl.VideoLocalID);

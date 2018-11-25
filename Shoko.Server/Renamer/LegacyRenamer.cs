@@ -2014,7 +2014,7 @@ namespace Shoko.Server.Renamer
 
         public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
         {
-            if (!((video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath) as FileSystemResult<IObject>)?.Result is IFile sourceFile))
+            if (!((video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)) is IFile sourceFile))
                 return (null, "File is null");
 
             ImportFolder destFolder = null;
@@ -2024,7 +2024,7 @@ namespace Shoko.Server.Renamer
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
                 IFileSystem fs = fldr.FileSystem;
-                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation) as FileSystemResult<IObject>;
+                IObject fsresult = fs?.Resolve(fldr.ImportFolderLocation);
                 if (fsresult == null || fsresult.Status != Status.Ok) continue;
 
                 // Continue if on a separate drive and there's no space
