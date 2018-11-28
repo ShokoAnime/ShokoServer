@@ -40,5 +40,7 @@ namespace Shoko.Server.CommandQueue.Commands
         [JsonIgnore]
         List<Type> GenericPreconditions { get; set; }
 
+        [JsonIgnore]
+        DateTime TriggerDateTime { get; set; }
     }
 }

@@ -111,15 +111,8 @@ namespace Shoko.Server.Import
             }
         }
 
-        public static void SyncMedia()
-        {
-            WebCacheAPI.Instance.AddMediaInfo(Repo.Instance.VideoLocal.GetAll().Select(a=>a.ToMediaRequest()));
-        }
 
-        public static void SyncHashes()
-        {
-            CommandQueue.Queue.Instance.Add(new CmdServerSyncHashes());
-        }
+
 
         public static void RunImport_ScanFolder(int importFolderID)
         {

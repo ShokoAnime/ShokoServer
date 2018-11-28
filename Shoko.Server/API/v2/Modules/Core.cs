@@ -814,7 +814,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("log/get")]
         public ActionResult StartRotateLogs()
         {
-            ShokoServer.logrotator.Start();
+            LogRotator.Instance.Start();
             return APIStatus.OK();
         }
 

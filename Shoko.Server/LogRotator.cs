@@ -10,8 +10,10 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
-    class LogRotator
+    public class LogRotator
     {
+        private static readonly Lazy<LogRotator> _instance = new Lazy<LogRotator>(() => new LogRotator());
+        public static LogRotator Instance => _instance.Value;
         public LogRotator()
         {
         }

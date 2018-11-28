@@ -24,9 +24,11 @@ using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.CommandQueue;
 using Shoko.Server.CommandQueue.Commands.AniDB;
 using Shoko.Server.CommandQueue.Commands.Hash;
 using Shoko.Server.CommandQueue.Commands.Plex;
+using Shoko.Server.CommandQueue.Commands.Schedule;
 using Shoko.Server.CommandQueue.Commands.Server;
 using Shoko.Server.CommandQueue.Commands.WebCache;
 using Shoko.Server.Extensions;
@@ -55,7 +57,7 @@ namespace Shoko.Server
     {
         //private static bool doneFirstTrakTinfo = false;
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        internal static LogRotator logrotator = new LogRotator();
+
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
 
@@ -72,29 +74,25 @@ namespace Shoko.Server
 
         private static IWebHost hostNancy;
 
-        private static BackgroundWorker workerImport = new BackgroundWorker();
-        private static BackgroundWorker workerScanFolder = new BackgroundWorker();
-        private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
-        private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
-        private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
-        //private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
-        private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
-        private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
-        private static BackgroundWorker workerSyncMedias = new BackgroundWorker();
+
+
+        //private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
+   
+
+
 
         internal static BackgroundWorker workerSetupDB = new BackgroundWorker();
-        internal static BackgroundWorker LogRotatorWorker = new BackgroundWorker();
+
 
         private static Timer autoUpdateTimer;
         private static Timer autoUpdateTimerShort;
         private static Timer cloudWatchTimer;
-        internal static Timer LogRotatorTimer;
+
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
         private static List<RecoveringFileSystemWatcher> watcherVids;
 
-        BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
@@ -209,12 +207,7 @@ namespace Shoko.Server
                 workerFileEvents.DoWork += WorkerFileEvents_DoWork;
                 workerFileEvents.RunWorkerCompleted += WorkerFileEvents_RunWorkerCompleted;
 
-                //logrotator worker setup
-                LogRotatorWorker.WorkerReportsProgress = false;
-                LogRotatorWorker.WorkerSupportsCancellation = false;
-                LogRotatorWorker.DoWork += LogRotatorWorker_DoWork;
-                LogRotatorWorker.RunWorkerCompleted +=
-                    LogRotatorWorker_RunWorkerCompleted;
+                
 
                 ServerState.Instance.DatabaseAvailable = false;
                 ServerState.Instance.ServerOnline = false;
@@ -223,45 +216,8 @@ namespace Shoko.Server
                 ServerState.Instance.StartupFailedMessage = string.Empty;
                 ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
-                downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
-                downloadImagesWorker.WorkerSupportsCancellation = true;
-
-                /*workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
-            workerMyAnime2.RunWorkerCompleted += WorkerMyAnime2_RunWorkerCompleted;
-            workerMyAnime2.ProgressChanged += WorkerMyAnime2_ProgressChanged;
-            workerMyAnime2.WorkerReportsProgress = true;*/
-
-                workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
-
-                workerImport.WorkerReportsProgress = true;
-                workerImport.WorkerSupportsCancellation = true;
-                workerImport.DoWork += WorkerImport_DoWork;
-
-                workerScanFolder.WorkerReportsProgress = true;
-                workerScanFolder.WorkerSupportsCancellation = true;
-                workerScanFolder.DoWork += WorkerScanFolder_DoWork;
 
 
-                workerScanDropFolders.WorkerReportsProgress = true;
-                workerScanDropFolders.WorkerSupportsCancellation = true;
-                workerScanDropFolders.DoWork += WorkerScanDropFolders_DoWork;
-
-
-                workerSyncHashes.WorkerReportsProgress = true;
-                workerSyncHashes.WorkerSupportsCancellation = true;
-                workerSyncHashes.DoWork += WorkerSyncHashes_DoWork;
-
-                workerSyncMedias.WorkerReportsProgress = true;
-                workerSyncMedias.WorkerSupportsCancellation = true;
-                workerSyncMedias.DoWork += WorkerSyncMedias_DoWork;
-
-                workerRemoveMissing.WorkerReportsProgress = true;
-                workerRemoveMissing.WorkerSupportsCancellation = true;
-                workerRemoveMissing.DoWork += WorkerRemoveMissing_DoWork;
-
-                workerDeleteImportFolder.WorkerReportsProgress = false;
-                workerDeleteImportFolder.WorkerSupportsCancellation = true;
-                workerDeleteImportFolder.DoWork += WorkerDeleteImportFolder_DoWork;
 
                 workerSetupDB.WorkerReportsProgress = true;
                 workerSetupDB.ProgressChanged += (sender, args) => WorkerSetupDB_ReportProgress();
@@ -290,10 +246,7 @@ namespace Shoko.Server
                 InitCulture();
                 Instance = this;
 
-                // run rotator once and set 24h delay
-                logrotator.Start();
-                StartLogRotatorTimer();
-
+                
                 SetupNetHosts();
 
                 return true;
@@ -487,41 +440,10 @@ namespace Shoko.Server
             }
         }
 
-        private void LogRotatorWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            // for later use
-        }
-
-        private void LogRotatorWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            logrotator.Start();
-        }
 
         public static ShokoServer Instance { get; private set; } = new ShokoServer();
 
-        private void WorkerSyncHashes_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.SyncHashes();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
-        private void WorkerSyncMedias_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.SyncMedia();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
         void WorkerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -658,22 +580,6 @@ namespace Shoko.Server
             cloudWatchTimer.Start();
         }
 
-        public static void StartLogRotatorTimer()
-        {
-            LogRotatorTimer = new Timer
-            {
-                AutoReset = true,
-                // 86400000 = 24h
-                Interval = 86400000
-            };
-            LogRotatorTimer.Elapsed += LogRotatorTimer_Elapsed;
-            LogRotatorTimer.Start();
-        }
-
-        private static void LogRotatorTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            logrotator.Start();
-        }
 
         public static void StopCloudWatchTimer()
         {
@@ -784,6 +690,13 @@ namespace Shoko.Server
                 CommandQueue.Queue.Instance.Start();
 
 
+                //Add Logrotator if needed
+                CommandQueue.Queue.Instance.Add(new CmdScheduleLogRotation(),DateTime.UtcNow.AddSeconds(CmdScheduleLogRotation.LogRotationTimeInSeconds));
+;
+
+
+
+
                 // timer for automatic updates
                 autoUpdateTimer = new Timer
                 {
@@ -835,16 +748,11 @@ namespace Shoko.Server
 
 #region Update all media info
 
-        void WorkerMediaInfo_DoWork(object sender, DoWorkEventArgs e)
-        {
-            // first build a list of files that we already know about, as we don't want to process them again
-            CommandQueue.Queue.Instance.AddRange(Repo.Instance.VideoLocal.GetAll().Select(a=>new CmdServerReadMediaInfo(a.VideoLocalID)));
-        }
+  
 
         public static void RefreshAllMediaInfo()
         {
-            if (workerMediaInfo.IsBusy) return;
-            workerMediaInfo.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerReadAllMediaInfo());
         }
 
 #endregion
@@ -1116,14 +1024,10 @@ namespace Shoko.Server
 
         public void DownloadAllImages()
         {
-            if (!downloadImagesWorker.IsBusy)
-                downloadImagesWorker.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerGetImages());
         }
 
-        void DownloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            Importer.RunImport_GetImages();
-        }
+
 
         public class UpdateEventArgs : EventArgs
         {
@@ -1351,38 +1255,32 @@ namespace Shoko.Server
 
         public static void ScanDropFolders()
         {
-            if (!workerScanDropFolders.IsBusy)
-                workerScanDropFolders.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerScanDropFolders());
         }
 
         public static void SyncHashes()
         {
-            if (!workerSyncHashes.IsBusy)
-                workerSyncHashes.RunWorkerAsync();
+            CommandQueue.Queue.Instance.Add(new CmdServerSyncHashes());
         }
 
         public static void SyncMedias()
         {
-            if (!workerSyncMedias.IsBusy)
-                workerSyncMedias.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerSyncMediaInfos());
         }
 
         public static void ScanFolder(int importFolderID)
         {
-            if (!workerScanFolder.IsBusy)
-                workerScanFolder.RunWorkerAsync(importFolderID);
+            Queue.Instance.Add(new CmdServerScanFolder(importFolderID));
         }
 
         public static void RunImport()
         {
-            if (!workerImport.IsBusy)
-                workerImport.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerImport());
         }
 
         public static void RemoveMissingFiles()
         {
-            if (!workerRemoveMissing.IsBusy)
-                workerRemoveMissing.RunWorkerAsync();
+            Queue.Instance.Add(new CmdServerRemoveMissingFiles());
         }
 
         public static void SyncMyList()
@@ -1392,90 +1290,14 @@ namespace Shoko.Server
 
         public static void DeleteImportFolder(int importFolderID)
         {
-            if (!workerDeleteImportFolder.IsBusy)
-                workerDeleteImportFolder.RunWorkerAsync(importFolderID);
+            Queue.Instance.Add(new CmdServerDeleteFolder(importFolderID));
         }
 
-        static void WorkerRemoveMissing_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.RemoveRecordsWithoutPhysicalFiles();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
-        void WorkerDeleteImportFolder_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                int importFolderID = int.Parse(e.Argument.ToString());
-                Importer.DeleteImportFolder(importFolderID);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
-        static void WorkerScanFolder_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.RunImport_ScanFolder(int.Parse(e.Argument.ToString()));
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
-        void WorkerScanDropFolders_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.RunImport_DropFolders();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
 
-        static void WorkerImport_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                Importer.RunImport_NewFiles();
-                Importer.RunImport_IntegrityCheck();
-
-                // drop folder
-                Importer.RunImport_DropFolders();
-
-                // TvDB association checks
-                Importer.RunImport_ScanTvDB();
-
-                // Trakt association checks
-                Importer.RunImport_ScanTrakt();
-
-                // MovieDB association checks
-                Importer.RunImport_ScanMovieDB();
-
-                // Check for missing images
-                Importer.RunImport_GetImages();
-
-                // Check for previously ignored files
-                Importer.CheckForPreviouslyIgnored();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-        }
-
+      
 
         /// <summary>
         /// Running Nancy and Validating all require aspects before running it

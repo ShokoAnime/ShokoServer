@@ -24,7 +24,7 @@ namespace Shoko.Server.CommandQueue.Commands
         public CommandStatus Status { get; set; } = CommandStatus.Canceled;
         public string Error { get; set; }
         public int MaxRetries { get; set; } = 3;
-
+        public DateTime TriggerDateTime { get; set; }
         protected BaseCommand(string str)
         {
             JsonConvert.PopulateObject(str, this, JsonSettings);

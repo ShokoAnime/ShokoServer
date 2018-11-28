@@ -355,14 +355,17 @@ namespace Shoko.Server.CommandQueue
             Running = false;
         }
 
-        public void Add(ICommand command, string batch = "Server")
+        public void Add(ICommand command, string batch = "Server", int secondsinfuture = 0)
         {
-            Provider.Put(command, batch);
+            Provider.Put(command, batch,secondsinfuture);
         }
-
-        public void AddRange(IEnumerable<ICommand> command, string batch = "Server")
+        public void Add(ICommand command, DateTime future, string batch = "Server")
         {
-            command.Batch(BatchSize).ForEach(a => Provider.PutRange(a, batch));
+            Provider.Put(command, batch, (int)(future-DateTime.UtcNow).TotalSeconds);
+        }
+        public void AddRange(IEnumerable<ICommand> command, string batch = "Server", int secondsinfuture = 0)
+        {
+            command.Batch(BatchSize).ForEach(a => Provider.PutRange(a, batch,secondsinfuture));
         }
     }
 }

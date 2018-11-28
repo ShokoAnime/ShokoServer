@@ -23,6 +23,7 @@ namespace Shoko.Server.CommandQueue.Commands
             worker.Priority = cmd.Priority;
             worker.Retries = cmd.Retries;
             worker.Batch = cmd.Batch;
+            worker.TriggerDateTime = cmd.ExecutionDate;
             worker.RetryFutureInSeconds = cmd.RetryFutureSeconds;
             DeserializePrecondition(worker, cmd.PreconditionClass1);
             DeserializePrecondition(worker, cmd.PreconditionClass2);
