@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Force.DeepCloner;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -57,7 +58,19 @@ namespace Shoko.Server.Repositories
 
         public static IAtomic<T, TT> BeginAddOrUpdate<T,TS,TT>(this BaseRepository<T, TS, TT> repo, T original, Func<T> default_function = null) where T : class, new()
         {
-            return repo.BeginAddOrUpdate(() => original == null ? null : repo.GetByID(repo.SelectKey(original)), default_function);
+            return repo.BeginAddOrUpdate(() =>
+            {
+                if (original == null)
+                    return null;
+                T newentity = repo.GetByID(repo.SelectKey(original));
+                if (!ReferenceEquals(original, newentity))
+                    newentity.DeepCloneTo(original); //this code will make sure, if original is "this"
+                                                     //it will update their contents in case of a database roundtrip.
+                                                     //so in case of cached repository, the referenceequals will be the same, in case of database roundtrip, will copy back the values to the entity.
+                                                     //this roundtrip is important because, this call and the subsquent update, is inside a lock, and the original entity, might be obtained outside a lock
+                                                     //this will grant some locking update on a multithread enviroment.
+                return original;
+            }, default_function);
         }
         public static IAtomic<T, TT> BeginAddOrUpdate<T, TS, TT>(this BaseRepository<T, TS, TT> repo, TS id, Func<T> default_function = null) where T : class, new()
         {
