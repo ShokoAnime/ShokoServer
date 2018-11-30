@@ -133,13 +133,15 @@ namespace Shoko.Server.Repositories.Repos
             try
             {
                 HashSet<int> types = CommandTypesGeneral;
+                bool noUDP = ShokoService.AnidbProcessor.IsUdpBanned ||
+                             !ShokoService.AnidbProcessor.ValidAniDBCredentials();
                 // This is called very often, so speed it up as much as possible
                 // We can spare bytes of RAM to speed up the command queue
-                if (ShokoService.AnidbProcessor.IsHttpBanned && ShokoService.AnidbProcessor.IsUdpBanned)
+                if (ShokoService.AnidbProcessor.IsHttpBanned && noUDP)
                 {
                     types = CommandTypesGeneralFullBan;
                 }
-                else if (ShokoService.AnidbProcessor.IsUdpBanned)
+                else if (noUDP)
                 {
                     types = CommandTypesGeneralUDPBan;
                 }
