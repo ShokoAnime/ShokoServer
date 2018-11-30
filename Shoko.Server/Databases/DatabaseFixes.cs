@@ -435,6 +435,9 @@ namespace Shoko.Server.Databases
 
         public static void PopulateMyListIDs()
         {
+            // Don't bother with no AniDB creds, we assume first run
+            if (!ShokoService.AnidbProcessor.ValidAniDBCredentials()) return;
+
             // Don't even bother on new DBs
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
