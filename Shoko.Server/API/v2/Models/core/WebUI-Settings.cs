@@ -10,6 +10,7 @@ namespace Shoko.Server.API.v2.Models.core
         public bool uiNotifications { get; set; }
         public string otherUpdateChannel { get; set; }
         public int logDelta { get; set; }
+        public string[] actions;
 
         private List<string> channels = new List<string> {"stable", "unstable"};
 
