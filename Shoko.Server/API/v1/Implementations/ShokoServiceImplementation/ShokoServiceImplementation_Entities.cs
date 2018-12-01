@@ -3559,7 +3559,7 @@ namespace Shoko.Server
             try
             {
                 SVR_ImportFolder ns = null;
-                if (contract.ImportFolderID != 0)
+                if (contract.ImportFolderID > 0)
                 {
                     // update
                     ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID);
