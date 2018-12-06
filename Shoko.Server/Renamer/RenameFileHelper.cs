@@ -84,7 +84,7 @@ namespace Shoko.Server
                     {
                         return a.GetTypes();
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         return new Type[0];
                     }

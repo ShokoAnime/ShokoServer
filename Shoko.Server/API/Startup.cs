@@ -1,25 +1,21 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
-using Shoko.Models.Server;
-using Shoko.Server.API.Authentication;
-using Shoko.Server.API.v1.Implementations;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Swashbuckle.AspNetCore.Swagger;
-using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json.Serialization;
+using Shoko.Server.API.Authentication;
+using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace Shoko.Server.API
 {
@@ -54,28 +50,6 @@ namespace Shoko.Server.API
                     policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             });
 
-            //services.AddSwaggerGen(c =>
-            //{
-            //    c.SwaggerDoc("v1.0", new Info {Title = "Shoko Desktop API", Version = "v1.0"});
-            //    c.SwaggerDoc("v2.0", new Info {Title = "Shoko API v2", Version = "v2.0"});
-            //    c.SwaggerDoc("v3.0", new Info {Title = "Shoko API v3", Version = "v3.0"});
-            //    c.DocInclusionPredicate((docName, apiDesc) =>
-            //    {
-            //        var actionApiVersionModel = apiDesc.ActionDescriptor?.GetApiVersion();
-            //        // would mean this action is unversioned and should be included everywhere
-            //        if (actionApiVersionModel == null)
-            //        {
-            //            return true;
-            //        }
-
-            //        if (actionApiVersionModel.DeclaredApiVersions.Any())
-            //        {
-            //            return actionApiVersionModel.DeclaredApiVersions.Any(v => $"v{v}" == docName);
-            //        }
-
-            //        return actionApiVersionModel.ImplementedApiVersions.Any(v => $"v{v}" == docName);
-            //    });
-            //});
 
             services.AddSwaggerGen(
                 options =>
@@ -111,10 +85,10 @@ namespace Shoko.Server.API
                     new ShokoApiReader()
                 );
             });
-            services.AddVersionedApiExplorer();
+            //services.AddVersionedApiExplorer();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
-            services.AddMvc()
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;
@@ -187,6 +161,9 @@ namespace Shoko.Server.API
             }
 
             return info;
+
+/* Unmerged change from project 'Shoko.Server(net47)'
+Before:
         }
 
         private static SVR_JMMUser GetRequestUser(HttpContext ctx)
@@ -208,6 +185,10 @@ namespace Shoko.Server.API
 
             AuthTokens auth = Repo.Instance.AuthTokens.GetByToken(apikey);
             return auth != null ? Repo.Instance.JMMUser.GetByID(auth.UserID) : null;
+        }
+After:
+        }
+*/
         }
     }
 
@@ -292,7 +273,7 @@ namespace Shoko.Server.API
     }
 
     internal static class ApiExtensions
-    { 
+    {
         public static ApiVersionModel GetApiVersion(this ActionDescriptor actionDescriptor)
         {
             return actionDescriptor?.Properties

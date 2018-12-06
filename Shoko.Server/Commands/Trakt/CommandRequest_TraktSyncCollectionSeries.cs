@@ -56,7 +56,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktSyncCollectionSeries: {0}", ex);
+                logger.Error(ex, "Error processing CommandRequest_TraktSyncCollectionSeries: ");
             }
         }
 

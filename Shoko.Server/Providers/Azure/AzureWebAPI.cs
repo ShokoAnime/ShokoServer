@@ -613,7 +613,7 @@ namespace Shoko.Server.Providers.Azure
                     }
                 }
             }
-            catch (WebException webEx)
+            catch (WebException)
             {
                 // Azure is broken here, just suppress it
                 // logger.Error("WebError in AzureWebAPI.GetData: {0}", webEx);

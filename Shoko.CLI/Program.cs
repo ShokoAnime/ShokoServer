@@ -47,7 +47,11 @@ namespace Shoko.CLI
             };
 
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"Queue state change: {ev.QueueState.formatMessage()}");
+                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent +=
+                ev => Console.WriteLine($"Hasher Queue state change: {ev.QueueState.formatMessage()}");
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent +=
+                ev => Console.WriteLine($"Images Queue state change: {ev.QueueState.formatMessage()}");
 
             while (running)
             {

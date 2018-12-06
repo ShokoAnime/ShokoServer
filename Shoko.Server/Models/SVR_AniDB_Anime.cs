@@ -692,7 +692,9 @@ namespace Shoko.Server.Models
             BeginYear = BeginYear = animeInfo.BeginYear;
 
             DateTimeDescUpdated = DateTimeDescUpdated = DateTime.Now;
+#pragma warning disable CS0618 // Type or member is obsolete
             DateTimeUpdated = DateTime.Now;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             Description = Description = animeInfo.Description ?? string.Empty;
             EndDate = EndDate = animeInfo.EndDate;

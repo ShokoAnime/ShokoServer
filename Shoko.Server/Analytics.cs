@@ -49,6 +49,7 @@ namespace Shoko.Server
             return false;
 #endif
 
+#pragma warning disable CS0162 // Unreachable code detected
             if (ServerSettings.Instance.GA_OptOutPlzDont) return false;
 
             try
@@ -79,6 +80,7 @@ namespace Shoko.Server
                 Logger.Error("There was an error posting to Google Analytics", ex);
                 return false;
             }
+#pragma warning restore CS0162 // Unreachable code detected
         }
 
         public static void Startup()

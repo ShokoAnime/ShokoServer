@@ -94,7 +94,7 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="Bundle.Microsoft.SqlServer.SMO" Version="12.0.2000" />
-    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0.3" />
+    <PackageReference Include="Microsoft.Win32.TaskScheduler" Version="2.2.0" />
     <PackageReference Include="WindowsAPICodePack" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>

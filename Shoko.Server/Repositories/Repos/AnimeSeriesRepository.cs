@@ -28,7 +28,7 @@ namespace Shoko.Server.Repositories.Repos
             (bool updateGroups, bool onlyupdatestats, bool skipgroupfilters, bool alsoupdateepisodes) parameters)
         {
             bool isMigrating = false;
-            bool newSeries = false;
+            //bool newSeries = false;
             int oldGroup = 0;
             if (original_entity != null)
             {
@@ -39,11 +39,11 @@ namespace Shoko.Server.Repositories.Repos
                     SVR_AnimeGroup newGroup = Repo.Instance.AnimeGroup.GetByID(entity.AnimeGroupID);
                     if (newGroup != null && newGroup.GroupName.Equals("AAA Migrating Groups AAA"))
                         isMigrating = true;
-                    newSeries = true;
+                    //newSeries = true;
                 }
             }
-            else
-                newSeries = true;
+            //else
+            //    newSeries = true;
             //TODO: Probably @maxpiva: not sure what this GenerateContract was
             /*(CL_AnimeSeries_User contract, HashSet<GroupFilterConditionType> types) = entity.GenerateContract(parameters.onlyupdatestats);
             if (newSeries && !isMigrating)

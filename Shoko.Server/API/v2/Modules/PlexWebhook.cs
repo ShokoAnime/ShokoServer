@@ -21,13 +21,13 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/plex")]
-    [ApiVersion("2.0")]
+    [ApiVersionNeutral]
     public class PlexWebhook : BaseController
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [HttpPost]
-        [ApiVersionNeutral]
+        
         public ActionResult WebhookPost([FromForm] PlexEvent eventData)
         {
             /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,

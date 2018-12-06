@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Shoko.Commons.Queue;
+﻿using Shoko.Commons.Queue;
 using Shoko.Models.Server;
+using System;
+using System.Linq;
 
 namespace Shoko.Server.Commands
 {
@@ -19,7 +16,7 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
-            
+
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

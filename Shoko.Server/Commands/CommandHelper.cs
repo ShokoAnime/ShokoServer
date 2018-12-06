@@ -11,7 +11,7 @@ namespace Shoko.Server.Commands
     public static class CommandHelper
     {
         private static Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>> CommandRequestImpls;
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         // List of priorities for commands
         // Order is as such:
@@ -117,7 +117,7 @@ namespace Shoko.Server.Commands
                 {
                     return a.GetTypes();
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     return new Type[0];
                 }

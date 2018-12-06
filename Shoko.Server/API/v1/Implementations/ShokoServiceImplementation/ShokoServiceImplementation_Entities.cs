@@ -3643,7 +3643,7 @@ namespace Shoko.Server
             {
                 bool existingUser = false;
                 bool updateStats = false;
-                bool updateGf = false;
+                //bool updateGf = false;
                 SVR_JMMUser jmmUser = null;
                 if (user.JMMUserID != 0)
                 {
@@ -3655,15 +3655,15 @@ namespace Shoko.Server
                 {
                     //jmmUser = new SVR_JMMUser();
                     updateStats = true;
-                    updateGf = true;
+                    //updateGf = true;
                 }
 
                 if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
                     updateStats = true;
 
                 string hcat = string.Join(",", user.HideCategories);
-                if (jmmUser.HideCategories != hcat)
-                    updateGf = true;
+                //if (jmmUser.HideCategories != hcat)
+                    //updateGf = true;
                 using (var upd = Repo.Instance.JMMUser.BeginAddOrUpdate(() => jmmUser))
                 {
                     upd.Entity.HideCategories = hcat;

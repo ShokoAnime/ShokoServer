@@ -63,7 +63,7 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
-                logger.Error("Error processing CommandRequest_TraktUpdateAllSeries: {0}", ex);
+                logger.Error(ex, "Error processing CommandRequest_TraktUpdateAllSeries: ");
             }
         }
 

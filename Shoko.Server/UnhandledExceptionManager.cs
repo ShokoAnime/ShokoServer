@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Configuration;
 using System.Diagnostics;
-using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -99,7 +98,7 @@ namespace Shoko.Server
         //--
         private static void UnhandledExceptionHandler(System.Object sender, UnhandledExceptionEventArgs args)
         {
-            Exception objException = (Exception) args.ExceptionObject;
+            Exception objException = (Exception)args.ExceptionObject;
             GenericExceptionHandler(objException);
         }
 
@@ -128,7 +127,7 @@ namespace Shoko.Server
         private static DateTime AssemblyBuildDate(System.Reflection.Assembly objAssembly, bool blnForceFileDate = false)
         {
             System.Version objVersion = objAssembly.GetName().Version;
-            DateTime dtBuild = default(DateTime);
+            var dtBuild = default(DateTime);
 
             if (blnForceFileDate)
             {
@@ -141,8 +140,8 @@ namespace Shoko.Server
                     Convert.ToDateTime("01/01/2000")
                         .AddDays(objVersion.Build)
                         .AddSeconds(objVersion.Revision * 2);
-                if (TimeZone.IsDaylightSavingTime(DateTime.Now,
-                    TimeZone.CurrentTimeZone.GetDaylightChanges(DateTime.Now.Year)))
+
+                if (TimeZoneInfo.Local.IsDaylightSavingTime(DateTime.Now))
                 {
                     dtBuild = dtBuild.AddHours(1);
                 }
