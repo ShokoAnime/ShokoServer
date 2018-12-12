@@ -102,13 +102,13 @@ namespace Shoko.Server.AniDB_API.Titles
                 }
                 
                 // backup the old one
-                File.Move(CacheFilePath, CacheFilePathBak);
+                if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
                 // rename new one
                 File.Move(CacheFilePathTemp, CacheFilePath);
 
                 // remove old one
-                File.Delete(CacheFilePathBak);
+                if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
             }
             catch (Exception e)
             {
