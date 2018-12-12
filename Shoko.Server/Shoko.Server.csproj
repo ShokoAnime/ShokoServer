@@ -314,6 +314,8 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Tag.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote_HTTP.cs" />
+    <Compile Include="AniDB_API\Titles\AniDBRaw_AnimeTitles.cs" />
+    <Compile Include="AniDB_API\Titles\AniDB_TitleHelper.cs" />
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\APIUtils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
@@ -498,7 +500,6 @@
     <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListStats.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
-    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeTitle.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
     <Compile Include="Commands\Azure\CommandRequest_Azure_SendUserInfo.cs" />
     <Compile Include="Commands\CommandHelper.cs" />

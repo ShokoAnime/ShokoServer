@@ -21,6 +21,7 @@ using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Repositories.Cached;
 using Pri.LongPath;
 using Shoko.Commons.Utils;
+using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server
@@ -728,36 +729,31 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    List<Shoko.Models.Azure.Azure_AnimeIDTitle> titles = AzureWebAPI.Get_AnimeTitle(titleQuery);
+                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(titleQuery);
 
-                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                    foreach (AniDBRaw_AnimeTitle_Anime tit in titles)
                     {
-                        ISessionWrapper sessionWrapper = session.Wrap();
-
-                        foreach (Shoko.Models.Azure.Azure_AnimeIDTitle tit in titles)
+                        CL_AnimeSearch res = new CL_AnimeSearch
                         {
-                            CL_AnimeSearch res = new CL_AnimeSearch
-                            {
-                                AnimeID = tit.AnimeID,
-                                MainTitle = tit.MainTitle,
-                                Titles =
-                                new HashSet<string>(tit.Titles.Split(new char[] { '|' },
-                                    StringSplitOptions.RemoveEmptyEntries))
-                            };
+                            AnimeID = tit.AnimeID,
+                            MainTitle = tit.Titles.FirstOrDefault(a =>
+                                            a.TitleLanguage == "x-jat" && a.TitleType == "main")?.Title ??
+                                        tit.Titles.FirstOrDefault()?.Title,
+                            Titles = tit.Titles.Select(a => a.Title).ToHashSet()
+                        };
 
-                            // check for existing series and group details
-                            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
-                            if (ser != null)
-                            {
-                                res.SeriesExists = true;
-                                res.AnimeSeriesID = ser.AnimeSeriesID;
-                                res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
-                            }
-                            else
-                                res.SeriesExists = false;
-
-                            retTitles.Add(res);
+                        // check for existing series and group details
+                        SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(tit.AnimeID);
+                        if (ser != null)
+                        {
+                            res.SeriesExists = true;
+                            res.AnimeSeriesID = ser.AnimeSeriesID;
+                            res.AnimeSeriesName = ser.GetAnime().GetFormattedTitle();
                         }
+                        else
+                            res.SeriesExists = false;
+
+                        retTitles.Add(res);
                     }
                 }
             }

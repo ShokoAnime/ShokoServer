@@ -365,46 +365,6 @@ namespace Shoko.Server.Providers.Azure
 
         #endregion
 
-        #region Anime Titles
-
-        public static void Send_AnimeTitle(Azure_AnimeIDTitle data)
-        {
-            //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle";
-            string json = JSONHelper.Serialize(data);
-            SendData(uri, json, "POST");
-        }
-
-        public static List<Azure_AnimeIDTitle> Get_AnimeTitle(string query)
-        {
-            try
-            {
-                //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
-                string uri = $@"http://{azureHostBaseAddress}/api/animeidtitle/{query}";
-                string msg = $"Getting Anime Title Data From Cache: {query}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got Anime Title Data From Cache: {query} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<Azure_AnimeIDTitle> titles = JSONHelper.Deserialize<List<Azure_AnimeIDTitle>>(json);
-
-                return titles ?? new List<Azure_AnimeIDTitle>();
-            }
-            catch
-            {
-                return new List<Azure_AnimeIDTitle>();
-            }
-        }
-
-        #endregion
-
         #region Admin Messages
 
         public static List<Azure_AdminMessage> Get_AdminMessages()
