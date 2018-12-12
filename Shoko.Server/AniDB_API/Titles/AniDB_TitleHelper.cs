@@ -71,7 +71,7 @@ namespace Shoko.Server.AniDB_API.Titles
                     File.Move(CacheFilePathTemp, CacheFilePath);
                 }
                 if (!File.Exists(CacheFilePath))
-                    DownloadCache();
+                    lock (accessLock) DownloadCache();
             }
             
             if (!File.Exists(CacheFilePath)) return;
