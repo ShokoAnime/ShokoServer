@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -85,6 +86,19 @@ namespace Shoko.Server.AniDB_API.Titles
                 }
             }
 
+            try
+            {
+                LoadCache();
+            }
+            catch (Exception e)
+            {
+                Decompress();
+                LoadCache();
+            }
+        }
+
+        private void LoadCache()
+        {
             // Load the file
             using (var stream = new FileStream(CacheFilePath, FileMode.Open))
             {
@@ -93,6 +107,26 @@ namespace Shoko.Server.AniDB_API.Titles
                 {
                     cache = rawData;
                 }
+            }
+        }
+
+        private void Decompress()
+        {
+            using (var stream = new FileStream(CacheFilePath, FileMode.Open))
+            {
+                GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
+                var textResponse = new StreamReader(gzip).ReadToEnd();
+                if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
+                File.WriteAllText(CacheFilePathTemp, textResponse);
+                
+                // backup the old one
+                if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
+
+                // rename new one
+                File.Move(CacheFilePathTemp, CacheFilePath);
+
+                // remove old one
+                if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
             }
         }
 
@@ -105,7 +139,10 @@ namespace Shoko.Server.AniDB_API.Titles
                 using (var client = new WebClient())
                 {
                     client.Headers.Add("Accept-Encoding", "gzip");
-                    client.DownloadFile("http://anidb.net/api/anime-titles.xml.gz", CacheFilePathTemp);
+                    var stream = client.OpenRead("http://anidb.net/api/anime-titles.xml.gz");
+                    GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
+                    var textResponse = new StreamReader(gzip).ReadToEnd();
+                    File.WriteAllText(CacheFilePathTemp, textResponse);
                 }
                 
                 // backup the old one
