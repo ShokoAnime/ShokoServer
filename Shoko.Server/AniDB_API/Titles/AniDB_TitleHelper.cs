@@ -64,7 +64,13 @@ namespace Shoko.Server.AniDB_API.Titles
         {
             if (!File.Exists(CacheFilePath))
             {
-                DownloadCache();
+                // first check if there's a temp file
+                if (File.Exists(CacheFilePathTemp))
+                {
+                    File.Move(CacheFilePathTemp, CacheFilePath);
+                }
+                if (!File.Exists(CacheFilePath))
+                    DownloadCache();
             }
             
             if (!File.Exists(CacheFilePath)) return;
@@ -94,6 +100,7 @@ namespace Shoko.Server.AniDB_API.Titles
         {
             try
             {
+                if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
                 // Download the file
                 using (var client = new WebClient())
                 {
