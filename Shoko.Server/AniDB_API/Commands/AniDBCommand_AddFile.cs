@@ -121,13 +121,13 @@ namespace AniDBAPI.Commands
             commandText += "&state=" + (int) fileState;
         }
 
-        public void Init(int animeID, int episodeNumber, AniDBFile_State fileState, DateTime? watchedDate = null)
+        public void Init(int animeID, string episodeData, AniDBFile_State fileState, DateTime? watchedDate = null)
         {
             // MYLISTADD aid={int4 aid}&generic=1&epno={int4 episode number}
 
             commandText = "MYLISTADD aid=" + animeID;
             commandText += "&generic=1";
-            commandText += "&epno=" + episodeNumber;
+            commandText += "&epno=" + episodeData;
             if (watchedDate == null)
                 commandText += "&viewed=0";
             else

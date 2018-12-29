@@ -84,7 +84,7 @@ namespace Shoko.Server.Commands
                 int? lid = null;
                 // this only gets overwritten if the response is File Already in MyList
                 AniDBFile_State? state = ServerSettings.Instance.AniDb.MyList_StorageState;
-                
+
                 if (isManualLink)
                     foreach (var xref in xrefs)
                         (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(xref.AnimeID,
@@ -100,13 +100,13 @@ namespace Shoko.Server.Commands
                     {
                         upd.Entity.MyListID = lid.Value;
                         upd.Commit();
-                    }   
+                    }
                 }
 
                 logger.Info($"Added File to MyList. File: {vid.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {newWatchedDate != null}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
                 if (juser != null)
                 {
-                    
+
                     bool watched = newWatchedDate != null;
 
                     bool watchedLocally = originalWatchedDate != null;
@@ -142,9 +142,9 @@ namespace Shoko.Server.Commands
                             foreach (var xref in xrefs)
                             {
                                 if (ServerSettings.Instance.AniDb.MyList_SetWatched && watchedLocally)
-                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, true, originalWatchedDate);
+                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, xref.GetEpisode().EpisodeType, true, originalWatchedDate);
                                 else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && !watchedLocally)
-                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, false);
+                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, xref.GetEpisode().EpisodeType, false);
                             }
                         }
                     }

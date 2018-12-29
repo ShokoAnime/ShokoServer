@@ -692,7 +692,7 @@ namespace Shoko.Server.Providers.AniDB
             return (null, watchedDate);
         }
 
-        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
+        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, int episodeType, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
@@ -704,7 +704,17 @@ namespace Shoko.Server.Providers.AniDB
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
+                string episodeData = "";
+                if (episodeType == 2)
+                  episodeData = "C";
+                else if (episodeType == 3)
+                  episodeData = "S";
+                else if (episodeType == 4)
+                  episodeData = "T";
+                else if (episodeType == 5)
+                  episodeData = "P";
+                episodeData += episodeNumber;
+                cmdAddFile.Init(animeID, episodeData, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
