@@ -98,6 +98,7 @@ namespace Shoko.Server.Repositories
                 .SelectMany(a => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(a.AniDB_ID))
                 .Where(a => a != null)
                 .Select(a => GetByTagID(a.TagID))
+                .Where(a => a != null)
                 .DistinctBy(a => a.TagID)
                 .ToList();
         }

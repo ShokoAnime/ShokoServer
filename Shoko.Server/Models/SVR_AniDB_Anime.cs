@@ -1062,6 +1062,13 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     // While we're at it, clean up other unreferenced tags
                     RepoFactory.AniDB_Tag.Delete(RepoFactory.AniDB_Tag.GetAll()
                         .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+                    
+                    // Also clean up dead xrefs (shouldn't happen, but sometimes does)
+                    var orphanedXRefs = RepoFactory.AniDB_Anime_Tag.GetAll().Where(a =>
+                        RepoFactory.AniDB_Tag.GetByTagID(a.TagID) == null ||
+                        RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID) == null).ToList();
+                    
+                    RepoFactory.AniDB_Anime_Tag.Delete(orphanedXRefs);
 
                     tag = new AniDB_Tag();
                 }

@@ -103,8 +103,7 @@ namespace Shoko.Server.Repositories.Cached
                     gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
-                    gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION ||
-                    gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION)
+                    gf.SeriesIdsVersion < SVR_GroupFilter.SERIEFILTER_VERSION)
                     gf.CalculateGroupsAndSeries();
                 Save(gf);
             }
@@ -280,12 +279,12 @@ namespace Shoko.Server.Repositories.Cached
                 else
                     alltags = new HashSet<string>(tags,
                         StringComparer.InvariantCultureIgnoreCase);
-                HashSet<string> notin =
+                HashSet<string> existingTags =
                     new HashSet<string>(
                         lockedGFs.Where(a => a.FilterType == (int) GroupFilterType.Tag)
                             .Select(a => a.Conditions.FirstOrDefault()?.ConditionParameter),
                         StringComparer.InvariantCultureIgnoreCase);
-                alltags.ExceptWith(notin);
+                alltags.ExceptWith(existingTags);
 
                 int max = alltags.Count;
                 int cnt = 0;
