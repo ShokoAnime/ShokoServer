@@ -44,7 +44,7 @@ namespace Shoko.Server.AniDB_API.Titles
                         foreach (var animeTitle in anime.Titles)
                         {
                             if (animeTitle.TitleLanguage != ServerSettings.LanguagePreference &&
-                                animeTitle.TitleLanguage != "en" && animeTitle.TitleLanguage != "x-jay") continue;
+                                animeTitle.TitleLanguage != "en" && animeTitle.TitleLanguage != "x-jat") continue;
                             if (!animeTitle.Title.FuzzyMatches(query)) continue;
                             matches.Add(anime);
                             break;
