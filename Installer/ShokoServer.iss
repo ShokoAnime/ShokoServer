@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.9.3.0
+AppVersion=3.9.4.0
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
@@ -35,6 +35,26 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.ValueTuple.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.ValueTuple.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TvDbSharper.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TvDbSharper.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\AppGlue.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\DeepCloner.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\DeepCloner.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\FluentNHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Iesi.Collections.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -130,26 +150,6 @@ Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; 
 Source: "..\Shoko.Server\bin\Release\System.IO.Compression.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Encoding.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.X509Certificates.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.ValueTuple.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.ValueTuple.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TvDbSharper.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TvDbSharper.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\AppGlue.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\DeepCloner.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\DeepCloner.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\FluentNHibernate.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\FluentNHibernate.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\FluentNHibernate.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\ICSharpCode.SharpZipLib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -181,7 +181,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/ sdd
 Filename: "{app}\FixPermissions.bat";
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: "https://docs.shokoanime.com/server/install_windows.html"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
-Filename: "https://shokoanime.com/shoko-version-3-9-3-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.9.3 Release Notes"
+Filename: "https://shokoanime.com/shoko-version-3-9-4-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.9.4 Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
