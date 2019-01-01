@@ -80,11 +80,11 @@ namespace Shoko.Server.Commands
                             {
                                 DateTime? watchedDate = Commons.Utils.AniDB.GetAniDBDateAsDate(WatchedDateAsSecs);
                                 ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
-                                    episode.EpisodeNumber, Watched, watchedDate);
+                                    episode.EpisodeNumber, episode.EpisodeType, Watched, watchedDate);
                             }
                             else
                                 ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, episode.AnimeID,
-                                    episode.EpisodeNumber, Watched);
+                                    episode.EpisodeNumber, episode.EpisodeType, Watched);
                         }
                     }
 
