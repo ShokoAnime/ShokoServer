@@ -630,8 +630,9 @@ namespace Shoko.Server.Providers.AniDB
         /// </summary>
         /// <param name="animeID"></param>
         /// <param name="episodeNumber"></param>
+        /// <param name="episodeType"></param>
         /// <param name="watched"></param>
-        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
+        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, int episodeType, bool watched, DateTime? watchedDate = null)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
@@ -642,7 +643,17 @@ namespace Shoko.Server.Providers.AniDB
                 if (watched && watchedDate == null) watchedDate = DateTime.Now;
 
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
-                cmdUpdateFile.Init(hash, animeID, episodeNumber, watched, watchedDate);
+                string episodeData = "";
+                if (episodeType == 2)
+                  episodeData = "C";
+                else if (episodeType == 3)
+                  episodeData = "S";
+                else if (episodeType == 4)
+                  episodeData = "T";
+                else if (episodeType == 5)
+                  episodeData = "P";
+                episodeData += episodeNumber;
+                cmdUpdateFile.Init(hash, animeID, episodeData, watched, watchedDate);
                 SetWaitingOnResponse(true);
                 var ev = cmdUpdateFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
