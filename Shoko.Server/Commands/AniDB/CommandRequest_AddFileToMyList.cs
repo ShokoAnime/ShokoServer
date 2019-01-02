@@ -88,7 +88,7 @@ namespace Shoko.Server.Commands
                 if (isManualLink)
                     foreach (var xref in xrefs)
                         (lid, newWatchedDate) = ShokoService.AnidbProcessor.AddFileToMyList(xref.AnimeID,
-                            xref.GetEpisode().EpisodeNumber, xref.GetEpisode().EpisodeType, originalWatchedDate, ref state);
+                            xref.GetEpisode().EpisodeNumber, (EpisodeType) xref.GetEpisode().EpisodeType, originalWatchedDate, ref state);
                 else
                     (lid, newWatchedDate) =
                         ShokoService.AnidbProcessor.AddFileToMyList(vid, originalWatchedDate, ref state);
@@ -142,9 +142,9 @@ namespace Shoko.Server.Commands
                             foreach (var xref in xrefs)
                             {
                                 if (ServerSettings.Instance.AniDb.MyList_SetWatched && watchedLocally)
-                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, xref.GetEpisode().EpisodeType, true, originalWatchedDate);
+                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, (EpisodeType) xref.GetEpisode().EpisodeType, true, originalWatchedDate);
                                 else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && !watchedLocally)
-                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, xref.GetEpisode().EpisodeType, false);
+                                    ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, (EpisodeType) xref.GetEpisode().EpisodeType, false);
                             }
                         }
                     }

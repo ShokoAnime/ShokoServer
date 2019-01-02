@@ -632,7 +632,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="episodeNumber"></param>
         /// <param name="episodeType"></param>
         /// <param name="watched"></param>
-        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, int episodeType, bool watched, DateTime? watchedDate = null)
+        public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, EpisodeType episodeType, bool watched, DateTime? watchedDate = null)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
@@ -644,14 +644,16 @@ namespace Shoko.Server.Providers.AniDB
 
                 AniDBCommand_UpdateFile cmdUpdateFile = new AniDBCommand_UpdateFile();
                 string episodeData = "";
-                if (episodeType == 2)
-                  episodeData = "C";
-                else if (episodeType == 3)
-                  episodeData = "S";
-                else if (episodeType == 4)
-                  episodeData = "T";
-                else if (episodeType == 5)
-                  episodeData = "P";
+                if (episodeType == EpisodeType.Credits)
+                    episodeData = "C";
+                else if (episodeType == EpisodeType.Special)
+                    episodeData = "S";
+                else if (episodeType == EpisodeType.Trailer)
+                    episodeData = "T";
+                else if (episodeType == EpisodeType.Parody)
+                    episodeData = "P";
+                else if (episodeType == EpisodeType.Other)
+                    episodeData = "O";
                 episodeData += episodeNumber;
                 cmdUpdateFile.Init(hash, animeID, episodeData, watched, watchedDate);
                 SetWaitingOnResponse(true);
@@ -703,7 +705,7 @@ namespace Shoko.Server.Providers.AniDB
             return (null, watchedDate);
         }
 
-        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, int episodeType, DateTime? watchedDate, ref AniDBFile_State? state)
+        public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, EpisodeType episodeType, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
@@ -716,14 +718,16 @@ namespace Shoko.Server.Providers.AniDB
             {
                 cmdAddFile = new AniDBCommand_AddFile();
                 string episodeData = "";
-                if (episodeType == 2)
-                  episodeData = "C";
-                else if (episodeType == 3)
-                  episodeData = "S";
-                else if (episodeType == 4)
-                  episodeData = "T";
-                else if (episodeType == 5)
-                  episodeData = "P";
+                if (episodeType == EpisodeType.Credits)
+                    episodeData = "C";
+                else if (episodeType == EpisodeType.Special)
+                    episodeData = "S";
+                else if (episodeType == EpisodeType.Trailer)
+                    episodeData = "T";
+                else if (episodeType == EpisodeType.Parody)
+                    episodeData = "P";
+                else if (episodeType == EpisodeType.Other)
+                    episodeData = "O";
                 episodeData += episodeNumber;
                 cmdAddFile.Init(animeID, episodeData, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
