@@ -33,6 +33,10 @@ namespace Shoko.Server
         // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
         private readonly object lockAniDBConnections = new object();
 
+        private static readonly int HTTPBanTimerResetLength = 12;
+        
+        private static readonly int UDPBanTimerResetLength = 12;
+
         private IPEndPoint localIpEndPoint;
         private IPEndPoint remoteIpEndPoint;
         private Socket soUdp;
@@ -231,12 +235,12 @@ namespace Shoko.Server
             httpBanResetTimer = new Timer();
             httpBanResetTimer.AutoReset = false;
             httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
-            httpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
+            httpBanResetTimer.Interval = TimeSpan.FromHours(HTTPBanTimerResetLength).TotalMilliseconds;
 
             udpBanResetTimer = new Timer();
             udpBanResetTimer.AutoReset = false;
             udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
-            udpBanResetTimer.Interval = TimeSpan.FromHours(12).TotalMilliseconds;
+            udpBanResetTimer.Interval = TimeSpan.FromHours(UDPBanTimerResetLength).TotalMilliseconds;
         }
 
         public void Dispose()
