@@ -259,8 +259,7 @@ namespace Shoko.Server.Plex
             {
                 try
                 {
-                    _plexMediaDevices = ((MediaContainer) serializer.Deserialize(reader)).Device;
-                    return _plexMediaDevices;
+                    return ((MediaContainer)serializer.Deserialize(reader)).Device ?? new MediaDevice[0];
                 }
                 catch
                 {
