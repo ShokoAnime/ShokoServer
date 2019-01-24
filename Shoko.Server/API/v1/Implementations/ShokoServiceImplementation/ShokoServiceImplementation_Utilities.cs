@@ -451,7 +451,7 @@ namespace Shoko.Server
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
                 VideoLocalID = videoLocalID,
-                Success = false
+                Success = true
             };
             if (scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
             {
