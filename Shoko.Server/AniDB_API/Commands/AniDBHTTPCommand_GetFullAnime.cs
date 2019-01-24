@@ -127,14 +127,11 @@ namespace AniDBAPI.Commands
         {
             XmlDocument docAnime = null;
 
-            if (CacheOnly)
-            {
-                docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
-            }
-
-            if (!ForceFromAniDB)
+            if (CacheOnly || !ForceFromAniDB)
             {
                 //logger.Info("Trying to load Anime HTTP info from cache file...");
+                docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                
 
                 if (docAnime == null && !CacheOnly)
                 {
@@ -145,6 +142,12 @@ namespace AniDBAPI.Commands
             else if (!CacheOnly)
             {
                 docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
+
+                if (docAnime == null)
+                {
+                    logger.Info("Can't download " + AnimeID + ". Banned or not found. Trying to load from cache anyway.");
+                    docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
+                }
             }
 
             if (docAnime != null)
