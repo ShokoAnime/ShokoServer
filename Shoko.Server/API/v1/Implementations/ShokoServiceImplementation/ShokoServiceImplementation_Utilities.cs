@@ -1470,24 +1470,24 @@ namespace Shoko.Server
             {
                 CL_GroupVideoQuality contract = new CL_GroupVideoQuality();
                 List<SVR_VideoLocal> videoLocals = key.ToList();
-                List<SVR_AnimeEpisode> eps = videoLocals.Select(a => a.GetAnimeEpisodes().FirstOrDefault()).ToList();
+                List<SVR_AnimeEpisode> eps = videoLocals.Select(a => a?.GetAnimeEpisodes().FirstOrDefault()).Where(a => a != null).ToList();
                 SVR_AniDB_File ani = videoLocals.First().GetAniDBFile();
                 contract.AudioStreamCount = videoLocals.First()
                     .Media?.Parts.SelectMany(a => a.Streams)
                     .Count(a => a.StreamType == 2) ?? 0;
                 contract.IsChaptered =
-                    (ani?.IsChaptered ?? (videoLocals.First().Media?.Chaptered ?? false ? 1 : 0)) == 1;
-                contract.FileCountNormal = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Episode);
-                contract.FileCountSpecials = eps.Count(a => a.EpisodeTypeEnum == EpisodeType.Special);
+                    (ani?.IsChaptered ?? (videoLocals.First()?.Media?.Chaptered ?? false ? 1 : 0)) == 1;
+                contract.FileCountNormal = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Episode);
+                contract.FileCountSpecials = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
                 contract.GroupNameShort = key.Key.GroupNameShort;
-                contract.NormalEpisodeNumbers = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode)
+                contract.NormalEpisodeNumbers = eps.Where(a => a?.EpisodeTypeEnum == EpisodeType.Episode)
                     .Select(a => a.AniDB_Episode.EpisodeNumber).OrderBy(a => a).ToList();
                 contract.NormalEpisodeNumberSummary = contract.NormalEpisodeNumbers.ToRanges();
                 contract.Ranking = rank;
                 contract.Resolution = key.Key.VideoResolution;
-                contract.TotalFileSize = videoLocals.Sum(a => a.FileSize);
-                contract.TotalRunningTime = videoLocals.Sum(a => a.Duration);
+                contract.TotalFileSize = videoLocals.Sum(a => a?.FileSize ?? 0);
+                contract.TotalRunningTime = videoLocals.Sum(a => a?.Duration ?? 0);
                 contract.VideoSource = key.Key.File_Source;
                 string bitDepth = videoLocals.First().VideoBitDepth;
                 if (!string.IsNullOrEmpty(bitDepth))
