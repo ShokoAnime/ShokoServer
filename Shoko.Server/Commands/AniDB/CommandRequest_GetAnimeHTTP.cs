@@ -4,6 +4,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Commands
 {
@@ -39,6 +40,7 @@ namespace Shoko.Server.Commands
             DownloadRelations = downloadRelations;
             ForceRefresh = forced;
             Priority = (int) DefaultPriority;
+            if (RepoFactory.AniDB_Anime.GetByAnimeID(animeid) == null) Priority = (int) CommandRequestPriority.Priority1;
             RelDepth = relDepth;
 
             GenerateCommandID();
@@ -95,6 +97,7 @@ namespace Shoko.Server.Commands
 
                 // populate the fields
                 AnimeID = int.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "AnimeID"));
+                if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null) Priority = (int) CommandRequestPriority.Priority1;
                 DownloadRelations =
                     bool.Parse(TryGetProperty(docCreator, "CommandRequest_GetAnimeHTTP", "DownloadRelations"));
                 ForceRefresh = bool.Parse(

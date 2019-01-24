@@ -432,7 +432,13 @@ namespace Shoko.Server.Repositories.Cached
             lock (Cache)
             {
                 return Cache.Values
-                    .Where(a => a.IsIgnored == 0 && !RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash).Any())
+                    .Where(a =>
+                    {
+                        if (a.IsIgnored != 0) return false;
+                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash);
+                        if (!xrefs.Any()) return true;
+                        return RepoFactory.AniDB_Anime.GetByAnimeID(xrefs.FirstOrDefault().AnimeID) == null;
+                    })
                     .OrderByNatural(local => local?.GetBestVideoLocalPlace()?.FilePath)
                     .ThenBy(local => local?.VideoLocalID ?? 0)
                     .ToList();
