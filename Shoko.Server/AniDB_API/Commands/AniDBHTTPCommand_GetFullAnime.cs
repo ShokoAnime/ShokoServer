@@ -130,17 +130,19 @@ namespace AniDBAPI.Commands
             if (CacheOnly || !ForceFromAniDB)
             {
                 //logger.Info("Trying to load Anime HTTP info from cache file...");
+                logger.Info("Not forced update. This may be because it was updated recently. Trying to load " + AnimeID + " anime data from cache.");
                 docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                 
 
                 if (docAnime == null && !CacheOnly)
                 {
-                    //logger.Info("No Anime HTTP info found in cache file, loading from HTTP API");
+                    logger.Info("No Anime HTTP info found in cache file for " + animeID +", loading from HTTP API");
                     docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
                 }
             }
             else if (!CacheOnly)
             {
+                logger.Info("Forced update. Trying to load " + AnimeID + " anime data from AniDB API.");
                 docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
 
                 if (docAnime == null)
@@ -152,6 +154,7 @@ namespace AniDBAPI.Commands
 
             if (docAnime != null)
             {
+                logger.Info("Anime data loaded for " + AnimeID + ". Processing and saving it.");
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
                 if (anime == null) return enHelperActivityType.NoSuchAnime;
 
