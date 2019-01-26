@@ -127,10 +127,11 @@ namespace AniDBAPI.Commands
         {
             XmlDocument docAnime = null;
 
+            logger.Info("Trying to load " + AnimeID + " anime data from cache.");
+            logger.Info($"Getting anime info: Force: {ForceFromAniDB}  CacheOnly: {CacheOnly}");
             if (CacheOnly || !ForceFromAniDB)
             {
-                //logger.Info("Trying to load Anime HTTP info from cache file...");
-                logger.Info("Not forced update. This may be because it was updated recently. Trying to load " + AnimeID + " anime data from cache.");
+                logger.Info("Trying to load Anime HTTP info from cache file...");
                 docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                 
 
