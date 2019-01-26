@@ -61,12 +61,16 @@ namespace AniDBAPI
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBHTTP, msg);
 
                 XmlDocument docAnime = null;
-                if (0 < rawXML.Trim().Length && !CheckForBan(rawXML))
+                if (rawXML.Trim().Length > 0 && !CheckForBan(rawXML))
                 {
                     APIUtils.WriteAnimeHTTPToFile(animeID, rawXML);
 
                     docAnime = new XmlDocument();
                     docAnime.LoadXml(rawXML);
+                }
+                else
+                {
+                    logger.Warn($"When downloading anime data for {animeID}, ban or no data was receved.");
                 }
 
                 return docAnime;
@@ -142,6 +146,7 @@ namespace AniDBAPI
                 int index = xmlresult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
                 if (-1 < index)
                 {
+                    logger.Warn("HTTP Banned!");
                     ShokoService.AnidbProcessor.IsHttpBanned = true;
                     result = true;
                 }
