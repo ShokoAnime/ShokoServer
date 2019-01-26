@@ -95,7 +95,7 @@ namespace Shoko.Server.Extensions
                                      AnimeSeriesID = animeSeriesID,
                                      AnimeEpisodeID = existingEp.AnimeEpisodeID
                                  };
-                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, epUser);
+                    RepoFactory.AnimeEpisode_User.Save(epUser);
                 }
             }
             else
@@ -104,7 +104,7 @@ namespace Shoko.Server.Extensions
                 // these will probably never exist, but if they do, cover our bases
                 foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
                 {
-                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
+                    RepoFactory.AnimeEpisode_User.Save(episodeUser);
                 }
             }
         }
