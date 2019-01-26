@@ -111,6 +111,7 @@ namespace Shoko.Server.Repositories.Cached
                             {
                                 session.SaveOrUpdate(grp);
                                 transaction.Commit();
+                                Cache.Update(grp);
                             }
                         }
                         var types = grp.UpdateContract(sessionWrapper, updategrpcontractstats);
