@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NHibernate;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
@@ -67,34 +68,43 @@ namespace Shoko.Server.Extensions
             existingEp.Populate(episode);
             existingEp.AnimeSeriesID = animeSeriesID;
             RepoFactory.AnimeEpisode.Save(existingEp);
+
             // We might have removed our AnimeEpisode_User records when wiping out AnimeEpisodes, recreate them if there's watched files
-            foreach (var videoLocal in existingEp.GetVideoLocals())
+            var vlUsers = existingEp?.GetVideoLocals()
+                .SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID)).ToList();
+            
+            // get the list of unique users
+            var users = vlUsers.Select(a => a.JMMUserID).Distinct();
+            
+            if (vlUsers.Count > 0)
             {
-                var videoLocalUsers = RepoFactory.VideoLocalUser.GetByVideoLocalID(videoLocal.VideoLocalID);
-                if (videoLocalUsers.Count > 0)
+                // per user. An episode is watched if any file is
+                foreach (int uid in users)
                 {
-                    foreach (var videoLocalUser in videoLocalUsers)
-                    {
-                        var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(videoLocalUser.JMMUserID,
-                                existingEp.AnimeEpisodeID) ?? new SVR_AnimeEpisode_User
-                            {
-                                JMMUserID = videoLocalUser.JMMUserID,
-                                WatchedDate = videoLocalUser.WatchedDate,
-                                PlayedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0,
-                                WatchedCount = videoLocalUser.WatchedDate.HasValue ? 1 : 0,
-                                AnimeSeriesID = animeSeriesID,
-                                AnimeEpisodeID = existingEp.AnimeEpisodeID
-                            };
-                        RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, epUser);
-                    }
+                    // get the last watched file
+                    var vlUser = vlUsers.Where(a => a.JMMUserID == uid && a.WatchedDate != null)
+                        .MaxBy(a => a.WatchedDate).FirstOrDefault();
+                    // create or update the record
+                    var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(uid,
+                                     existingEp.AnimeEpisodeID) ?? new SVR_AnimeEpisode_User
+                                 {
+                                     JMMUserID = uid,
+                                     WatchedDate = vlUser?.WatchedDate,
+                                     PlayedCount = vlUser != null ? 1 : 0,
+                                     WatchedCount = vlUser != null ? 1 : 0,
+                                     AnimeSeriesID = animeSeriesID,
+                                     AnimeEpisodeID = existingEp.AnimeEpisodeID
+                                 };
+                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, epUser);
                 }
-                else
+            }
+            else
+            {
+                // since these are created with VideoLocal_User,
+                // these will probably never exist, but if they do, cover our bases
+                foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
                 {
-                    // these will probably never exist, but if they do, cover our bases
-                    foreach (var episodeUser in RepoFactory.AnimeEpisode_User.GetByEpisodeID(existingEp.AnimeEpisodeID))
-                    {
-                        RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
-                    }
+                    RepoFactory.AnimeEpisode_User.SaveWithOpenTransaction(session, episodeUser);
                 }
             }
         }
