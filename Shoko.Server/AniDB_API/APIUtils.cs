@@ -83,21 +83,21 @@ namespace AniDBAPI
             string fileName = $"AnimeDoc_{animeID}.xml";
             string fileNameWithPath = Path.Combine(filePath, fileName);
 
-            logger.Info($"Trying to load anime XML from cache: {fileNameWithPath}");
+            logger.Trace($"Trying to load anime XML from cache: {fileNameWithPath}");
             if (!Directory.Exists(filePath))
             {
-                logger.Info($"XML cache diretory does not exist. Trying to create it: {filePath}");
+                logger.Trace($"XML cache diretory does not exist. Trying to create it: {filePath}");
                 Directory.CreateDirectory(filePath);
             }
 
             if (!File.Exists(fileNameWithPath))
             {
-                logger.Info($"XML file {fileNameWithPath} does not exist. exiting");
+                logger.Trace($"XML file {fileNameWithPath} does not exist. exiting");
                 return null;
             }
             using (StreamReader re = File.OpenText(fileNameWithPath))
             {
-                logger.Info($"File exists. Loading anime XML from cache: {fileNameWithPath}");
+                logger.Trace($"File exists. Loading anime XML from cache: {fileNameWithPath}");
                 string rawXML = re.ReadToEnd();
 
                 var docAnime = new XmlDocument();
@@ -114,24 +114,24 @@ namespace AniDBAPI
                 string fileName = $"AnimeDoc_{animeID}.xml";
                 string fileNameWithPath = Path.Combine(filePath, fileName);
 
-                logger.Info($"Writing anime XML to cache: {fileNameWithPath}");
+                logger.Trace($"Writing anime XML to cache: {fileNameWithPath}");
                 if (!Directory.Exists(filePath))
                 {
-                    logger.Info($"XML cache diretory does not exist. Trying to create it: {filePath}");
+                    logger.Trace($"XML cache diretory does not exist. Trying to create it: {filePath}");
                     Directory.CreateDirectory(filePath);
                 }
 
                 // First check to make sure we not rights issue
                 if (!Utils.IsDirectoryWritable(filePath))
                 {
-                    logger.Info($"Unable to access {fileNameWithPath}. Insufficient permissions. Attemping to grant.");
+                    logger.Trace($"Unable to access {fileNameWithPath}. Insufficient permissions. Attemping to grant.");
                     Utils.GrantAccess(filePath);
                 }
 
                 // Check again and only if write-able we create it
                 if (Utils.IsDirectoryWritable(filePath))
                 {
-                    logger.Info($"Can write to {filePath}. Writing xml file {fileNameWithPath}");
+                    logger.Trace($"Can write to {filePath}. Writing xml file {fileNameWithPath}");
                     using (var sw = File.CreateText(fileNameWithPath))
                     {
                         sw.Write(xml);

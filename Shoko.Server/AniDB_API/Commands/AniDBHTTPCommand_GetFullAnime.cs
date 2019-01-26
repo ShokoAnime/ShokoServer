@@ -128,34 +128,34 @@ namespace AniDBAPI.Commands
             XmlDocument docAnime = null;
 
             logger.Info("Trying to load " + AnimeID + " anime data from cache.");
-            logger.Info($"Getting anime info: Force: {ForceFromAniDB}  CacheOnly: {CacheOnly}");
+            logger.Trace($"Getting anime info: Force: {ForceFromAniDB}  CacheOnly: {CacheOnly}");
             if (CacheOnly || !ForceFromAniDB)
             {
-                logger.Info("Trying to load Anime HTTP info from cache file...");
+                logger.Trace("Trying to load Anime HTTP info from cache file...");
                 docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                 
 
                 if (docAnime == null && !CacheOnly)
                 {
-                    logger.Info("No Anime HTTP info found in cache file for " + animeID +", loading from HTTP API");
+                    logger.Trace("No Anime HTTP info found in cache file for " + animeID +", loading from HTTP API");
                     docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
                 }
             }
             else if (!CacheOnly)
             {
-                logger.Info("Forced update. Trying to load " + AnimeID + " anime data from AniDB API.");
+                logger.Trace("Forced update. Trying to load " + AnimeID + " anime data from AniDB API.");
                 docAnime = AniDBHTTPHelper.GetAnimeXMLFromAPI(animeID);
 
                 if (docAnime == null)
                 {
-                    logger.Info("Can't download " + AnimeID + ". Banned or not found. Trying to load from cache anyway.");
+                    logger.Trace("Can't download " + AnimeID + ". Banned or not found. Trying to load from cache anyway.");
                     docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                 }
             }
 
             if (docAnime != null)
             {
-                logger.Info("Anime data loaded for " + AnimeID + ". Processing and saving it.");
+                logger.Trace("Anime data loaded for " + AnimeID + ". Processing and saving it.");
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
                 if (anime == null) return enHelperActivityType.NoSuchAnime;
 
