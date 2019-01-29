@@ -83,6 +83,23 @@ namespace Shoko.Server.Commands
             }
             catch (Exception ex)
             {
+                // This shouldn't cause a recursion, as it'll throw if failing
+                logger.Trace($"File {fileName} is Read-Only, unmarking");
+                try
+                {
+                    FileInfo info = new FileInfo(fileName);
+                    if (info.IsReadOnly)
+                    {
+                        info.IsReadOnly = false;
+                    }
+
+                    return CanAccessFile(fileName, writeAccess, ref e);
+                }
+                catch
+                {
+                    // ignore, we tried
+                }
+                
                 e = ex;
                 return 0;
             }
