@@ -70,7 +70,7 @@ namespace Shoko.Server.Commands
         }
 
         //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
-        private long CanAccessFile(string fileName, bool writeAccess)
+        private static long CanAccessFile(string fileName, bool writeAccess, ref Exception e)
         {
             var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
             try
@@ -81,14 +81,15 @@ namespace Shoko.Server.Commands
                     return size;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                e = ex;
                 return 0;
             }
         }
 
         //Used to check if file has been modified within the last X seconds.
-        private bool FileModified(string FileName, int Seconds, ref long lastFileSize, bool writeAccess)
+        private static bool FileModified(string FileName, int Seconds, ref long lastFileSize, bool writeAccess, ref Exception e)
         {
             try
             {
@@ -96,7 +97,7 @@ namespace Shoko.Server.Commands
                 var creation = File.GetCreationTime(FileName);
                 var now = DateTime.Now;
                 // check that the size is also equal, since some copy utilities apply the previous modified date
-                var size = CanAccessFile(FileName, writeAccess);
+                var size = CanAccessFile(FileName, writeAccess, ref e);
                 if (lastWrite <= now && lastWrite.AddSeconds(Seconds) >= now || 
                     creation <= now && creation.AddSeconds(Seconds) > now || 
                     lastFileSize != size)
@@ -105,9 +106,9 @@ namespace Shoko.Server.Commands
                     return true;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore
+                e = ex;
             }
             return false;
         }
@@ -133,6 +134,7 @@ namespace Shoko.Server.Commands
                 return;
             }
             long filesize = 0;
+            Exception e = null;
             if (folder.CloudID == null) // Local Access
             {
                 if (!File.Exists(FileName))
@@ -146,7 +148,7 @@ namespace Shoko.Server.Commands
 
                 // Wait 1 minute before giving up on trying to access the file
                 // first only do read to not get in something's way
-                while ((filesize = CanAccessFile(FileName, false)) == 0 && (numAttempts < 60))
+                while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && (numAttempts < 60))
                 {
                     numAttempts++;
                     Thread.Sleep(1000);
@@ -157,6 +159,7 @@ namespace Shoko.Server.Commands
                 if (numAttempts >= 60)
                 {
                     logger.Error("Could not access file: " + FileName);
+                    logger.Error(e);
                     return;
                 }
 
@@ -170,7 +173,7 @@ namespace Shoko.Server.Commands
 
                 //For systems with no locking
                 // TODO make this a setting as well
-                while (FileModified(FileName, seconds, ref filesize, writeAccess) && numAttempts < 60)
+                while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
                 {
                     numAttempts++;
                     Thread.Sleep(waitTime);
@@ -179,9 +182,10 @@ namespace Shoko.Server.Commands
                 }
                 
                 // if we failed to access the file, get ouuta here
-                if (numAttempts >= 60)
+                if (numAttempts >= 60 || filesize == 0)
                 {
                     logger.Error("Could not access file: " + FileName);
+                    logger.Error(e);
                     return;
                 }
             }
