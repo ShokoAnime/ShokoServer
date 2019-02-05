@@ -421,6 +421,7 @@ namespace Shoko.Server.Models
 
         public (bool, string) RemoveAndDeleteFile()
         {
+            // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
@@ -451,7 +452,6 @@ namespace Shoko.Server.Models
                     RemoveRecord();
                     return (true, string.Empty);
                 }
-                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
                 try
                 {
                     FileSystemResult fs = file.Delete(false);
@@ -465,8 +465,7 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
-                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                        RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                         RemoveRecord();
                         return (true, string.Empty);
                     }
@@ -474,8 +473,7 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return (false, $"Unable to delete file '{FullServerPath}'");
                 }
-                if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
                 return (true, string.Empty);
@@ -489,6 +487,7 @@ namespace Shoko.Server.Models
 
         public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeEpisode> episodesToUpdate, HashSet<SVR_AnimeSeries> seriesToUpdate)
         {
+            // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
                 logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
@@ -519,7 +518,6 @@ namespace Shoko.Server.Models
                     RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                     return;
                 }
-                FileSystemResult<IObject> dd = fileSystem.Resolve(ImportFolder.ImportFolderLocation);
                 try
                 {
                     FileSystemResult fs = file.Delete(false);
@@ -533,8 +531,7 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
-                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                        RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                         RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                         return;
                     }
@@ -542,8 +539,7 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return;
                 }
-                if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                 RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                 // For deletion of files from Trakt, we will rely on the Daily sync
             }
@@ -614,6 +610,7 @@ namespace Shoko.Server.Models
         // TODO Merge these, with proper logic depending on the scenario (import, force, etc)
         public (string, string) MoveWithResultString(string scriptName, bool force = false)
         {
+            // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             if (FullServerPath == null)
             {
                 logger.Error("Could not find or access the file to move: {0}",
@@ -813,9 +810,7 @@ namespace Shoko.Server.Models
             // only for the drop folder
             if (dropFolder.IsDropSource == 1)
             {
-                FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
             }
             ShokoServer.StartWatchingFiles(false);
             return (newFolderPath, string.Empty);
@@ -824,6 +819,7 @@ namespace Shoko.Server.Models
         // returns false if we should retry
         private bool MoveFileIfRequired()
         {
+            // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
                 logger.Trace("Attempting to MOVE file: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
@@ -969,11 +965,7 @@ namespace Shoko.Server.Models
                             // check for any empty folders in drop folder
                             // only for the drop folder
                             if (dropFolder.IsDropSource != 1) return true;
-                            FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                            if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            {
-                                RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
-                            }
+                            RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
 
                             return true;
                         }
@@ -1094,9 +1086,7 @@ namespace Shoko.Server.Models
                             // only for the drop folder
                             if (dropFolder.IsDropSource == 1)
                             {
-                                FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                                if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                                    RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                                RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
                             }
                         }
                     }
@@ -1184,9 +1174,7 @@ namespace Shoko.Server.Models
                     // only for the drop folder
                     if (dropFolder.IsDropSource == 1)
                     {
-                        FileSystemResult<IObject> dd = f.Resolve(dropFolder.ImportFolderLocation);
-                        if (dd != null && dd.IsOk && dd.Result is IDirectory)
-                            RecursiveDeleteEmptyDirectories((IDirectory) dd.Result, true);
+                        RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
                     }
                 }
             }
@@ -1198,37 +1186,52 @@ namespace Shoko.Server.Models
             ShokoServer.StartWatchingFiles(false);
             return true;
         }
-
-        private void RecursiveDeleteEmptyDirectories(IDirectory dir, bool importfolder)
+        
+        private void RecursiveDeleteEmptyDirectories(string dir, bool importfolder)
         {
             try
             {
-                FileSystemResult fr = dir.Populate();
-                if (!fr.IsOk) return;
-                if (dir.IsEmpty)
+                if (string.IsNullOrEmpty(dir)) return;
+                if (!System.IO.Directory.Exists(dir)) return;
+                if (IsDirectoryEmpty(dir))
                 {
                     if (importfolder)
                         return;
-                    fr = dir.Delete(true);
-                    if (!fr.IsOk)
-                        logger.Warn("Unable to DELETE directory: {0} error {1}", dir.FullName,
-                            fr?.Error ?? string.Empty);
-
+                    try
+                    {
+                        System.IO.Directory.Delete(dir);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is DirectoryNotFoundException || ex is FileNotFoundException)
+                            return;
+                        logger.Warn("Unable to DELETE directory: {0} Error: {1}", dir,
+                            ex);
+                    }
                     return;
                 }
-                // Not Empty, so it has files and/or folders
-                // if it has no folders, return
-                var directories = dir.Directories;
-                if (directories.Count == 0) return;
+
                 // If it has folder, recurse
-                foreach (IDirectory d in directories)
+                foreach (string d in System.IO.Directory.EnumerateDirectories(dir))
                     RecursiveDeleteEmptyDirectories(d, false);
             }
             catch (Exception e)
             {
-                if (e is FileNotFoundException)
+                if (e is FileNotFoundException || e is DirectoryNotFoundException)
                     return;
-                logger.Error($"There was an error removing the empty directory: {dir.FullName}\r\n{e}");
+                logger.Error($"There was an error removing the empty directory: {dir}\r\n{e}");
+            }
+        }
+        
+        public bool IsDirectoryEmpty(string path)
+        {
+            try
+            {
+                return !System.IO.Directory.EnumerateFileSystemEntries(path).Any();
+            }
+            catch
+            {
+                return false;
             }
         }
     }

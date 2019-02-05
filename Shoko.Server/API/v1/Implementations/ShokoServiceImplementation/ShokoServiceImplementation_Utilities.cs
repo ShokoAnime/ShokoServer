@@ -481,7 +481,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                if (ret.NewFileName.StartsWith("*Error: "))
+                if (ret.NewFileName.StartsWith("*Error: ", StringComparison.OrdinalIgnoreCase))
                 {
                     ret.VideoLocal = null;
                     ret.Success = false;
@@ -499,7 +499,7 @@ namespace Shoko.Server
 
                 int errorCount = 0;
                 string errorString = string.Empty;
-                string name = vid.FileName;
+                string name = Path.GetFileName(vid.GetBestVideoLocalPlace().FilePath);
 
                 foreach (SVR_VideoLocal_Place place in vid.Places)
                 {
