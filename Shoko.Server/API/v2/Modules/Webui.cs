@@ -321,8 +321,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 try
                 {
-                    ServerSettings.Instance.WebUI_Settings = JsonConvert.SerializeObject(settings);
-                    ServerSettings.Instance.SaveSettings();
+                    ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
                     return APIStatus.OK();
                 }
                 catch
