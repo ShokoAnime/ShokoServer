@@ -136,7 +136,7 @@ namespace Shoko.Server.Repositories.Cached
                     IList<int> ids = ignoreVariations
                         ? session.CreateSQLQuery(ignoreVariationsQuery).List<int>()
                         : session.CreateSQLQuery(countVariationsQuery).List<int>();
-                    return ids.Select(GetByAniDBEpisodeID).ToList();
+                    return ids.Select(GetByAniDBEpisodeID).Where(a => a != null).ToList();
                 }
             }
         }
