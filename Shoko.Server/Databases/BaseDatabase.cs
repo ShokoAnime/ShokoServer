@@ -242,8 +242,10 @@ namespace Shoko.Server.Databases
         private void CreateInitialGroupFilters()
         {
             // group filters
-
-            if (RepoFactory.GroupFilter.GetAll().Any()) return;
+            // Do to DatabaseFixes, some filters may be made, namely directory filters
+            // All, Continue Watching, Years, Seasons, Tags... 6 seems to be enough to tell for now
+            // We can't just check the existence of anything specific, as the user can delete most of these
+            if (RepoFactory.GroupFilter.GetTopLevel().Count() > 6) return;
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 

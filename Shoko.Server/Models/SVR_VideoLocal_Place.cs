@@ -617,13 +617,9 @@ namespace Shoko.Server.Models
                     VideoLocal_Place_ID);
                 return (string.Empty, "ERROR: Unable to access file");
             }
-            // check if this file is in the drop folder
-            // otherwise we don't need to move it
-            if (ImportFolder.IsDropSource == 0 && !force)
-            {
-                logger.Error("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
-                return (string.Empty, "ERROR: Not in drop folder");
-            }
+
+            // Normally we'd check for drop source, but we are forcing it here, so let it move
+
             IFileSystem sourcefs = ImportFolder.FileSystem;
             if (sourcefs == null)
             {
