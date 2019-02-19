@@ -561,7 +561,7 @@ namespace Shoko.Server.Repositories.Cached
             ConcurrentDictionary<int, ConcurrentDictionary<string, HashSet<int>>> somethingDictionary =
                 new ConcurrentDictionary<int, ConcurrentDictionary<string, HashSet<int>>>();
             List<SVR_JMMUser> users = new List<SVR_JMMUser> {null};
-            users.AddRange(RepoFactory.JMMUser.GetAll(session));
+            users.AddRange(RepoFactory.JMMUser.GetAll());
             var tags = RepoFactory.AniDB_Tag.GetAll().ToLookup(a => a?.TagName?.ToLowerInvariant());
 
             Parallel.ForEach(tags, tag =>
@@ -573,6 +573,7 @@ namespace Shoko.Server.Repositories.Cached
                     var seriesTags = series.GetAnime()?.GetAllTags();
                     foreach (var user in users)
                     {
+                        
                         if (user?.GetHideCategories().FindInEnumerable(seriesTags) ?? false)
                             continue;
 
@@ -688,7 +689,10 @@ namespace Shoko.Server.Repositories.Cached
                     .Where(id => id != -1).ToHashSet();
                 foreach (var user in users)
                 {
-                    yf.SeriesIds[user.JMMUserID] = lookup[user.JMMUserID][s.ToLowerInvariant()].ToHashSet();
+                    var key = s.ToLowerInvariant();
+                    // this will happen if you only have porn or none the series you have are allowed by a user 
+                    if (!lookup.ContainsKey(user.JMMUserID) || !lookup[user.JMMUserID].Contains(key)) continue;
+                    yf.SeriesIds[user.JMMUserID] = lookup[user.JMMUserID][key].ToHashSet();
                     yf.GroupsIds[user.JMMUserID] = yf.SeriesIds[user.JMMUserID]
                         .Select(id => RepoFactory.AnimeSeries.GetByID(id).TopLevelAnimeGroup?.AnimeGroupID ?? -1)
                         .Where(id => id != -1).ToHashSet();
