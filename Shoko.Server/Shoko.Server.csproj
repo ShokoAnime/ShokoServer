@@ -423,6 +423,7 @@
     <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBLinkingHelper.cs" />
     <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
+    <Compile Include="Renamer\GroupAwareSortingRenamer.cs" />
     <Compile Include="Renamer\IRenamer.cs" />
     <Compile Include="Renamer\LegacyRenamer.cs" />
     <Compile Include="Renamer\RenameFileHelper.cs" />

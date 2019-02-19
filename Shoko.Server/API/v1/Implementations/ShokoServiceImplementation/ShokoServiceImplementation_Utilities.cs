@@ -335,7 +335,7 @@ namespace Shoko.Server
                         {
                             if (int.TryParse(searchCriteria, out int temp)) number = temp;
                         }
-                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number);
+                        List<SVR_VideoLocal> results2 = RepoFactory.VideoLocal.GetMostRecentlyAdded(number, userID);
                         foreach (SVR_VideoLocal vid in results2)
                             vids.Add(vid.ToClient(userID));
                         break;

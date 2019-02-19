@@ -1058,7 +1058,7 @@ namespace Shoko.Server.API.v2.Modules
             if (para.limit == 0) para.limit = 50;
 
             List<RawFile> list = new List<RawFile>();
-            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit))
+            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit, user.JMMUserID))
             {
                 var allowed = user == null || !file.GetAnimeEpisodes().Any(a =>
                                     a.GetAnimeSeries()?.GetAnime()?.GetAllTags()
@@ -1238,7 +1238,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             List<object> lst = new List<object>();
 
-            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit);
+            List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit, user.JMMUserID);
 
             foreach (SVR_VideoLocal vl in vids)
             {

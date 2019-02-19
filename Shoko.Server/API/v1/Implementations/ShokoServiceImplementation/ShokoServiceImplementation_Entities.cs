@@ -420,7 +420,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.VideoLocal.GetMostRecentlyAdded(max_records);
+                return RepoFactory.VideoLocal.GetMostRecentlyAdded(max_records, 0);
             }
             catch (Exception ex)
             {
@@ -434,35 +434,21 @@ namespace Shoko.Server
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
             try
             {
-                using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                // We will deal with a large list, don't perform ops on the whole thing!
+                List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, jmmuserID);
+                foreach (SVR_VideoLocal vid in vids)
                 {
-                    ISessionWrapper sessionWrapper = session.Wrap();
+                    if (string.IsNullOrEmpty(vid.Hash)) continue;
 
-
-                    SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
-                    if (user == null) return retEps;
-
-                    // We will deal with a large list, don't perform ops on the whole thing!
-                    List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1);
-                    int numEps = 0;
-                    foreach (SVR_VideoLocal vid in vids)
+                    foreach (SVR_AnimeEpisode ep in vid.GetAnimeEpisodes())
                     {
-                        if (string.IsNullOrEmpty(vid.Hash)) continue;
-
-                        foreach (SVR_AnimeEpisode ep in vid.GetAnimeEpisodes())
+                        CL_AnimeEpisode_User epContract = ep.GetUserContract(jmmuserID);
+                        if (epContract != null)
                         {
-                            if (user.AllowedSeries(ep.GetAnimeSeries()))
-                            {
-                                CL_AnimeEpisode_User epContract = ep.GetUserContract(jmmuserID);
-                                if (epContract != null)
-                                {
-                                    retEps.Add(epContract);
-                                    numEps++;
+                            retEps.Add(epContract);
 
-                                    // Lets only return the specified amount
-                                    if (retEps.Count >= maxRecords) return retEps;
-                                }
-                            }
+                            // Lets only return the specified amount
+                            if (retEps.Count >= maxRecords) return retEps;
                         }
                     }
                 }
