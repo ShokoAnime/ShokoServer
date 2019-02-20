@@ -210,7 +210,7 @@ namespace Shoko.Server
                     // We'll group by week, and we'll cheat by using ISO6801 calendar,
                     // as it ensures that the week is not split on the end of the year
                     airdategroupings = aniepsNormal.Where(a => a.GetAirDateAsDate() != null).GroupBy(a =>
-                            a.GetAirDateAsDate().Value.ToIso8601Weeknumber())
+                            a.GetAirDateAsDate().Value.ToIso8601WeekNumber())
                         .OrderBy(a => a.Key).ToList();
                     var airdatecounts = airdategroupings
                         .Select(a => a.Count()).ToList();
@@ -446,8 +446,8 @@ namespace Shoko.Server
                             bool match =
                                 prequelEps.Zip(epsInSeason,
                                     (aniep, tvep) =>
-                                        aniep.GetAirDateAsDate()?.ToIso8601Weeknumber() ==
-                                        tvep.AirDate?.ToIso8601Weeknumber() &&
+                                        aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
+                                        tvep.AirDate?.ToIso8601WeekNumber() &&
                                         aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
                                 prequelEps.Count * 2D / 3D;
 
@@ -503,8 +503,8 @@ namespace Shoko.Server
                             bool match =
                                 sequelEps.Zip(epsInSeasonOffset,
                                     (aniep, tvep) =>
-                                        aniep.GetAirDateAsDate()?.ToIso8601Weeknumber() ==
-                                        tvep.AirDate?.ToIso8601Weeknumber() &&
+                                        aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
+                                        tvep.AirDate?.ToIso8601WeekNumber() &&
                                         aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
                                 epsilon;
                             if (!match) continue;
@@ -807,7 +807,9 @@ namespace Shoko.Server
         {
             if (links.Count == 0) return new List<CrossRef_AniDB_TvDB_Episode_Override>();
             // First, sort by AniDB type and number
-            var xrefs = links.OrderBy(a => a.AniDBStartType).ThenBy(a => a.AniDBStartNumber).ToList();
+            // Descending start type will list specials first, just because TvDB S0 == Specials
+            var xrefs = links.OrderByDescending(a => a.AniDBStartType).ThenBy(a => a.AniDBStartNumber).ToList();
+            // No support for more than one series link in Legacy
             int AnimeID = xrefs.FirstOrDefault().AnimeID;
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
             if (anime == null) return new List<CrossRef_AniDB_TvDB_Episode_Override>();
@@ -827,6 +829,18 @@ namespace Shoko.Server
                     return new List<CrossRef_AniDB_TvDB_Episode_Override>();
             }
 
+            // Determine if we have default links for each
+            var temp_eplinks = links.DistinctBy(a => a.AniDBStartType)
+                .Where(a => a.AniDBStartType == (int) EpisodeType.Episode).ToList();
+            var temp_speciallinks = links.DistinctBy(a => a.AniDBStartType)
+                .Where(a => a.AniDBStartType == (int) EpisodeType.Special).ToList();
+            bool skipEpisodes = temp_eplinks.Count == 1 && temp_eplinks.FirstOrDefault().TvDBStartNumber == 1 &&
+                                temp_eplinks.FirstOrDefault().TvDBSeason == 1;
+            bool skipSpecials = temp_speciallinks.Count == 1 &&
+                                temp_speciallinks.FirstOrDefault().TvDBStartNumber == 1 &&
+                                temp_speciallinks.FirstOrDefault().TvDBSeason == 0;
+            
+            // we can do everything in one loop, since we've already matched
             var episodes = RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID)
                 .Where(a => a.EpisodeType == (int) EpisodeType.Special || a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
@@ -836,7 +850,12 @@ namespace Shoko.Server
             for (int i = 0; i < episodes.Count; i++)
             {
                 var episode = episodes[i];
+                // skip if we have default links
+                if (skipEpisodes && episode.EpisodeType == (int) EpisodeType.Episode) continue;
+                if (skipSpecials && episode.EpisodeType == (int) EpisodeType.Special) continue;
+
                 var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
+                // we are dealing with tuples, so we can only return default, which will set everything to 0
                 if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
                 // Get TvDB ep
@@ -844,16 +863,18 @@ namespace Shoko.Server
                     xref.TvDBStartNumber);
                 if (tvep == null) continue;
 
+                // due to AniDB not matching up (season BS), we take the delta, and then iterate next TvDB episode 
                 int delta = episode.EpisodeNumber - xref.AniDBStartNumber;
 
                 if (delta > 0)
                 {
                     for (int j = 0; j < delta; j++)
                     {
+                        // continue outer loop
                         if (tvep == null) goto label0;
                         var nextep = tvep.GetNextEpisode();
-                        // continue outer loop
                         if (nextep.episodeNumber == 0) goto label0;
+
                         tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, nextep.season,
                             nextep.episodeNumber);
                     }
@@ -861,6 +882,7 @@ namespace Shoko.Server
 
                 if (tvep == null) continue;
 
+                // this is a separate variable just to make debugging easier
                 var newxref = new CrossRef_AniDB_TvDB_Episode_Override
                 {
                     AniDBEpisodeID = episode.EpisodeID,
@@ -879,13 +901,27 @@ namespace Shoko.Server
                 List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
                     TvDBStartNumber)> xrefs)
         {
+            // only use the AniDBStartType that is relevant
+            xrefs = xrefs.Where(a => a.AniDBStartType == type).ToList();
+            // assume that it defaults to starting at S1E1 when not stated
+            var first = xrefs[0];
+            if (first.AniDBStartNumber > number)
+            {
+                int tvdbSeason = type == (int) EpisodeType.Episode ? 1 : 0;
+                return (first.AnimeID, type, 1, first.TvDBID, tvdbSeason, 1);
+            }
+
+            // loop the rest
             for (int i = 0; i < xrefs.Count; i++)
             {
                 var xref = xrefs[i];
+                // if it's last, then return
                 if (i + 1 == xrefs.Count) return xref;
+                // get the next one to check if it matches better
                 var next = xrefs[i + 1];
-                if (next.AniDBStartType != type) continue;
-                if (xref.AniDBStartNumber <= number && next.AniDBStartNumber > number) return xref;
+                if (xref.AniDBStartType != type) continue;
+                if (next.AniDBStartNumber <= number) continue;
+                if (xref.AniDBStartNumber <= number) return xref;
             }
 
             return default;
@@ -893,7 +929,7 @@ namespace Shoko.Server
 
         #endregion
 
-        private static int ToIso8601Weeknumber(this DateTime date)
+        private static int ToIso8601WeekNumber(this DateTime date)
         {
             var thursday = date.AddDays(3 - date.DayOfWeek.DayOffset());
             return (thursday.DayOfYear - 1) / 7 + 1;
