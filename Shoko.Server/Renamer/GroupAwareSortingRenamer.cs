@@ -36,6 +36,10 @@ namespace Shoko.Server.Renamer
                         .FirstOrDefault(a => a.ImportFolderLocation.Contains("Hentai"));
                 }
 
+                if (destFolder == null)
+                    destFolder = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => a.FolderIsDropDestination) ??
+                                 RepoFactory.ImportFolder.GetAll().FirstOrDefault();
+
                 string path;
                 var group = series.AnimeGroup;
                 if (group == null) return (null, "group is null");
