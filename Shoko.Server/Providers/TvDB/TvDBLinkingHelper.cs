@@ -828,32 +828,18 @@ namespace Shoko.Server
                     onlyLink.TvDBSeason == 1 && onlyLink.TvDBStartNumber == 1)
                     return new List<CrossRef_AniDB_TvDB_Episode_Override>();
             }
-
-            // Determine if we have default links for each
-            var temp_eplinks = links.DistinctBy(a => a.AniDBStartType)
-                .Where(a => a.AniDBStartType == (int) EpisodeType.Episode).ToList();
-            var temp_speciallinks = links.DistinctBy(a => a.AniDBStartType)
-                .Where(a => a.AniDBStartType == (int) EpisodeType.Special).ToList();
-            bool skipEpisodes = temp_eplinks.Count == 1 && temp_eplinks.FirstOrDefault().TvDBStartNumber == 1 &&
-                                temp_eplinks.FirstOrDefault().TvDBSeason == 1;
-            bool skipSpecials = temp_speciallinks.Count == 1 &&
-                                temp_speciallinks.FirstOrDefault().TvDBStartNumber == 1 &&
-                                temp_speciallinks.FirstOrDefault().TvDBSeason == 0;
             
             // we can do everything in one loop, since we've already matched
             var episodes = RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID)
                 .Where(a => a.EpisodeType == (int) EpisodeType.Special || a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
 
+            RemoveDefaultLinks(episodes, ref xrefs);
+            
             List<CrossRef_AniDB_TvDB_Episode_Override> output = new List<CrossRef_AniDB_TvDB_Episode_Override>();
 
-            for (int i = 0; i < episodes.Count; i++)
+            foreach (AniDB_Episode episode in episodes)
             {
-                var episode = episodes[i];
-                // skip if we have default links
-                if (skipEpisodes && episode.EpisodeType == (int) EpisodeType.Episode) continue;
-                if (skipSpecials && episode.EpisodeType == (int) EpisodeType.Special) continue;
-
                 var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
                 // we are dealing with tuples, so we can only return default, which will set everything to 0
                 if (xref.AniDBStartType == 0) continue; // 0 is invalid
@@ -896,6 +882,60 @@ namespace Shoko.Server
             return output;
         }
 
+        private static void RemoveDefaultLinks(List<AniDB_Episode> episodes, ref List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber)> xrefs)
+        {
+            // generate default links
+            // check to see if they match
+            // if so, remove them
+            List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber
+                )> new_xrefs =
+                new List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
+                    TvDBStartNumber)>();
+            int season = -1;
+            foreach (AniDB_Episode episode in episodes)
+            {
+                var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
+                // we are dealing with tuples, so we can only return default, which will set everything to 0
+                if (xref.AniDBStartType == 0) continue; // 0 is invalid
+
+                // Get TvDB ep
+                var tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, xref.TvDBSeason,
+                    xref.TvDBStartNumber);
+                if (tvep == null) continue;
+
+                // due to AniDB not matching up (season BS), we take the delta, and then iterate next TvDB episode 
+                int delta = episode.EpisodeNumber - xref.AniDBStartNumber;
+
+                if (delta > 0)
+                {
+                    for (int j = 0; j < delta; j++)
+                    {
+                        // continue outer loop
+                        if (tvep == null) goto label0;
+                        var nextep = tvep.GetNextEpisode();
+                        if (nextep.episodeNumber == 0) goto label0;
+
+                        tvep = RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(xref.TvDBID, nextep.season,
+                            nextep.episodeNumber);
+                    }
+                }
+
+                if (tvep == null) continue;
+
+                if (tvep.SeasonNumber != season)
+                {
+                    if (tvep.SeasonNumber == 0) goto label1; 
+                    new_xrefs.Add((episode.AnimeID, episode.EpisodeType, episode.EpisodeNumber, xref.TvDBID, tvep.SeasonNumber, tvep.EpisodeNumber));
+                    season = tvep.SeasonNumber;
+                }
+
+                label0: ;
+            }
+            label1:
+            if (!new_xrefs.SequenceEqual(xrefs)) return;
+            xrefs.Clear();
+        }
+
         private static (int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
             TvDBStartNumber) GetXRefForEpisode(int type, int number,
                 List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
@@ -903,6 +943,7 @@ namespace Shoko.Server
         {
             // only use the AniDBStartType that is relevant
             xrefs = xrefs.Where(a => a.AniDBStartType == type).ToList();
+            if (xrefs.Count == 0) return default;
             // assume that it defaults to starting at S1E1 when not stated
             var first = xrefs[0];
             if (first.AniDBStartNumber > number)
@@ -919,7 +960,6 @@ namespace Shoko.Server
                 if (i + 1 == xrefs.Count) return xref;
                 // get the next one to check if it matches better
                 var next = xrefs[i + 1];
-                if (xref.AniDBStartType != type) continue;
                 if (next.AniDBStartNumber <= number) continue;
                 if (xref.AniDBStartNumber <= number) return xref;
             }
