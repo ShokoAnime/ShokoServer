@@ -12,9 +12,9 @@ namespace Shoko.Server
             "asia",
             "body and host",
             "breasts",
-            "broadcast cropped to 4-3",
             "cast missing",
             "cast",
+            "complete manga adaptation",
             "content indicators",
             "delayed 16-9 broadcast",
             "description missing",
@@ -29,28 +29,47 @@ namespace Shoko.Server
             "fast-paced",
             "full hd version available",
             "jdrama adaptation",
+            "jdrama adaption", // typos really
+            "maintenance tags",
             "meta tags",
             "motifs",
-            "multi-anime projects",
             "nevada",
-            "noitamina",
             "origin",
             "place",
             "season",
-            "sentai",
             "setting",
             "some weird shit goin' on", // these are some grave accents in use...
             "storytelling",
             "tales",
             "target audience",
             "technical aspects",
-            "television programme",
             "themes",
             "time",
             "translation convention",
             "tropes",
             "ungrouped",
             "unsorted"
+        };
+
+        public static readonly HashSet<string> TagBlacklistProgramming = new HashSet<string>
+        {
+            // Tags that involve how or where it aired, or any awards it got
+            "anime no me",
+            "animeism",
+            "broadcast cropped to 4-3",
+            "comicfesta anime zone",
+            "crunchyroll anime awards",
+            "discontinued", // debating putting this elsewhere
+            "jump super anime tour",
+            "multi-anime projects",
+            "newtype anime award",
+            "noitamina",
+            "oofuji noburou award",
+            "perpetual ongoing",
+            "remastered version available",
+            "sentai",
+            "ultra super anime time",
+            "wakate animator ikusei project",
         };
 
         public static readonly HashSet<string> TagBlacklistSetting = new HashSet<string>
@@ -86,6 +105,7 @@ namespace Shoko.Server
             "europe",
             "fantasy world",
             "fictional world",
+            "fictional location",
             "finland",
             "floating island",
             "france",
@@ -96,6 +116,7 @@ namespace Shoko.Server
             "hawaii",
             "heaven",
             "hell",
+            "high school",
             "hiroshima",
             "historical",
             "hokkaido",
@@ -112,9 +133,12 @@ namespace Shoko.Server
             "kyoto",
             "las vegas",
             "london",
+            "long time span",
             "mars",
+            "medieval",
             "mexico",
             "middle east",
+            "middle school",
             "moon",
             "moscow",
             "nagasaki",
@@ -130,13 +154,18 @@ namespace Shoko.Server
             "pakistan",
             "palace",
             "parallel universe",
+            "parallel world",
             "paris",
             "past",
             "peru",
+            "post-apocalypse",
+            "post-apocalyptic",
+            "post-war",
             "prague",
             "present",
             "prison planet",
             "prison",
+            "real-world location",
             "red-light district",
             "romania",
             "rome",
@@ -178,6 +207,7 @@ namespace Shoko.Server
         {
             // tags containing the source of series
             "4-koma",
+            "4-koma manga",
             "action game",
             "american derived",
             "cartoon",
@@ -205,20 +235,28 @@ namespace Shoko.Server
             // tags that focus on art style
             "3d cg animation",
             "3d cg closing",
+            "alternating animation style",
             "cel-shaded animation",
             "cgi",
             "chibi ed",
+            "episodic",
             "experimental animation",
             "flash animation",
             "live-action closing",
             "live-action imagery",
+            "narration",
             "off-model animation",
+            "panels that require pausing",
             "photographic backgrounds",
             "product placement",
+            "puppetmation",
             "recycled animation",
+            "repeated frames",
             "slide show animation",
+            "stereoscopic imaging",
             "thick line animation",
             "vignette scenes",
+            "walls of text",
             "watercolour style",
             "widescreen transition"
         };
@@ -226,8 +264,10 @@ namespace Shoko.Server
         public static readonly HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
         {
             // tags that focus on episode attributes
+            "crossover episode",
             "ed variety",
             "half-length episodes",
+            "in medias res",
             "long episodes",
             "multi-segment episodes",
             "op and ed sung by characters",
@@ -236,6 +276,7 @@ namespace Shoko.Server
             "recap in opening",
             "short episodes",
             "short movie",
+            "short stories collection",
             "stand-alone movie",
             "subtle op ed sequence change"
         };
@@ -253,7 +294,10 @@ namespace Shoko.Server
             "incomplete story",
             "inconclusive",
             "inconclusive romantic plot",
+            "misleading beginning",
             "non-linear",
+            "no conclusion", // like the decision of this tag's name
+            "only makes sense with original work knowledge", // debating moving this, but it is a spoiler technically
             "open-ended",
             "room for sequel",
             "sudden change of pace",
@@ -271,6 +315,7 @@ namespace Shoko.Server
             Misc          = 1 << 3,
             Plot          = 1 << 4,
             Setting       = 1 << 5,
+            Programming   = 1 << 6,
         }
 
 
@@ -399,12 +444,18 @@ namespace Shoko.Server
                 if (TagBlacklistSetting.Contains(tag)) return true;
                 if (tag.EndsWith("period")) return true;
             }
+            
+            if (flags.HasFlag(Filter.Programming))
+            {
+                if (TagBlacklistProgramming.Contains(tag)) return true;
+            }
 
             if (flags.HasFlag(Filter.AnidbInternal))
             {
                 if (TagBlacklistAniDBHelpers.Contains(tag)) return true;
 
                 if (tag.StartsWith("predominantly")) return true;
+                if (tag.StartsWith("adapted into")) return true;
 
                 if (tag.StartsWith("weekly")) return true;
 
