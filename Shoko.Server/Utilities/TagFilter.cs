@@ -10,6 +10,7 @@ namespace Shoko.Server
         {
             // AniDB tags that don't help with anything
             "asia",
+            "awards",
             "body and host",
             "breasts",
             "cast missing",
@@ -50,24 +51,82 @@ namespace Shoko.Server
             "ungrouped",
             "unsorted"
         };
+        
+        public static readonly HashSet<string> TagBlacklistGenre = new HashSet<string>
+        {
+            // tags that generally define what a series is about or the theme of it
+            "18 restricted",
+            "action",
+            "adventure",
+            "biopunk",
+            "comedy",
+            "commercial",
+            "contemporary fantasy",
+            "cyberpunk",
+            "daily life",
+            "dieselpunk",
+            "fairy tale",
+            "fantasy",
+            "folklore",
+            "gaslamp fantasy",
+            "hard science fiction",
+            "heroic fantasy",
+            "high fantasy",
+            "isekai",
+            "kodomo",
+            "merchandising show",
+            "music",
+            "mystery",
+            "neo-noir",
+            "parody",
+            "photography",
+            "romance",
+            "satire",
+            "school life",
+            "science fiction",
+            "seinen",
+            "shoujo", 
+            "shounen",
+            "soft science fiction",
+            "speculative fiction", 
+            "sports",
+            "steampunk", 
+            "strategy",
+            "superhero",
+            "survival",
+            "tragedy",
+            "vanilla series",
+            "violence",
+        };
 
         public static readonly HashSet<string> TagBlacklistProgramming = new HashSet<string>
         {
             // Tags that involve how or where it aired, or any awards it got
+            "animax taishou",
+            "anime no chikara",
             "anime no me",
             "animeism",
+            "anisun",
             "broadcast cropped to 4-3",
+            "chinese production",
             "comicfesta anime zone",
+            "crowdfunded",
             "crunchyroll anime awards",
             "discontinued", // debating putting this elsewhere
+            "ganime",
             "jump super anime tour",
+            "miracle comic prize",
             "multi-anime projects",
             "newtype anime award",
             "noitamina",
             "oofuji noburou award",
+            "original in english",
             "perpetual ongoing",
             "remastered version available",
+            "sekai meisaku gekijou",
             "sentai",
+            "sino-japanese co-production",
+            "south korean production",
             "ultra super anime time",
             "wakate animator ikusei project",
         };
@@ -210,7 +269,9 @@ namespace Shoko.Server
             "4-koma manga",
             "action game",
             "american derived",
+            "biographical film",
             "cartoon",
+            "comic book",
             "erotic game",
             "fan-made",
             "game",
@@ -236,16 +297,23 @@ namespace Shoko.Server
             "3d cg animation",
             "3d cg closing",
             "alternating animation style",
+            "art nouveau",
+            "black and white",
+            "cast-free",
             "cel-shaded animation",
             "cgi",
             "chibi ed",
             "episodic",
             "experimental animation",
             "flash animation",
+            "frame story",
+            "Improvised Dialogue",
             "live-action closing",
             "live-action imagery",
             "narration",
+            "no dialogue",
             "off-model animation",
+            "omnibus format",
             "panels that require pausing",
             "photographic backgrounds",
             "product placement",
@@ -253,12 +321,16 @@ namespace Shoko.Server
             "recycled animation",
             "repeated frames",
             "slide show animation",
+            "slow motion",
             "stereoscopic imaging",
+            "stereoscopic imaging",
+            "stop motion",
             "thick line animation",
             "vignette scenes",
+            "vignetted picture",
             "walls of text",
             "watercolour style",
-            "widescreen transition"
+            "widescreen transition",
         };
 
         public static readonly HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
@@ -307,7 +379,7 @@ namespace Shoko.Server
         };
 
         [Flags]
-        public enum Filter : byte
+        public enum Filter : int
         {
             AnidbInternal = 1 << 0,
             ArtStyle      = 1 << 1,
@@ -316,6 +388,9 @@ namespace Shoko.Server
             Plot          = 1 << 4,
             Setting       = 1 << 5,
             Programming   = 1 << 6,
+            Genre         = 1 << 7,
+            // This should always be last, if we get that many categories, then we should redesign this
+            Invert        = 1 << 31,
         }
 
 
@@ -332,7 +407,7 @@ namespace Shoko.Server
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
         /// <param name="addTags">is it okay to add tags to the list</param>
         /// <returns>the original list with items removed based on rules provided</returns>
-        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true)
+        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true, bool invert = false)
         {
             if (strings.Count == 0) return strings;
 
@@ -340,7 +415,7 @@ namespace Shoko.Server
 
             if (strings.Count == 1)
             {
-                if (IsTagBlackListed(strings[0], flags, ref toAdd)) strings.Clear();
+                if (IsTagBlackListed(strings[0], flags, ref toAdd) ^ invert) strings.Clear();
                 return strings;
             }
 
@@ -402,86 +477,92 @@ namespace Shoko.Server
         public static bool IsTagBlackListed(string a, Filter flags, ref List<string> toAdd)
         {
             string tag = a.Trim().ToLowerInvariant();
+            bool inverted = (flags & Filter.Invert) != 0;
             if (flags.HasFlag(Filter.ArtStyle))
             {
-                if (TagBlackListArtStyle.Contains(tag)) return true;
+                if (TagBlackListArtStyle.Contains(tag)) return inverted ^ true;
 
-                if (tag.Contains("censor")) return true;
+                if (tag.Contains("censor")) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Source)) // if source excluded
             {
-                if (TagBlackListSource.Contains(tag)) return true;
+                if (TagBlackListSource.Contains(tag)) return inverted ^ true;
             }
             else
             {
                 if (tag.Equals("new"))
                 {
                     toAdd.Add("Original Work");
-                    return true;
+                    return inverted ^ true;
                 }
 
-                if (tag.Equals("original work")) return true;
+                if (tag.Equals("original work")) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Misc))
             {
-                if (tag.StartsWith("preview")) return true;
+                if (tag.StartsWith("preview")) return inverted ^ true;
 
-                if (TagBlackListUsefulHelpers.Contains(tag)) return true;
+                if (TagBlackListUsefulHelpers.Contains(tag)) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Plot))
             {
                 if (tag.StartsWith("plot") || tag.EndsWith(" dies") || tag.EndsWith(" end") ||
-                    tag.EndsWith(" ending")) return true;
+                    tag.EndsWith(" ending")) return inverted ^ true;
 
-                if (TagBlackListPlotSpoilers.Contains(tag)) return true;
+                if (TagBlackListPlotSpoilers.Contains(tag)) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Setting))
             {
-                if (TagBlacklistSetting.Contains(tag)) return true;
-                if (tag.EndsWith("period")) return true;
+                if (TagBlacklistSetting.Contains(tag)) return inverted ^ true;
+                if (tag.EndsWith("period")) return inverted ^ true;
             }
             
             if (flags.HasFlag(Filter.Programming))
             {
-                if (TagBlacklistProgramming.Contains(tag)) return true;
+                if (TagBlacklistProgramming.Contains(tag)) return inverted ^ true;
+            }
+            
+            if (flags.HasFlag(Filter.Genre))
+            {
+                if (TagBlacklistGenre.Contains(tag)) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.AnidbInternal))
             {
-                if (TagBlacklistAniDBHelpers.Contains(tag)) return true;
+                if (TagBlacklistAniDBHelpers.Contains(tag)) return inverted ^ true;
 
-                if (tag.StartsWith("predominantly")) return true;
-                if (tag.StartsWith("adapted into")) return true;
+                if (tag.StartsWith("predominantly")) return inverted ^ true;
+                if (tag.StartsWith("adapted into")) return inverted ^ true;
 
-                if (tag.StartsWith("weekly")) return true;
+                if (tag.StartsWith("weekly")) return inverted ^ true;
 
                 if (tag.Contains("to be") || tag.Contains("need"))
                 {
-                    if (tag.EndsWith("improved") || tag.EndsWith("improving") || tag.EndsWith("improvement")) return true;
+                    if (tag.EndsWith("improved") || tag.EndsWith("improving") || tag.EndsWith("improvement")) return inverted ^ true;
 
-                    if (tag.EndsWith("deleting") || tag.EndsWith("deleted")) return true;
+                    if (tag.EndsWith("deleting") || tag.EndsWith("deleted")) return inverted ^ true;
 
-                    if (tag.EndsWith("removing") || tag.EndsWith("removed")) return true;
+                    if (tag.EndsWith("removing") || tag.EndsWith("removed")) return inverted ^ true;
 
-                    if (tag.EndsWith("merging") || tag.EndsWith("merged")) return true;
+                    if (tag.EndsWith("merging") || tag.EndsWith("merged")) return inverted ^ true;
 
                     // to be moved to ..., so contains
-                    if (tag.Contains("moving") || tag.Contains("moved")) return true;
+                    if (tag.Contains("moving") || tag.Contains("moved")) return inverted ^ true;
 
                     // contains is slower, so try the others first
-                    if (tag.Contains("split")) return true;
+                    if (tag.Contains("split")) return inverted ^ true;
                 }
 
-                if (tag.Contains("old animetags")) return true;
+                if (tag.Contains("old animetags")) return inverted ^ true;
 
-                if (tag.Contains("missing")) return true;
+                if (tag.Contains("missing")) return inverted ^ true;
             }
 
-            return false;
+            return inverted ^ false;
         }
     }
 }
