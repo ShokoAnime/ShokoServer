@@ -379,7 +379,7 @@ namespace Shoko.Server
         };
 
         [Flags]
-        public enum Filter : int
+        public enum Filter : long
         {
             AnidbInternal = 1 << 0,
             ArtStyle      = 1 << 1,
