@@ -404,6 +404,9 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
 
+            string defaultPassword = ServerSettings.DefaultUserPassword == ""
+                ? ""
+                : Digest.Hash(ServerSettings.DefaultUserPassword);
             SVR_JMMUser defaultUser = new SVR_JMMUser
             {
                 CanEditServerSettings = 1,
@@ -411,7 +414,7 @@ namespace Shoko.Server.Databases
                 IsAdmin = 1,
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
-                Password = ServerSettings.DefaultUserPassword,
+                Password = defaultPassword,
                 Username = ServerSettings.DefaultUserUsername
             };
             RepoFactory.JMMUser.Save(defaultUser, true);
