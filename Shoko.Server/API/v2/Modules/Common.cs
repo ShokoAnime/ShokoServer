@@ -126,6 +126,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/ep/missing", true] = async (x,ct) => await Task.Factory.StartNew(GetMissingEpisodes, ct);
             Get["/ep/scrobble", true] = async (x,ct) => await Task.Factory.StartNew(EpisodeScrobble, ct);
             Get["/ep/getbyfilename", true] = async (x,ct) => await Task.Factory.StartNew(GetEpisodeFromName, ct);
+            Get["/ep/getbyhash", true] = async (x, ct) => await Task.Factory.StartNew(GetEpisodeFromHash, ct);
 
             #endregion
 
@@ -1217,6 +1218,40 @@ namespace Shoko.Server.API.v2.Modules
             if (aep != null)
             {
                 return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0, para.pic);
+            }
+            return APIStatus.NotFound();
+        }
+
+        /// <summary>
+        /// Handle /api/ep/getbyhash?hash=...
+        /// </summary>
+        /// <returns>Episode or APIStatis</returns>
+        private object GetEpisodeFromHash()
+        {
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            if (String.IsNullOrEmpty(para.hash)) return APIStatus.BadRequest("missing 'hash'");
+
+            List<SVR_AnimeEpisode> list_aep = RepoFactory.AnimeEpisode.GetByHash(para.hash);
+            
+            switch (list_aep.Count)
+            {
+                case 1:
+                    SVR_AnimeEpisode aep = list_aep[0];
+                    if (aep != null)
+                    {
+                        return Episode.GenerateFromAnimeEpisode(Context, aep, user.JMMUserID, 0, para.pic);
+                    }
+                    break;
+                default:
+                    // this is no likly to happened - that would make a hash collision, but in case;
+                    List<Episode> return_list = new List<Episode>();
+                    foreach (SVR_AnimeEpisode ae in list_aep)
+                    {
+                        return_list.Add(Episode.GenerateFromAnimeEpisode(Context, ae, user.JMMUserID, 0, para.pic));
+                    }
+                    return return_list;
             }
             return APIStatus.NotFound();
         }

@@ -95,6 +95,11 @@
         /// filename string for task like searching by it
         /// </summary>
         public string filename = string.Empty;
+        
+        /// <summary>
+        /// hash string for task like searching by it
+        /// </summary>
+        public string hash = string.Empty;
 
         /// <summary>
         /// show all know pictures related to object
