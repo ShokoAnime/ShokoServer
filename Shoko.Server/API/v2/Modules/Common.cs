@@ -1493,21 +1493,18 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Episode or APIStatus</returns>
         internal object GetEpisodeById(int id, int uid, int level, int pic)
         {
-            if (id > 0)
+            if (id <= 0) return APIStatus.BadRequest("missing 'id'");
+            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
+            if (user == null) return APIStatus.Unauthorized();
+            SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
+            if (aep != null)
             {
-                SVR_AnimeEpisode aep = RepoFactory.AnimeEpisode.GetByID(id);
-                if (aep != null)
-                {
-                    Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level, pic);
-                    if (ep != null)
-                    {
-                        return ep;
-                    }
-                    return APIStatus.NotFound("episode not found");
-                }
-                return APIStatus.NotFound();
+                if (!user.AllowedSeries(aep.GetAnimeSeries())) return APIStatus.NotFound();
+                Episode ep = Episode.GenerateFromAnimeEpisode(Context, aep, uid, level, pic);
+                if (ep != null) return ep;
+                return APIStatus.NotFound("episode not found");
             }
-            return APIStatus.BadRequest("missing 'id'");
+            return APIStatus.NotFound();
         }
 
         /// <summary>
@@ -2137,16 +2134,16 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<Serie></returns>
         internal object GetAllSeries(bool nocast, int limit, int offset, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
-            Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser;
 
             List<Serie> allseries = new List<Serie>();
 
-            foreach (SVR_AnimeSeries asi in RepoFactory.AnimeSeries.GetAll())
+            foreach (SVR_AnimeSeries asi in RepoFactory.AnimeSeries.GetAll().Where(a => user.AllowedSeries(a)))
             {
                 if (offset <= 0)
                 {
-                    allseries.Add(Serie.GenerateFromAnimeSeries(Context, asi, user.JMMUserID, nocast, notag, level, all, allpic, pic, tagfilter));
+                    allseries.Add(Serie.GenerateFromAnimeSeries(Context, asi, user.JMMUserID, nocast, notag, level, all,
+                        allpic, pic, tagfilter));
                     if (limit != 0)
                     {
                         if (allseries.Count >= limit)
@@ -2173,8 +2170,9 @@ namespace Shoko.Server.API.v2.Modules
         internal object GetSerieById(int series_id, bool nocast, bool notag, int level, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             Request request = Request;
-            JMMUser user = (JMMUser) Context.CurrentUser;
+            SVR_JMMUser user = (SVR_JMMUser) Context.CurrentUser;
             var ser = RepoFactory.AnimeSeries.GetByID(series_id);
+            if (!user.AllowedSeries(ser)) return APIStatus.NotFound();
             if (ser == null) return APIStatus.NotFound("Series does not exist.");
             Serie sr = Serie.GenerateFromAnimeSeries(Context, ser, user.JMMUserID,
                 nocast, notag, level, all, allpic, pic, tagfilter);
