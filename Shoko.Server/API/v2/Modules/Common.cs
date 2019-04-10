@@ -112,6 +112,9 @@ namespace Shoko.Server.API.v2.Modules
             Post["/file/offset", true] = async (x,ct) => await Task.Factory.StartNew(SetFileOffset, ct);
             Get["/file/needsavdumped", true] = async (x,ct) => await Task.Factory.StartNew(GetFilesWithMismatchedInfo, ct);
             Get["/file/deprecated", true] = async (x,ct) => await Task.Factory.StartNew(GetDeprecatedFiles, ct);
+            Get["/file/watch", true] = async (x, ct) => await Task.Factory.StartNew(MarkFileAsWatched, ct);
+            Get["/file/unwatch", true] = async (x, ct) => await Task.Factory.StartNew(MarkFileAsUnwatched, ct);
+
 
             #endregion
 
@@ -1131,6 +1134,38 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.NotFound();
         }
 
+        /// <summary>
+        /// Handle /api/file/watch
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object MarkFileAsWatched()
+        {
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            if (para.id != 0)
+            {
+                return MarkFile(true, para.id, user.JMMUserID);
+            }
+            return APIStatus.BadRequest("missing 'id'");
+        }
+
+        /// <summary>
+        /// Handle /api/file/unwatch
+        /// </summary>
+        /// <returns>APIStatus</returns>
+        private object MarkFileAsUnwatched()
+        {
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            API_Call_Parameters para = this.Bind();
+            if (para.id != 0)
+            {
+                return MarkFile(false, para.id, user.JMMUserID);
+            }
+            return APIStatus.BadRequest("missing 'id'");
+        }
+
         #region internal function
 
         /// <summary>
@@ -1178,6 +1213,42 @@ namespace Shoko.Server.API.v2.Modules
             }
 
             return list;
+        }
+
+
+        /// <summary>
+        /// Internal function changing watch flag for episodes linked to file
+        /// </summary>
+        /// <param name="status"></param>
+        /// <param name="id"></param>
+        /// <param name="uid"></param>
+        /// <returns></returns>
+        internal object MarkFile(bool status, int id, int uid)
+        {
+            try
+            {
+                SVR_VideoLocal file = RepoFactory.VideoLocal.GetByID(id);
+                if (file == null)
+                {
+                    return APIStatus.NotFound();
+                }
+                List<SVR_AnimeEpisode> list_ep = file.GetAnimeEpisodes();
+                if (list_ep == null)
+                {
+                    return APIStatus.NotFound();
+                }
+                foreach (SVR_AnimeEpisode ep in list_ep)
+                {
+                    ep.ToggleWatchedStatus(status, true, DateTime.Now, false, uid, true);
+                    ep.GetAnimeSeries()?.UpdateStats(true, false, true);
+                }
+                
+                return APIStatus.OK();
+            }
+            catch (Exception ex)
+            {
+                return APIStatus.InternalError(ex.Message);
+            }
         }
 
         #endregion
