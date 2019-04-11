@@ -698,8 +698,10 @@ namespace Shoko.Server.API.v2.Modules
 
             if (user != null)
             {
-                x = "pong";
+                x.response = "pong";
+                return x;
             }
+            x.response = "ping";
             return x;
         }
         #endregion
