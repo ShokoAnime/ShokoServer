@@ -79,6 +79,7 @@ namespace Shoko.Server.API.v2.Modules
             Get["/myid/get", true] = async (x,ct) => await Task.Factory.StartNew(MyID, ct);
             Get["/news/get", true] = async (x,ct) => await Task.Factory.StartNew(() => GetNews(5), ct);
             Get["/search", true] = async (x,ct) => await Task.Factory.StartNew(BigSearch, ct);
+            Get["/ping", true] = async (x, ct) => await Task.Factory.StartNew(Ping, ct);
 
             #endregion
 
@@ -685,6 +686,22 @@ namespace Shoko.Server.API.v2.Modules
             return APIStatus.BadRequest("missing 'query'");
         }
 
+        /// <summary>
+        /// Handle /api/ping
+        /// </summary>
+        /// <returns>"pong" if user if valid correct - to check if connection and auth is valid without ask for real data</returns>
+        private object Ping()
+        {
+            Request request = Request;
+            JMMUser user = (JMMUser)Context.CurrentUser;
+            dynamic x = new ExpandoObject();
+
+            if (user != null)
+            {
+                x = "pong";
+            }
+            return x;
+        }
         #endregion
 
         #region 05. Queue
