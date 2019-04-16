@@ -13,6 +13,7 @@ using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -55,7 +56,7 @@ namespace Shoko.Server.Commands
                     ISessionWrapper sessionWrapper = session.Wrap();
 
                     // first check if the user wants to use the web cache
-                    if (ServerSettings.WebCache_TvDB_Get)
+                    if (ServerSettings.Instance.WebCache.TvDB_Get)
                     {
                         try
                         {
@@ -87,7 +88,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // Use TvDB setting
-                    if (!ServerSettings.TvDB_AutoLink) return;
+                    if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                     string searchCriteria = string.Empty;
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);

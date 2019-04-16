@@ -6,6 +6,7 @@ using ICSharpCode.SharpZipLib.Zip.Compression;
 using Shoko.Server;
 using NLog;
 using Shoko.Server.AniDB_API;
+using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
 {
@@ -324,9 +325,9 @@ namespace AniDBAPI.Commands
                     ShokoService.AnidbProcessor.Dispose();
                     AniDbRateLimiter.Instance.EnsureRate();
 
-                    ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                        ServerSettings.AniDB_ServerAddress,
-                        ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
+                        ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,
+                        ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
                 }
             }
             catch (Exception ex)

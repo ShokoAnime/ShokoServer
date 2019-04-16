@@ -14,6 +14,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -58,7 +59,7 @@ namespace Shoko.Server.Commands
                     bool doReturn = false;
 
                     // first check if the user wants to use the web cache
-                    if (ServerSettings.WebCache_Trakt_Get)
+                    if (ServerSettings.Instance.WebCache.Trakt_Get)
                     {
                         try
                         {
@@ -143,7 +144,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // Use TvDB setting due to similarity
-                    if (!ServerSettings.TvDB_AutoLink) return;
+                    if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                     // finally lets try searching Trakt directly
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(sessionWrapper, AnimeID);

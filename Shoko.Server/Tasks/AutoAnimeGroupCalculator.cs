@@ -7,6 +7,7 @@ using NHibernate;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Tasks
 {
@@ -65,10 +66,10 @@ namespace Shoko.Server.Tasks
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
         public static AutoAnimeGroupCalculator CreateFromServerSettings(ISessionWrapper session)
         {
-            string exclusionsSetting = ServerSettings.AutoGroupSeriesRelationExclusions;
+            string exclusionsSetting = ServerSettings.Instance.AutoGroupSeriesRelationExclusions;
             AutoGroupExclude exclusions = AutoGroupExclude.None;
             AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.None;
-            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.AutoGroupSeriesUseScoreAlgorithm
+            MainAnimeSelectionStrategy mainAnimeSelectionStrategy = ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm
                 ? MainAnimeSelectionStrategy.Weighted
                 : MainAnimeSelectionStrategy.MinAirDate;
 

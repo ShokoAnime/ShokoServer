@@ -18,9 +18,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -1096,7 +1094,7 @@ namespace Shoko.Server
             {
                 if (throwIfFails)
                     throw;
-                    return false;
+                return false;
             }
         }
 

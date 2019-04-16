@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using NLog;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -14,6 +14,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using TvDbSharper;
 using TvDbSharper.Dto;
 using Language = TvDbSharper.Dto.Language;
@@ -39,7 +40,7 @@ namespace Shoko.Server.Providers.TvDB
         {
             try
             {
-                client.AcceptedLanguage = ServerSettings.TvDB_Language;
+                client.AcceptedLanguage = ServerSettings.Instance.TvDB.Language;
                 if (string.IsNullOrEmpty(client.Authentication.Token))
                 {
                     TvDBRateLimiter.Instance.EnsureRate();
@@ -192,7 +193,7 @@ namespace Shoko.Server.Providers.TvDB
             logger.Info(
                 $"Adding TvDB Link: AniDB(ID:{animeID}) -> TvDB(ID:{tvDBID})");
 
-            if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+            if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
                 // check for Trakt associations
                 List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
@@ -373,7 +374,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.TvDB_AutoFanartAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoFanartAmount) break;
                     TvDB_ImageFanart img = RepoFactory.TvDB_ImageFanart.GetByTvDBID(id) ?? new TvDB_ImageFanart
                     {
                         Enabled = 1
@@ -437,7 +438,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.TvDB_AutoPostersAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoPostersAmount) break;
                     TvDB_ImagePoster img = RepoFactory.TvDB_ImagePoster.GetByTvDBID(id) ?? new TvDB_ImagePoster
                     {
                         Enabled = 1
@@ -501,7 +502,7 @@ namespace Shoko.Server.Providers.TvDB
                     int id = image.Id ?? 0;
                     if (id == 0) continue;
 
-                    if (count >= ServerSettings.TvDB_AutoWideBannersAmount) break;
+                    if (count >= ServerSettings.Instance.TvDB.AutoWideBannersAmount) break;
                     TvDB_ImageWideBanner img = RepoFactory.TvDB_ImageWideBanner.GetByTvDBID(id) ?? new TvDB_ImageWideBanner
                     {
                         Enabled = 1
@@ -549,7 +550,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImageFanart img in images)
-                if (ServerSettings.TvDB_AutoFanart && imageCount < ServerSettings.TvDB_AutoFanartAmount &&
+                if (ServerSettings.Instance.TvDB.AutoFanart && imageCount < ServerSettings.Instance.TvDB.AutoFanartAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
@@ -576,7 +577,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(fanart.GetFullImagePath()) && File.Exists(fanart.GetFullImagePath()));
 
             foreach (TvDB_ImagePoster img in images)
-                if (ServerSettings.TvDB_AutoPosters && imageCount < ServerSettings.TvDB_AutoPostersAmount &&
+                if (ServerSettings.Instance.TvDB.AutoPosters && imageCount < ServerSettings.Instance.TvDB.AutoPostersAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());
@@ -603,7 +604,7 @@ namespace Shoko.Server.Providers.TvDB
                 !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
 
             foreach (TvDB_ImageWideBanner img in images)
-                if (ServerSettings.TvDB_AutoWideBanners && imageCount < ServerSettings.TvDB_AutoWideBannersAmount &&
+                if (ServerSettings.Instance.TvDB.AutoWideBanners && imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount &&
                     !string.IsNullOrEmpty(img.GetFullImagePath()))
                 {
                     bool fileExists = File.Exists(img.GetFullImagePath());

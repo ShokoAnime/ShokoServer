@@ -18,6 +18,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Extensions
 {
@@ -45,12 +46,10 @@ namespace Shoko.Server.Extensions
                 CRC32 = anifile.CRC,
                 MD5 = anifile.MD5,
                 SHA1 = anifile.SHA1,
-                FileSize = anifile.FileSize
+                FileSize = anifile.FileSize,
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = string.Empty
             };
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -63,12 +62,10 @@ namespace Shoko.Server.Extensions
                 CRC32 = vl.CRC32,
                 MD5 = vl.MD5,
                 SHA1 = vl.SHA1,
-                FileSize = vl.FileSize
+                FileSize = vl.FileSize,
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = string.Empty
             };
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
 
             return r;
         }
@@ -83,10 +80,6 @@ namespace Shoko.Server.Extensions
 
         public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
-            Azure_Media_Request r = new Azure_Media_Request
-            {
-                ED2K = v.ED2KHash
-            };
             //Cleanup any File subtitles from media information.
             Media m = (Media) v.Media.Clone();
             if (m.Parts != null && m.Parts.Count > 0)
@@ -104,40 +97,43 @@ namespace Shoko.Server.Extensions
                 }
             }
             //Cleanup the VideoLocal id
-            m.Id = 0;
             byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
-            r.ED2K = v.ED2KHash;
-            r.MediaInfo = new byte[data.Length + 4];
+            m.Id = 0;
+            Azure_Media_Request r = new Azure_Media_Request
+            {
+                ED2K = v.ED2KHash,
+                Version = SVR_VideoLocal.MEDIA_VERSION,
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = string.Empty,
+                MediaInfo = new byte[data.Length + 4]
+            };
             r.MediaInfo[0] = (byte)(outsize >> 24);
             r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
             r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
             r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-            r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            
 
             return r;
         }
 
         public static Azure_Media_Request ToMediaRequest(this Media m, string ed2k)
         {
-            Azure_Media_Request r = new Azure_Media_Request();
             byte[] data = CompressionHelper.SerializeObject(m, out int outsize);
-            r.ED2K = ed2k;
-            r.MediaInfo = new byte[data.Length + 4];
+            Azure_Media_Request r = new Azure_Media_Request
+            {
+                ED2K = ed2k,
+                MediaInfo = new byte[data.Length + 4],
+                Version = SVR_VideoLocal.MEDIA_VERSION,
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = string.Empty
+            };
             r.MediaInfo[0] = (byte)(outsize >> 24);
             r.MediaInfo[1] = (byte)((outsize >> 16) & 0xFF);
             r.MediaInfo[2] = (byte)((outsize >> 8) & 0xFF);
             r.MediaInfo[3] = (byte)(outsize & 0xFF);
             Array.Copy(data, 0, r.MediaInfo, 4, data.Length);
-            r.Version = SVR_VideoLocal.MEDIA_VERSION;
-            r.Username = ServerSettings.AniDB_Username;
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
+            
             return r;
         }
 
@@ -154,13 +150,9 @@ namespace Shoko.Server.Extensions
                 TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
                 TraktTitle = xref.TraktTitle,
                 CrossRefSource = xref.CrossRefSource,
-
-                Username = ServerSettings.AniDB_Username
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = String.Empty
             };
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -177,11 +169,9 @@ namespace Shoko.Server.Extensions
                 TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber,
                 TvDBTitle = xref.TvDBTitle,
                 CrossRefSource = xref.CrossRefSource,
-                Username = ServerSettings.AniDB_Username
+                Username = Constants.AnonWebCacheUsername,
+                AuthGUID = string.Empty
             };
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
-            r.AuthGUID = string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey) ? string.Empty : ServerSettings.WebCacheAuthKey;
             return r;
         }
 
@@ -194,11 +184,8 @@ namespace Shoko.Server.Extensions
                 EpisodeID = xref.EpisodeID,
                 Percentage = xref.Percentage,
                 EpisodeOrder = xref.EpisodeOrder,
-
-                Username = ServerSettings.AniDB_Username
+                Username = Constants.AnonWebCacheUsername,
             };
-            if (ServerSettings.WebCache_Anonymous)
-                r.Username = Constants.AnonWebCacheUsername;
             return r;
         }
 
@@ -643,7 +630,7 @@ namespace Shoko.Server.Extensions
             return character.Populate(rawChar);
         }
 
-        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character, ISession session,
+        public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character,
             AniDB_Anime_Character charRel)
         {
             Metro_AniDB_Character contract = new Metro_AniDB_Character
@@ -659,7 +646,7 @@ namespace Shoko.Server.Extensions
                 ImageType = (int)ImageEntityType.AniDB_Character,
                 ImageID = character.AniDB_CharacterID
             };
-            AniDB_Seiyuu seiyuu = character.GetSeiyuu(session);
+            AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
                 contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;

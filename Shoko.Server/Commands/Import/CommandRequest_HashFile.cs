@@ -16,8 +16,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
 
 namespace Shoko.Server.Commands
 {

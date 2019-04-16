@@ -9,6 +9,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -124,7 +125,7 @@ namespace Shoko.Server.Commands
 
         public CommandProcessorGeneral()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             workerCommands.WorkerReportsProgress = true;
             workerCommands.WorkerSupportsCancellation = true;
@@ -134,7 +135,7 @@ namespace Shoko.Server.Commands
 
         void WorkerCommands_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             CurrentCommand = null;
             processingCommands = false;
@@ -149,7 +150,7 @@ namespace Shoko.Server.Commands
 
         public void Init()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             processingCommands = true;
             QueueState = new QueueStateStruct

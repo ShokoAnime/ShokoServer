@@ -17,6 +17,7 @@ using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
 
@@ -60,20 +61,20 @@ namespace Shoko.Server.Plex
         {
             get
             {
-                if (string.IsNullOrEmpty(ServerSettings.Plex_Server)) return null;
+                if (string.IsNullOrEmpty(ServerSettings.Instance.Plex.Server)) return null;
                 if (DateTime.Now - TimeSpan.FromHours(1) >= _lastMediaCacheTime) _mediaDevice = null;
-                if (_mediaDevice != null && ServerSettings.Plex_Server == _mediaDevice.ClientIdentifier)
+                if (_mediaDevice != null && ServerSettings.Instance.Plex.Server == _mediaDevice.ClientIdentifier)
                     return _mediaDevice;
-                _mediaDevice = GetPlexServers().FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Plex_Server);
+                _mediaDevice = GetPlexServers().FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Instance.Plex.Server);
                 if (_mediaDevice != null) return _mediaDevice;
-                if (!ServerSettings.Plex_Server.Contains(':')) return null;
+                if (!ServerSettings.Instance.Plex.Server.Contains(':')) return null;
 
 
-                var strings = ServerSettings.Plex_Server.Split(':');
+                var strings = ServerSettings.Instance.Plex.Server.Split(':');
                 _mediaDevice = GetPlexServers().FirstOrDefault(s =>
                     s.Connection.Any(c => c.Address == strings[0] && c.Port == strings[1]));
                 if (_mediaDevice != null)
-                    ServerSettings.Plex_Server = _mediaDevice.ClientIdentifier;
+                    ServerSettings.Instance.Plex.Server = _mediaDevice.ClientIdentifier;
                 return _mediaDevice;
             }
             private set
@@ -279,13 +280,13 @@ namespace Shoko.Server.Plex
         {
             if (server == null)
             {
-                ServerSettings.Plex_Server = null;
+                ServerSettings.Instance.Plex.Server = null;
                 return;
             }
 
             if (!server.Provides.Split(',').Contains("server")) return; //not allowed.
 
-            ServerSettings.Plex_Server = server.ClientIdentifier;
+            ServerSettings.Instance.Plex.Server = server.ClientIdentifier;
             ServerCache = server;
         }
 

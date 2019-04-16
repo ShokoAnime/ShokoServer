@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Pri.LongPath;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;

@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
-using Nancy;
+using System.IO;
+using System.Net;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace Shoko.Server.API.v2.Models.core
 {
-    public class APIMessage
+    public class APIMessage : ActionResult
     {
         public int code { get; set; }
         public string message { get; set; }
@@ -50,6 +53,16 @@ namespace Shoko.Server.API.v2.Models.core
             code = _code;
             message = _message;
             details = _details.ToArray();
+        }
+
+        public override void ExecuteResult(ActionContext context)
+        {
+            context.HttpContext.Response.StatusCode = code;
+            context.HttpContext.Response.ContentType = "application/json";
+
+            var serializer = new JsonSerializer();
+            using (StreamWriter writer = new StreamWriter(context.HttpContext.Response.Body))
+                serializer.Serialize(writer, new { code, message, details });
         }
     }
 

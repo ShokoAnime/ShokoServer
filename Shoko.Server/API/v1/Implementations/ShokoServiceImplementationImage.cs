@@ -2,47 +2,53 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Globalization;
 using System.IO;
-using Shoko.Models;
+using System.Linq;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Nancy;
-using Nancy.Rest.Module;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
-using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
 using Resources = Shoko.Server.Properties.Resources;
+using Shoko.Server.API.v1;
+using System.Net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
+using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server
 {
-    public class ShokoServiceImplementationImage : IShokoServerImage
+    [ApiController, Route("/api/Image"), ApiVersionNeutral]
+    public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public Stream GetImage(int imageId, int imageType, bool? thumnbnailOnly)
+        [HttpGet("{imageid}/{imageType}/{thumnbnailOnly?}")]
+        public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly)
         {
-            string path = GetImagePath(imageId, imageType, thumnbnailOnly);
+            string path = GetImagePath(imageid, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
                 return new StreamWithResponse(HttpStatusCode.NotFound);
-            return new StreamWithResponse(File.OpenRead(path), MimeTypes.GetMimeType(path));
+            return new StreamWithResponse(File.OpenRead(path), Mime.GetMimeMapping(path));
         }
 
+        [HttpGet("WithPath/{serverImagePath}")]
         public Stream GetImageUsingPath(string serverImagePath)
         {
             if (File.Exists(serverImagePath))
             {
-                return new StreamWithResponse(File.OpenRead(serverImagePath), MimeTypes.GetMimeType(serverImagePath));
+                return new StreamWithResponse(File.OpenRead(serverImagePath), Mime.GetMimeMapping(serverImagePath));
             }
             logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
             return new StreamWithResponse(HttpStatusCode.NotFound);
         }
 
+        [HttpGet("Blank")]
         public Stream BlankImage()
         {
             byte[] dta = Resources.blank;
@@ -51,7 +57,8 @@ namespace Shoko.Server
             return new StreamWithResponse(ms, "image/jpeg");
         }
 
-        internal static Image ReSize(Image im, int width, int height)
+        [NonAction]
+        internal static Bitmap ReSize(Bitmap im, int width, int height)
         {
             Bitmap dest = new Bitmap(width, height);
             using (Graphics g = Graphics.FromImage(dest))
@@ -66,6 +73,7 @@ namespace Shoko.Server
             return dest;
         }
 
+        [NonAction]
         public Stream ResizeToRatio(Image im, double newratio)
         {
             double calcwidth = im.Width;
@@ -102,7 +110,7 @@ namespace Shoko.Server
             if (newheight < im.Height)
                 y = (im.Height - newheight) / 2;
 
-            Image im2 = ReSize(im, newwidth, newheight);
+            Image im2 = ReSize(new Bitmap(im), newwidth, newheight);
             Graphics g = Graphics.FromImage(im2);
             g.DrawImage(im, new Rectangle(0, 0, im2.Width, im2.Height),
                 new Rectangle(x, y, im2.Width, im2.Height), GraphicsUnit.Pixel);
@@ -112,6 +120,7 @@ namespace Shoko.Server
             return new StreamWithResponse(ms, "image/jpg");
         }
 
+        [HttpGet("Support/{name}/{ratio}")]
         public System.IO.Stream GetSupportImage(string name, float? ratio)
         {
             if (string.IsNullOrEmpty(name))
@@ -179,6 +188,7 @@ namespace Shoko.Server
             return new StreamWithResponse(ms2, "image/png");
         }
 
+        [HttpGet("Thumb/{imageId}/{imageType}/{ratio}")]
         public System.IO.Stream GetThumb(int imageId, int imageType, float ratio)
         {
             using (Stream m = GetImage(imageId, imageType, false))
@@ -191,6 +201,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Path/{imageId}/{imageType}/{thumnbnailOnly?}")]
         public string GetImagePath(int imageId, int imageType, bool? thumnbnailOnly)
         {
             ImageEntityType it = (ImageEntityType) imageType;
@@ -198,7 +209,7 @@ namespace Shoko.Server
             switch (it)
             {
                 case ImageEntityType.AniDB_Cover:
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(imageId);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(imageId);
                     if (anime == null) return null;
                     if (File.Exists(anime.PosterPath))
                     {

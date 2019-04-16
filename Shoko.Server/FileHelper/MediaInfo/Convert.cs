@@ -11,7 +11,6 @@ using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Pri.LongPath;
 
 
 namespace Shoko.Server.FileHelper.MediaInfo

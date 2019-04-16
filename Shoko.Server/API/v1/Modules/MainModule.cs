@@ -1,4 +1,5 @@
-﻿using Nancy.Rest.Module;
+﻿#if false
+using Nancy.Rest.Module;
 
 namespace Shoko.Server.API.v1
 {
@@ -10,3 +11,4 @@ namespace Shoko.Server.API.v1
         }
     }
 }
+#endif

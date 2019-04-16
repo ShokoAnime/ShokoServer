@@ -22,6 +22,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
@@ -190,7 +191,7 @@ namespace Shoko.Server
 
         public void ExtendPause(int secsToPause, string pauseReason)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
@@ -208,15 +209,15 @@ namespace Shoko.Server
             ServerInfo.Instance.HasExtendedPause = false;
         }
 
-        public void Init(string userName, string password, string serverName, string serverPort, string clientPort)
+        public void Init(string userName, string password, string serverName, ushort serverPort, ushort clientPort)
         {
             soUdp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
             this.userName = userName;
             this.password = password;
             this.serverName = serverName;
-            this.serverPort = serverPort;
-            this.clientPort = clientPort;
+            this.serverPort = serverPort.ToString();
+            this.clientPort = clientPort.ToString();
 
             isLoggedOn = false;
 
@@ -287,7 +288,7 @@ namespace Shoko.Server
                 {
                     if (WaitingOnResponseTime.HasValue)
                     {
-                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -318,7 +319,7 @@ namespace Shoko.Server
                     ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 }
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 string msg = string.Format(Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
@@ -347,7 +348,7 @@ namespace Shoko.Server
             WaitingOnResponse = isWaiting;
             ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -443,7 +444,7 @@ namespace Shoko.Server
                 {
                     logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo);
 
-                    if (ServerSettings.AniDB_DownloadReleaseGroups)
+                    if (ServerSettings.Instance.AniDb.DownloadReleaseGroups)
                     {
                         CommandRequest_GetReleaseGroup cmdRelgrp =
                             new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
@@ -465,7 +466,7 @@ namespace Shoko.Server
 
         public void GetMyListFileStatus(int aniDBFileID)
         {
-            if (!ServerSettings.AniDB_MyList_ReadWatched) return;
+            if (!ServerSettings.Instance.AniDb.MyList_ReadWatched) return;
 
             if (!Login()) return;
 
@@ -597,7 +598,7 @@ namespace Shoko.Server
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -643,7 +644,7 @@ namespace Shoko.Server
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -673,7 +674,7 @@ namespace Shoko.Server
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
 
             if (!Login()) return (null, watchedDate);
 
@@ -683,7 +684,7 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(fileDataLocal, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -704,7 +705,7 @@ namespace Shoko.Server
 
         public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return (null, watchedDate);
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
             if (!Login()) return (null, watchedDate);
 
@@ -714,7 +715,7 @@ namespace Shoko.Server
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.AniDB_MyList_StorageState, watchedDate);
+                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -840,7 +841,7 @@ namespace Shoko.Server
 
         public void DeleteFileFromMyList(string hash, long fileSize)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -857,7 +858,7 @@ namespace Shoko.Server
 
         public void DeleteFileFromMyList(int fileID)
         {
-            if (!ServerSettings.AniDB_MyList_AddFiles) return;
+            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -1152,7 +1153,7 @@ namespace Shoko.Server
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.AutoGroupSeries, true, getAnimeCmd, relDepth);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth);
                 //this endpoint is not working, so comenting...
 /*
                 if (forceRefresh)

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
-using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -14,6 +13,8 @@ using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Microsoft.AspNetCore.Http;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -44,7 +45,7 @@ namespace Shoko.Server.API.v2.Models.common
             tags = new List<string>();
         }
 
-        public static Serie GenerateFromVideoLocal(NancyContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+        public static Serie GenerateFromVideoLocal(HttpContext ctx, SVR_VideoLocal vl, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             Serie sr = new Serie();
 
@@ -56,7 +57,7 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
-        public static Serie GenerateFromBookmark(NancyContext ctx, BookmarkedAnime bookmark, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+        public static Serie GenerateFromBookmark(HttpContext ctx, BookmarkedAnime bookmark, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(bookmark.AnimeID);
             if (series != null)
@@ -67,7 +68,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
                 cr_anime.Save();
-
+ 
                 Serie empty_serie = new Serie
                 {
                     id = -1,
@@ -79,7 +80,7 @@ namespace Shoko.Server.API.v2.Models.common
             return GenerateFromAniDB_Anime(ctx, aniDB_Anime, nocast, notag, allpics, pic, tagfilter);
         }
 
-        public static Serie GenerateFromAniDB_Anime(NancyContext ctx, SVR_AniDB_Anime anime, bool nocast, bool notag, bool allpics, int pic, TagFilter.Filter tagfilter)
+        public static Serie GenerateFromAniDB_Anime(HttpContext ctx, SVR_AniDB_Anime anime, bool nocast, bool notag, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             Serie sr = new Serie
             {
@@ -138,7 +139,7 @@ namespace Shoko.Server.API.v2.Models.common
                 }
             }
 
-            if (!notag)
+            if (!nocast)
             {
                 var tags = anime.GetAllTags();
                 if (tags != null)
@@ -148,7 +149,7 @@ namespace Shoko.Server.API.v2.Models.common
             return sr;
         }
 
-        public static Serie GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
+        public static Serie GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag, int level, bool all, bool allpics, int pic, TagFilter.Filter tagfilter)
         {
             Serie sr = GenerateFromAniDB_Anime(ctx, ser.GetAnime(), nocast, notag, allpics, pic, tagfilter);
 
@@ -176,6 +177,13 @@ namespace Shoko.Server.API.v2.Models.common
                     var title = new AnimeTitle {Language = "EN", Title = tvdbseries.SeriesName, Type = "TvDB"};
                     sr.titles.Add(title);
                 }
+            }
+
+            if (!notag)
+            {
+                var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
+                if (tags != null)
+                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList());
             }
 
             if (level > 0)
@@ -312,9 +320,9 @@ namespace Shoko.Server.API.v2.Models.common
             };
         }
 
-        public static void PopulateArtFromAniDBAnime(NancyContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics, int pic)
+        public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allpics, int pic)
         {
-            Random rand = new Random();
+            Random rand = (Random) ctx.Items["Random"];
             var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(anime.AnimeID).ToList();
             var fanarts = tvdbIDs
                 .SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
@@ -452,7 +460,7 @@ namespace Shoko.Server.API.v2.Models.common
         {
             Serie a = obj as Serie;
             if (a == null) return 1;
-            // try year first, as it is more likely to have relevannt data
+            // try year first, as it is more likely to have relevant data
             if (int.TryParse(a.year, out int s1) && int.TryParse(year, out int s))
             {
                 if (s < s1) return -1;

@@ -6,6 +6,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
 {
@@ -68,7 +69,7 @@ namespace AniDBAPI.Commands
 
             commandText = "MYLISTADD lid=" + fileData.MyListID;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
+            commandText += "&state=" + (int) ServerSettings.Instance.AniDb.MyList_StorageState;
             if (watchedDate.HasValue)
                 commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
             commandText += "&edit=1";
@@ -85,7 +86,7 @@ namespace AniDBAPI.Commands
             commandText += "&generic=1";
             commandText += "&epno=" + epnumber;
             commandText += "&viewed=" + (IsWatched ? "1" : "0"); //viewed
-            commandText += "&state=" + (int) ServerSettings.AniDB_MyList_StorageState;
+            commandText += "&state=" + (int) ServerSettings.Instance.AniDb.MyList_StorageState;
             if (watchedDate.HasValue)
                 commandText += "&viewdate=" + AniDB.GetAniDBDateAsSeconds(watchedDate.Value);
             commandText += "&edit=1";

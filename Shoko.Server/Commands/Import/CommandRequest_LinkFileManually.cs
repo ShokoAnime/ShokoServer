@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -78,7 +79,7 @@ namespace Shoko.Server.Commands
             CommandRequest_WebCacheSendXRefFileEpisode cr = new CommandRequest_WebCacheSendXRefFileEpisode(xref.CrossRef_File_EpisodeID);
             cr.Save();
 
-            if (ServerSettings.FileQualityFilterEnabled)
+            if (ServerSettings.Instance.FileQualityFilterEnabled)
             {
                 List<SVR_VideoLocal> videoLocals = episode.GetVideoLocals();
                 if (videoLocals != null)
@@ -113,7 +114,7 @@ namespace Shoko.Server.Commands
                 RepoFactory.AnimeGroup.Save(grp, false, false);
             }
 
-            if (ServerSettings.AniDB_MyList_AddFiles)
+            if (ServerSettings.Instance.AniDb.MyList_AddFiles)
             {
                 CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vlocal.Hash);
                 cmdAddFile.Save();

@@ -1,35 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
-using Nancy.ModelBinding;
-using Nancy.Security;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Pri.LongPath;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Webui : Nancy.NancyModule
+    [Authorize]
+    [ApiController]
+    [Route("/api/webui")]
+    [ApiVersion("2.0")]
+    public class Webui : BaseController
     {
-        public Webui() : base("/api/webui")
-        {
-            this.RequiresAuthentication();
-
-            Get["/install", true] = async (x,ct) => await Task.Factory.StartNew(InstallWebUI, ct);
-            Get["/update/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIStableUpdate, ct);
-            Get["/latest/stable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestStableVersion, ct);
-            Get["/update/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUIUnstableUpdate, ct);
-            Get["/latest/unstable", true] = async (x,ct) => await Task.Factory.StartNew(WebUILatestUnstableVersion, ct);
-            Get["/config", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIConfig, ct);
-            Post["/config", true] = async (x,ct) => await Task.Factory.StartNew(SetWebUIConfig, ct);
-            Get["/theme", true] = async (x,ct) => await Task.Factory.StartNew(GetWebUIThemes, ct);
-        }
-
         /// <summary>
         /// Download and install latest stable version of WebUI
         /// </summary>
         /// <returns></returns>
-        private object InstallWebUI()
+        [HttpGet("install")]
+        public ActionResult InstallWebUI()
         {
             return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
         }
@@ -38,7 +31,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Download the latest stable version of WebUI
         /// </summary>
         /// <returns></returns>
-        private object WebUIStableUpdate()
+        [HttpGet("update/stable")]
+        public ActionResult WebUIStableUpdate()
         {
             return WebUIGetUrlAndUpdate(WebUILatestStableVersion().version, "stable");
         }
@@ -47,7 +41,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Download the latest unstable version of WebUI
         /// </summary>
         /// <returns></returns>
-        private object WebUIUnstableUpdate()
+        [HttpGet("update/unstable")]
+        public ActionResult WebUIUnstableUpdate()
         {
             return WebUIGetUrlAndUpdate(WebUILatestUnstableVersion().version, "dev");
         }
@@ -57,7 +52,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="tag_name"></param>
         /// <returns></returns>
-        internal object WebUIGetUrlAndUpdate(string tag_name, string channel)
+        internal ActionResult WebUIGetUrlAndUpdate(string tag_name, string channel)
         {
             try
             {
@@ -96,59 +91,61 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="url">direct link to version you want to install</param>
         /// <returns></returns>
-        internal object WebUIUpdate(string url, string channel, string version)
+        internal ActionResult WebUIUpdate(string url, string channel, string version)
         {
             //list all files from root /webui/ and all directories
-            string[] files = Directory.GetFiles("webui");
-            string[] directories = Directory.GetDirectories("webui");
+            string path = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "webui");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            string[] files = Directory.GetFiles(path);
+            string[] directories = Directory.GetDirectories(path);
 
             try
             {
                 //download latest version
                 var client = new System.Net.WebClient();
                 client.Headers.Add("User-Agent", "shokoserver");
-                client.DownloadFile(url, Path.Combine("webui", "latest.zip"));
+                client.DownloadFile(url, Path.Combine(path, "latest.zip"));
 
                 //create 'old' dictionary
-                if (!Directory.Exists(Path.Combine("webui", "old")))
+                if (!Directory.Exists(Path.Combine(path, "old")))
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine("webui", "old"));
+                    System.IO.Directory.CreateDirectory(Path.Combine(path, "old"));
                 }
                 try
                 {
                     //move all directories and files to 'old' folder as fallback recovery
                     foreach (string dir in directories)
                     {
-                        if (Directory.Exists(dir) && dir != Path.Combine("webui", "old") && dir != Path.Combine("webui", "tweak"))
+                        if (Directory.Exists(dir) && dir != Path.Combine(path, "old") && dir != Path.Combine(path, "tweak"))
                         {
-                            string n_dir = dir.Replace("webui", Path.Combine("webui", "old"));
+                            string n_dir = dir.Replace(path, Path.Combine(path, "old"));
                             Directory.Move(dir, n_dir);
                         }
                     }
                     foreach (string file in files)
                     {
-                        if (File.Exists(file))
+                        if (System.IO.File.Exists(file))
                         {
-                            string n_file = file.Replace("webui", Path.Combine("webui", "old"));
-                            File.Move(file, n_file);
+                            string n_file = file.Replace(path, Path.Combine(path, "old"));
+                            System.IO.File.Move(file, n_file);
                         }
                     }
 
                     try
                     {
                         //extract latest webui
-                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine("webui", "latest.zip"), "webui");
+                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine(path, "latest.zip"), path);
 
                         //clean because we already have working updated webui
-                        Directory.Delete(Path.Combine("webui", "old"), true);
-                        File.Delete(Path.Combine("webui", "latest.zip"));
+                        Directory.Delete(Path.Combine(path, "old"), true);
+                        System.IO.File.Delete(Path.Combine(path, "latest.zip"));
 
                         //save version type>version that was installed successful
-                        if (File.Exists(Path.Combine("webui", "index.ver")))
+                        if (System.IO.File.Exists(Path.Combine(path, "index.ver")))
                         {
-                            File.Delete(Path.Combine("webui", "index.ver"));
+                            System.IO.File.Delete(Path.Combine(path, "index.ver"));
                         }
-                        File.AppendAllText(Path.Combine("webui", "index.ver"), channel + ">" + version);
+                        System.IO.File.AppendAllText(Path.Combine(path, "index.ver"), channel + ">" + version);
 
                         return APIStatus.OK();
                     }
@@ -175,7 +172,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Check for newest stable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private ComponentVersion WebUILatestStableVersion()
+        [HttpGet("latest/stable")]
+        public ComponentVersion WebUILatestStableVersion()
         {
             ComponentVersion version = new ComponentVersion();
             version = WebUIGetLatestVersion(true);
@@ -187,7 +185,8 @@ namespace Shoko.Server.API.v2.Modules
         /// Check for newest unstable version and return object { version: string, url: string }
         /// </summary>
         /// <returns></returns>
-        private ComponentVersion WebUILatestUnstableVersion()
+        [HttpGet("latest/unstable")]
+        public ComponentVersion WebUILatestUnstableVersion()
         {
             ComponentVersion version = new ComponentVersion();
             version = WebUIGetLatestVersion(false);
@@ -291,15 +290,14 @@ namespace Shoko.Server.API.v2.Modules
         /// Read json file that is converted into string from .config file of jmmserver
         /// </summary>
         /// <returns></returns>
-        private object GetWebUIConfig()
+        [HttpGet("config")]
+        public ActionResult<WebUI_Settings> GetWebUIConfig()
         {
-            if (!String.IsNullOrEmpty(ServerSettings.WebUI_Settings))
+            if (!string.IsNullOrEmpty(ServerSettings.Instance.WebUI_Settings))
             {
                 try
                 {
-                    WebUI_Settings settings =
-                        JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.WebUI_Settings);
-                    return settings;
+                    return JsonConvert.DeserializeObject<WebUI_Settings>(ServerSettings.Instance.WebUI_Settings);
                 }
                 catch
                 {
@@ -314,14 +312,14 @@ namespace Shoko.Server.API.v2.Modules
         /// Save webui settings as json converted into string inside .config file of jmmserver
         /// </summary>
         /// <returns></returns>
-        private object SetWebUIConfig()
+        [HttpPost("config")]
+        public object SetWebUIConfig(WebUI_Settings settings)
         {
-            WebUI_Settings settings = this.Bind();
             if (settings.Valid())
             {
                 try
                 {
-                    ServerSettings.WebUI_Settings = JsonConvert.SerializeObject(settings);
+                    ServerSettings.Instance.WebUI_Settings = JsonConvert.SerializeObject(settings);
                     return APIStatus.OK();
                 }
                 catch
@@ -329,7 +327,7 @@ namespace Shoko.Server.API.v2.Modules
                     return APIStatus.InternalError("error at saving webui settings");
                 }
             }
-                return new APIMessage(400, "Config is not a Valid.");
+            return new APIMessage(400, "Config is not a Valid.");
         }
 
         /// <summary>
@@ -338,13 +336,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>List<OSFile> with 'name' of css files</returns>
         private object GetWebUIThemes()
         {
-            List<v2.Models.core.OSFile> files = new List<v2.Models.core.OSFile>();
+            List<OSFile> files = new List<OSFile>();
             if (Directory.Exists(Path.Combine("webui", "tweak")))
             {
                 DirectoryInfo dir_info = new DirectoryInfo(Path.Combine("webui", "tweak"));
                 foreach (FileInfo info in dir_info.GetFiles("*.css"))
                 {
-                    v2.Models.core.OSFile file = new v2.Models.core.OSFile
+                    OSFile file = new OSFile
                     {
                         name = info.Name
                     };

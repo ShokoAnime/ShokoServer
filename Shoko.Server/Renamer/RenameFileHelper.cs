@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Nancy.Extensions;
 
 namespace Shoko.Server
 {
@@ -90,7 +89,7 @@ namespace Shoko.Server
                     if (key == null) continue;
                     if (ScriptImplementations.ContainsKey(key))
                     {
-                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.GetAssemblyPath()} and {ScriptImplementations[key]}@{ScriptImplementations[key].GetAssemblyPath()}");
+                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {ScriptImplementations[key]}@{ScriptImplementations[key].Assembly.Location}");
                         continue;
                     }
                     ScriptImplementations.Add(key, implementation);

@@ -6,20 +6,20 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
 using LeanWork.IO.FileSystem;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
-using Nancy;
-using Nancy.Hosting.Self;
-using Nancy.Json;
-using NHibernate;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NLog;
+using NLog.Extensions.Logging;
+using NHibernate;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -36,14 +36,12 @@ using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.UI;
 using Trinet.Core.IO.Ntfs;
-using UPnP;
+using Shoko.Server.API;
 using Action = System.Action;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using FileInfo = Pri.LongPath.FileInfo;
-using Path = Pri.LongPath.Path;
+using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
@@ -67,7 +65,7 @@ namespace Shoko.Server
         public static string PathAddressPlex = "api/Plex";
         public static string PathAddressKodi = "Kodi";
 
-        private static NancyHost hostNancy;
+        private static IWebHost webHost;
 
         private static BackgroundWorker workerImport = new BackgroundWorker();
         private static BackgroundWorker workerScanFolder = new BackgroundWorker();
@@ -117,7 +115,7 @@ namespace Shoko.Server
             if (Utils.IsLinux)
                 Analytics.PostEvent("Server", "Linux Startup");
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             // Check if any of the DLL are blocked, common issue with daily builds
             if (!CheckBlockedFiles())
@@ -152,7 +150,7 @@ namespace Shoko.Server
             }
             catch (Exception e)
             {
-                logger.Log(LogLevel.Error, e);
+                logger.Log(NLog.LogLevel.Error, e);
             }
 
             try
@@ -170,7 +168,7 @@ namespace Shoko.Server
                 Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
-            ServerSettings.DebugSettingsToLog();
+            ServerSettings.Instance.DebugSettingsToLog();
             RenameFileHelper.InitialiseRenamers();
 
             workerFileEvents.WorkerReportsProgress = false;
@@ -563,8 +561,8 @@ namespace Shoko.Server
             if (!setupComplete)
             {
                 ServerState.Instance.ServerOnline = false;
-                if (!string.IsNullOrEmpty(ServerSettings.DatabaseType)) return;
-                ServerSettings.DatabaseType = Constants.DatabaseType.Sqlite;
+                if (!string.IsNullOrEmpty(ServerSettings.Instance.Database.Type)) return;
+                ServerSettings.Instance.Database.Type = Constants.DatabaseType.Sqlite;
                 ShowDatabaseSetup();
             }
         }
@@ -576,10 +574,10 @@ namespace Shoko.Server
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
-            ServerSettings.FirstRun = false;
-            ServerSettings.SaveSettings();
-            if (string.IsNullOrEmpty(ServerSettings.AniDB_Username) ||
-                string.IsNullOrEmpty(ServerSettings.AniDB_Password))
+            ServerSettings.Instance.FirstRun = false;
+            ServerSettings.Instance.SaveSettings();
+            if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username) ||
+                string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Password))
                 LoginFormNeeded?.Invoke(Instance, null);
             DBSetupCompleted?.Invoke(Instance, null);
         }
@@ -597,7 +595,7 @@ namespace Shoko.Server
             cloudWatchTimer = new Timer
             {
                 AutoReset = true,
-                Interval = ServerSettings.CloudWatcherTime * 60 * 1000
+                Interval = ServerSettings.Instance.CloudWatcherTime * 60 * 1000
             };
             cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
             cloudWatchTimer.Start();
@@ -666,7 +664,7 @@ namespace Shoko.Server
 
         void WorkerSetupDB_DoWork(object sender, DoWorkEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             try
             {
@@ -710,7 +708,7 @@ namespace Shoko.Server
                 {
                     ServerState.Instance.DatabaseAvailable = false;
 
-                    if (string.IsNullOrEmpty(ServerSettings.DatabaseType))
+                    if (string.IsNullOrEmpty(ServerSettings.Instance.Database.Type))
                         ServerState.Instance.CurrentSetupStatus =
                             Resources.Server_DatabaseConfig;
                     e.Result = false;
@@ -765,8 +763,8 @@ namespace Shoko.Server
 
                 IReadOnlyList<SVR_ImportFolder> folders = RepoFactory.ImportFolder.GetAll();
 
-                if (ServerSettings.ScanDropFoldersOnStart) ScanDropFolders();
-                if (ServerSettings.RunImportOnStart && folders.Count > 0) RunImport();
+                if (ServerSettings.Instance.Import.ScanDropFoldersOnStart) ScanDropFolders();
+                if (ServerSettings.Instance.Import.RunOnStart && folders.Count > 0) RunImport();
 
                 ServerState.Instance.ServerOnline = true;
                 workerSetupDB.ReportProgress(100);
@@ -882,7 +880,7 @@ namespace Shoko.Server
                             {
                                 logger.Debug("Getting Anime record from AniDB....");
                                 anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                                    ServerSettings.AutoGroupSeries);
+                                    ServerSettings.Instance.AutoGroupSeries);
                             }
                             else
                                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
@@ -951,7 +949,7 @@ namespace Shoko.Server
 
 
                             // Add this file to the users list
-                            if (ServerSettings.AniDB_MyList_AddFiles)
+                            if (ServerSettings.Instance.AniDb.MyList_AddFiles)
                             {
                                 CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
                                 cmd.Save();
@@ -1154,7 +1152,7 @@ namespace Shoko.Server
 
                 verNew =
                     JMMAutoUpdatesHelper.ConvertToAbsoluteVersion(
-                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.UpdateChannel))
+                        JMMAutoUpdatesHelper.GetLatestVersionNumber(ServerSettings.Instance.UpdateChannel))
                     ;
                 verCurrent = an.Version.Revision * 100 +
                              an.Version.Build * 100 * 100 +
@@ -1494,60 +1492,25 @@ namespace Shoko.Server
         /// </summary>
         private static void StartNancyHost()
         {
-            foreach (string ext in SubtitleHelper.Extensions.Keys)
-            {
-                if (!MimeTypes.GetMimeType("file." + ext)
-                    .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase)) continue;
-                if (!SubtitleHelper.Extensions[ext]
-                    .Equals("application/octet-stream", StringComparison.InvariantCultureIgnoreCase))
-                    MimeTypes.AddType(ext, SubtitleHelper.Extensions[ext]);
-            }
-
-            if (MimeTypes.GetMimeType("file.mkv") == "application/octet-stream")
-            {
-                MimeTypes.AddType("mkv", "video/x-matroska");
-                MimeTypes.AddType("mka", "audio/x-matroska");
-                MimeTypes.AddType("mk3d", "video/x-matroska-3d");
-                MimeTypes.AddType("ogm", "video/ogg");
-                MimeTypes.AddType("flv", "video/x-flv");
-            }
-
-            if (hostNancy != null)
+            if (webHost != null)
                 return;
-            //nancy will rewrite localhost into http://+:port
-            HostConfiguration config = new HostConfiguration
-            {
-                // set Nancy Hosting config here
-                UnhandledExceptionCallback = exception =>
+            webHost = new WebHostBuilder().UseKestrel(options => { options.ListenAnyIP(ServerSettings.Instance.ServerPort); }).UseStartup<Startup>()
+#if DEBUG
+                .ConfigureLogging(logging =>
                 {
-                    if (exception is HttpListenerException)
-                    {
-                        //logger.Error($"An network serve operation took too long and timed out.");
-                    }
-                    else
-                    {
-                        logger.Error(exception);
-                    }
-                }
-            };
-            // This requires admin, so throw an error if it fails
-            // Don't let Nancy do this. We do it ourselves.
-            // This needs to throw an error for our url registration to call.
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    logging.AddNLog();
+                })
+#endif
+                .Build();
 
-
-            config.UrlReservations.CreateAutomatically = false;
-            config.RewriteLocalhost = true;
-            config.AllowChunkedEncoding = false;
-            hostNancy = new NancyHost(config,
-                new Uri("http://localhost:" + ServerSettings.JMMServerPort));
-            if (ServerSettings.ExperimentalUPnP)
-                NAT.UPnPJMMFilePort(int.Parse(ServerSettings.JMMServerPort));
-            JsonSettings.MaxJsonLength = int.MaxValue;
+            //JsonSettings.MaxJsonLength = int.MaxValue;
 
             // Even with error callbacks, this may still throw an error in some parts, so log it!
             try
             {
-                hostNancy.Start();
+                webHost.Start();
             }
             catch (Exception ex)
             {
@@ -1597,15 +1560,15 @@ namespace Shoko.Server
 
         public static void StopHost()
         {
-            hostNancy?.Dispose();
-            hostNancy = null;
+            webHost?.Dispose();
+            webHost = null;
         }
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                ServerSettings.AniDB_ServerAddress,
-                ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                ServerSettings.Instance.AniDb.ServerAddress,
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
         }
 
         public static void AniDBDispose()
@@ -1732,7 +1695,7 @@ namespace Shoko.Server
 
             StopHost();
 
-            ServerSettings.JMMServerPort = $"{port}";
+            ServerSettings.Instance.ServerPort = port;
 
             bool started = NetPermissionWrapper(StartNancyHost);
             if (!started)

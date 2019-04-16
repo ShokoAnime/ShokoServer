@@ -1,6 +1,7 @@
 ﻿using System.Runtime.Serialization;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 using Shoko.Server.Models;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -9,7 +10,7 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember]
         public string match { get; set; }
 
-        public static SearchResult GenerateFromAnimeSeries(NancyContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
+        public static SearchResult GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool nocast, bool notag,
             int level,
             bool all, string match, bool allpic, int pic, TagFilter.Filter tagfilter)
         {

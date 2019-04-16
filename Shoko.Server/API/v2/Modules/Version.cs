@@ -1,27 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
-using System.Threading.Tasks;
-using Nancy;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
+using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
-    public class Version : NancyModule
+    [ApiController]
+    [Route("/api/version")]
+    [ApiVersion("2.0")]
+    public class Version : BaseController
     {
-        public Version()
-        {
-            Get["/api/version", true] = async (x,ct) => await Task.Factory.StartNew(GetVersion, ct);
-        }
-
         /// <summary>
         /// Return current version of ShokoServer and several modules
         /// </summary>
         /// <returns></returns>
-        private object GetVersion()
+        [HttpGet]
+        public List<ComponentVersion> GetVersion()
         {
             List<ComponentVersion> list = new List<ComponentVersion>();
 
@@ -58,19 +58,19 @@ namespace Shoko.Server.API.v2.Modules
             };
             list.Add(version);
 
-            version = new ComponentVersion
+            /*version = new ComponentVersion
             {
                 version = Assembly.GetAssembly(typeof(INancyModule)).GetName().Version.ToString(),
                 name = "Nancy"
             };
-            list.Add(version);
+            list.Add(version);*/
 
             string dllpath = Assembly.GetEntryAssembly().Location;
             dllpath = Path.GetDirectoryName(dllpath);
             dllpath = Path.Combine(dllpath, "x86");
             dllpath = Path.Combine(dllpath, "MediaInfo.dll");
 
-            if (File.Exists(dllpath))
+            if (System.IO.File.Exists(dllpath))
             {
                 version = new ComponentVersion
                 {
@@ -85,7 +85,7 @@ namespace Shoko.Server.API.v2.Modules
                 dllpath = Path.GetDirectoryName(dllpath);
                 dllpath = Path.Combine(dllpath, "x64");
                 dllpath = Path.Combine(dllpath, "MediaInfo.dll");
-                if (File.Exists(dllpath))
+                if (System.IO.File.Exists(dllpath))
                 {
                     version = new ComponentVersion
                     {
@@ -105,9 +105,9 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
 
-            if (File.Exists("webui//index.ver"))
+            if (System.IO.File.Exists("webui//index.ver"))
             {
-                string webui_version = File.ReadAllText("webui//index.ver");
+                string webui_version = System.IO.File.ReadAllText("webui//index.ver");
                 string[] versions = webui_version.Split('>');
                 if (versions.Length == 2)
                 {

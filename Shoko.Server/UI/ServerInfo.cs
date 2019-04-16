@@ -13,6 +13,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -301,7 +302,7 @@ namespace Shoko.Server
         {
             get
             {
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 waitingOnResponseAniDBUDPString = Resources.Command_Idle;
                 return waitingOnResponseAniDBUDPString;

@@ -6,6 +6,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -51,7 +52,7 @@ namespace Shoko.Server.Commands
                 }
                 else
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Calendar_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Calendar_UpdateFrequency);
 
                     // if we have run this in the last 12 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

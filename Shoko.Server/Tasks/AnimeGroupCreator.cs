@@ -16,6 +16,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Tasks
 {
@@ -50,7 +51,7 @@ namespace Shoko.Server.Tasks
         /// Uses the current server configuration to determine if auto grouping series is enabled.
         /// </remarks>
         public AnimeGroupCreator()
-            : this(ServerSettings.AutoGroupSeries)
+            : this(ServerSettings.Instance.AutoGroupSeries)
         {
         }
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -251,7 +252,7 @@ namespace Shoko.Server
             {
                 List<NamingLanguage> lans = new List<NamingLanguage>();
 
-                string[] slans = ServerSettings.LanguagePreference?.Split(',') ?? new string[] {};
+                string[] slans = ServerSettings.Instance.LanguagePreference ?? new string[] {};
 
                 foreach (string lan in slans)
                 {
@@ -271,7 +272,7 @@ namespace Shoko.Server
             {
                 List<NamingLanguage> lans = new List<NamingLanguage>();
 
-                string[] slans = ServerSettings.EpisodeLanguagePreference?.Split(',') ?? new string[] {};
+                string[] slans = ServerSettings.Instance.EpisodeLanguagePreference.Split(',') ?? new string[] {};
 
                 foreach (string lan in slans)
                 {

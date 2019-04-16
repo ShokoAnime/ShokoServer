@@ -90,7 +90,7 @@ namespace Shoko.Server.PlexAndKodi
         {
             Start = 0;
             Size = int.MaxValue;
-            if (prov.Nancy == null)
+            if (prov.HttpContext == null)
             {
                 if (WebOperationContext.Current != null)
                 {

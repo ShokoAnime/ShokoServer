@@ -22,6 +22,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models
@@ -76,7 +77,7 @@ namespace Shoko.Server.Models
                 seriesName = SeriesNameOverride;
             else
             {
-                if (ServerSettings.SeriesNameSource == DataSourceType.AniDB)
+                if (ServerSettings.Instance.SeriesNameSource == DataSourceType.AniDB)
                     seriesName = GetAnime().GetFormattedTitle();
                 else
                 {

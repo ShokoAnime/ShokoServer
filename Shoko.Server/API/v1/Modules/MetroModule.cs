@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if false
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,3 +16,4 @@ namespace Shoko.Server.API.v1
         }
     }
 }
+#endif

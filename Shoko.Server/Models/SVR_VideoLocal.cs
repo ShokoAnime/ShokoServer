@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using NLog;
 using NutzCode.CloudFileSystem;
-using Pri.LongPath;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
@@ -18,6 +18,8 @@ using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Settings;
+using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
 {
@@ -258,8 +260,8 @@ namespace Shoko.Server.Models
                 }
 
                 if (updateOnline)
-                    if ((watched && ServerSettings.AniDB_MyList_SetWatched) ||
-                        (!watched && ServerSettings.AniDB_MyList_SetUnwatched))
+                    if ((watched && ServerSettings.Instance.AniDb.MyList_SetWatched) ||
+                        (!watched && ServerSettings.Instance.AniDb.MyList_SetUnwatched))
                     {
                         CommandRequest_UpdateMyListFileStatus cmd = new CommandRequest_UpdateMyListFileStatus(
                             Hash, watched, false,
@@ -315,8 +317,8 @@ namespace Shoko.Server.Models
                                 if (juser.IsAniDBUser == 1)
                                     ep.SaveWatchedStatus(true, juser.JMMUserID, watchedDate, updateWatchedDate);
 
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
                             CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
                                 new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Add);
@@ -361,8 +363,8 @@ namespace Shoko.Server.Models
                         if (!toUpdateSeries.ContainsKey(ser.AnimeSeriesID))
                             toUpdateSeries.Add(ser.AnimeSeriesID, ser);
 
-                        if (syncTrakt && ServerSettings.Trakt_IsEnabled &&
-                            !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                        if (syncTrakt && ServerSettings.Instance.TraktTv.Enabled &&
+                            !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                         {
                             CommandRequest_TraktHistoryEpisode cmdSyncTrakt =
                                 new CommandRequest_TraktHistoryEpisode(ep.AnimeEpisodeID, TraktSyncAction.Remove);

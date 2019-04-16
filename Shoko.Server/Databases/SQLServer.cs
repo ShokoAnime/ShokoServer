@@ -11,6 +11,7 @@ using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
 using NHibernate;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -29,7 +30,7 @@ namespace Shoko.Server.Databases
             //2) The SqlServer running account should have read write access to our backup dir which is nono
             // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
-            string cmd = "BACKUP DATABASE[" + ServerSettings.DatabaseName + "] TO DISK = '" +
+            string cmd = "BACKUP DATABASE[" + ServerSettings.Instance.Database.Schema + "] TO DISK = '" +
                          fullfilename.Replace("'", "''") + "'";
 
 
@@ -72,17 +73,16 @@ namespace Shoko.Server.Databases
         public override string GetConnectionString()
         {
             return
-                $"Server={ServerSettings.DatabaseServer};Database={ServerSettings.DatabaseName};UID={ServerSettings.DatabaseUsername};PWD={ServerSettings.DatabasePassword};";
+                $"Server={ServerSettings.Instance.Database.Hostname};Database={ServerSettings.Instance.Database.Schema};UID={ServerSettings.Instance.Database.Username};PWD={ServerSettings.Instance.Database.Password};";
         }
 
         public ISessionFactory CreateSessionFactory()
         {
-            string connectionstring = $@"data source={ServerSettings.DatabaseServer};initial catalog={
-                    ServerSettings.DatabaseName
+            string connectionstring = $@"data source={ServerSettings.Instance.Database.Hostname};initial catalog={
+                    ServerSettings.Instance.Database.Schema
                 };persist security info=True;user id={
-                    ServerSettings
-                        .DatabaseUsername
-                };password={ServerSettings.DatabasePassword}";
+                    ServerSettings.Instance.Database.Username
+                };password={ServerSettings.Instance.Database.Password}";
             return Fluently.Configure()
                 .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
                 .Mappings(m =>
@@ -94,10 +94,10 @@ namespace Shoko.Server.Databases
         public bool DatabaseAlreadyExists()
         {
             long count;
-            string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.DatabaseName}'";
+            string cmd = $"Select count(*) from sysdatabases where name = '{ServerSettings.Instance.Database.Schema}'";
             using (SqlConnection tmpConn =
                 new SqlConnection(
-                    $"Server={ServerSettings.DatabaseServer};User ID={ServerSettings.DatabaseUsername};Password={ServerSettings.DatabasePassword};database={"master"}")
+                    $"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={"master"}")
             )
             {
                 tmpConn.Open();
@@ -115,10 +115,10 @@ namespace Shoko.Server.Databases
         {
             if (DatabaseAlreadyExists()) return;
 
-            ServerConnection conn = new ServerConnection(ServerSettings.DatabaseServer, ServerSettings.DatabaseUsername,
-                ServerSettings.DatabasePassword);
+            ServerConnection conn = new ServerConnection(ServerSettings.Instance.Database.Hostname,
+                ServerSettings.Instance.Database.Username, ServerSettings.Instance.Database.Password);
             Microsoft.SqlServer.Management.Smo.Server srv = new Microsoft.SqlServer.Management.Smo.Server(conn);
-            Database db = new Database(srv, ServerSettings.DatabaseName);
+            Database db = new Database(srv, ServerSettings.Instance.Database.Schema);
             db.Create();
         }
 

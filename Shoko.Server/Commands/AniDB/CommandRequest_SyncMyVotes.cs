@@ -9,6 +9,7 @@ using Shoko.Models.Server;
 using Shoko.Server.AniDB_API.Commands;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -39,7 +40,7 @@ namespace Shoko.Server.Commands
             try
             {
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev == enHelperActivityType.GotVotesHTTP)
                 {

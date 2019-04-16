@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
 using AniDBAPI;
 using NHibernate;
 using NLog;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -20,6 +20,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models
@@ -690,7 +691,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 }
 
                 // try synonyms
-                if (ServerSettings.LanguageUseSynonyms)
+                if (ServerSettings.Instance.LanguageUseSynonyms)
                 {
                     foreach (AniDB_Anime_Title title in titles)
                     {
@@ -832,7 +833,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 cmd.Save();
 
                 // check for Trakt associations
-                if (ServerSettings.Trakt_IsEnabled && !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
                     CommandRequest_TraktSearchAnime cmd2 = new CommandRequest_TraktSearchAnime(AnimeID, forced: false);
                     cmd2.Save();
@@ -857,7 +858,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
         {
             logger.Trace("------------------------------------------------");
-            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.AniDB_MaxRelationDepth}");
+            logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
             logger.Trace("------------------------------------------------");
 
             Stopwatch taskTimer = new Stopwatch();
@@ -1356,7 +1357,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (!anime_rel.Populate(rawrel)) continue;
                 relsToSave.Add(anime_rel);
 
-                if (downloadRelations && relDepth < ServerSettings.AniDB_MaxRelationDepth)
+                if (downloadRelations && relDepth < ServerSettings.Instance.AniDb.MaxRelationDepth)
                 {
                     logger.Info("Adding command to download related anime for {0} ({1}), related anime ID = {2}",
                         MainTitle, AnimeID, anime_rel.RelatedAnimeID);

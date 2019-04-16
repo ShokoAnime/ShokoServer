@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using Nancy;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -33,7 +34,7 @@ namespace Shoko.Server.API.v2.Models.common
             groups = new List<Group>();
         }
 
-        internal new static Filter GenerateFromGroupFilter(NancyContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
+        internal new static Filter GenerateFromGroupFilter(HttpContext ctx, SVR_GroupFilter gf, int uid, bool nocast, bool notag, int level,
             bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
         {
             List<Group> groups = new List<Group>();

@@ -16,9 +16,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -248,7 +246,7 @@ namespace Shoko.Server.Commands
                         }
                         catch (Exception ex)
                         {
-                            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                             logger.Warn(Resources.Command_DeleteError, fileName, ex.Message);
                             return;

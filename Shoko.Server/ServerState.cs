@@ -8,6 +8,7 @@ using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -278,17 +279,17 @@ namespace Shoko.Server
 
         public void LoadSettings()
         {
-            AniDB_Username = ServerSettings.AniDB_Username;
-            AniDB_Password = ServerSettings.AniDB_Password;
-            AniDB_ServerAddress = ServerSettings.AniDB_ServerAddress;
-            AniDB_ServerPort = ServerSettings.AniDB_ServerPort;
-            AniDB_ClientPort = ServerSettings.AniDB_ClientPort;
+            AniDB_Username = ServerSettings.Instance.AniDb.Username;
+            AniDB_Password = ServerSettings.Instance.AniDb.Password;
+            AniDB_ServerAddress = ServerSettings.Instance.AniDb.ServerAddress;
+            AniDB_ServerPort = ServerSettings.Instance.AniDb.ServerPort.ToString();
+            AniDB_ClientPort = ServerSettings.Instance.AniDb.ClientPort.ToString();
 
-            MinOnStartup = ServerSettings.MinimizeOnStartup;
-            MaxOnStartup = !ServerSettings.MinimizeOnStartup;
+            MinOnStartup = ServerSettings.Instance.MinimizeOnStartup;
+            MaxOnStartup = !ServerSettings.Instance.MinimizeOnStartup;
 
 
-            VLCLocation = ServerSettings.VLCLocation;
+            VLCLocation = ServerSettings.Instance.VLCLocation;
 
             if (Utils.IsRunningOnMono()) return;
             

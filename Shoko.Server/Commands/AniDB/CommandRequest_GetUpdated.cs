@@ -6,6 +6,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -48,7 +49,7 @@ namespace Shoko.Server.Commands
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.AniDBUpdates);
                 if (sched != null)
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_Anime_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.Anime_UpdateFrequency);
 
                     // if we have run this in the last 12 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

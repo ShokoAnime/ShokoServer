@@ -11,6 +11,7 @@ using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands.Plex
 {
@@ -35,7 +36,7 @@ namespace Shoko.Server.Commands.Plex
 
             foreach (var section in PlexHelper.GetForUser(_jmmuser).GetDirectories())
             {
-                if (!ServerSettings.Plex_Libraries.Contains(section.Key)) continue;
+                if (!ServerSettings.Instance.Plex.Libraries.Contains(section.Key)) continue;
 
                 var allSeries = ((SVR_Directory) section).GetShows();
                 foreach (var series in allSeries)

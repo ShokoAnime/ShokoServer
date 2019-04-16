@@ -1,4 +1,5 @@
-﻿using Nancy;
+﻿#if false
+using Nancy;
 using System.IO;
 
 namespace Shoko.Server.API
@@ -24,3 +25,4 @@ namespace Shoko.Server.API
         }
     }
 }
+#endif

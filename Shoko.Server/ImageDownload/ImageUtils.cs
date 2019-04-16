@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.ImageDownload
 {
@@ -7,8 +8,9 @@ namespace Shoko.Server.ImageDownload
     {
         public static string GetBaseImagesPath()
         {
-            if (!string.IsNullOrEmpty(ServerSettings.ImagesPath) && Directory.Exists(ServerSettings.ImagesPath))
-                return ServerSettings.ImagesPath;
+            if (!string.IsNullOrEmpty(ServerSettings.Instance.ImagesPath) &&
+                Directory.Exists(ServerSettings.Instance.ImagesPath))
+                return ServerSettings.Instance.ImagesPath;
             string imagepath = ServerSettings.DefaultImagePath;
             if (!Directory.Exists(imagepath))
                 Directory.CreateDirectory(imagepath);

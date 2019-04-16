@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using AniDBAPI;
 using Shoko.Models;
 using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
@@ -12,23 +11,31 @@ using Shoko.Models.Interfaces;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
-using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Commands.Plex;
+
 using Shoko.Server.Extensions;
 using Shoko.Server.Plex;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.Commands;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
-    public partial class ShokoServiceImplementation : IShokoServer
+    [ApiController, Route("/v1"), ApiExplorerSettings(IgnoreApi = true)]
+    public partial class ShokoServiceImplementation : IShokoServer, IHttpContextAccessor
     {
-        //TODO Split this file into subfiles with partial class, Move #region funcionality from the interface to those subfiles. Also move this to API folder
+        HttpContext _ctx;
+        public HttpContext HttpContext { get => _ctx; set => _ctx = value; }
+
+        //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         #region Bookmarks
-
+        [HttpGet("Bookmark")]
         public List<CL_BookmarkedAnime> GetAllBookmarkedAnime()
         {
             List<CL_BookmarkedAnime> baList = new List<CL_BookmarkedAnime>();
@@ -43,6 +50,7 @@ namespace Shoko.Server
             return baList;
         }
 
+        [HttpPost("Bookmark")]
         public CL_Response<CL_BookmarkedAnime> SaveBookmarkedAnime(CL_BookmarkedAnime contract)
         {
             CL_Response<CL_BookmarkedAnime> contractRet = new CL_Response<CL_BookmarkedAnime>
@@ -95,6 +103,7 @@ namespace Shoko.Server
             return contractRet;
         }
 
+        [HttpDelete("Bookmark/{bookmarkedAnimeID}")]
         public string DeleteBookmarkedAnime(int bookmarkedAnimeID)
         {
             try
@@ -104,7 +113,6 @@ namespace Shoko.Server
                     return "Bookmarked not found";
 
                 RepoFactory.BookmarkedAnime.Delete(bookmarkedAnimeID);
-
                 return string.Empty;
             }
             catch (Exception ex)
@@ -114,6 +122,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("Bookmark/{bookmarkedAnimeID}")]
         public CL_BookmarkedAnime GetBookmarkedAnime(int bookmarkedAnimeID)
         {
             try
@@ -131,6 +140,7 @@ namespace Shoko.Server
 
         #region Status and Changes
 
+        [HttpGet("Changes/{date}/{userID}")]
         public CL_MainChanges GetAllChanges(DateTime date, int userID)
         {
             CL_MainChanges c = new CL_MainChanges();
@@ -147,9 +157,9 @@ namespace Shoko.Server
                 c.Filters = new CL_Changes<CL_GroupFilter>
                 {
                     ChangedItems = changes[0]
-                    .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a)?.ToClient())
-                    .Where(a => a != null)
-                    .ToList(),
+                        .ChangedItems.Select(a => RepoFactory.GroupFilter.GetByID(a)?.ToClient())
+                        .Where(a => a != null)
+                        .ToList(),
                     RemovedItems = changes[0].RemovedItems.ToList(),
                     LastChange = changes[0].LastChange
                 };
@@ -213,6 +223,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [HttpGet("GroupFilter/Changes/{date}")]
         public CL_Changes<CL_GroupFilter> GetGroupFilterChanges(DateTime date)
         {
             CL_Changes<CL_GroupFilter> c = new CL_Changes<CL_GroupFilter>();
@@ -232,6 +243,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [HttpGet("Server")]
         public CL_ServerStatus GetServerStatus()
         {
             CL_ServerStatus contract = new CL_ServerStatus();
@@ -283,6 +295,7 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpGet("Server/Versions")]
         public CL_AppVersions GetAppVersions()
         {
             try
@@ -300,6 +313,7 @@ namespace Shoko.Server
 
         #endregion
 
+        [HttpGet("Years")]
         public List<string> GetAllYears()
         {
             List<CL_AnimeSeries_User> grps =
@@ -322,6 +336,7 @@ namespace Shoko.Server
             return allyears.OrderBy(a => a).ToList();
         }
 
+        [HttpGet("Seasons")]
         public List<string> GetAllSeasons()
         {
             List<CL_AnimeSeries_User> grps =
@@ -334,6 +349,7 @@ namespace Shoko.Server
             return allseasons.ToList();
         }
 
+        [HttpGet("Tags")]
         public List<string> GetAllTagNames()
         {
             List<string> allTagNames = new List<string>();
@@ -360,8 +376,10 @@ namespace Shoko.Server
             return allTagNames;
         }
 
+        [HttpPost("CloudAccount/Directory/{cloudaccountid}")]
         public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path)
         {
+            if (path == null) path = "null";
             List<string> result = new List<string>();
             try
             {
@@ -409,6 +427,7 @@ namespace Shoko.Server
             return result;
         }
 
+        [HttpGet("CloudAccount")]
         public List<CL_CloudAccount> GetCloudProviders()
         {
             List<CL_CloudAccount> ls = new List<CL_CloudAccount>();
@@ -425,6 +444,7 @@ namespace Shoko.Server
         }
 
         #region Settings
+        [HttpPost("Server/Settings")]
         public CL_Response SaveServerSettings(CL_ServerSettings contractIn)
         {
             CL_Response contract = new CL_Response
@@ -435,154 +455,150 @@ namespace Shoko.Server
             {
                 // validate the settings
                 bool anidbSettingsChanged = false;
-                if (contractIn.AniDB_ClientPort != ServerSettings.AniDB_ClientPort)
+                if (ushort.TryParse(contractIn.AniDB_ClientPort, out ushort newAniDB_ClientPort) && newAniDB_ClientPort != ServerSettings.Instance.AniDb.ClientPort)
                 {
                     anidbSettingsChanged = true;
-                    int.TryParse(contractIn.AniDB_ClientPort, out int cport);
-                    if (cport <= 0)
-                    {
-                        contract.ErrorMessage = "AniDB Client Port must be numeric and greater than 0" +
-                                                Environment.NewLine;
-                    }
+                    contract.ErrorMessage += "AniDB Client Port must be numeric and greater than 0" +
+                                            Environment.NewLine;
                 }
 
-                if (contractIn.AniDB_ServerPort != ServerSettings.AniDB_ServerPort)
+                if (ushort.TryParse(contractIn.AniDB_ServerPort, out ushort newAniDB_ServerPort) && newAniDB_ServerPort != ServerSettings.Instance.AniDb.ServerPort)
                 {
                     anidbSettingsChanged = true;
-                    int.TryParse(contractIn.AniDB_ServerPort, out int sport);
-                    if (sport <= 0)
-                    {
-                        contract.ErrorMessage = "AniDB Server Port must be numeric and greater than 0" +
-                                                Environment.NewLine;
-                    }
+                    contract.ErrorMessage += "AniDB Server Port must be numeric and greater than 0" +
+                                            Environment.NewLine;
                 }
 
-                if (contractIn.AniDB_Username != ServerSettings.AniDB_Username)
+                if (contractIn.AniDB_Username != ServerSettings.Instance.AniDb.Username)
                 {
                     anidbSettingsChanged = true;
                     if (string.IsNullOrEmpty(contractIn.AniDB_Username))
                     {
-                        contract.ErrorMessage = "AniDB User Name must have a value" + Environment.NewLine;
+                        contract.ErrorMessage += "AniDB User Name must have a value" + Environment.NewLine;
                     }
                 }
 
-                if (contractIn.AniDB_Password != ServerSettings.AniDB_Password)
+                if (contractIn.AniDB_Password != ServerSettings.Instance.AniDb.Password)
                 {
                     anidbSettingsChanged = true;
                     if (string.IsNullOrEmpty(contractIn.AniDB_Password))
                     {
-                        contract.ErrorMessage = "AniDB Password must have a value" + Environment.NewLine;
+                        contract.ErrorMessage += "AniDB Password must have a value" + Environment.NewLine;
                     }
                 }
 
-                if (contractIn.AniDB_ServerAddress != ServerSettings.AniDB_ServerAddress)
+                if (contractIn.AniDB_ServerAddress != ServerSettings.Instance.AniDb.ServerAddress)
                 {
                     anidbSettingsChanged = true;
                     if (string.IsNullOrEmpty(contractIn.AniDB_ServerAddress))
                     {
-                        contract.ErrorMessage = "AniDB Server Address must have a value" + Environment.NewLine;
+                        contract.ErrorMessage += "AniDB Server Address must have a value" + Environment.NewLine;
                     }
                 }
 
+                if (!ushort.TryParse(contractIn.AniDB_AVDumpClientPort, out ushort newAniDB_AVDumpClientPort))
+                {
+                    contract.ErrorMessage += "AniDB AVDump port must be a valid port" + Environment.NewLine;
+                }
+
+
                 if (contract.ErrorMessage.Length > 0) return contract;
 
-                ServerSettings.AniDB_ClientPort = contractIn.AniDB_ClientPort;
-                ServerSettings.AniDB_Password = contractIn.AniDB_Password;
-                ServerSettings.AniDB_ServerAddress = contractIn.AniDB_ServerAddress;
-                ServerSettings.AniDB_ServerPort = contractIn.AniDB_ServerPort;
-                ServerSettings.AniDB_Username = contractIn.AniDB_Username;
-                ServerSettings.AniDB_AVDumpClientPort = contractIn.AniDB_AVDumpClientPort;
-                ServerSettings.AniDB_AVDumpKey = contractIn.AniDB_AVDumpKey;
+                ServerSettings.Instance.AniDb.ClientPort = newAniDB_ClientPort;
+                ServerSettings.Instance.AniDb.Password = contractIn.AniDB_Password;
+                ServerSettings.Instance.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
+                ServerSettings.Instance.AniDb.ServerPort = newAniDB_ServerPort;
+                ServerSettings.Instance.AniDb.Username = contractIn.AniDB_Username;
+                ServerSettings.Instance.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
+                ServerSettings.Instance.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
 
-                ServerSettings.AniDB_DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
-                ServerSettings.AniDB_DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
-                ServerSettings.AniDB_DownloadReviews = contractIn.AniDB_DownloadReviews;
-                ServerSettings.AniDB_DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
+                ServerSettings.Instance.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
+                ServerSettings.Instance.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
+                ServerSettings.Instance.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
+                ServerSettings.Instance.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
 
-                ServerSettings.AniDB_MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
-                ServerSettings.AniDB_MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
-                ServerSettings.AniDB_MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
-                ServerSettings.AniDB_MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
-                ServerSettings.AniDB_MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-                ServerSettings.AniDB_MyList_StorageState = (AniDBFile_State) contractIn.AniDB_MyList_StorageState;
-                ServerSettings.AniDB_MyList_DeleteType = (AniDBFileDeleteType) contractIn.AniDB_MyList_DeleteType;
-                //ServerSettings.AniDB_MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
+                ServerSettings.Instance.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
+                ServerSettings.Instance.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
+                ServerSettings.Instance.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
+                ServerSettings.Instance.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
+                ServerSettings.Instance.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
+                ServerSettings.Instance.AniDb.MyList_StorageState = (AniDBFile_State) contractIn.AniDB_MyList_StorageState;
+                ServerSettings.Instance.AniDb.MyList_DeleteType = (AniDBFileDeleteType) contractIn.AniDB_MyList_DeleteType;
+                //ServerSettings.Instance.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
 
-                ServerSettings.AniDB_MyList_UpdateFrequency =
+                ServerSettings.Instance.AniDb.MyList_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_MyList_UpdateFrequency;
-                ServerSettings.AniDB_Calendar_UpdateFrequency =
+                ServerSettings.Instance.AniDb.Calendar_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_Calendar_UpdateFrequency;
-                ServerSettings.AniDB_Anime_UpdateFrequency =
+                ServerSettings.Instance.AniDb.Anime_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_Anime_UpdateFrequency;
-                ServerSettings.AniDB_MyListStats_UpdateFrequency =
+                ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_MyListStats_UpdateFrequency;
-                ServerSettings.AniDB_File_UpdateFrequency =
+                ServerSettings.Instance.AniDb.File_UpdateFrequency =
                     (ScheduledUpdateFrequency) contractIn.AniDB_File_UpdateFrequency;
 
-                ServerSettings.AniDB_DownloadCharacters = contractIn.AniDB_DownloadCharacters;
-                ServerSettings.AniDB_DownloadCreators = contractIn.AniDB_DownloadCreators;
+                ServerSettings.Instance.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
+                ServerSettings.Instance.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
 
                 // Web Cache
-                ServerSettings.WebCache_Address = contractIn.WebCache_Address;
-                ServerSettings.WebCache_Anonymous = contractIn.WebCache_Anonymous;
-                ServerSettings.WebCache_XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
-                ServerSettings.WebCache_XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
-                ServerSettings.WebCache_TvDB_Get = contractIn.WebCache_TvDB_Get;
-                ServerSettings.WebCache_TvDB_Send = contractIn.WebCache_TvDB_Send;
-                ServerSettings.WebCache_Trakt_Get = contractIn.WebCache_Trakt_Get;
-                ServerSettings.WebCache_Trakt_Send = contractIn.WebCache_Trakt_Send;
-                ServerSettings.WebCache_UserInfo = contractIn.WebCache_UserInfo;
+                ServerSettings.Instance.WebCache.Address = contractIn.WebCache_Address;
+                ServerSettings.Instance.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
+                ServerSettings.Instance.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
+                ServerSettings.Instance.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
+                ServerSettings.Instance.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
+                ServerSettings.Instance.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
+                ServerSettings.Instance.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
 
                 // TvDB
-                ServerSettings.TvDB_AutoLink = contractIn.TvDB_AutoLink;
-                ServerSettings.TvDB_AutoFanart = contractIn.TvDB_AutoFanart;
-                ServerSettings.TvDB_AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
-                ServerSettings.TvDB_AutoPosters = contractIn.TvDB_AutoPosters;
-                ServerSettings.TvDB_AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
-                ServerSettings.TvDB_AutoWideBanners = contractIn.TvDB_AutoWideBanners;
-                ServerSettings.TvDB_AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
-                ServerSettings.TvDB_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.TvDB_UpdateFrequency;
-                ServerSettings.TvDB_Language = contractIn.TvDB_Language;
+                ServerSettings.Instance.TvDB.AutoLink = contractIn.TvDB_AutoLink;
+                ServerSettings.Instance.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
+                ServerSettings.Instance.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
+                ServerSettings.Instance.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
+                ServerSettings.Instance.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
+                ServerSettings.Instance.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
+                ServerSettings.Instance.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
+                ServerSettings.Instance.TvDB.UpdateFrequency = (ScheduledUpdateFrequency) contractIn.TvDB_UpdateFrequency;
+                ServerSettings.Instance.TvDB.Language = contractIn.TvDB_Language;
 
                 // MovieDB
-                ServerSettings.MovieDB_AutoFanart = contractIn.MovieDB_AutoFanart;
-                ServerSettings.MovieDB_AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
-                ServerSettings.MovieDB_AutoPosters = contractIn.MovieDB_AutoPosters;
-                ServerSettings.MovieDB_AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
+                ServerSettings.Instance.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
+                ServerSettings.Instance.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
+                ServerSettings.Instance.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
+                ServerSettings.Instance.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
                 // Import settings
-                ServerSettings.VideoExtensions = contractIn.VideoExtensions;
-                ServerSettings.Import_UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
-                ServerSettings.AutoGroupSeries = contractIn.AutoGroupSeries;
-                ServerSettings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-                ServerSettings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
-                ServerSettings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
+                ServerSettings.Instance.Import.VideoExtensions = contractIn.VideoExtensions.Split(',');
+                ServerSettings.Instance.Import.UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
+                ServerSettings.Instance.AutoGroupSeries = contractIn.AutoGroupSeries;
+                ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
+                ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+                ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-                    ServerSettings.FileQualityFilterPreferences = contractIn.FileQualityFilterPreferences;
-                ServerSettings.RunImportOnStart = contractIn.RunImportOnStart;
-                ServerSettings.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-                ServerSettings.Hash_CRC32 = contractIn.Hash_CRC32;
-                ServerSettings.Hash_MD5 = contractIn.Hash_MD5;
-                ServerSettings.Hash_SHA1 = contractIn.Hash_SHA1;
+                    ServerSettings.Instance.FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
+                ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
+                ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
+                ServerSettings.Instance.Import.Hash_MD5 = contractIn.Hash_MD5;
+                ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
 
                 // Language
-                ServerSettings.LanguagePreference = contractIn.LanguagePreference;
-                ServerSettings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
-                ServerSettings.EpisodeTitleSource = (DataSourceType) contractIn.EpisodeTitleSource;
-                ServerSettings.SeriesDescriptionSource = (DataSourceType) contractIn.SeriesDescriptionSource;
-                ServerSettings.SeriesNameSource = (DataSourceType) contractIn.SeriesNameSource;
+                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',');
+                ServerSettings.Instance.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
+                ServerSettings.Instance.EpisodeTitleSource = (DataSourceType) contractIn.EpisodeTitleSource;
+                ServerSettings.Instance.SeriesDescriptionSource = (DataSourceType) contractIn.SeriesDescriptionSource;
+                ServerSettings.Instance.SeriesNameSource = (DataSourceType) contractIn.SeriesNameSource;
 
                 // Trakt
-                ServerSettings.Trakt_IsEnabled = contractIn.Trakt_IsEnabled;
-                ServerSettings.Trakt_AuthToken = contractIn.Trakt_AuthToken;
-                ServerSettings.Trakt_RefreshToken = contractIn.Trakt_RefreshToken;
-                ServerSettings.Trakt_TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
-                ServerSettings.Trakt_UpdateFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_UpdateFrequency;
-                ServerSettings.Trakt_SyncFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_SyncFrequency;
+                ServerSettings.Instance.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
+                ServerSettings.Instance.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
+                ServerSettings.Instance.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
+                ServerSettings.Instance.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
+                ServerSettings.Instance.TraktTv.UpdateFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_UpdateFrequency;
+                ServerSettings.Instance.TraktTv.SyncFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_SyncFrequency;
 
                 //Plex
-                ServerSettings.Plex_Server = contractIn.Plex_ServerHost;
-                ServerSettings.Plex_Libraries = contractIn.Plex_Sections.Length > 0
+                ServerSettings.Instance.Plex.Server = contractIn.Plex_ServerHost;
+                ServerSettings.Instance.Plex.Libraries = contractIn.Plex_Sections.Length > 0
                     ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
                     : new int[0];
 
@@ -593,9 +609,9 @@ namespace Shoko.Server
                     ShokoService.AnidbProcessor.CloseConnections();
 
                     Thread.Sleep(1000);
-                    ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                        ServerSettings.AniDB_ServerAddress,
-                        ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                    ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                        ServerSettings.Instance.AniDb.ServerAddress,
+                        ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
                 }
             }
             catch (Exception ex)
@@ -606,13 +622,14 @@ namespace Shoko.Server
             return contract;
         }
 
+        [HttpGet("Server/Settings")]
         public CL_ServerSettings GetServerSettings()
         {
             CL_ServerSettings contract = new CL_ServerSettings();
 
             try
             {
-                return ServerSettings.ToContract();
+                return ServerSettings.Instance.ToContract();
             }
             catch (Exception ex)
             {
@@ -625,41 +642,49 @@ namespace Shoko.Server
 
         #region Actions
 
+        [HttpPost("Folder/Import")]
         public void RunImport()
         {
             ShokoServer.RunImport();
         }
 
+        [HttpPost("File/Hashes/Sync")]
         public void SyncHashes()
         {
             ShokoServer.SyncHashes();
         }
 
+        [HttpPost("Folder/Scan")]
         public void ScanDropFolders()
         {
             Importer.RunImport_DropFolders();
         }
 
+        [HttpPost("Folder/Scan/{importFolderID}")]
         public void ScanFolder(int importFolderID)
         {
             ShokoServer.ScanFolder(importFolderID);
         }
 
+        [HttpPost("Folder/RemoveMissing")]
         public void RemoveMissingFiles()
         {
             ShokoServer.RemoveMissingFiles();
         }
 
+        [HttpPost("Folder/RefreshMediaInfo")]
         public void RefreshAllMediaInfo()
         {
             ShokoServer.RefreshAllMediaInfo();
         }
 
+        [HttpPost("AniDB/MyList/Sync")]
         public void SyncMyList()
         {
             ShokoServer.SyncMyList();
         }
 
+        [HttpPost("AniDB/Vote/Sync")]
         public void SyncVotes()
         {
             CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
@@ -669,21 +694,25 @@ namespace Shoko.Server
         #endregion
 
         #region Queue Actions
+        [HttpPost("CommandQueue/Hasher/{paused}")]
         public void SetCommandProcessorHasherPaused(bool paused)
         {
             ShokoService.CmdProcessorHasher.Paused = paused;
         }
 
+        [HttpPost("CommandQueue/General/{paused}")]
         public void SetCommandProcessorGeneralPaused(bool paused)
         {
             ShokoService.CmdProcessorGeneral.Paused = paused;
         }
 
+        [HttpPost("CommandQueue/Images/{paused}")]
         public void SetCommandProcessorImagesPaused(bool paused)
         {
             ShokoService.CmdProcessorImages.Paused = paused;
         }
 
+        [HttpDelete("CommandQueue/Hasher")]
         public void ClearHasherQueue()
         {
             try
@@ -699,6 +728,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("CommandQueue/Images")]
         public void ClearImagesQueue()
         {
             try
@@ -714,6 +744,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpDelete("CommandQueue/General")]
         public void ClearGeneralQueue()
         {
             try
@@ -730,6 +761,7 @@ namespace Shoko.Server
         }
         #endregion
 
+        [HttpPost("AniDB/Status")]
         public string TestAniDBConnection()
         {
             string log = string.Empty;
@@ -741,9 +773,9 @@ namespace Shoko.Server
                 Thread.Sleep(1000);
 
                 log += "Init..." + Environment.NewLine;
-                ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                    ServerSettings.AniDB_ServerAddress,
-                    ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                    ServerSettings.Instance.AniDb.ServerAddress,
+                    ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
                 log += "Login..." + Environment.NewLine;
                 if (ShokoService.AnidbProcessor.Login())
@@ -768,6 +800,7 @@ namespace Shoko.Server
             return log;
         }
 
+        [HttpGet("MediaInfo/Quality")]
         public List<string> GetAllUniqueVideoQuality()
         {
             try
@@ -781,6 +814,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MediaInfo/AudioLanguages")]
         public List<string> GetAllUniqueAudioLanguages()
         {
             try
@@ -794,6 +828,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpGet("MediaInfo/SubtitleLanguages")]
         public List<string> GetAllUniqueSubtitleLanguages()
         {
             try
@@ -809,18 +844,21 @@ namespace Shoko.Server
 
         #region Plex
 
+        [HttpGet("User/Plex/LoginUrl/{userID}")]
         public string LoginUrl(int userID)
         {
             JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).LoginUrl;
         }
 
+        [HttpGet("User/Plex/Authenticated/{userID}")]
         public bool IsPlexAuthenticated(int userID)
         {
             JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             return PlexHelper.GetForUser(user).IsAuthenticated;
         }
 
+        [HttpGet("User/Plex/Remove/{userID}")]
         public bool RemovePlexAuth(int userID)
         {
             JMMUser user = RepoFactory.JMMUser.GetByID(userID);
@@ -830,6 +868,7 @@ namespace Shoko.Server
 
         #endregion
 
+        [HttpPost("Image/Enable/{enabled}/{imageID}/{imageType}")]
         public string EnableDisableImage(bool enabled, int imageID, int imageType)
         {
             try
@@ -890,6 +929,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpPost("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}")]
         public string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType)
         {
             try
@@ -954,6 +994,7 @@ namespace Shoko.Server
 
         #region Calendar (Dashboard)
 
+        [HttpGet("AniDB/Anime/Calendar/{userID}/{numberOfDays}")]
         public List<CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays)
         {
             // get all the series
@@ -982,6 +1023,7 @@ namespace Shoko.Server
             return animeList;
         }
 
+        [HttpGet("AniDB/Anime/ForMonth/{userID}/{month}/{year}")]
         public List<CL_AniDB_Anime> GetAnimeForMonth(int jmmuserID, int month, int year)
         {
             // get all the series
@@ -1012,6 +1054,7 @@ namespace Shoko.Server
             return animeList;
         }
 
+        [HttpPost("AniDB/Anime/Calendar/Update")]
         public string UpdateCalendarData()
         {
             try
@@ -1059,6 +1102,7 @@ namespace Shoko.Server
         /// <param name="maxResults"></param>
         /// <param name="userID"></param>
         /// <param name="recommendationType">1 = to watch, 2 = to download</param>
+        [HttpGet("Recommendation/{maxResults}/{userID}/{recommendationType}")]
         public List<CL_Recommendation> GetRecommendations(int maxResults, int userID, int recommendationType)
         {
             List<CL_Recommendation> recs = new List<CL_Recommendation>();
@@ -1104,7 +1148,7 @@ namespace Shoko.Server
                     if (dictIgnored.ContainsKey(vote.EntityID)) continue;
 
                     // check if the user has this anime
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(vote.EntityID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(vote.EntityID);
                     if (anime == null) continue;
 
                     // get similar anime
@@ -1117,7 +1161,7 @@ namespace Shoko.Server
                     {
                         if (dictIgnored.ContainsKey(link.SimilarAnimeID)) continue;
 
-                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
+                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByID(link.SimilarAnimeID);
                         if (animeLink != null)
                             if (!juser.AllowedAnime(animeLink)) continue;
 
@@ -1230,6 +1274,7 @@ namespace Shoko.Server
             return score;
         }
 
+        [HttpGet("AniDB/ReleaseGroup/{animeID}")]
         public List<CL_AniDB_GroupStatus> GetReleaseGroupsForAnime(int animeID)
         {
             List<CL_AniDB_GroupStatus> relGroups = new List<CL_AniDB_GroupStatus>();
@@ -1286,13 +1331,14 @@ namespace Shoko.Server
             return relGroups;
         }
 
+        [HttpGet("AniDB/Character/{animeID}")]
         public List<CL_AniDB_Character> GetCharactersForAnime(int animeID)
         {
             List<CL_AniDB_Character> chars = new List<CL_AniDB_Character>();
 
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
                 return anime.GetCharactersContract();
             }
             catch (Exception ex)
@@ -1302,6 +1348,7 @@ namespace Shoko.Server
             return chars;
         }
 
+        [HttpGet("AniDB/Character/FromSeiyuu/{seiyuuID}")]
         public List<CL_AniDB_Character> GetCharactersForSeiyuu(int aniDB_SeiyuuID)
         {
             List<CL_AniDB_Character> chars = new List<CL_AniDB_Character>();
@@ -1315,14 +1362,14 @@ namespace Shoko.Server
 
                 foreach (AniDB_Character_Seiyuu chrSei in links)
                 {
-                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByCharID(chrSei.CharID);
+                    AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(chrSei.CharID);
                     if (chr != null)
                     {
                         List<AniDB_Anime_Character> aniChars =
                             RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID);
                         if (aniChars.Count > 0)
                         {
-                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniChars[0].AnimeID);
+                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(aniChars[0].AnimeID);
                             if (anime != null)
                             {
                                 CL_AniDB_Character cl = chr.ToClient(aniChars[0].CharType);
@@ -1340,6 +1387,7 @@ namespace Shoko.Server
             return chars;
         }
 
+        [HttpGet("AniDB/Seiyuu/{seiyuuID}")]
         public AniDB_Seiyuu GetAniDBSeiyuu(int seiyuuID)
         {
             try

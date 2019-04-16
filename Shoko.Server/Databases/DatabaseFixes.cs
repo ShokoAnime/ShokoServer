@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
@@ -8,7 +9,6 @@ using AniDBAPI.Commands;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
-using Pri.LongPath;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -18,6 +18,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases
 {
@@ -447,7 +448,7 @@ namespace Shoko.Server.Databases
 
             // Get the list from AniDB
             AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-            cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+            cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
             enHelperActivityType ev = cmd.Process();
             if (ev != enHelperActivityType.GotMyListHTTP)
             {

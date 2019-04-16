@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
-using Nancy.Extensions;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -83,7 +84,7 @@ namespace Shoko.Server.Commands
                 DateTime? newWatchedDate = null;
                 int? lid = null;
                 // this only gets overwritten if the response is File Already in MyList
-                AniDBFile_State? state = ServerSettings.AniDB_MyList_StorageState;
+                AniDBFile_State? state = ServerSettings.Instance.AniDb.MyList_StorageState;
                 
                 if (isManualLink)
                     foreach (var xref in xrefs)
@@ -100,7 +101,7 @@ namespace Shoko.Server.Commands
                     RepoFactory.VideoLocal.Save(vid);
                 }
 
-                logger.Info($"Added File to MyList. File: {vid.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {newWatchedDate != null}  Local State: {ServerSettings.AniDB_MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.AniDB_MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.AniDB_MyList_ReadUnwatched}");
+                logger.Info($"Added File to MyList. File: {vid.FileName}  Manual Link: {isManualLink}  Watched Locally: {originalWatchedDate != null}  Watched AniDB: {newWatchedDate != null}  Local State: {ServerSettings.Instance.AniDb.MyList_StorageState}  AniDB State: {state}  ReadStates: {ReadStates}  ReadWatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadWatched}  ReadUnwatched Setting: {ServerSettings.Instance.AniDb.MyList_ReadUnwatched}");
                 if (juser != null)
                 {
                     
@@ -112,12 +113,12 @@ namespace Shoko.Server.Commands
                     if (ReadStates)
                     {
                         // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
-                        if (ServerSettings.AniDB_MyList_ReadWatched && watched && !watchedLocally)
+                        if (ServerSettings.Instance.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                         {
                             vid.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
                                 false, false);
                         }
-                        else if (ServerSettings.AniDB_MyList_ReadUnwatched && !watched && watchedLocally)
+                        else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                         {
                             vid.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
                                 false, false);
@@ -125,22 +126,22 @@ namespace Shoko.Server.Commands
                     }
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
-                    if (watchedChanged || state != ServerSettings.AniDB_MyList_StorageState)
+                    if (watchedChanged || state != ServerSettings.Instance.AniDb.MyList_StorageState)
                     {
                         // if vid.MyListID > 0, isManualLink _should_ always be false, but _should_ isn't good enough
                         if (vid.MyListID > 0 && !isManualLink)
                         {
-                            if (ServerSettings.AniDB_MyList_SetWatched && watchedLocally)
+                            if (ServerSettings.Instance.AniDb.MyList_SetWatched && watchedLocally)
                                 ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, true, originalWatchedDate);
-                            else if (ServerSettings.AniDB_MyList_SetUnwatched && !watchedLocally)
+                            else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && !watchedLocally)
                                 ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, false);
                         } else if (isManualLink)
                         {
                             foreach (var xref in xrefs)
                             {
-                                if (ServerSettings.AniDB_MyList_SetWatched && watchedLocally)
+                                if (ServerSettings.Instance.AniDb.MyList_SetWatched && watchedLocally)
                                     ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, true, originalWatchedDate);
-                                else if (ServerSettings.AniDB_MyList_SetUnwatched && !watchedLocally)
+                                else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched && !watchedLocally)
                                     ShokoService.AnidbProcessor.UpdateMyListFileStatus(vid, xref.AnimeID, xref.GetEpisode().EpisodeNumber, false);
                             }
                         }
@@ -156,8 +157,8 @@ namespace Shoko.Server.Commands
                 //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
 
                 // lets also try adding to the users trakt collecion
-                if (ServerSettings.Trakt_IsEnabled &&
-                    !string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken))
+                if (ServerSettings.Instance.TraktTv.Enabled &&
+                    !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
                 {
                     foreach (SVR_AnimeEpisode aep in vid.GetAnimeEpisodes())
                     {

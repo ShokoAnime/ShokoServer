@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.IO;
 using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.FileHelper
 {
@@ -44,16 +45,15 @@ namespace Shoko.Server.FileHelper
 
             try
             {
-                string exts = ServerSettings.VideoExtensions;
+                string[] exts = ServerSettings.Instance.Import.VideoExtensions;
 
-                if (exts == null || exts.Trim().Length == 0)
+                if (exts == null || exts.Length == 0)
                 {
                     logger.Error("Could not find VideoExtensions app setting in config file");
                     return extList;
                 }
 
-                string[] extArray = exts.Split(',');
-                foreach (string ext in extArray)
+                foreach (string ext in exts)
                 {
                     extList.Add(ext.Trim().ToUpper());
                 }

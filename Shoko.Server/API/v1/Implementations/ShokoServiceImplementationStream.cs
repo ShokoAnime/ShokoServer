@@ -1,31 +1,37 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Nancy;
-using Nancy.Rest.Module;
-using Shoko.Models;
-using Shoko.Models.Server;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.v1;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
+using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server
 {
-    public class ShokoServiceImplementationStream : IShokoServerStream
+    // TODO THIS NEEDS TO BE ABLE TO HOOK INTO THE ApiInUse FIELD SOMEHOW.
+    [ApiController, Route("/Stream"), ApiVersion("1.0", Deprecated = true)]
+    public class ShokoServiceImplementationStream : IShokoServerStream, IHttpContextAccessor
     {
+        public HttpContext HttpContext { get; set; }
+
         //89% Should be enough to not touch matroska offsets and give us some margin
         private double WatchedThreshold = 0.89;
 
         public const string ServerVersion = "Shoko Stream Server 1.0";
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -36,6 +42,7 @@ namespace Shoko.Server
             return StreamFromIFile(r, autowatch);
         }
 
+        [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
@@ -50,7 +57,7 @@ namespace Shoko.Server
         {
             try
             {
-                Nancy.Request request = RestModule.CurrentModule.Request;
+                var request = HttpContext.Request;
 
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
@@ -133,6 +140,7 @@ namespace Shoko.Server
             }
         }
 
+        [HttpHead("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -147,6 +155,7 @@ namespace Shoko.Server
             return s;
         }
 
+        [HttpHead("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
         public Stream InfoVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
@@ -227,7 +236,7 @@ namespace Shoko.Server
             r.Mime = r.File.ContentType;
             if (string.IsNullOrEmpty(r.Mime) || r.Mime.Equals("application/octet-stream",
                     StringComparison.InvariantCultureIgnoreCase))
-                r.Mime = MimeTypes.GetMimeType(r.File.FullName);
+                r.Mime = Mime.GetMimeMapping(r.File.FullName);
             r.Status = HttpStatusCode.OK;
             return r;
         }

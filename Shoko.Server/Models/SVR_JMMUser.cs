@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Security.Principal;
 using System.Web.Script.Serialization;
-using NHibernate;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -11,7 +12,7 @@ using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_JMMUser : JMMUser, Nancy.Security.IUserIdentity
+    public class SVR_JMMUser : JMMUser, IIdentity
     {
         public SVR_JMMUser()
         {
@@ -79,8 +80,14 @@ namespace Shoko.Server.Models
             get { return Username; }
         }
 
-        [ScriptIgnore]
-        public IEnumerable<string> Claims { get; set; }
+        //[JsonIgnore]
+        [NotMapped] public IEnumerable<string> Claims { get; set; }
+
+        [NotMapped] string IIdentity.AuthenticationType => "API";
+
+        [NotMapped] bool IIdentity.IsAuthenticated => true;
+
+        [NotMapped] string IIdentity.Name => Username;
 
 
         public SVR_JMMUser(string username)

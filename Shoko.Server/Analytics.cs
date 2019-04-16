@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Shoko.Server.Extensions;
 using NLog;
 using System.Globalization;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -45,7 +46,7 @@ namespace Shoko.Server
 
         private static bool PostData(string type, IDictionary<string, string> extraData)
         {
-            if (ServerSettings.GA_OptOutPlzDont) return false;
+            if (ServerSettings.Instance.GA_OptOutPlzDont) return false;
 
             try
             {
@@ -56,10 +57,10 @@ namespace Shoko.Server
                         {"t", type},
                         {"an", "Shoko Server"},
                         {"tid", AnalyticsId},
-                        {"cid", ServerSettings.GA_ClientId.ToString()},
+                        {"cid", ServerSettings.Instance.GA_ClientId.ToString()},
                         {"v", "1"},
                         {"av", Utils.GetApplicationVersion()},
-                        {"ul", CultureInfo.GetCultureInfo(ServerSettings.Culture).DisplayName},
+                        {"ul", CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture).DisplayName},
                         {"aip", "1"}
                     };
                     data.AddRange(extraData);

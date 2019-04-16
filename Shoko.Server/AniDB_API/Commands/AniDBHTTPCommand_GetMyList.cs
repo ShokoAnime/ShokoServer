@@ -4,6 +4,7 @@ using System.IO;
 using System.Xml;
 using NLog;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
 {
@@ -47,7 +48,7 @@ namespace AniDBAPI.Commands
 
         private void WriteAnimeMyListToFile(string xml)
         {
-            string filePath = ServerSettings.MyListDirectory;
+            string filePath = ServerSettings.Instance.MyListDirectory;
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);
@@ -64,7 +65,7 @@ namespace AniDBAPI.Commands
 
         private XmlDocument LoadAnimeMyListFromFile()
         {
-            string filePath = ServerSettings.MyListDirectory;
+            string filePath = ServerSettings.Instance.MyListDirectory;
 
             if (!Directory.Exists(filePath))
                 Directory.CreateDirectory(filePath);

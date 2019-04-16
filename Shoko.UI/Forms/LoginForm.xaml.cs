@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Web;
 using System.Windows;
 using System.Windows.Navigation;
-using Nancy.Helpers;
 
 namespace Shoko.UI.Forms
 {

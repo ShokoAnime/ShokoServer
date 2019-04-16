@@ -7,7 +7,6 @@ using System.ServiceModel.Web;
 using System.Text;
 using AniDBAPI;
 using FluentNHibernate.Conventions;
-using Nancy.Rest.Module;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
@@ -20,11 +19,13 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using NLog;
 using Shoko.Models.Plex.Connections;
+using Shoko.Server.API.v1;
 using Shoko.Server.Plex;
 using Shoko.Server.PlexAndKodi.Kodi;
 using Shoko.Server.PlexAndKodi.Plex;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
 
@@ -1204,11 +1205,11 @@ namespace Shoko.Server.PlexAndKodi
         {
             if (directories == null)
             {
-                ServerSettings.Plex_Libraries = new int[0];
+                ServerSettings.Instance.Plex.Libraries = new int[0];
                 return;
             }
 
-            ServerSettings.Plex_Libraries = directories.Select(s => s.Key).ToArray();
+            ServerSettings.Instance.Plex.Libraries = directories.Select(s => s.Key).ToArray();
         }
 
         public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => PlexHelper.GetForUser(RepoFactory.JMMUser.GetByID(userId)).GetDirectories();

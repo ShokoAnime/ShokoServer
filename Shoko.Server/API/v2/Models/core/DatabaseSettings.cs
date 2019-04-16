@@ -1,4 +1,6 @@
-﻿namespace Shoko.Server.API.v2.Models.core
+﻿using Shoko.Server.Repositories;
+
+namespace Shoko.Server.API.v2.Models.core
 {
     public class DatabaseSettings
     {

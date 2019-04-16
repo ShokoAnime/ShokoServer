@@ -6,6 +6,7 @@ using System.Xml;
 using NLog;
 using Shoko.Server;
 using Shoko.Server.AniDB_API;
+using Shoko.Server.Settings;
 
 namespace AniDBAPI
 {
@@ -79,7 +80,7 @@ namespace AniDBAPI
 
         public static XmlDocument LoadAnimeHTTPFromFile(int animeID)
         {
-            string filePath = ServerSettings.AnimeXmlDirectory;
+            string filePath = ServerSettings.Instance.AnimeXmlDirectory;
             string fileName = $"AnimeDoc_{animeID}.xml";
             string fileNameWithPath = Path.Combine(filePath, fileName);
 
@@ -110,7 +111,7 @@ namespace AniDBAPI
         {
             try
             {
-                string filePath = ServerSettings.AnimeXmlDirectory;
+                string filePath = ServerSettings.Instance.AnimeXmlDirectory;
                 string fileName = $"AnimeDoc_{animeID}.xml";
                 string fileNameWithPath = Path.Combine(filePath, fileName);
 

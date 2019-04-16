@@ -8,9 +8,7 @@ using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
-using Directory = Pri.LongPath.Directory;
-using File = Pri.LongPath.File;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -113,12 +111,9 @@ namespace Shoko.Server
                     {
                         FileName = avdumpDestination,
                         Arguments =
-                            $@" --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={
-                                    ServerSettings.AniDB_AVDumpClientPort
-                                } --PrintEd2kLink -t {fileName}",
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Hidden,
-                        RedirectStandardOutput = true,
+                            $" --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey}" +
+                            $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}",
+                        UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden, RedirectStandardOutput = true,
                         CreateNoWindow = true
                     }
                 };
@@ -155,7 +150,8 @@ namespace Shoko.Server
             string fileName = (char)34 + file + (char)34;
 
             pProcess.StartInfo.Arguments =
-                $@"{avdumpDestination} --Auth={ServerSettings.AniDB_Username}:{ServerSettings.AniDB_AVDumpKey} --LPort={ServerSettings.AniDB_AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+                $"{avdumpDestination} --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey}" +
+                $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;

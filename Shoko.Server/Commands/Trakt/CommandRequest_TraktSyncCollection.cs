@@ -5,6 +5,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -36,7 +37,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                if (!ServerSettings.Trakt_IsEnabled || string.IsNullOrEmpty(ServerSettings.Trakt_AuthToken)) return;
+                if (!ServerSettings.Instance.TraktTv.Enabled || string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return;
 
                 ScheduledUpdate sched =
                     RepoFactory.ScheduledUpdate.GetByUpdateType((int) ScheduledUpdateType.TraktSync);
@@ -50,7 +51,7 @@ namespace Shoko.Server.Commands
                 }
                 else
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_SyncFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.SyncFrequency);
 
                     // if we have run this in the last xxx hours then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

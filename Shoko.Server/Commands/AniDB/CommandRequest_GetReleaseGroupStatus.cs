@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -85,7 +86,7 @@ namespace Shoko.Server.Commands
 
                 GroupStatusCollection grpCol = ShokoService.AnidbProcessor.GetReleaseGroupStatusUDP(AnimeID);
 
-                if (ServerSettings.AniDB_DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
+                if (ServerSettings.Instance.AniDb.DownloadReleaseGroups && grpCol != null && grpCol.Groups != null &&
                     grpCol.Groups.Count > 0)
                 {
                     grpCol.Groups.DistinctBy(a => a.GroupID)

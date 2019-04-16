@@ -4,6 +4,7 @@ using Shoko.Commons.Queue;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -46,7 +47,7 @@ namespace Shoko.Server.Commands
 
             try
             {
-                switch (ServerSettings.AniDB_MyList_DeleteType)
+                switch (ServerSettings.Instance.AniDb.MyList_DeleteType)
                 {
                     case AniDBFileDeleteType.Delete:
                         if (MyListID > 0)

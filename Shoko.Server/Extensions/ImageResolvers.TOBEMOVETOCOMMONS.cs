@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Models;
@@ -12,7 +8,6 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Properties;
-using File = System.IO.File;
 using Resources = Shoko.Commons.Properties.Resources;
 
 namespace Shoko.Server.Extensions

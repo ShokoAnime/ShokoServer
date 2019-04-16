@@ -5,11 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Nancy.Extensions;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
@@ -23,7 +23,7 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Path = Pri.LongPath.Path;
+using Shoko.Server.Settings;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
@@ -590,7 +590,8 @@ namespace Shoko.Server.Models
                 }
             }
 
-            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Linux_UID, ServerSettings.Linux_GID, ServerSettings.Linux_Permission);
+            Utilities.LinuxFS.SetLinuxPermissions(this.FullServerPath, ServerSettings.Instance.Linux.UID,
+                ServerSettings.Instance.Linux.GID, ServerSettings.Instance.Linux.Permission);
         }
 
         // returns false if we should retry

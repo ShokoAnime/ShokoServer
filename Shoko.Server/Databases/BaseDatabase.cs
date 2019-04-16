@@ -12,6 +12,7 @@ using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases
 {
@@ -22,7 +23,7 @@ namespace Shoko.Server.Databases
 
         public string GetDatabaseBackupName(int version)
         {
-            string backupath = ServerSettings.DatabaseBackupDirectory;
+            string backupath = ServerSettings.Instance.Database.DatabaseBackupDirectory;
             try
             {
                 Directory.CreateDirectory(backupath);
@@ -31,7 +32,7 @@ namespace Shoko.Server.Databases
             {
                 //ignored
             }
-            string fname = ServerSettings.DatabaseName + "_" + version.ToString("D3") + "_" +
+            string fname = ServerSettings.Instance.Database.Schema + "_" + version.ToString("D3") + "_" +
                            DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
                            DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
                            DateTime.Now.Minute.ToString("D2");
@@ -205,7 +206,7 @@ namespace Shoko.Server.Databases
 
         public void PopulateInitialData()
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             string message = Commons.Properties.Resources.Database_Users;
 
@@ -247,7 +248,7 @@ namespace Shoko.Server.Databases
             // We can't just check the existence of anything specific, as the user can delete most of these
             if (RepoFactory.GroupFilter.GetTopLevel().Count() > 6) return;
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             // Favorites
             SVR_GroupFilter gf = new SVR_GroupFilter
@@ -402,11 +403,11 @@ namespace Shoko.Server.Databases
         {
             if (RepoFactory.JMMUser.GetAll().Any()) return;
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            string defaultPassword = ServerSettings.DefaultUserPassword == ""
+            string defaultPassword = ServerSettings.Instance.Database.DefaultUserPassword == ""
                 ? ""
-                : Digest.Hash(ServerSettings.DefaultUserPassword);
+                : Digest.Hash(ServerSettings.Instance.Database.DefaultUserPassword);
             SVR_JMMUser defaultUser = new SVR_JMMUser
             {
                 CanEditServerSettings = 1,
@@ -415,7 +416,7 @@ namespace Shoko.Server.Databases
                 IsAniDBUser = 1,
                 IsTraktUser = 1,
                 Password = defaultPassword,
-                Username = ServerSettings.DefaultUserUsername
+                Username = ServerSettings.Instance.Database.DefaultUserUsername
             };
             RepoFactory.JMMUser.Save(defaultUser, true);
 
@@ -438,7 +439,7 @@ namespace Shoko.Server.Databases
 
             RenameScript initialScript = new RenameScript();
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
             initialScript.ScriptName = Commons.Properties.Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
@@ -496,7 +497,7 @@ namespace Shoko.Server.Databases
 
                 if (RepoFactory.CustomTag.GetAll().Any()) return;
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 // Dropped
                 CustomTag tag = new CustomTag

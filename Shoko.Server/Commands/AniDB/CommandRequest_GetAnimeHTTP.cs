@@ -5,6 +5,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -62,7 +63,7 @@ namespace Shoko.Server.Commands
 
 
                 // download reviews
-                if (ServerSettings.AniDB_DownloadReviews)
+                if (ServerSettings.Instance.AniDb.DownloadReviews)
                 {
                     CommandRequest_GetReviews cmd = new CommandRequest_GetReviews(AnimeID, ForceRefresh);
                     cmd.Save();

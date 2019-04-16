@@ -11,7 +11,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -21,13 +20,13 @@ using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.Databases;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Utilities;
 using Formatting = Newtonsoft.Json.Formatting;
 
-namespace Shoko.Server
+namespace Shoko.Server.Settings.Migration
 {
-    public static class ServerSettings
+    public static class ServerSettings_Legacy
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -61,7 +60,7 @@ namespace Shoko.Server
         {
             get
             {
-                if (Utils.IsRunningOnMono())
+                if (Utils.IsLinux)
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                         ".shoko",
                         DefaultInstance);
@@ -99,10 +98,12 @@ namespace Shoko.Server
                 try
                 {
                     //Reconfigure log file to applicationpath
-                    var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
-                    target.FileName = ApplicationPath + "/logs/${shortdate}.txt";
-                    LogManager.ReconfigExistingLoggers();
-
+                    var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
+                    if (target != null)
+                    {
+                        target.FileName = ApplicationPath + "/logs/${shortdate}.log";
+                        LogManager.ReconfigExistingLoggers();
+                    }
 
                     disabledSave = true;
                     bool startedWithFreshConfig = false;
@@ -151,7 +152,7 @@ namespace Shoko.Server
                     }
                     // Check and see if we have old JMMServer installation and add to migration if needed
                     string jmmServerInstallLocation = null;
-                    if (!Utils.IsRunningOnMono())
+                    if (!Utils.IsLinux)
                     {
                         jmmServerInstallLocation = (string)
                         Registry.GetValue(
@@ -395,7 +396,7 @@ namespace Shoko.Server
                     SaveSettings();
 
                     // Just in case start once for new configurations as admin to set permissions if needed
-                    if (startedWithFreshConfig && !Utils.IsAdministrator() && !Utils.IsRunningOnMono())
+                    if (startedWithFreshConfig && !Utils.IsAdministrator() && !Utils.IsLinux)
                     {
                         logger.Info("User has fresh config, restarting once as admin.");
                         Utils.RestartAsAdmin();
@@ -465,7 +466,7 @@ namespace Shoko.Server
                 {
                     // First try to locate it from old JMM Server installer entry
                     string jmmServerInstallLocation = null;
-                    if (!Utils.IsRunningOnMono()) jmmServerInstallLocation = (string) Registry.GetValue(
+                    if (!Utils.IsLinux) jmmServerInstallLocation = (string) Registry.GetValue(
                         @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{898530ED-CFC7-4744-B2B8-A8D98A2FA06C}_is1",
                         "InstallLocation", null);
 
@@ -726,19 +727,19 @@ namespace Shoko.Server
             set => Set("DatabaseBackupDirectory", value);
         }
 
-        public static string JMMServerPort
+        public static int JMMServerPort
         {
             get
             {
                 string serverPort = Get("JMMServerPort");
-                if (string.IsNullOrEmpty(serverPort))
+                if (!int.TryParse(serverPort, out int outPort))
                 {
-                    serverPort = "8111";
-                    Set("JMMServerPort", serverPort);
+                    outPort = 8111;
+                    Set("JMMServerPort", "8111");
                 }
-                return serverPort;
+                return outPort;
             }
-            set => Set("JMMServerPort", value);
+            set => Set("JMMServerPort", value.ToString());
         }
 
 
@@ -1885,6 +1886,15 @@ namespace Shoko.Server
             set { Set(nameof(AniDB_MaxRelationDepth), value.ToString()); }
         }
 
+        public static bool TraceLog {
+            get
+            {
+                if (!bool.TryParse(Get(nameof(TraceLog)), out bool val)) return false;
+                return val;
+            }
+            set { Set(nameof(TraceLog), value.ToString()); }
+        }
+
         public static Guid GA_ClientId
         {
             get
@@ -1940,14 +1950,14 @@ namespace Shoko.Server
 
                 // Web Cache
                 WebCache_Address = WebCache_Address,
-                WebCache_Anonymous = WebCache_Anonymous,
+             
                 WebCache_XRefFileEpisode_Get = WebCache_XRefFileEpisode_Get,
                 WebCache_XRefFileEpisode_Send = WebCache_XRefFileEpisode_Send,
                 WebCache_TvDB_Get = WebCache_TvDB_Get,
                 WebCache_TvDB_Send = WebCache_TvDB_Send,
                 WebCache_Trakt_Get = WebCache_Trakt_Get,
                 WebCache_Trakt_Send = WebCache_Trakt_Send,
-                WebCache_UserInfo = WebCache_UserInfo,
+          
 
                 // TvDB
                 TvDB_AutoLink = TvDB_AutoLink,
@@ -2027,7 +2037,7 @@ namespace Shoko.Server
             {
                 logger.Warn($"Error in log (server version lookup): {ex}");
             }
-
+            /*
             try
             {
                 if (DatabaseFactory.Instance != null)
@@ -2038,7 +2048,7 @@ namespace Shoko.Server
                 // oopps, can't create file
                 logger.Warn("Error in log (database version lookup: {0}", ex.Message);
             }
-
+            */
             logger.Info($"Operating System: {Utils.GetOSInfo()}");
 
             try

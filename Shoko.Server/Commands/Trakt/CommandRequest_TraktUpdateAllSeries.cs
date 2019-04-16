@@ -5,6 +5,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -48,7 +49,7 @@ namespace Shoko.Server.Commands
                 }
                 else
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.Trakt_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.TraktTv.UpdateFrequency);
 
                     // if we have run this in the last xxx hours then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;

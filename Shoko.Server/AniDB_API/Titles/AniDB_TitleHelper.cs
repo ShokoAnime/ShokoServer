@@ -8,6 +8,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Shoko.Commons.Utils;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.AniDB_API.Titles
 {
@@ -43,7 +44,7 @@ namespace Shoko.Server.AniDB_API.Titles
                     {
                         foreach (var animeTitle in anime.Titles)
                         {
-                            if (animeTitle.TitleLanguage != ServerSettings.LanguagePreference &&
+                            if (!ServerSettings.Instance.LanguagePreference.Contains(animeTitle.TitleLanguage) &&
                                 animeTitle.TitleLanguage != "en" && animeTitle.TitleLanguage != "x-jat") continue;
                             if (!animeTitle.Title.FuzzyMatches(query)) continue;
                             matches.Add(anime);

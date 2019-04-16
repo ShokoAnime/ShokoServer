@@ -13,6 +13,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Models
@@ -112,7 +113,7 @@ namespace Shoko.Server.Models
 
         public static bool IsRelationTypeInExclusions(string type)
         {
-            string[] list = ServerSettings.AutoGroupSeriesRelationExclusions.Split('|');
+            string[] list = ServerSettings.Instance.AutoGroupSeriesRelationExclusions.Split('|');
             return list.Any(a => a.Equals(type, StringComparison.InvariantCultureIgnoreCase));
         }
 

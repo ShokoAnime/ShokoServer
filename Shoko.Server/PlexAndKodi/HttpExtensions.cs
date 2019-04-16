@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentNHibernate.Mapping;
 using Nancy;
+using Shoko.Commons.Extensions;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
 
@@ -28,11 +29,11 @@ namespace Shoko.Server.PlexAndKodi
 
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
-            Request req = prov?.Nancy?.Request;
+            var req = prov?.HttpContext?.Request;
 
-            string host = req?.Url.HostName ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
+            string host = req?.Host.Host ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
                               ?.RequestUri.Host;
-            string scheme = req?.Url.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
+            string scheme = req?.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
                                 ?.RequestUri.Scheme;
             if (host == null)
             {
@@ -64,9 +65,9 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string GetQueryParameter(this IProvider prov, string name)
         {
-            if (prov?.Nancy?.Request != null)
+            if (prov?.HttpContext?.Request != null)
             {
-                return prov.Nancy.Request.Query[name];
+                return prov.HttpContext.Request.Query[name];
             }
             if (WebOperationContext.Current == null)
                 return null;
@@ -87,10 +88,10 @@ namespace Shoko.Server.PlexAndKodi
 
         public static string RequestHeader(this IProvider prov, string name)
         {
-            if (prov?.Nancy?.Request?.Headers != null)
+            if (prov?.HttpContext?.Request?.Headers != null)
             {
-                if (prov.Nancy.Request.Headers.Keys.Contains(name))
-                    return prov.Nancy.Request.Headers[name].ElementAt(0);
+                if (prov.HttpContext.Request.Headers.Keys.Contains(name))
+                    return prov.HttpContext.Request.Headers[name].ElementAt(0);
             }
             else if (WebOperationContext.Current != null &&
                      WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
@@ -111,16 +112,10 @@ namespace Shoko.Server.PlexAndKodi
         public static void AddResponseHeaders(this IProvider prov, Dictionary<string, string> headers,
             string contentype = null)
         {
-            if (prov?.Nancy?.After != null)
+            if (prov?.HttpContext?.Response != null)
             {
-                List<Tuple<string, string>> tps = headers.Select(a => new Tuple<string, string>(a.Key, a.Value))
-                    .ToList();
-                prov.Nancy.After.AddItemToEndOfPipeline((ctx) =>
-                {
-                    ctx.Response.WithHeaders(tps.ToArray());
-                    if (contentype != null)
-                        ctx.Response.ContentType = contentype;
-                });
+                headers.Select(a => (a.Key, a.Value)).ForEach(a => prov.HttpContext.Response.Headers[a.Key] = a.Value);
+                prov.HttpContext.Response.ContentType = contentype;
             }
             else if (WebOperationContext.Current != null)
             {

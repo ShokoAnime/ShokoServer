@@ -5,6 +5,7 @@ using NHibernate;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases
 {
@@ -35,7 +36,7 @@ namespace Shoko.Server.Databases
 
         public static void CloseSessionFactory()
         {
-            if (sessionFactory != null) sessionFactory.Dispose();
+            sessionFactory?.Dispose();
             sessionFactory = null;
         }
 
@@ -47,10 +48,10 @@ namespace Shoko.Server.Databases
             {
                 if (_instance == null)
                 {
-                    if (ServerSettings.DatabaseType.Trim()
+                    if (ServerSettings.Instance.Database.Type.Trim()
                         .Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
                         _instance = new SQLServer();
-                    else if (ServerSettings.DatabaseType.Trim()
+                    else if (ServerSettings.Instance.Database.Type.Trim()
                         .Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
                         _instance = new SQLite();
                     else
@@ -65,13 +66,13 @@ namespace Shoko.Server.Databases
         {
             try
             {
-                Instance = null;
+                _instance = null;
                 if (!Instance.DatabaseAlreadyExists())
                 {
                     Instance.CreateDatabase();
                     Thread.Sleep(3000);
                 }
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 CloseSessionFactory();
 

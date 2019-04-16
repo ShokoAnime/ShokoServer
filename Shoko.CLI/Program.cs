@@ -1,6 +1,7 @@
 ﻿using Shoko.Server;
 using System;
 using NLog;
+using Shoko.Server.Settings;
 
 namespace Shoko.CLI
 {
@@ -19,14 +20,14 @@ namespace Shoko.CLI
                     }
                 }
             }
-            
+
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
             ShokoServer.Instance.StartUpServer();
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
             ShokoServer.Instance.RestartAniDBSocket();
-            if (!ServerSettings.FirstRun)
+            if (!ServerSettings.Instance.FirstRun)
                 ShokoServer.RunWorkSetupDB();
             else logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
 
@@ -38,6 +39,13 @@ namespace Shoko.CLI
                 e.Cancel = true;
             };
 
+            ServerState.Instance.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+                {
+                    Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+                }
+            };
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
                 ev => Console.WriteLine($"Queue state change: {ev.QueueState.formatMessage()}");
 

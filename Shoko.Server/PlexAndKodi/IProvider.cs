@@ -1,4 +1,5 @@
-﻿using Shoko.Models.PlexAndKodi;
+﻿using Microsoft.AspNetCore.Http;
+using Shoko.Models.PlexAndKodi;
 using Nancy;
 
 namespace Shoko.Server.PlexAndKodi
@@ -24,7 +25,7 @@ namespace Shoko.Server.PlexAndKodi
         bool AddPlexPrefsItem { get; }
         bool RemoveFileAttribute { get; } // This will force the transcoder in plex to use the stream instead the file.
         bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; }
-        NancyModule Nancy { get; set; }
+        HttpContext HttpContext { get; set; }
 
         string ExcludeTags { get; }
     }

@@ -3,8 +3,10 @@ using System.IO;
 using System.ServiceModel.Web;
 using System.Text;
 using System.Xml.Serialization;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
 using Nancy;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.PlexAndKodi.Plex
 {
@@ -58,7 +60,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
         public string ExcludeTags => "Kodi";
 
         public string ServiceAddress => ShokoServer.PathAddressPlex;
-        public int ServicePort => int.Parse(ServerSettings.JMMServerPort);
+        public int ServicePort => ServerSettings.Instance.ServerPort;
         public bool UseBreadCrumbs => true;
         public bool ConstructFakeIosParent => true;
         public bool AutoWatch => true;
@@ -100,7 +102,7 @@ namespace Shoko.Server.PlexAndKodi.Plex
         public bool AddPlexPrefsItem { get; } = true;
         public bool RemoveFileAttribute { get; } = true;
         public bool AddEpisodeNumberToTitlesOnUnsupportedClients { get; } = true;
-        public NancyModule Nancy { get; set; }
+        public HttpContext HttpContext { get; set; }
 
         //public void AddResponseHeaders()
         //{

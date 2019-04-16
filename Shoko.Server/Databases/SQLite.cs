@@ -8,6 +8,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using NHibernate;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -30,7 +31,7 @@ namespace Shoko.Server.Databases
 
         public static string GetDatabasePath()
         {
-            return ServerSettings.MySqliteDirectory;
+            return ServerSettings.Instance.Database.MySqliteDirectory;
         }
 
         public static string GetDatabaseFilePath()
@@ -74,7 +75,7 @@ namespace Shoko.Server.Databases
             if (!File.Exists(GetDatabaseFilePath()))
                 SQLiteConnection.CreateFile(GetDatabaseFilePath());
 
-            ServerSettings.DatabaseFile = GetDatabaseFilePath();
+            ServerSettings.Instance.Database.SQLite_DatabaseFile = GetDatabaseFilePath();
         }
 
 

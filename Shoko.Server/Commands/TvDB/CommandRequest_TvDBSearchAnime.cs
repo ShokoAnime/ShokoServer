@@ -13,6 +13,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -51,7 +52,7 @@ namespace Shoko.Server.Commands
             try
             {
                 // first check if the user wants to use the web cache
-                if (ServerSettings.WebCache_TvDB_Get)
+                if (ServerSettings.Instance.WebCache.TvDB_Get)
                 {
                     try
                     {
@@ -98,7 +99,7 @@ namespace Shoko.Server.Commands
                     }
                 }
 
-                if (!ServerSettings.TvDB_AutoLink) return;
+                if (!ServerSettings.Instance.TvDB.AutoLink) return;
 
                 // try to pull a link from a prequel/sequel
                 var relations = RepoFactory.AniDB_Anime_Relation.GetFullLinearRelationTree(AnimeID);

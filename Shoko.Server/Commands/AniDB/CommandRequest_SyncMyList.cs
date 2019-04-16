@@ -12,6 +12,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -56,7 +57,7 @@ namespace Shoko.Server.Commands
                 }
                 else
                 {
-                    int freqHours = Utils.GetScheduledHours(ServerSettings.AniDB_MyList_UpdateFrequency);
+                    int freqHours = Utils.GetScheduledHours(ServerSettings.Instance.AniDb.MyList_UpdateFrequency);
 
                     // if we have run this in the last 24 hours and are not forcing it, then exit
                     TimeSpan tsLastRun = DateTime.Now - sched.LastUpdate;
@@ -68,7 +69,7 @@ namespace Shoko.Server.Commands
 
                 // Get the list from AniDB
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password);
+                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
                 enHelperActivityType ev = cmd.Process();
                 if (ev != enHelperActivityType.GotMyListHTTP)
                 {
@@ -107,7 +108,7 @@ namespace Shoko.Server.Commands
                             }
 
                             // Update file state if deleted
-                            if (file.State != (int) ServerSettings.AniDB_MyList_StorageState)
+                            if (file.State != (int) ServerSettings.Instance.AniDb.MyList_StorageState)
                             {
                                 int seconds = Commons.Utils.AniDB.GetAniDBDateAsSeconds(file.WatchedDate);
                                 CommandRequest_UpdateMyListFileStatus cmdUpdateFile =
@@ -122,7 +123,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // means we have found a file in our local collection, which is not recorded online
-                    if (ServerSettings.AniDB_MyList_AddFiles)
+                    if (ServerSettings.Instance.AniDb.MyList_AddFiles)
                     {
                         CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(vid.Hash);
                         cmdAddFile.Save();
@@ -195,7 +196,7 @@ namespace Shoko.Server.Commands
                             if (localStatus)
                             {
                                 // local = watched, anidb = unwatched
-                                if (ServerSettings.AniDB_MyList_ReadUnwatched)
+                                if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched)
                                 {
                                     modifiedItems++;
                                     vl.ToggleWatchedStatus(false, false, watchedDate,
@@ -203,7 +204,7 @@ namespace Shoko.Server.Commands
                                         true);
                                     action = "Used AniDB Status";
                                 }
-                                else if (ServerSettings.AniDB_MyList_SetWatched)
+                                else if (ServerSettings.Instance.AniDb.MyList_SetWatched)
                                 {
                                     vl.ToggleWatchedStatus(true, true, userRecord.WatchedDate, false, jmmUserID,
                                         false, true);
@@ -212,14 +213,14 @@ namespace Shoko.Server.Commands
                             else
                             {
                                 // means local is un-watched, and anidb is watched
-                                if (ServerSettings.AniDB_MyList_ReadWatched)
+                                if (ServerSettings.Instance.AniDb.MyList_ReadWatched)
                                 {
                                     modifiedItems++;
                                     vl.ToggleWatchedStatus(true, false, watchedDate, false,
                                         jmmUserID, false, true);
                                     action = "Updated Local record to Watched";
                                 }
-                                else if (ServerSettings.AniDB_MyList_SetUnwatched)
+                                else if (ServerSettings.Instance.AniDb.MyList_SetUnwatched)
                                 {
                                     vl.ToggleWatchedStatus(false, true, watchedDate, false, jmmUserID,
                                         false, true);

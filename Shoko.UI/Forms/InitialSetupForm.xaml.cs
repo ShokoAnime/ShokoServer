@@ -5,6 +5,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Shoko.Server;
+using Shoko.Server.Settings;
 
 namespace Shoko.UI.Forms
 {
@@ -60,12 +61,12 @@ namespace Shoko.UI.Forms
                 ShokoService.AnidbProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.Server_Initializing);
-                ShokoService.AnidbProcessor.Init(ServerSettings.AniDB_Username, ServerSettings.AniDB_Password,
-                    ServerSettings.AniDB_ServerAddress,
-                    ServerSettings.AniDB_ServerPort, ServerSettings.AniDB_ClientPort);
+                ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
+                    ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,
+                    ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
                 workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Login);
                 if (ShokoService.AnidbProcessor.Login())
@@ -131,17 +132,23 @@ namespace Shoko.UI.Forms
 
         void txtClientPort_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ServerSettings.AniDB_ClientPort = txtClientPort.Text.Trim();
+            try
+            {
+                ServerSettings.Instance.AniDb.ClientPort = ushort.Parse(txtClientPort.Text.Trim());
+            }
+            catch
+            {
+            }
         }
 
         void txtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
-            ServerSettings.AniDB_Password = txtPassword.Password;
+            ServerSettings.Instance.AniDb.Password = txtPassword.Password;
         }
 
         void txtUsername_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ServerSettings.AniDB_Username = txtUsername.Text.Trim();
+            ServerSettings.Instance.AniDb.Username = txtUsername.Text.Trim();
         }
 
         void btnClose_Click(object sender, RoutedEventArgs e)
