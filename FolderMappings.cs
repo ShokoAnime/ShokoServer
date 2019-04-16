@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Pri.LongPath;
+using System.IO;
 using Shoko.Models.Server;
 
 namespace Shoko.Commons

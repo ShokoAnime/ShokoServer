@@ -15,7 +15,6 @@ using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using DirectoryInfo = Pri.LongPath.DirectoryInfo;
 
 namespace Shoko.Commons.Utils
 {
@@ -620,7 +619,7 @@ namespace Shoko.Commons.Utils
         public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
         {
             List<string> dirs=new List<string>();
-            if (!Pri.LongPath.Directory.Exists(path))
+            if (!Directory.Exists(path))
                 return dirs;
             DirectoryInfo info=new DirectoryInfo(path);
             AuthorizationRuleCollection coll = info.GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));

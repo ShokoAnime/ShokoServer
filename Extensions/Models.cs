@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Pri.LongPath;
 using Shoko.Commons.Languages;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;

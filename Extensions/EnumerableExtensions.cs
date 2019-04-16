@@ -16,18 +16,19 @@ namespace Shoko.Commons.Extensions
         }
 
 
-        public static TSource GetRandomElement<TSource>(this IEnumerable<TSource> source)
+        public static TSource GetRandomElement<TSource>(this IEnumerable<TSource> source, Random random = null)
         {
+            if (random == null) random = rand;
             // speedup, don't convert to list if it is one
             if (source is IList<TSource> sourceList)
             {
                 if (sourceList.Count == 0) return default;
-                return sourceList[rand.Next(sourceList.Count)];
+                return sourceList[random.Next(sourceList.Count)];
             }
 
             var list = source.ToList();
             if (list.Count == 0) return default;
-            return list.ElementAt(rand.Next(list.Count));
+            return list.ElementAt(random.Next(list.Count));
         }
 
         public static IEnumerable<TSource> DistinctBy<TSource, TKey>
