@@ -71,10 +71,10 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeGroup_User> SaveGroup(CL_AnimeGroup_Save_Request grp, int userID);
 
-        [Rest("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}", Verbs.Post)]
+        [Rest("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}", Verbs.Post)]
         void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID);
 
-        [Rest("Group/DefaultSerie/{animeGroupID}", Verbs.Delete)]
+        [Rest("Group/DefaultSeries/{animeGroupID}", Verbs.Delete)]
         void RemoveDefaultSeriesForGroup(int animeGroupID);
 
         [Rest("Group/Rename", Verbs.Post, TimeOutSeconds = 180)]
@@ -83,7 +83,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Group/{animeGroupID}/{deleteFiles}", Verbs.Delete)]
         string DeleteAnimeGroup(int animeGroupID, bool deleteFiles);
 
-        [Rest("Group/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
+        [Rest("Group/ForSeries/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID);
 
         [Rest("Group/Recreate/{resume}", Verbs.Post, TimeOutSeconds = 300)]
@@ -96,55 +96,55 @@ namespace Shoko.Models.Interfaces
 
         #region Series
 
-        [Rest("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}", Verbs.Post, TimeOutSeconds = 300)]
+        [Rest("Series/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}", Verbs.Post, TimeOutSeconds = 300)]
         CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite);
 
-        [Rest("Serie/{userID}", Verbs.Get)]
+        [Rest("Series/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetAllSeries(int userID);
 
-        [Rest("Serie/{userID}", Verbs.Post)]
+        [Rest("Series/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request request, int userID);
 
-        [Rest("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}", Verbs.Post)]
+        [Rest("Series/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID);
 
-        [Rest("Serie/ForGroup/{animeGroupID}/{userID}", Verbs.Get)]
+        [Rest("Series/ForGroup/{animeGroupID}/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID);
 
-        [Rest("Serie/{animeSeriesID}/{userID}", Verbs.Get)]
+        [Rest("Series/{animeSeriesID}/{userID}", Verbs.Get)]
         CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID);
 
-        [Rest("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}", Verbs.Post)]
+        [Rest("Series/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}", Verbs.Post)]
         string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType, int userID);
 
-        [Rest("Serie/Seasons/{seriesID}", Verbs.Get)]
+        [Rest("Series/Seasons/{seriesID}", Verbs.Get)]
         List<int> GetSeasonNumbersForSeries(int seriesID);
 
-        [Rest("Serie/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}", Verbs.Delete)]
+        [Rest("Series/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}", Verbs.Delete)]
         string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup);
 
-        [Rest("Serie/TvDB/Refresh/{seriesID}", Verbs.Post)]
+        [Rest("Series/TvDB/Refresh/{seriesID}", Verbs.Post)]
         string UpdateTvDBData(int seriesID);
 
-        [Rest("Serie/MissingEpisodes/{maxRecords}/{userID}", Verbs.Get)]
+        [Rest("Series/MissingEpisodes/{maxRecords}/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int userID);
 
-        [Rest("Serie/ForGroupRecursive/{animeGroupID}/{userID}", Verbs.Get)]
+        [Rest("Series/ForGroupRecursive/{animeGroupID}/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID);
 
-        [Rest("Serie/ForAnime/{animeID}/{userID}", Verbs.Get)]
+        [Rest("Series/ForAnime/{animeID}/{userID}", Verbs.Get)]
         CL_AnimeSeries_User GetSeriesForAnime(int animeID, int userID);
 
-        [Rest("Serie/WithoutFiles/{userID}", Verbs.Get)]
+        [Rest("Series/WithoutFiles/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetSeriesWithoutAnyFiles(int userID);
 
-        [Rest("Serie/RecentlyAdded/{maxRecords}/{userID}", Verbs.Get)]
+        [Rest("Series/RecentlyAdded/{maxRecords}/{userID}", Verbs.Get)]
         List<CL_AnimeSeries_User> GetSeriesRecentlyAdded(int maxRecords, int userID);
 
-        [Rest("Serie/ExistingForAnime/{animeID}", Verbs.Get)]
+        [Rest("Series/ExistingForAnime/{animeID}", Verbs.Get)]
         bool GetSeriesExistingForAnime(int animeID);
 
-        [Rest("Serie/SearchFilename/{uid}", Verbs.Post)]
+        [Rest("Series/SearchFilename/{uid}", Verbs.Post)]
         List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string query);
 
         #endregion
@@ -163,7 +163,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Episode/{animeEpisodeID}/{userID}", Verbs.Get)]
         CL_AnimeEpisode_User GetEpisode(int animeEpisodeID, int userID);
 
-        [Rest("Episode/ForSerie/{animeSeriesID}/{userID}", Verbs.Get)]
+        [Rest("Episode/ForSeries/{animeSeriesID}/{userID}", Verbs.Get)]
         List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID);
 
         [Rest("Episode/ForSingleFile/{videoLocalID}/{userID}", Verbs.Get)]
