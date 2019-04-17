@@ -260,7 +260,7 @@ namespace Shoko.Server
                 return true;
             }
             string programlocation =
-                        Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+                Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             string[] dllFiles = Directory.GetFiles(programlocation, "*.dll", SearchOption.AllDirectories);
             bool result = true;
 
@@ -407,11 +407,11 @@ namespace Shoko.Server
                     }
                     return false;
                 }
-                    Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
-                    logger.Error(e);
-                    ShutDown();
-                    return false;
-                }
+                Utils.ShowErrorMessage("Unable to start hosting, please run JMMServer as administrator once.");
+                logger.Error(e);
+                ShutDown();
+                return false;
+            }
             return true;
         }
 
@@ -1713,8 +1713,8 @@ namespace Shoko.Server
         public void CheckForUpdates()
         {
             Assembly a = Assembly.GetExecutingAssembly();
-                ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
-                ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
+            ServerState.Instance.ApplicationVersion = Utils.GetApplicationVersion(a);
+            ServerState.Instance.ApplicationVersionExtra = Utils.GetApplicationExtraVersion(a);
 
             logger.Info("Checking for updates...");
             CheckForUpdatesNew(false);
