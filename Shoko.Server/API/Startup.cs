@@ -85,7 +85,7 @@ namespace Shoko.Server.API
                     new ShokoApiReader()
                 );
             });
-            //services.AddVersionedApiExplorer();
+            services.AddVersionedApiExplorer();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
@@ -99,7 +99,7 @@ namespace Shoko.Server.API
                 });
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApiVersionDescriptionProvider provider)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             //var appConfig = new AppConfiguration();
             //ConfigurationBinder.Bind(config, appConfig);
@@ -126,10 +126,10 @@ namespace Shoko.Server.API
                 options =>
                 {
                     // build a swagger endpoint for each discovered API version
-                    foreach (var description in provider.ApiVersionDescriptions)
-                    {
-                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
-                    }
+                    //foreach (var description in provider.ApiVersionDescriptions)
+                    //{
+                    //    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                    //}
                 });
             // Important for first run at least
             app.UseAuthentication();
