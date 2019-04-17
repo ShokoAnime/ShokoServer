@@ -52,17 +52,15 @@ namespace Shoko.Server
             {
                 using (var client = new HttpClient())
                 {
-                    var data = new Dictionary<string, string>
-                    {
-                        {"t", type},
-                        {"an", "Shoko Server"},
-                        {"tid", AnalyticsId},
-                        {"cid", ServerSettings.Instance.GA_ClientId.ToString()},
-                        {"v", "1"},
-                        {"av", Utils.GetApplicationVersion()},
-                        {"ul", CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture).DisplayName},
-                        {"aip", "1"}
-                    };
+                    var data = new Dictionary<string, string>();
+                    data.Add("t", type);
+                    data.Add("an", "Shoko Server");
+                    data.Add("tid", AnalyticsId);
+                    data.Add("cid", ServerSettings.Instance.GA_Client.ToString());
+                    data.Add("v", "1");
+                    data.Add("av", Utils.GetApplicationVersion());
+                    data.Add("ul", CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture).DisplayName);
+                    data.Add("aip", "1");
                     data.AddRange(extraData);
 
                     var resp = client.PostAsync($"{Endpoint}/collect", new FormUrlEncodedContent(data))

@@ -15,7 +15,7 @@ namespace Shoko.UI
     /// </summary>
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        private void OnStartup(object a, StartupEventArgs e)
         {
             for (int x = 0; x < e.Args.Length; x++)
             {
@@ -28,7 +28,8 @@ namespace Shoko.UI
                 }
             }
             ServerSettings.LoadSettings();
-            base.OnStartup(e);
+            var main = new MainWindow();
+            main.Show();
         }
     }
 }

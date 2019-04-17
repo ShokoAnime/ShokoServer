@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using NHibernate;
+using NLog.Web;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -648,7 +649,7 @@ namespace Shoko.Server
             logger.Info("Initializing Web Hosts...");
             ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
             bool started = true;
-            started &= NetPermissionWrapper(StartNancyHost);
+            started &= NetPermissionWrapper(StartWebHost);
             if (!started)
             {
                 StopHost();
@@ -1490,7 +1491,7 @@ namespace Shoko.Server
         /// <summary>
         /// Running Nancy and Validating all require aspects before running it
         /// </summary>
-        private static void StartNancyHost()
+        private static void StartWebHost()
         {
             if (webHost != null)
                 return;
@@ -1500,8 +1501,7 @@ namespace Shoko.Server
                 {
                     logging.ClearProviders();
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                    logging.AddNLog();
-                })
+                }).UseNLog()
 #endif
                 .Build();
 
@@ -1697,7 +1697,7 @@ namespace Shoko.Server
 
             ServerSettings.Instance.ServerPort = port;
 
-            bool started = NetPermissionWrapper(StartNancyHost);
+            bool started = NetPermissionWrapper(StartWebHost);
             if (!started)
             {
                 StopHost();
