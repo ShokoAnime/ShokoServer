@@ -10,7 +10,7 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class EpisodeController : BaseController
     {
-        [HttpGet("{id}/watched/{watched}")]
+        [HttpPost("{id}/watched/{watched}")]
         public ActionResult SetWatchedStatusOnEpisode(int id, bool watched)
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(id);
