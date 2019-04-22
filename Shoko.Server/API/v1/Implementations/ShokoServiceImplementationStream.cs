@@ -95,6 +95,7 @@ namespace Shoko.Server
         }
 
         [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -106,6 +107,7 @@ namespace Shoko.Server
         }
 
         [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
         public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
@@ -125,7 +127,7 @@ namespace Shoko.Server
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
                 {
-                    return new StreamWithResponse(HttpStatusCode.InternalServerError,
+                    return new StreamWithResponse(HttpStatusCode.BadRequest,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
                 }
                 Stream org = fr.Result;
@@ -245,28 +247,17 @@ namespace Shoko.Server
 
         private InfoResult ResolveVideoLocal(int videolocalid, int? userId, bool? autowatch)
         {
-            try
+            InfoResult r = new InfoResult();
+            SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+            if (loc == null)
             {
-                InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
-                if (loc == null)
-                {
-                    r.Status = HttpStatusCode.NotFound;
-                    r.StatusDescription = "Video Not Found";
-                    return r;
-                }
-                r.VideoLocal = loc;
-                r.File = loc.GetBestFileLink();
-                return FinishResolve(r, userId, autowatch);
+                r.Status = HttpStatusCode.BadRequest;
+                r.StatusDescription = "Video Not Found";
+                return r;
             }
-            catch (Exception e)
-            {
-                logger.Error("An error occurred while serving a file: " + e);
-                var resp = new InfoResult();
-                resp.Status = HttpStatusCode.InternalServerError;
-                resp.StatusDescription = e.Message;
-                return resp;
-            }
+            r.VideoLocal = loc;
+            r.File = loc.GetBestFileLink();
+            return FinishResolve(r, userId, autowatch);
         }
 
         public static string Base64DecodeUrl(string base64EncodedData)

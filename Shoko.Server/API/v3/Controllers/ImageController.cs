@@ -18,7 +18,7 @@ namespace Shoko.Server.API.v3
         /// <param name="id"></param>
         /// <returns>200 on found, 400 if the type or source are invalid, and 404 if the id is not found</returns>
         [HttpGet("{source}/{type}/{id}")]
-        [ProducesResponseType(200), ProducesResponseType(400), ProducesResponseType(404)]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(400), ProducesResponseType(404)]
         public ActionResult GetImage(string source, string type, int id)
         {
             source = source.ToLower();
