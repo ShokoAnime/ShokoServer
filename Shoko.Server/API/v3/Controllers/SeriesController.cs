@@ -1,3 +1,4 @@
+#if false
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
@@ -63,7 +64,8 @@ namespace Shoko.Server.API.v3
                         if (includeQuery.Contains("images")) HttpContext.Items.Add("images", 0);
                     }
                 }
-            } else if (query.ContainsKey("tagfilter"))
+            }
+            if (query.ContainsKey("tagfilter"))
             {
                 // TODO Makes this more safe
                 HttpContext.Items.Add("tagfilter", int.Parse(query["tagfilter"].FirstOrDefault()));
@@ -71,3 +73,4 @@ namespace Shoko.Server.API.v3
         }
     }
 }
+#endif

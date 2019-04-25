@@ -129,10 +129,11 @@ namespace Shoko.Server.API
                 options =>
                 {
                     // build a swagger endpoint for each discovered API version
-                    //foreach (var description in provider.ApiVersionDescriptions)
-                    //{
-                    //    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
-                    //}
+                    var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+                    foreach (var description in provider.ApiVersionDescriptions)
+                    {
+                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                    }
                 });
             // Important for first run at least
             app.UseAuthentication();

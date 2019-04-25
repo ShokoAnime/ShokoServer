@@ -11,24 +11,24 @@ namespace Shoko.Server.API.v3
         /// rating
         /// </summary>
         [Required]
-        public decimal rating { get; set; }
+        public decimal Value { get; set; }
         
         /// <summary>
         /// out of what? Assuming int, as the max should be
         /// </summary>
         [Required]
-        public int max_rating { get; set; }
+        public int MaxValue { get; set; }
         
         /// <summary>
         /// AniDB, etc
         /// </summary>
         [Required]
-        public string source { get; set; }
+        public string Source { get; set; }
         
         /// <summary>
         /// number of votes
         /// </summary>
-        public int votes { get; set; }
+        public int Votes { get; set; }
         
         /// <summary>
         /// for temporary vs permanent, or any other situations that may arise later

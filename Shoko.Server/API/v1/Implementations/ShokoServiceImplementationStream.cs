@@ -1,28 +1,35 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.v1;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
 using Mime = MimeMapping.MimeUtility;
+using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
-    // TODO THIS NEEDS TO BE ABLE TO HOOK INTO THE ApiInUse FIELD SOMEHOW.
     [ApiController, Route("/Stream"), ApiVersion("1.0", Deprecated = true)]
-    public class ShokoServiceImplementationStream : IShokoServerStream, IHttpContextAccessor
+    public class ShokoServiceImplementationStream : Controller, IShokoServerStream, IHttpContextAccessor
     {
+        static ShokoServiceImplementationStream()
+        {
+            _connectionTimer.Elapsed += TimerElapsed;
+        }
+
         public HttpContext HttpContext { get; set; }
 
         //89% Should be enough to not touch matroska offsets and give us some margin
@@ -30,8 +37,65 @@ namespace Shoko.Server
 
         public const string ServerVersion = "Shoko Stream Server 1.0";
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        
+        /// <summary>
+        ///  A list of open connections to the API
+        /// </summary>
+        private static HashSet<string> _openConnections = new HashSet<string>();
+        /// <summary>
+        /// blur the connection state to 5s, as most media players and calls are spread.
+        /// This prevents flickering of the state for UI
+        /// </summary>
+        private static Timer _connectionTimer = new Timer(5000);
+        
+        private static void AddConnection(HttpContext ctx)
+        {
+            Guid guid = Guid.NewGuid();
+            string id = guid.ToString();
+            ctx.Items["ContextGUID"] = id;
+            lock (_openConnections)
+            {
+                _openConnections.Add(id);
+                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+            }
+        }
+        
+        private static void RemoveConnection(HttpContext ctx)
+        {
+            if (!ctx.Items.ContainsKey("ContextGUID")) return;
+            lock (_openConnections)
+            {
+                _openConnections.Remove((string) ctx.Items["ContextGUID"]);
+            }
+            ResetTimer();
+        }
+
+        private static void ResetTimer()
+        {
+            lock (_connectionTimer)
+            {
+                _connectionTimer.Stop();
+                _connectionTimer.Start();
+            }
+        }
+
+        private static void TimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            lock (_openConnections)
+            {
+                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+            }
+        }
+
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            AddConnection(context.HttpContext);
+            base.OnActionExecuting(context);
+            RemoveConnection(context.HttpContext);
+        }
 
         [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
         public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
@@ -43,6 +107,7 @@ namespace Shoko.Server
         }
 
         [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
         public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
@@ -62,7 +127,7 @@ namespace Shoko.Server
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
                 {
-                    return new StreamWithResponse(HttpStatusCode.InternalServerError,
+                    return new StreamWithResponse(HttpStatusCode.BadRequest,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
                 }
                 Stream org = fr.Result;
@@ -182,28 +247,17 @@ namespace Shoko.Server
 
         private InfoResult ResolveVideoLocal(int videolocalid, int? userId, bool? autowatch)
         {
-            try
+            InfoResult r = new InfoResult();
+            SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
+            if (loc == null)
             {
-                InfoResult r = new InfoResult();
-                SVR_VideoLocal loc = RepoFactory.VideoLocal.GetByID(videolocalid);
-                if (loc == null)
-                {
-                    r.Status = HttpStatusCode.NotFound;
-                    r.StatusDescription = "Video Not Found";
-                    return r;
-                }
-                r.VideoLocal = loc;
-                r.File = loc.GetBestFileLink();
-                return FinishResolve(r, userId, autowatch);
+                r.Status = HttpStatusCode.BadRequest;
+                r.StatusDescription = "Video Not Found";
+                return r;
             }
-            catch (Exception e)
-            {
-                logger.Error("An error occurred while serving a file: " + e);
-                var resp = new InfoResult();
-                resp.Status = HttpStatusCode.InternalServerError;
-                resp.StatusDescription = e.Message;
-                return resp;
-            }
+            r.VideoLocal = loc;
+            r.File = loc.GetBestFileLink();
+            return FinishResolve(r, userId, autowatch);
         }
 
         public static string Base64DecodeUrl(string base64EncodedData)
