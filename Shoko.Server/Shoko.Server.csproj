@@ -1018,6 +1018,7 @@
     <Compile Include="API\v3\Controllers\SeriesController.cs" />
     <Compile Include="API\v3\Models\Common\BaseModel.cs" />
     <Compile Include="API\v3\Models\Common\Description.cs" />
+    <Compile Include="API\v3\Models\Common\ID.cs" />
     <Compile Include="API\v3\Models\Common\Image.cs" />
     <Compile Include="API\v3\Models\Common\Rating.cs" />
     <Compile Include="API\v3\Models\Common\Role.cs" />
