@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Newtonsoft.Json.Serialization;
 using Shoko.Server.API.Authentication;
+using Shoko.Server.API.SignalR;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
@@ -87,6 +88,8 @@ namespace Shoko.Server.API
             });
             services.AddVersionedApiExplorer();
 
+            services.AddSignalR();
+
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
@@ -133,6 +136,11 @@ namespace Shoko.Server.API
                 });
             // Important for first run at least
             app.UseAuthentication();
+
+            app.UseSignalR(conf =>
+            {
+                conf.MapHub<EventsHub>("/signalr/events");
+            });
 
             app.UseMvc();
         }

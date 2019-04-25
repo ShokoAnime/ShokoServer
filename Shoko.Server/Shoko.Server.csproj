@@ -964,6 +964,7 @@
     <Compile Include="API\Authentication\InitUser.cs" />
     <Compile Include="API\BaseController.cs" />
     <Compile Include="API\RestController.cs" />
+    <Compile Include="API\SignalR\EventsHub.cs" />
     <Compile Include="API\Startup.cs" />
     <Compile Include="API\UserHandler.cs" />
     <Compile Include="API\v1\Implementations\ShokoServiceImplementationKodi.cs" />

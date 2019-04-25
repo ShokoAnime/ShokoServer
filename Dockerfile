@@ -1,14 +1,16 @@
-FROM mono:5.4
+FROM mono:5.20
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 ENV PUID=1000 \
     PGID=100
 
+RUN apt-get update && apt-get install -y --force-yes gnupg curl
+
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
-RUN echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
+RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt update && apt install -y --force-yes libmediainfo0 librhash0 sqlite.interop jq unzip && apt install -t jessie-backports gosu
+RUN apt-get update && apt-get install -y --force-yes libmediainfo0v5 librhash0 sqlite.interop jq unzip && apt-get install -y --force-yes -t stretch-backports gosu
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
