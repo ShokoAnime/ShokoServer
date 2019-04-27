@@ -586,7 +586,7 @@ namespace Shoko.Server
 
             if (t.Hours > 0)
                 return $"{t.Hours}:{t.Minutes.ToString().PadLeft(2, '0')}:{t.Seconds.ToString().PadLeft(2, '0')}";
-                return $"{t.Minutes}:{t.Seconds.ToString().PadLeft(2, '0')}";
+            return $"{t.Minutes}:{t.Seconds.ToString().PadLeft(2, '0')}";
         }
 
         public static string FormatAniDBRating(double rat)
@@ -601,7 +601,7 @@ namespace Shoko.Server
         {
             if (string.IsNullOrEmpty(sint))
                 return null;
-                return int.Parse(sint);
+            return int.Parse(sint);
         }
 
         public static string RemoveInvalidFolderNameCharacters(string folderName)

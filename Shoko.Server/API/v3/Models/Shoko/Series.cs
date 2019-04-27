@@ -62,7 +62,9 @@ namespace Shoko.Server.API.v3
             Images = GetRandomImages(ctx, ser);
 
             Name = ser.GetSeriesName();
-            GenerateSizes(ael, uid);
+            Sizes = ModelHelper.GenerateSizes(ael, uid);
+            Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
+                   Sizes.Local.Specials + Sizes.Local.Trailers;
         }
 
         private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
@@ -289,119 +291,6 @@ namespace Shoko.Server.API.v3
             }
             
             return models;
-        }
-
-        private void GenerateSizes(List<SVR_AnimeEpisode> ael, int uid)
-        {
-            int eps = 0;
-            int credits = 0;
-            int specials = 0;
-            int trailers = 0;
-            int parodies = 0;
-            int others = 0;
-
-            int localEps = 0;
-            int localCredits = 0;
-            int localSpecials = 0;
-            int localTrailers = 0;
-            int localParodies = 0;
-            int localOthers = 0;
-
-            int watchedEps = 0;
-            int watchedCredits = 0;
-            int watchedSpecials = 0;
-            int watchedTrailers = 0;
-            int watchedParodies = 0;
-            int watchedOthers = 0;
-
-            // single loop. Will help on long shows
-            foreach (SVR_AnimeEpisode ep in ael)
-            {
-                if (ep?.AniDB_Episode == null) continue;
-                var local = ep.GetVideoLocals().Any();
-                bool watched = (ep.GetUserRecord(uid)?.WatchedCount ?? 0) > 0;
-                switch (ep.EpisodeTypeEnum)
-                {
-                    case EpisodeType.Episode:
-                    {
-                        eps++;
-                        if (local) localEps++;
-                        if (watched) watchedEps++;
-                        break;
-                    }
-                    case EpisodeType.Credits:
-                    {
-                        credits++;
-                        if (local) localCredits++;
-                        if (watched) watchedCredits++;
-                        break;
-                    }
-                    case EpisodeType.Special:
-                    {
-                        specials++;
-                        if (local) localSpecials++;
-                        if (watched) watchedSpecials++;
-                        break;
-                    }
-                    case EpisodeType.Trailer:
-                    {
-                        trailers++;
-                        if (local) localTrailers++;
-                        if (watched) watchedTrailers++;
-                        break;
-                    }
-                    case EpisodeType.Parody:
-                    {
-                        parodies++;
-                        if (local) localParodies++;
-                        if (watched) watchedParodies++;
-                        break;
-                    }
-                    case EpisodeType.Other:
-                    {
-                        others++;
-                        if (local) localOthers++;
-                        if (watched) watchedOthers++;
-                        break;
-                    }
-                }
-            }
-
-            Size = localEps + localCredits + localSpecials + localTrailers + localParodies + localOthers;
-
-            Sizes = new Sizes
-            {
-                total =
-                    new Sizes.EpisodeCounts()
-                    {
-                        episodes = eps,
-                        credits = credits,
-                        specials = specials,
-                        trailers = trailers,
-                        parodies = parodies,
-                        others = others
-                    },
-                local = new Sizes.EpisodeCounts()
-                {
-                    episodes = localEps,
-                    credits = localCredits,
-                    specials = localSpecials,
-                    trailers = localTrailers,
-                    parodies = localParodies,
-                    others = localOthers
-                },
-                watched = new Sizes.EpisodeCounts()
-                {
-                    episodes = watchedEps,
-                    credits = watchedCredits,
-                    specials = watchedSpecials,
-                    trailers = watchedTrailers,
-                    parodies = watchedParodies,
-                    others = watchedOthers
-                }
-            };
-
-
         }
 
         public static Images GetArt(HttpContext ctx, int animeID, bool includeDisabled = false)

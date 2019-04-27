@@ -6,7 +6,7 @@
 
 ---
 - Controllers that use common queries should have a method to parse the query for the entire HttpContext, then set the Items field
-- In other words, **NO HUGE ARGUMENT CHAINS IN METHODS FOR THE QUERY**. Use Series as an example. It can take ?include=tags&include=cast or ?include=tags,cast
+- In other words, **NO HUGE ARGUMENT CHAINS IN METHODS FOR THE QUERY**.
 
 ---
 - Models that have shared functionality, such as Image, Title, etc. should go into Common
