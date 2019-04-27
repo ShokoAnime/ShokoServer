@@ -23,6 +23,11 @@ namespace Shoko.Server.API.v3
         /// The Shoko Group ID. Groups are
         /// </summary>
         public int ID { get; set; }
+        
+        /// <summary>
+        /// Marked as true when you rename a group to something custom. Different from using a default Series's name
+        /// </summary>
+        public bool HasCustomName { get; set; }
 
         #region Constructors and Helper Methods
 
@@ -35,12 +40,14 @@ namespace Shoko.Server.API.v3
         public void GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup grp)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
-            List<SVR_AnimeEpisode> ael = grp.GetAllSeries().SelectMany(a => a.GetAnimeEpisodes()).ToList();
+            var allSeries = grp.GetAllSeries(skipSorting: true);
+            List<SVR_AnimeEpisode> ael = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
             ID = grp.AnimeGroupID;
             Name = grp.GroupName;
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = grp.GetSeries().Count;
+            HasCustomName = !allSeries.SelectMany(a => a.GetAllTitles()).ToHashSet().Contains(Name);
         }
 
         #endregion
