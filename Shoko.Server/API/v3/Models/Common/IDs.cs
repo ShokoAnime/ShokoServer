@@ -26,29 +26,29 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// The TvDB IDs
         /// </summary>
-        public List<int> TvDBs { get; set; }
+        public List<int> TvDB { get; set; } = new List<int>();
         
         // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
         
         /// <summary>
         /// The MovieDB IDs
         /// </summary>
-        public List<int> MovieDBs { get; set; }
+        public List<int> MovieDB { get; set; } = new List<int>();
         
         /// <summary>
         /// The MyAnimeList IDs
         /// </summary>
-        public List<int> MALs { get; set; }
+        public List<int> MAL { get; set; } = new List<int>();
         
         /// <summary>
         /// The TraktTv IDs
         /// </summary>
-        public List<string> TraktTvs { get; set; }
+        public List<string> TraktTv { get; set; } = new List<string>();
 
         /// <summary>
         /// The AniList IDs
         /// </summary>
-        public List<int> AniList { get; set; }
+        public List<int> AniList { get; set; } = new List<int>();
         #endregion
     }
 }

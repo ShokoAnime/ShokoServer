@@ -13,23 +13,23 @@ namespace Shoko.Server.API.v3
         /// the title
         /// </summary>
         [Required]
-        public string title { get; set; }
+        public string Name { get; set; }
             
         /// <summary>
         /// convert to AniDB style (x-jat is the special one, but most are standard 3-digit short names)
         /// </summary>
         [Required]
-        public string language { get; set; }
+        public string Language { get; set; }
 
         /// <summary>
         /// AniDB type
         /// </summary>
-        public string type { get; set; }
+        public string Type { get; set; }
             
         /// <summary>
         /// AniDB, TvDB, AniList, etc
         /// </summary>
         [Required]
-        public string source { get; set; }
+        public string Source { get; set; }
     }
 }

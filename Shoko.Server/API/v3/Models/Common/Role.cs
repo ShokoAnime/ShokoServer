@@ -11,29 +11,29 @@ namespace Shoko.Server.API.v3
         /// Most will be Japanese. Once AniList is in, it will have multiple options
         /// </summary>
         [Required]
-        public string language { get; set; }
+        public string Language { get; set; }
         
         /// <summary>
         /// The person who plays a character, writes the music, etc.
         /// </summary>
         [Required]
-        public Person staff { get; set; }
+        public Person Staff { get; set; }
         
         /// <summary>
         /// The character played, if applicable
         /// </summary>
-        public Person character { get; set; }
+        public Person Character { get; set; }
         
         /// <summary>
         /// The role that the staff plays, cv, writer, director, etc
         /// </summary>
         [Required]
-        public string role { get; set; }
+        public string RoleName { get; set; }
         
         /// <summary>
         /// Extra info about the role. For example, role can be voice actor, while role_details is Main Character
         /// </summary>
-        public string role_details { get; set; }
+        public string RoleDetails { get; set; }
 
         /// <summary>
         /// A generic person object with the name, altname, description, and image
@@ -45,24 +45,24 @@ namespace Shoko.Server.API.v3
             /// ex. Sawano Hiroyuki
             /// </summary>
             [Required]
-            public string name { get; set; }
+            public string Name { get; set; }
 
             /// <summary>
             /// Alternate Name, this can be any other name, whether kanji, an alias, etc
             /// ex. 澤野弘之
             /// </summary>
-            public string alternate_name { get; set; }
+            public string AlternateName { get; set; }
 
             /// <summary>
             /// A description, bio, etc
             /// ex. Sawano Hiroyuki was born September 12, 1980 in Tokyo, Japan. He is a composer and arranger.
             /// </summary>
-            public string description { get; set; }
+            public string Description { get; set; }
 
             /// <summary>
             /// image object, usually a profile picture of sorts
             /// </summary>
-            public Image image { get; set; }
+            public Image Image { get; set; }
         }
     }
 }

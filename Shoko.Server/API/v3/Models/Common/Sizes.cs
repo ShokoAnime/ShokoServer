@@ -15,9 +15,8 @@ namespace Shoko.Server.API.v3
         public EpisodeCounts local { get; set; }
 
         /// <summary>
-        /// What is watched (must also be local
+        /// What is watched (must also be local)
         /// </summary>
-        [Required]
         public EpisodeCounts watched { get; set; }
 
         /// <summary>

@@ -62,8 +62,9 @@ namespace Shoko.Server.API.v3
             this.Type = type.ToString();
             Source = GetSourceFromType(type);
             URL = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) type, id);
-            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-            if (!RelativeFilepath.StartsWith("/")) RelativeFilepath = "/" + RelativeFilepath;
+            RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            if (RelativeFilepath != null && !RelativeFilepath.StartsWith("/"))
+                RelativeFilepath = "/" + RelativeFilepath;
             Preferred = preferred;
             Disabled = disabled;
         }

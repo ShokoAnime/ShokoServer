@@ -94,7 +94,7 @@ namespace Shoko.Server.API
 
         public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
         {
-            return APIHelper.ProperURL(ctx, "/apiv3/image/" + Image.GetSourceAndTypeFromImageType((ImageEntityType) type) + id, short_url);
+            return APIHelper.ProperURL(ctx, "/api/v3/image/" + Image.GetSourceAndTypeFromImageType((ImageEntityType) type) + id, short_url);
         }
 
         public static string ConstructVideoLocalStream(HttpContext ctx, int userid, string vid, string name, bool autowatch)

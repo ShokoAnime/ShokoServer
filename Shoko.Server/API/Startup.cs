@@ -17,6 +17,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Shoko.Server.API
 {
@@ -98,10 +99,12 @@ namespace Shoko.Server.API
                 .AddJsonOptions(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;
-                    json.SerializerSettings.ContractResolver = new DefaultContractResolver
+                    json.SerializerSettings.ContractResolver = new OmitEmptyEnumerableResolver()
                     {
                         NamingStrategy = new DefaultNamingStrategy()
                     };
+                    json.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+                    json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
                 });
         }
 

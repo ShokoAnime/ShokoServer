@@ -965,6 +965,7 @@
     <Compile Include="API\Authentication\CustomAuthOptions.cs" />
     <Compile Include="API\Authentication\InitUser.cs" />
     <Compile Include="API\BaseController.cs" />
+    <Compile Include="API\OmitEmptyEnumerableResolver.cs" />
     <Compile Include="API\RestController.cs" />
     <Compile Include="API\SignalR\EventsHub.cs" />
     <Compile Include="API\Startup.cs" />
@@ -1026,6 +1027,7 @@
     <Compile Include="API\v3\Models\Common\Rating.cs" />
     <Compile Include="API\v3\Models\Common\Role.cs" />
     <Compile Include="API\v3\Models\Common\Sizes.cs" />
+    <Compile Include="API\v3\Models\Common\Tag.cs" />
     <Compile Include="API\v3\Models\Common\Title.cs" />
     <Compile Include="API\v3\Models\Shoko\Series.cs" />
     <Compile Include="API\v3\Models\Stubs\BaseStub.cs" />

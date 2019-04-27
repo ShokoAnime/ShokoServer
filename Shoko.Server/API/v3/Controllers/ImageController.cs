@@ -5,7 +5,7 @@ using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
+    [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     public class ImageController : BaseController
     {
         
