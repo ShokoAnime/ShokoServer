@@ -20,40 +20,52 @@ namespace Shoko.Server.API.v3
         /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
         /// </summary>
         [Required]
-        public string type { get; set; }
+        public string Type { get; set; }
         
         /// <summary>
         /// normally a client won't need this, but if the client plans to set it as default, disabled, deleted, etc, then it'll be needed
         /// </summary>
         [Required]
-        public int id { get; set; }
+        public int ID { get; set; }
         
         /// <summary>
         /// AniDB, TvDB, MovieDB, etc
         /// </summary>
         [Required]
-        public string source { get; set; }
+        public string Source { get; set; }
         
         /// <summary>
         /// The URL to get the image from the server
         /// </summary>
         [Required]
-        public string url { get; set; }
+        public string URL { get; set; }
         
         /// <summary>
         /// The relative path from the base image directory. A client with access to the server's filesystem can map
         /// these for quick access and no need for caching
         /// </summary>
-        public string relative_filepath { get; set; }
+        public string RelativeFilepath { get; set; }
+        
+        /// <summary>
+        /// Is it marked as default. Multiple defaults are possible
+        /// </summary>
+        public bool Preferred { get; set; }
+        
+        /// <summary>
+        /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
+        /// </summary>
+        public bool Disabled { get; set; }
 
-        public Image(HttpContext ctx, int id, ImageEntityType type)
+        public Image(HttpContext ctx, int id, ImageEntityType type, bool preferred = false, bool disabled = false)
         {
-            this.id = id;
-            this.type = type.ToString();
-            source = GetSourceFromType(type);
-            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) type, id);
-            relative_filepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-            if (!relative_filepath.StartsWith("/")) relative_filepath = "/" + relative_filepath;
+            this.ID = id;
+            this.Type = type.ToString();
+            Source = GetSourceFromType(type);
+            URL = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) type, id);
+            RelativeFilepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+            if (!RelativeFilepath.StartsWith("/")) RelativeFilepath = "/" + RelativeFilepath;
+            Preferred = preferred;
+            Disabled = disabled;
         }
 
         public static string GetSourceFromType(ImageEntityType type)

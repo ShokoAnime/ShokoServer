@@ -5,13 +5,6 @@ namespace Shoko.Server.API.v3
     public abstract class BaseModel
     {
         /// <summary>
-        /// the internal ID, such as AnimeSeriesID or AnimeGroupID
-        /// </summary>
-        [Required]
-        public int ID { get; set; }
-
-        
-        /// <summary>
         /// The server's title. This will use overrides, the naming settings, MainTitle if all else fails. This is a guaranteed fallback
         /// </summary>
         [Required]

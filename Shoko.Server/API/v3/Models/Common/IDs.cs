@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3
@@ -23,31 +24,31 @@ namespace Shoko.Server.API.v3
         public int AniDB { get; set; }
         
         /// <summary>
-        /// The TvDB ID
+        /// The TvDB IDs
         /// </summary>
-        public int TvDB { get; set; }
+        public List<int> TvDBs { get; set; }
         
         // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
         
         /// <summary>
-        /// The MovieDB ID
+        /// The MovieDB IDs
         /// </summary>
-        public int MovieDB { get; set; }
+        public List<int> MovieDBs { get; set; }
         
         /// <summary>
-        /// The MyAnimeList ID
+        /// The MyAnimeList IDs
         /// </summary>
-        public int MAL { get; set; }
+        public List<int> MALs { get; set; }
         
         /// <summary>
-        /// The MyAnimeList ID
+        /// The TraktTv IDs
         /// </summary>
-        public string Trakt { get; set; }
+        public List<string> TraktTvs { get; set; }
 
         /// <summary>
-        /// The AniList ID
+        /// The AniList IDs
         /// </summary>
-        public int AniList { get; set; }
+        public List<int> AniList { get; set; }
         #endregion
     }
 }
