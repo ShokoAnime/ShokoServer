@@ -186,6 +186,7 @@ namespace Shoko.Models.Enums
 
     public enum ImageEntityType
     {
+        None = 0, // The lack of a type. Should generally not be used, except as a null/default check
         AniDB_Cover = 1, // use AnimeID
         AniDB_Character = 2, // use CharID
         AniDB_Creator = 3, // use CreatorID
@@ -201,6 +202,7 @@ namespace Shoko.Models.Enums
         Trakt_Friend = 13,
         Character = 14,
         Staff = 15,
+        Static = 16, // This is for things that are served directly from Shoko, such as the 404, error, etc images
     }
 
     public enum ImageFormatEnum
