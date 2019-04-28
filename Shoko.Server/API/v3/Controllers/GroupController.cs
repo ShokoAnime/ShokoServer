@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v3
         public ActionResult<List<Group>> GetAllGroups()
         {
             var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a => User.AllowedGroup(a)).ToList();
-            return allGroups.Select(a => new Group(HttpContext, a.AnimeGroupID)).ToList();
+            return allGroups.Select(a => new Group(HttpContext, a)).ToList();
         }
 
         /// <summary>
@@ -30,7 +30,9 @@ namespace Shoko.Server.API.v3
         [HttpGet("{id}")]
         public ActionResult<Group> GetGroup(int id)
         {
-            return new Group(HttpContext, id);
+            var grp = RepoFactory.AnimeGroup.GetByID(id);
+            if (grp == null) return BadRequest("No Group with ID");
+            return new Group(HttpContext, grp);
         }
 
         /// <summary>
@@ -45,8 +47,10 @@ namespace Shoko.Server.API.v3
             if (grp == null) return BadRequest("No Group with ID");
             int? defaultSeriesID = grp.DefaultAnimeSeriesID;
             if (defaultSeriesID == null) return Accepted("Group does not have a default series");
-
-            return new Series(HttpContext, defaultSeriesID.Value);
+            var ser = RepoFactory.AnimeSeries.GetByID(defaultSeriesID.Value);
+            if (ser == null) return BadRequest("No Series with ID");
+            
+            return new Series(HttpContext, ser);
         }
         
         /// <summary>
@@ -59,7 +63,7 @@ namespace Shoko.Server.API.v3
         {
             var grp = RepoFactory.AnimeGroup.GetByID(id);
             if (grp == null) return BadRequest("No Group with ID");
-            return grp.GetSeries().Select(a => new Series(HttpContext, a.AnimeSeriesID)).ToList();
+            return grp.GetSeries().Select(a => new Series(HttpContext, a)).ToList();
         }
         
         

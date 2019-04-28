@@ -42,13 +42,7 @@ namespace Shoko.Server.API.v3
 
         #region Constructors and Helper Methods
 
-        public Series(HttpContext ctx, int id)
-        {
-            SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByID(id);
-            GenerateFromAnimeSeries(ctx, series);
-        }
-        
-        public void GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser)
+        public Series(HttpContext ctx, SVR_AnimeSeries ser)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -121,7 +115,7 @@ namespace Shoko.Server.API.v3
             
             if (defaultPoster != null)
             {
-                images.Posters.Add(new Image(ctx, defaultPoster.ImageParentID,
+                images.Posters.Add(new Image(defaultPoster.ImageParentID,
                     (ImageEntityType) defaultPoster.ImageParentType, true));
             }
             else
@@ -165,7 +159,7 @@ namespace Shoko.Server.API.v3
                     {
                         Name = character.Name,
                         AlternateName = character.AlternateName,
-                        Image = new Image(ctx, xref.RoleID.Value, ImageEntityType.Character),
+                        Image = new Image(xref.RoleID.Value, ImageEntityType.Character),
                         Description = character.Description
                     },
                     Staff = new Role.Person
@@ -173,7 +167,7 @@ namespace Shoko.Server.API.v3
                         Name = staff.Name,
                         AlternateName = staff.AlternateName,
                         Description = staff.Description,
-                        Image = new Image(ctx, xref.StaffID, ImageEntityType.Staff),
+                        Image = new Image(xref.StaffID, ImageEntityType.Staff),
                     },
                     RoleName = ((StaffRoleType) xref.RoleType).ToString(),
                     RoleDetails = xref.Role
@@ -308,7 +302,7 @@ namespace Shoko.Server.API.v3
             var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                 (int) ImageEntityType.AniDB_Cover);
             bool preferred = defaultImage != null;
-            images.Posters.Add(new Image(ctx, animeID, ImageEntityType.AniDB_Cover, preferred));
+            images.Posters.Add(new Image(animeID, ImageEntityType.AniDB_Cover, preferred));
         }
 
         private static void AddTvDBImages(HttpContext ctx, Images images, int animeID, bool includeDisabled = false)
@@ -321,7 +315,7 @@ namespace Shoko.Server.API.v3
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                     (int) ImageEntityType.TvDB_FanArt);
                 bool preferred = defaultImage != null;
-                return new Image(ctx, a.TvDB_ImageFanartID, ImageEntityType.TvDB_FanArt, preferred, a.Enabled == 0);
+                return new Image(a.TvDB_ImageFanartID, ImageEntityType.TvDB_FanArt, preferred, a.Enabled == 0);
             }));
 
             images.Banners.AddRange(banners.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
@@ -329,7 +323,7 @@ namespace Shoko.Server.API.v3
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                     (int) ImageEntityType.TvDB_Banner);
                 bool preferred = defaultImage != null;
-                return new Image(ctx, a.TvDB_ImageWideBannerID, ImageEntityType.TvDB_Banner, preferred, a.Enabled == 0);
+                return new Image(a.TvDB_ImageWideBannerID, ImageEntityType.TvDB_Banner, preferred, a.Enabled == 0);
             }));
         }
 
@@ -350,7 +344,7 @@ namespace Shoko.Server.API.v3
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                     (int) ImageEntityType.MovieDB_FanArt);
                 bool preferred = defaultImage != null;
-                return new Image(ctx, a.MovieDB_PosterID, ImageEntityType.MovieDB_Poster, preferred, a.Enabled == 1);
+                return new Image(a.MovieDB_PosterID, ImageEntityType.MovieDB_Poster, preferred, a.Enabled == 1);
             }));
 
             images.Fanarts.AddRange(moviedbFanarts.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
@@ -358,7 +352,7 @@ namespace Shoko.Server.API.v3
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                     (int) ImageEntityType.MovieDB_FanArt);
                 bool preferred = defaultImage != null;
-                return new Image(ctx, a.MovieDB_FanartID, ImageEntityType.MovieDB_FanArt, preferred, a.Enabled == 1);
+                return new Image(a.MovieDB_FanartID, ImageEntityType.MovieDB_FanArt, preferred, a.Enabled == 1);
             }));
         }
 

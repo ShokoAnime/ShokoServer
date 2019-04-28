@@ -31,13 +31,7 @@ namespace Shoko.Server.API.v3
 
         #region Constructors and Helper Methods
 
-        public Group(HttpContext ctx, int id)
-        {
-            SVR_AnimeGroup group = RepoFactory.AnimeGroup.GetByID(id);
-            GenerateFromAnimeGroup(ctx, group);
-        }
-
-        public void GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup grp)
+        public Group(HttpContext ctx, SVR_AnimeGroup grp)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
             var allSeries = grp.GetAllSeries(skipSorting: true);

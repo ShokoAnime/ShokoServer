@@ -138,7 +138,7 @@ namespace Shoko.Server.API.v2.Models.common
             }
 
             filter.viewed = 0;
-            filter.url = APIHelper.ConstructFilterIdUrl(ctx, filter.id);
+            filter.url = APIV2Helper.ConstructFilterIdUrl(ctx, filter.id);
 
             return filter;
         }

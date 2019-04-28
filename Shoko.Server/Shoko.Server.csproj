@@ -985,6 +985,7 @@
     <Compile Include="API\v1\Modules\PlexModule.cs" />
     <Compile Include="API\v1\Modules\StreamModule.cs" />
     <Compile Include="API\v1\StreamWithResponse.cs" />
+    <Compile Include="API\v2\APIV2Helper.cs" />
     <Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Models\common\Art.cs" />
     <Compile Include="API\v2\Models\common\Group.cs" />
@@ -1034,6 +1035,7 @@
     <Compile Include="API\v3\Models\Common\Sizes.cs" />
     <Compile Include="API\v3\Models\Common\Tag.cs" />
     <Compile Include="API\v3\Models\Common\Title.cs" />
+    <Compile Include="API\v3\Models\Shoko\Filter.cs" />
     <Compile Include="API\v3\Models\Shoko\Group.cs" />
     <Compile Include="API\v3\Models\Shoko\Series.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFileMyListStatus.cs" />

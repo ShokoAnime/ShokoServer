@@ -128,7 +128,7 @@ namespace Shoko.Server.API.v2.Models.common
                 import_folder_id = place.ImportFolderID;
             }
 
-            url = APIHelper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
+            url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
                 "file" + Path.GetExtension(filename), false);
 
             recognized = e != null || vl.EpisodeCrossRefs.Count != 0;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
@@ -12,6 +13,10 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class TreeController : BaseController
     {
-        
+        [HttpGet("filter/{filterID}/Group/{groupID}/Series")]
+        public ActionResult<List<Series>> GetSeriesForGroupWithAppliedFilter(int filterID, int groupID)
+        {
+            return NoContent();
+        }
     }
 }

@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v3
         public ActionResult<List<Series>> GetAllSeries()
         {
             var allSeries = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).ToList();
-            return allSeries.Select(a => new Series(HttpContext, a.AnimeSeriesID)).ToList();
+            return allSeries.Select(a => new Series(HttpContext, a)).ToList();
         }
 
         /// <summary>
@@ -30,7 +30,9 @@ namespace Shoko.Server.API.v3
         [HttpGet("{id}")]
         public ActionResult<Series> GetSeries(int id)
         {
-            return new Series(HttpContext, id);
+            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            if (ser == null) return BadRequest("No Series with ID");
+            return new Series(HttpContext, ser);
         }
 
         /// <summary>
