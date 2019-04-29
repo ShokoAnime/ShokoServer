@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Server.Commands.Plex;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -102,11 +103,20 @@ namespace Shoko.Server.API.v2.Modules
         [NonAction]
         private static (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
         {
-            if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
+            Uri guid = new Uri(metadata.Guid);
+            if (guid.Scheme != "com.plexapp.agents.shoko") return (null, null);
 
-            string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            int animeId = int.Parse(parts[1]);
-            int series = int.Parse(parts[2]);
+            PathString ps = guid.AbsolutePath;
+
+            int animeId = int.Parse(guid.Authority);
+            int series = int.Parse(guid.AbsolutePath.Split('/')[1]);
+            int episodeNumber = int.Parse(guid.AbsolutePath.Split('/')[2]);
+
+            //if (!metadata.Guid.StartsWith("com.plexapp.agents.shoko://")) return (null, null);
+
+            //string[] parts = metadata.Guid.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            //int animeId = int.Parse(parts[1]);
+            //int series = int.Parse(parts[2]);
 
             var anime = RepoFactory.AnimeSeries.GetByID(animeId);
 
@@ -138,12 +148,23 @@ namespace Shoko.Server.API.v2.Modules
                 return (null, anime); //right now no clean way to detect the episode. I could do by title.
 
 
-            return (anime
-                .GetAnimeEpisodes()
-                .Where(a => a.AniDB_Episode != null)
-                .Where(a => a.EpisodeTypeEnum == episodeType)
-                .Where(a => metadata.Title.Equals(a?.PlexContract?.Title, StringComparison.InvariantCultureIgnoreCase))
-                .FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series), anime);
+            var animeEps = anime
+                    .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
+                    .Where(a => a.EpisodeTypeEnum == episodeType)
+                    .Where(a => a.PlexContract.EpisodeNumber == episodeNumber);
+
+            //if only one possible match
+            if (animeEps.Count() == 1) return (animeEps.First(), anime);
+
+            //if TvDB matched.
+            SVR_AnimeEpisode result;
+            if ((result = animeEps.FirstOrDefault(a => a?.TvDBEpisode?.SeasonNumber == series)) != null)
+                return (result, anime);
+
+
+            //catch all
+            logger.Info($"Unable to work out the metadata for {metadata.Guid}, this might be a clash of multipl episodes linked, but no tvdb link.");
+            return (null, anime);
         }
 
         [NonAction]
