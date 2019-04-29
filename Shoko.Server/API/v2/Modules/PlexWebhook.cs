@@ -18,6 +18,10 @@ using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
 using Shoko.Server.Commands.Plex;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -29,30 +33,30 @@ namespace Shoko.Server.API.v2.Modules
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [HttpPost]
-        public ActionResult WebhookPost([FromForm] PlexEvent eventData)
+        public ActionResult WebhookPost([FromForm, ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
         {
             /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
 
-            logger.Trace($"{eventData.Event}: {eventData.Metadata.Guid}");
-            switch (eventData.Event)
+            logger.Trace($"{payload.Event}: {payload.Metadata.Guid}");
+            switch (payload.Event)
             {
                 case "media.scrobble":
-                    Scrobble(eventData);
+                    Scrobble(payload);
                     break;
                 case "media.resume":
                 case "media.play":
-                    TraktScrobble(eventData, ScrobblePlayingStatus.Start);
+                    TraktScrobble(payload, ScrobblePlayingStatus.Start);
                     break;
                 case "media.pause":
-                    TraktScrobble(eventData, ScrobblePlayingStatus.Pause);
+                    TraktScrobble(payload, ScrobblePlayingStatus.Pause);
                     break;
                 case "media.stop":
-                    TraktScrobble(eventData, ScrobblePlayingStatus.Stop);
+                    TraktScrobble(payload, ScrobblePlayingStatus.Stop);
                     break;
             }
 
-            return APIStatus.OK();
+            return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
         }
         #region Plex events
 
@@ -231,6 +235,11 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         #region plexapi
+        public class PlexEventSuper
+        {
+            public string user { get; set; }
+            public string Owner { get; set; }
+        }
 #pragma warning disable 0649
         public class PlexEvent
         {
@@ -290,6 +299,35 @@ namespace Shoko.Server.API.v2.Modules
                 public int UpdatedAt;
                 public int ViewOffset;
             }
+        }
+    }
+
+    internal class PlexBinder : IModelBinder //credit to https://stackoverflow.com/a/46344854
+    {
+        public Task BindModelAsync(ModelBindingContext bindingContext)
+        {
+            if (bindingContext == null)
+            {
+                throw new ArgumentNullException(nameof(bindingContext));
+            }
+
+            // Check the value sent in
+            var valueProviderResult = bindingContext.ValueProvider.GetValue(bindingContext.ModelName);
+            if (valueProviderResult != ValueProviderResult.None)
+            {
+                bindingContext.ModelState.SetModelValue(bindingContext.ModelName, valueProviderResult);
+
+                // Attempt to convert the input value
+                var valueAsString = valueProviderResult.FirstValue;
+                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() });
+                if (result != null)
+                {
+                    bindingContext.Result = ModelBindingResult.Success(result);
+                    return Task.CompletedTask;
+                }
+            }
+
+            return Task.CompletedTask;
         }
     }
 #pragma warning restore 0649
