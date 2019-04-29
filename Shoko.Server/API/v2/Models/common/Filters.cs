@@ -73,7 +73,7 @@ namespace Shoko.Server.API.v2.Models.common
             else
                 f.size = gfs.Count();
 
-            f.url = APIHelper.ConstructFilterIdUrl(ctx, f.id);
+            f.url = APIV2Helper.ConstructFilterIdUrl(ctx, f.id);
 
             return f;
         }

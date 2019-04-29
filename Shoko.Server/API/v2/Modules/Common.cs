@@ -2858,7 +2858,7 @@ namespace Shoko.Server.API.v2.Modules
                 id = 0,
                 name = "Filters",
                 viewed = 0,
-                url = APIHelper.ConstructFilterUrl(HttpContext)
+                url = APIV2Helper.ConstructFilterUrl(HttpContext)
             };
             List<SVR_GroupFilter> allGfs = RepoFactory.GroupFilter.GetTopLevel()
                 .Where(a => a.InvisibleInClients == 0 &&
@@ -2883,16 +2883,16 @@ namespace Shoko.Server.API.v2.Modules
             {
                 Filter filter = new Filter
                 {
-                    url = APIHelper.ConstructUnsortUrl(HttpContext),
+                    url = APIV2Helper.ConstructUnsortUrl(HttpContext),
                     name = "Unsort"
                 };
                 filter.art.fanart.Add(new Art
                 {
-                    url = APIHelper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"),
+                    url = APIV2Helper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"),
                     index = 0
                 });
                 filter.art.thumb.Add(
-                    new Art {url = APIHelper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"), index = 0});
+                    new Art {url = APIV2Helper.ConstructSupportImageLink(HttpContext, "plex_unsort.png"), index = 0});
                 filter.size = vids.Count;
                 filter.viewed = 0;
 

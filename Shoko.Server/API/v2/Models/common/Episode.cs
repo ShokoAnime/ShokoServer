@@ -144,11 +144,11 @@ namespace Shoko.Server.API.v2.Models.common
             if (pic > 0 && ep.art.thumb.Count == 0)
             {
                 ep.art.thumb.Add(
-                    new Art {index = 0, url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")});
+                    new Art {index = 0, url = APIV2Helper.ConstructSupportImageLink(ctx, "plex_404.png")});
                 ep.art.fanart.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructSupportImageLink(ctx, "plex_404.png")
+                    url = APIV2Helper.ConstructSupportImageLink(ctx, "plex_404.png")
                 });
             }
             if (string.IsNullOrEmpty(ep.year))

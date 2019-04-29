@@ -52,6 +52,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <LangVersion>7.1</LangVersion>
+    <DocumentationFile>bin\Debug\Shoko.Server.API.xml</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -65,6 +67,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <LangVersion>7.1</LangVersion>
+    <DocumentationFile>bin\Release\Shoko.Server.API.xml</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
@@ -82,6 +86,10 @@
     </Reference>
     <Reference Include="DeepCloner, Version=0.10.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\DeepCloner.0.10.1\lib\net40\DeepCloner.dll</HintPath>
+    </Reference>
+    <Reference Include="F23.StringSimilarity, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\F23.StringSimilarity.3.1.0\lib\netstandard1.0\F23.StringSimilarity.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
@@ -963,6 +971,7 @@
     <Compile Include="API\Authentication\CustomAuthOptions.cs" />
     <Compile Include="API\Authentication\InitUser.cs" />
     <Compile Include="API\BaseController.cs" />
+    <Compile Include="API\OmitEmptyEnumerableResolver.cs" />
     <Compile Include="API\RestController.cs" />
     <Compile Include="API\SignalR\EventsHub.cs" />
     <Compile Include="API\Startup.cs" />
@@ -980,6 +989,7 @@
     <Compile Include="API\v1\Modules\PlexModule.cs" />
     <Compile Include="API\v1\Modules\StreamModule.cs" />
     <Compile Include="API\v1\StreamWithResponse.cs" />
+    <Compile Include="API\v2\APIV2Helper.cs" />
     <Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Models\common\Art.cs" />
     <Compile Include="API\v2\Models\common\Group.cs" />
@@ -1014,20 +1024,24 @@
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="API\v3\Controllers\EpisodeController.cs" />
     <Compile Include="API\v3\Controllers\FileController.cs" />
+    <Compile Include="API\v3\Controllers\GroupController.cs" />
     <Compile Include="API\v3\Controllers\ImageController.cs" />
     <Compile Include="API\v3\Controllers\ImportFolderController.cs" />
     <Compile Include="API\v3\Controllers\SeriesController.cs" />
+    <Compile Include="API\v3\Controllers\TreeController.cs" />
+    <Compile Include="API\v3\Helpers\ModelHelper.cs" />
     <Compile Include="API\v3\Models\Common\BaseModel.cs" />
-    <Compile Include="API\v3\Models\Common\Description.cs" />
-    <Compile Include="API\v3\Models\Common\ID.cs" />
+    <Compile Include="API\v3\Models\Common\IDs.cs" />
     <Compile Include="API\v3\Models\Common\Image.cs" />
+    <Compile Include="API\v3\Models\Common\Images.cs" />
     <Compile Include="API\v3\Models\Common\Rating.cs" />
     <Compile Include="API\v3\Models\Common\Role.cs" />
     <Compile Include="API\v3\Models\Common\Sizes.cs" />
+    <Compile Include="API\v3\Models\Common\Tag.cs" />
     <Compile Include="API\v3\Models\Common\Title.cs" />
+    <Compile Include="API\v3\Models\Shoko\Filter.cs" />
+    <Compile Include="API\v3\Models\Shoko\Group.cs" />
     <Compile Include="API\v3\Models\Shoko\Series.cs" />
-    <Compile Include="API\v3\Models\Stubs\BaseStub.cs" />
-    <Compile Include="API\v3\Models\Stubs\SeriesStub.cs" />
     <Compile Include="Commands\AniDB\CommandRequest_GetFileMyListStatus.cs" />
     <Compile Include="Commands\CommandRequest_Null.cs" />
     <Compile Include="Commands\Import\CommandRequest_DownloadAniDBImages.cs" />

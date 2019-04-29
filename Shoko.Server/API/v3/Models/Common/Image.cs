@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
@@ -17,43 +18,86 @@ namespace Shoko.Server.API.v3
     public class Image
     {
         /// <summary>
-        /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
-        /// </summary>
-        [Required]
-        public string type { get; set; }
-        
-        /// <summary>
-        /// normally a client won't need this, but if the client plans to set it as default, disabled, deleted, etc, then it'll be needed
-        /// </summary>
-        [Required]
-        public int id { get; set; }
-        
-        /// <summary>
         /// AniDB, TvDB, MovieDB, etc
         /// </summary>
         [Required]
-        public string source { get; set; }
+        public string Source { get; set; }
         
         /// <summary>
-        /// The URL to get the image from the server
+        /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
         /// </summary>
         [Required]
-        public string url { get; set; }
+        public string Type { get; set; }
         
+        /// <summary>
+        /// The image's ID, usually an int, but in the case of Static resources, it is the resource name.
+        /// </summary>
+        [Required]
+        public string ID { get; set; }
+
         /// <summary>
         /// The relative path from the base image directory. A client with access to the server's filesystem can map
         /// these for quick access and no need for caching
         /// </summary>
-        public string relative_filepath { get; set; }
+        public string RelativeFilepath { get; set; }
+        
+        /// <summary>
+        /// Is it marked as default. Multiple defaults are possible
+        /// </summary>
+        public bool Preferred { get; set; }
+        
+        /// <summary>
+        /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
+        /// </summary>
+        public bool Disabled { get; set; }
 
-        public Image(HttpContext ctx, int id, ImageEntityType type)
+        public Image(int id, ImageEntityType type, bool preferred = false, bool disabled = false) : this(id.ToString(), type, preferred, disabled)
         {
-            this.id = id;
-            this.type = type.ToString();
-            source = GetSourceFromType(type);
-            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) type, id);
-            relative_filepath = GetImagePath(type, id).Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
-            if (!relative_filepath.StartsWith("/")) relative_filepath = "/" + relative_filepath;
+            if (type == ImageEntityType.Static)
+                throw new ArgumentException("Static Resources do not use an integer ID");
+            
+            RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "")
+                .Replace("\\", "/");
+            if (RelativeFilepath != null && !RelativeFilepath.StartsWith("/"))
+                RelativeFilepath = "/" + RelativeFilepath;
+        }
+
+        public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)
+        {
+            ID = id;
+            Type = GetSimpleTypeFromImageType(type);
+            Source = GetSourceFromType(type);
+
+            Preferred = preferred;
+            Disabled = disabled;
+        }
+
+        public static string GetSimpleTypeFromImageType(ImageEntityType type)
+        {
+            switch (type)
+            {
+                case ImageEntityType.TvDB_Cover:
+                case ImageEntityType.MovieDB_Poster:
+                case ImageEntityType.AniDB_Cover:
+                    return "Poster";
+                case ImageEntityType.TvDB_Banner:
+                    return "Banner";
+                case ImageEntityType.TvDB_Episode:
+                    return "Thumb";
+                case ImageEntityType.TvDB_FanArt:
+                case ImageEntityType.MovieDB_FanArt:
+                    return "Fanart";
+                case ImageEntityType.AniDB_Character:
+                case ImageEntityType.Character:
+                    return "Character";
+                case ImageEntityType.AniDB_Creator:
+                case ImageEntityType.Staff:
+                    return "Staff";
+                case ImageEntityType.Static:
+                    return "Static";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            }
         }
 
         public static string GetSourceFromType(ImageEntityType type)
@@ -74,7 +118,8 @@ namespace Shoko.Server.API.v3
                     return "MovieDB";
                 case ImageEntityType.Character:
                 case ImageEntityType.Staff:
-                    return "AniDB";
+                case ImageEntityType.Static:
+                    return "Shoko";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
@@ -86,70 +131,46 @@ namespace Shoko.Server.API.v3
         /// <param name="source"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        public static ImageEntityType? GetImageTypeFromSourceAndType(string source, string type)
+        public static ImageEntityType GetImageTypeFromSourceAndType(string source, string type)
         {
+            source = source.ToUpper(CultureInfo.InvariantCulture);
+            type = type.ToUpper(CultureInfo.InvariantCulture);
+            string msg = @"The type is not valid for the selected provider.";
             switch (source)
             {
-                case "anidb":
+                case "ANIDB":
                     switch (type)
                     {
-                        case "poster": return ImageEntityType.AniDB_Cover;
-                        case "character": return ImageEntityType.Character;
-                        case "staff": return ImageEntityType.Staff;
+                        case "POSTER": return ImageEntityType.AniDB_Cover;
+                        default: throw new ArgumentOutOfRangeException(nameof(type), type, msg);
                     }
-                    break;
-                case "tvdb":
+                case "TVDB":
                     switch (type)
                     {
-                        case "poster": return ImageEntityType.TvDB_Cover;
-                        case "fanart": return ImageEntityType.TvDB_FanArt;
-                        case "banner": return ImageEntityType.TvDB_Banner;
-                        case "thumb": return ImageEntityType.TvDB_Episode;
+                        case "POSTER": return ImageEntityType.TvDB_Cover;
+                        case "FANART": return ImageEntityType.TvDB_FanArt;
+                        case "BANNER": return ImageEntityType.TvDB_Banner;
+                        case "THUMB": return ImageEntityType.TvDB_Episode;
+                        default: throw new ArgumentOutOfRangeException(nameof(type), type, msg);
                     }
-                    break;
-                case "moviedb":
+                case "MOVIEDB":
                     switch (type)
                     {
-                        case "poster": return ImageEntityType.MovieDB_Poster;
-                        case "fanart": return ImageEntityType.MovieDB_FanArt;
+                        case "POSTER": return ImageEntityType.MovieDB_Poster;
+                        case "FANART": return ImageEntityType.MovieDB_FanArt;
+                        default: throw new ArgumentOutOfRangeException(nameof(type), type, msg);
                     }
-                    break;
+                    case "SHOKO":
+                        switch (type)
+                        {
+                            case "STATIC": return ImageEntityType.Static;
+                            case "CHARACTER": return ImageEntityType.Character;
+                            case "STAFF": return ImageEntityType.Staff;
+                            default: throw new ArgumentOutOfRangeException(nameof(type), type, msg);
+                        }
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(source), source, @"The provider was not valid.");
             }
-
-            return null;
-        }
-        
-        /// <summary>
-        /// Gets the source and type from the ImageEntityTypeEnum
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public static string GetSourceAndTypeFromImageType(ImageEntityType type)
-        {
-            switch (type)
-            {
-                case ImageEntityType.AniDB_Cover:
-                    return "anidb/poster/";
-                case ImageEntityType.Character:
-                    return "anidb/character/";
-                case ImageEntityType.Staff:
-                    return "anidb/staff/";
-                case ImageEntityType.TvDB_Cover:
-                    return "tvdb/poster";
-                case ImageEntityType.TvDB_FanArt:
-                    return "tvdb/fanart/";
-                case ImageEntityType.TvDB_Banner:
-                    return "tvdb/banner/";
-                case ImageEntityType.TvDB_Episode:
-                    return "tvdb/thumb/";
-                case ImageEntityType.MovieDB_Poster:
-                    return "moviedb/poster/";
-                case ImageEntityType.MovieDB_FanArt:
-                    return "moviedb/fanart/";
-            }
-
-            return null;
         }
         
         public static string GetImagePath(ImageEntityType type, int id)

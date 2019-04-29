@@ -9,7 +9,7 @@ using Shoko.Server.API.v2.Models.core;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
+    [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
     public class ImportFolderController : BaseController
     {

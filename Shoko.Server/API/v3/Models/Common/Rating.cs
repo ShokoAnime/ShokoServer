@@ -33,6 +33,6 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// for temporary vs permanent, or any other situations that may arise later
         /// </summary>
-        public string type { get; set; }
+        public string Type { get; set; }
     }
 }

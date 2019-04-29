@@ -94,6 +94,27 @@ namespace Shoko.Server.Models
             return seriesName;
         }
 
+        public HashSet<string> GetAllTitles()
+        {
+            HashSet<string> titles = new HashSet<string>();
+            
+            // Override
+            if (SeriesNameOverride != null) titles.Add(SeriesNameOverride);
+            // AniDB
+            titles.UnionWith(GetAnime().GetAllTitles());
+            // TvDB
+            titles.UnionWith(GetTvDBSeries().Select(a => a.SeriesName).Where(a => a != null));
+            // MovieDB
+            var movieDB = GetMovieDB();
+            if (movieDB != null)
+            {
+                titles.Add(movieDB.MovieName);
+                titles.Add(movieDB.OriginalName);
+            }
+
+            return titles;
+        }
+
         public string GenresRaw
         {
             get
@@ -147,7 +168,16 @@ namespace Shoko.Server.Models
                                 .Count(b => b != null) > 0);
         }
 
-        #region TvDB
+        public MovieDB_Movie GetMovieDB()
+        {
+            var movieDBXRef = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(AniDB_ID, CrossRefType.MovieDB);
+            if (movieDBXRef?.CrossRefID == null || !int.TryParse(movieDBXRef.CrossRefID, out int movieID)) return null;
+            var movieDB = RepoFactory.MovieDb_Movie.GetByOnlineID(movieID);
+            return movieDB;
+        }
+
+
+#region TvDB
 
         public List<CrossRef_AniDB_TvDB> GetCrossRefTvDB()
         {
