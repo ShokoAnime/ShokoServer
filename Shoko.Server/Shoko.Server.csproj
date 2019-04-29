@@ -87,6 +87,10 @@
     <Reference Include="DeepCloner, Version=0.10.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\DeepCloner.0.10.1\lib\net40\DeepCloner.dll</HintPath>
     </Reference>
+    <Reference Include="F23.StringSimilarity, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\F23.StringSimilarity.3.1.0\lib\netstandard1.0\F23.StringSimilarity.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>$(SolutionDir)packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
     </Reference>

@@ -503,4 +503,16 @@ namespace Shoko.Server.API.v3
             public Image image { get; set; }
         }
     }
+
+    public class SeriesSearchResult : Series
+    {
+        public string Match { get; set; }
+        
+        public double Distance { get; set; }
+        public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist) : base(ctx, ser)
+        {
+            Match = match;
+            Distance = dist;
+        }
+    }
 }
