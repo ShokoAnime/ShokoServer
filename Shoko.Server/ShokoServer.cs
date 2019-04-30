@@ -1496,13 +1496,16 @@ namespace Shoko.Server
             if (webHost != null)
                 return;
             webHost = new WebHostBuilder().UseKestrel(options => { options.ListenAnyIP(ServerSettings.Instance.ServerPort); }).UseStartup<Startup>()
-#if DEBUG
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
+#if DEBUG
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                }).UseNLog()
+#else
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
 #endif
+                }).UseNLog()
+
                 .Build();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
