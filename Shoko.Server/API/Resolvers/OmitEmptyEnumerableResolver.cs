@@ -11,7 +11,7 @@ namespace Shoko.Server.API
             MemberSerialization memberSerialization)
         {
             var property = base.CreateProperty(member, memberSerialization);
-
+            // strings are enumerable, but don't count them
             if (property.PropertyType == typeof(string)) return property;
 
             if (typeof(IEnumerable).IsAssignableFrom(property.PropertyType))

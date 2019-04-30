@@ -24,12 +24,11 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
+    [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/v1"), ApiExplorerSettings(IgnoreApi = true)]
-    public partial class ShokoServiceImplementation : IShokoServer, IHttpContextAccessor
+    public partial class ShokoServiceImplementation : Controller, IShokoServer, IHttpContextAccessor
     {
-        HttpContext _ctx;
-        public HttpContext HttpContext { get => _ctx; set => _ctx = value; }
-
+        public new HttpContext HttpContext { get; set; }
         //TODO Split this file into subfiles with partial class, Move #region functionality from the interface to those subfiles
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -377,7 +376,7 @@ namespace Shoko.Server
         }
 
         [HttpPost("CloudAccount/Directory/{cloudaccountid}")]
-        public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path)
+        public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, [FromForm]string path)
         {
             if (path == null) path = "null";
             List<string> result = new List<string>();

@@ -17,6 +17,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Newtonsoft.Json;
 
 namespace Shoko.Server.API
@@ -95,7 +96,16 @@ namespace Shoko.Server.API
             services.AddSignalR();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+            services.AddMvc(options =>
+                {
+                    options.AllowEmptyInputInBodyModelBinding = true;
+                    foreach (var formatter in options.InputFormatters)
+                    {
+                        if (formatter.GetType() == typeof(JsonInputFormatter))
+                            ((JsonInputFormatter)formatter).SupportedMediaTypes.Add(
+                                Microsoft.Net.Http.Headers.MediaTypeHeaderValue.Parse("text/plain"));
+                    }
+                }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;

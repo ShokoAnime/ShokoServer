@@ -21,7 +21,7 @@ using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server
 {
-    [ApiController, Route("/api/Image"), ApiVersionNeutral]
+    [ApiController, Route("/api/Image"), ApiVersionNeutral, ApiExplorerSettings(IgnoreApi = true)]
     public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }

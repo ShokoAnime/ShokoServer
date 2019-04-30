@@ -8,6 +8,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;
@@ -166,7 +167,7 @@ namespace Shoko.UI.Forms
                 else
                     contract.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
                 ShokoServiceImplementation imp = new ShokoServiceImplementation();
-                CL_Response<ImportFolder> response = imp.SaveImportFolder(contract);
+                CL_Response<ImportFolder> response = RepoFactory.ImportFolder.SaveImportFolder(contract);
                 if (!string.IsNullOrEmpty(response.ErrorMessage))
                 {
                     MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error,
