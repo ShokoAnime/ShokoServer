@@ -24,6 +24,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings;
+using Microsoft.AspNetCore.Authorization;
 
 //using Microsoft.SqlServer.Management.Smo;
 

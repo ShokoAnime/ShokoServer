@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Security.Principal;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
@@ -11,6 +13,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using System.Security.Claims;
 
 namespace Shoko.Server.API
 {
@@ -35,17 +38,16 @@ namespace Shoko.Server.API
             return string.Empty;
         }
 
-        public static SVR_JMMUser GetUser(this IIdentity identity)
+        public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
         {
-            if (!(identity?.IsAuthenticated ?? false)) return null;
-            return RepoFactory.JMMUser.GetByUsername(identity.Name);
+            if (!(identity?.Identity?.IsAuthenticated ?? false)) return null;
+
+            var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (nameIdentifier == null) return null;
+
+            return RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
         }
-        
-        public static SVR_JMMUser GetUser(this HttpContext ctx)
-        {
-            var identity = ctx?.User?.Identity;
-            if (!(identity?.IsAuthenticated ?? false)) return null;
-            return RepoFactory.JMMUser.GetByUsername(identity.Name);
-        }
+
+        public static SVR_JMMUser GetUser(this HttpContext ctx) => ctx.User.GetUser();
     }
 }

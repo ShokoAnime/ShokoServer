@@ -14,7 +14,7 @@ namespace Shoko.Server.API
 
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, UserHandler requirement)
         {
-            if (context.User.Identity is SVR_JMMUser user && requirement.validationAction(user))
+            if (context.User.GetUser() != null && requirement.validationAction(context.User.GetUser()))
                 context.Succeed(requirement);
 
             return Task.CompletedTask;

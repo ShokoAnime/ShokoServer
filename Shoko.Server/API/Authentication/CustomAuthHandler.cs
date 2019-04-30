@@ -27,9 +27,15 @@ namespace Shoko.Server.API.Authentication
         {
             if (!ServerState.Instance.ServerOnline)
             {
-                return Task.FromResult(
-                    AuthenticateResult.Success(
-                        new AuthenticationTicket(new ClaimsPrincipal(InitUser.Instance), Options.Scheme)));
+
+                var initPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new [] {
+                    new Claim(ClaimTypes.Role, "init"),
+                    new Claim(ClaimTypes.NameIdentifier, InitUser.Instance.JMMUserID.ToString()),
+                    new Claim(ClaimTypes.AuthenticationMethod, "init"),}, CustomAuthOptions.DefaultScheme));
+                initPrincipal.AddIdentity(new ClaimsIdentity(InitUser.Instance));
+
+                return Task.FromResult( AuthenticateResult.Success(
+                        new AuthenticationTicket(initPrincipal, Options.Scheme)));
             }
             
             
@@ -46,7 +52,20 @@ namespace Shoko.Server.API.Authentication
 
             if (user == null) return Task.FromResult(AuthenticateResult.Fail("Invalid Authentication key"));
 
-            var ticket = new AuthenticationTicket(new ClaimsPrincipal(user), Options.Scheme);
+
+            var claims = new List<Claim>{
+                new Claim(ClaimTypes.Role, "user"),
+                new Claim(ClaimTypes.NameIdentifier, user.JMMUserID.ToString()),
+                new Claim(ClaimTypes.AuthenticationMethod, "apikey"),
+            };
+            if (user.IsAdmin == 1)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, "admin"));
+            }
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Options.Scheme));
+            principal.AddIdentity(new ClaimsIdentity(user));
+
+            var ticket = new AuthenticationTicket(principal, Options.Scheme);
 
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
