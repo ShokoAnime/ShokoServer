@@ -22,27 +22,29 @@ using Mime = MimeMapping.MimeUtility;
 namespace Shoko.Server
 {
     [ApiController, Route("/api/Image"), ApiVersionNeutral, ApiExplorerSettings(IgnoreApi = true)]
-    public class ShokoServiceImplementationImage : IShokoServerImage, IHttpContextAccessor
+    public class ShokoServiceImplementationImage : Controller, IShokoServerImage, IHttpContextAccessor
     {
         public HttpContext HttpContext { get; set; }
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [HttpGet("{imageid}/{imageType}/{thumnbnailOnly?}")]
-        public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly)
+        public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly = false)
         {
             string path = GetImagePath(imageid, imageType, thumnbnailOnly);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
                 return new StreamWithResponse(HttpStatusCode.NotFound);
-            return new StreamWithResponse(File.OpenRead(path), Mime.GetMimeMapping(path));
+            string mime = Mime.GetMimeMapping(path);
+            Response.ContentType = mime; 
+            return new StreamWithResponse(System.IO.File.OpenRead(path), mime);
         }
 
         [HttpGet("WithPath/{serverImagePath}")]
         public Stream GetImageUsingPath(string serverImagePath)
         {
-            if (File.Exists(serverImagePath))
+            if (System.IO.File.Exists(serverImagePath))
             {
-                return new StreamWithResponse(File.OpenRead(serverImagePath), Mime.GetMimeMapping(serverImagePath));
+                return new StreamWithResponse(System.IO.File.OpenRead(serverImagePath), Mime.GetMimeMapping(serverImagePath));
             }
             logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
             return new StreamWithResponse(HttpStatusCode.NotFound);
@@ -211,7 +213,7 @@ namespace Shoko.Server
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(imageId);
                     if (anime == null) return null;
-                    if (File.Exists(anime.PosterPath))
+                    if (System.IO.File.Exists(anime.PosterPath))
                     {
                         return anime.PosterPath;
                     }
@@ -224,7 +226,7 @@ namespace Shoko.Server
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = RepoFactory.AniDB_Character.GetByID(imageId);
                     if (chr == null) return null;
-                    if (File.Exists(chr.GetPosterPath()))
+                    if (System.IO.File.Exists(chr.GetPosterPath()))
                     {
                         return chr.GetPosterPath();
                     }
@@ -237,7 +239,7 @@ namespace Shoko.Server
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = RepoFactory.AniDB_Seiyuu.GetByID(imageId);
                     if (creator == null) return string.Empty;
-                    if (File.Exists(creator.GetPosterPath()))
+                    if (System.IO.File.Exists(creator.GetPosterPath()))
                     {
                         return creator.GetPosterPath();
                     }
@@ -250,7 +252,7 @@ namespace Shoko.Server
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = RepoFactory.TvDB_ImagePoster.GetByID(imageId);
                     if (poster == null) return null;
-                    if (File.Exists(poster.GetFullImagePath()))
+                    if (System.IO.File.Exists(poster.GetFullImagePath()))
                     {
                         return poster.GetFullImagePath();
                     }
@@ -263,7 +265,7 @@ namespace Shoko.Server
                 case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageId);
                     if (wideBanner == null) return null;
-                    if (File.Exists(wideBanner.GetFullImagePath()))
+                    if (System.IO.File.Exists(wideBanner.GetFullImagePath()))
                     {
                         return wideBanner.GetFullImagePath();
                     }
@@ -276,7 +278,7 @@ namespace Shoko.Server
                 case ImageEntityType.TvDB_Episode:
                     TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(imageId);
                     if (ep == null) return null;
-                    if (File.Exists(ep.GetFullImagePath()))
+                    if (System.IO.File.Exists(ep.GetFullImagePath()))
                     {
                         return ep.GetFullImagePath();
                     }
@@ -291,7 +293,7 @@ namespace Shoko.Server
                     if (fanart == null) return null;
                     if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
                     {
-                        if (File.Exists(fanart.GetFullThumbnailPath()))
+                        if (System.IO.File.Exists(fanart.GetFullThumbnailPath()))
                         {
                             return fanart.GetFullThumbnailPath();
                         }
@@ -301,7 +303,7 @@ namespace Shoko.Server
                     }
                     else
                     {
-                        if (File.Exists(fanart.GetFullImagePath()))
+                        if (System.IO.File.Exists(fanart.GetFullImagePath()))
                         {
                             return fanart.GetFullImagePath();
                         }
@@ -317,7 +319,7 @@ namespace Shoko.Server
                     // now find only the original size
                     mPoster = RepoFactory.MovieDB_Poster.GetByOnlineID(mPoster.URL);
                     if (mPoster == null) return null;
-                    if (File.Exists(mPoster.GetFullImagePath()))
+                    if (System.IO.File.Exists(mPoster.GetFullImagePath()))
                     {
                         return mPoster.GetFullImagePath();
                     }
@@ -332,7 +334,7 @@ namespace Shoko.Server
                     if (mFanart == null) return null;
                     mFanart = RepoFactory.MovieDB_Fanart.GetByOnlineID(mFanart.URL);
                     if (mFanart == null) return null;
-                    if (File.Exists(mFanart.GetFullImagePath()))
+                    if (System.IO.File.Exists(mFanart.GetFullImagePath()))
                     {
                         return mFanart.GetFullImagePath();
                     }

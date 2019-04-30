@@ -39,8 +39,6 @@ namespace Shoko.Server.API
 
         public void ConfigureServices(IServiceCollection services)
         {
-
-
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
@@ -51,6 +49,9 @@ namespace Shoko.Server.API
             {
                 auth.AddPolicy("admin",
                     policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
+                auth.AddPolicy("init",
+                    policy => policy.Requirements.Add(new UserHandler(user =>
+                        user.JMMUserID == 0 && user.UserName == "init")));
             });
 
 

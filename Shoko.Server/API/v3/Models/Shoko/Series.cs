@@ -88,18 +88,19 @@ namespace Shoko.Server.API.v3
             // TvDB
             var tvdbs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
             if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID));
+            // TODO Cache the rest of these, so that they don't severely slow down the API
             // MovieDB
             // TODO make this able to support more than one, in fact move it to its own and remove CrossRef_Other
-            var moviedb = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB);
-            if (moviedb != null && int.TryParse(moviedb.CrossRefID, out int movieID)) ids.MovieDB.Add(movieID);
+            //var moviedb = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB);
+            //if (moviedb != null && int.TryParse(moviedb.CrossRefID, out int movieID)) ids.MovieDB.Add(movieID);
             // Trakt
-            var traktids = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(ser.AniDB_ID).Select(a => a.TraktID)
-                .Distinct().ToList();
-            if (traktids.Any()) ids.TraktTv.AddRange(traktids);
+            //var traktids = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(ser.AniDB_ID).Select(a => a.TraktID)
+            //    .Distinct().ToList();
+            //if (traktids.Any()) ids.TraktTv.AddRange(traktids);
             // MAL
-            var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
-                .ToList();
-            if (malids.Any()) ids.MAL.AddRange(malids);
+            //var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
+            //    .ToList();
+            //if (malids.Any()) ids.MAL.AddRange(malids);
             // TODO AniList later
             return ids;
         }
@@ -292,7 +293,7 @@ namespace Shoko.Server.API.v3
             var images = new Images();
             AddAniDBPoster(ctx, images, animeID);
             AddTvDBImages(ctx, images, animeID, includeDisabled);
-            AddMovieDBImages(ctx, images, animeID, includeDisabled);
+            //AddMovieDBImages(ctx, images, animeID, includeDisabled);
 
             return images;
         }

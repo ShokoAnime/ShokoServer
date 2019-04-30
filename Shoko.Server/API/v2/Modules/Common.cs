@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersion("2.0")]
     public class Common : BaseController
     {
-        //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
+        //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
         public Common()
         {
@@ -2828,17 +2828,25 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/filter
         /// Using if without ?id consider using ?level as it will scan resursive for object from Filter to RawFile
         /// </summary>
+        /// <param name="id"></param>
+        /// <param name="tagfilter"></param>
+        /// <param name="pic"></param>
+        /// <param name="all"></param>
+        /// <param name="nocast"></param>
+        /// <param name="notag"></param>
+        /// <param name="level"></param>
+        /// <param name="allpics"></param>
         /// <returns>Filter or List<Filter></returns>
         [HttpGet("filter")]
-        public object GetFilters(API_Call_Parameters para)
+        public object GetFilters(int id, int all = 0, int nocast = 0, int notag = 0, int level = 0, int allpics = 0, int pic = 0, int tagfilter = 0)
         {
             JMMUser user = HttpContext.GetUser();
 
-            if (para.id == 0)
+            if (id == 0)
             {
-                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+                return GetAllFilters(user.JMMUserID, nocast != 0, notag != 0, level, all != 0, allpics != 0, pic, (TagFilter.Filter) tagfilter);
             }
-            return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+            return GetFilter(id, user.JMMUserID, nocast != 0, notag != 0, level, all != 0, allpics != 0, pic, (TagFilter.Filter) tagfilter);
         }
 
         #region internal function
