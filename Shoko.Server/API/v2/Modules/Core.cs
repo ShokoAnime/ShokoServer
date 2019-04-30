@@ -63,7 +63,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpPost("config/imagepath/set")]
-        public ActionResult SetImagepath([FromBody] ImagePath imagepath)
+        public ActionResult SetImagepath(ImagePath imagepath)
         {
             if (imagepath.isdefault)
             {
@@ -119,7 +119,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPost("config/import")]
-        public ActionResult ImportConfig([FromBody] CL_ServerSettings settings)
+        public ActionResult ImportConfig(CL_ServerSettings settings)
         {
             string raw_settings = settings.ToJSON();
 
@@ -145,7 +145,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpPost("config/get")]
-        public ActionResult<Setting> GetSetting([FromBody] Setting setting)
+        public ActionResult<Setting> GetSetting(Setting setting)
         {
             try
             {
@@ -253,7 +253,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpPost("anidb/set")]
-        public ActionResult SetAniDB([FromBody] Credentials cred)
+        public ActionResult SetAniDB(Credentials cred)
         {
             if (!string.IsNullOrEmpty(cred.login) && !string.IsNullOrEmpty(cred.password))
             {
@@ -657,7 +657,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         [Authorize("admin")]
         [HttpPost("user/create")]
-        public ActionResult CreateUser([FromBody] JMMUser user)
+        public ActionResult CreateUser(JMMUser user)
         {
             user.Password = Digest.Hash(user.Password);
             user.HideCategories = string.Empty;
@@ -672,7 +672,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpPost("user/password")]
-        public ActionResult ChangePassword([FromBody] JMMUser user)
+        public ActionResult ChangePassword(JMMUser user)
         {
             return new ShokoServiceImplementation().ChangePassword(user.JMMUserID, user.Password) == string.Empty
                     ? APIStatus.OK()
@@ -685,7 +685,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         [HttpPost("user/password/{uid}")]
         [Authorize("admin")]
-        public ActionResult ChangePassword(int uid, [FromBody] JMMUser user)
+        public ActionResult ChangePassword(int uid, JMMUser user)
         {
             return new ShokoServiceImplementation().ChangePassword(uid, user.Password) == string.Empty
                 ? APIStatus.OK()
@@ -698,7 +698,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         [HttpPost("user/delete")]
         [Authorize("admin")]
-        public ActionResult DeleteUser([FromBody] JMMUser user)
+        public ActionResult DeleteUser(JMMUser user)
         {
             return new ShokoServiceImplementation().DeleteUser(user.JMMUserID) == string.Empty
                 ? APIStatus.OK()
@@ -742,7 +742,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="folder"></param>
         /// <returns></returns>
         [HttpPost("/os/folder")]
-        public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, [FromBody] OSFolder dir)
+        public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
         {
             if (!string.IsNullOrEmpty(dir.full_path))
             {
@@ -813,7 +813,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         [HttpPost("log/rotate")]
         [Authorize("admin")]
-        public ActionResult SetRotateLogs([FromBody] Logs rotator)
+        public ActionResult SetRotateLogs(Logs rotator)
         {
             ServerSettings.Instance.LogRotator.Enabled = rotator.rotate;
             ServerSettings.Instance.LogRotator.Zip = rotator.zip;

@@ -25,6 +25,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
+    [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/api/Metro"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
     {

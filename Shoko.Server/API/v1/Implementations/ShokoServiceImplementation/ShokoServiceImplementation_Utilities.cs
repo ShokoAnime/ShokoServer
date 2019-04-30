@@ -18,6 +18,7 @@ using Shoko.Commons.Utils;
 using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.Utilities;
 using System.IO;
+using System.Text.Encodings.Web;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +30,7 @@ namespace Shoko.Server
     public partial class ShokoServiceImplementation
     {
         [HttpPost("Serie/SearchFilename/{uid}")]
-        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, string input)
+        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm]string input)
         {
             if (input == null) input = "";
             string query = input.ToLower(CultureInfo.InvariantCulture);
@@ -131,7 +132,7 @@ namespace Shoko.Server
         }
 
         [HttpPost("AniDB/Anime/SearchFilename/{uid}")]
-        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, string input)
+        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, [FromForm]string input)
         {
             string query = input.ToLower(CultureInfo.InvariantCulture);
             query = SanitizeFuzzy(query, true);
