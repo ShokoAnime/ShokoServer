@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersion("2.0")]
     public class Common : BaseController
     {
-        //class will be found automagicly thanks to inherits also class need to be public (or it will 404)
+        //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
         public Common()
         {
@@ -2830,7 +2830,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>Filter or List<Filter></returns>
         [HttpGet("filter")]
-        public object GetFilters(API_Call_Parameters para)
+        public object GetFilters([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
@@ -2941,7 +2941,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>Group or List<Group> or APIStatus</returns>
         [HttpGet("group")]
-        public object GetGroups(API_Call_Parameters para)
+        public object GetGroups([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
@@ -3256,7 +3256,7 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         [HttpGet("cast/search")]
-        public ActionResult<Filter> SearchByStaff(API_Call_Parameters para)
+        public ActionResult<Filter> SearchByStaff([FromQuery] API_Call_Parameters para)
         {
             List<Serie> results = new List<Serie>();
             var user = HttpContext.GetUser();
