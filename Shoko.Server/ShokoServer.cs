@@ -1502,7 +1502,7 @@ namespace Shoko.Server
 #if DEBUG
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
 #else
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
 #endif
                 }).UseNLog()
 
