@@ -2828,25 +2828,17 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/filter
         /// Using if without ?id consider using ?level as it will scan resursive for object from Filter to RawFile
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="tagfilter"></param>
-        /// <param name="pic"></param>
-        /// <param name="all"></param>
-        /// <param name="nocast"></param>
-        /// <param name="notag"></param>
-        /// <param name="level"></param>
-        /// <param name="allpics"></param>
         /// <returns>Filter or List<Filter></returns>
         [HttpGet("filter")]
-        public object GetFilters(int id, int all = 0, int nocast = 0, int notag = 0, int level = 0, int allpics = 0, int pic = 0, int tagfilter = 0)
+        public object GetFilters([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
-            if (id == 0)
+            if (para.id == 0)
             {
-                return GetAllFilters(user.JMMUserID, nocast != 0, notag != 0, level, all != 0, allpics != 0, pic, (TagFilter.Filter) tagfilter);
+                return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
-            return GetFilter(id, user.JMMUserID, nocast != 0, notag != 0, level, all != 0, allpics != 0, pic, (TagFilter.Filter) tagfilter);
+            return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
         }
 
         #region internal function
@@ -2949,7 +2941,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>Group or List<Group> or APIStatus</returns>
         [HttpGet("group")]
-        public object GetGroups(API_Call_Parameters para)
+        public object GetGroups([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
@@ -3264,7 +3256,7 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         [HttpGet("cast/search")]
-        public ActionResult<Filter> SearchByStaff(API_Call_Parameters para)
+        public ActionResult<Filter> SearchByStaff([FromQuery] API_Call_Parameters para)
         {
             List<Serie> results = new List<Serie>();
             var user = HttpContext.GetUser();
