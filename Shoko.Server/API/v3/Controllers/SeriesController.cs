@@ -120,7 +120,6 @@ namespace Shoko.Server.API.v3
         /// function used in fuzzy search
         /// </summary>
         /// <param name="search"></param>
-        /// <param name="distanceLimit"></param>
         /// <param name="languages"></param>
         /// <param name="a"></param>
         /// <param name="query"></param>
