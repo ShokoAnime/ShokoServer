@@ -1055,6 +1055,7 @@
     <Compile Include="API\v3\Controllers\ImportFolderController.cs" />
     <Compile Include="API\v3\Controllers\SeriesController.cs" />
     <Compile Include="API\v3\Controllers\TreeController.cs" />
+    <Compile Include="API\v3\Helpers\APIGroupFilterSortingHelper.cs" />
     <Compile Include="API\v3\Helpers\ModelHelper.cs" />
     <Compile Include="API\v3\Models\Common\BaseModel.cs" />
     <Compile Include="API\v3\Models\Common\IDs.cs" />

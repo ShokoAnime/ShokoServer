@@ -1,7 +1,10 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
@@ -13,10 +16,69 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class TreeController : BaseController
     {
-        [HttpGet("filter/{filterID}/Group/{groupID}/Series")]
-        public ActionResult<List<Series>> GetSeriesForGroupWithAppliedFilter(int filterID, int groupID)
+        
+        /// <summary>
+        /// Get All Filters
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Filter")]
+        public ActionResult<List<Filter>> GetFilters(bool includeEmpty = false, bool includeInvisible = false)
         {
-            return NoContent();
+            var fs = RepoFactory.GroupFilter.GetTopLevel();
+            return fs.Where(a =>
+                {
+                    if (a.InvisibleInClients != 0 && !includeInvisible) return false;
+                    if (a.GroupsIds.ContainsKey(User.JMMUserID) && a.GroupsIds[User.JMMUserID].Count > 0 || includeEmpty)
+                        return true;
+                    return ((GroupFilterType) a.FilterType).HasFlag(GroupFilterType.Directory);
+                })
+                .Select(a => new Filter(HttpContext, a)).OrderBy(a => a.Name).ToList();
         }
+        
+        /// <summary>
+        /// Get groups for filter with ID
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Filter/{filterID}/Group")]
+        public ActionResult<List<Group>> GetGroups(int filterID)
+        {
+            var f = RepoFactory.GroupFilter.GetByID(filterID);
+            if (f == null) return BadRequest("No Filter with ID");
+            if (!f.GroupsIds.ContainsKey(User.JMMUserID)) return new List<Group>();
+            return f.GroupsIds[User.JMMUserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
+                .Where(a => a != null).GroupFilterSort(f).Select(a => new Group(HttpContext, a)).ToList();
+        }
+        
+        /// <summary>
+        /// Get series for group with ID. Pass a <see cref="filterID"/> of 0 to apply no filtering
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
+        public ActionResult<List<Series>> GetSeries(int filterID, int groupID)
+        {
+            var grp = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (grp == null) return BadRequest("No Group with ID");
+            if (filterID == 0)
+                return grp.GetSeries().Where(a => User.AllowedSeries(a)).Select(a => new Series(HttpContext, a))
+                    .ToList();
+
+            var f = RepoFactory.GroupFilter.GetByID(filterID);
+            if (f == null) return BadRequest("No Filter with ID");
+
+            if (f.ApplyToSeries != 1)
+                return grp.GetSeries().Where(a => User.AllowedSeries(a)).Select(a => new Series(HttpContext, a))
+                    .ToList();
+
+            if (!f.SeriesIds.ContainsKey(User.JMMUserID)) return new List<Series>();
+
+            return f.SeriesIds[User.JMMUserID].Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                .Where(ser => ser?.AnimeGroupID == groupID).Select(ser => new Series(HttpContext, ser)).OrderBy(a =>
+                    Series.GetAniDBInfo(HttpContext, RepoFactory.AniDB_Anime.GetByID(a.IDs.ID)))
+                .ToList();
+        }
+        
+        
     }
+    
+    
 }
