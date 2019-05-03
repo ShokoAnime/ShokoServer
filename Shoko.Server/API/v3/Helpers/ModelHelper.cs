@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v3

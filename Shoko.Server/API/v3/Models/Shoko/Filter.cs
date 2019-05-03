@@ -11,12 +11,17 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
+    /// <summary>
+    /// A Group Filter. This is how Shoko serves and organizes Series/Groups. They can be used to keep track of what
+    /// you're watching and many other things
+    /// </summary>
     public class Filter : BaseModel
     {
         /// <summary>
         /// The Filter ID. self explanatory
         /// </summary>
         public int ID { get; set; }
+
         /// <summary>
         /// Locked Filters cannot be edited
         /// </summary>
@@ -36,6 +41,8 @@ namespace Shoko.Server.API.v3
         /// This determines whether to hide the filter in API queries. Things with this need to be explicitly asked for
         /// </summary>
         public bool HideInAPI { get; set; }
+        
+        public Filter() {}
 
         public Filter(HttpContext ctx, SVR_GroupFilter gf)
         {
@@ -126,14 +133,85 @@ namespace Shoko.Server.API.v3
             }
         }
 
+        /// <summary>
+        /// Sorting Criteria hold info on how Group Filters sort their items. It is in a List to follow
+        /// an OrderBy().ThenBy().ThenBy(), allowing consistent results with fallbacks.
+        /// </summary>
         public class SortingCriteria
         {
+            /// <summary>
+            /// The sorting type. What it is sorted on
+            /// </summary>
             public GroupFilterSorting Type { get; set; }
+
+            /// <summary>
+            /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example 
+            /// </summary>
             public bool Descending { get; set; }
             public SortingCriteria(GroupFilterSortingCriteria criteria)
             {
                 Type = criteria.SortType;
                 Descending = criteria.SortDirection == GroupFilterSortDirection.Desc;
+            }
+        }
+
+        /// <summary>
+        /// This is to be used sparingly. It is namely for saving new Filters and previewing the changes
+        /// </summary>
+        public class FullFilter : Filter
+        {
+            /// <summary>
+            /// The Parent Filter ID. You don't need to know this otherwise, but if you are saving a new filter, it is important.
+            /// </summary>
+            public int ParentID { get; set; }
+            
+            /// <summary>
+            /// The Filter conditions
+            /// </summary>
+            public FilterConditions Conditions { get; set; }
+            
+            /// <summary>
+            /// The sorting criteria
+            /// </summary>
+            public List<SortingCriteria> Sorting { get; set; }
+            
+            
+            /// <summary>
+            /// Creates a server model compatible with the database. This does not calculate any cached data, such as groups and series.
+            /// </summary>
+            /// <returns></returns>
+            public SVR_GroupFilter ToGroupFilter()
+            {
+                SVR_GroupFilter gf = new SVR_GroupFilter
+                {
+                    FilterType = (int) Type,
+                    ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0,
+                    GroupFilterName = Name,
+                    InvisibleInClients = HideInAPI ? 1 : 0,
+                    ParentGroupFilterID = ParentID == 0 ? (int?) null : ParentID,
+                    // Conditions
+                    BaseCondition = (int) (Conditions.InvertLogic
+                        ? GroupFilterBaseCondition.Exclude
+                        : GroupFilterBaseCondition.Include),
+                    Conditions = Conditions.Conditions.Select(c =>
+                    {
+                        GroupFilterCondition condition = new GroupFilterCondition();
+
+                        return condition;
+                    }).ToList(),
+                    // Sorting
+                    SortCriteriaList = Sorting.Select(s =>
+                    {
+                        GroupFilterSortingCriteria criteria = new GroupFilterSortingCriteria
+                        {
+                            SortType = s.Type,
+                            SortDirection = s.Descending ? GroupFilterSortDirection.Desc : GroupFilterSortDirection.Asc
+                        };
+                        return criteria;
+                    }).ToList()
+                };
+
+                return gf;
             }
         }
     }

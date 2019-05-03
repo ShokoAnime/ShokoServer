@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using FluentNHibernate.MappingModel;
 using Newtonsoft.Json;
 using NLog;
@@ -136,6 +137,12 @@ namespace Shoko.Server.Models
                 }
 
                 return sortCriteriaList;
+            }
+
+            set
+            {
+                var crts = value.Select(a => $"{(int) a.SortType};{(int) a.SortDirection}");
+                SortingCriteria = string.Join("|", crts);
             }
         }
 

@@ -42,6 +42,8 @@ namespace Shoko.Server.API.v3
 
         #region Constructors and Helper Methods
 
+        public Series() {}
+
         public Series(HttpContext ctx, SVR_AnimeSeries ser)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
@@ -188,11 +190,14 @@ namespace Shoko.Server.API.v3
             var filteredTags = TagFilter.ProcessTags(filter, allTags.Keys.ToList());
             foreach (string filteredTag in filteredTags)
             {
-                AniDB_Tag tag;
-                tag = allTags.ContainsKey(filteredTag)
+                AniDB_Tag tag = allTags.ContainsKey(filteredTag)
                     ? allTags[filteredTag]
                     : RepoFactory.AniDB_Tag.GetByName(filteredTag).FirstOrDefault();
-                if (tag == null) continue;
+                if (tag == null)
+                {
+                    tags.Add(new Tag { Name = filteredTag });
+                    continue;
+                }
                 var toAPI = new Tag
                 {
                     Name = tag.TagName
