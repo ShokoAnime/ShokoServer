@@ -67,9 +67,9 @@ namespace Shoko.Server.API.v3
         /// Create or update a filter
         /// </summary>
         /// <param name="filter"></param>
-        /// <returns></returns>
+        /// <returns>The resulting Filter, with ID</returns>
         [HttpPost]
-        public ActionResult SaveFilter(Filter.FullFilter filter)
+        public ActionResult<Filter> SaveFilter(Filter.FullFilter filter)
         {
             SVR_GroupFilter gf = null;
             if (filter.ID != 0)
@@ -81,7 +81,7 @@ namespace Shoko.Server.API.v3
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 
-            return Ok();
+            return new Filter(HttpContext, gf);
         }
 
         /// <summary>
