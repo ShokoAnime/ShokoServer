@@ -180,7 +180,7 @@ namespace Shoko.Server.API.v3
             /// Creates a server model compatible with the database. This does not calculate any cached data, such as groups and series.
             /// </summary>
             /// <returns></returns>
-            public SVR_GroupFilter ToGroupFilter()
+            public SVR_GroupFilter ToGroupFilter(SVR_GroupFilter existing = null)
             {
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {
@@ -211,7 +211,21 @@ namespace Shoko.Server.API.v3
                     }).ToList()
                 };
 
-                return gf;
+                // Merge into existing
+                if (existing == null) return gf;
+
+                if (gf.GroupFilterName != null) existing.GroupFilterName = gf.GroupFilterName;
+                if (gf.Conditions != null)
+                {
+                    existing.BaseCondition = gf.BaseCondition;
+                    existing.Conditions = gf.Conditions;
+                }
+                if (gf.SortCriteriaList != null) existing.SortCriteriaList = gf.SortCriteriaList;
+                existing.ApplyToSeries = gf.ApplyToSeries;
+                existing.ParentGroupFilterID = gf.ParentGroupFilterID;
+                existing.FilterType = gf.FilterType;
+                existing.InvisibleInClients = gf.InvisibleInClients;
+                return existing;
             }
         }
     }

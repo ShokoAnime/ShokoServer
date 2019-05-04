@@ -62,5 +62,40 @@ namespace Shoko.Server.API.v3
             return gf.GroupsIds[User.JMMUserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null).GroupFilterSort(gf).Select(a => new Group(HttpContext, a)).ToList();
         }
+        
+        /// <summary>
+        /// Create or update a filter
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult SaveFilter(Filter.FullFilter filter)
+        {
+            SVR_GroupFilter gf = null;
+            if (filter.ID != 0)
+            {
+                gf = RepoFactory.GroupFilter.GetByID(filter.ID);
+                if (gf == null) return BadRequest("No Filter with ID");
+            }
+            gf = filter.ToGroupFilter(gf);
+            gf.CalculateGroupsAndSeries();
+            RepoFactory.GroupFilter.Save(gf);
+
+            return Ok();
+        }
+
+        /// <summary>
+        /// Delete a filter
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpDelete("{id}")]
+        public ActionResult DeleteFilter(int id)
+        {
+            var gf = RepoFactory.GroupFilter.GetByID(id);
+            if (gf == null) return BadRequest("No filter with id");
+            RepoFactory.GroupFilter.Delete(gf);
+            return Ok();
+        }
     }
 }
