@@ -27,10 +27,10 @@ namespace Shoko.Server
     {
         static ShokoServiceImplementationStream()
         {
-            _connectionTimer.Elapsed += TimerElapsed;
+            ConnectionTimer.Elapsed += TimerElapsed;
         }
 
-        public HttpContext HttpContext { get; set; }
+        public new HttpContext HttpContext { get; set; }
 
         //89% Should be enough to not touch matroska offsets and give us some margin
         private double WatchedThreshold = 0.89;
@@ -41,49 +41,46 @@ namespace Shoko.Server
         /// <summary>
         ///  A list of open connections to the API
         /// </summary>
-        private static HashSet<string> _openConnections = new HashSet<string>();
+        private static readonly HashSet<string> OpenConnections = new HashSet<string>();
         /// <summary>
         /// blur the connection state to 5s, as most media players and calls are spread.
         /// This prevents flickering of the state for UI
         /// </summary>
-        private static Timer _connectionTimer = new Timer(5000);
+        private static readonly Timer ConnectionTimer = new Timer(5000);
         
         private static void AddConnection(HttpContext ctx)
         {
-            Guid guid = Guid.NewGuid();
-            string id = guid.ToString();
-            ctx.Items["ContextGUID"] = id;
-            lock (_openConnections)
+            lock (OpenConnections)
             {
-                _openConnections.Add(id);
-                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+                OpenConnections.Add(ctx.Connection.Id);
+                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
             }
         }
         
         private static void RemoveConnection(HttpContext ctx)
         {
-            if (!ctx.Items.ContainsKey("ContextGUID")) return;
-            lock (_openConnections)
+            if (!ctx.Items.ContainsKey(ctx.Connection.Id)) return;
+            lock (OpenConnections)
             {
-                _openConnections.Remove((string) ctx.Items["ContextGUID"]);
+                OpenConnections.Remove(ctx.Connection.Id);
             }
             ResetTimer();
         }
 
         private static void ResetTimer()
         {
-            lock (_connectionTimer)
+            lock (ConnectionTimer)
             {
-                _connectionTimer.Stop();
-                _connectionTimer.Start();
+                ConnectionTimer.Stop();
+                ConnectionTimer.Start();
             }
         }
 
         private static void TimerElapsed(object sender, ElapsedEventArgs e)
         {
-            lock (_openConnections)
+            lock (OpenConnections)
             {
-                ServerState.Instance.ApiInUse = _openConnections.Count > 0;
+                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
             }
         }
 
@@ -91,6 +88,11 @@ namespace Shoko.Server
         {
             AddConnection(context.HttpContext);
             base.OnActionExecuting(context);
+        }
+        
+        public override void OnActionExecuted(ActionExecutedContext context)
+        {
+            base.OnActionExecuted(context);
             RemoveConnection(context.HttpContext);
         }
 
