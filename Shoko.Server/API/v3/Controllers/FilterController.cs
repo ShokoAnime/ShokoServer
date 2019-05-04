@@ -69,6 +69,11 @@ namespace Shoko.Server.API.v3
             return Filter.GetSortingCriteria(gf);
         }
 
+        /// <summary>
+        /// Preview the Groups that will be in the filter if the changes are applied
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         [HttpPost("Preview")]
         public ActionResult<List<Group>> PreviewFilterChanges(Filter.FullFilter filter)
         {
