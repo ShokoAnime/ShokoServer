@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -24,6 +25,22 @@ namespace Shoko.Server.API.v3
             var gf = RepoFactory.GroupFilter.GetByID(id);
             if (gf == null) return BadRequest("No filter with id");
             return new Filter(HttpContext, gf);
+        }
+
+        /// <summary>
+        /// Get Filter with id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("{id}/Filter")]
+        public ActionResult<List<Filter>> GetSubFilters(int id)
+        {
+            var gf = RepoFactory.GroupFilter.GetByID(id);
+            if (gf == null) return BadRequest("No filter with id");
+            if (!((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory))
+                return BadRequest("Filter should be a Directory Filter");
+            return RepoFactory.GroupFilter.GetByParentID(id).Select(a => new Filter(HttpContext, a))
+                .OrderBy(a => a.Name).ToList();
         }
         
         /// <summary>
