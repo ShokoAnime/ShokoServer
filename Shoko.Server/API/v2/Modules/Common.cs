@@ -1451,14 +1451,20 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>List<Serie> or Serie</returns>
         [HttpGet("serie")]
-        public ActionResult<object> GetSerie([FromQuery] API_Call_Parameters para)
+        public ActionResult<Serie> GetSerie([FromQuery] API_Call_Parameters para)
         {
             if (para.id == 0)
             {
-                return GetAllSeries(para.nocast != 0, para.limit, (int) para.offset, para.notag != 0, para.level,
-                    para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+                return BadRequest("Missin ID param, if you want to get all of them use /api/serie/all");
             }
             return GetSerieById(para.id, para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+        }
+
+        [HttpGet("serie/all")]
+        public ActionResult<IEnumerable<Serie>> GetAllSeries([FromQuery] API_Call_Parameters para)
+        {
+            return GetAllSeries(para.nocast != 0, para.limit, (int)para.offset, para.notag != 0, para.level,
+                para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
         }
 
         /// <summary>
