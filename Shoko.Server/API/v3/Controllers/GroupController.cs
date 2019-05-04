@@ -52,20 +52,5 @@ namespace Shoko.Server.API.v3
             
             return new Series(HttpContext, ser);
         }
-        
-        /// <summary>
-        /// Get series for group with ID. This does not follow filters. For filter compatibility see <see cref="TreeController"/>
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [HttpGet("{id}/Series")]
-        public ActionResult<List<Series>> GetSeries(int id)
-        {
-            var grp = RepoFactory.AnimeGroup.GetByID(id);
-            if (grp == null) return BadRequest("No Group with ID");
-            return grp.GetSeries().Select(a => new Series(HttpContext, a)).ToList();
-        }
-        
-        
     }
 }

@@ -31,6 +31,8 @@ namespace Shoko.Server.API.v3
 
         #region Constructors and Helper Methods
 
+        public Group() {}
+
         public Group(HttpContext ctx, SVR_AnimeGroup grp)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;

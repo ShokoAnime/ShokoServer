@@ -1050,11 +1050,13 @@
     <Compile Include="API\Response\ByteArrayResponse.cs" />
     <Compile Include="API\v3\Controllers\EpisodeController.cs" />
     <Compile Include="API\v3\Controllers\FileController.cs" />
+    <Compile Include="API\v3\Controllers\FilterController.cs" />
     <Compile Include="API\v3\Controllers\GroupController.cs" />
     <Compile Include="API\v3\Controllers\ImageController.cs" />
     <Compile Include="API\v3\Controllers\ImportFolderController.cs" />
     <Compile Include="API\v3\Controllers\SeriesController.cs" />
     <Compile Include="API\v3\Controllers\TreeController.cs" />
+    <Compile Include="API\v3\Helpers\APIGroupFilterSortingHelper.cs" />
     <Compile Include="API\v3\Helpers\ModelHelper.cs" />
     <Compile Include="API\v3\Models\Common\BaseModel.cs" />
     <Compile Include="API\v3\Models\Common\IDs.cs" />

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using F23.StringSimilarity;
+using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
@@ -125,7 +126,7 @@ namespace Shoko.Server.API.v3
         /// <param name="distLevenshtein"></param>
         /// <param name="limit"></param>
         [NonAction]
-        private static void CheckTitlesFuzzy(QGram search, HashSet<string> languages, SVR_AnimeSeries a, string query,
+        private static void CheckTitlesFuzzy(IStringDistance search, HashSet<string> languages, SVR_AnimeSeries a, string query,
             ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
@@ -142,10 +143,12 @@ namespace Shoko.Server.API.v3
                 if (string.IsNullOrWhiteSpace(title)) continue;
                 var result = 0.0;
                 // Check for exact match
-                if (!title.Equals(query, StringComparison.InvariantCultureIgnoreCase))
+                if (!title.Equals(query, StringComparison.Ordinal))
                     result = search.Distance(title, query);
-                // Don't count an error of more than one when the title is shorter than 5 characters
-                if (title.Length < 5 && result > 1) continue;
+                // For Dice, 1 is no reasonable match
+                if (result >= 1) continue;
+                // Don't count an error as liberally when the title is short
+                if (title.Length < 5 && result > 0.8) continue;
                 if (result < dist)
                 {
                     match = title;
@@ -186,8 +189,9 @@ namespace Shoko.Server.API.v3
         [HttpGet("Search/{query}")]
         public ActionResult<IEnumerable<SeriesSearchResult>> Search(string query, int limit = int.MaxValue)
         {
-            QGram search = new QGram();
+            SorensenDice search = new SorensenDice();
             query = query.ToLowerInvariant();
+            query = query.Replace("+", " ");
 
             List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
@@ -208,7 +212,7 @@ namespace Shoko.Server.API.v3
                 {
                     var result1 = distLevenshtein[j];
                     var result2 = distLevenshtein[k];
-                    var exactMatch = result2.Item1.CompareTo(result1.Item1);
+                    var exactMatch = result1.Item1.CompareTo(result2.Item1);
                     if (exactMatch != 0) return exactMatch;
 
                     string title1 = j.GetSeriesName();
