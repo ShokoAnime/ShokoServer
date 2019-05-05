@@ -21,6 +21,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Renamer;
 using Shoko.Server.Settings;
@@ -30,11 +31,11 @@ namespace Shoko.Server
     public partial class ShokoServiceImplementation
     {
         [HttpPost("Serie/SearchFilename/{uid}")]
-        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm]string input)
+        public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm] string query)
         {
-            if (input == null) input = "";
-            string query = input.ToLower(CultureInfo.InvariantCulture);
-            query = SanitizeFuzzy(query, true);
+            string input = query ?? string.Empty;
+            input = input.ToLower(CultureInfo.InvariantCulture);
+            input = SanitizeFuzzy(input, true);
 
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
             List<CL_AnimeSeries_User> seriesList = new List<CL_AnimeSeries_User>();
@@ -42,7 +43,7 @@ namespace Shoko.Server
 
             var series = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
-                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
+                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, input))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
                 .Select(a => a.Item1).ToList();
 
@@ -71,12 +72,12 @@ namespace Shoko.Server
         }
 
         private static readonly char[] InvalidPathChars =
-            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
+            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}".ToCharArray();
 
-        private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
+        private static readonly char[] ReplaceWithSpace = @"[]_-.+&()".ToCharArray();
 
         private static readonly string[] ReplacementStrings =
-            {"h264", "x264", "x265", "bluray", "blu-ray", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "[bd]", "(bd)"};
+            {"h264", "x264", "x265", "bluray", "blu-ray", "remux", "avc", "flac", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "dts", "bd"};
 
         private static string ReplaceCaseInsensitive(string input, string search, string replacement)
         {
@@ -100,29 +101,33 @@ namespace Shoko.Server
         {
             if (!replaceInvalid) return value;
 
-            value = value.FilterCharacters(InvalidPathChars, true);
             value = ReplacementStrings.Aggregate(value, (current, c) => ReplaceCaseInsensitive(current, c, string.Empty));
             value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
+            value = value.FilterCharacters(InvalidPathChars, true);
+
             // Takes too long
             //value = RemoveSubgroups(value);
 
             return value.CompactWhitespaces();
         }
 
-        private static int GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
+        private static double GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
         {
-            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return int.MaxValue;
-            int dist = int.MaxValue;
-            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Where(b =>
-                    b.Language.Equals("x-jat",
-                        StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals("en", StringComparison.InvariantCultureIgnoreCase) ||
-                    b.Language.Equals(string.Join(",", ServerSettings.Instance.LanguagePreference), StringComparison.InvariantCultureIgnoreCase))
-                .Select(b => b.Title).ToList())
+            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return 1;
+            double dist = 1;
+            SorensenDice dice = new SorensenDice();
+            var languages = new HashSet<string> {"en", "x-jat"};
+            languages.UnionWith(ServerSettings.Instance.LanguagePreference.Select(b => b.ToLower()));
+            foreach (string title in a.Contract.AniDBAnime.AnimeTitles
+                .Where(b => b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName &&
+                            languages.Contains(b.Language.ToLower()))
+                .Select(b => b.Title?.ToLowerInvariant()).ToList())
             {
                 if (string.IsNullOrEmpty(title)) continue;
-                int newDist = Shoko.Commons.Utils.Misc.LevenshteinDistance(title, query);
-                if (newDist < dist && newDist < Math.Min(title.Length, query.Length))
+                var newTitle = SanitizeFuzzy(title, true);
+                double newDist = dice.Distance(newTitle, query);
+                if (newDist >= 1) continue;
+                if (newDist < dist)
                 {
                     dist = newDist;
                 }
@@ -132,10 +137,11 @@ namespace Shoko.Server
         }
 
         [HttpPost("AniDB/Anime/SearchFilename/{uid}")]
-        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, [FromForm]string input)
+        public List<CL_AniDB_Anime> SearchAnimeWithFilename(int uid, [FromForm]string query)
         {
-            string query = input.ToLower(CultureInfo.InvariantCulture);
-            query = SanitizeFuzzy(query, true);
+            string input = query ?? string.Empty;
+            input = input.ToLower(CultureInfo.InvariantCulture);
+            input = SanitizeFuzzy(input, true);
 
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
             List<CL_AniDB_Anime> series_list = new List<CL_AniDB_Anime>();
@@ -143,7 +149,7 @@ namespace Shoko.Server
 
             var series = RepoFactory.AnimeSeries.GetAll()
                 .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
-                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, query))).OrderBy(a => a.Item2)
+                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, input))).OrderBy(a => a.Item2)
                 .ThenBy(a => a.Item1.GetSeriesName())
                 .Select(a => a.Item1).ToList();
 
