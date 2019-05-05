@@ -92,8 +92,8 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     Type = s.TitleType,
                     Language = s.Language,
-                    Title = s.Language
-                }).ToList();//.ToAPIContract();
+                    Title = s.Title
+                }).ToList();
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)

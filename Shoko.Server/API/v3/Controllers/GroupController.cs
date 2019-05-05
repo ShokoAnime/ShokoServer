@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
@@ -41,6 +42,7 @@ namespace Shoko.Server.API.v3
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("{id}/DefaultSeries")]
+        [ProducesResponseType(typeof(Group), StatusCodes.Status200OK), ProducesResponseType(StatusCodes.Status202Accepted)]
         public ActionResult<Series> GetDefaultSeries(int id)
         {
             var grp = RepoFactory.AnimeGroup.GetByID(id);
@@ -49,7 +51,7 @@ namespace Shoko.Server.API.v3
             if (defaultSeriesID == null) return Accepted("Group does not have a default series");
             var ser = RepoFactory.AnimeSeries.GetByID(defaultSeriesID.Value);
             if (ser == null) return BadRequest("No Series with ID");
-            
+
             return new Series(HttpContext, ser);
         }
     }
