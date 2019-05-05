@@ -18,7 +18,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.SqlServer.Management.Smo;
 using Newtonsoft.Json;
+using NLog;
 
 namespace Shoko.Server.API
 {
@@ -26,6 +28,7 @@ namespace Shoko.Server.API
     {
         public IHostingEnvironment HostingEnvironment { get; }
         public IConfiguration Configuration { get; }
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
 
         public Startup(IHostingEnvironment env)
         {
@@ -123,6 +126,17 @@ namespace Shoko.Server.API
         {
             //var appConfig = new AppConfiguration();
             //ConfigurationBinder.Bind(config, appConfig);
+            app.Use(async (context, next) =>
+            {
+                try
+                {
+                    await next.Invoke();
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e);
+                }
+            });
 
 #if DEBUG
             app.UseDeveloperExceptionPage();
