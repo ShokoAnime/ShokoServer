@@ -18,7 +18,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.SqlServer.Management.Smo;
 using Newtonsoft.Json;
 using NLog;
 
@@ -84,24 +83,12 @@ namespace Shoko.Server.API
 
             services.ConfigureSwaggerGen(options => { options.CustomSchemaIds(x => x.FullName); });
 
-            services.AddApiVersioning(o =>
-            {
-                o.ReportApiVersions = true;
-                o.AssumeDefaultVersionWhenUnspecified = true;
-                o.DefaultApiVersion = new ApiVersion(1, 0);
-                o.ApiVersionReader = ApiVersionReader.Combine(
-                    new QueryStringApiVersionReader(),
-                    new HeaderApiVersionReader("api-version"),
-                    new ShokoApiReader()
-                );
-            });
-            services.AddVersionedApiExplorer();
-
             services.AddSignalR();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc(options =>
                 {
+                    options.EnableEndpointRouting = true;
                     options.AllowEmptyInputInBodyModelBinding = true;
                     foreach (var formatter in options.InputFormatters)
                     {
@@ -120,6 +107,19 @@ namespace Shoko.Server.API
                     json.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
                     json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
                 });
+
+            services.AddApiVersioning(o =>
+            {
+                o.ReportApiVersions = true;
+                o.AssumeDefaultVersionWhenUnspecified = true;
+                o.DefaultApiVersion = ApiVersion.Default;
+                o.ApiVersionReader = ApiVersionReader.Combine(
+                    new QueryStringApiVersionReader(),
+                    new HeaderApiVersionReader("api-version"),
+                    new ShokoApiReader()
+                );
+            });
+            services.AddVersionedApiExplorer();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -135,6 +135,7 @@ namespace Shoko.Server.API
                 catch (Exception e)
                 {
                     _logger.Error(e);
+                    throw;
                 }
             });
 
@@ -241,6 +242,9 @@ After:
 
         public string Read(HttpRequest request)
         {
+            if (!string.IsNullOrEmpty(request.Headers["api-version"])) return null;
+            if (!string.IsNullOrEmpty(request.Query["api-version"])) return null;
+
             PathString[] apiv1 =
             {
                 "/v1", "/api/Image", "/api/Kodi",
@@ -258,7 +262,7 @@ After:
                 "/api/stats_update", "/api/medainfo_update", "/api/hash",
                 "/api/rescan", "/api/rescanunlinked", "/api/folder",
                 "/api/rescanmanuallinks", "/api/rehash", "/api/config",
-                "/api/rehashunlinked", "/api/rehashmanuallinks",
+                "/api/rehashunlinked", "/api/rehashmanuallinks", "/api/ep"
             };
 
             if (apiv1.Any(request.Path.StartsWithSegments))
@@ -267,7 +271,7 @@ After:
             if (apiv2.Any(request.Path.StartsWithSegments))
                 return "2.0";
 
-            return null;
+            return "2.0";//default to 2.0
         }
     }
 

@@ -32,6 +32,7 @@ namespace Shoko.Server.API.v2.Modules
     [Authorize]
     [Route("/api")]
     [ApiVersion("2.0")]
+    [ApiController]
     public class Common : BaseController
     {
         //class will be found automagically thanks to inherits also class need to be public (or it will 404)
@@ -39,7 +40,7 @@ namespace Shoko.Server.API.v2.Modules
         public Common()
         {
         }
-
+        
         #region 01. Import Folders
 
         /// <summary>
@@ -1112,6 +1113,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>Episode or APIStatus</returns>
         [HttpGet("ep/getbyfilename")]
+        [ApiVersion("2.0")]
         public ActionResult<Episode> GetEpisodeFromName(string filename, int pic = 1)
         {
             JMMUser user = HttpContext.GetUser();
@@ -3303,6 +3305,34 @@ namespace Shoko.Server.API.v2.Modules
             if (tmdb != null) links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.
 
             return links;
+        }
+    }
+
+    [Authorize]
+    [Route("/api")]
+    [ApiVersion("2.1")]
+    [ApiController]
+    public class Common_v2_1 : BaseController
+    {
+        [HttpGet("v{version:apiVersion}/ep/getbyfilename")]
+        [HttpGet("ep/getbyfilename")] //to allow via the header explicitly.
+        public ActionResult<IEnumerable<Episode>> GetEpisodeFromName_v2([FromQuery] string filename, [FromQuery] int pic = 1, [FromQuery] int level = 0)
+        {
+            JMMUser user = HttpContext.GetUser();
+            if (string.IsNullOrEmpty(filename)) return BadRequest("missing 'filename'");
+
+            var items = RepoFactory.VideoLocalPlace.GetAll()
+                .Where(v => filename.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+                    StringComparison.InvariantCultureIgnoreCase))
+                .Where(a => a.VideoLocal != null)
+                .Select(a => a.VideoLocal.GetAnimeEpisodes())
+                .Where(a => a != null && a.Any())
+                .Select(a => a.First())
+                .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic)).ToList();
+
+            if (items.Any()) return Ok(items);
+
+            return NotFound();
         }
     }
 }
