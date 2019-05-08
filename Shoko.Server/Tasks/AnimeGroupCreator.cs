@@ -543,21 +543,8 @@ namespace Shoko.Server.Tasks
 
                 // update filters
                 _log.Info($"Recalculating Filters for Group: {group.GroupName} ({group.AnimeGroupID})");
-                var allFilters = _groupFilterRepo.GetAll().ToList();
-                Parallel.ForEach(allFilters, filter =>
-                {
-                    filter.SeriesIds.Clear();
-                    filter.CalculateGroupsAndSeries();
+                UpdateGroupFilters(session);
 
-                    filter.UpdateEntityReferenceStrings();
-                });
-
-                // update cache
-                using (ITransaction trans = session.BeginTransaction())
-                {
-                    _groupFilterRepo.BatchUpdate(session, allFilters);
-                    trans.Commit();
-                }
                 _log.Info($"Done Recalculating Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
             }
         }

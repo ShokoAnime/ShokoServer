@@ -7,8 +7,12 @@ using Microsoft.AspNetCore.Http;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Tasks;
+
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -43,9 +47,23 @@ namespace Shoko.Server.API.v3
             Name = grp.GroupName;
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = grp.GetSeries().Count;
-            HasCustomName = !allSeries.SelectMany(a => a.GetAllTitles()).ToHashSet().Contains(Name);
+
+            HasCustomName = GetHasCustomName(grp);
         }
 
         #endregion
+
+        private bool GetHasCustomName(SVR_AnimeGroup grp)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var groupCalculator = AutoAnimeGroupCalculator.Create(session.Wrap(), AutoGroupExclude.None);
+                int id = grp.GetSeries().FirstOrDefault()?.AniDB_ID ?? 0;
+                if (id == 0) return true;
+                var ids = groupCalculator.GetIdsOfAnimeInSameGroup(id);
+                return !ids.Select(aid => RepoFactory.AniDB_Anime.GetByAnimeID(aid)).Where(anime => anime != null)
+                    .Any(anime => anime.GetAllTitles().Contains(grp.GroupName));
+            }
+        }
     }
 }
