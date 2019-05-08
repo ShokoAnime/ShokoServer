@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
+using Shoko.Server.Tasks;
 
 namespace Shoko.Server.API.v3
 {
@@ -53,6 +54,21 @@ namespace Shoko.Server.API.v3
             if (ser == null) return BadRequest("No Series with ID");
 
             return new Series(HttpContext, ser);
+        }
+
+        /// <summary>
+        /// Recalculate all stats and contracts for a group
+        /// </summary>
+        /// <param name="groupID"></param>
+        /// <returns></returns>
+        [HttpPost("{groupID}/Recalculate")]
+        public ActionResult RecalculateStats(int groupID)
+        {
+            var grp = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (grp == null) return BadRequest("No Group with ID");
+            AnimeGroupCreator groupCreator = new AnimeGroupCreator();
+            groupCreator.RecalculateStatsContractsForGroup(grp);
+            return Ok();
         }
     }
 }
