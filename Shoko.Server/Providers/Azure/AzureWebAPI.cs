@@ -398,6 +398,7 @@ using Shoko.Server.Repositories;
         private static string SendData(string uri, string json, string verb)
         {
             string ret = string.Empty;
+            return ret;
             WebRequest req = null;
             WebResponse rsp = null;
             try
@@ -453,6 +454,7 @@ using Shoko.Server.Repositories;
 
         private static string GetDataJson(string uri)
         {
+            return string.Empty;
             try
             {
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
