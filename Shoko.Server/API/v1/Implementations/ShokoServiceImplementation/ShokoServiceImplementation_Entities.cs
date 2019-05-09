@@ -463,8 +463,8 @@ namespace Shoko.Server
 
                 DateTime start = DateTime.Now;
 
-                var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID)
-                    .SelectMany(a => a.GetAnimeEpisodes()).Select(a => a.AnimeSeriesID).Distinct();
+                var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, userID)
+                    .SelectMany(a => a.GetAnimeEpisodes()).Select(a => a.AnimeSeriesID).Distinct().Take(maxRecords);
 
 
                 TimeSpan ts2 = DateTime.Now - start;
