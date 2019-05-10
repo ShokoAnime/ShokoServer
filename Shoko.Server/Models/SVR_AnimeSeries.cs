@@ -981,6 +981,27 @@ namespace Shoko.Server.Models
             }
         }
 
+        public void MoveSeries(SVR_AnimeGroup newGroup)
+        {
+            int oldGroupID = AnimeGroupID;
+
+            var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID)?.TopLevelAnimeGroup;
+            if (oldGroup?.GetAllSeries().Count <= 1)
+            {
+                // This series was the only one in this group. Delete it.
+                var childGroups = oldGroup.GetAllChildGroups();
+                RepoFactory.AnimeGroup.Delete(childGroups);
+            }
+            else
+            {
+                oldGroup?.UpdateStatsFromTopLevel(false, true, true);
+            }
+
+            AnimeGroupID = newGroup.AnimeGroupID;
+            // This also saves, so no need to do it separately
+            UpdateStats(true, true, true);
+        }
+
         public void QueueUpdateStats()
         {
             CommandRequest_RefreshAnime cmdRefreshAnime = new CommandRequest_RefreshAnime(AniDB_ID);
@@ -1220,8 +1241,7 @@ namespace Shoko.Server.Models
             RepoFactory.AnimeSeries.Save(this, false, false);
 
             if (updateAllGroupsAbove)
-                foreach (SVR_AnimeGroup grp in AllGroupsAbove)
-                    grp.UpdateStats(watchedStats, missingEpsStats);
+                AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, watchedStats, missingEpsStats);
         }
 
         public static Dictionary<SVR_AnimeSeries, CrossRef_Anime_Staff> SearchSeriesByStaff(string staffname, bool fuzzy = false)

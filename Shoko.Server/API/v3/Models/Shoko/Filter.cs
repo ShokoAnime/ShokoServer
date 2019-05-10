@@ -20,7 +20,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// The Filter ID. self explanatory
         /// </summary>
-        public int ID { get; set; }
+        public IDs IDs { get; set; }
 
         /// <summary>
         /// Locked Filters cannot be edited
@@ -46,7 +46,7 @@ namespace Shoko.Server.API.v3
 
         public Filter(HttpContext ctx, SVR_GroupFilter gf)
         {
-            ID = gf.GroupFilterID;
+            IDs = new IDs {ID = gf.GroupFilterID};
             Name = gf.GroupFilterName;
             SVR_JMMUser user = ctx.GetUser();
             Type = (GroupFilterType) gf.FilterType;
@@ -158,7 +158,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// This is to be used sparingly. It is namely for saving new Filters and previewing the changes
         /// </summary>
-        public class FullFilter : Filter
+        public class FullFilter : Filter, IFullModel<SVR_GroupFilter>
         {
             /// <summary>
             /// The Parent Filter ID. You don't need to know this otherwise, but if you are saving a new filter, it is important.
@@ -180,7 +180,7 @@ namespace Shoko.Server.API.v3
             /// Creates a server model compatible with the database. This does not calculate any cached data, such as groups and series.
             /// </summary>
             /// <returns></returns>
-            public SVR_GroupFilter ToGroupFilter(SVR_GroupFilter existing = null)
+            public SVR_GroupFilter ToServerModel(SVR_GroupFilter existing = null)
             {
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {

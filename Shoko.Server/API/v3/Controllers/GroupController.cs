@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Tasks;
 
@@ -38,22 +39,24 @@ namespace Shoko.Server.API.v3
         }
 
         /// <summary>
-        /// Get Default series for group with ID.
+        /// Save or create a group.
+        /// Use <see cref="SeriesController.MoveSeries"/> to move series to the group.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="group"></param>
         /// <returns></returns>
-        [HttpGet("{id}/DefaultSeries")]
-        [ProducesResponseType(typeof(Group), StatusCodes.Status200OK), ProducesResponseType(StatusCodes.Status202Accepted)]
-        public ActionResult<Series> GetDefaultSeries(int id)
+        [HttpPost]
+        public ActionResult<Group> SaveGroup(Group.FullGroup group)
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(id);
-            if (grp == null) return BadRequest("No Group with ID");
-            int? defaultSeriesID = grp.DefaultAnimeSeriesID;
-            if (defaultSeriesID == null) return Accepted("Group does not have a default series");
-            var ser = RepoFactory.AnimeSeries.GetByID(defaultSeriesID.Value);
-            if (ser == null) return BadRequest("No Series with ID");
+            SVR_AnimeGroup g = null;
+            if (group.IDs.ID != 0)
+            {
+                g = RepoFactory.AnimeGroup.GetByID(group.IDs.ID);
+                if (g == null) return BadRequest("No Group with ID");
+            }
+            g = group.ToServerModel(g);
+            RepoFactory.AnimeGroup.Save(g);
 
-            return new Series(HttpContext, ser);
+            return new Group(HttpContext, g);
         }
 
         /// <summary>
@@ -70,5 +73,7 @@ namespace Shoko.Server.API.v3
             groupCreator.RecalculateStatsContractsForGroup(grp);
             return Ok();
         }
+        
+        
     }
 }

@@ -1060,6 +1060,7 @@
     <Compile Include="API\v3\Helpers\ModelHelper.cs" />
     <Compile Include="API\v3\Models\Common\BaseModel.cs" />
     <Compile Include="API\v3\Models\Common\IDs.cs" />
+    <Compile Include="API\v3\Models\Common\IFullModel.cs" />
     <Compile Include="API\v3\Models\Common\Image.cs" />
     <Compile Include="API\v3\Models\Common\Images.cs" />
     <Compile Include="API\v3\Models\Common\Rating.cs" />

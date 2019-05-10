@@ -22,7 +22,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// The relevant IDs for the series, Shoko Internal, AniDB, etc
         /// </summary>
-        public IDs IDs { get; set; }
+        public SeriesIDs IDs { get; set; }
 
         /// <summary>
         /// The default or random pictures for a series. This allows the client to not need to get all images and pick one.
@@ -80,10 +80,10 @@ namespace Shoko.Server.API.v3
             }
         }
         
-        public static IDs GetIDs(SVR_AnimeSeries ser)
+        public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko
-            var ids = new IDs {ID = ser.AnimeSeriesID};
+            var ids = new SeriesIDs {ID = ser.AnimeSeriesID};
             // AniDB
             var anime = ser.GetAnime();
             if (anime != null) ids.AniDB = anime.AnimeID;
@@ -508,6 +508,47 @@ namespace Shoko.Server.API.v3
             /// </summary>
             public Image image { get; set; }
         }
+    }
+
+    public class SeriesIDs : IDs
+    {
+        #region XRefs
+
+        // These are useful for many things, but for clients, it is mostly auxiliary
+
+        /// <summary>
+        /// The AniDB ID
+        /// </summary>
+        [Required]
+        public int AniDB { get; set; }
+        
+        /// <summary>
+        /// The TvDB IDs
+        /// </summary>
+        public List<int> TvDB { get; set; } = new List<int>();
+        
+        // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
+        
+        /// <summary>
+        /// The MovieDB IDs
+        /// </summary>
+        public List<int> MovieDB { get; set; } = new List<int>();
+        
+        /// <summary>
+        /// The MyAnimeList IDs
+        /// </summary>
+        public List<int> MAL { get; set; } = new List<int>();
+        
+        /// <summary>
+        /// The TraktTv IDs
+        /// </summary>
+        public List<string> TraktTv { get; set; } = new List<string>();
+
+        /// <summary>
+        /// The AniList IDs
+        /// </summary>
+        public List<int> AniList { get; set; } = new List<int>();
+        #endregion
     }
 
     public class SeriesSearchResult : Series
