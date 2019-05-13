@@ -1360,6 +1360,7 @@ namespace Shoko.Server
             string resolution,
             string videoSource, int videoBitDepth, int userID)
         {
+            relGroupName = System.Net.WebUtility.UrlDecode(relGroupName);
             List<CL_VideoDetailed> vids = new List<CL_VideoDetailed>();
 
             try
@@ -1397,8 +1398,9 @@ namespace Shoko.Server
                             relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
                             relGroupName.Equals(aniFile.Anime_GroupNameShort,
                                 StringComparison.InvariantCultureIgnoreCase);
-                        if (aniFile.Anime_GroupName.Contains("unknown") ||
-                            aniFile.Anime_GroupNameShort.Contains("unknown"))
+                        if (!aniFile.Anime_GroupNameShort.Equals("raw") &&
+                            (aniFile.Anime_GroupName.Contains("unknown") ||
+                            aniFile.Anime_GroupNameShort.Contains("unknown")))
                             groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
                                 StringComparison.InvariantCultureIgnoreCase);
                     }
