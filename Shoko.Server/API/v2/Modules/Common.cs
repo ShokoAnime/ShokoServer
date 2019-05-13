@@ -71,27 +71,18 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPost("folder/add")]
-        public ActionResult AddFolder(ImportFolder folder)
+        public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (folder.ImportFolderLocation != string.Empty)
+            try
             {
-                try
-                {
-                    CL_Response<ImportFolder> response = new ShokoServiceImplementation().SaveImportFolder(folder);
-
-                    if (string.IsNullOrEmpty(response.ErrorMessage))
-                    {
-                        return Ok();
-                    }
-                    return new APIMessage(500, response.ErrorMessage);
-                }
-                catch
-                {
-                    return InternalError();
-                }
+                var result = RepoFactory.ImportFolder.SaveImportFolder(folder);
+                return result;
             }
-            return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
+            catch (Exception e)
+            {
+                return InternalError(e.Message);
+            }
         }
 
         /// <summary>
@@ -100,34 +91,26 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPost("folder/edit")]
-        public ActionResult EditFolder(ImportFolder folder)
+        public ActionResult<ImportFolder> EditFolder(ImportFolder folder)
         {
-            if (!string.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
+            if (string.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
+                return new APIMessage(StatusCodes.Status400BadRequest,
+                    "ImportFolderLocation and ImportFolderID missing");
+            try
             {
-                try
-                {
-                    if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                    {
-                        return new APIMessage(409, "The Folder Can't be both Destination and Source Simultaneously");
-                    }
-                    if (folder.ImportFolderID != 0)
-                    {
-                        CL_Response<ImportFolder> response =
-                            new ShokoServiceImplementation().SaveImportFolder(folder);
-                        if (!string.IsNullOrEmpty(response.ErrorMessage))
-                        {
-                            return new APIMessage(500, response.ErrorMessage);
-                        }
-                        return Ok();
-                    }
-                    return new APIMessage(409, "The Import Folder must have an ID");
-                }
-                catch
-                {
-                    return InternalError();
-                }
+                if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
+                    return new APIMessage(StatusCodes.Status409Conflict,
+                        "The Folder Can't be both Destination and Source Simultaneously");
+
+                if (folder.ImportFolderID == 0)
+                    return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
+                ImportFolder response = RepoFactory.ImportFolder.SaveImportFolder(folder);
+                return response;
             }
-            return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
+            catch (Exception e)
+            {
+                return InternalError(e.Message);
+            }
         }
 
         /// <summary>
