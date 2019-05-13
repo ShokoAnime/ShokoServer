@@ -1361,6 +1361,8 @@ namespace Shoko.Server
             string videoSource, int videoBitDepth, int userID)
         {
             relGroupName = System.Net.WebUtility.UrlDecode(relGroupName);
+            videoSource = System.Net.WebUtility.UrlDecode(videoSource);
+
             List<CL_VideoDetailed> vids = new List<CL_VideoDetailed>();
 
             try
