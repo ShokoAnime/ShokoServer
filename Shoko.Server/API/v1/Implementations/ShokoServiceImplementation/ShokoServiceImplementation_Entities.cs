@@ -3615,8 +3615,125 @@ namespace Shoko.Server
         [HttpPost("Folder")]
         public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
         {
-            return SaveImportFolder(contract);
+            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
+            {
+                ErrorMessage = string.Empty,
+                Result = null
+            };
+            try
+            {
+                SVR_ImportFolder ns = null;
+                if (contract.ImportFolderID > 0)
+                {
+                    // update
+                    ns = RepoFactory.ImportFolder.GetByID(contract.ImportFolderID);
+                    if (ns == null)
+                    {
+                        response.ErrorMessage = "Could not find Import Folder ID: " +
+                                                contract.ImportFolderID.ToString();
+                        return response;
+                    }
+                }
+                else
+                {
+                    // create
+                    ns = new SVR_ImportFolder();
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderName))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder name";
+                    return response;
+                }
+
+                if (string.IsNullOrEmpty(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Must specify an Import Folder location";
+                    return response;
+                }
+
+                if (contract.CloudID == 0) contract.CloudID = null;
+
+                if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
+                {
+                    response.ErrorMessage = "Cannot find Import Folder location";
+                    return response;
+                }
+
+                if (contract.ImportFolderID == 0)
+                {
+                    SVR_ImportFolder nsTemp =
+                        RepoFactory.ImportFolder.GetByImportLocation(contract.ImportFolderLocation);
+                    if (nsTemp != null)
+                    {
+                        response.ErrorMessage = "An entry already exists for the specified Import Folder location";
+                        return response;
+                    }
+                }
+
+                if (contract.IsDropDestination == 1 && contract.IsDropSource == 1)
+                {
+                    response.ErrorMessage = "A folder cannot be a drop source and a drop destination at the same time";
+                    return response;
+                }
+
+                // check to make sure we don't have multiple drop folders
+                IReadOnlyList<SVR_ImportFolder> allFolders = RepoFactory.ImportFolder.GetAll();
+
+                if (contract.IsDropDestination == 1)
+                {
+                    foreach (SVR_ImportFolder imf in allFolders)
+                    {
+                        if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
+                            (contract.ImportFolderID == 0 || contract.ImportFolderID != imf.ImportFolderID))
+                        {
+                            imf.IsDropDestination = 0;
+                            RepoFactory.ImportFolder.Save(imf);
+                        }
+                        else if (imf.CloudID != contract.CloudID)
+                        {
+                            if (contract.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
+                            if (contract.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            {
+                                response.ErrorMessage = "A drop folders cannot have different file systems";
+                                return response;
+                            }
+                        }
+                    }
+                }
+
+                ns.ImportFolderName = contract.ImportFolderName;
+                ns.ImportFolderLocation = contract.ImportFolderLocation;
+                ns.IsDropDestination = contract.IsDropDestination;
+                ns.IsDropSource = contract.IsDropSource;
+                ns.IsWatched = contract.IsWatched;
+                ns.ImportFolderType = contract.ImportFolderType;
+                ns.CloudID = contract.CloudID;
+
+                RepoFactory.ImportFolder.Save(ns);
+
+                response.Result = ns;
+                Utils.MainThreadDispatch(() =>
+                {
+                    ServerInfo.Instance.RefreshImportFolders();
+                });
+                ShokoServer.StopWatchingFiles();
+                ShokoServer.StartWatchingFiles();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                response.ErrorMessage = ex.Message;
+                return response;
+            }
         }
+
 
         [HttpDelete("Folder/{importFolderID}")]
         public string DeleteImportFolder(int importFolderID)
