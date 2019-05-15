@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
@@ -25,30 +27,22 @@ namespace Shoko.Server.API.v3
         /// Handle /api/folder/add
         /// Add Folder to Import Folders repository
         /// </summary>
-        /// <returns>APIStatus</returns>
+        /// <returns>ImportFolder with generated values like ID</returns>
         [HttpPost]
-        public ActionResult AddFolder(ImportFolder folder)
+        public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (folder.ImportFolderLocation != string.Empty)
+            if (folder.ImportFolderLocation == string.Empty)
+                return new APIMessage(StatusCodes.Status400BadRequest,
+                    "Bad Request: The Folder path must not be Empty");
+            try
             {
-                try
-                {
-                    // TODO Do this correctly without calling APIv1
-                    CL_Response<ImportFolder> response = new ShokoServiceImplementation().SaveImportFolder(folder);
-
-                    if (string.IsNullOrEmpty(response.ErrorMessage))
-                    {
-                        return APIStatus.OK();
-                    }
-                    return new APIMessage(500, response.ErrorMessage);
-                }
-                catch
-                {
-                    return APIStatus.InternalError();
-                }
+                return RepoFactory.ImportFolder.SaveImportFolder(folder);
             }
-            return new APIMessage(400, "Bad Request: The Folder path must not be Empty");
+            catch (Exception e)
+            {
+                return APIStatus.InternalError(e.Message);
+            }
         }
 
         /// <summary>
@@ -59,30 +53,25 @@ namespace Shoko.Server.API.v3
         [HttpPatch]
         public ActionResult EditFolder(ImportFolder folder)
         {
-            if (!String.IsNullOrEmpty(folder.ImportFolderLocation) && folder.ImportFolderID != 0)
+            if (String.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
+                return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
+
+            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
+                return new APIMessage(StatusCodes.Status409Conflict,
+                    "The Import Folder can't be both Destination and Source");
+
+            if (folder.ImportFolderID == 0)
+                return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
+
+            try
             {
-                try
-                {
-                    // TODO Do this correctly without calling APIv1
-                    if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                    {
-                        return new APIMessage(409, "The Import Folder can't be both Destination and Source");
-                    }
-
-                    if (folder.ImportFolderID == 0) return new APIMessage(409, "The Import Folder must have an ID");
-                    CL_Response<ImportFolder> response =
-                        new ShokoServiceImplementation().SaveImportFolder(folder);
-
-                    if (!string.IsNullOrEmpty(response.ErrorMessage)) return new APIMessage(500, response.ErrorMessage);
-
-                    return APIStatus.OK();
-                }
-                catch
-                {
-                    return APIStatus.InternalError();
-                }
+                RepoFactory.ImportFolder.SaveImportFolder(folder);
+                return Ok();
             }
-            return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
+            catch (Exception e)
+            {
+                return APIStatus.InternalError(e.Message);
+            }
         }
 
         /// <summary>

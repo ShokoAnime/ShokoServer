@@ -96,7 +96,7 @@ namespace Shoko.Server
             Metro_CommunityLinks contract = new Metro_CommunityLinks();
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return null;
 
                 //AniDB
@@ -600,7 +600,7 @@ namespace Shoko.Server
         {
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return null;
 
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
@@ -782,7 +782,7 @@ namespace Shoko.Server
             try
             {
 
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return null;
 
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
@@ -1030,7 +1030,7 @@ namespace Shoko.Server
             List<Metro_Anime_Summary> retAnime = new List<Metro_Anime_Summary>();
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 if (anime == null) return retAnime;
 
                 SVR_JMMUser juser = RepoFactory.JMMUser.GetByID(jmmuserID);
@@ -1040,7 +1040,7 @@ namespace Shoko.Server
                 // first get the related anime
                 foreach (AniDB_Anime_Relation link in anime.GetRelatedAnime())
                 {
-                    SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByID(link.RelatedAnimeID);
+                    SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.RelatedAnimeID);
 
                     if (animeLink == null)
                     {
@@ -1085,7 +1085,7 @@ namespace Shoko.Server
                 foreach (AniDB_Anime_Similar link in anime.GetSimilarAnime())
                 {
                     SVR_AniDB_Anime animeLink =
-                        RepoFactory.AniDB_Anime.GetByID(link.SimilarAnimeID);
+                        RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
 
                     if (animeLink == null)
                     {

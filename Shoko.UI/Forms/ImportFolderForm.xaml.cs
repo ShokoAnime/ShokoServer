@@ -167,10 +167,13 @@ namespace Shoko.UI.Forms
                 else
                     contract.CloudID = ((SVR_CloudAccount) comboProvider.SelectedItem).CloudID;
                 ShokoServiceImplementation imp = new ShokoServiceImplementation();
-                CL_Response<ImportFolder> response = RepoFactory.ImportFolder.SaveImportFolder(contract);
-                if (!string.IsNullOrEmpty(response.ErrorMessage))
+                try
                 {
-                    MessageBox.Show(response.ErrorMessage, Shoko.Commons.Properties.Resources.Error,
+                    RepoFactory.ImportFolder.SaveImportFolder(contract);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(exception.Message, Shoko.Commons.Properties.Resources.Error,
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                     return;

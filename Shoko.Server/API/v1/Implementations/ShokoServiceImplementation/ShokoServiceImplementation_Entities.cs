@@ -463,8 +463,8 @@ namespace Shoko.Server
 
                 DateTime start = DateTime.Now;
 
-                var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(maxRecords, userID)
-                    .SelectMany(a => a.GetAnimeEpisodes()).Select(a => a.AnimeSeriesID).Distinct();
+                var results = RepoFactory.VideoLocal.GetMostRecentlyAdded(-1, userID)
+                    .SelectMany(a => a.GetAnimeEpisodes()).Select(a => a.AnimeSeriesID).Distinct().Take(maxRecords);
 
 
                 TimeSpan ts2 = DateTime.Now - start;
@@ -3615,7 +3615,17 @@ namespace Shoko.Server
         [HttpPost("Folder")]
         public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
         {
-            return SaveImportFolder(contract);
+            CL_Response<ImportFolder> folder = new CL_Response<ImportFolder>();
+            try
+            {
+                folder.Result = RepoFactory.ImportFolder.SaveImportFolder(contract);
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+                folder.ErrorMessage = e.Message;
+            }
+            return folder;
         }
 
         [HttpDelete("Folder/{importFolderID}")]

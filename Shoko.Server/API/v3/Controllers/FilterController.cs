@@ -13,7 +13,6 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class FilterController : BaseController
     {
-
         /// <summary>
         /// Get Filter with id
         /// </summary>
@@ -77,7 +76,7 @@ namespace Shoko.Server.API.v3
         [HttpPost("Preview")]
         public ActionResult<List<Group>> PreviewFilterChanges(Filter.FullFilter filter)
         {
-            SVR_GroupFilter gf = filter.ToGroupFilter();
+            SVR_GroupFilter gf = filter.ToServerModel();
             gf.CalculateGroupsAndSeries();
 
             if (!gf.GroupsIds.ContainsKey(User.JMMUserID)) return new List<Group>();
@@ -94,12 +93,12 @@ namespace Shoko.Server.API.v3
         public ActionResult<Filter> SaveFilter(Filter.FullFilter filter)
         {
             SVR_GroupFilter gf = null;
-            if (filter.ID != 0)
+            if (filter.IDs.ID != 0)
             {
-                gf = RepoFactory.GroupFilter.GetByID(filter.ID);
+                gf = RepoFactory.GroupFilter.GetByID(filter.IDs.ID);
                 if (gf == null) return BadRequest("No Filter with ID");
             }
-            gf = filter.ToGroupFilter(gf);
+            gf = filter.ToServerModel(gf);
             gf.CalculateGroupsAndSeries();
             RepoFactory.GroupFilter.Save(gf);
 

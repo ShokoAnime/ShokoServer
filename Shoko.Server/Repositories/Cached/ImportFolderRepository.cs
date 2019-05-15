@@ -61,123 +61,85 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
         
-        public CL_Response<ImportFolder> SaveImportFolder(ImportFolder contract)
+        public SVR_ImportFolder SaveImportFolder(ImportFolder folder)
         {
-            CL_Response<ImportFolder> response = new CL_Response<ImportFolder>
+            SVR_ImportFolder ns;
+            if (folder.ImportFolderID > 0)
             {
-                ErrorMessage = string.Empty,
-                Result = null
-            };
-            try
+                // update
+                ns = GetByID(folder.ImportFolderID);
+                if (ns == null)
+                    throw new Exception($"Could not find Import Folder ID: {folder.ImportFolderID}");
+            }
+            else
             {
-                SVR_ImportFolder ns = null;
-                if (contract.ImportFolderID > 0)
+                // create
+                ns = new SVR_ImportFolder();
+            }
+
+            if (string.IsNullOrEmpty(folder.ImportFolderName))
+                throw new Exception("Must specify an Import Folder name");
+
+            if (string.IsNullOrEmpty(folder.ImportFolderLocation))
+                throw new Exception("Must specify an Import Folder location");
+
+            if (folder.CloudID == 0) folder.CloudID = null;
+
+            if (folder.CloudID == null && !Directory.Exists(folder.ImportFolderLocation))
+                throw new Exception("Cannot find Import Folder location");
+
+            if (folder.ImportFolderID == 0)
+            {
+                SVR_ImportFolder nsTemp =
+                    GetByImportLocation(folder.ImportFolderLocation);
+                if (nsTemp != null)
+                    throw new Exception("Another entry already exists for the specified Import Folder location");
+            }
+
+            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
+                throw new Exception("A folder cannot be a drop source and a drop destination at the same time");
+
+            // check to make sure we don't have multiple drop folders
+            IReadOnlyList<SVR_ImportFolder> allFolders = GetAll();
+
+            if (folder.IsDropDestination == 1)
+            {
+                foreach (SVR_ImportFolder imf in allFolders)
                 {
-                    // update
-                    ns = GetByID(contract.ImportFolderID);
-                    if (ns == null)
+                    if (folder.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
+                        (folder.ImportFolderID == 0 || folder.ImportFolderID != imf.ImportFolderID))
                     {
-                        response.ErrorMessage = "Could not find Import Folder ID: " +
-                                                contract.ImportFolderID.ToString();
-                        return response;
+                        imf.IsDropDestination = 0;
+                        Save(imf);
                     }
-                }
-                else
-                {
-                    // create
-                    ns = new SVR_ImportFolder();
-                }
-
-                if (string.IsNullOrEmpty(contract.ImportFolderName))
-                {
-                    response.ErrorMessage = "Must specify an Import Folder name";
-                    return response;
-                }
-
-                if (string.IsNullOrEmpty(contract.ImportFolderLocation))
-                {
-                    response.ErrorMessage = "Must specify an Import Folder location";
-                    return response;
-                }
-
-                if (contract.CloudID == 0) contract.CloudID = null;
-
-                if (contract.CloudID == null && !Directory.Exists(contract.ImportFolderLocation))
-                {
-                    response.ErrorMessage = "Cannot find Import Folder location";
-                    return response;
-                }
-
-                if (contract.ImportFolderID == 0)
-                {
-                    SVR_ImportFolder nsTemp =
-                        GetByImportLocation(contract.ImportFolderLocation);
-                    if (nsTemp != null)
+                    else if (imf.CloudID != folder.CloudID)
                     {
-                        response.ErrorMessage = "An entry already exists for the specified Import Folder location";
-                        return response;
-                    }
-                }
+                        if (folder.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
+                            throw new Exception("A drop folders cannot have different file systems");
 
-                if (contract.IsDropDestination == 1 && contract.IsDropSource == 1)
-                {
-                    response.ErrorMessage = "A folder cannot be a drop source and a drop destination at the same time";
-                    return response;
-                }
-
-                // check to make sure we don't have multiple drop folders
-                IReadOnlyList<SVR_ImportFolder> allFolders = GetAll();
-
-                if (contract.IsDropDestination == 1)
-                {
-                    foreach (SVR_ImportFolder imf in allFolders)
-                    {
-                        if (contract.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
-                            (contract.ImportFolderID == 0 || contract.ImportFolderID != imf.ImportFolderID))
+                        if (folder.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
                         {
-                            imf.IsDropDestination = 0;
-                            Save(imf);
-                        }
-                        else if (imf.CloudID != contract.CloudID)
-                        {
-                            if (contract.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
-                            {
-                                response.ErrorMessage = "A drop folders cannot have different file systems";
-                                return response;
-                            }
-
-                            if (contract.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
-                            {
-                                response.ErrorMessage = "A drop folders cannot have different file systems";
-                                return response;
-                            }
+                            throw new Exception("A drop folders cannot have different file systems");
                         }
                     }
                 }
-
-                ns.ImportFolderName = contract.ImportFolderName;
-                ns.ImportFolderLocation = contract.ImportFolderLocation;
-                ns.IsDropDestination = contract.IsDropDestination;
-                ns.IsDropSource = contract.IsDropSource;
-                ns.IsWatched = contract.IsWatched;
-                ns.ImportFolderType = contract.ImportFolderType;
-                ns.CloudID = contract.CloudID;
-
-                Save(ns);
-
-                response.Result = ns;
-                Utils.MainThreadDispatch(() => { ServerInfo.Instance.RefreshImportFolders(); });
-                ShokoServer.StopWatchingFiles();
-                ShokoServer.StartWatchingFiles();
-
-                return response;
             }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                response.ErrorMessage = ex.Message;
-                return response;
-            }
+
+            ns.ImportFolderName = folder.ImportFolderName;
+            ns.ImportFolderLocation = folder.ImportFolderLocation;
+            ns.IsDropDestination = folder.IsDropDestination;
+            ns.IsDropSource = folder.IsDropSource;
+            ns.IsWatched = folder.IsWatched;
+            ns.ImportFolderType = folder.ImportFolderType;
+            ns.CloudID = folder.CloudID;
+
+            Save(ns);
+            
+            Utils.MainThreadDispatch(() => { ServerInfo.Instance.RefreshImportFolders(); });
+            ShokoServer.StopWatchingFiles();
+            ShokoServer.StartWatchingFiles();
+
+            return ns;
         }
     }
 }

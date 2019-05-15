@@ -509,5 +509,44 @@ namespace Shoko.Server.Tasks
                 RecreateAllGroups(session.Wrap());
             }
         }
+
+        public void RecalculateStatsContractsForGroup(SVR_AnimeGroup group)
+        {
+            using (ISession sessionNotWrapped = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var groups = new List<SVR_AnimeGroup> {group};
+                var session = sessionNotWrapped.Wrap();
+                var series = group.GetAllSeries(true);
+                // recalculate series
+                _log.Info($"Recalculating Series Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
+                using (ITransaction trans = session.BeginTransaction())
+                {
+                    UpdateAnimeSeriesContractsAndSave(session, series);
+                    trans.Commit();
+                }
+
+                // Update Cache so that group can recalculate
+                series.ForEach(a => _animeSeriesRepo.Cache.Update(a));
+
+                // Recalculate group
+                _log.Info($"Recalculating Group Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
+                using (ITransaction trans = session.BeginTransaction())
+                {
+                    UpdateAnimeGroupsAndTheirContracts(session, groups);
+                    trans.Commit();
+                }
+                
+                // update cache
+                _animeGroupRepo.Cache.Update(group);
+                var groupsUsers = _animeGroupUserRepo.GetByGroupID(group.AnimeGroupID);
+                groupsUsers.ForEach(a => _animeGroupUserRepo.Cache.Update(a));
+
+                // update filters
+                _log.Info($"Recalculating Filters for Group: {group.GroupName} ({group.AnimeGroupID})");
+                UpdateGroupFilters(session);
+
+                _log.Info($"Done Recalculating Stats and Contracts for Group: {group.GroupName} ({group.AnimeGroupID})");
+            }
+        }
     }
 }

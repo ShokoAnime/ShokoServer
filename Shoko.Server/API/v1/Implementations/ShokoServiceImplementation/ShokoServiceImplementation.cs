@@ -1147,7 +1147,7 @@ namespace Shoko.Server
                     if (dictIgnored.ContainsKey(vote.EntityID)) continue;
 
                     // check if the user has this anime
-                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(vote.EntityID);
+                    SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(vote.EntityID);
                     if (anime == null) continue;
 
                     // get similar anime
@@ -1160,7 +1160,7 @@ namespace Shoko.Server
                     {
                         if (dictIgnored.ContainsKey(link.SimilarAnimeID)) continue;
 
-                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByID(link.SimilarAnimeID);
+                        SVR_AniDB_Anime animeLink = RepoFactory.AniDB_Anime.GetByAnimeID(link.SimilarAnimeID);
                         if (animeLink != null)
                             if (!juser.AllowedAnime(animeLink)) continue;
 
@@ -1337,7 +1337,7 @@ namespace Shoko.Server
 
             try
             {
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(animeID);
+                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 return anime.GetCharactersContract();
             }
             catch (Exception ex)
@@ -1368,7 +1368,7 @@ namespace Shoko.Server
                             RepoFactory.AniDB_Anime_Character.GetByCharID(chr.CharID);
                         if (aniChars.Count > 0)
                         {
-                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByID(aniChars[0].AnimeID);
+                            SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniChars[0].AnimeID);
                             if (anime != null)
                             {
                                 CL_AniDB_Character cl = chr.ToClient(aniChars[0].CharType);

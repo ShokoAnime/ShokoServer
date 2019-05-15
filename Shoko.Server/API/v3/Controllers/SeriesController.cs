@@ -113,6 +113,38 @@ namespace Shoko.Server.API.v3
             if (ser == null) return BadRequest("No Series with ID");
             return Series.GetCast(HttpContext, ser.AniDB_ID);
         }
+        
+        /// <summary>
+        /// Get the group for a series ID
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/Group")]
+        public ActionResult<Group> GetGroup(int seriesID)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null) return BadRequest("No Series with ID");
+            var grp = series.AnimeGroup;
+            if (grp == null) return BadRequest("No Group for Series");
+            return new Group(HttpContext, grp);
+        }
+
+        /// <summary>
+        /// Move the series to a new group, and update accordingly
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <param name="newGroupID"></param>
+        /// <returns></returns>
+        [HttpPatch("{seriesID}/Move/{newGroupID}")]
+        public ActionResult MoveSeries(int seriesID, int newGroupID)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null) return BadRequest("No Series with ID");
+            var grp = RepoFactory.AnimeGroup.GetByID(newGroupID);
+            if (grp == null) return BadRequest("No Group with ID");
+            series.MoveSeries(grp);
+            return Ok();
+        }
 
         #region internal function
 
