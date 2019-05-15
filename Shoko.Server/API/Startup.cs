@@ -18,8 +18,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.Extensions.FileProviders.Physical;
 using Newtonsoft.Json;
 using NLog;
+using Microsoft.Extensions.Primitives;
 
 namespace Shoko.Server.API
 {
@@ -152,9 +154,11 @@ namespace Shoko.Server.API
 
             app.UseStaticFiles(new StaticFileOptions()
             {
-                FileProvider = new PhysicalFileProvider(dir.FullName),
-                RequestPath = "/webui"
+                FileProvider = new WebUiFileProvider(dir.FullName),
+                RequestPath = "/webui",
+                ServeUnknownFileTypes = true
             });
+
 
             app.UseSwagger();
             app.UseSwaggerUI(
@@ -272,6 +276,25 @@ After:
                 return "2.0";
 
             return "2.0";//default to 2.0
+        }
+    }
+
+    internal class WebUiFileProvider : PhysicalFileProvider, IFileProvider
+    {
+        public WebUiFileProvider(string root) : base(root)
+        {
+        }
+
+        public new IDirectoryContents GetDirectoryContents(string subpath)
+        {
+            return base.GetDirectoryContents(subpath);
+        }
+
+        public new IFileInfo GetFileInfo(string subpath)
+        {
+            var fileInfo = base.GetFileInfo(subpath);
+            if (fileInfo is NotFoundFileInfo || !fileInfo.Exists) return base.GetFileInfo("index.html");
+            return fileInfo;
         }
     }
 
