@@ -149,11 +149,11 @@ namespace Shoko.Server.Plex
         }
 
         public string LoginUrl => $"https://app.plex.tv/auth#?clientID={ClientIdentifier}" +
-                                  $"&code={GetPlexKey().Code}" +
+                                  $"&code={GetPlexKey().Code}";/* +
                                   "&context%5Bdevice%5D%5Bproduct%5D=Shoko%20Server" +
                                   $"&context%5Bdevice%5D%5Bplatform%5D={WebUtility.UrlEncode(Environment.OSVersion.Platform.ToString())}" +
                                   $"&context%5Bdevice%5D%5BplatformVersion%5D={WebUtility.UrlEncode(Environment.OSVersion.VersionString)}" +
-                                  $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";
+                                  $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";*/
 
         private static void SetupHttpClient(HttpClient client, TimeSpan timeout)
         {
@@ -161,6 +161,7 @@ namespace Shoko.Server.Plex
             client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
             client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
             client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
+            client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");
             client.DefaultRequestHeaders.Add("X-Plex-Device", "Shoko");
             client.DefaultRequestHeaders.Add("User-Agent",
                 $"{Assembly.GetEntryAssembly().GetName().Name} v${Assembly.GetEntryAssembly().GetName().Version}");
