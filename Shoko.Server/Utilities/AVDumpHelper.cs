@@ -20,6 +20,8 @@ namespace Shoko.Server
         public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_6714.rar";
         public static readonly string avdumpDestination = Path.Combine(destination, "AVDump2CL.exe");
 
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         public static bool GetAndExtractAVDump()
         {
             if (File.Exists(avdumpRarDestination)) return ExtractAVDump();
@@ -86,7 +88,6 @@ namespace Shoko.Server
             if (vl == null) return "Unable to get videoloocal with id: " + vid;
             string file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return "Unable to get file: " + vid;
-            if (Utils.IsRunningOnMono()) return DumpFile_Mono(file);
             return DumpFile(file);
         }
 
@@ -101,19 +102,19 @@ namespace Shoko.Server
                 if (!File.Exists(file))
                     return "Could not find Video File: " + file;
 
-                //strCommandParameters are parameters to pass to program
-                string fileName = (char) 34 + file + (char) 34;
+                var filenameArgs = GetFilenameAndArgsForOS(file);
 
-                //Create process
+                logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {filenameArgs.Item2}");
+                
                 Process pProcess = new Process
                 {
                     StartInfo =
                     {
-                        FileName = avdumpDestination,
-                        Arguments =
-                            $" --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey}" +
-                            $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}",
-                        UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden, RedirectStandardOutput = true,
+                        FileName = filenameArgs.Item1,
+                        Arguments = filenameArgs.Item2,
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
                         CreateNoWindow = true
                     }
                 };
@@ -128,42 +129,29 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                LogManager.GetCurrentClassLogger().Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
+                logger.Error($"An error occurred while AVDumping the file \"file\":\n{ex}");
                 return $"An error occurred while AVDumping the file:\n{ex}";
             }
         }
 
-        public static string DumpFile_Mono(string file)
+        private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
         {
-            if (!File.Exists(avdumpDestination) && !GetAndExtractAVDump())
-                return "Could not find  or download AvDump2 CLI";
-            if (string.IsNullOrEmpty(file))
-                return "File path cannot be null";
-            if (!File.Exists(file))
-                return "Could not find Video File: " + file;
-
-            //Create process
-            Process pProcess = new Process();
-            pProcess.StartInfo.FileName = $"mono";
-
-            //strCommandParameters are parameters to pass to program
+            // Windows: avdumpDestination --Auth=....
+            // Mono: mono avdumpDestination --Auth=...
+            var executable = avdumpDestination;
             string fileName = (char)34 + file + (char)34;
 
-            pProcess.StartInfo.Arguments =
-                $"{avdumpDestination} --Auth={ServerSettings.Instance.AniDb.Username}:{ServerSettings.Instance.AniDb.AVDumpKey}" +
-                $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
+            var args = $"--Auth={ServerSettings.Instance.AniDb.Username.Trim()}:" +
+                       $"{ServerSettings.Instance.AniDb.AVDumpKey.Trim()}" +
+                       $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
-            pProcess.StartInfo.UseShellExecute = false;
-            pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            pProcess.StartInfo.RedirectStandardOutput = true;
-            pProcess.StartInfo.CreateNoWindow = true;
-            pProcess.Start();
-            string strOutput = pProcess.StandardOutput.ReadToEnd();
+            if (Utils.IsRunningOnMono())
+            {
+                executable = "mono";
+                args = $"{avdumpDestination} {args}";
+            }
 
-            //Wait for process to finish
-            pProcess.WaitForExit();
-
-            return strOutput;
+            return Tuple.Create(executable, args);
         }
     }
 }
