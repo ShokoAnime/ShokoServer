@@ -14,18 +14,26 @@ namespace Shoko.Server
 {
     public static class AVDumpHelper
     {
-        public static readonly string destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities");
-        public static readonly string avdumpRarDestination = Path.Combine(destination, "avdump2.rar");
+        public static readonly string Destination = Path.Combine(ServerSettings.ApplicationPath, "Utilities", "AVDump");
+        public static readonly string AVDumpZipDestination = Path.Combine(Destination, "avdump2.zip");
 
-        public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_6714.rar";
-        public static readonly string avdumpDestination = Path.Combine(destination, "AVDump2CL.exe");
+        public const string AVDump2URL = @"http://static.anidb.net/client/avdump2/avdump2_7100.zip";
+        
+        public static readonly string avdumpDestination = Path.Combine(Destination, "AVDump2CL.exe");
+
+        public static readonly string[] OldAVDump =
+        {
+            "AVDump2CL.exe", "AVDump2CL.exe.config", "AVDump2Lib.dll", "AVDump2Lib.dll.config", "CSEBMLLib.dll",
+            "Ionic.Zip.Reduced.dll", "libMediaInfo_x64.so", "libMediaInfo_x86.so", "MediaInfo_x64.dll",
+            "MediaInfo_x86.dll", "Error"
+        };
 
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static bool GetAndExtractAVDump()
         {
-            if (File.Exists(avdumpRarDestination)) return ExtractAVDump();
-            if (!DownloadFile(AVDump2URL, avdumpRarDestination)) return false;
+            if (File.Exists(AVDumpZipDestination)) return ExtractAVDump();
+            if (!DownloadFile(AVDump2URL, AVDumpZipDestination)) return false;
             return ExtractAVDump();
         }
 
@@ -33,22 +41,64 @@ namespace Shoko.Server
         {
             try
             {
-                using (var archive = RarArchive.Open(avdumpRarDestination))
+                // First clear out the existing one. 
+                DeleteOldAVDump();
+
+                // Now make the new one
+                using (Stream stream = File.OpenRead(AVDumpZipDestination))
+                using (var reader = ReaderFactory.Open(stream))
                 {
-                    foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
-                        entry.WriteToDirectory(destination, new ExtractionOptions()
+                    while (reader.MoveToNextEntry())
+                    {
+                        if (!reader.Entry.IsDirectory)
                         {
-                            ExtractFullPath = true,
-                            Overwrite = true
-                        });
+                            reader.WriteEntryToDirectory(Destination, new ExtractionOptions()
+                            {
+                                // This may have serious problems in the future, but for now, AVDump is flat
+                                ExtractFullPath = false,
+                                Overwrite = true
+                            });
+                        }
+                    }
                 }
-                File.Delete(avdumpRarDestination);
             }
             catch
             {
                 return false;
             }
+
+            try
+            {
+                File.Delete(AVDumpZipDestination);
+            }
+            catch
+            {
+                // eh we tried
+            }
             return true;
+        }
+        
+        private static void DeleteOldAVDump()
+        {
+            var oldPath = Directory.GetParent(Destination).FullName;
+            foreach (string name in OldAVDump)
+            {
+                try
+                {
+                    var path = Path.Combine(oldPath, name);
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                        continue;
+                    }
+                    if (Directory.Exists(path))
+                        Directory.Delete(path, true);
+                }
+                catch
+                {
+                    // Eh we tried
+                }
+            }
         }
 
         private static bool DownloadFile(string sourceURL, string fileName)
