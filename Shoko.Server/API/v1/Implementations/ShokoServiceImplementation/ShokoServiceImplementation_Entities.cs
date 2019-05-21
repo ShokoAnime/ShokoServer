@@ -1102,7 +1102,7 @@ namespace Shoko.Server
             return new List<CL_AniDB_Episode>();
         }
 
-        [HttpGet("Episode/ForSerie/{animeSeriesID}/{userID}")]
+        [HttpGet("Episode/ForSeries/{animeSeriesID}/{userID}")]
         public List<CL_AnimeEpisode_User> GetEpisodesForSeries(int animeSeriesID, int userID)
         {
             List<CL_AnimeEpisode_User> eps = new List<CL_AnimeEpisode_User>();
