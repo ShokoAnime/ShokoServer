@@ -488,9 +488,8 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult<Dictionary<string, string>> Ping()
         {
             // No need to check for user or anything. It won't get here if the user is invalid.
-            var x = new Dictionary<string, string>();
+            var x = new Dictionary<string, string> {["response"] = "pong"};
 
-            x["response"] = "pong";
             return x;
         }
         #endregion
