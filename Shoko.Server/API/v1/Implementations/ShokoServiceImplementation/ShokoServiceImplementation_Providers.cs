@@ -220,7 +220,7 @@ namespace Shoko.Server
 
         #region TvDB
 
-        [HttpPost("Serie/TvDB/Refresh/{seriesID}")]
+        [HttpPost("Series/TvDB/Refresh/{seriesID}")]
         public string UpdateTvDBData(int seriesID)
         {
             try

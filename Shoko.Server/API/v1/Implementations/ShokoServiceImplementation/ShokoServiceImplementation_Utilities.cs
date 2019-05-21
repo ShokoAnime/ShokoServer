@@ -1039,7 +1039,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpGet("Serie/WithoutFiles/{userID}")]
+        [HttpGet("Series/WithoutFiles/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesWithoutAnyFiles(int userID)
         {
             List<CL_AnimeSeries_User> contracts = new List<CL_AnimeSeries_User>();
@@ -1063,7 +1063,7 @@ namespace Shoko.Server
             return contracts;
         }
 
-        [HttpGet("Serie/MissingEpisodes/{maxRecords}/{userID}")]
+        [HttpGet("Series/MissingEpisodes/{maxRecords}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID)
         {
             try

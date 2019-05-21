@@ -514,7 +514,7 @@ namespace Shoko.Server
             return retEps;
         }
 
-        [HttpGet("Serie/RecentlyAdded/{maxRecords}/{userID}")]
+        [HttpGet("Series/RecentlyAdded/{maxRecords}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesRecentlyAdded(int maxRecords, int userID)
         {
             List<CL_AnimeSeries_User> retSeries = new List<CL_AnimeSeries_User>();
@@ -1468,7 +1468,7 @@ namespace Shoko.Server
 
         #region Groups and Series
 
-        [HttpGet("Serie/{animeSeriesID}/{userID}")]
+        [HttpGet("Series/{animeSeriesID}/{userID}")]
         public CL_AnimeSeries_User GetSeries(int animeSeriesID, int userID)
         {
             try
@@ -1591,7 +1591,7 @@ namespace Shoko.Server
         /// <param name="watchedStatus"></param>
         /// <param name="maxEpisodeNumber">Use this to specify a max episode number to apply to</param>
         /// <returns></returns>
-        [HttpPost("Serie/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}")]
+        [HttpPost("Series/Watch/{animeSeriesID}/{watchedStatus}/{maxEpisodeNumber}/{episodeType}/{userID}")]
         public string SetWatchedStatusOnSeries(int animeSeriesID, bool watchedStatus, int maxEpisodeNumber, int episodeType, int userID)
         {
             try
@@ -1693,7 +1693,7 @@ namespace Shoko.Server
             return null;
         }
 
-        [HttpGet("Serie/ForAnime/{animeID}/{userID}")]
+        [HttpGet("Series/ForAnime/{animeID}/{userID}")]
         public CL_AnimeSeries_User GetSeriesForAnime(int animeID, int userID)
         {
             try
@@ -1708,7 +1708,7 @@ namespace Shoko.Server
             return null;
         }
 
-        [HttpGet("Serie/ExistingForAnime/{animeID}")]
+        [HttpGet("Series/ExistingForAnime/{animeID}")]
         public bool GetSeriesExistingForAnime(int animeID)
         {
             try
@@ -1969,7 +1969,7 @@ namespace Shoko.Server
         /// <param name="animeGroupID"></param>
         /// <param name="allSeries"></param>
         /// <returns></returns>
-        [HttpGet("Serie/ForGroup/{animeGroupID}/{userID}")]
+        [HttpGet("Series/ForGroup/{animeGroupID}/{userID}")]
         public static SVR_AnimeSeries GetSeriesForGroup(int animeGroupID, List<SVR_AnimeSeries> allSeries)
         {
             try
@@ -2062,7 +2062,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpPost("Serie/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}")]
+        [HttpPost("Series/Move/{animeSeriesID}/{newAnimeGroupID}/{userID}")]
         public CL_Response<CL_AnimeSeries_User> MoveSeries(int animeSeriesID, int newAnimeGroupID, int userID)
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
@@ -2134,7 +2134,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpPost("Serie/{userID}")]
+        [HttpPost("Series/{userID}")]
         public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
         {
             CL_Response<CL_AnimeSeries_User> contractout = new CL_Response<CL_AnimeSeries_User>
@@ -2212,7 +2212,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpPost("Serie/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}")]
+        [HttpPost("Series/CreateFromAnime/{animeID}/{userID}/{animeGroupID?}/{forceOverwrite}")]
         public CL_Response<CL_AnimeSeries_User> CreateSeriesFromAnime(int animeID, int? animeGroupID, int userID, bool forceOverwrite)
         {
             CL_Response<CL_AnimeSeries_User> response = new CL_Response<CL_AnimeSeries_User>
@@ -2388,7 +2388,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpPost("Group/DefaultSerie/{animeGroupID}/{animeSeriesID}")]
+        [HttpPost("Group/DefaultSeries/{animeGroupID}/{animeSeriesID}")]
         public void SetDefaultSeriesForGroup(int animeGroupID, int animeSeriesID)
         {
             try
@@ -2408,7 +2408,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpDelete("Group/DefaultSerie/{animeGroupID}")]
+        [HttpDelete("Group/DefaultSeries/{animeGroupID}")]
         public void RemoveDefaultSeriesForGroup(int animeGroupID)
         {
             try
@@ -2425,7 +2425,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpGet("Group/ForSerie/{animeSeriesID}/{userID}")]
+        [HttpGet("Group/ForSeries/{animeSeriesID}/{userID}")]
         public CL_AnimeGroup_User GetTopLevelGroupForSeries(int animeSeriesID, int userID)
         {
             try
@@ -2546,7 +2546,7 @@ namespace Shoko.Server
         /// <param name="animeSeriesID"></param>
         /// <param name="deleteFiles">also delete the physical files</param>
         /// <returns></returns>
-        [HttpDelete("Serie/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
+        [HttpDelete("Series/{animeSeriesID}/{deleteFiles}/{deleteParentGroup}")]
         public string DeleteAnimeSeries(int animeSeriesID, bool deleteFiles, bool deleteParentGroup)
         {
             try
@@ -2771,7 +2771,7 @@ namespace Shoko.Server
             return new List<CL_AniDB_AnimeDetailed>();
         }
 
-        [HttpGet("Serie/{userID}")]
+        [HttpGet("Series/{userID}")]
         public List<CL_AnimeSeries_User> GetAllSeries(int userID)
         {
             try
@@ -2825,7 +2825,7 @@ namespace Shoko.Server
             return retGroups;
         }
 
-        [HttpGet("Serie/ForGroup/{animeGroupID}/{userID}")]
+        [HttpGet("Series/ForGroup/{animeGroupID}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesForGroup(int animeGroupID, int userID)
         {
             List<CL_AnimeSeries_User> series = new List<CL_AnimeSeries_User>();
@@ -2850,7 +2850,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpGet("Serie/ForGroupRecursive/{animeGroupID}/{userID}")]
+        [HttpGet("Series/ForGroupRecursive/{animeGroupID}/{userID}")]
         public List<CL_AnimeSeries_User> GetSeriesForGroupRecursive(int animeGroupID, int userID)
         {
             List<CL_AnimeSeries_User> series = new List<CL_AnimeSeries_User>();
