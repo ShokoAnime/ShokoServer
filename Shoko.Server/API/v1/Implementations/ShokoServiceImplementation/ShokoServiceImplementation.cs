@@ -601,6 +601,8 @@ namespace Shoko.Server
                     ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
                     : new int[0];
 
+                // SAVE!
+                ServerSettings.Instance.SaveSettings();
 
                 if (anidbSettingsChanged)
                 {

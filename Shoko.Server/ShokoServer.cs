@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using NHibernate;
+using NLog.Targets;
 using NLog.Web;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
@@ -109,6 +110,16 @@ namespace Shoko.Server
         }
 
         private ShokoServer() { }
+
+        public void InitLogger()
+        {
+            var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
+            if (target != null)
+            {
+                target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
+                LogManager.ReconfigExistingLoggers();
+            }
+        }
 
         public bool StartUpServer()
         {

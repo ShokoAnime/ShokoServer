@@ -142,13 +142,6 @@ namespace Shoko.Server.API.v2.Modules
             };
             list.Add(version);
 
-            /*version = new ComponentVersion
-            {
-                version = Assembly.GetAssembly(typeof(INancyModule)).GetName().Version.ToString(),
-                name = "Nancy"
-            };
-            list.Add(version);*/
-
             string dllpath = Assembly.GetEntryAssembly().Location;
             dllpath = Path.GetDirectoryName(dllpath);
             dllpath = Path.Combine(dllpath, "x86");
@@ -540,6 +533,7 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 ServerSettings.LoadSettingsFromFile(path, true);
+                ServerSettings.Instance.SaveSettings();
                 return APIStatus.OK();
             }
             catch

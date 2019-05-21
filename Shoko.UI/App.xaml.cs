@@ -27,6 +27,7 @@ namespace Shoko.UI
                     }
                 }
             }
+            ShokoServer.Instance.InitLogger();
             ServerSettings.LoadSettings();
             var main = new MainWindow();
             main.Show();
