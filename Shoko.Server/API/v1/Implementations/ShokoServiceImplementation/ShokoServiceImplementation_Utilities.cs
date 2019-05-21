@@ -30,7 +30,7 @@ namespace Shoko.Server
 {
     public partial class ShokoServiceImplementation
     {
-        [HttpPost("Serie/SearchFilename/{uid}")]
+        [HttpPost("Series/SearchFilename/{uid}")]
         public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm] string query)
         {
             string input = query ?? string.Empty;
