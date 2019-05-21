@@ -485,17 +485,12 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>"pong" if user if valid correct - to check if connection and auth is valid without ask for real data</returns>
         [HttpGet("ping")]
-        public ActionResult Ping()
+        public ActionResult<Dictionary<string, string>> Ping()
         {
-            SVR_JMMUser user = HttpContext.GetUser();
-            dynamic x = new ExpandoObject();
+            // No need to check for user or anything. It won't get here if the user is invalid.
+            var x = new Dictionary<string, string>();
 
-            if (user != null)
-            {
-                x.response = "pong";
-                return x;
-            }
-            x.response = "ping";
+            x["response"] = "pong";
             return x;
         }
         #endregion
