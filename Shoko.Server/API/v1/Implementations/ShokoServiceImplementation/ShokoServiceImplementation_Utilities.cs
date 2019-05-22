@@ -930,7 +930,7 @@ namespace Shoko.Server
                         // let's check if the file on AniDB actually exists in the user's local collection
                         string hash = string.Empty;
 
-                        AniDB_File anifile = RepoFactory.AniDB_File.GetByID(myitem.FileID);
+                        AniDB_File anifile = RepoFactory.AniDB_File.GetByFileID(myitem.FileID);
                         if (anifile != null)
                             hash = anifile.Hash;
                         else
@@ -956,6 +956,7 @@ namespace Shoko.Server
                             // now check if the file actually exists on disk
                             SVR_VideoLocal v = RepoFactory.VideoLocal.GetByHash(hash);
                             fileMissing = true;
+                            if (v == null) break;
                             foreach (SVR_VideoLocal_Place p in v.Places)
                             {
                                 IFileSystem fs = p.ImportFolder.FileSystem;
