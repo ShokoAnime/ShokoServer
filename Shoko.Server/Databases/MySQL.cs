@@ -101,7 +101,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(1, 37,
                 "ALTER TABLE `AniDB_Episode` ADD UNIQUE INDEX `UIX_AniDB_Episode_EpisodeID` (`EpisodeID` ASC) ;"),
             new DatabaseCommand(1, 38,
-                "CREATE TABLE `AniDB_File`( `AniDB_FileID` INT NOT NULL AUTO_INCREMENT, `FileID` int NOT NULL, `Hash` varchar(50) NOT NULL, `AnimeID` int NOT NULL, `GroupID` int NOT NULL, `File_Source` varchar(200) NOT NULL, `File_AudioCodec` varchar(200) NOT NULL, `File_VideoCodec` varchar(200) NOT NULL, `File_VideoResolution` varchar(200) NOT NULL, `File_FileExtension` varchar(200) NOT NULL, `File_LengthSeconds` int NOT NULL, `File_Description` varchar(500) NOT NULL, `File_ReleaseDate` int NOT NULL, `Anime_GroupName` varchar(200) character set utf8 NOT NULL, `Anime_GroupNameShort` varchar(50) character set utf8 NOT NULL, `Episode_Rating` int NOT NULL, `Episode_Votes` int NOT NULL, `DateTimeUpdated` datetime NOT NULL, `IsWatched` int NOT NULL, `WatchedDate` datetime NULL, `CRC` varchar(200) NOT NULL, `MD5` varchar(200) NOT NULL, `SHA1` varchar(200) NOT NULL, `FileName` varchar(500) character set utf8 NOT NULL, `FileSize` bigint NOT NULL, PRIMARY KEY (`AniDB_FileID`) ) ; "),
+                "CREATE TABLE `AniDB_File`( `AniDB_FileID` INT NOT NULL AUTO_INCREMENT, `FileID` int NOT NULL, `Hash` varchar(50) NOT NULL, `AnimeID` int NOT NULL, `GroupID` int NOT NULL, `File_Source` varchar(200) NOT NULL, `File_AudioCodec` varchar(500) NOT NULL, `File_VideoCodec` varchar(200) NOT NULL, `File_VideoResolution` varchar(200) NOT NULL, `File_FileExtension` varchar(200) NOT NULL, `File_LengthSeconds` int NOT NULL, `File_Description` varchar(500) NOT NULL, `File_ReleaseDate` int NOT NULL, `Anime_GroupName` varchar(200) character set utf8 NOT NULL, `Anime_GroupNameShort` varchar(50) character set utf8 NOT NULL, `Episode_Rating` int NOT NULL, `Episode_Votes` int NOT NULL, `DateTimeUpdated` datetime NOT NULL, `IsWatched` int NOT NULL, `WatchedDate` datetime NULL, `CRC` varchar(200) NOT NULL, `MD5` varchar(200) NOT NULL, `SHA1` varchar(200) NOT NULL, `FileName` varchar(500) character set utf8 NOT NULL, `FileSize` bigint NOT NULL, PRIMARY KEY (`AniDB_FileID`) ) ; "),
             new DatabaseCommand(1, 39,
                 "ALTER TABLE `AniDB_File` ADD UNIQUE INDEX `UIX_AniDB_File_Hash` (`Hash` ASC) ;"),
             new DatabaseCommand(1, 40,
@@ -623,6 +623,7 @@ namespace Shoko.Server.Databases
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(86, 1, DatabaseFixes.RegenTvDBMatches),
+            new DatabaseCommand(87, 1,"ALTER TABLE `AniDB_File` CHANGE COLUMN `File_AudioCodec` `File_AudioCodec` VARCHAR(500) NOT NULL;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
