@@ -1832,6 +1832,21 @@ namespace Shoko.Server.API.v2.Modules
             return BadRequest("missing 'id'");
         }
 
+        /// <summary>
+        /// Handle /api/serie/fromaid?id=...
+        /// Used to get the series related to the episode id.
+        /// </summary>
+        /// <returns>Serie or APIStatus</returns>
+        [HttpGet("serie/fromaid")]
+        public ActionResult<Serie> GetSeriesFromAniDBID([FromQuery] API_Call_Parameters para)
+        {
+            JMMUser user = HttpContext.GetUser();
+            if (para.id != 0)
+            {
+                return GetSerieFromAniDBID(para.id, para.nocast != 0, para.notag != 0, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
+            }
+            return BadRequest("missing 'id'");
+        }
 
         #region internal function
 
@@ -2033,6 +2048,26 @@ namespace Shoko.Server.API.v2.Modules
             if (aep != null)
             {
                 return Serie.GenerateFromAnimeSeries(HttpContext, aep.GetAnimeSeries(), uid, nocast, notag, level, all, allpic, pic, tagfilter);
+            }
+            return NotFound("serie not found");
+        }
+
+        // <summary>
+        /// Return Serie for given aid (AniDB ID)
+        /// </summary>
+        /// <param name="id">AniDB ID</param>
+        /// <param name="uid">user id</param>
+        /// <param name="nocast">disable cast</param>
+        /// <param name="notag">disable tag</param>
+        /// <param name="level">deep level</param>
+        /// <param name="all"></param>
+        /// <returns></returns>
+        internal ActionResult<Serie> GetSerieFromAniDBID(int id, bool nocast, bool notag, bool all, bool allpic, int pic, TagFilter.Filter tagfilter)
+        {
+            SVR_AniDB_Anime adba = RepoFactory.AniDB_Anime.GetByAnimeID(id);
+            if (adba != null)
+            {
+                return Serie.GenerateFromAniDB_Anime(HttpContext, adba, nocast, notag, allpic, pic, tagfilter);
             }
             return NotFound("serie not found");
         }
