@@ -124,8 +124,19 @@ namespace Shoko.Server
         {
             try
             {
-                var request = HttpContext.Request;
-
+                string rangevalue = "";
+                // HttpContext is null and raise error 
+                try
+                {
+                    var request = HttpContext.Request;
+                    rangevalue = request.Headers["Range"].FirstOrDefault() ??
+                                 request.Headers["range"].FirstOrDefault();
+                }
+                catch
+                {
+                    
+                }
+  
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
                 {
@@ -137,8 +148,6 @@ namespace Shoko.Server
                 long start = 0;
                 long end = totalsize - 1;
 
-                string rangevalue = request.Headers["Range"].FirstOrDefault() ??
-                                    request.Headers["range"].FirstOrDefault();
                 rangevalue = rangevalue?.Replace("bytes=", string.Empty);
                 bool range = !string.IsNullOrEmpty(rangevalue);
 

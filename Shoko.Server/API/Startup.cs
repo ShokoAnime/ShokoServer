@@ -252,7 +252,7 @@ After:
             PathString[] apiv1 =
             {
                 "/v1", "/api/Image", "/api/Kodi",
-                "/api/Metro", "/api/Plex"
+                "/api/Metro", "/api/Plex", "/Stream"
             };
 
             PathString[] apiv2 =
