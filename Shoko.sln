@@ -1,0 +1,65 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28917.182
+MinimumVisualStudioVersion = 15.0.26124.0
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.CLI", "Shoko.CLI\Shoko.CLI.csproj", "{1F704E71-C438-4125-9F4D-A594822AA29F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Database", "Shoko.Database\Shoko.Database.csproj", "{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Tests", "Shoko.Tests\Shoko.Tests.csproj", "{1AA0BCD7-F0CF-409B-B607-5644825F320C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|x64.Build.0 = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Debug|x86.Build.0 = Debug|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|x64.ActiveCfg = Release|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|x64.Build.0 = Release|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|x86.ActiveCfg = Release|Any CPU
+		{1F704E71-C438-4125-9F4D-A594822AA29F}.Release|x86.Build.0 = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|x64.Build.0 = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Debug|x86.Build.0 = Debug|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|x64.ActiveCfg = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|x64.Build.0 = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|x86.ActiveCfg = Release|Any CPU
+		{CBB925DB-FDC9-4DD9-9AAE-2E373C272858}.Release|x86.Build.0 = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|x64.Build.0 = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Debug|x86.Build.0 = Debug|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|x64.ActiveCfg = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|x64.Build.0 = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|x86.ActiveCfg = Release|Any CPU
+		{1AA0BCD7-F0CF-409B-B607-5644825F320C}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {251601BB-CDC0-4289-B4EE-E47DABF675E6}
+	EndGlobalSection
+EndGlobal
