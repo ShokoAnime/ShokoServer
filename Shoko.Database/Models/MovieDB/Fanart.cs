@@ -7,7 +7,7 @@ using System.Text;
 namespace Shoko.Database.Models.MovieDB
 {
     [Table("MovieDB_Fanart")]
-    class Fanart
+    public class Fanart
     {
         [Key, Column("MovieDB_FanartID")] public int Id { get; set; }
         public int ImageID { get; set; }

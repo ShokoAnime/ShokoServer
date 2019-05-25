@@ -7,7 +7,7 @@ using System.Text;
 namespace Shoko.Database.Models.TvDB
 {
     [Table("TvDB_ImageFanart")]
-    class ImageFanart
+    public class ImageFanart
     {
         [Key] public int TvDB_ImageFanartID { get; set; }
         public int Id { get; set; }

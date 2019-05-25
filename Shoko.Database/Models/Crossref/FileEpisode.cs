@@ -7,7 +7,7 @@ using System.Text;
 namespace Shoko.Database.Models.Crossref
 {
     [Table("CrossRef_File_Episode")]
-    class FileEpisode
+    public class FileEpisode
     {
         [Key, Column("CrossRef_File_EpisodeID")] public int Id { get; set; }
         [MaxLength(50)] public string Hash { get; set; }

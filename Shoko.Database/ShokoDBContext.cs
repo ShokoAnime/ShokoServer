@@ -40,13 +40,61 @@ namespace Shoko.Database
         public DbSet<Models.User.AnimeEpisode> AnimeEpisodeUser { get; set; }
         public DbSet<Models.AnimeGroup> AnimeGroup { get; set; }
         public DbSet<Models.User.AnimeGroup> AnimeGroupUser { get; set; }
-
         public DbSet<Models.AnimeSeries> AnimeSeries { get; set; }
-
-
-
+        public DbSet<Models.User.AnimeSeries> AnimeSeriesUser { get; set; }
+        public DbSet<Models.AnimeStaff> AnimeStaff { get; set; }
+        public DbSet<Models.AuthToken> AuthTokens { get; set; }
+        public DbSet<Models.BookmarkedAnime> BookmarkedAnime { get; set; }
         public DbSet<Models.CloudAccount> CloudAccount { get; set; }
+        public DbSet<Models.CommandRequest> CommandRequest { get; set; }
+
+        #region Crossref
+
+        public DbSet<Models.Crossref.AniDbMAL> CrossRefAniDBMAL { get; set; }
+        public DbSet<Models.Crossref.AniDbOther> CrossRefAniDBOther { get; set; }
+        public DbSet<Models.Crossref.AniDbTrakt> CrossRefAniDBTrakt { get; set; }
+        public DbSet<Models.Crossref.AniDBTraktEpisode> CrossRefAniDbTraktEpisode { get; set; }
+        public DbSet<Models.Crossref.AniDbTraktV2> CrossRefAniDbTraktV2 { get; set; }
+        public DbSet<Models.Crossref.AniDBTvDB> CrossRefAniDBTvDB { get; set; }
+        public DbSet<Models.Crossref.AniDBTvDBEpisode> CrossRefAniDBTvDBEpisode { get; set; }
+        public DbSet<Models.Crossref.AniDBTvDBEpisodeOverride> CrossRefAniDBTvDBEpisodeOverride { get; set; }
+        public DbSet<Models.Crossref.AnimeStaff> CrossRefAnimeStaff { get; set; }
+        public DbSet<Models.Crossref.CustomTag> CrossRefCustomTag { get; set; }
+        public DbSet<Models.Crossref.FileEpisode> CrossRefFileEpisode { get; set; }
+        public DbSet<Models.Crossref.LanguagesAniDBFile> CrossRefLanguagesAniDBFile { get; set; }
+        public DbSet<Models.Crossref.SubtitlesAniDBFile> CrossRefSubtitlesAniDBFile { get; set; }
+
+        #endregion
+
+
+        public DbSet<Models.CustomTag> CustomTags { get; set; }
+        public DbSet<Models.DuplicateFile> DuplicateFiles { get; set; }
+        public DbSet<Models.FileFfdshowPreset> FileFfdshowPresets { get; set; }
+        public DbSet<Models.FileNameHash> FileNameHashes { get; set; }
+        public DbSet<Models.GroupFilter> GroupFilters { get; set; }
+        public DbSet<Models.GroupFilterCondition> GroupFilterConditions { get; set; }
+        public DbSet<Models.IgnoreAnime> IgnoreAnimes { get; set; }
         public DbSet<Models.ImportFolder> ImportFolder { get; set; }
+        public DbSet<Models.ShokoUser> ShokoUsers { get; set; }
+        public DbSet<Models.Language> Languages { get; set; }
+        public DbSet<Models.MovieDB.Fanart> MovieDBFanarts { get; set; }
+        public DbSet<Models.MovieDB.Movie> MovieDBMovie { get; set; }
+        public DbSet<Models.MovieDB.Poster> MovieDBPoster { get; set; }
+        public DbSet<Models.Playlist> Playlists { get; set; }
+        public DbSet<Models.RenameScript> RenameScripts { get; set; }
+        public DbSet<Models.Scan> Scans { get; set; }
+        public DbSet<Models.ScanFile> ScanFiles { get; set; }
+        public DbSet<Models.ScheduledUpdate> ScheduledUpdates { get; set; }
+        public DbSet<Models.Trakt.Episode> TraktEpisodes { get; set; }
+        public DbSet<Models.Trakt.Friend> TraktFriends { get; set; }
+        public DbSet<Models.Trakt.Season> TraktSeasons { get; set; }
+        public DbSet<Models.TvDB.Episode> TvDBEpisodes { get; set; }
+        public DbSet<Models.TvDB.ImageFanart> TvDBImageFanarts { get; set; }
+        public DbSet<Models.TvDB.ImagePoster> TvDBImagePosters { get; set; }
+        public DbSet<Models.TvDB.ImageWideBanner> TvDBImageWideBanners { get; set; }
+        public DbSet<Models.TvDB.Series> TvDBSeries { get; set; }
+
+
 
         public DbSet<Models.VideoLocalPlace> VideoLocalPlace { get; set; }
         public DbSet<Models.VideoLocal> VideoLocal { get; set; }

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Shoko.Database.Models
 {
-    public class Duplicate
+    public class DuplicateFile
     {
         [Key, Column("DuplicateFileID")] public int Id { get; set; }
         [Column("FilePathFile1")] public string FilePath1 { get; set; }

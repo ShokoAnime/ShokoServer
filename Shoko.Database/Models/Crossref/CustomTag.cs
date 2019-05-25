@@ -7,7 +7,7 @@ using System.Text;
 namespace Shoko.Database.Models.Crossref
 {
     [Table("CrossRef_CustomTag")]
-    class CustomTag
+    public class CustomTag
     {
         [Key, Column("CrossRef_CustomTagID")] public int Id { get; set; }
         public int CustomTagID { get; set; }
