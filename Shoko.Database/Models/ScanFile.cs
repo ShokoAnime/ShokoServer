@@ -11,7 +11,7 @@ namespace Shoko.Database.Models
         [Key, Column("ScanFileID")] public int Id { get; set; }
         [ForeignKey(nameof(Scan))] public int ScanID { get; set; }
         [ForeignKey(nameof(ImportFolder))] public int ImportFolderId { get; set; }
-        [ForeignKey(nameof(VideoLocalPlace))] public int VideoLocalPlaceId { get; set; }
+        [ForeignKey(nameof(VideoLocalPlace)), Column("VideoLocal_Place_ID")] public int VideoLocalPlaceId { get; set; }
         public string FullName { get; set; }
         public long FileSize { get; set; }
         public DateTime? CheckDate { get; set; }

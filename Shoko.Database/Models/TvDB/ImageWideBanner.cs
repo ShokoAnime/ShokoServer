@@ -7,6 +7,6 @@ namespace Shoko.Database.Models.TvDB
     [Table("TvDB_ImageWideBanner")]
     public class ImageWideBanner : TvDBImage
     {
-        [Key] public int TvDB_ImageWideBanner { get; set; }
+        [Key] public int TvDB_ImageWideBannerID { get; set; }
     }
 }

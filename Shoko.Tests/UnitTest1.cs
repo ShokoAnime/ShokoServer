@@ -241,7 +241,7 @@ namespace Tests
         {
             var row = db.AnimeSeries.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -249,7 +249,7 @@ namespace Tests
         {
             var row = db.AnimeSeriesUser.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -257,7 +257,7 @@ namespace Tests
         {
             var row = db.AnimeStaff.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -265,7 +265,7 @@ namespace Tests
         {
             var row = db.AuthTokens.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -273,7 +273,7 @@ namespace Tests
         {
             var row = db.BookmarkedAnime.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -281,7 +281,7 @@ namespace Tests
         {
             var row = db.CommandRequest.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -289,7 +289,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBMAL.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -297,7 +297,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBOther.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -305,7 +305,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBTrakt.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -313,7 +313,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDbTraktEpisode.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -321,7 +321,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDbTraktV2.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -329,7 +329,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBTvDB.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -337,7 +337,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBTvDBEpisode.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -345,7 +345,7 @@ namespace Tests
         {
             var row = db.CrossRefAniDBTvDBEpisodeOverride.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -353,7 +353,7 @@ namespace Tests
         {
             var row = db.CrossRefAnimeStaff.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -361,7 +361,7 @@ namespace Tests
         {
             var row = db.CrossRefCustomTag.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -369,7 +369,7 @@ namespace Tests
         {
             var row = db.CrossRefFileEpisode.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -377,7 +377,7 @@ namespace Tests
         {
             var row = db.CrossRefLanguagesAniDBFile.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -385,63 +385,63 @@ namespace Tests
         {
             var row = db.CrossRefSubtitlesAniDBFile.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void CustomTags()
         {
-            var row = db.CustomTags.FirstOrDefault();
+            var row = db.CustomTag.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void DuplicateFiles()
         {
-            var row = db.DuplicateFiles.FirstOrDefault();
+            var row = db.DuplicateFile.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void FileFfdshowPresets()
         {
-            var row = db.FileFfdshowPresets.FirstOrDefault();
+            var row = db.FileFfdshowPreset.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void FileNameHashes()
         {
-            var row = db.FileNameHashes.FirstOrDefault();
+            var row = db.FileNameHash.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void GroupFilters()
         {
-            var row = db.GroupFilters.FirstOrDefault();
+            var row = db.GroupFilter.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void GroupFilterConditions()
         {
-            var row = db.GroupFilterConditions.FirstOrDefault();
+            var row = db.GroupFilterCondition.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void IgnoreAnimes()
         {
-            var row = db.IgnoreAnimes.FirstOrDefault();
+            var row = db.IgnoreAnime.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -449,7 +449,7 @@ namespace Tests
         {
             var row = db.ImportFolder.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -457,15 +457,15 @@ namespace Tests
         {
             var row = db.ShokoUsers.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void Languages()
         {
-            var row = db.Languages.FirstOrDefault();
+            var row = db.Language.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
 
@@ -474,7 +474,7 @@ namespace Tests
         {
             var row = db.MovieDBFanarts.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -482,7 +482,7 @@ namespace Tests
         {
             var row = db.MovieDBMovie.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -490,48 +490,48 @@ namespace Tests
         {
             var row = db.MovieDBPoster.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void Playlists()
         {
-            var row = db.Playlists.FirstOrDefault();
+            var row = db.Playlist.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void RenameScripts()
         {
-            var row = db.RenameScripts.FirstOrDefault();
+            var row = db.RenameScript.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void Scans()
         {
-            var row = db.Scans.FirstOrDefault();
+            var row = db.Scan.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
 
         [Test]
         public void ScanFiles()
         {
-            var row = db.ScanFiles.FirstOrDefault();
+            var row = db.ScanFile.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
         public void ScheduledUpdates()
         {
-            var row = db.ScheduledUpdates.FirstOrDefault();
+            var row = db.ScheduledUpdate.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -539,7 +539,7 @@ namespace Tests
         {
             var row = db.TraktEpisodes.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -547,7 +547,7 @@ namespace Tests
         {
             var row = db.TraktFriends.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -555,7 +555,7 @@ namespace Tests
         {
             var row = db.TraktSeasons.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -563,7 +563,7 @@ namespace Tests
         {
             var row = db.TvDBEpisodes.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -571,7 +571,7 @@ namespace Tests
         {
             var row = db.TvDBImageFanarts.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -579,7 +579,7 @@ namespace Tests
         {
             var row = db.TvDBImagePosters.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -587,7 +587,7 @@ namespace Tests
         {
             var row = db.TvDBImageWideBanners.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
 
         [Test]
@@ -595,7 +595,7 @@ namespace Tests
         {
             var row = db.TvDBSeries.FirstOrDefault();
             Assert.IsNotNull(row, "Query responded with no results");
-            Assert.IsInstanceOf<AnimeSeries>(row);
+            
         }
     }
 }

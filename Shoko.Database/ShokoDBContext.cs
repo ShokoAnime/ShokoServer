@@ -67,24 +67,24 @@ namespace Shoko.Database
         #endregion
 
 
-        public DbSet<Models.CustomTag> CustomTags { get; set; }
-        public DbSet<Models.DuplicateFile> DuplicateFiles { get; set; }
-        public DbSet<Models.FileFfdshowPreset> FileFfdshowPresets { get; set; }
-        public DbSet<Models.FileNameHash> FileNameHashes { get; set; }
-        public DbSet<Models.GroupFilter> GroupFilters { get; set; }
-        public DbSet<Models.GroupFilterCondition> GroupFilterConditions { get; set; }
-        public DbSet<Models.IgnoreAnime> IgnoreAnimes { get; set; }
+        public DbSet<Models.CustomTag> CustomTag { get; set; }
+        public DbSet<Models.DuplicateFile> DuplicateFile { get; set; }
+        public DbSet<Models.FileFfdshowPreset> FileFfdshowPreset { get; set; }
+        public DbSet<Models.FileNameHash> FileNameHash { get; set; }
+        public DbSet<Models.GroupFilter> GroupFilter { get; set; }
+        public DbSet<Models.GroupFilterCondition> GroupFilterCondition { get; set; }
+        public DbSet<Models.IgnoreAnime> IgnoreAnime { get; set; }
         public DbSet<Models.ImportFolder> ImportFolder { get; set; }
         public DbSet<Models.ShokoUser> ShokoUsers { get; set; }
-        public DbSet<Models.Language> Languages { get; set; }
+        public DbSet<Models.Language> Language { get; set; }
         public DbSet<Models.MovieDB.Fanart> MovieDBFanarts { get; set; }
         public DbSet<Models.MovieDB.Movie> MovieDBMovie { get; set; }
         public DbSet<Models.MovieDB.Poster> MovieDBPoster { get; set; }
-        public DbSet<Models.Playlist> Playlists { get; set; }
-        public DbSet<Models.RenameScript> RenameScripts { get; set; }
-        public DbSet<Models.Scan> Scans { get; set; }
-        public DbSet<Models.ScanFile> ScanFiles { get; set; }
-        public DbSet<Models.ScheduledUpdate> ScheduledUpdates { get; set; }
+        public DbSet<Models.Playlist> Playlist { get; set; }
+        public DbSet<Models.RenameScript> RenameScript { get; set; }
+        public DbSet<Models.Scan> Scan { get; set; }
+        public DbSet<Models.ScanFile> ScanFile { get; set; }
+        public DbSet<Models.ScheduledUpdate> ScheduledUpdate { get; set; }
         public DbSet<Models.Trakt.Episode> TraktEpisodes { get; set; }
         public DbSet<Models.Trakt.Friend> TraktFriends { get; set; }
         public DbSet<Models.Trakt.Season> TraktSeasons { get; set; }
@@ -112,7 +112,7 @@ namespace Shoko.Database
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
                 .UseLazyLoadingProxies()
-                .UseMySql("server=192.168.1.3;uid=___;pwd=___;database=___");
+                .UseMySql("");
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

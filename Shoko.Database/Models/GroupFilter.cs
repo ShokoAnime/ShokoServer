@@ -28,6 +28,6 @@ namespace Shoko.Database.Models
         [ForeignKey(nameof(ParentGroupFilter))] public int? ParentGroupFilterID { get; set; }
         public bool InvisibleInClients { get; set; }
 
-        public GroupFilter ParentGroupFilter { get; set; }
+        public virtual GroupFilter ParentGroupFilter { get; set; }
     }
 }

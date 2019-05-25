@@ -11,7 +11,7 @@ namespace Shoko.Database.Models
         [Key, Column("FileNameHashID")] public int Id { get; set; }
         public string FileName { get; set; }
         public long FileSize { get; set; }
-        [MaxLength(50)] public int Hash { get; set; }
+        [MaxLength(50)] public string Hash { get; set; }
         public DateTime DateTimeUpdated { get; set; }
     }
 }

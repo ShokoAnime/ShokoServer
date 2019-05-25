@@ -11,7 +11,7 @@ namespace Shoko.Database.Models.Crossref
     {
         [Key, Column("CrossRef_AniDB_OtherID")] public int Id { get; set; }
         public int AnimeID { get; set; }
-        [MaxLength(100)] public int CrossRefID { get; set; }
+        [MaxLength(100)] public string CrossRefID { get; set; }
         public int CrossRefSource { get; set; }
         public int CrossRefType { get; set; }
     }

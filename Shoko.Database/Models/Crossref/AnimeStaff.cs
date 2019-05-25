@@ -9,7 +9,7 @@ namespace Shoko.Database.Models.Crossref
     [Table("CrossRef_Anime_Staff")]
     public class AnimeStaff
     {
-        [Key, Column("CrossRef_Anime_Staff")] public int Id { get; set; }
+        [Key, Column("CrossRef_Anime_StaffID")] public int Id { get; set; }
         public int AniDB_AnimeID { get; set; }
         public int StaffID { get; set; }
         public string Role { get; set; }
