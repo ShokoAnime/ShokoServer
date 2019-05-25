@@ -14,8 +14,4 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.Design" Version="1.1.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\Crossref\" />
-  </ItemGroup>
-
 </Project>
