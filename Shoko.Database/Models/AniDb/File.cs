@@ -15,7 +15,7 @@ namespace Shoko.Database.Models.AniDb
         public int AnimeID { get; set; }
         public int GroupID { get; set; }
         [Column("File_Source"), MaxLength(200)] public string Source { get; set; }
-        [Column("File_AudioCodec"), MaxLength(200)] public string AudioCodec { get; set; }
+        [Column("File_AudioCodec"), MaxLength(500)] public string AudioCodec { get; set; }
         [Column("File_VideoCodec"), MaxLength(200)] public string VideoCodec { get; set; }
         [Column("File_VideoResolution"), MaxLength(200)] public string VideoResolution { get; set; }
         [Column("File_FileExtension"), MaxLength(200)] public string Extension { get; set; }
