@@ -8,7 +8,7 @@ namespace Shoko.Core.Addon
 {
     interface IPlugin
     {
-        void RegisterAutofac(ContainerBuilder bulder);
+        // void RegisterAutofac(ContainerBuilder bulder);
         void RegisterSignalR(HubRouteBuilder routes);
     }
 }

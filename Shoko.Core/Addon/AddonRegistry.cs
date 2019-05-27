@@ -4,7 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Autofac;
 using NLog;
+using Shoko.Core.Extensions;
 
 namespace Shoko.Core.Addon
 {
@@ -12,8 +14,9 @@ namespace Shoko.Core.Addon
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         internal static Dictionary<string, IPlugin> Plugins { get; private set; } = new Dictionary<string, IPlugin>();
+        private static Dictionary<string, Type> PluginTypes { get; set; } = new Dictionary<string, Type>(); 
 
-        public static void Initalize()
+        public static void RegisterAutofac(ContainerBuilder builder)
         {
             List<Assembly> asse = new List<Assembly>();
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -26,12 +29,8 @@ namespace Shoko.Core.Addon
                 {
                     asse.Add(Assembly.LoadFile(dll));
                 }
-                catch (FileLoadException)
-                {
-                }
-                catch (BadImageFormatException)
-                {
-                }
+                catch (FileLoadException) {}
+                catch (BadImageFormatException) {}
             }
 
             var implementations = asse.SelectMany(a =>
@@ -46,26 +45,57 @@ namespace Shoko.Core.Addon
                     }
                 });
 
-            LoadPlugins(implementations);
+            RegisterPluginForAutofac(builder, implementations);
         }
 
-        private static void LoadPlugins(IEnumerable<Type> typesToScan) 
+        public static void Init() 
+        {
+            foreach ((string id, Type type) in PluginTypes)
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// Register the types with Autofac, to be created at a later
+        /// </summary>
+        /// <param name="builder">The autofac ContainerBuilder to use.</param>
+        /// <param name="typesToScan">The types to go through and scan.</param>
+        private static void RegisterPluginForAutofac(ContainerBuilder builder, IEnumerable<Type> typesToScan) 
         {
 
             foreach (var implementation in typesToScan.Where(a => a.GetInterfaces().Contains(typeof(IPlugin))))
             {
                 IEnumerable<PluginAttribute> attributes = implementation.GetCustomAttributes<PluginAttribute>();
-                foreach (string id in attributes.Select(a => a.PluginID))
+                if (attributes.Count() == 0) logger.Error($"[PluginLoader] {implementation.FullName}.{implementation}@{implementation.Assembly.Location} is missing the Plugin attribute.");
+                foreach (string id in attributes.Select(a => a?.PluginID))
                 {
                     if (id == null) continue;
                     if (Plugins.ContainsKey(id))
                     {
-                        logger.Warn($"[PluginLoader] Warning Duplicate Plugin ID \"{id}\" of types {implementation}@{implementation.Assembly.Location} and {Plugins[id]}@{Plugins[id].GetType().Assembly.Location}");
+                        logger.Warn($"[PluginLoader] Warning Duplicate Plugin ID \"{id}\" of types {implementation.FullName}.{implementation}@{implementation.Assembly.Location} and {Plugins[id]}@{Plugins[id].GetType().Assembly.Location}");
                         continue;
                     }
 
-                    //create instaince of using a Constructor injection method.
-                    Plugins.Add(id, (IPlugin) Activator.CreateInstance(implementation));
+                    foreach (var mtd in implementation.GetMethods().Where(m => m.GetCustomAttribute(typeof(AutofacRegistrationMethodAttribute)) != null))
+                    {
+                        if (!mtd.IsStatic) 
+                        {
+                            logger.Error($"[PluginLoader] Error: Plugin \"{id}\" {implementation.FullName}.{mtd.Name} needs to be static for it to register in Autofac, please contact the developer to get this resolved.");
+                            continue;
+                        }
+                        var paramaters = mtd.GetParameters();
+                        if (paramaters.Length != 1 || paramaters[0].ParameterType != typeof(ContainerBuilder))
+                        {
+                            logger.Error($"[PluginLoader] Error: Plugin \"{id}\" provided an invalid Autofac registration method, please contact the developer to get this resolved.");
+                            continue;
+                        }
+
+                        mtd.Invoke(null, new [] { builder });
+                    }
+
+                    builder.RegisterType(implementation).SingleInstance();
+                    PluginTypes.Add(id, implementation);
                 }
             }
         }

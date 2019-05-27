@@ -34,7 +34,9 @@ namespace Shoko.Core
         {
             app.UseSignalR(routes => {
                 //Add any Shoko Core hubs here..
-                AddonRegistry.Plugins.ForEach(plugin => plugin.RegisterSignalR(routes));
+                
+                foreach (IPlugin plugin in AddonRegistry.Plugins.Values) 
+                    plugin.RegisterSignalR(routes);
             }); 
         }
     }
