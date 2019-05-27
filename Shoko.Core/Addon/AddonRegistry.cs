@@ -14,7 +14,8 @@ namespace Shoko.Core.Addon
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         internal static Dictionary<string, IPlugin> Plugins { get; private set; } = new Dictionary<string, IPlugin>();
-        private static Dictionary<string, Type> PluginTypes { get; set; } = new Dictionary<string, Type>(); 
+        private static Dictionary<string, Type> PluginTypes { get; set; } = new Dictionary<string, Type>();
+        internal static Dictionary<Assembly, string> AssemblyToPluginMap { get; private set; } = new Dictionary<Assembly, string>();
 
         public static void RegisterAutofac(ContainerBuilder builder)
         {
@@ -52,7 +53,7 @@ namespace Shoko.Core.Addon
         {
             foreach ((string id, Type type) in PluginTypes)
             {
-
+                Plugins.Add(id, (IPlugin) ShokoServer.AutofacContainer.Resolve(type));
             }
         }
 
@@ -96,9 +97,15 @@ namespace Shoko.Core.Addon
 
                     builder.RegisterType(implementation).SingleInstance();
                     PluginTypes.Add(id, implementation);
+
+                    if (!AssemblyToPluginMap.ContainsKey(implementation.Assembly))
+                        AssemblyToPluginMap.Add(implementation.Assembly, id);
+                    else
+                        logger.Info($"[PluginLoader] Multiple plugins contained within the assembly: {implementation.Assembly.Location} this could cause errors with the DbContext generation.");
                 }
             }
         }
+        
         //TODO: Redesigin renamers, should just be a 2 function interface, GetDirectory(VideoLocal):(ImportFolder, string) and GetName(VideoLocal):string
         /* 
         private static void LoadRenamers(IEnumerable<Type> typesToScan) 

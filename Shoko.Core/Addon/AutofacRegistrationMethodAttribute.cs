@@ -5,7 +5,7 @@ namespace Shoko.Core.Addon
     /// Needs to have a signature of 
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    sealed class AutofacRegistrationMethodAttribute : System.Attribute
+    public sealed class AutofacRegistrationMethodAttribute : System.Attribute
     {
         public AutofacRegistrationMethodAttribute()
         {

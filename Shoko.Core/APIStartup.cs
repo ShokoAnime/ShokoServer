@@ -4,23 +4,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Core.Addon;
+using Shoko.Core.Extensions;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using Autofac;
 
 namespace Shoko.Core
 {
     public class APIStartup
     {
-        private readonly IHostingEnvironment _env;
         private readonly IConfiguration _config;
         private readonly ILoggerFactory _loggerFactory;
 
         public APIStartup(IHostingEnvironment env, IConfiguration config,
             ILoggerFactory loggerFactory)
         {
-            _env = env;
             _config = config;
             _loggerFactory = loggerFactory;
         }
@@ -28,6 +28,12 @@ namespace Shoko.Core
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSignalR();
+
+            var mvc = services.AddMvc();
+            foreach ((string _, IPlugin plugin) in AddonRegistry.Plugins)
+            {
+                mvc.AddApplicationPart(plugin.GetType().Assembly).AddControllersAsServices();
+            }
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -35,7 +41,7 @@ namespace Shoko.Core
             app.UseSignalR(routes => {
                 //Add any Shoko Core hubs here..
                 
-                foreach (IPlugin plugin in AddonRegistry.Plugins.Values) 
+                foreach (ISignalRPlugin plugin in AddonRegistry.Plugins.Values.AsEnumerable().Where(pl => pl is ISignalRPlugin).Select(pl => (ISignalRPlugin) pl)) 
                     plugin.RegisterSignalR(routes);
             }); 
         }

@@ -12,9 +12,12 @@ namespace Shoko.Core
         {
             var builder = new ContainerBuilder();
 
+            //TODO: Add any Shoko.Core autofac things here.
             AddonRegistry.RegisterAutofac(builder);
 
             AutofacContainer = builder.Build();
+
+            AddonRegistry.Init();
         }
     }
 }
