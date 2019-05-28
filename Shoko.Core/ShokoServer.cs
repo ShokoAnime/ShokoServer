@@ -25,7 +25,7 @@ namespace Shoko.Core
         private static void SetupAutofac() 
         {
             AutofacContainerBuilder = new ContainerBuilder();
-
+            AutofacContainerBuilder.RegisterType<Database.CoreDbContext>();
             //TODO: Add any Shoko.Core autofac things here.
             AddonRegistry.RegisterAutofac(AutofacContainerBuilder);
         }
@@ -73,6 +73,12 @@ namespace Shoko.Core
             AddonRegistry.Init();
             //Load the plugin config
             ConfigurationLoader.LoadPluginConfig();
+
+#if DEBUG
+            //TODO: Move to migrations.
+            using (var ctx = new Database.CoreDbContext())
+                ctx.Database.EnsureCreated();
+#endif
         }
     }
 }

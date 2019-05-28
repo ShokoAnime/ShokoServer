@@ -13,11 +13,14 @@ using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.Swagger;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System.IO;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Core.API;
+using Shoko.Core.Config;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Shoko.Core
 {
@@ -67,10 +70,10 @@ namespace Shoko.Core
                 });
 
             services.ConfigureSwaggerGen(options => { options.CustomSchemaIds(x => x.FullName); });
-
+            services.AddCors();
             services.AddSignalR();
 
-            var mvc = services.AddMvc();
+            var mvc = services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             foreach (Assembly ass in AddonRegistry.AssemblyToPluginMap.Keys)
             {
                 if (ass == Assembly.GetCallingAssembly()) continue; //Skip the current assembly, this is implicitly added by ASP.
@@ -90,6 +93,25 @@ namespace Shoko.Core
             });
             services.AddVersionedApiExplorer();
 
+            var key = Encoding.ASCII.GetBytes(ConfigurationLoader.CoreConfig.JwtSecret);
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
             //This HAS to be last.
             ShokoServer.AutofacContainerBuilder.Populate(services);
             return new AutofacServiceProvider(ShokoServer.AutofacContainer = ShokoServer.AutofacContainerBuilder.Build());
@@ -97,6 +119,10 @@ namespace Shoko.Core
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+
+            app.UseAuthentication();
+
             app.UseSwagger();
             app.UseSwaggerUI(
                 options =>
@@ -121,8 +147,6 @@ namespace Shoko.Core
         }
 
 
-
-
         static Info CreateInfoForApiVersion(ApiVersionDescription description)
         {
             var info = new Info()
@@ -138,48 +162,6 @@ namespace Shoko.Core
             }
 
             return info;
-        }
-
-
-        public class SwaggerDefaultValues : IOperationFilter
-        {
-            /// <summary>
-            /// Applies the filter to the specified operation using the given context.
-            /// </summary>
-            /// <param name="operation">The operation to apply the filter to.</param>
-            /// <param name="context">The current operation filter context.</param>
-            public void Apply(Operation operation, OperationFilterContext context)
-            {
-                if (operation.Parameters == null)
-                {
-                    return;
-                }
-
-                // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/412
-                // REF: https://github.com/domaindrivendev/Swashbuckle.AspNetCore/pull/413
-                foreach (var parameter in operation.Parameters.OfType<NonBodyParameter>())
-                {
-                    var description = context.ApiDescription.ParameterDescriptions.First(p => p.Name == parameter.Name);
-                    var routeInfo = description.RouteInfo;
-
-                    if (parameter.Description == null)
-                    {
-                        parameter.Description = description.ModelMetadata?.Description;
-                    }
-
-                    if (routeInfo == null)
-                    {
-                        continue;
-                    }
-
-                    if (parameter.Default == null)
-                    {
-                        parameter.Default = routeInfo.DefaultValue;
-                    }
-
-                    parameter.Required |= !routeInfo.IsOptional;
-                }
-            }
         }
     }
 }

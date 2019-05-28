@@ -71,7 +71,7 @@ namespace Shoko.Core.Addon
                 foreach (string id in attributes.Select(a => a?.PluginID))
                 {
                     if (id == null) continue;
-                    if (Plugins.ContainsKey(id))
+                    if (PluginTypes.ContainsKey(id))
                     {
                         logger.Warn($"[PluginLoader] Warning Duplicate Plugin ID \"{id}\" of types {implementation.FullName}.{implementation}@{implementation.Assembly.Location} and {Plugins[id]}@{Plugins[id].GetType().Assembly.Location}");
                         continue;

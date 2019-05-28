@@ -6,8 +6,8 @@ using Shoko.Core.Addon;
 
 namespace Shoko.Core
 {
-    [Plugin("Test")]
-    public class TestAddon : IPlugin
+ //   [Plugin("Test")]
+    public class TestAddon : IPlugin, ISignalRPlugin
     {
         public void RegisterSignalR(HubRouteBuilder routes)
         {
@@ -17,6 +17,8 @@ namespace Shoko.Core
         [AutofacRegistrationMethod] public void RegisterAutofac() {}
         [AutofacRegistrationMethod] public static void RegisterAutofac1() {}
         [AutofacRegistrationMethod] public static void RegisterAutofac2(ContainerBuilder builder) {}
+
+        public object Configuration { get => null; }
 
         public void LoadConfiguration(JToken config)
         {

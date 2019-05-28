@@ -21,6 +21,16 @@ namespace Shoko.Core.Config
             {
                 CoreConfig = _jsonConfig[CORE_CONFIG_PROP].ToObject<CoreConfig>();
             }
+
+            if (string.IsNullOrWhiteSpace(CoreConfig.JwtSecret))
+            {
+                var key = new byte[32];
+                System.Security.Cryptography.RNGCryptoServiceProvider.Create().GetBytes(key);
+                var base64Secret = Convert.ToBase64String(key);
+                // make safe for url
+                CoreConfig.JwtSecret = base64Secret.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+                SaveConfig();
+            }
         }
 
         public static void LoadPluginConfig()
@@ -31,6 +41,18 @@ namespace Shoko.Core.Config
                 if (!AddonRegistry.Plugins.TryGetValue(key, out var plugin)) continue;
                 plugin.LoadConfiguration(token.DeepClone());
             }
+        }
+
+        public static void SaveConfig()
+        {
+            JObject obj = new JObject();
+            obj.Add(CORE_CONFIG_PROP, JToken.FromObject(CoreConfig));
+            foreach ((string key, IPlugin plugin) in AddonRegistry.Plugins)
+            {
+                obj.Add(key, JToken.FromObject(plugin.Configuration));
+            }
+
+            //File.WriteAllText(obj.ToString(Newtonsoft.Json.Formatting.Indented)
         }
     }
 }

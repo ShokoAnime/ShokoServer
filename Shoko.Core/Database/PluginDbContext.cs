@@ -4,20 +4,25 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Shoko.Core.Addon;
+using Shoko.Core.Models;
 
 namespace Shoko.Core.Database
 {
     /// <summary>
-    /// 
     /// This is marked as abstract to stop instansiation that shouldn't occur.
     /// </summary>
     public abstract class PluginDbContext : DbContext
     {
+        public DbSet<ShokoUser> Users { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
                 .UseLazyLoadingProxies();
+            //TODO: Replace with a switch for database types.
+            optionsBuilder.UseMySql(Config.ConfigurationLoader.CoreConfig.ConnectionString); //temp connection string
+            
             /*
             switch (_type)
             {
