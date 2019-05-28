@@ -17,7 +17,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 86;
+        public int RequiredVersion { get; } = 87;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
