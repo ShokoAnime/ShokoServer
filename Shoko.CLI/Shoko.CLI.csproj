@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Core\Shoko.Core.csproj" />
+    <ProjectReference Include="..\Shoko.Plugin.AniDB\Shoko.Plugin.AniDB.csproj" />  <!-- This is for being able to test, and so it puts in the right output dir. -->
   </ItemGroup>
 
   <PropertyGroup>

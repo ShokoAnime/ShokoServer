@@ -11,7 +11,12 @@ namespace Shoko.CLI
     {
         static void Main(string[] args)
         {
-            Shoko.Core.ShokoServer.SetupAutofac();
+            Core.ShokoServer.Init();
+
+            while (true)
+            {
+                System.Threading.Thread.Sleep(10_000);
+            }
         }
     }
 }

@@ -21,8 +21,7 @@ namespace Shoko.Core.Addon
         {
             List<Assembly> asse = new List<Assembly>();
             Assembly assembly = Assembly.GetExecutingAssembly();
-            UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
-            string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
+            string dirname = Path.GetDirectoryName(assembly.Location);
             asse.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
             foreach (string dll in Directory.GetFiles(dirname, $"*.dll", SearchOption.AllDirectories))
             {
