@@ -108,7 +108,7 @@ namespace Shoko.Server.Commands
                     bool watched = newWatchedDate != null;
 
                     bool watchedLocally = originalWatchedDate != null;
-                    bool watchedChanged = watched != watchedLocally;
+                    bool watchedDifferent = watched != watchedLocally;
 
                     if (ReadStates)
                     {
@@ -117,16 +117,20 @@ namespace Shoko.Server.Commands
                         {
                             vid.ToggleWatchedStatus(true, false, newWatchedDate, false, juser.JMMUserID,
                                 false, false);
+                            watchedLocally = true;
+                            watchedDifferent = false;
                         }
                         else if (ServerSettings.Instance.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                         {
                             vid.ToggleWatchedStatus(false, false, null, false, juser.JMMUserID,
                                 false, false);
+                            watchedLocally = false;
+                            watchedDifferent = false;
                         }
                     }
 
                     // We should have a MyListID at this point, so hopefully this will prevent looping
-                    if (watchedChanged || state != ServerSettings.Instance.AniDb.MyList_StorageState)
+                    if (watchedDifferent || state != ServerSettings.Instance.AniDb.MyList_StorageState)
                     {
                         // if vid.MyListID > 0, isManualLink _should_ always be false, but _should_ isn't good enough
                         if (vid.MyListID > 0 && !isManualLink)

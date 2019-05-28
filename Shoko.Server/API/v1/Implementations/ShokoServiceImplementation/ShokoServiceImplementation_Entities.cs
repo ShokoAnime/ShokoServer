@@ -1074,7 +1074,7 @@ namespace Shoko.Server
         {
             try
             {
-                CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(hash);
+                CommandRequest_AddFileToMyList cmdAddFile = new CommandRequest_AddFileToMyList(hash, false);
                 cmdAddFile.Save();
             }
             catch (Exception ex)
