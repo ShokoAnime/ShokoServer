@@ -14,11 +14,26 @@ namespace Shoko.Core.Addon
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         internal static Dictionary<string, IPlugin> Plugins { get; private set; } = new Dictionary<string, IPlugin>();
+        //internal static Dictionary<string, Type> PluginConfigTypes { get; private set; } = new Dictionary<string, Type>();
         private static Dictionary<string, Type> PluginTypes { get; set; } = new Dictionary<string, Type>();
         internal static Dictionary<Assembly, string> AssemblyToPluginMap { get; private set; } = new Dictionary<Assembly, string>();
 
-        public static void RegisterAutofac(ContainerBuilder builder)
+        internal static bool Initalized { get; private set; } = false;
+
+        public static void Init()
         {
+            if (Initalized) throw new InvalidOperationException("Plugin loader has already ran");
+            foreach ((string id, Type type) in PluginTypes)
+            {
+                Plugins.Add(id, (IPlugin)ShokoServer.AutofacContainer.Resolve(type));
+            }
+            Initalized = true;
+        }
+
+        public static void LoadPluigins()
+        {
+            if (Initalized) throw new InvalidOperationException("Plugin loader has already ran");
+
             List<Assembly> asse = new List<Assembly>();
             Assembly assembly = Assembly.GetExecutingAssembly();
             string dirname = Path.GetDirectoryName(assembly.Location);
@@ -33,7 +48,7 @@ namespace Shoko.Core.Addon
                 catch (BadImageFormatException) {}
             }
 
-            var implementations = asse.SelectMany(a =>
+            var types = asse.SelectMany(a =>
                 {
                     try
                     {
@@ -44,26 +59,11 @@ namespace Shoko.Core.Addon
                         return new Type[0];
                     }
                 });
-
-            RegisterPluginForAutofac(builder, implementations);
+            ParsePlugins(types);
         }
 
-        public static void Init() 
+        private static void ParsePlugins(IEnumerable<Type> typesToScan)
         {
-            foreach ((string id, Type type) in PluginTypes)
-            {
-                Plugins.Add(id, (IPlugin) ShokoServer.AutofacContainer.Resolve(type));
-            }
-        }
-
-        /// <summary>
-        /// Register the types with Autofac, to be created at a later
-        /// </summary>
-        /// <param name="builder">The autofac ContainerBuilder to use.</param>
-        /// <param name="typesToScan">The types to go through and scan.</param>
-        private static void RegisterPluginForAutofac(ContainerBuilder builder, IEnumerable<Type> typesToScan) 
-        {
-
             foreach (var implementation in typesToScan.Where(a => a.GetInterfaces().Contains(typeof(IPlugin))))
             {
                 IEnumerable<PluginAttribute> attributes = implementation.GetCustomAttributes<PluginAttribute>();
@@ -77,25 +77,9 @@ namespace Shoko.Core.Addon
                         continue;
                     }
 
-                    foreach (var mtd in implementation.GetMethods().Where(m => m.GetCustomAttribute(typeof(AutofacRegistrationMethodAttribute)) != null))
-                    {
-                        if (!mtd.IsStatic) 
-                        {
-                            logger.Error($"[PluginLoader] Error: Plugin \"{id}\" {implementation.FullName}.{mtd.Name} needs to be static for it to register in Autofac, please contact the developer to get this resolved.");
-                            continue;
-                        }
-                        var paramaters = mtd.GetParameters();
-                        if (paramaters.Length != 1 || paramaters[0].ParameterType != typeof(ContainerBuilder))
-                        {
-                            logger.Error($"[PluginLoader] Error: Plugin \"{id}\" provided an invalid Autofac registration method, please contact the developer to get this resolved.");
-                            continue;
-                        }
-
-                        mtd.Invoke(null, new [] { builder });
-                    }
-
-                    builder.RegisterType(implementation).SingleInstance();
                     PluginTypes.Add(id, implementation);
+
+                    //PluginConfigTypes.Add(id, implementation.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPlugin<>)).First().GetGenericArguments()[0]);
 
                     if (!AssemblyToPluginMap.ContainsKey(implementation.Assembly))
                         AssemblyToPluginMap.Add(implementation.Assembly, id);
@@ -103,6 +87,41 @@ namespace Shoko.Core.Addon
                         logger.Info($"[PluginLoader] Multiple plugins contained within the assembly: {implementation.Assembly.Location} this could cause errors with the DbContext generation.");
                 }
             }
+        }
+
+        internal static void RegisterAutofac(ContainerBuilder builder)
+        {
+            foreach ((string id, Type type) in PluginTypes)
+            {
+                RegisterPluginForAutofac(builder, type, id);
+            }
+        }
+
+        /// <summary>
+        /// Register the types with Autofac, to be created at a later
+        /// </summary>
+        /// <param name="builder">The autofac ContainerBuilder to use.</param>
+        /// <param name="typesToScan">The types to go through and scan.</param>
+        private static void RegisterPluginForAutofac(ContainerBuilder builder, Type implementation, string id) 
+        {
+            foreach (var mtd in implementation.GetMethods().Where(m => m.GetCustomAttribute(typeof(AutofacRegistrationMethodAttribute)) != null))
+            {
+                if (!mtd.IsStatic)
+                {
+                    logger.Error($"[PluginLoader] Error: Plugin \"{id}\" {implementation.FullName}.{mtd.Name} needs to be static for it to register in Autofac, please contact the developer to get this resolved.");
+                    continue;
+                }
+                var paramaters = mtd.GetParameters();
+                if (paramaters.Length != 1 || paramaters[0].ParameterType != typeof(ContainerBuilder))
+                {
+                    logger.Error($"[PluginLoader] Error: Plugin \"{id}\" provided an invalid Autofac registration method, please contact the developer to get this resolved.");
+                    continue;
+                }
+
+                mtd.Invoke(null, new[] { builder });
+            }
+
+            builder.RegisterType(implementation).SingleInstance();
         }
         
         //TODO: Redesigin renamers, should just be a 2 function interface, GetDirectory(VideoLocal):(ImportFolder, string) and GetName(VideoLocal):string

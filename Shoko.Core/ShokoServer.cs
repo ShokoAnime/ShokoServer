@@ -6,11 +6,15 @@ using NLog;
 using NLog.Extensions.Logging;
 using NLog.Web;
 using Shoko.Core.Addon;
+using Shoko.Core.Config;
 
 namespace Shoko.Core
 {
     public static class ShokoServer
     {
+        /// <summary>
+        /// The Autofac container for any dependancy resolution, this is populated with any plugin types during the server startup.
+        /// </summary>
         public static IContainer AutofacContainer { get; internal set; }
         internal static ContainerBuilder AutofacContainerBuilder { get; set; }
 
@@ -32,7 +36,7 @@ namespace Shoko.Core
             _webhost = new WebHostBuilder().UseKestrel(conf =>
             {
                 //TODO: When implementing the config API, make this part of the config
-                conf.ListenAnyIP(8111);
+                conf.ListenAnyIP(ConfigurationLoader.CoreConfig.ServerPort);
             }).UseStartup<APIStartup>()
             .ConfigureLogging(logging =>
             {
@@ -58,11 +62,17 @@ namespace Shoko.Core
 
         public static void Init()
         {
+            //We need to call this before Autofac else this will not actually register any plugins.
+            AddonRegistry.LoadPluigins();
+            //Load core config, this is for things like the webhost.
+            ConfigurationLoader.LoadConfig();
             SetupAutofac();
 
             //Autofac container build is called in here, so we need this to be after the setup.
             StartWebHost();
             AddonRegistry.Init();
+            //Load the plugin config
+            ConfigurationLoader.LoadPluginConfig();
         }
     }
 }
