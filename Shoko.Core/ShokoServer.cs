@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Autofac;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,6 +27,8 @@ namespace Shoko.Core
         {
             AutofacContainerBuilder = new ContainerBuilder();
             AutofacContainerBuilder.RegisterType<Database.CoreDbContext>();
+            AutofacContainerBuilder.RegisterType<API.Services.UserService>().As<API.Services.IUserService>();
+
             //TODO: Add any Shoko.Core autofac things here.
             AddonRegistry.RegisterAutofac(AutofacContainerBuilder);
         }
@@ -77,7 +80,18 @@ namespace Shoko.Core
 #if DEBUG
             //TODO: Move to migrations.
             using (var ctx = new Database.CoreDbContext())
+            {
                 ctx.Database.EnsureCreated();
+                if (ctx.Users.Count() == 0)
+                {
+                    ctx.Users.Add(new Models.ShokoUser()
+                    {
+                        Username = "admin",
+                        IsAdmin = true,
+                    });
+                    ctx.SaveChanges();
+                }
+            }
 #endif
         }
     }

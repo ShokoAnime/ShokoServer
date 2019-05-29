@@ -36,9 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="API\Controllers\" />
-    <Folder Include="API\Models\" />
-    <Folder Include="API\v3\" />
+    <Folder Include="API\V3\" />
   </ItemGroup>
 
 </Project>
