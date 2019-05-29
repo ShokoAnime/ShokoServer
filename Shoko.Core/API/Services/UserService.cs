@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using Shoko.Core.API.Models;
 using Shoko.Core.Database;
 using Shoko.Core.Models;
 using System;
@@ -12,7 +13,7 @@ namespace Shoko.Core.API.Services
 {
     public interface IUserService
     {
-        ShokoUser Authenticate(string username, string password);
+        OAuthResponse Authenticate(string username, string password);
         //IEnumerable<User> GetAll();
     }
 
@@ -25,7 +26,7 @@ namespace Shoko.Core.API.Services
             _db = db;
         }
 
-        public ShokoUser Authenticate(string username, string password)
+        public OAuthResponse Authenticate(string username, string password)
         {
             //SHA256 if there is any contents.
             string hashedPassword = string.IsNullOrEmpty(password) ?
@@ -34,19 +35,24 @@ namespace Shoko.Core.API.Services
 
             var user = _db.Users.SingleOrDefault(x => 
                     string.Equals(x.Username, username, StringComparison.InvariantCultureIgnoreCase) &&
-                    string.Equals(x.Password, hashedPassword, StringComparison.InvariantCultureIgnoreCase)
+                    string.Equals(x.Password ?? "", hashedPassword, StringComparison.InvariantCultureIgnoreCase)
                 );
 
             if (user == null) return null;
+
+            var scopes = new List<string>();
+            scopes.Add("user");
+            if (user.IsAdmin) scopes.Add("admin");
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, user.Id.ToString())
+                    new Claim(ClaimTypes.Name, user.Id.ToString()),
+                    new Claim("scope", string.Join(" ", scopes))
                 }),
-                Expires = DateTime.UtcNow.AddYears(1), //Token is valid for a year.
+                Expires = DateTime.UtcNow + ShokoServer.JwtLifespan, //Token is valid for a year.
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Config.ConfigurationLoader.CoreConfig.JwtSecret)), SecurityAlgorithms.HmacSha256)
             };
             user.Token = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
@@ -54,7 +60,12 @@ namespace Shoko.Core.API.Services
             _db.Users.Update(user);
             _db.SaveChanges();
 
-            return user;
+            return new OAuthResponse()
+            {
+                AccessToken = user.Token,
+                Scope = string.Join(" ", scopes),
+                ExpiresIn = ShokoServer.JwtLifespan.TotalSeconds
+            };
         }
     }
 }

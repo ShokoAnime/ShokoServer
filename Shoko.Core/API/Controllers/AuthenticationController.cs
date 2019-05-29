@@ -2,14 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Core.API.Models;
 using Shoko.Core.API.Services;
-using Shoko.Core.Models;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Shoko.Core.API.Controllers
 {
-    [Authorize, ApiController, Route("/api/auth")]
+    [Authorize("admin"), ApiController, Route("/api/auth")]
     public class AuthenticationController : ControllerBase
     {
         private IUserService _userService;
@@ -19,14 +18,36 @@ namespace Shoko.Core.API.Controllers
             _userService = userService;
         }
 
+        /// <summary>
+        /// Authenticate with the model.
+        /// This runs a standard password OAuth2 flow for password grants
+        /// </summary>
+        /// <param name="model">The OAuth2 request params.</param>
+        /// <returns></returns>
         [AllowAnonymous, HttpPost]
-        public ActionResult<ShokoUser> Authenticate([FromBody] AuthenticationModel model)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status401Unauthorized)]
+        [ProducesDefaultResponseType]
+        public ActionResult<OAuthResponse> Authenticate([FromForm] AuthenticationModel model)
         {
-            var user = _userService.Authenticate(model.Username, model.Password);
+            if (model.GrantType.Equals("password", StringComparison.InvariantCultureIgnoreCase))
+                return BadRequest("Must be password grant_type");
 
-            if (user == null) return BadRequest("Username or password is incorrect");
+            var response = _userService.Authenticate(model.Username, model.Password);
 
-            return user;
+            if (response == null) return Unauthorized("Username or password is incorrect");
+
+            return response;
+        }
+
+        /// <summary>
+        /// Get the current User ID
+        /// </summary>
+        /// <returns>The GUID user iD</returns>
+        [HttpGet("me/id")]
+        public string GetUser()
+        {
+            return HttpContext.User.Claims.First().Value;
         }
     }
 }

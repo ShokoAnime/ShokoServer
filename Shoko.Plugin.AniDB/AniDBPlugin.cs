@@ -17,7 +17,6 @@ namespace Shoko.Plugin.AniDB
         public void LoadConfiguration(JToken config)
         {
             this.config = config.ToObject<AniDBConfig>();
-            Debugger.Break();
         }
     }
 

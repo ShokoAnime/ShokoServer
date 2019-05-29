@@ -97,11 +97,6 @@ namespace Shoko.Core.Addon
             }
         }
 
-        /// <summary>
-        /// Register the types with Autofac, to be created at a later
-        /// </summary>
-        /// <param name="builder">The autofac ContainerBuilder to use.</param>
-        /// <param name="typesToScan">The types to go through and scan.</param>
         private static void RegisterPluginForAutofac(ContainerBuilder builder, Type implementation, string id) 
         {
             foreach (var mtd in implementation.GetMethods().Where(m => m.GetCustomAttribute(typeof(AutofacRegistrationMethodAttribute)) != null))

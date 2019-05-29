@@ -4,6 +4,7 @@ using Autofac;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog;
+using NLog.Config;
 using NLog.Extensions.Logging;
 using NLog.Web;
 using Shoko.Core.Addon;
@@ -13,6 +14,8 @@ namespace Shoko.Core
 {
     public static class ShokoServer
     {
+        internal static readonly TimeSpan JwtLifespan = TimeSpan.FromDays(365); // 1yr
+
         /// <summary>
         /// The Autofac container for any dependancy resolution, this is populated with any plugin types during the server startup.
         /// </summary>
@@ -65,6 +68,16 @@ namespace Shoko.Core
 
         public static void Init()
         {
+            var config = new LoggingConfiguration();
+            var consoleTarget = new NLog.Targets.ColoredConsoleTarget("target1")
+            {
+                Layout = @"${date:format=HH\:mm\:ss} ${level} ${message} ${exception}"
+            };
+            config.AddTarget(consoleTarget);
+            config.AddRuleForAllLevels(consoleTarget);
+
+            LogManager.Configuration = config;
+
             //We need to call this before Autofac else this will not actually register any plugins.
             AddonRegistry.LoadPluigins();
             //Load core config, this is for things like the webhost.
