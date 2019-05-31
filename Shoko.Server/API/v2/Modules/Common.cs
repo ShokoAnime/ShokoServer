@@ -930,9 +930,12 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPost("file/offset")]
-        public ActionResult SetFileOffset(int id, int offset)
+        public ActionResult SetFileOffset([FromBody] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
+
+            int id = para.id;
+            long offset = para.offset;
 
             // allow to offset be 0 to reset position
             if (id == 0 || offset < 0)
