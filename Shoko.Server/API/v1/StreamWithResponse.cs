@@ -1,15 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Shoko.Server.API.v1
 {
-    public class StreamWithResponse : Stream, IStreamWithResponse
+    public class StreamWithResponse : Stream, IStreamWithResponse//, IActionResult
     {
         public Stream Stream { get; set; }
+        [Obsolete("Use Controller.", true)]
         public string ContentType { get; set; }
+        [Obsolete("Use Controller.Response.StatusCode", true)]
         public HttpStatusCode ResponseStatus { get; set; }
+        [Obsolete("Use Controller.", true)]
         public string ResponseDescription { get; set; }
+        [Obsolete("Use Controller.", true)]
         public Dictionary<string, string> Headers { get; } = new Dictionary<string, string>();
         public long ContentLength { get; set; }
 
@@ -18,21 +25,21 @@ namespace Shoko.Server.API.v1
         public StreamWithResponse(Stream stream, string contentType)
         {
             Stream = stream;
-            ContentType = contentType;
-            ResponseStatus = HttpStatusCode.OK;
+            //ContentType = contentType;
+            //ResponseStatus = HttpStatusCode.OK;
         }
 
         public StreamWithResponse(Stream stream, string contentType, HttpStatusCode responseStatus)
         {
             Stream = stream;
-            ContentType = contentType;
-            ResponseStatus = responseStatus;
+            //ContentType = contentType;
+            //ResponseStatus = responseStatus;
         }
 
         public StreamWithResponse(HttpStatusCode responseStatus, string description = null)
         {
-            ResponseStatus = responseStatus;
-            ResponseDescription = description;
+            //ResponseStatus = responseStatus;
+            //ResponseDescription = description;
         }
 
         public StreamWithResponse()
@@ -64,6 +71,24 @@ namespace Shoko.Server.API.v1
         {
             Stream.Write(buffer, offset, count);
         }
+
+        /*public Task ExecuteResultAsync(ActionContext context)
+        {
+            var resp = context.HttpContext.Response;
+            foreach (var header in Headers)
+            {
+                if (!resp.Headers.ContainsKey(header.Key))
+                    resp.Headers.Add(header.Key, header.Value);
+                else
+                    resp.Headers[header.Key] = header.Value;
+            }
+
+            resp.ContentLength = ContentLength;
+            resp.StatusCode = (int)ResponseStatus;
+
+
+            return Task.CompletedTask;
+        }*/
 
         public override bool CanRead => Stream.CanRead;
         public override bool CanSeek => Stream.CanSeek;

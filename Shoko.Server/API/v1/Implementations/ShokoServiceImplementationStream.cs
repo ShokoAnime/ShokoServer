@@ -123,19 +123,10 @@ namespace Shoko.Server
         private Stream StreamFromIFile(InfoResult r, bool? autowatch)
         {
             try
-            {
-                string rangevalue = "";
-                // HttpContext is null and raise error 
-                try
-                {
-                    var request = HttpContext.Request;
-                    rangevalue = request.Headers["Range"].FirstOrDefault() ??
-                                 request.Headers["range"].FirstOrDefault();
-                }
-                catch
-                {
-                    
-                }
+            { 
+                string rangevalue = Request.Headers["Range"].FirstOrDefault() ??
+                                    Request.Headers["range"].FirstOrDefault();
+
   
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
@@ -183,14 +174,15 @@ namespace Shoko.Server
                     }
                 }
                 var outstream = new SubStream(org, start, end - start + 1);
-                var resp = new StreamWithResponse {ContentType = r.Mime};
-                resp.Headers.Add("Server", ServerVersion);
-                resp.Headers.Add("Connection", "keep-alive");
-                resp.Headers.Add("Accept-Ranges", "bytes");
-                resp.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
-                resp.ContentLength = end - start + 1;
+                var resp = new StreamWithResponse();// {ContentType = r.Mime};
+                Response.ContentType = r.Mime;
+                Response.Headers.Add("Server", ServerVersion);
+                Response.Headers.Add("Connection", "keep-alive");
+                Response.Headers.Add("Accept-Ranges", "bytes");
+                Response.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
+                Response.ContentLength = end - start + 1;
 
-                resp.ResponseStatus = range ? HttpStatusCode.PartialContent : HttpStatusCode.OK;
+                Response.StatusCode = (int)(range ? HttpStatusCode.PartialContent : HttpStatusCode.OK);
 
                 if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
                 {
@@ -210,8 +202,8 @@ namespace Shoko.Server
             {
                 logger.Error("An error occurred while serving a file: " + e);
                 var resp = new StreamWithResponse();
-                resp.ResponseStatus = HttpStatusCode.InternalServerError;
-                resp.ResponseDescription = e.Message;
+                Response.StatusCode = 500;
+                using (var sw = new StreamWriter(Response.Body)) sw.Write(e.Message);
                 return resp;
             }
         }
@@ -223,11 +215,12 @@ namespace Shoko.Server
             StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
                 return s;
-            s.Headers.Add("Server", ServerVersion);
-            s.Headers.Add("Accept-Ranges", "bytes");
-            s.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
-            s.ContentType = r.Mime;
-            s.ContentLength = r.File.Size;
+            Response.Headers.Add("Server", ServerVersion);
+            Response.Headers.Add("Accept-Ranges", "bytes");
+            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
+            Response.ContentType = r.Mime;
+            Response.ContentLength = r.File.Size;
+            Response.StatusCode = (int)r.Status;
             return s;
         }
 
@@ -238,11 +231,12 @@ namespace Shoko.Server
             StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
                 return s;
-            s.Headers.Add("Server", ServerVersion);
-            s.Headers.Add("Accept-Ranges", "bytes");
-            s.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
-            s.ContentType = r.Mime;
-            s.ContentLength = r.File.Size;
+            Response.Headers.Add("Server", ServerVersion);
+            Response.Headers.Add("Accept-Ranges", "bytes");
+            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
+            Response.ContentType = r.Mime;
+            Response.ContentLength = r.File.Size;
+            Response.StatusCode = (int)r.Status;
             return s;
         }
 
