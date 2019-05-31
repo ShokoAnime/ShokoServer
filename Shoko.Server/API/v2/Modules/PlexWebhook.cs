@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -32,11 +33,13 @@ namespace Shoko.Server.API.v2.Modules
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        [HttpPost]
+        //The second one is to just make sure 
+        [HttpPost, HttpPost("/plex.json")]
         public ActionResult WebhookPost([FromForm, ModelBinder(BinderType = typeof(PlexBinder))] PlexEvent payload)
         {
             /*PlexEvent eventData = JsonConvert.DeserializeObject<PlexEvent>(this.Context.Request.Form.payload,
                 new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()});*/
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             logger.Trace($"{payload.Event}: {payload.Metadata.Guid}");
             switch (payload.Event)
@@ -243,13 +246,17 @@ namespace Shoko.Server.API.v2.Modules
 #pragma warning disable 0649
         public class PlexEvent
         {
+            [Required]
             public string Event;
             public bool User;
             public bool Owner;
 
+            [Required]
             public PlexAccount Account;
+            [Required]
             public PlexBasicInfo Server;
             public PlexPlayerInfo Player;
+            [Required]
             public PlexMetadata Metadata;
 
             public class PlexAccount
@@ -322,6 +329,7 @@ namespace Shoko.Server.API.v2.Modules
                 var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() });
                 if (result != null)
                 {
+                    
                     bindingContext.Result = ModelBindingResult.Success(result);
                     return Task.CompletedTask;
                 }
