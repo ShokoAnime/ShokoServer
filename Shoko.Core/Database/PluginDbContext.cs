@@ -13,8 +13,6 @@ namespace Shoko.Core.Database
     /// </summary>
     public abstract class PluginDbContext : DbContext
     {
-        public DbSet<ShokoUser> Users { get; set; }
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
