@@ -750,8 +750,8 @@ namespace Shoko.Server
         }
 
         [HttpPost("File/Association/{videoLocalID}/{animeSeriesID}/{startingEpisodeNumber}/{endEpisodeNumber}")]
-        public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startEpNum,
-            int endEpNum)
+        public string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startingEpisodeNumber,
+            int endEpisodeNumber)
         {
             try
             {
@@ -766,7 +766,7 @@ namespace Shoko.Server
                 
                 RemoveXRefsForFile(videoLocalID);
                 
-                for (int i = startEpNum; i <= endEpNum; i++)
+                for (int i = startingEpisodeNumber; i <= endEpisodeNumber; i++)
                 {
                     AniDB_Episode aniep = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, i)[0];
                     if (aniep == null)
