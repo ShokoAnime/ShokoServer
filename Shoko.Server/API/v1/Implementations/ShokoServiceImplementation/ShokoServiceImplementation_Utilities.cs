@@ -591,8 +591,7 @@ namespace Shoko.Server
             try
             {
                 return RepoFactory.RenameScript.GetAll().Where(a =>
-                        !a.ScriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName,
-                            StringComparison.InvariantCultureIgnoreCase))
+                        !a.ScriptName.EqualsInvariantIgnoreCase(Shoko.Models.Constants.Renamer.TempFileName))
                     .ToList();
             }
             catch (Exception ex)
@@ -1382,37 +1381,31 @@ namespace Shoko.Server
                     if (eps.Count == 0) continue;
 
                     bool sourceMatches =
-                        videoSource.Equals(string.Intern("Manual Link"), StringComparison.InvariantCultureIgnoreCase) ||
-                        videoSource.Equals(string.Intern("unknown"), StringComparison.InvariantCultureIgnoreCase);
-                    bool groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
-                        StringComparison.InvariantCultureIgnoreCase);
-                    // get the anibd file info
+                        videoSource.EqualsInvariantIgnoreCase(string.Intern("Manual Link")) ||
+                        videoSource.EqualsInvariantIgnoreCase(string.Intern("unknown"));
+                    bool groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO);
+                    // get the anidb file info
                     AniDB_File aniFile = vid.GetAniDBFile();
                     if (aniFile != null)
                     {
-                        videoSource = SimplifyVideoSource(videoSource);
-                        sourceMatches = videoSource.Equals(SimplifyVideoSource(aniFile.File_Source),
-                                            StringComparison.InvariantCultureIgnoreCase) || !sourceMatches &&
+                        sourceMatches = videoSource.EqualsInvariantIgnoreCase(aniFile.File_Source) || !sourceMatches &&
                                         aniFile.File_Source.Contains(string.Intern("unknown"),
                                             StringComparison.InvariantCultureIgnoreCase) &&
-                                        videoSource.Equals(string.Intern("unknown"),
-                                            StringComparison.InvariantCultureIgnoreCase);
+                                        videoSource.EqualsInvariantIgnoreCase(string.Intern("unknown"));
                         groupMatches =
-                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
-                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
-                                StringComparison.InvariantCultureIgnoreCase);
+                            relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
+                            relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
                         if (!aniFile.Anime_GroupNameShort.Equals("raw") &&
                             (aniFile.Anime_GroupName.Contains("unknown") ||
                             aniFile.Anime_GroupNameShort.Contains("unknown")))
-                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                StringComparison.InvariantCultureIgnoreCase);
+                            groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO);
                     }
-                    // Sometimes, especially with older files, the info doesn't quite match for resution
+                    // Sometimes, especially with older files, the info doesn't quite match for resolution
                     string vidResInfo = vid.VideoResolution;
 
-                    // match based on group / video sorce / video res
+                    // match based on group / video source / video res
                     if (groupMatches && sourceMatches && thisBitDepth == videoBitDepth &&
-                        resolution.Equals(vidResInfo, StringComparison.InvariantCultureIgnoreCase))
+                        resolution.EqualsInvariantIgnoreCase(vidResInfo))
                     {
                         vids.Add(vid.ToClientDetailed(userID));
                     }
@@ -1445,14 +1438,13 @@ namespace Shoko.Server
                     if (aniFile != null)
                     {
                         bool groupMatches =
-                            relGroupName.Equals(aniFile.Anime_GroupName, StringComparison.InvariantCultureIgnoreCase) ||
-                            relGroupName.Equals(aniFile.Anime_GroupNameShort,
-                                StringComparison.InvariantCultureIgnoreCase);
-                        if (aniFile.Anime_GroupName.Contains("unknown") ||
-                            aniFile.Anime_GroupNameShort.Contains("unknown"))
-                            groupMatches = relGroupName.Equals(Constants.NO_GROUP_INFO,
-                                StringComparison.InvariantCultureIgnoreCase);
-                        // match based on group / video sorce / video res
+                            relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupName) ||
+                            relGroupName.EqualsInvariantIgnoreCase(aniFile.Anime_GroupNameShort);
+                        if (aniFile.Anime_GroupName.EqualsInvariantIgnoreCase("unknown") ||
+                            aniFile.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown"))
+                            groupMatches = relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
+                                           relGroupName.EqualsInvariantIgnoreCase("unknown");
+                        // match based on group / video source / video res
                         if (groupMatches)
                         {
                             vids.Add(vid.ToClientDetailed(userID));
@@ -1460,8 +1452,8 @@ namespace Shoko.Server
                     }
                     else
                     {
-                        if (relGroupName.Equals(Constants.NO_GROUP_INFO,
-                            StringComparison.InvariantCultureIgnoreCase))
+                        if (relGroupName.EqualsInvariantIgnoreCase(Constants.NO_GROUP_INFO) ||
+                            relGroupName.EqualsInvariantIgnoreCase("unknown"))
                         {
                             vids.Add(vid.ToClientDetailed(userID));
                         }
@@ -1485,9 +1477,9 @@ namespace Shoko.Server
         {
             //return origSource;
 
-            if (origSource.Equals("DTV", StringComparison.InvariantCultureIgnoreCase) ||
-                origSource.Equals("HDTV", StringComparison.InvariantCultureIgnoreCase) ||
-                origSource.Equals("www", StringComparison.InvariantCultureIgnoreCase))
+            if (origSource.EqualsInvariantIgnoreCase("DTV") ||
+                origSource.EqualsInvariantIgnoreCase("HDTV") ||
+                origSource.EqualsInvariantIgnoreCase("www"))
             {
                 return "TV";
             }
