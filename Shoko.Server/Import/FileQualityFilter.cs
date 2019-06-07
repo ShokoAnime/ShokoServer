@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using NutzCode.InMemoryIndex;
 using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -50,7 +51,7 @@ namespace Shoko.Server
         */
 
         public static readonly Dictionary<int, string> ResolutionArea;
-        public static readonly Dictionary<int, string> ResolutionAreaOld;
+        public static readonly Dictionary<int, string> ResolutionArea43;
 
         public static FileQualityPreferences Settings = new FileQualityPreferences();
 
@@ -66,7 +67,7 @@ namespace Shoko.Server
                 {853 * 480, "480p"}
             };
 
-            ResolutionAreaOld = new Dictionary<int, string>
+            ResolutionArea43 = new Dictionary<int, string>
             {
                 {720 * 576, "576p"},
                 {720 * 480, "480p"},
@@ -182,7 +183,7 @@ namespace Shoko.Server
         {
             Tuple<int, int> resTuple = GetResolutionInternal(videoLocal, aniFile);
             string res = GetResolution(resTuple);
-            if (res == null) return false;
+            if (res == null) return true;
 
             int resArea = resTuple.Item1 * resTuple.Item2;
 
@@ -193,23 +194,23 @@ namespace Shoko.Server
                     return res.Equals(Settings.RequiredResolutions.FirstOrDefault());
                 case FileQualityFilterOperationType.GREATER_EQ:
                     List<int> keysGT = ResolutionArea.Keys.Where(a => resArea >= a).ToList();
-                    keysGT.AddRange(ResolutionAreaOld.Keys.Where(a => resArea >= a));
+                    keysGT.AddRange(ResolutionArea43.Keys.Where(a => resArea >= a));
                     List<string> valuesGT = new List<string>();
                     foreach (int key in keysGT)
                     {
                         if (ResolutionArea.ContainsKey(key)) valuesGT.Add(ResolutionArea[key]);
-                        if (ResolutionAreaOld.ContainsKey(key)) valuesGT.Add(ResolutionAreaOld[key]);
+                        if (ResolutionArea43.ContainsKey(key)) valuesGT.Add(ResolutionArea43[key]);
                     }
                     if (valuesGT.FindInEnumerable(Settings.RequiredResolutions)) return true;
                     break;
                 case FileQualityFilterOperationType.LESS_EQ:
                     List<int> keysLT = ResolutionArea.Keys.Where(a => resArea <= a).ToList();
-                    keysLT.AddRange(ResolutionAreaOld.Keys.Where(a => resArea <= a));
+                    keysLT.AddRange(ResolutionArea43.Keys.Where(a => resArea <= a));
                     List<string> valuesLT = new List<string>();
                     foreach (int key in keysLT)
                     {
                         if (ResolutionArea.ContainsKey(key)) valuesLT.Add(ResolutionArea[key]);
-                        if (ResolutionAreaOld.ContainsKey(key)) valuesLT.Add(ResolutionAreaOld[key]);
+                        if (ResolutionArea43.ContainsKey(key)) valuesLT.Add(ResolutionArea43[key]);
                     }
                     if (valuesLT.FindInEnumerable(Settings.RequiredResolutions)) return true;
                     break;
@@ -401,19 +402,31 @@ namespace Shoko.Server
             string oldRes = GetResolution(oldFile, oldAniFile);
             string newRes = GetResolution(newFile, newAniFile);
 
-            if (newRes == null || oldRes == null) return 0;
-            if (!Settings._resolutions.Contains(newRes)) return 0;
-            if (!Settings._resolutions.Contains(oldRes)) return -1;
-            int newIndex = Array.IndexOf(Settings._resolutions, newRes);
-            int oldIndex = Array.IndexOf(Settings._resolutions, oldRes);
+            if (newRes == null && oldRes == null) return 0;
+            if (newRes == null) return 1;
+            if (oldRes == null) return -1;
+
+            string[] res = Settings._resolutions.ToArray();
+            if (!res.Contains(newRes) && !res.Contains(oldRes)) return 0;
+            if (!res.Contains(newRes)) return 1;
+            if (!res.Contains(oldRes)) return -1;
+
+            int newIndex = Array.IndexOf(res, newRes);
+            int oldIndex = Array.IndexOf(res, oldRes);
             return newIndex.CompareTo(oldIndex);
         }
 
         private static int CompareSourceTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            if (string.IsNullOrEmpty(newFile.File_Source) || string.IsNullOrEmpty(oldFile.File_Source)) return 0;
-            if (newFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase) ||
-                oldFile.File_Source.Equals("unknown", StringComparison.InvariantCultureIgnoreCase)) return 0;
+            if (string.IsNullOrEmpty(newFile.File_Source) && string.IsNullOrEmpty(oldFile.File_Source)) return 0;
+            if (string.IsNullOrEmpty(newFile.File_Source)) return 1;
+            if (string.IsNullOrEmpty(oldFile.File_Source)) return -1;
+
+            if (newFile.File_Source.EqualsInvariantIgnoreCase("unknown") &&
+                oldFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return 0;
+            if (newFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return 1;
+            if (oldFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return -1;
+
             int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source.ToLowerInvariant());
             int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source.ToLowerInvariant());
             return newIndex.CompareTo(oldIndex);
@@ -521,7 +534,7 @@ namespace Shoko.Server
             const double fourThirds = 1.333333;
             double ratio = (double) res.Item1 / res.Item2;
 
-            if ((ratio - sixteenNine) * (ratio - sixteenNine) < (ratio - fourThirds) * (ratio - fourThirds))
+            if (Math.Sqrt((ratio - sixteenNine) * (ratio - sixteenNine)) < Math.Sqrt((ratio - fourThirds) * (ratio - fourThirds)))
             {
                 long area = res.Item1 * res.Item2;
                 double keyDist = double.MaxValue;
@@ -529,11 +542,9 @@ namespace Shoko.Server
                 foreach (int resArea in ResolutionArea.Keys.ToList())
                 {
                     double dist = Math.Sqrt((resArea - area) * (resArea - area));
-                    if (dist < keyDist)
-                    {
-                        keyDist = dist;
-                        key = resArea;
-                    }
+                    if (!(dist < keyDist)) continue;
+                    keyDist = dist;
+                    key = resArea;
                 }
                 if (Math.Abs(keyDist - double.MaxValue) < 0.01D) return null;
                 return ResolutionArea[key];
@@ -543,7 +554,7 @@ namespace Shoko.Server
                 double area = res.Item1 * res.Item2;
                 double keyDist = double.MaxValue;
                 int key = 0;
-                foreach (int resArea in ResolutionAreaOld.Keys.ToList())
+                foreach (int resArea in ResolutionArea43.Keys.ToList())
                 {
                     double dist = Math.Sqrt((resArea - area) * (resArea - area));
                     if (dist < keyDist)
@@ -553,7 +564,7 @@ namespace Shoko.Server
                     }
                 }
                 if (Math.Abs(keyDist - long.MaxValue) < 0.01D) return null;
-                return ResolutionAreaOld[key];
+                return ResolutionArea43[key];
             }
         }
 
@@ -561,7 +572,13 @@ namespace Shoko.Server
         {
             string[] res = aniFile?.File_VideoResolution?.Split('x');
             int oldHeight = 0, oldWidth = 0;
-            if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0")
+            if (res != null && res.Length == 2 && res[0] == "0" && res[1] == "0")
+            {
+                int.TryParse(res[0], out oldWidth);
+                int.TryParse(res[1], out oldHeight);
+            }
+            
+            if (oldHeight == 0 || oldWidth == 0)
             {
                 var stream = videoLocal?.Media?.Parts?.SelectMany(a => a.Streams)
                     .FirstOrDefault(a => a.StreamType == 1);
@@ -571,10 +588,8 @@ namespace Shoko.Server
                     oldHeight = stream.Height;
                 }
             }
-            if (res == null || res.Length != 2 || res[0] == "0" && res[1] == "0") return null;
-            if (oldHeight == 0 && oldWidth == 0 && !int.TryParse(res[0], out oldWidth)) return null;
-            if (oldHeight == 0 && oldWidth == 0 && !int.TryParse(res[1], out oldHeight)) return null;
-            if (oldWidth == 0 || oldHeight == 0) return null;
+
+            if (oldHeight == 0 || oldWidth == 0) return null;
             return new Tuple<int, int>(oldWidth, oldHeight);
         }
         #endregion

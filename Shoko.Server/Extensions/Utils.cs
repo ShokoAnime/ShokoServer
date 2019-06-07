@@ -73,6 +73,9 @@ namespace Shoko.Server.Extensions
             return value2 - value1 <= error;
         }
 
+        public static bool EqualsInvariantIgnoreCase(this string value1, string value2) =>
+            value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
+
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
             CL_AnimeGroup_User contract = new CL_AnimeGroup_User
