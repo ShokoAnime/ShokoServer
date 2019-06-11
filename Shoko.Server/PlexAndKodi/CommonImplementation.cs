@@ -42,15 +42,15 @@ namespace Shoko.Server.PlexAndKodi
         public System.IO.Stream GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
-                return new MemoryStream();
+                return null;
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
-                return new MemoryStream();
+                return null;
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithResponse(ms, "image/png");
+            return ms;
         }
 
         public MediaContainer GetFilters(IProvider prov, string uid)

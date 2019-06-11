@@ -29,34 +29,37 @@ namespace Shoko.Server
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [HttpGet("{imageid}/{imageType}/{thumnbnailOnly?}")]
-        public Stream GetImage(int imageid, int imageType, bool? thumnbnailOnly = false)
+        public object GetImage(int imageid, int imageType, bool? thumnbnailOnly = false)
         {
             string path = GetImagePath(imageid, imageType, thumnbnailOnly);
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
-                return new StreamWithResponse(HttpStatusCode.NotFound);
+                return NotFound();
             string mime = Mime.GetMimeMapping(path);
-            Response.ContentType = mime; 
-            return new StreamWithResponse(System.IO.File.OpenRead(path), mime);
+            Response.ContentType = mime;
+            return System.IO.File.OpenRead(path);
         }
 
         [HttpGet("WithPath/{serverImagePath}")]
-        public Stream GetImageUsingPath(string serverImagePath)
+        public object GetImageUsingPath(string serverImagePath)
         {
-            if (System.IO.File.Exists(serverImagePath))
+            if (!System.IO.File.Exists(serverImagePath))
             {
-                return new StreamWithResponse(System.IO.File.OpenRead(serverImagePath), Mime.GetMimeMapping(serverImagePath));
+                logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
+                return NotFound();
             }
-            logger.Trace("Could not find AniDB_Cover image: {0}", serverImagePath);
-            return new StreamWithResponse(HttpStatusCode.NotFound);
+
+            Response.ContentType = Mime.GetMimeMapping(serverImagePath);
+            return System.IO.File.OpenRead(serverImagePath);
         }
 
         [HttpGet("Blank")]
-        public Stream BlankImage()
+        public object BlankImage()
         {
             byte[] dta = Resources.blank;
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithResponse(ms, "image/jpeg");
+            Response.ContentType = "image/jpeg";
+            return ms;
         }
 
         [NonAction]
@@ -86,7 +89,8 @@ namespace Shoko.Server
                 MemoryStream stream = new MemoryStream();
                 im.Save(stream, ImageFormat.Jpeg);
                 stream.Seek(0, SeekOrigin.Begin);
-                return new StreamWithResponse(stream, "image/jpg");
+                Response.ContentType = "image/jpeg";
+                return stream;
             }
 
             double nheight = 0;
@@ -119,26 +123,30 @@ namespace Shoko.Server
             MemoryStream ms = new MemoryStream();
             im2.Save(ms, ImageFormat.Jpeg);
             ms.Seek(0, SeekOrigin.Begin);
-            return new StreamWithResponse(ms, "image/jpg");
+            Response.ContentType = "image/jpeg";
+            return ms;
         }
 
         [HttpGet("Support/{name}/{ratio}")]
-        public System.IO.Stream GetSupportImage(string name, float? ratio)
+        public object GetSupportImage(string name, float? ratio)
         {
             if (string.IsNullOrEmpty(name))
-                return new MemoryStream();
+                return NotFound();
             
             name = Path.GetFileNameWithoutExtension(name);
             System.Resources.ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
-                return new MemoryStream();
+                return NotFound();
             
             //Little hack
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
             if (!name.Contains("404") || (ratio == null || Math.Abs(ratio.Value) < 0.001D))
-                return new StreamWithResponse(ms, "image/png");
+            {
+                Response.ContentType = "image/png";
+                return ms;
+            }
             
             Image im = Image.FromStream(ms);
             float w = im.Width;
@@ -187,19 +195,20 @@ namespace Shoko.Server
             im2.Save(ms2, ImageFormat.Png);
             ms2.Seek(0, SeekOrigin.Begin);
             ms.Dispose();
-            return new StreamWithResponse(ms2, "image/png");
+            Response.ContentType = "image/png";
+            return ms2;
         }
 
         [HttpGet("Thumb/{imageId}/{imageType}/{ratio}")]
-        public System.IO.Stream GetThumb(int imageId, int imageType, float ratio)
+        public object GetThumb(int imageId, int imageType, float ratio)
         {
-            using (Stream m = GetImage(imageId, imageType, false))
+            object m = GetImage(imageId, imageType, false);
+            if (m == NotFound()) return m;
+
+            if (!(m is Stream image)) return NotFound();
+            using (Image im = Image.FromStream(image))
             {
-                if (m == null) return new StreamWithResponse(HttpStatusCode.NotFound);
-                using (Image im = Image.FromStream(m))
-                {
-                    return ResizeToRatio(im, ratio);
-                }
+                return ResizeToRatio(im, ratio);
             }
         }
 

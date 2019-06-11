@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v1;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -22,105 +23,43 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
+    [ApiInUse]
     [ApiController, Route("/Stream"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationStream : Controller, IShokoServerStream, IHttpContextAccessor
     {
-        static ShokoServiceImplementationStream()
-        {
-            ConnectionTimer.Elapsed += TimerElapsed;
-        }
-
         public new HttpContext HttpContext { get; set; }
 
         //89% Should be enough to not touch matroska offsets and give us some margin
         private double WatchedThreshold = 0.89;
 
-        public const string ServerVersion = "Shoko Stream Server 1.0";
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        
-        /// <summary>
-        ///  A list of open connections to the API
-        /// </summary>
-        private static readonly HashSet<string> OpenConnections = new HashSet<string>();
-        /// <summary>
-        /// blur the connection state to 5s, as most media players and calls are spread.
-        /// This prevents flickering of the state for UI
-        /// </summary>
-        private static readonly Timer ConnectionTimer = new Timer(5000);
-        
-        private static void AddConnection(HttpContext ctx)
-        {
-            lock (OpenConnections)
-            {
-                OpenConnections.Add(ctx.Connection.Id);
-                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
-            }
-        }
-        
-        private static void RemoveConnection(HttpContext ctx)
-        {
-            if (!ctx.Items.ContainsKey(ctx.Connection.Id)) return;
-            lock (OpenConnections)
-            {
-                OpenConnections.Remove(ctx.Connection.Id);
-            }
-            ResetTimer();
-        }
-
-        private static void ResetTimer()
-        {
-            lock (ConnectionTimer)
-            {
-                ConnectionTimer.Stop();
-                ConnectionTimer.Start();
-            }
-        }
-
-        private static void TimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            lock (OpenConnections)
-            {
-                ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
-            }
-        }
-
-        public override void OnActionExecuting(ActionExecutingContext context)
-        {
-            AddConnection(context.HttpContext);
-            base.OnActionExecuting(context);
-        }
-        
-        public override void OnActionExecuted(ActionExecutedContext context)
-        {
-            base.OnActionExecuted(context);
-            RemoveConnection(context.HttpContext);
-        }
+        public const string SERVER_VERSION = "Shoko Stream Server 1.0";
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         [HttpGet("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
         [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
-        public Stream StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
+        public object StreamVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
             {
-                return new StreamWithResponse(r.Status, r.StatusDescription);
+                return StatusCode((int) r.Status, r.StatusDescription);
             }
             return StreamFromIFile(r, autowatch);
         }
 
         [HttpGet("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
         [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(typeof(FileStreamResult),206), ProducesResponseType(404)]
-        public Stream StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
+        public object StreamVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
             {
-                return new StreamWithResponse(r.Status, r.StatusDescription);
+                return StatusCode((int) r.Status, r.StatusDescription);
             }
             return StreamFromIFile(r, autowatch);
         }
 
-        private Stream StreamFromIFile(InfoResult r, bool? autowatch)
+        private object StreamFromIFile(InfoResult r, bool? autowatch)
         {
             try
             { 
@@ -131,7 +70,7 @@ namespace Shoko.Server
                 FileSystemResult<Stream> fr = r.File.OpenRead();
                 if (fr == null || !fr.IsOk)
                 {
-                    return new StreamWithResponse(HttpStatusCode.BadRequest,
+                    return StatusCode((int) HttpStatusCode.BadRequest,
                         "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
                 }
                 Stream org = fr.Result;
@@ -173,10 +112,9 @@ namespace Shoko.Server
                         }
                     }
                 }
-                var outstream = new SubStream(org, start, end - start + 1);
-                var resp = new StreamWithResponse();// {ContentType = r.Mime};
+
                 Response.ContentType = r.Mime;
-                Response.Headers.Add("Server", ServerVersion);
+                Response.Headers.Add("Server", SERVER_VERSION);
                 Response.Headers.Add("Connection", "keep-alive");
                 Response.Headers.Add("Accept-Ranges", "bytes");
                 Response.Headers.Add("Content-Range", "bytes " + start + "-" + end + "/" + totalsize);
@@ -184,6 +122,7 @@ namespace Shoko.Server
 
                 Response.StatusCode = (int)(range ? HttpStatusCode.PartialContent : HttpStatusCode.OK);
 
+                var outstream = new SubStream(org, start, end - start + 1);
                 if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
                 {
                     outstream.CrossPosition = (long) (totalsize * WatchedThreshold);
@@ -195,49 +134,44 @@ namespace Shoko.Server
                                 TaskCreationOptions.LongRunning, TaskScheduler.Default);
                         };
                 }
-                resp.Stream = outstream;
-                return resp;
+
+                return outstream;
             }
             catch (Exception e)
             {
-                logger.Error("An error occurred while serving a file: " + e);
-                var resp = new StreamWithResponse();
-                Response.StatusCode = 500;
-                using (var sw = new StreamWriter(Response.Body)) sw.Write(e.Message);
-                return resp;
+                Logger.Error("An error occurred while serving a file: " + e);
+                return StatusCode(500, e.Message);
             }
         }
 
         [HttpHead("{videolocalid}/{userId?}/{autowatch?}/{fakename?}")]
-        public Stream InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
+        public object InfoVideo(int videolocalid, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveVideoLocal(videolocalid, userId, autowatch);
-            StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
-                return s;
-            Response.Headers.Add("Server", ServerVersion);
+                return StatusCode((int) r.Status, r.StatusDescription);
+            Response.Headers.Add("Server", SERVER_VERSION);
             Response.Headers.Add("Accept-Ranges", "bytes");
             Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
             Response.ContentType = r.Mime;
             Response.ContentLength = r.File.Size;
             Response.StatusCode = (int)r.Status;
-            return s;
+            return Ok();
         }
 
         [HttpHead("Filename/{base64filename}/{userId?}/{autowatch?}/{fakename?}")]
-        public Stream InfoVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
+        public object InfoVideoFromFilename(string base64filename, int? userId, bool? autowatch, string fakename)
         {
             InfoResult r = ResolveFilename(base64filename, userId, autowatch);
-            StreamWithResponse s = new StreamWithResponse(r.Status, r.StatusDescription);
             if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
-                return s;
-            Response.Headers.Add("Server", ServerVersion);
+                return StatusCode((int) r.Status, r.StatusDescription);
+            Response.Headers.Add("Server", SERVER_VERSION);
             Response.Headers.Add("Accept-Ranges", "bytes");
             Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
             Response.ContentType = r.Mime;
             Response.ContentLength = r.File.Size;
             Response.StatusCode = (int)r.Status;
-            return s;
+            return Ok();
         }
 
         class InfoResult

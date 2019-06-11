@@ -990,6 +990,7 @@
     <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\APIUtils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
+    <Compile Include="API\Annotations\ApiInUseAttribute.cs" />
     <Compile Include="API\Annotations\ApiV3Attribute.cs" />
     <Compile Include="API\APIHelper.cs" />
     <Compile Include="API\Authentication\CustomAuthHandler.cs" />
@@ -1014,7 +1015,6 @@
     <Compile Include="API\v1\Modules\MainModule.cs" />
     <Compile Include="API\v1\Modules\PlexModule.cs" />
     <Compile Include="API\v1\Modules\StreamModule.cs" />
-    <Compile Include="API\v1\StreamWithResponse.cs" />
     <Compile Include="API\v2\APIV2Helper.cs" />
     <Compile Include="API\v2\Models\BaseDirectory.cs" />
     <Compile Include="API\v2\Models\common\Art.cs" />
