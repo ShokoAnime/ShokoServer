@@ -224,7 +224,7 @@ namespace Shoko.Server
 
         private static bool CheckSource(AniDB_File aniFile)
         {
-            if (string.IsNullOrEmpty(aniFile?.File_Source)) return false;
+            if (IsNullOrUnknown(aniFile)) return false;
             FileQualityFilterOperationType operationType = Settings.RequiredSourceOperator;
             switch (operationType)
             {
@@ -238,7 +238,7 @@ namespace Shoko.Server
 
         private static bool CheckSubGroup(AniDB_File aniFile)
         {
-            if (aniFile == null) return false;
+            if (IsNullOrUnknown(aniFile)) return false;
             FileQualityFilterOperationType operationType = Settings.RequiredSubGroupOperator;
             switch (operationType)
             {
@@ -321,14 +321,16 @@ namespace Shoko.Server
                         break;
 
                     case FileQualityFilterType.SOURCE:
-                        if (newEp == null) return 1;
-                        if (oldEp == null) return -1;
+                        if (IsNullOrUnknown(newEp) && IsNullOrUnknown(oldEp)) return 0;
+                        if (IsNullOrUnknown(newEp)) return 1;
+                        if (IsNullOrUnknown(oldEp)) return -1;
                         result = CompareSourceTo(newEp, oldEp);
                         break;
 
                     case FileQualityFilterType.SUBGROUP:
-                        if (newEp == null) return 1;
-                        if (oldEp == null) return -1;
+                        if (IsNullOrUnknown(newEp) && IsNullOrUnknown(oldEp)) return 0;
+                        if (IsNullOrUnknown(newEp)) return 1;
+                        if (IsNullOrUnknown(oldEp)) return -1;
                         result = CompareSubGroupTo(newEp, oldEp);
                         break;
 
@@ -418,18 +420,21 @@ namespace Shoko.Server
 
         private static int CompareSourceTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            if (string.IsNullOrEmpty(newFile.File_Source) && string.IsNullOrEmpty(oldFile.File_Source)) return 0;
-            if (string.IsNullOrEmpty(newFile.File_Source)) return 1;
-            if (string.IsNullOrEmpty(oldFile.File_Source)) return -1;
-
-            if (newFile.File_Source.EqualsInvariantIgnoreCase("unknown") &&
-                oldFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return 0;
-            if (newFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return 1;
-            if (oldFile.File_Source.EqualsInvariantIgnoreCase("unknown")) return -1;
-
             int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source.ToLowerInvariant());
             int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source.ToLowerInvariant());
             return newIndex.CompareTo(oldIndex);
+        }
+
+        public static bool IsNullOrUnknown(AniDB_File file)
+        {
+            if (file == null) return true;
+            if (string.IsNullOrWhiteSpace(file.File_Source)) return true;
+            if (string.IsNullOrWhiteSpace(file.Anime_GroupName)) return true;
+            if (string.IsNullOrWhiteSpace(file.Anime_GroupNameShort)) return true;
+            if (file.Anime_GroupName.EqualsInvariantIgnoreCase("unknown")) return true;
+            if (file.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown")) return true;
+            if (file.File_Source.EqualsInvariantIgnoreCase("unknown")) return true;
+            return false;
         }
 
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
