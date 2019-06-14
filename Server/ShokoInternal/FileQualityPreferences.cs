@@ -14,6 +14,30 @@ namespace Shoko.Models
 
         }
 
+        [IgnoreDataMember]
+        public static readonly Dictionary<string, string> SimplifiedSources;
+
+        static FileQualityPreferences()
+        {
+            SimplifiedSources = new Dictionary<string, string>
+            {
+                {"unknown", "unknown"},
+                {"raw", "unknown"},
+                {"tv", "tv"},
+                {"dtv", "tv"},
+                {"hdtv", "tv"},
+                {"dvd", "dvd"},
+                {"hkdvd", "dvd"},
+                {"hddvd", "dvd"},
+                {"bd", "bd"},
+                {"blu-ray", "bd"},
+                {"bluray", "bd"},
+                {"ld", "ld"},
+                {"web", "www"},
+                {"www", "www"}
+            };
+        }
+
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
         [DataMember(Name = "Types")]
         public FileQualityFilterType[] _types =
@@ -38,7 +62,7 @@ namespace Shoko.Models
 
         /// Preferred Sources, in order.
         [DataMember(Name = "PreferredSources")]
-        public string[] _sources = {"bd", "dvd", "hdtv", "tv", "www", "unknown"};
+        public string[] _sources = {"bd", "dvd", "tv", "www", "unknown"};
 
         /// Subbing/Release Groups in order of preference.
         /// If a file is not in the list, the compared files are considered comparatively equal.
@@ -165,7 +189,12 @@ namespace Shoko.Models
         public List<string> SourcePreferences
         {
             get => _sources.ToList();
-            set => _sources = value.Where(a => !string.IsNullOrEmpty(a)).Select(a => a.ToLowerInvariant()).ToArray();
+            set => _sources = value.Where(a => !string.IsNullOrEmpty(a)).Select(a =>
+            {
+                string source = a.ToLowerInvariant();
+                if (SimplifiedSources.ContainsKey(source)) source = SimplifiedSources[source];
+                return source;
+            }).ToArray();
         }
 
 
