@@ -226,12 +226,15 @@ namespace Shoko.Server
         {
             if (IsNullOrUnknown(aniFile)) return false;
             FileQualityFilterOperationType operationType = Settings.RequiredSourceOperator;
+            var source = aniFile.File_Source.ToLowerInvariant();
+            if (FileQualityPreferences.SimplifiedSources.ContainsKey(source))
+                source = FileQualityPreferences.SimplifiedSources[source];
             switch (operationType)
             {
                 case FileQualityFilterOperationType.IN:
-                    return Settings._requiredsources.Item1.Contains(aniFile.File_Source.ToLowerInvariant());
+                    return Settings._requiredsources.Item1.Contains(source);
                 case FileQualityFilterOperationType.NOTIN:
-                    return !Settings._requiredsources.Item1.Contains(aniFile.File_Source.ToLowerInvariant());
+                    return !Settings._requiredsources.Item1.Contains(source);
             }
             return true;
         }
@@ -420,21 +423,15 @@ namespace Shoko.Server
 
         private static int CompareSourceTo(AniDB_File newFile, AniDB_File oldFile)
         {
-            int newIndex = Array.IndexOf(Settings._sources, newFile.File_Source.ToLowerInvariant());
-            int oldIndex = Array.IndexOf(Settings._sources, oldFile.File_Source.ToLowerInvariant());
+            var newSource = newFile.File_Source.ToLowerInvariant();
+            if (FileQualityPreferences.SimplifiedSources.ContainsKey(newSource))
+                newSource = FileQualityPreferences.SimplifiedSources[newSource];
+            var oldSource = oldFile.File_Source.ToLowerInvariant();
+            if (FileQualityPreferences.SimplifiedSources.ContainsKey(oldSource))
+                oldSource = FileQualityPreferences.SimplifiedSources[oldSource];
+            int newIndex = Array.IndexOf(Settings._sources, newSource);
+            int oldIndex = Array.IndexOf(Settings._sources, oldSource);
             return newIndex.CompareTo(oldIndex);
-        }
-
-        public static bool IsNullOrUnknown(AniDB_File file)
-        {
-            if (file == null) return true;
-            if (string.IsNullOrWhiteSpace(file.File_Source)) return true;
-            if (string.IsNullOrWhiteSpace(file.Anime_GroupName)) return true;
-            if (string.IsNullOrWhiteSpace(file.Anime_GroupNameShort)) return true;
-            if (file.Anime_GroupName.EqualsInvariantIgnoreCase("unknown")) return true;
-            if (file.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown")) return true;
-            if (file.File_Source.EqualsInvariantIgnoreCase("unknown")) return true;
-            return false;
         }
 
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
@@ -582,7 +579,7 @@ namespace Shoko.Server
                 int.TryParse(res[0], out oldWidth);
                 int.TryParse(res[1], out oldHeight);
             }
-            
+
             if (oldHeight == 0 || oldWidth == 0)
             {
                 var stream = videoLocal?.Media?.Parts?.SelectMany(a => a.Streams)
@@ -596,6 +593,21 @@ namespace Shoko.Server
 
             if (oldHeight == 0 || oldWidth == 0) return null;
             return new Tuple<int, int>(oldWidth, oldHeight);
+        }
+
+        public static bool IsNullOrUnknown(AniDB_File file)
+        {
+            if (file == null) return true;
+            if (string.IsNullOrWhiteSpace(file.File_Source)) return true;
+            if (string.IsNullOrWhiteSpace(file.Anime_GroupName)) return true;
+            if (string.IsNullOrWhiteSpace(file.Anime_GroupNameShort)) return true;
+            if (file.Anime_GroupName.EqualsInvariantIgnoreCase("unknown")) return true;
+            if (file.Anime_GroupNameShort.EqualsInvariantIgnoreCase("unknown")) return true;
+            if (file.Anime_GroupName.EqualsInvariantIgnoreCase("raw")) return true;
+            if (file.Anime_GroupNameShort.EqualsInvariantIgnoreCase("raw")) return true;
+            if (file.File_Source.EqualsInvariantIgnoreCase("unknown")) return true;
+            if (file.File_Source.EqualsInvariantIgnoreCase("raw")) return true;
+            return false;
         }
         #endregion
     }
