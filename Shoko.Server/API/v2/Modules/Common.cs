@@ -1157,6 +1157,7 @@ namespace Shoko.Server.API.v2.Modules
                 para.limit = 10;
             }
             List<Episode> lst = new List<Episode>();
+            HashSet<int> IDs = new HashSet<int>();
 
             List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit, user.JMMUserID);
 
@@ -1164,9 +1165,13 @@ namespace Shoko.Server.API.v2.Modules
             {
                 foreach (SVR_AnimeEpisode aep in vl.GetAnimeEpisodes())
                 {
+                    if (IDs.Contains(aep.AnimeEpisodeID)) continue;
                     Episode ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, para.level, para.pic);
                     if (ep != null)
+                    {
+                        IDs.Add(aep.AnimeEpisodeID);
                         lst.Add(ep);
+                    }
                 }
             }
 
