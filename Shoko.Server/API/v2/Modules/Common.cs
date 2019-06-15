@@ -1692,7 +1692,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 para.limit = 10;
             }
-            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit);
+            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit, User.JMMUserID);
 
             foreach (SVR_AnimeSeries aser in series)
             {

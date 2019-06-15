@@ -523,23 +523,8 @@ namespace Shoko.Server
                 SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return retSeries;
 
-                List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords);
-                int numSeries = 0;
-                foreach (SVR_AnimeSeries ser in series)
-                {
-                    if (user.AllowedSeries(ser))
-                    {
-                        CL_AnimeSeries_User serContract = ser.GetUserContract(userID);
-                        if (serContract != null)
-                        {
-                            retSeries.Add(serContract);
-                            numSeries++;
-
-                            // Lets only return the specified amount
-                            if (retSeries.Count == maxRecords) return retSeries;
-                        }
-                    }
-                }
+                List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords, userID);
+                retSeries.AddRange(series.Select(a => a.GetUserContract(userID)).Where(a => a != null));
             }
             catch (Exception ex)
             {

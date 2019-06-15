@@ -273,11 +273,12 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults)
+        public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
         {
             lock (Cache)
             {
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
+                return Cache.Values.Where(a => userID == 0 || RepoFactory.JMMUser.GetByID(userID).AllowedSeries(a))
+                    .OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
             }
         }
     }
