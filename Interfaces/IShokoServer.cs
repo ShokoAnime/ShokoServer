@@ -336,6 +336,9 @@ namespace Shoko.Models.Interfaces
 
         [Rest("File/Physical/{videoplaceid}", Verbs.Delete)]
         string DeleteVideoLocalPlaceAndFile(int videoplaceid);
+        
+        [Rest("File/Physical/{videoplaceid}/SkipFolder", Verbs.Delete)]
+        string DeleteVideoLocalPlaceAndFileSkipFolder(int videoplaceid);
 
         [Rest("File/Unlinked/Rescan", Verbs.Post)]
         void RescanUnlinkedFiles();
