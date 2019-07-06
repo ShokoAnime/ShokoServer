@@ -911,6 +911,29 @@ namespace Shoko.Server
                 return ex.Message;
             }
         }
+        
+        /// <summary>
+        ///     Deletes the VideoLocal record and the associated physical file
+        /// </summary>
+        /// <param name="videoplaceid"></param>
+        /// <returns></returns>
+        [HttpDelete("File/Physical/{videoplaceid}/SkipFolder")]
+        public string DeleteVideoLocalPlaceAndFileSkipFolder(int videoplaceid)
+        {
+            try
+            {
+                SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(videoplaceid);
+                if (place?.VideoLocal == null)
+                    return "Database entry does not exist";
+
+                return place.RemoveAndDeleteFile(false).Item2;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+                return ex.Message;
+            }
+        }
 
         [HttpPost("File/Resume/{videoLocalID}/{resumeposition}/{userID}")]
         public string SetResumePosition(int videoLocalID, long resumeposition, int userID)
@@ -2549,11 +2572,18 @@ namespace Shoko.Server
                 {
                     foreach (SVR_VideoLocal vid in ep.GetVideoLocals())
                     {
-                        foreach (SVR_VideoLocal_Place place in vid.Places)
+                        var places = vid.Places;
+                        for (int index = 0; index < places.Count; index++)
                         {
+                            SVR_VideoLocal_Place place = places[index];
                             if (deleteFiles)
                             {
-                                (bool success, string result) = place.RemoveAndDeleteFile();
+                                bool success;
+                                string result;
+                                if (index < places.Count - 1)
+                                     (success, result) = place.RemoveAndDeleteFile(false);
+                                else
+                                    (success, result) = place.RemoveAndDeleteFile();
                                 if (!success) return result;
                             }
                             else

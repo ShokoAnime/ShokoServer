@@ -419,7 +419,7 @@ namespace Shoko.Server.Models
             return false;
         }
 
-        public (bool, string) RemoveAndDeleteFile()
+        public (bool, string) RemoveAndDeleteFile(bool deleteFolder = true)
         {
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
@@ -465,7 +465,7 @@ namespace Shoko.Server.Models
                 {
                     if (ex is FileNotFoundException)
                     {
-                        RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
+                        if (deleteFolder) RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                         RemoveRecord();
                         return (true, string.Empty);
                     }
@@ -473,7 +473,7 @@ namespace Shoko.Server.Models
                     logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
                     return (false, $"Unable to delete file '{FullServerPath}'");
                 }
-                RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
+                if (deleteFolder) RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
                 RemoveRecord();
                 // For deletion of files from Trakt, we will rely on the Daily sync
                 return (true, string.Empty);
