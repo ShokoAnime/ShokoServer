@@ -16,14 +16,10 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Server.AniDB_API.Titles;
-using Shoko.Server.Utilities;
-using System.IO;
-using System.Text.Encodings.Web;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Server.Renamer;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server
@@ -757,7 +753,7 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(titleQuery);
+                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(System.Web.HttpUtility.UrlDecode(titleQuery));
 
                     foreach (AniDBRaw_AnimeTitle_Anime tit in titles)
                     {
