@@ -273,7 +273,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             s.PA = m.GetFloat(StreamKind.Video, num, "PixelAspectRatio");
             string sp2 = m.Get(StreamKind.Video, num, "PixelAspectRatio_Original");
             if (!string.IsNullOrEmpty(sp2))
-                s.PA = System.Convert.ToSingle(sp2);
+                s.PA = System.Convert.ToSingle(sp2, CultureInfo.InvariantCulture);
             if ((s.PA != 1.0) && s.Width != 0)
             {
                 if (s.Width != 0)
@@ -538,7 +538,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     }
                                     if (s.FrameRate != 0)
                                     {
-                                        float fr = System.Convert.ToSingle(s.FrameRate);
+                                        float fr = System.Convert.ToSingle(s.FrameRate, CultureInfo.InvariantCulture);
                                         string frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
                                         if (!string.IsNullOrEmpty(s.ScanType))
                                         {
