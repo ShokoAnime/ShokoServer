@@ -19,6 +19,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
     public static class MediaConvert
     {
+
+        static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
         private static string TranslateCodec(string codec)
         {
             codec = codec.ToLowerInvariant();
@@ -509,7 +512,17 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         {
                             for (int x = 0; x < video_count; x++)
                             {
-                                Stream s = TranslateVideoStream(minstance, x);
+                                Stream s;
+                                try
+                                {
+                                    s = TranslateVideoStream(minstance, x);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error(ex, $"Error parsing video: \"{filename}\"");
+                                    continue;
+                                }
+
                                 if (x == 0)
                                 {
                                     VideoStream = s;
