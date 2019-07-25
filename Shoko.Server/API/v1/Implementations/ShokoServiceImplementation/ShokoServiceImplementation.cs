@@ -996,14 +996,14 @@ namespace Shoko.Server
         #region Calendar (Dashboard)
 
         [HttpGet("AniDB/Anime/Calendar/{userID}/{numberOfDays}")]
-        public List<CL_AniDB_Anime> GetMiniCalendar(int jmmuserID, int numberOfDays)
+        public List<CL_AniDB_Anime> GetMiniCalendar(int userID, int numberOfDays)
         {
             // get all the series
             List<CL_AniDB_Anime> animeList = new List<CL_AniDB_Anime>();
 
             try
             {
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return animeList;
 
                 List<SVR_AniDB_Anime> animes = RepoFactory.AniDB_Anime.GetForDate(
