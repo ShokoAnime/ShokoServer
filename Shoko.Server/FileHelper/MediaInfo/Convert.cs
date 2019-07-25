@@ -19,6 +19,9 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
     public static class MediaConvert
     {
+
+        static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
         private static string TranslateCodec(string codec)
         {
             codec = codec.ToLowerInvariant();
@@ -270,7 +273,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             s.PA = m.GetFloat(StreamKind.Video, num, "PixelAspectRatio");
             string sp2 = m.Get(StreamKind.Video, num, "PixelAspectRatio_Original");
             if (!string.IsNullOrEmpty(sp2))
-                s.PA = System.Convert.ToSingle(sp2);
+                s.PA = System.Convert.ToSingle(sp2, CultureInfo.InvariantCulture);
             if ((s.PA != 1.0) && s.Width != 0)
             {
                 if (s.Width != 0)
@@ -509,7 +512,17 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         {
                             for (int x = 0; x < video_count; x++)
                             {
-                                Stream s = TranslateVideoStream(minstance, x);
+                                Stream s;
+                                try
+                                {
+                                    s = TranslateVideoStream(minstance, x);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error(ex, $"Error parsing video: \"{filename}\"");
+                                    continue;
+                                }
+
                                 if (x == 0)
                                 {
                                     VideoStream = s;
@@ -525,7 +538,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                                     }
                                     if (s.FrameRate != 0)
                                     {
-                                        float fr = System.Convert.ToSingle(s.FrameRate);
+                                        float fr = System.Convert.ToSingle(s.FrameRate, CultureInfo.InvariantCulture);
                                         string frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
                                         if (!string.IsNullOrEmpty(s.ScanType))
                                         {
