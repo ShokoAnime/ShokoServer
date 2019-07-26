@@ -493,7 +493,7 @@ namespace Shoko.Server
             }
         }
 
-        [HttpDelete("TvDB/CrossRef/Episode/{aniDBEpisodeID}")]
+        [HttpDelete("TvDB/CrossRef/Episode/{aniDBEpisodeID}/{tvDBEpisodeID}")]
         public string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvDBEpisodeID)
         {
             try
@@ -1080,7 +1080,7 @@ namespace Shoko.Server
         }
 
         [HttpPost("Other/CrossRef/{animeID}/{id}/{crossRefType}")]
-        public string LinkAniDBOther(int animeID, int movieID, int crossRefType)
+        public string LinkAniDBOther(int animeID, int id, int crossRefType)
         {
             try
             {
@@ -1089,7 +1089,7 @@ namespace Shoko.Server
                 switch (xrefType)
                 {
                     case CrossRefType.MovieDB:
-                        MovieDBHelper.LinkAniDBMovieDB(animeID, movieID, false);
+                        MovieDBHelper.LinkAniDBMovieDB(animeID, id, false);
                         break;
                 }
 

@@ -1060,15 +1060,15 @@ namespace Shoko.Server
         }
 
         [HttpGet("Series/MissingEpisodes/{maxRecords}/{userID}")]
-        public List<CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int jmmuserID)
+        public List<CL_AnimeSeries_User> GetSeriesWithMissingEpisodes(int maxRecords, int userID)
         {
             try
             {
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user != null)
                     return
                         RepoFactory.AnimeSeries.GetWithMissingEpisodes()
-                            .Select(a => a.GetUserContract(jmmuserID))
+                            .Select(a => a.GetUserContract(userID))
                             .Where(a => a != null)
                             .ToList();
             }
