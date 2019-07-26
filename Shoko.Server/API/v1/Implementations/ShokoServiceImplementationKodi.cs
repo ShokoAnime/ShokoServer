@@ -93,10 +93,10 @@ namespace Shoko.Server.API.v1.Implementations
                 votetype);
         }
 
-        [HttpGet("Trakt/Scrobble/{animeid}/{type}/{progress}/{status}")]
-        public Response TraktScrobble(string userId, int type, float progress, int status)
+        [HttpGet("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}")]
+        public Response TraktScrobble(string animeId, int type, float progress, int status)
         {
-            return _impl.TraktScrobble(new KodiProvider {HttpContext = HttpContext}, userId, type, progress,
+            return _impl.TraktScrobble(new KodiProvider {HttpContext = HttpContext}, animeId, type, progress,
                 status);
         }
 

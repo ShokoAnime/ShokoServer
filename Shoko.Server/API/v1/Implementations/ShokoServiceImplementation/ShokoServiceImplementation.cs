@@ -1025,14 +1025,14 @@ namespace Shoko.Server
         }
 
         [HttpGet("AniDB/Anime/ForMonth/{userID}/{month}/{year}")]
-        public List<CL_AniDB_Anime> GetAnimeForMonth(int jmmuserID, int month, int year)
+        public List<CL_AniDB_Anime> GetAnimeForMonth(int userID, int month, int year)
         {
             // get all the series
             List<CL_AniDB_Anime> animeList = new List<CL_AniDB_Anime>();
 
             try
             {
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return animeList;
 
                 DateTime startDate = new DateTime(year, month, 1, 0, 0, 0);
@@ -1350,13 +1350,13 @@ namespace Shoko.Server
         }
 
         [HttpGet("AniDB/Character/FromSeiyuu/{seiyuuID}")]
-        public List<CL_AniDB_Character> GetCharactersForSeiyuu(int aniDB_SeiyuuID)
+        public List<CL_AniDB_Character> GetCharactersForSeiyuu(int seiyuuID)
         {
             List<CL_AniDB_Character> chars = new List<CL_AniDB_Character>();
 
             try
             {
-                AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetByID(aniDB_SeiyuuID);
+                AniDB_Seiyuu seiyuu = RepoFactory.AniDB_Seiyuu.GetByID(seiyuuID);
                 if (seiyuu == null) return chars;
 
                 List<AniDB_Character_Seiyuu> links = RepoFactory.AniDB_Character_Seiyuu.GetBySeiyuuID(seiyuu.SeiyuuID);

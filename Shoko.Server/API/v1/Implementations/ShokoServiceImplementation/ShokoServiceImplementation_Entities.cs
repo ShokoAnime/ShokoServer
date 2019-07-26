@@ -276,18 +276,18 @@ namespace Shoko.Server
         /// </summary>
         /// <returns></returns>
         [HttpGet("Episode/WatchedToWatch/{maxRecords}/{userID}")]
-        public List<CL_AnimeEpisode_User> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int jmmuserID)
+        public List<CL_AnimeEpisode_User> GetEpisodesToWatch_RecentlyWatched(int maxRecords, int userID)
         {
             List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
             try
             {
                 DateTime start = DateTime.Now;
 
-                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(jmmuserID);
+                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return retEps;
 
                 // get a list of series that is applicable
-                List<SVR_AnimeSeries_User> allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(jmmuserID);
+                List<SVR_AnimeSeries_User> allSeriesUser = RepoFactory.AnimeSeries_User.GetMostRecentlyWatched(userID);
 
                 TimeSpan ts = DateTime.Now - start;
                 logger.Info(string.Format("GetEpisodesToWatch_RecentlyWatched:Series: {0}", ts.TotalMilliseconds));
@@ -300,7 +300,7 @@ namespace Shoko.Server
 
                     if (!user.AllowedSeries(series)) continue;
 
-                    CL_AnimeEpisode_User ep = GetNextUnwatchedEpisode(userRecord.AnimeSeriesID, jmmuserID);
+                    CL_AnimeEpisode_User ep = GetNextUnwatchedEpisode(userRecord.AnimeSeriesID, userID);
                     if (ep != null)
                     {
                         retEps.Add(ep);
