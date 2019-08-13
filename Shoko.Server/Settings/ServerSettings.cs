@@ -9,19 +9,10 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Settings;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
+using System.Globalization;
 
 namespace Shoko.Server.Settings
 {
@@ -173,7 +164,7 @@ namespace Shoko.Server.Settings
                 AnimeXmlDirectory = Legacy.AnimeXmlDirectory,
                 MyListDirectory = Legacy.MyListDirectory,
                 ServerPort = (ushort)Legacy.JMMServerPort,
-                PluginAutoWatchThreshold = double.Parse(Legacy.PluginAutoWatchThreshold),
+                PluginAutoWatchThreshold = double.Parse(Legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
                 Culture = Legacy.Culture,
                 WebUI_Settings = Legacy.WebUI_Settings,
                 FirstRun = Legacy.FirstRun,
