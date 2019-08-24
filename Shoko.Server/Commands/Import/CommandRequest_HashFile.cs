@@ -79,6 +79,10 @@ namespace Shoko.Server.Commands
                     return size;
                 }
             }
+            catch (IOException ioex)
+            {
+                return 0;
+            }
             catch (Exception ex)
             {
                 // This shouldn't cause a recursion, as it'll throw if failing

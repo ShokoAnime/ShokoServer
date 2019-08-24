@@ -129,6 +129,9 @@ namespace Shoko.Server.Commands
 
         public static ICommandRequest GetCommand(CommandRequest crdb)
         {
+            if (crdb == null)
+                return null;
+
             if (!CommandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType,
                 out ReflectionUtils.ObjectActivator<CommandRequestImplementation> ctor)) return null;
 

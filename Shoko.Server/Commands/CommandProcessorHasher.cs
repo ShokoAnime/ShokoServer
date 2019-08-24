@@ -202,6 +202,9 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
+                if (workerCommands.CancellationPending)
+                    return;
+
                 CommandRequest crdb = RepoFactory.CommandRequest.GetNextDBCommandRequestHasher();
                 if (crdb == null)
                 {
@@ -210,10 +213,8 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                if (workerCommands.CancellationPending)
-                    return;
-
                 ICommandRequest icr = CommandHelper.GetCommand(crdb);
+                
                 if (icr == null)
                 {
                     logger.Trace("No implementation found for command: {0}-{1}", crdb.CommandType, crdb.CommandID);
@@ -233,6 +234,8 @@ namespace Shoko.Server.Commands
                 catch (Exception ex)
                 {
                     logger.Error(ex, "ProcessCommand exception: {0}\n{1}", crdb.CommandID, ex);
+                    logger.Info(ex, "Removing ProcessCommand: {0}", crdb.CommandID);
+                    RepoFactory.CommandRequest.Delete(crdb.CommandRequestID);
                 }
                 finally
                 {
