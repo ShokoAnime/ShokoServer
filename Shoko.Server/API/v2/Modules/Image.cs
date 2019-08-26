@@ -25,6 +25,7 @@ namespace Shoko.Server.API.v2.Modules
 {
     [ApiController]
     [Route("/api/image")]
+    [Route("/api/v2/image")]
     [ApiVersion("2.0")]
     public class Image : BaseController
     {

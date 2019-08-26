@@ -91,7 +91,7 @@ namespace Shoko.Server.API.v2
         
         public static string ConstructSupportImageLink(HttpContext ctx, string name, bool short_url = true)
         {
-            return APIHelper.ProperURL(ctx, "/api/image/Shoko/Static/" + name, short_url);
+            return APIHelper.ProperURL(ctx, "/api/v2/image/support/" + name, short_url);
         }
 
         public static string ConstructImageLinkFromRest(HttpContext ctx, string path, bool short_url = true)

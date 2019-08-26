@@ -258,7 +258,7 @@ After:
             PathString[] apiv2 =
             {
                 "/api/webui", "/api/version", "/plex", "/api/init",
-                /* "/api/image" */ "/api/dev", "/api/modules",
+                /* "/api/image", */ "/api/dev", "/api/modules",
                 "/api/core", "/api/links",  "/api/cast", "/api/group",
                 "/api/filter", "/api/cloud", "/api/serie", "/api/ep",
                 "/api/file", "/api/queue", "/api/myid",  "/api/news",
