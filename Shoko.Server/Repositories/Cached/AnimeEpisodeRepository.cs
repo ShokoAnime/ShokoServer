@@ -151,6 +151,17 @@ namespace Shoko.Server.Repositories.Cached
             return GetBySeriesID(seriesid).Where(a => !eps.Contains(a.AnimeEpisodeID)).ToList();
         }
 
+        public List<SVR_AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
+        {
+            List<SVR_AnimeEpisode_User> eps = RepoFactory.AnimeEpisode_User.GetByUserID(userid).Where(a => a.IsWatched()).Where(a => a.WatchedDate > after_date).OrderBy(a => a.WatchedDate).ToList();
+            List<SVR_AnimeEpisode> list = new List<SVR_AnimeEpisode>();
+            foreach (SVR_AnimeEpisode_User ep in eps)
+            {
+                list.Add(GetByID(ep.AnimeEpisodeID));
+            }
+            return list;
+        }
+
         public List<SVR_AnimeEpisode> GetMostRecentlyAdded(int seriesID)
         {
             return GetBySeriesID(seriesID).OrderByDescending(a => a.DateTimeCreated).ToList();

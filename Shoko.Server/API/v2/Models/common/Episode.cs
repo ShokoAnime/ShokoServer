@@ -26,6 +26,9 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public int view { get; set; }
 
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public DateTime? view_date { get; set; }
+
         [DataMember]
         public string eptype { get; set; }
 
@@ -94,6 +97,7 @@ namespace Shoko.Server.API.v2.Models.common
                 ep.rating = cae.AniDB_Rating;
 
                 ep.view = cae.IsWatched() ? 1 : 0;
+                ep.view_date = cae.WatchedDate;
                 ep.epnumber = cae.EpisodeNumber;
             }
 

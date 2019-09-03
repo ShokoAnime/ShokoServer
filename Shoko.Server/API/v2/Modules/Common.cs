@@ -1300,6 +1300,43 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
+        /// <summary>
+        /// Handle /api/ep/last_watched
+        /// </summary>
+        /// <returns>List<></returns>
+        [HttpGet("ep/last_watched")]
+        public List<Episode> ListWatchedEpisodes(string query, int pic, int level, int limit, int offset)
+        {
+            JMMUser user = HttpContext.GetUser();
+            DateTime date_after = new DateTime(1900, 01, 01);
+            if (!string.IsNullOrEmpty(query))
+            {
+                date_after = DateTime.ParseExact(query, "yyyy-MM-dd", null);
+            }
+
+            int index = -1;
+            bool _go = false;
+            List<SVR_AnimeEpisode> list_aep = RepoFactory.AnimeEpisode.GetAllWatchedEpisodes(user.JMMUserID, date_after);
+            List<Episode> ep_list = new List<Episode>();
+            foreach (SVR_AnimeEpisode aep in list_aep)
+            {
+                _go = false;
+                index++;
+                if (offset > 0) { if (index >= offset) { _go = true; } } else { _go = true; }
+                if (limit > 0) { if (index - offset >= limit) { break; } }
+
+                if (_go)
+                {
+                    Episode ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic);
+                    if (ep != null)
+                    {
+                        ep_list.Add(ep);
+                    }
+                }
+            }
+            return ep_list;
+        }
+
         #region internal function
 
         /// <summary>
