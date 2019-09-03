@@ -33,6 +33,12 @@ namespace Shoko.Server.API.v2.Models.common
         public int epnumber { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public int aid { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        public int eid { get; set; }
+
+        [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<RawFile> files { get; set; }
 
         public Episode()
@@ -60,7 +66,12 @@ namespace Shoko.Server.API.v2.Models.common
                 art = new ArtCollection()
             };
 
-            if (aep.AniDB_Episode != null) ep.eptype = aep.EpisodeTypeEnum.ToString();
+            if (aep.AniDB_Episode != null)
+            {
+                ep.eptype = aep.EpisodeTypeEnum.ToString();
+                ep.aid = aep.AniDB_Episode.AnimeID;
+                ep.eid = aep.AniDB_Episode.EpisodeID;
+            }
 
             var userrating = aep.UserRating;
             if (userrating > 0) ep.userrating = userrating.ToString(CultureInfo.InvariantCulture);
