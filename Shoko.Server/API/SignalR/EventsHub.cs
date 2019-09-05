@@ -10,8 +10,11 @@ namespace Shoko.Server.API.SignalR
 {
     public class EventsHub : Hub
     {
-        public EventsHub()
+        private readonly EventEmitter _eventEmitter;
+
+        public EventsHub(EventEmitter eventEmitter)
         {
+            _eventEmitter = eventEmitter;
             ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("general", e);
             ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("hasher", e);
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("images", e);
@@ -23,12 +26,12 @@ namespace Shoko.Server.API.SignalR
 
         private async void OnQueueStateChangedEvent(string queue, QueueStateEventArgs e)
         {
-            await Clients.All.SendAsync("QueueStateChanged", queue, e.QueueState.formatMessage());
+            await _eventEmitter.QueueStateChanged(queue, e);
         }
 
         private async void OnQueueCountChangedEvent(string queue, Commands.QueueCountEventArgs ev)
         {
-            await Clients.All.SendAsync("QueueCountChanged", queue, ev.QueueCount);
+            await _eventEmitter.QueueCountChanged(queue, ev);
         }
 
         public void ChangeQueueProcessingState(string queue, bool paused)
@@ -74,6 +77,7 @@ namespace Shoko.Server.API.SignalR
                     Paused = ShokoService.CmdProcessorImages.Paused
                 },
             });
+            await base.OnConnectedAsync();
         }
     }
 }
