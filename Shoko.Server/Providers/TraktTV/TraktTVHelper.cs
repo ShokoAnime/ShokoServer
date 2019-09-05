@@ -258,6 +258,7 @@ namespace Shoko.Server.Providers.TraktTV
 
                     return;
                 }
+
                 ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
                 ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
                 ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
@@ -269,6 +270,10 @@ namespace Shoko.Server.Providers.TraktTV
                 ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
 
                 logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex);
+            }
+            finally
+            {
+                ServerSettings.Instance.SaveSettings();
             }
         }
 
@@ -371,6 +376,7 @@ namespace Shoko.Server.Providers.TraktTV
                         long expireDate = createdAt + validity;
 
                         ServerSettings.Instance.TraktTv.TokenExpirationDate = expireDate.ToString();
+                        ServerSettings.Instance.SaveSettings();
                         break;
                     }
                     if (response == TraktStatusCodes.Rate_Limit_Exceeded)

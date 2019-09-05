@@ -910,11 +910,11 @@ namespace Shoko.Server
         }
 
         [HttpPost("Trakt/Refresh/{traktID}")]
-        public string UpdateTraktData(string traktD)
+        public string UpdateTraktData(string traktID)
         {
             try
             {
-                TraktTVHelper.UpdateAllInfo(traktD);
+                TraktTVHelper.UpdateAllInfo(traktID);
             }
             catch (Exception ex)
             {
