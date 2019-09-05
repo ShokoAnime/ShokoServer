@@ -85,7 +85,12 @@ namespace Shoko.Server.API
 
             services.ConfigureSwaggerGen(options => { options.CustomSchemaIds(x => x.FullName); });
 
-            services.AddSignalR();
+            services.AddSignalR(o =>
+            {
+                o.EnableDetailedErrors = true;
+            });
+
+            services.AddSingleton<EventEmitter>();
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc(options =>
