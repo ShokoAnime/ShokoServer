@@ -77,7 +77,6 @@ namespace Shoko.Server.API.SignalR
                     Paused = ShokoService.CmdProcessorImages.Paused
                 },
             });
-            await base.OnConnectedAsync();
         }
     }
 }
