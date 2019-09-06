@@ -504,9 +504,9 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult<Dictionary<string, QueueInfo>> GetQueue()
         {
             Dictionary<string, QueueInfo> queues = new Dictionary<string, QueueInfo>();
-            queues.Add("hash",  GetHasherQueue().Value);
+            queues.Add("hasher",  GetHasherQueue().Value);
             queues.Add("general", GetGeneralQueue().Value);
-            queues.Add("image", GetImagesQueue().Value);
+            queues.Add("images", GetImagesQueue().Value);
             return queues;
         }
 
