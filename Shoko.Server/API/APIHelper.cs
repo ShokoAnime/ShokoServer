@@ -14,6 +14,9 @@ using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Shoko.Server.API.Authentication;
 
 namespace Shoko.Server.API
 {
@@ -40,12 +43,13 @@ namespace Shoko.Server.API
 
         public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
         {
+            if (!ServerState.Instance.ServerOnline)
+                return InitUser.Instance;
+
             if (!(identity?.Identity?.IsAuthenticated ?? false)) return null;
 
             var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (nameIdentifier == null) return null;
-
-            return RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
+            return nameIdentifier == null ? null : RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
         }
 
         public static SVR_JMMUser GetUser(this HttpContext ctx) => ctx.User.GetUser();
