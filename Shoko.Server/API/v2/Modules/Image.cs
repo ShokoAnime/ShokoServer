@@ -361,7 +361,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="type">image type</param>
         /// <returns>image body inside stream</returns>
-        [HttpGet("random/{type}")]
+        [HttpGet("{type}/random")]
         public FileResult GetRandomImage(int type)
         {
             string path = GetRandomImagePath(type);
