@@ -464,7 +464,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>200 if connection successful, 400 otherwise</returns>
         [Authorize("init")]
         [HttpGet("database/test")]
-        public ActionResult<APIMessage> TestDatabaseConnection()
+        public APIMessage TestDatabaseConnection()
         {
             if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
                 return APIStatus.OK();

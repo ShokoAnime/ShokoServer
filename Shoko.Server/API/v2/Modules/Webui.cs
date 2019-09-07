@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -305,7 +306,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
             else
-                return APIStatus.NotFound();
+                return new APIMessage(HttpStatusCode.NoContent, "");
         }
 
         /// <summary>
