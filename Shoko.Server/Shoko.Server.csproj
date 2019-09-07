@@ -1000,6 +1000,7 @@
     <Compile Include="API\Resolvers\EmitEmptyEnumerableInsteadOfNullResolver.cs" />
     <Compile Include="API\Resolvers\OmitEmptyEnumerableResolver.cs" />
     <Compile Include="API\RestController.cs" />
+    <Compile Include="API\SignalR\EventEmitter.cs" />
     <Compile Include="API\SignalR\EventsHub.cs" />
     <Compile Include="API\Startup.cs" />
     <Compile Include="API\UserHandler.cs" />
