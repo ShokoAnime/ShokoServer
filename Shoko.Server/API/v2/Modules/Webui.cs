@@ -174,6 +174,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("latest/stable")]
+        [HttpGet("latest")]
         public ComponentVersion WebUILatestStableVersion()
         {
             ComponentVersion version = new ComponentVersion();
@@ -306,7 +307,7 @@ namespace Shoko.Server.API.v2.Modules
                 }
             }
             else
-                return new APIMessage(HttpStatusCode.NoContent, "");
+                return APIStatus.OK();
         }
 
         /// <summary>

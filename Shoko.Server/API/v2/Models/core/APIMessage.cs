@@ -59,6 +59,7 @@ namespace Shoko.Server.API.v2.Models.core
         {
             context.HttpContext.Response.StatusCode = code;
             context.HttpContext.Response.ContentType = "application/json";
+            if (code == (int) HttpStatusCode.NoContent) return;
 
             var serializer = new JsonSerializer();
             using (StreamWriter writer = new StreamWriter(context.HttpContext.Response.Body))
