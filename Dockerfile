@@ -1,8 +1,10 @@
-FROM mono:5.20
+FROM mono:6.0
+
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 ENV PUID=1000 \
-    PGID=100
+    PGID=100  \ 
+    FrameworkPathOverride=/usr/lib/mono/
 
 RUN apt-get update && apt-get install -y --force-yes gnupg curl
 
@@ -19,7 +21,7 @@ RUN mv /usr/src/app/source/dockerentry.sh /dockerentry.sh
 
 ADD https://github.com/NuGet/Home/releases/download/3.3/NuGet.exe .
 RUN mono NuGet.exe restore
-RUN xbuild /property:Configuration=CLI /property:OutDir=/usr/src/app/build/
+RUN msbuild /property:Configuration=CLI /property:OutDir=/usr/src/app/build/
 RUN rm -rf /usr/src/app/source
 RUN rm /usr/src/app/build/System.Net.Http.dll
 
