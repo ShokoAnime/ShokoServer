@@ -5,7 +5,6 @@ ENV PUID=1000 \
     PGID=100  \ 
     TargetFrameworkDirectory=/usr/lib/mono/
 
-RUN apt-get install apt
 RUN apt-get update && apt-get install -y gnupg curl wget
 
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
