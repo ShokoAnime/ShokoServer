@@ -41,5 +41,4 @@ HEALTHCHECK --start-period=5m CMD curl -H "Content-Type: application/json" -H 'A
 
 EXPOSE 8111
 
-ENTRYPOINT /bin/bash /dockerentry.sh 
-
+ENTRYPOINT /bin/bash /dockerentry.sh
