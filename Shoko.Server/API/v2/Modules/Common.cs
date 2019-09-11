@@ -381,20 +381,26 @@ namespace Shoko.Server.API.v2.Modules
             var client = new WebClient();
             client.Headers.Add("User-Agent", "jmmserver");
             client.Headers.Add("Accept", "application/json");
-            var response = client.DownloadString(new Uri("http://shokoanime.com/wp-json/wp/v2/posts"));
-            List<dynamic> news_feed = JsonConvert.DeserializeObject<List<dynamic>>(response);
+            var response = client.DownloadString(new Uri("https://shokoanime.com/feed.json"));
+            dynamic news_feed = JsonConvert.DeserializeObject<dynamic>(response);
             List<WebNews> news = new List<WebNews>();
             int limit = 0;
-            foreach (dynamic post in news_feed)
+            foreach (dynamic post in news_feed.items)
             {
                 limit++;
+                string post_author = "shoko team";
+                if ((string)post.author != "")
+                {
+                    post_author = (string)post.author;
+                }
+
                 WebNews wn = new WebNews
                 {
-                    author = post.author,
-                    date = post.date,
-                    link = post.link,
-                    title = HttpUtility.HtmlDecode((string)post.title.rendered),
-                    description = post.excerpt.rendered
+                    author = post_author,
+                    date = post.date_published,
+                    link = post.url,
+                    title = HttpUtility.HtmlDecode((string)post.title),
+                    description = post.content_text
                 };
                 news.Add(wn);
                 if (limit >= max) break;
