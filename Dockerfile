@@ -19,12 +19,11 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 2
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
-RUN mv /usr/src/app/source/dockerentry.sh /dockerentry.sh
+
 
 #ADD https://github.com/NuGet/Home/releases/download/3.3/NuGet.exe .
 RUN nuget restore
 RUN msbuild /property:Configuration=CLI /property:OutDir=/usr/src/app/build/
-RUN rm -rf /usr/src/app/source
 RUN rm /usr/src/app/build/System.Net.Http.dll
 
 FROM mono:6.0
@@ -42,6 +41,7 @@ RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sql
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .
+COPY ./dockerentry.sh /dockerentry.sh
 
 WORKDIR /usr/src/app/build/webui
 #RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '. | map(select(.prerelease==false)) | .[0].assets[0].browser_download_url') -o latest.zip
