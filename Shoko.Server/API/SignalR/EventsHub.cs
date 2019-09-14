@@ -15,23 +15,6 @@ namespace Shoko.Server.API.SignalR
         public EventsHub(EventEmitter eventEmitter)
         {
             _eventEmitter = eventEmitter;
-            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("images", e);
-
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("images", e);
-        }
-
-        private async void OnQueueStateChangedEvent(string queue, QueueStateEventArgs e)
-        {
-            await _eventEmitter.QueueStateChanged(queue, e);
-        }
-
-        private async void OnQueueCountChangedEvent(string queue, Commands.QueueCountEventArgs ev)
-        {
-            await _eventEmitter.QueueCountChanged(queue, ev);
         }
 
         public void ChangeQueueProcessingState(string queue, bool paused)
