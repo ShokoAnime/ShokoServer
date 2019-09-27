@@ -488,7 +488,17 @@ namespace Shoko.Server
         void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
         {
             logger.Info("Started thread for processing file events");
-            foreach (FileSystemEventArgs evt in queueFileEvents)
+            FileSystemEventArgs evt;
+            try
+            {
+                evt = queueFileEvents.GetNextItem();
+            }
+            catch (Exception exception)
+            {
+                logger.Error(exception);
+                evt = null;
+            }
+            while(evt != null)
             {
                 try
                 {
@@ -545,6 +555,15 @@ namespace Shoko.Server
                         }
                     }
                     queueFileEvents.Remove(evt);
+                    try
+                    {
+                        evt = queueFileEvents.GetNextItem();
+                    }
+                    catch (Exception exception)
+                    {
+                        logger.Error(exception);
+                        evt = null;
+                    }
                 }
                 catch (Exception ex)
                 {
