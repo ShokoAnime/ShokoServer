@@ -162,7 +162,7 @@ namespace Shoko.Server.Commands
                     if (crossRefs == null || crossRefs.Count == 0)
                     {
                         // lets see if we can find the episode/anime info from the web cache
-                        if (ServerSettings.Instance.WebCache.XRefFileEpisode_Get)
+                        if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.XRefFileEpisode_Get)
                         {
                             List<Azure_CrossRef_File_Episode> xrefs =
                                 AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);

@@ -1154,13 +1154,6 @@ namespace Shoko.Server
             if (getAnimeCmd.Anime != null)
             {
                 return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth);
-                //this endpoint is not working, so comenting...
-/*
-                if (forceRefresh)
-                {
-                    CommandRequest_Azure_SendAnimeFull cmdAzure = new CommandRequest_Azure_SendAnimeFull(anime.AnimeID);
-                    cmdAzure.Save(session);
-                }*/
             }
 
             logger.Error($"Failed get anime info for {animeID}. Anime was null");

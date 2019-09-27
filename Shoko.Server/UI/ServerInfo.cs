@@ -122,6 +122,8 @@ namespace Shoko.Server
 
             try
             {
+                AdminMessagesAvailable = false;
+                if (!ServerSettings.Instance.WebCache.Enabled) return; 
                 List<Azure_AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
                 if (msgs == null || msgs.Count == 0)
                 {

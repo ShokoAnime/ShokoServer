@@ -255,6 +255,7 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Instance.WebCache.Enabled) return new List<Azure_CrossRef_AniDB_TvDB>();
                 return AzureWebAPI.Get_CrossRefAniDBTvDB(animeID);
             }
             catch (Exception ex)
@@ -368,6 +369,7 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Instance.WebCache.Enabled) return "The WebCache is disabled.";
                 if (links.Count == 0) return "No links were given in the request. This is a bug.";
 
                 var link = links[0];
@@ -632,6 +634,7 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Instance.WebCache.Enabled) return new List<Azure_CrossRef_AniDB_Trakt>();
                 return AzureWebAPI.Get_CrossRefAniDBTrakt(animeID);
             }
             catch (Exception ex)
@@ -1056,6 +1059,7 @@ namespace Shoko.Server
         {
             try
             {
+                if (!ServerSettings.Instance.WebCache.Enabled) return new CL_CrossRef_AniDB_Other_Response();
                 return AzureWebAPI.Get_CrossRefAniDBOther(animeID, (CrossRefType) crossRefType);
             }
             catch (Exception ex)

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
 using NutzCode.CloudFileSystem;
+using Shoko.Server.Settings;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 
@@ -672,7 +673,16 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         p.Streams = streams;
                     });
                     mediaInfoThread.Start();
-                    bool finished = mediaInfoThread.Join(TimeSpan.FromMinutes(5)); //TODO Move Timeout to settings
+                    int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+                    bool finished;
+                    if (timeout > 0)
+                    {
+                        finished = mediaInfoThread.Join(TimeSpan.FromMinutes(timeout));
+                    } else
+                    {
+                        mediaInfoThread.Join();
+                        finished = true;
+                    }
                     if (!finished)
                     {
                         try
@@ -693,7 +703,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                         }
                         return null;
                     }
-                    if ((p.Container == "mp4") || (p.Container == "mov"))
+                    if (p.Container == "mp4" || p.Container == "mov")
                     {
                         p.Has64bitOffsets = 0;
                         p.OptimizedForStreaming = 0;
@@ -734,7 +744,17 @@ namespace Shoko.Server.FileHelper.MediaInfo
             }
             finally
             {
-                minstance?.Close();
+                try
+                {
+                    minstance?.Close();
+                    CloseMediaInfo();
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                minstance = null;
 
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();

@@ -25,8 +25,10 @@ namespace Shoko.Server.Settings
 
         public bool AggressiveFileLockChecking { get; set; } = true;
 
-        public int FileLockWaitTime { get; set; } = 4000;
+        public int FileLockWaitTimeMS { get; set; } = 4000;
 
-        public int AggressiveFileLockWaitTime { get; set; } = 8;
+        public int AggressiveFileLockWaitTimeSeconds { get; set; } = 8;
+
+        public int MediaInfoTimeoutMinutes { get; set; } = 5;
     }
 }

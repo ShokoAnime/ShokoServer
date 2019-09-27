@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Xml;
-using ICSharpCode.SharpZipLib.GZip;
 using Shoko.Commons.Queue;
-using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands.Azure;
 
 namespace Shoko.Server.Commands
 {

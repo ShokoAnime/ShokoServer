@@ -349,11 +349,16 @@ namespace Shoko.Server.Models
                     logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                     return false;
                 }
-                List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
-                if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
+
+                if (ServerSettings.Instance.WebCache.Enabled)
                 {
-                    m = webmedias.FirstOrDefault(a => a != null).ToMedia();
+                    List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
+                    if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
+                    {
+                        m = webmedias.FirstOrDefault(a => a != null).ToMedia();
+                    }
                 }
+
                 if (m == null && FullServerPath != null)
                 {
                     if (GetFile() == null)
@@ -368,7 +373,7 @@ namespace Shoko.Server.Models
                     m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
                     if ((m?.Duration ?? 0) == 0)
                         m = null;
-                    if (m != null)
+                    if (m != null && ServerSettings.Instance.WebCache.Enabled)
                         AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);
                 }
 

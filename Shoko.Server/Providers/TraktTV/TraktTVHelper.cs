@@ -468,7 +468,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
+            if (ServerSettings.Instance.WebCache.Enabled && !excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
             {
                 CommandRequest_WebCacheSendXRefAniDBTrakt req =
                     new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
@@ -491,7 +491,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            if (ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
+            if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
             {
                 CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
                     new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,

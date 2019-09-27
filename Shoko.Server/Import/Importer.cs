@@ -115,12 +115,14 @@ namespace Shoko.Server
 
         public static void SyncMedia()
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
             AzureWebAPI.Send_Media(allfiles);
         }
 
         public static void SyncHashes()
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             bool paused = ShokoService.CmdProcessorHasher.Paused;
             ShokoService.CmdProcessorHasher.Paused = true;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -1225,6 +1227,7 @@ namespace Shoko.Server
 
         public static void SendUserInfoUpdate(bool forceRefresh)
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             // update the anonymous user info every 12 hours
             // we will always assume that an anime was downloaded via http first
 

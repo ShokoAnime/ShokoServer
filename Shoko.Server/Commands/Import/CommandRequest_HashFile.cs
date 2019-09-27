@@ -172,10 +172,10 @@ namespace Shoko.Server.Commands
                     bool aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking;
                     
                     // At least 1s between to ensure that size has the chance to change
-                    int waitTime = ServerSettings.Instance.Import.FileLockWaitTime;
+                    int waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
                     if (waitTime < 1000)
                     {
-                        waitTime = ServerSettings.Instance.Import.FileLockWaitTime = 4000;
+                        waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS = 4000;
                         ServerSettings.Instance.SaveSettings();
                     }
 
@@ -208,10 +208,10 @@ namespace Shoko.Server.Commands
                             return;
                         }
 
-                        int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTime;
+                        int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds;
                         if (seconds < 0)
                         {
-                            seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTime = 8;
+                            seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds = 8;
                             ServerSettings.Instance.SaveSettings();
                         }
 
@@ -557,7 +557,7 @@ namespace Shoko.Server.Commands
                     vlocal.MD5 = hashes.MD5?.ToUpperInvariant();
                 if (needcrc32)
                     vlocal.CRC32 = hashes.CRC32?.ToUpperInvariant();
-                AzureWebAPI.Send_FileHash(new List<SVR_VideoLocal> {vlocal});
+                if (ServerSettings.Instance.WebCache.Enabled) AzureWebAPI.Send_FileHash(new List<SVR_VideoLocal> {vlocal});
             }
         }
 
@@ -653,6 +653,7 @@ namespace Shoko.Server.Commands
 
         private void FillHashesAgainstWebCache(SVR_VideoLocal v)
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return;
             if (!string.IsNullOrEmpty(v.ED2KHash))
             {
                 List<Azure_FileHash> ls = AzureWebAPI.Get_FileHash(FileHashType.ED2K, v.ED2KHash) ??

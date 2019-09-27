@@ -633,10 +633,13 @@ namespace Shoko.Server
                             return "Cannot remove associations created from AniDB data";
 
                         // delete cross ref from web cache
-                        CommandRequest_WebCacheDeleteXRefFileEpisode cr =
-                            new CommandRequest_WebCacheDeleteXRefFileEpisode(vid.Hash,
-                                ep.AniDB_EpisodeID);
-                        cr.Save();
+                        if (ServerSettings.Instance.WebCache.Enabled)
+                        {
+                            CommandRequest_WebCacheDeleteXRefFileEpisode cr =
+                                new CommandRequest_WebCacheDeleteXRefFileEpisode(vid.Hash,
+                                    ep.AniDB_EpisodeID);
+                            cr.Save();
+                        }
 
                         RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
                     }

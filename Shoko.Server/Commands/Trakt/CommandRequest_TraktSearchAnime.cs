@@ -59,7 +59,7 @@ namespace Shoko.Server.Commands
                     bool doReturn = false;
 
                     // first check if the user wants to use the web cache
-                    if (ServerSettings.Instance.WebCache.Trakt_Get)
+                    if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.Trakt_Get)
                     {
                         try
                         {

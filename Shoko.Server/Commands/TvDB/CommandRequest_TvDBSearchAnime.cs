@@ -52,7 +52,7 @@ namespace Shoko.Server.Commands
             try
             {
                 // first check if the user wants to use the web cache
-                if (ServerSettings.Instance.WebCache.TvDB_Get)
+                if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.TvDB_Get)
                 {
                     try
                     {
