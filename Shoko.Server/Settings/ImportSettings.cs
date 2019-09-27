@@ -20,5 +20,13 @@ namespace Shoko.Server.Settings
         public bool Hash_SHA1 { get; set; } = false;
 
         public bool UseExistingFileWatchedStatus { get; set; } = true;
+
+        public bool FileLockChecking { get; set; } = true;
+
+        public bool AggressiveFileLockChecking { get; set; } = true;
+
+        public int FileLockWaitTime { get; set; } = 4000;
+
+        public int AggressiveFileLockWaitTime { get; set; } = 8;
     }
 }

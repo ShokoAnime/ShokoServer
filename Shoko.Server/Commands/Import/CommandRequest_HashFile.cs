@@ -16,6 +16,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
 {
@@ -162,53 +163,82 @@ namespace Shoko.Server.Commands
                     return;
                 }
 
-                int numAttempts = 0;
-                bool writeAccess = folder.IsDropSource == 1;
-
-                // Wait 1 minute before giving up on trying to access the file
-                // first only do read to not get in something's way
-                while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && (numAttempts < 60))
+                if (ServerSettings.Instance.Import.FileLockChecking)
                 {
-                    numAttempts++;
-                    Thread.Sleep(1000);
-                    logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
-                }
 
-                // if we failed to access the file, get ouuta here
-                if (numAttempts >= 60)
-                {
-                    logger.Error("Could not access file: " + FileName);
-                    logger.Error(e);
-                    return;
-                }
+                    int numAttempts = 0;
+                    bool writeAccess = folder.IsDropSource == 1;
 
-                // At least 1s between to ensure that size has the chance to change
-                // TODO make this a setting to allow fine tuning on various configs
-                // TODO Make this able to be disabled. It adds 1.5s to hashing just waiting for the Linux/NAS use case
-                int seconds = 8;
-                int waitTime = seconds * 1000 / 2;
-                Thread.Sleep(waitTime);
-                numAttempts = 0;
+                    bool aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking;
+                    
+                    // At least 1s between to ensure that size has the chance to change
+                    int waitTime = ServerSettings.Instance.Import.FileLockWaitTime;
+                    if (waitTime < 1000)
+                    {
+                        waitTime = ServerSettings.Instance.Import.FileLockWaitTime = 4000;
+                        ServerSettings.Instance.SaveSettings();
+                    }
 
-                //For systems with no locking
-                // TODO make this a setting as well
-                while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
-                {
-                    numAttempts++;
-                    Thread.Sleep(waitTime);
-                    // Only show if it's more than 'seconds' past
-                    if (numAttempts != 0 && numAttempts * 2 % seconds == 0) logger.Warn($@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
-                }
-                
-                // if we failed to access the file, get ouuta here
-                if (numAttempts >= 60 || filesize == 0)
-                {
-                    logger.Error("Could not access file: " + FileName);
-                    logger.Error(e);
-                    return;
+                    if (!aggressive)
+                    {
+                        // Wait 1 minute before giving up on trying to access the file
+                        while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && (numAttempts < 60))
+                        {
+                            numAttempts++;
+                            Thread.Sleep(waitTime);
+                            logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                        }
+                    }
+                    else
+                    {
+                        // Wait 1 minute before giving up on trying to access the file
+                        // first only do read to not get in something's way
+                        while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && (numAttempts < 60))
+                        {
+                            numAttempts++;
+                            Thread.Sleep(1000);
+                            logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                        }
+
+                        // if we failed to access the file, get ouuta here
+                        if (numAttempts >= 60)
+                        {
+                            logger.Error("Could not access file: " + FileName);
+                            logger.Error(e);
+                            return;
+                        }
+
+                        int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTime;
+                        if (seconds < 0)
+                        {
+                            seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTime = 8;
+                            ServerSettings.Instance.SaveSettings();
+                        }
+
+                        Thread.Sleep(waitTime);
+                        numAttempts = 0;
+
+                        //For systems with no locking
+                        while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
+                        {
+                            numAttempts++;
+                            Thread.Sleep(waitTime);
+                            // Only show if it's more than 'seconds' past
+                            if (numAttempts != 0 && numAttempts * 2 % seconds == 0)
+                                logger.Warn(
+                                    $@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
+                        }
+                    }
+
+                    // if we failed to access the file, get ouuta here
+                    if (numAttempts >= 60 || filesize == 0)
+                    {
+                        logger.Error("Could not access file: " + FileName);
+                        logger.Error(e);
+                        return;
+                    }
                 }
             }
-
 
             FileSystemResult<IObject> source = f.Resolve(FileName);
             if (source == null || !source.IsOk || !(source.Result is IFile))
