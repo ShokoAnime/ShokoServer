@@ -6,11 +6,13 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -167,8 +169,38 @@ namespace Shoko.Server.API.v2.Modules
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="jsonSettings"></param>
+        /// <returns></returns>
         [HttpPost("config/set")]
-        public ActionResult<List<APIMessage>> SetSetting(Setting setting) => SetSetting(new List<Setting> { setting });
+        public ActionResult<List<APIMessage>> SetSetting(string jsonSettings)
+        {
+            List<APIMessage> outputs = new List<APIMessage>();
+            if (!CanDeserialize<ServerSettings>(jsonSettings))
+            {
+                outputs.Add(APIStatus.BadRequest("Please pass a valid ServerSettings object"));
+                HttpContext.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                return outputs;
+            }
+
+            dynamic tree = JsonConvert.DeserializeObject(jsonSettings);
+            foreach (PropertyDescriptor prop in TypeDescriptor.GetProperties(tree))
+            {
+                var settingsProps = typeof(ServerSettings).GetProperties();
+                if (!settingsProps.Any(a => a.Name.EqualsInvariantIgnoreCase(prop.Name)))
+                {
+                    outputs.Add(new APIMessage(400, $"{prop.Name} was not found in ServerSettings"));
+                    continue;
+                }
+
+                var matchedProp = settingsProps.FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase(prop.Name));
+                
+            }
+
+            return APIStatus.OK();
+        }
 
         /// <summary>
         /// Set given setting

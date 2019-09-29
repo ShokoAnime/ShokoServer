@@ -5,6 +5,7 @@ using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Newtonsoft.Json;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API
@@ -28,6 +29,19 @@ namespace Shoko.Server.API
         {
             if (message == null) return StatusCode(StatusCodes.Status500InternalServerError);
             return StatusCode(StatusCodes.Status500InternalServerError, message);
+        }
+
+        protected static bool CanDeserialize<T>(string jsonObject) where T : class
+        {
+            try
+            {
+                T _ = JsonConvert.DeserializeObject<T>(jsonObject);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
