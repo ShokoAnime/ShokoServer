@@ -97,6 +97,7 @@ namespace Shoko.Server.API.v3
             {
                 gf = RepoFactory.GroupFilter.GetByID(filter.IDs.ID);
                 if (gf == null) return BadRequest("No Filter with ID");
+                if (gf.Locked == 1) return BadRequest("Filter is Locked");
             }
             gf = filter.ToServerModel(gf);
             gf.CalculateGroupsAndSeries();

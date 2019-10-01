@@ -89,7 +89,7 @@ namespace Shoko.Server.API.v3
             if (anime != null) ids.AniDB = anime.AnimeID;
             // TvDB
             var tvdbs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
-            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID));
+            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID).Distinct());
             // TODO Cache the rest of these, so that they don't severely slow down the API
             // MovieDB
             // TODO make this able to support more than one, in fact move it to its own and remove CrossRef_Other
@@ -198,11 +198,15 @@ namespace Shoko.Server.API.v3
                     tags.Add(new Tag { Name = filteredTag });
                     continue;
                 }
+                
                 var toAPI = new Tag
                 {
                     Name = tag.TagName
                 };
+                var animeXRef = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault();
+                if (animeXRef != null) toAPI.Weight = animeXRef.Weight;
                 if (!excludeDescriptions) toAPI.Description = tag.TagDescription;
+
                 tags.Add(toAPI);
             }
             
@@ -233,13 +237,13 @@ namespace Shoko.Server.API.v3
             {
                 var airdate = anime.AirDate.Value;
                 if (airdate != DateTime.MinValue)
-                    aniDB.AirDate = airdate.ToString("yyyy-MM-dd");
+                    aniDB.AirDate = airdate;
             }
             if (anime.EndDate != null)
             {
                 var enddate = anime.EndDate.Value;
                 if (enddate != DateTime.MinValue)
-                    aniDB.EndDate = enddate.ToString("yyyy-MM-dd");
+                    aniDB.EndDate = enddate;
             }
             
             // Add Poster
@@ -284,8 +288,8 @@ namespace Shoko.Server.API.v3
                     ?.TvDBEpisode;
 
                 model.Season = firstEp?.SeasonNumber;
-                model.AirDate = firstEp?.AirDate?.ToString("yyyy-MM-dd");
-                model.EndDate = lastEp?.AirDate?.ToString("yyyy-MM-dd");
+                model.AirDate = firstEp?.AirDate;
+                model.EndDate = lastEp?.AirDate;
                 
                 models.Add(model);
             }
@@ -394,15 +398,15 @@ namespace Shoko.Server.API.v3
             public bool Restricted { get; set; }
 
             /// <summary>
-            /// Air date (2013-02-27, shut up avael)
+            /// Air date (2013-02-27, shut up avael). Anything without an air date is going to be missing a lot of info.
             /// </summary>
             [Required]
-            public string AirDate { get; set; }
+            public DateTime? AirDate { get; set; }
 
             /// <summary>
-            /// End date, can be null. Null means that it's still airing (2013-02-27)
+            /// End date, can be omitted. Omitted means that it's still airing (2013-02-27)
             /// </summary>
-            public string EndDate { get; set; }
+            public DateTime? EndDate { get; set; }
 
             /// <summary>
             /// There should always be at least one of these, since name will be valid
@@ -440,12 +444,12 @@ namespace Shoko.Server.API.v3
             /// <summary>
             /// Air date (2013-02-27, shut up avael)
             /// </summary>
-            public string AirDate { get; set; }
+            public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be null. Null means that it's still airing (2013-02-27)
             /// </summary>
-            public string EndDate { get; set; }
+            public DateTime? EndDate { get; set; }
 
             /// <summary>
             /// TvDB only supports one title

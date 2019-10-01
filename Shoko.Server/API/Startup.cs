@@ -113,6 +113,7 @@ namespace Shoko.Server.API
                     };
                     json.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
                     json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
+                    json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
                 });
 
             services.AddApiVersioning(o =>

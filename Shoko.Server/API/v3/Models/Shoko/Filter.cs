@@ -33,9 +33,9 @@ namespace Shoko.Server.API.v3
         public bool ApplyAtSeriesLevel { get; set; }
         
         /// <summary>
-        /// The Group Filter Type. This is a flag to determine certain things, like if it's a directory filter
+        /// Directory Filters have subfilters
         /// </summary>
-        public GroupFilterType Type { get; set; }
+        public bool Directory { get; set; }
         
         /// <summary>
         /// This determines whether to hide the filter in API queries. Things with this need to be explicitly asked for
@@ -49,11 +49,11 @@ namespace Shoko.Server.API.v3
             IDs = new IDs {ID = gf.GroupFilterID};
             Name = gf.GroupFilterName;
             SVR_JMMUser user = ctx.GetUser();
-            Type = (GroupFilterType) gf.FilterType;
+            Directory = ((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory);
             // This can be used to exclude from client visibility for user
             Size = gf.GroupsIds.ContainsKey(user.JMMUserID) ? gf.GroupsIds[user.JMMUserID].Count : 0;
-            if (Size == 0 && Type.HasFlag(GroupFilterType.Directory))
-                Size = RepoFactory.GroupFilter.GetByParentID(gf.GroupFilterID).Count;
+            if (Directory)
+                Size += RepoFactory.GroupFilter.GetByParentID(gf.GroupFilterID).Count;
 
             ApplyAtSeriesLevel = gf.ApplyToSeries == 1;
             
@@ -184,7 +184,7 @@ namespace Shoko.Server.API.v3
             {
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {
-                    FilterType = (int) Type,
+                    FilterType = Directory ? (int) (GroupFilterType.UserDefined | GroupFilterType.Directory) : (int) GroupFilterType.UserDefined,
                     ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0,
                     GroupFilterName = Name,
                     InvisibleInClients = HideInAPI ? 1 : 0,
