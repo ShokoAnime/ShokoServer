@@ -23,8 +23,8 @@ namespace Shoko.Server.Repositories
         public static CloudAccountRepository CloudAccount { get; } = CloudAccountRepository.Create();
         public static ImportFolderRepository ImportFolder { get; } = ImportFolderRepository.Create();
         public static AniDB_AnimeRepository AniDB_Anime { get; } = AniDB_AnimeRepository.Create();
-        public static AniDB_EpisodeRepository AniDB_Episode { get; } = AniDB_EpisodeRepository.Create();
         public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; } = AniDB_Episode_TitleRepository.Create();
+        public static AniDB_EpisodeRepository AniDB_Episode { get; } = AniDB_EpisodeRepository.Create();
         public static AniDB_FileRepository AniDB_File { get; } = AniDB_FileRepository.Create();
         public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = AniDB_Anime_TitleRepository.Create();
         public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = AniDB_Anime_TagRepository.Create();

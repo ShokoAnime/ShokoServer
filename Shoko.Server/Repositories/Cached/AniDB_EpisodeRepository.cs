@@ -10,6 +10,7 @@ using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
@@ -46,6 +47,7 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
+            DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
         }
 
 

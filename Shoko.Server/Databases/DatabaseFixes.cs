@@ -312,7 +312,8 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            var specials = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.GetEnglishTitle()))
+            var specials = RepoFactory.AniDB_Episode.GetAll()
+                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any())
                 .Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
             int count = 0;
             foreach (int animeID in specials)

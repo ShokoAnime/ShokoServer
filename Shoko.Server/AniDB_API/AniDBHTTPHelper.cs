@@ -342,14 +342,6 @@ namespace AniDBAPI
             return result;
         }
 
-        public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
-        {
-            XmlDocument docAnime = GetAnimeXMLFromAPI(animeID);
-            if (docAnime == null)
-                return null;
-            return ProcessEpisodes(docAnime, animeID);
-        }
-
         public static List<Raw_AniDB_Tag> ProcessTags(XmlDocument docAnime, int animeID)
         {
             List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();

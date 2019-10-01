@@ -1737,6 +1737,8 @@
   <ItemGroup>
     <Resource Include="API\readme.txt" />
     <Content Include="API\v3\README.md" />
+    <Content Include="Providers\AniDB\Models\Readme.md" />
+    <Content Include="Providers\AniDB\Readme.md" />
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
