@@ -150,23 +150,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpPost("config/get")]
         public ActionResult<Setting> GetSetting(Setting setting)
         {
-            try
-            {
-                // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
-                var value = typeof(ServerSettings).GetProperty(setting.setting)?.GetValue(null, null);
-                if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
-
-                return new Setting
-                {
-                    setting = setting.setting,
-                    value = value.ToString()
-                };
-            }
-            catch
-            {
-                return APIStatus.InternalError();
-            }
+            return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
         }
 
         /// <summary>
@@ -175,31 +159,9 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="jsonSettings"></param>
         /// <returns></returns>
         [HttpPost("config/set")]
-        public ActionResult<List<APIMessage>> SetSetting(string jsonSettings)
+        public ActionResult SetSetting(string jsonSettings)
         {
-            List<APIMessage> outputs = new List<APIMessage>();
-            if (!CanDeserialize<ServerSettings>(jsonSettings))
-            {
-                outputs.Add(APIStatus.BadRequest("Please pass a valid ServerSettings object"));
-                HttpContext.Response.StatusCode = (int) HttpStatusCode.BadRequest;
-                return outputs;
-            }
-
-            dynamic tree = JsonConvert.DeserializeObject(jsonSettings);
-            foreach (PropertyDescriptor prop in TypeDescriptor.GetProperties(tree))
-            {
-                var settingsProps = typeof(ServerSettings).GetProperties();
-                if (!settingsProps.Any(a => a.Name.EqualsInvariantIgnoreCase(prop.Name)))
-                {
-                    outputs.Add(new APIMessage(400, $"{prop.Name} was not found in ServerSettings"));
-                    continue;
-                }
-
-                var matchedProp = settingsProps.FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase(prop.Name));
-                
-            }
-
-            return APIStatus.OK();
+            return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's JsonPatch implementation'");
         }
 
         /// <summary>
@@ -207,74 +169,9 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpPost("config/setmultiple")]
-        public ActionResult<List<APIMessage>> SetSetting(List<Setting> settings)
+        public ActionResult SetSetting(List<Setting> settings)
         {
-            // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-            try
-            {
-                List<APIMessage> errors = new List<APIMessage>();
-                for (var index = 0; index < settings.Count; index++)
-                {
-                    var setting = settings[index];
-                    if (string.IsNullOrEmpty(setting.setting))
-                    {
-                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
-                        continue;
-                    }
-
-                    if (setting.value == null)
-                    {
-                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
-                        continue;
-                    }
-
-                    var property = typeof(ServerSettings).GetProperty(setting.setting);
-                    if (property == null)
-                    {
-                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
-                        continue;
-                    }
-
-                    if (!property.CanWrite)
-                    {
-                        errors.Add(APIStatus.BadRequest($"{index}: An invalid setting was passed"));
-                        continue;
-                    }
-                    var settingType = property.PropertyType;
-                    try
-                    {
-                        var converter = TypeDescriptor.GetConverter(settingType);
-                        if (!converter.CanConvertFrom(typeof(string)))
-                        {
-                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
-                            continue;
-                        }
-                        var value = converter.ConvertFromInvariantString(setting.value);
-                        if (value == null)
-                        {
-                            errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
-                            continue;
-                        }
-                        property.SetValue(null, value);
-                    }
-                    catch
-                    {
-                        errors.Add(APIStatus.BadRequest($"{index}: An invalid value was passed"));
-                    }
-                }
-
-                if (errors.Count > 0)
-                {
-                    HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    return errors;
-                }
-
-                return APIStatus.OK();
-            }
-            catch
-            {
-                return APIStatus.InternalError();
-            }
+            return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's JsonPatch implementation'");
         }
 
         #endregion

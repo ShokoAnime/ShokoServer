@@ -15,6 +15,7 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
+using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper.MediaInfo;
 using Shoko.Server.FileHelper.Subtitles;
@@ -424,6 +425,7 @@ namespace Shoko.Server.Models
             return false;
         }
 
+        [Obsolete]
         public (bool, string) RemoveAndDeleteFile(bool deleteFolder = true)
         {
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
@@ -488,6 +490,60 @@ namespace Shoko.Server.Models
                 logger.Error(ex, ex.ToString());
                 return (false, ex.Message);
             }
+        }
+        
+        public void RemoveRecordAndDeletePhysicalFile(bool deleteFolder = true)
+        {
+            logger.Info("Deleting video local place record and file: {0}", (FullServerPath ?? VideoLocal_Place_ID.ToString()));
+            IFileSystem fileSystem = ImportFolder?.FileSystem;
+            if (fileSystem == null)
+            {
+                logger.Info("Unable to delete file, filesystem not found. Removing record.");
+                RemoveRecord();
+                return;
+            }
+            if (FullServerPath == null)
+            {
+                logger.Info("Unable to delete file, fullserverpath is null. Removing record.");
+                RemoveRecord();
+                return;
+            }
+            FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
+            if (fr == null || !fr.IsOk)
+            {
+                logger.Info($"Unable to find file. Removing Record: {FullServerPath}");
+                RemoveRecord();
+                return;
+            }
+            if (!(fr.Result is IFile file))
+            {
+                logger.Info($"Seems '{FullServerPath}' is a directory. Removing Record");
+                RemoveRecord();
+                return;
+            }
+
+            try
+            {
+                FileSystemResult fs = file.Delete(false);
+                if (fs == null || !fs.IsOk)
+                {
+                    logger.Error($"Unable to delete file '{FullServerPath}': {fs?.Error ?? "No Error Message"}");
+                    throw new CloudFilesystemException($"Unable to delete file '{FullServerPath}'");
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                if (deleteFolder) RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
+                RemoveRecord();
+                return;
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
+                throw ex;
+            }
+            if (deleteFolder) RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
+            RemoveRecord();
         }
 
         public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeEpisode> episodesToUpdate, HashSet<SVR_AnimeSeries> seriesToUpdate)

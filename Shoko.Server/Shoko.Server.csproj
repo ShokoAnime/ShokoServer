@@ -1056,6 +1056,7 @@
     <Compile Include="API\v3\Controllers\ImageController.cs" />
     <Compile Include="API\v3\Controllers\ImportFolderController.cs" />
     <Compile Include="API\v3\Controllers\SeriesController.cs" />
+    <Compile Include="API\v3\Controllers\SettingsController.cs" />
     <Compile Include="API\v3\Controllers\TreeController.cs" />
     <Compile Include="API\v3\Helpers\APIGroupFilterSortingHelper.cs" />
     <Compile Include="API\v3\Helpers\ModelHelper.cs" />
@@ -1084,6 +1085,7 @@
     <Compile Include="Commands\MovieDB\CommandRequest_MovieDBSearchAnime.cs" />
     <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
     <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateEpisode.cs" />
+    <Compile Include="Exceptions\CloudFilesystemException.cs" />
     <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
     <Compile Include="Extensions\ModelDatabase.cs" />
     <Compile Include="Extensions\ModelClients.cs" />
