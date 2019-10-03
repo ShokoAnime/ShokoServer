@@ -47,7 +47,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
         }
 
 

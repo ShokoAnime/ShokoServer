@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -42,6 +43,8 @@ namespace AniDBAPI
 
         [ScriptIgnore, JsonIgnore, XmlIgnore]
         public bool IsValid { get; private set; }
+
+        public List<AniDB_Episode_Title> Titles = new List<AniDB_Episode_Title>();
 
         public Raw_AniDB_Episode()
         {
@@ -104,13 +107,11 @@ namespace AniDBAPI
                 if (string.IsNullOrEmpty(language)) continue;
                 string title = nodeChild.InnerText.Trim().Replace('`', '\'');
 
-                AniDB_Episode_Title episodeTitle =
-                    RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(id, language).FirstOrDefault() ??
-                    new AniDB_Episode_Title ();
-                episodeTitle.AniDB_EpisodeID = id;
-                episodeTitle.Language = language;
-                episodeTitle.Title = title;
-                RepoFactory.AniDB_Episode_Title.Save(episodeTitle);
+                AniDB_Episode_Title episodeTitle = new AniDB_Episode_Title
+                {
+                    AniDB_EpisodeID = id, Language = language, Title = title
+                };
+                Titles.Add(episodeTitle);
             }
 
             string adate = AniDBHTTPHelper.TryGetProperty(node, "airdate");

@@ -751,14 +751,14 @@ namespace Shoko.Server
                 ServerState.Instance.DatabaseAvailable = true;
 
                 logger.Info("Initializing Session Factory...");
-
-                Scanner.Instance.Init();
-
-
                 //init session factory
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingSession;
-                ISessionFactory temp = DatabaseFactory.SessionFactory;
+                ISessionFactory _ = DatabaseFactory.SessionFactory;
 
+                // We need too much of the database initialized to do this anywhere else.
+                DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
+
+                Scanner.Instance.Init();
 
                 ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();

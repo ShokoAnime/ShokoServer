@@ -945,12 +945,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         {
             if (eps == null) return;
 
-
             EpisodeCountSpecial = 0;
             EpisodeCountNormal = 0;
 
             HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
             List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
+            List<AniDB_Episode_Title> titlesToDelete = new List<AniDB_Episode_Title>();
 
             foreach (Raw_AniDB_Episode epraw in eps)
             {
@@ -962,14 +962,13 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 // delete any old records
                 foreach (AniDB_Episode epOld in existingEps)
                 {
-                    if (epOld.EpisodeID != epraw.EpisodeID)
-                    {
-                        // first delete any AnimeEpisode records that point to the new anidb episode
-                        SVR_AnimeEpisode aniep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
-                        if (aniep != null)
-                            animeEpsToDelete.Add(aniep);
-                        aniDBEpsToDelete.Add(epOld);
-                    }
+                    titlesToDelete.AddRange(RepoFactory.AniDB_Episode_Title.GetByEpisodeID(epOld.EpisodeID));
+                    if (epOld.EpisodeID == epraw.EpisodeID) continue;
+                    // first delete any AnimeEpisode records that point to the new anidb episode
+                    SVR_AnimeEpisode aniep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
+                    if (aniep != null)
+                        animeEpsToDelete.Add(aniep);
+                    aniDBEpsToDelete.Add(epOld);
                 }
             }
 
@@ -983,16 +982,20 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             RepoFactory.AnimeEpisode.Delete(animeEpsToDelete);
             RepoFactory.AniDB_Episode.Delete(aniDBEpsToDelete);
-
+            RepoFactory.AniDB_Episode_Title.Delete(titlesToDelete.DistinctBy(a => (a.AniDB_EpisodeID, a.Language))
+                .ToList());
 
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
+            List<AniDB_Episode_Title> titlesToSave = new List<AniDB_Episode_Title>();
             foreach (Raw_AniDB_Episode epraw in eps)
             {
-                AniDB_Episode epNew = RepoFactory.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID);
-                if (epNew == null) epNew = new AniDB_Episode();
+                AniDB_Episode epNew = RepoFactory.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID) ?? new AniDB_Episode();
 
                 epNew.Populate(epraw);
                 epsToSave.Add(epNew);
+
+                // Titles
+                titlesToSave.AddRange(epraw.Titles);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
@@ -1002,6 +1005,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     EpisodeCountSpecial++;
             }
             RepoFactory.AniDB_Episode.Save(epsToSave);
+            RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
 
             EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
         }
