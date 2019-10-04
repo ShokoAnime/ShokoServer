@@ -954,7 +954,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             foreach (Raw_AniDB_Episode epraw in eps)
             {
-                //
                 // we need to do this check because some times AniDB will replace an existing episode with a new episode
                 List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
                     epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
@@ -982,8 +981,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             RepoFactory.AnimeEpisode.Delete(animeEpsToDelete);
             RepoFactory.AniDB_Episode.Delete(aniDBEpsToDelete);
-            RepoFactory.AniDB_Episode_Title.Delete(titlesToDelete.DistinctBy(a => (a.AniDB_EpisodeID, a.Language))
-                .ToList());
+            RepoFactory.AniDB_Episode_Title.Delete(titlesToDelete);
 
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
             List<AniDB_Episode_Title> titlesToSave = new List<AniDB_Episode_Title>();
