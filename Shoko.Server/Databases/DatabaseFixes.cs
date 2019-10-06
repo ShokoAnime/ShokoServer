@@ -312,34 +312,47 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            var specials = RepoFactory.AniDB_Episode.GetAll()
-                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any())
-                .Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
+            logger.Info("Checking for Episodes with Missing Titles");
+            var episodes = RepoFactory.AniDB_Episode.GetAll()
+                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any()).ToList();
+            var animeIDs = episodes.Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
             int count = 0;
-            foreach (int animeID in specials)
+            logger.Info($"There are {episodes.Count} episodes in {animeIDs.Count} anime with missing titles. Attempting to fill them from HTTP cache");
+            foreach (int animeID in animeIDs)
             {
                 count++;
                 try
                 {
                     var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null) continue;
+                    if (anime == null)
+                    {
+                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.''");
+                        continue;
+                    }
 
                     ServerState.Instance.CurrentSetupStatus = string.Format(
                         Commons.Properties.Resources.Database_Validating,
                         $"Generating Episode Info for {anime.MainTitle}",
-                        $" {count}/{specials.Count}");
+                        $" {count}/{animeIDs.Count}");
                     XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (docAnime == null) continue;
+                    logger.Info($"{anime.MainTitle} has a proper HTTP cache. Attempting to regenerate info from it.");
 
-                    var episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
-                    anime.CreateEpisodes(episodes);
-                    // we don't need to save the AniDB_Anime, since nothing has changed in it
+                    var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
+                    anime.CreateEpisodes(rawEpisodes);
+                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                    if (series != null)
+                    {
+                        logger.Info($"Recreating Episodes for {anime.MainTitle}");
+                        series.CreateAnimeEpisodes();
+                    }
                 }
                 catch (Exception e)
                 {
                     logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
                 }
             }
+            logger.Info("Finished Filling Episode Titles from Cache.");
         }
 
         public static void FixDuplicateTraktLinks()
