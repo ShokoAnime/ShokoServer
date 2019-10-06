@@ -220,6 +220,12 @@ namespace Shoko.Server.Commands
             {
                 // download image
                 if (downloadURL.Length <= 0) return;
+
+                // Ignore all certificate failures.
+                ServicePointManager.Expect100Continue = true;                
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+
                 using (WebClient client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");

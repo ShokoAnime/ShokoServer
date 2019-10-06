@@ -3,7 +3,7 @@
     public static class Constants
     {
         public static readonly string WebCacheError = @"<error>No Results</error>";
-        public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.dat.gz";
+        public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.dat.gz";
         public static readonly string AnonWebCacheUsername = @"AnonymousWebCacheUser";
 
         public const string DatabaseTypeKey = "Database";
@@ -144,28 +144,28 @@
             public static readonly string MAL_Series = @"https://myanimelist.net/anime/{0}";
             public static readonly string MAL_SeriesDiscussion = @"https://myanimelist.net/anime/{0}/{1}/forum";
 
-            public static readonly string AniDB_File = @"http://anidb.net/perl-bin/animedb.pl?show=file&fid={0}";
-            public static readonly string AniDB_Episode = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
-            public static readonly string AniDB_Series = @"http://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
+            public static readonly string AniDB_File = @"https://anidb.net/perl-bin/animedb.pl?show=file&fid={0}";
+            public static readonly string AniDB_Episode = @"https://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
+            public static readonly string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
 
             public static readonly string AniDB_SeriesDiscussion =
-                @"http://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
+                @"https://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
 
             public static readonly string AniDB_ReleaseGroup =
-                @"http://anidb.net/perl-bin/animedb.pl?show=group&gid={0}";
+                @"https://anidb.net/perl-bin/animedb.pl?show=group&gid={0}";
 
-            public static readonly string AniDB_Images = @"http://img7.anidb.net/pics/anime/{0}";
+            public static readonly string AniDB_Images = @"https://img7.anidb.net/pics/anime/{0}";
 
-            public static readonly string TvDB_Series = @"http://thetvdb.com/?tab=series&id={0}";
+            public static readonly string TvDB_Series = @"https://thetvdb.com/?tab=series&id={0}";
 
             //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
             public static readonly string TvDB_Images = @"https://thetvdb.com/download/{0}";
             public static readonly string TvDB_Episode_Images = @"https://thetvdb.com/banners/{0}";
 
-            public static readonly string MovieDB_Series = @"http://www.themoviedb.org/movie/{0}";
-            public static readonly string Trakt_Series = @"http://trakt.tv/show/{0}";
+            public static readonly string MovieDB_Series = @"https://www.themoviedb.org/movie/{0}";
+            public static readonly string Trakt_Series = @"https://trakt.tv/show/{0}";
 
-            public static readonly string MovieDB_Images = @"http://image.tmdb.org/t/p/original{0}";
+            public static readonly string MovieDB_Images = @"https://image.tmdb.org/t/p/original{0}";
         }
 
         public struct GroupLabelStyle
@@ -187,15 +187,6 @@
         {
         }
 
-        public struct TorrentSourceNames
-        {
-            public static readonly string TT = "Tokyo Toshokan";
-            public static readonly string AnimeSuki = "Anime Suki";
-            public static readonly string BakaBT = "Baka BT";
-            public static readonly string BakaUpdates = "BakaUpdates";
-            public static readonly string Nyaa = "Nyaa Torrents";
-        }
-
         public struct EpisodeTypeStrings
         {
             public static readonly string Normal = Commons.Properties.Resources.EpisodeType_Episodes;
@@ -209,17 +200,6 @@
         public struct TvDB
         {
             public static readonly string apiKey = "B178B8940CAF4A2C";
-        }
-
-        public struct Folders
-        {
-            public static readonly string thumbsSubFolder = "AnimeThumbs";
-            public static readonly string thumbsTvDB = @"TvDB";
-            public static readonly string thumbsAniDB = @"AniDB";
-            public static readonly string thumbsAniDB_Chars = @"AniDB\Characters";
-            public static readonly string thumbsAniDB_Creators = @"AniDB\Creators";
-            public static readonly string thumbsMAL = @"MAL";
-            public static readonly string thumbsMovieDB = @"MovieDB";
         }
     }
 }

@@ -136,11 +136,17 @@ namespace Shoko.Server.AniDB_API.Titles
             try
             {
                 if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
+                
+                // Ignore all certificate failures.
+                ServicePointManager.Expect100Continue = true;                
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                
                 // Download the file
                 using (var client = new WebClient())
                 {
                     client.Headers.Add("Accept-Encoding", "gzip");
-                    var stream = client.OpenRead("http://anidb.net/api/anime-titles.xml.gz");
+                    var stream = client.OpenRead(Constants.AniDBTitlesURL);
                     GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
                     var textResponse = new StreamReader(gzip).ReadToEnd();
                     File.WriteAllText(CacheFilePathTemp, textResponse);
