@@ -386,7 +386,7 @@ namespace Shoko.Server
                 if (cloudaccountid == 0)
                 {
                     FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
-                        .FirstOrDefault(a => a.Name == "Local File System")
+                        .FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase("Local File System"))
                         ?.Init("", null, null);
                     if (ff?.IsOk ?? false)
                         n = ff.Result;

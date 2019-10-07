@@ -22,6 +22,7 @@ using NLog.Extensions.Logging;
 using NHibernate;
 using NLog.Targets;
 using NLog.Web;
+using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -255,6 +256,20 @@ namespace Shoko.Server
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
+
+            if (!CloudFileSystemPluginFactory.Instance.List.Any())
+            {
+                logger.Error(
+                    "No Filesystem Handlers were loaded. THIS IS A PROBLEM. The most likely cause is permissions issues in the installation directory.");
+                return false;
+            }
+
+            if (CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(handler =>
+                    handler.Name.EqualsInvariantIgnoreCase("Local File System")) == null)
+            {
+                string handlers = string.Join(", ", CloudFileSystemPluginFactory.Instance.List.Select(a => a.Name));
+                logger.Warn($"The local filesystem handler could not be found. These Filesystem Handlers were loaded: {handlers}");
+            }
 
             SetupNetHosts();
 

@@ -10,6 +10,7 @@ using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -69,7 +70,7 @@ namespace Shoko.Server
             //Populate Cloud Providers
             foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
             {
-                if (!plugin.Name.Equals("Local File System", StringComparison.InvariantCultureIgnoreCase))
+                if (!plugin.Name.EqualsInvariantIgnoreCase("Local File System"))
                 {
                     CloudProvider p = new CloudProvider
                     {

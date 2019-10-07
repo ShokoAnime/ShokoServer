@@ -26,7 +26,7 @@ namespace Shoko.Server.Models
                 base.Provider = value;
                 if (!string.IsNullOrEmpty(value))
                 {
-                    _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == value);
+                    _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase(value));
                 }
             }
         }
@@ -90,7 +90,7 @@ namespace Shoko.Server.Models
             Dictionary<string, object> auth = AuthInstance.AuthorizationProvider.Get(Provider);
             if (auth == null)
                 throw new Exception("Application Authorization Not Found");
-            _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name == Provider);
+            _plugin = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase(Provider));
             if (_plugin == null)
                 throw new Exception("Cannot find cloud provider '" + Provider + "'");
             FileSystemResult<IFileSystem> res = _plugin.Init(Name, ShokoServer.Instance.OAuthProvider, auth, ConnectionString);

@@ -10,6 +10,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
@@ -102,7 +103,7 @@ namespace Shoko.Server.Models
                     else
                     {
                         FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
-                            .FirstOrDefault(a => a.Name == "Local File System")
+                            .FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase("Local File System"))
                             ?.Init("", null, null);
                         if (ff == null || !ff.IsOk)
                             throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
