@@ -257,18 +257,37 @@ namespace Shoko.Server
             logrotator.Start();
             StartLogRotatorTimer();
 
-            if (!CloudFileSystemPluginFactory.Instance.List.Any())
+            try
             {
-                logger.Error(
-                    "No Filesystem Handlers were loaded. THIS IS A PROBLEM. The most likely cause is permissions issues in the installation directory.");
-                return false;
-            }
+                if (!CloudFileSystemPluginFactory.Instance.List.Any())
+                {
+                    logger.Error(
+                        "No Filesystem Handlers were loaded. THIS IS A PROBLEM. The most likely cause is permissions issues in the installation directory.");
+                    return false;
+                }
 
-            if (CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(handler =>
-                    handler.Name.EqualsInvariantIgnoreCase("Local File System")) == null)
+                var localHandler = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(handler =>
+                    handler.Name.EqualsInvariantIgnoreCase("Local File System"));
+                if (localHandler == null)
+                {
+                    string handlers = string.Join(", ", CloudFileSystemPluginFactory.Instance.List.Select(a => a.Name));
+                    logger.Warn(
+                        $"The local filesystem handler could not be found. These Filesystem Handlers were loaded: {handlers}");
+                }
+
+                var initResult = localHandler.Init("", null, null);
+                if (initResult == null || !initResult.IsOk || initResult.Result == null)
+                {
+                    logger.Warn("The Local Filesystem handler failed to init. This will likely cause issues.");
+                    if (!string.IsNullOrWhiteSpace(initResult?.Error))
+                        logger.Error($"The error was: {initResult.Error}");
+                }
+            }
+            catch (Exception e)
             {
-                string handlers = string.Join(", ", CloudFileSystemPluginFactory.Instance.List.Select(a => a.Name));
-                logger.Warn($"The local filesystem handler could not be found. These Filesystem Handlers were loaded: {handlers}");
+                logger.Error("There was an error loading any Filesystem handlers. CloudFileSystem is missing, has bad permissions, or has a fatal error in its loading sequence (not likely).");
+                logger.Error(e);
+                return false;
             }
 
             SetupNetHosts();
