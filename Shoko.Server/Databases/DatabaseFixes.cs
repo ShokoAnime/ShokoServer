@@ -314,7 +314,8 @@ namespace Shoko.Server.Databases
         {
             logger.Info("Checking for Episodes with Missing Titles");
             var episodes = RepoFactory.AniDB_Episode.GetAll()
-                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any()).ToList();
+                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any() &&
+                            RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
             var animeIDs = episodes.Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
             int count = 0;
             logger.Info($"There are {episodes.Count} episodes in {animeIDs.Count} anime with missing titles. Attempting to fill them from HTTP cache");
@@ -326,7 +327,7 @@ namespace Shoko.Server.Databases
                     var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                     if (anime == null)
                     {
-                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.''");
+                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.");
                         continue;
                     }
 
@@ -340,12 +341,10 @@ namespace Shoko.Server.Databases
 
                     var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
                     anime.CreateEpisodes(rawEpisodes);
+                    logger.Info($"Recreating Episodes for {anime.MainTitle}");
                     SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                    if (series != null)
-                    {
-                        logger.Info($"Recreating Episodes for {anime.MainTitle}");
-                        series.CreateAnimeEpisodes();
-                    }
+                    if (series == null) continue;
+                    series.CreateAnimeEpisodes();
                 }
                 catch (Exception e)
                 {
