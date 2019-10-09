@@ -17,8 +17,6 @@ namespace MediaInfoWrapper
 
     public static class MediaInfoParser
     {
-        static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
-
         private static string TranslateCodec(string codec)
         {
             codec = codec.ToLowerInvariant();

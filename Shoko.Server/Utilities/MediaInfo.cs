@@ -7,6 +7,7 @@ using System.Web.Configuration;
 using Newtonsoft.Json;
 using NLog;
 using Shoko.Models.PlexAndKodi;
+using Shoko.Server.Extensions;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities
@@ -41,6 +42,13 @@ namespace Shoko.Server.Utilities
                 string strOutput = pProcess.StandardOutput.ReadToEnd().Trim();
                 //Wait for process to finish
                 pProcess.WaitForExit();
+                if (pProcess.ExitCode != 0)
+                {
+                    string error = pProcess.StandardError.ReadToEnd().Trim();
+                    if (!strOutput.EqualsInvariantIgnoreCase("null")) error = strOutput + " " + error;
+                    if (error.EqualsInvariantIgnoreCase("null")) error = "No message";
+                    logger.Error($"MediaInfo crashed on {filename}: {error}");
+                }
                 
                 if (!strOutput.StartsWith("{"))
                 {
