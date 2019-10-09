@@ -13,7 +13,7 @@ namespace Shoko.Server.Utilities
 {
     public static class MediaInfo
     {
-        private static string WrapperPath = Path.Combine(Assembly.GetEntryAssembly().Location, "MediaInfoWrapper.exe");
+        private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.exe");
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
         public static Media GetMediaInfo(string filename)
@@ -22,7 +22,7 @@ namespace Shoko.Server.Utilities
             {
                 var filenameArgs = GetFilenameAndArgsForOS(filename);
 
-                logger.Info($"Dumping File with AVDump: {filenameArgs.Item1} {filenameArgs.Item2}");
+                logger.Trace($"Calling MediaInfoWrapper for file: {filenameArgs.Item1} {filenameArgs.Item2}");
                 
                 Process pProcess = new Process
                 {
