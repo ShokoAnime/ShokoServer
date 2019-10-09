@@ -21,6 +21,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Shoko.Server.Utilities.MediaInfoLib;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models

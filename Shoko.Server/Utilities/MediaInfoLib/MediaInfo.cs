@@ -10,14 +10,14 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Extensions;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.Utilities
+namespace Shoko.Server.Utilities.MediaInfoLib
 {
     public static class MediaInfo
     {
         private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.exe");
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
-        public static Media GetMediaInfo(string filename)
+        public static Media GetMediaInfoFromWrapper(string filename)
         {
             try
             {
@@ -91,6 +91,13 @@ namespace Shoko.Server.Utilities
             }
 
             return Tuple.Create(executable, args);
+        }
+
+        public static Media GetMediaInfo(string filename)
+        {
+            if (Utils.IsRunningOnMono())
+                return MediaInfoParserInternal.Convert(filename, ServerSettings.Instance.Import.MediaInfoTimeoutMinutes);
+            return GetMediaInfoFromWrapper(filename);
         }
     }
 }
