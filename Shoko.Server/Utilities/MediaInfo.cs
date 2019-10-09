@@ -74,7 +74,11 @@ namespace Shoko.Server.Utilities
             if (Utils.IsRunningOnMono())
             {
                 executable = "mono";
+                #if DEBUG
+                args = $"--debug {WrapperPath} {args}";
+                #else
                 args = $"{WrapperPath} {args}";
+                #endif
             }
 
             return Tuple.Create(executable, args);
