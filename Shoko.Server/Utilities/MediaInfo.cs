@@ -48,6 +48,7 @@ namespace Shoko.Server.Utilities
                     if (!strOutput.EqualsInvariantIgnoreCase("null")) error = strOutput + " " + error;
                     if (error.EqualsInvariantIgnoreCase("null")) error = "No message";
                     logger.Error($"MediaInfo crashed on {filename}: {error}");
+                    return null;
                 }
                 
                 if (!strOutput.StartsWith("{"))
