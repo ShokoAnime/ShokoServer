@@ -715,7 +715,7 @@ namespace MediaInfoWrapper
                     m = await mediaTask;
                     finished = true;
                 }
-                if (!finished)
+                if (!finished || m == null)
                 {
                     try
                     {
