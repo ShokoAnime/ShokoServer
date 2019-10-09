@@ -1176,8 +1176,6 @@
     <Compile Include="FileHelper\FileHashHelper.cs" />
     <Compile Include="FileHelper\Hasher.cs" />
     <Compile Include="FileHelper\MD4Managed.cs" />
-    <Compile Include="FileHelper\MediaInfo\Convert.cs" />
-    <Compile Include="FileHelper\MediaInfo\MediaInfoDLL.cs" />
     <Compile Include="FileHelper\Subtitles\ISubtitles.cs" />
     <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
     <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
@@ -1271,6 +1269,7 @@
     <Compile Include="Utilities\AsyncObservableCollection.cs" />
     <Compile Include="Utilities\AVDumpHelper.cs" />
     <Compile Include="Utilities\LinuxFS.cs" />
+    <Compile Include="Utilities\MediaInfo.cs" />
     <Compile Include="Utilities\ReflectionUtils.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />

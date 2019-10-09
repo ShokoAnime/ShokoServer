@@ -23,7 +23,7 @@ using NLog;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
-namespace MediaInfoLib
+namespace MediaInfoWrapper
 {
     public enum StreamKind
     {
@@ -73,10 +73,8 @@ namespace MediaInfoLib
         Finalized = 0x08,
     }
 
-    public class MediaInfo : IDisposable
+    public class MediaInfoDLL : IDisposable
     {
-        private readonly Logger logger = LogManager.GetCurrentClassLogger();
-
         #region SHOKO
 
         [Flags]
@@ -181,13 +179,13 @@ namespace MediaInfoLib
         private static extern IntPtr MediaInfo_Count_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber);
 
         //MediaInfo class
-        public MediaInfo()
+        public MediaInfoDLL()
         {
             #region Shoko
 
-            if ((Handle == IntPtr.Zero) && !Shoko.Server.Utils.IsRunningOnMono())
+            if ((Handle == IntPtr.Zero) && !IsRunningOnMono())
             {
-                string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                string fullexepath = System.Reflection.Assembly.GetEntryAssembly()?.Location;
                 if (!string.IsNullOrEmpty(fullexepath))
                 {
                     FileInfo fi = new FileInfo(fullexepath);
@@ -212,7 +210,6 @@ namespace MediaInfoLib
             }
             catch (Exception ex)
             {
-                logger.Error($"Unable to initialize MediaInfo: {ex}");
                 Handle = (IntPtr) 0;
             }
             if (Environment.OSVersion.ToString().IndexOf("Windows", StringComparison.OrdinalIgnoreCase) == -1)
@@ -221,7 +218,7 @@ namespace MediaInfoLib
                 MustUseAnsi = false;
         }
 
-        ~MediaInfo()
+        ~MediaInfoDLL()
         {
             if (Handle == (IntPtr) 0) return;
             MediaInfo_Delete(Handle);
@@ -246,7 +243,7 @@ namespace MediaInfoLib
         {
             #region Shoko
 
-            if (!Shoko.Server.Utils.IsLinux)
+            if (!IsLinux)
                 FileName = FileName.StartsWith(@"\\")
                     ? FileName
                     : @"\\?\" + FileName; // add long path prefix if not running on linux, and not a unc path.
@@ -403,5 +400,16 @@ namespace MediaInfoLib
             }
             GC.SuppressFinalize(this);
         }
+        
+        public static bool IsLinux
+        {
+            get
+            {
+                int p = (int)Environment.OSVersion.Platform;
+                return (p == 4) || (p == 6) || (p == 128);
+            }
+        }
+
+        public static bool IsRunningOnMono() => Type.GetType("Mono.Runtime") != null;
     }
 }

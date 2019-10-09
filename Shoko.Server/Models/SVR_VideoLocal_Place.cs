@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
 using Shoko.Models.PlexAndKodi;
@@ -17,14 +14,13 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper.MediaInfo;
 using Shoko.Server.FileHelper.Subtitles;
-using Shoko.Server.Mappings;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
@@ -371,7 +367,7 @@ namespace Shoko.Server.Models
                         ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
                         : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
                             VideoLocalID, "file", false));
-                    m = MediaConvert.Convert(name, GetFile()); //Mediainfo should have libcurl.dll for http
+                    m = MediaInfo.GetMediaInfo(name); //Mediainfo should have libcurl.dll for http
                     if ((m?.Duration ?? 0) == 0)
                         m = null;
                     if (m != null && ServerSettings.Instance.WebCache.Enabled)

@@ -1,23 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Runtime;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
-using MediaInfoLib;
-using NutzCode.CloudFileSystem;
-using Shoko.Server.Settings;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 
-namespace Shoko.Server.FileHelper.MediaInfo
+namespace MediaInfoWrapper
 {
     // ReSharper disable CompareOfFloatsByEqualityOperator
 
-    public static class MediaConvert
+    public static class MediaInfoParser
     {
 
         static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
@@ -135,7 +133,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return container;
         }
 
-        private static Stream TranslateVideoStream(MediaInfoLib.MediaInfo m, int num)
+        private static Stream TranslateVideoStream(MediaInfoDLL m, int num)
         {
             Stream s = new Stream
             {
@@ -287,7 +285,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return s;
         }
 
-        private static Stream TranslateAudioStream(MediaInfoLib.MediaInfo m, int num)
+        private static Stream TranslateAudioStream(MediaInfoDLL m, int num)
         {
             Stream s = new Stream
             {
@@ -383,7 +381,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return s;
         }
 
-        private static Stream TranslateTextStream(MediaInfoLib.MediaInfo m, int num)
+        private static Stream TranslateTextStream(MediaInfoDLL m, int num)
         {
             Stream s = new Stream
             {
@@ -426,7 +424,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return s;
         }
 
-        private static int GetInt(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
+        private static int GetInt(this MediaInfoDLL mi, StreamKind kind, int number, string par)
         {
             string dta = mi.Get(kind, number, par);
             if (int.TryParse(dta, out int val))
@@ -434,7 +432,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return 0;
         }
 
-        private static byte GetByte(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
+        private static byte GetByte(this MediaInfoDLL mi, StreamKind kind, int number, string par)
         {
             string dta = mi.Get(kind, number, par);
             if (byte.TryParse(dta, out byte val))
@@ -442,7 +440,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return 0;
         }
 
-        private static long GetLong(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
+        private static long GetLong(this MediaInfoDLL mi, StreamKind kind, int number, string par)
         {
             string dta = mi.Get(kind, number, par);
             if (long.TryParse(dta, out long val))
@@ -450,7 +448,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return 0;
         }
 
-        private static float GetFloat(this MediaInfoLib.MediaInfo mi, StreamKind kind, int number, string par)
+        private static float GetFloat(this MediaInfoDLL mi, StreamKind kind, int number, string par)
         {
             string dta = mi.Get(kind, number, par);
             if (float.TryParse(dta, out float val))
@@ -460,7 +458,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
         private static readonly object Lock = new object();
 
-        private static MediaInfoLib.MediaInfo _mInstance = new MediaInfoLib.MediaInfo();
+        private static MediaInfoDLL _mInstance = new MediaInfoDLL();
 
 
         private static void CloseMediaInfo()
@@ -476,7 +474,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
             {
                 try
                 {
-                    if (_mInstance == null) _mInstance = new MediaInfoLib.MediaInfo();
+                    if (_mInstance == null) _mInstance = new MediaInfoDLL();
                     if (_mInstance.Open(filename) == 0) return null; //it's a boolean response.
                     Media m = new Media();
                     Part p = new Part();
@@ -693,19 +691,18 @@ namespace Shoko.Server.FileHelper.MediaInfo
             }
         }
 
-        public static Media Convert(string filename, IFile file)
+        public static Media Convert(string filename, int timeout)
         {
-            return ConvertAsync(filename, file).Result;
+            return ConvertAsync(filename, timeout).Result;
         }
 
-        public static async Task<Media> ConvertAsync(string filename, IFile file)
+        public static async Task<Media> ConvertAsync(string filename, int timeout)
         {
-            if (filename == null || file == null)
+            if (filename == null)
                 return null;
             try
             {
                 Task<Media> mediaTask = Task.FromResult(GetMediaInfo(filename));
-                int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
                 bool finished;
                 Media m = null;
                 if (timeout > 0)
@@ -738,10 +735,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     p.OptimizedForStreaming = 0;
                     m.OptimizedForStreaming = 0;
                     byte[] buffer = new byte[8];
-                    FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
-                    if (fsr == null || !fsr.IsOk)
-                        return null;
-                    System.IO.Stream fs = fsr.Result;
+                    var fs = new FileStream(filename, FileMode.Open);
                     fs.Read(buffer, 0, 4);
                     int siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
                     fs.Seek(siz, SeekOrigin.Begin);
@@ -812,10 +806,70 @@ namespace Shoko.Server.FileHelper.MediaInfo
 
             return false;
         }
+        
+        public static readonly Dictionary<int, string> ResolutionArea;
+        public static readonly Dictionary<int, string> ResolutionArea43;
+        
+        static MediaInfoParser()
+        {
+            ResolutionArea = new Dictionary<int, string>
+            {
+                {3840 * 2160, "2160p"},
+                {2560 * 1440, "1440p"},
+                {1920 * 1080, "1080p"},
+                {1280 * 720, "720p"},
+                {1024 * 576, "576p"},
+                {853 * 480, "480p"}
+            };
+
+            ResolutionArea43 = new Dictionary<int, string>
+            {
+                {720 * 576, "576p"},
+                {720 * 480, "480p"},
+                {480 * 360, "360p"},
+                {320 * 240, "240p"}
+            };
+        }
 
         private static string GetResolution(int width, int height)
         {
-            return FileQualityFilter.GetResolution(Tuple.Create(width, height));
+            // not precise, but we are rounding and calculating distance anyway
+            const double sixteenNine = 1.777778;
+            const double fourThirds = 1.333333;
+            double ratio = (double) width / height;
+
+            if (Math.Sqrt((ratio - sixteenNine) * (ratio - sixteenNine)) < Math.Sqrt((ratio - fourThirds) * (ratio - fourThirds)))
+            {
+                long area = width * height;
+                double keyDist = double.MaxValue;
+                int key = 0;
+                foreach (int resArea in ResolutionArea.Keys.ToList())
+                {
+                    double dist = Math.Sqrt((resArea - area) * (resArea - area));
+                    if (!(dist < keyDist)) continue;
+                    keyDist = dist;
+                    key = resArea;
+                }
+                if (Math.Abs(keyDist - double.MaxValue) < 0.01D) return null;
+                return ResolutionArea[key];
+            }
+            else
+            {
+                double area = width * height;
+                double keyDist = double.MaxValue;
+                int key = 0;
+                foreach (int resArea in ResolutionArea43.Keys.ToList())
+                {
+                    double dist = Math.Sqrt((resArea - area) * (resArea - area));
+                    if (dist < keyDist)
+                    {
+                        keyDist = dist;
+                        key = resArea;
+                    }
+                }
+                if (Math.Abs(keyDist - long.MaxValue) < 0.01D) return null;
+                return ResolutionArea43[key];
+            }
         }
 
         private static float GetAspectRatio(float width, float height, float pa)

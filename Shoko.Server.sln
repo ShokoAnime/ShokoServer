@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -50,6 +50,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "x64", "x64", "{99CC23E0-FC6
 	ProjectSection(SolutionItems) = preProject
 		Dependencies\x64\librhash.dll = Dependencies\x64\librhash.dll
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaInfoWrapper", "MediaInfoWrapper\MediaInfoWrapper.csproj", "{F3D0C468-467F-4544-905D-20C75D01D2CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -324,6 +326,30 @@ Global
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Win32.Build.0 = Release|Any CPU
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.ActiveCfg = Release|Any CPU
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.Build.0 = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Any CPU.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Win32.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Win32.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|x64.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|x64.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Win32.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|x64.Build.0 = Debug|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Win32.ActiveCfg = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Win32.Build.0 = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|x64.ActiveCfg = Release|Any CPU
+		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
