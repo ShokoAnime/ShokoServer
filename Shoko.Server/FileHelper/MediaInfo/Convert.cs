@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Runtime;
-using System.Threading;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Shoko.Models.PlexAndKodi;
 using MediaInfoLib;
@@ -459,294 +458,323 @@ namespace Shoko.Server.FileHelper.MediaInfo
             return 0.0F;
         }
 
-        public static object _lock = new object();
+        private static readonly object Lock = new object();
 
-        private static MediaInfoLib.MediaInfo minstance = new MediaInfoLib.MediaInfo();
+        private static MediaInfoLib.MediaInfo _mInstance = new MediaInfoLib.MediaInfo();
 
 
         private static void CloseMediaInfo()
         {
-            minstance?.Dispose();
-            minstance = null;
+            _mInstance?.Dispose();
+            _mInstance = null;
         }
 
-
-        public static Media Convert(string filename, IFile file)
+        [HandleProcessCorruptedStateExceptions]
+        private static Media GetMediaInfo(string filename)
         {
-            if (file == null)
-                return null;
-            try
+            lock (Lock)
             {
-                lock (_lock)
+                try
                 {
+                    if (_mInstance == null) _mInstance = new MediaInfoLib.MediaInfo();
+                    if (_mInstance.Open(filename) == 0) return null; //it's a boolean response.
                     Media m = new Media();
                     Part p = new Part();
-                    Thread mediaInfoThread = new Thread(() =>
+                    Stream videoStream = null;
+
+                    m.Duration = p.Duration = _mInstance.GetLong(StreamKind.General, 0, "Duration");
+                    p.Size = _mInstance.GetLong(StreamKind.General, 0, "FileSize");
+
+                    int brate = _mInstance.GetInt(StreamKind.General, 0, "BitRate");
+                    if (brate != 0) m.Bitrate = (int) Math.Round(brate / 1000F);
+
+                    int chaptercount = _mInstance.GetInt(StreamKind.General, 0, "MenuCount");
+                    m.Chaptered = chaptercount > 0;
+
+                    int videoCount = _mInstance.GetInt(StreamKind.General, 0, "VideoCount");
+                    int audioCount = _mInstance.GetInt(StreamKind.General, 0, "AudioCount");
+                    int textCount = _mInstance.GetInt(StreamKind.General, 0, "TextCount");
+
+                    m.Container = p.Container = TranslateContainer(_mInstance.Get(StreamKind.General, 0, "Format"));
+                    string codid = _mInstance.Get(StreamKind.General, 0, "CodecID");
+                    if (!string.IsNullOrEmpty(codid) && (codid.Trim().ToLower() == "qt")) m.Container = p.Container = "mov";
+
+                    List<Stream> streams = new List<Stream>();
+                    byte iidx = 0;
+                    if (videoCount > 0)
                     {
-                        if (minstance == null)
-                            minstance = new MediaInfoLib.MediaInfo();
-                        if (minstance.Open(filename) == 0) return; //it's a boolean response.
-                        Stream VideoStream = null;
-
-                        m.Duration = p.Duration = minstance.GetLong(StreamKind.General, 0, "Duration");
-                        p.Size = minstance.GetLong(StreamKind.General, 0, "FileSize");
-
-                        int brate = minstance.GetInt(StreamKind.General, 0, "BitRate");
-                        if (brate != 0)
-                            m.Bitrate = (int) Math.Round(brate / 1000F);
-
-                        int chaptercount = minstance.GetInt(StreamKind.General, 0, "MenuCount");
-                        m.Chaptered = chaptercount > 0;
-
-                        int video_count = minstance.GetInt(StreamKind.General, 0, "VideoCount");
-                        int audio_count = minstance.GetInt(StreamKind.General, 0, "AudioCount");
-                        int text_count = minstance.GetInt(StreamKind.General, 0, "TextCount");
-
-                        m.Container = p.Container = TranslateContainer(minstance.Get(StreamKind.General, 0, "Format"));
-                        string codid = minstance.Get(StreamKind.General, 0, "CodecID");
-                        if (!string.IsNullOrEmpty(codid) && (codid.Trim().ToLower() == "qt"))
-                            m.Container = p.Container = "mov";
-
-                        List<Stream> streams = new List<Stream>();
-                        byte iidx = 0;
-                        if (video_count > 0)
+                        for (int x = 0; x < videoCount; x++)
                         {
-                            for (int x = 0; x < video_count; x++)
+                            Stream s;
+                            try
                             {
-                                Stream s;
-                                try
+                                s = TranslateVideoStream(_mInstance, x);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex, $"Error parsing video: \"{filename}\"");
+                                continue;
+                            }
+
+                            if (x == 0)
+                            {
+                                videoStream = s;
+                                m.Width = s.Width;
+                                m.Height = s.Height;
+                                if (m.Height != 0)
                                 {
-                                    s = TranslateVideoStream(minstance, x);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.Error(ex, $"Error parsing video: \"{filename}\"");
-                                    continue;
+                                    if (m.Width != 0)
+                                    {
+                                        m.VideoResolution = GetResolution(m.Width, m.Height);
+                                        m.AspectRatio = GetAspectRatio(m.Width, m.Height, s.PA);
+                                    }
                                 }
 
-                                if (x == 0)
+                                if (s.FrameRate != 0)
                                 {
-                                    VideoStream = s;
-                                    m.Width = s.Width;
-                                    m.Height = s.Height;
-                                    if (m.Height != 0)
+                                    float fr = System.Convert.ToSingle(s.FrameRate, CultureInfo.InvariantCulture);
+                                    string frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
+                                    if (!string.IsNullOrEmpty(s.ScanType))
                                     {
-                                        if (m.Width != 0)
-                                        {
-                                            m.VideoResolution = GetResolution(m.Width, m.Height);
-                                            m.AspectRatio = GetAspectRatio(m.Width, m.Height, s.PA);
-                                        }
-                                    }
-                                    if (s.FrameRate != 0)
-                                    {
-                                        float fr = System.Convert.ToSingle(s.FrameRate, CultureInfo.InvariantCulture);
-                                        string frs = ((int) Math.Round(fr)).ToString(CultureInfo.InvariantCulture);
-                                        if (!string.IsNullOrEmpty(s.ScanType))
-                                        {
-                                            if (s.ScanType.ToLower().Contains("int"))
-                                                frs += "i";
-                                            else
-                                                frs += "p";
-                                        }
+                                        if (s.ScanType.ToLower().Contains("int"))
+                                            frs += "i";
                                         else
                                             frs += "p";
-                                        if ((frs == "25p") || (frs == "25i"))
+                                    }
+                                    else
+                                        frs += "p";
+
+                                    switch (frs)
+                                    {
+                                        case "25p":
+                                        case "25i":
                                             frs = "PAL";
-                                        else if ((frs == "30p") || (frs == "30i"))
+                                            break;
+                                        case "30p":
+                                        case "30i":
                                             frs = "NTSC";
-                                        m.VideoFrameRate = frs;
+                                            break;
                                     }
-                                    m.VideoCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
-                                    if (m.Duration != 0 && s.Duration != 0)
-                                    {
-                                        if (s.Duration > m.Duration)
-                                            m.Duration = p.Duration = s.Duration;
-                                    }
-                                    if (video_count == 1)
-                                    {
-                                        s.Default = 0;
-                                        s.Forced = 0;
-                                    }
+                                    m.VideoFrameRate = frs;
                                 }
 
-                                if (m.Container != "mkv")
+                                m.VideoCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
+                                if (m.Duration != 0 && s.Duration != 0)
                                 {
-                                    s.Index = iidx;
-                                    iidx++;
+                                    if (s.Duration > m.Duration) m.Duration = p.Duration = s.Duration;
                                 }
-                                streams.Add(s);
-                            }
-                        }
-                        int totalsoundrate = 0;
-                        if (audio_count > 0)
-                        {
-                            for (int x = 0; x < audio_count; x++)
-                            {
-                                Stream s = TranslateAudioStream(minstance, x);
-                                if ((s.Codec == "adpcm") && (p.Container == "flv"))
-                                    s.Codec = "adpcm_swf";
-                                if (x == 0)
-                                {
-                                    m.AudioCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
-                                    m.AudioChannels = s.Channels;
-                                    if (m.Duration != 0 && s.Duration != 0)
-                                    {
-                                        if (s.Duration > m.Duration)
-                                            m.Duration = p.Duration = s.Duration;
-                                    }
-                                    if (audio_count == 1)
-                                    {
-                                        s.Default = 0;
-                                        s.Forced = 0;
-                                    }
-                                }
-                                if (s.Bitrate != 0)
-                                {
-                                    totalsoundrate += s.Bitrate;
-                                }
-                                if (m.Container != "mkv")
-                                {
-                                    s.Index = iidx;
-                                    iidx++;
-                                }
-                                streams.Add(s);
-                            }
-                        }
-                        if ((VideoStream != null) && VideoStream.Bitrate == 0 && m.Bitrate != 0)
-                        {
-                            VideoStream.Bitrate = m.Bitrate - totalsoundrate;
-                        }
-                        if (text_count > 0)
-                        {
-                            for (int x = 0; x < audio_count; x++)
-                            {
-                                Stream s = TranslateTextStream(minstance, x);
-                                streams.Add(s);
-                                if (text_count == 1)
+
+                                if (videoCount == 1)
                                 {
                                     s.Default = 0;
                                     s.Forced = 0;
                                 }
-                                if (m.Container != "mkv")
+                            }
+
+                            if (m.Container != "mkv")
+                            {
+                                s.Index = iidx;
+                                iidx++;
+                            }
+
+                            streams.Add(s);
+                        }
+                    }
+
+                    int totalSoundRate = 0;
+                    if (audioCount > 0)
+                    {
+                        for (int x = 0; x < audioCount; x++)
+                        {
+                            Stream s = TranslateAudioStream(_mInstance, x);
+                            if ((s.Codec == "adpcm") && (p.Container == "flv")) s.Codec = "adpcm_swf";
+                            if (x == 0)
+                            {
+                                m.AudioCodec = string.IsNullOrEmpty(s.CodecID) ? s.Codec : s.CodecID;
+                                m.AudioChannels = s.Channels;
+                                if (m.Duration != 0 && s.Duration != 0)
                                 {
-                                    s.Index = iidx;
-                                    iidx++;
+                                    if (s.Duration > m.Duration) m.Duration = p.Duration = s.Duration;
                                 }
+
+                                if (audioCount == 1)
+                                {
+                                    s.Default = 0;
+                                    s.Forced = 0;
+                                }
+                            }
+
+                            if (s.Bitrate != 0)
+                            {
+                                totalSoundRate += s.Bitrate;
+                            }
+
+                            if (m.Container != "mkv")
+                            {
+                                s.Index = iidx;
+                                iidx++;
+                            }
+
+                            streams.Add(s);
+                        }
+                    }
+
+                    if ((videoStream != null) && videoStream.Bitrate == 0 && m.Bitrate != 0)
+                    {
+                        videoStream.Bitrate = m.Bitrate - totalSoundRate;
+                    }
+
+                    if (textCount > 0)
+                    {
+                        for (int x = 0; x < audioCount; x++)
+                        {
+                            Stream s = TranslateTextStream(_mInstance, x);
+                            streams.Add(s);
+                            if (textCount == 1)
+                            {
+                                s.Default = 0;
+                                s.Forced = 0;
+                            }
+
+                            if (m.Container != "mkv")
+                            {
+                                s.Index = iidx;
+                                iidx++;
+                            }
+                        }
+                    }
+
+                    m.Parts = new List<Part> {p};
+                    bool over = false;
+                    if (m.Container == "mkv")
+                    {
+                        byte val = byte.MaxValue;
+                        foreach (Stream s in streams.OrderBy(a => a.Index).Skip(1))
+                        {
+                            if (s.Index <= 0)
+                            {
+                                over = true;
+                                break;
+                            }
+
+                            s.idx = s.Index;
+                            if (s.idx < val) val = s.idx;
+                        }
+
+                        if (val != 0 && !over)
+                        {
+                            foreach (Stream s in streams)
+                            {
+                                s.idx = (byte) (s.idx - val);
+                                s.Index = s.idx;
+                            }
+                        }
+                        else if (over)
+                        {
+                            byte xx = 0;
+                            foreach (Stream s in streams)
+                            {
+                                s.idx = xx++;
+                                s.Index = s.idx;
                             }
                         }
 
-                        m.Parts = new List<Part> {p};
-                        bool over = false;
-                        if (m.Container == "mkv")
-                        {
-                            byte val = byte.MaxValue;
-                            foreach (Stream s in streams.OrderBy(a => a.Index).Skip(1))
-                            {
-                                if (s.Index <= 0)
-                                {
-                                    over = true;
-                                    break;
-                                }
-                                s.idx = s.Index;
-                                if (s.idx < val)
-                                    val = s.idx;
-                            }
-                            if (val != 0 && !over)
-                            {
-                                foreach (Stream s in streams)
-                                {
-                                    s.idx = (byte) (s.idx - val);
-                                    s.Index = s.idx;
-                                }
-                            }
-                            else if (over)
-                            {
-                                byte xx = 0;
-                                foreach (Stream s in streams)
-                                {
-                                    s.idx = xx++;
-                                    s.Index = s.idx;
-                                }
-                            }
-                            streams = streams.OrderBy(a => a.idx).ToList();
-                        }
-                        p.Streams = streams;
-                    });
-                    mediaInfoThread.Start();
-                    int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
-                    bool finished;
-                    if (timeout > 0)
-                    {
-                        finished = mediaInfoThread.Join(TimeSpan.FromMinutes(timeout));
-                    } else
-                    {
-                        mediaInfoThread.Join();
-                        finished = true;
+                        streams = streams.OrderBy(a => a.idx).ToList();
                     }
-                    if (!finished)
-                    {
-                        try
-                        {
-                            mediaInfoThread.Abort();
-                        }
-                        catch
-                        {
-                            /*ignored*/
-                        }
-                        try
-                        {
-                            CloseMediaInfo();
-                        }
-                        catch
-                        {
-                            /*ignored*/
-                        }
-                        return null;
-                    }
-                    if (p.Container == "mp4" || p.Container == "mov")
-                    {
-                        p.Has64bitOffsets = 0;
-                        p.OptimizedForStreaming = 0;
-                        m.OptimizedForStreaming = 0;
-                        byte[] buffer = new byte[8];
-                        FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
-                        if (fsr == null || !fsr.IsOk)
-                            return null;
-                        System.IO.Stream fs = fsr.Result;
-                        fs.Read(buffer, 0, 4);
-                        int siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-                        fs.Seek(siz, SeekOrigin.Begin);
-                        fs.Read(buffer, 0, 8);
-                        if ((buffer[4] == 'f') && (buffer[5] == 'r') && (buffer[6] == 'e') && (buffer[7] == 'e'))
-                        {
-                            siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3] - 8);
-                            fs.Seek(siz, SeekOrigin.Current);
-                            fs.Read(buffer, 0, 8);
-                        }
-                        if ((buffer[4] == 'm') && (buffer[5] == 'o') && (buffer[6] == 'o') && (buffer[7] == 'v'))
-                        {
-                            p.OptimizedForStreaming = 1;
-                            m.OptimizedForStreaming = 1;
-                            siz = ((buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3]) - 8;
 
-                            buffer = new byte[siz];
-                            fs.Read(buffer, 0, siz);
-                            if (!FindInBuffer("trak", 0, siz, buffer, out int opos, out int oposmax)) return m;
-                            if (!FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax)) return m;
-                            if (!FindInBuffer("minf", opos, oposmax, buffer, out opos, out oposmax)) return m;
-                            if (!FindInBuffer("stbl", opos, oposmax, buffer, out opos, out oposmax)) return m;
-                            if (!FindInBuffer("co64", opos, oposmax, buffer, out opos, out oposmax)) return m;
-                            p.Has64bitOffsets = 1;
-                        }
-                    }
+                    p.Streams = streams;
                     return m;
                 }
+                catch (Exception e)
+                {
+                    Logger.Error($"Unable to generate MediaInfo for {filename}: {e}");
+                    return null;
+                }
+            }
+        }
+
+        public static Media Convert(string filename, IFile file)
+        {
+            return ConvertAsync(filename, file).Result;
+        }
+
+        public static async Task<Media> ConvertAsync(string filename, IFile file)
+        {
+            if (filename == null || file == null)
+                return null;
+            try
+            {
+                Task<Media> mediaTask = Task.FromResult(GetMediaInfo(filename));
+                int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+                bool finished;
+                Media m = null;
+                if (timeout > 0)
+                {
+                    var task = await Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout)));
+                    finished = task == mediaTask;
+                    if (finished) m = await mediaTask;
+                } else
+                {
+                    m = await mediaTask;
+                    finished = true;
+                }
+                if (!finished)
+                {
+                    try
+                    {
+                        CloseMediaInfo();
+                    }
+                    catch
+                    {
+                        /*ignored*/
+                    }
+                    return null;
+                }
+
+                Part p = m.Parts[0];
+                if (p != null && (p.Container == "mp4" || p.Container == "mov"))
+                {
+                    p.Has64bitOffsets = 0;
+                    p.OptimizedForStreaming = 0;
+                    m.OptimizedForStreaming = 0;
+                    byte[] buffer = new byte[8];
+                    FileSystemResult<System.IO.Stream> fsr = file.OpenRead();
+                    if (fsr == null || !fsr.IsOk)
+                        return null;
+                    System.IO.Stream fs = fsr.Result;
+                    fs.Read(buffer, 0, 4);
+                    int siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+                    fs.Seek(siz, SeekOrigin.Begin);
+                    fs.Read(buffer, 0, 8);
+                    if ((buffer[4] == 'f') && (buffer[5] == 'r') && (buffer[6] == 'e') && (buffer[7] == 'e'))
+                    {
+                        siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | (buffer[3] - 8);
+                        fs.Seek(siz, SeekOrigin.Current);
+                        fs.Read(buffer, 0, 8);
+                    }
+                    if ((buffer[4] == 'm') && (buffer[5] == 'o') && (buffer[6] == 'o') && (buffer[7] == 'v'))
+                    {
+                        p.OptimizedForStreaming = 1;
+                        m.OptimizedForStreaming = 1;
+                        siz = ((buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3]) - 8;
+
+                        buffer = new byte[siz];
+                        fs.Read(buffer, 0, siz);
+                        if (!FindInBuffer("trak", 0, siz, buffer, out int opos, out int oposmax)) return m;
+                        if (!FindInBuffer("mdia", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                        if (!FindInBuffer("minf", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                        if (!FindInBuffer("stbl", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                        if (!FindInBuffer("co64", opos, oposmax, buffer, out opos, out oposmax)) return m;
+                        p.Has64bitOffsets = 1;
+                    }
+                }
+                return m;
             }
             finally
             {
                 try
                 {
-                    minstance?.Close();
+                    _mInstance?.Close();
                     CloseMediaInfo();
                 }
                 catch
@@ -754,7 +782,7 @@ namespace Shoko.Server.FileHelper.MediaInfo
                     // ignore
                 }
 
-                minstance = null;
+                _mInstance = null;
 
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();
