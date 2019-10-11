@@ -95,8 +95,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         public static Media GetMediaInfo(string filename)
         {
-            if (Utils.IsRunningOnMono())
-                return MediaInfoParserInternal.Convert(filename, ServerSettings.Instance.Import.MediaInfoTimeoutMinutes);
+            // if (Utils.IsRunningOnMono())
+            //    return MediaInfoParserInternal.Convert(filename, ServerSettings.Instance.Import.MediaInfoTimeoutMinutes);
             return GetMediaInfoFromWrapper(filename);
         }
     }
