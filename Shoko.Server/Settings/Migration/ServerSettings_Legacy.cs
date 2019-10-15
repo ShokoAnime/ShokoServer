@@ -97,14 +97,6 @@ namespace Shoko.Server.Settings.Migration
             {
                 try
                 {
-                    //Reconfigure log file to applicationpath
-                    var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
-                    if (target != null)
-                    {
-                        target.FileName = ApplicationPath + "/logs/${shortdate}.log";
-                        LogManager.ReconfigExistingLoggers();
-                    }
-
                     disabledSave = true;
                     bool startedWithFreshConfig = false;
 

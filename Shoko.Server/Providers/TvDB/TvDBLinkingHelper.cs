@@ -52,12 +52,10 @@ namespace Shoko.Server
                     }
                 }
 
-                xref = new CrossRef_AniDB_TvDB_Episode
-                {
-                    AniDBEpisodeID = match.AniDB.EpisodeID,
-                    TvDBEpisodeID = match.TvDB.Id,
-                    MatchRating = match.Rating
-                };
+                if (xref == null) xref = new CrossRef_AniDB_TvDB_Episode();
+                xref.AniDBEpisodeID = match.AniDB.EpisodeID;
+                xref.TvDBEpisodeID = match.TvDB.Id;
+                xref.MatchRating = match.Rating;
 
                 tosave.Add(xref);
             }

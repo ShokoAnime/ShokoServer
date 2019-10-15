@@ -16,7 +16,6 @@ namespace Shoko.Server.Databases
 {
     public class SQLite : BaseDatabase<SQLiteConnection>, IDatabase
     {
-        public const string DefaultDBName = @"JMMServer.db3";
 
         public string Name { get; } = "SQLite";
 
@@ -36,7 +35,7 @@ namespace Shoko.Server.Databases
 
         public static string GetDatabaseFilePath()
         {
-            string dbName = Path.Combine(GetDatabasePath(), DefaultDBName);
+            string dbName = Path.Combine(GetDatabasePath(), ServerSettings.Instance.Database.SQLite_DatabaseFile);
             return dbName;
         }
 
