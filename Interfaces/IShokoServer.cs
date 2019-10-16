@@ -618,7 +618,7 @@ namespace Shoko.Models.Interfaces
         [Rest("TvDB/CrossRef/Episode/{animeID}", Verbs.Get)]
         List<CrossRef_AniDB_TvDB_Episode_Override> GetTVDBCrossRefEpisode(int animeID);
 
-        [Rest("TvDB/CrossRef/Episode/{aniDBEpisodeID}", Verbs.Delete)]
+        [Rest("TvDB/CrossRef/Episode/{aniDBEpisodeID}/{tvdbEpisodeID}", Verbs.Delete)]
         string RemoveLinkAniDBTvDBEpisode(int aniDBEpisodeID, int tvdbEpisodeID);
 
         #endregion
