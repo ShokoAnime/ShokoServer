@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Web;
 using System.Xml;
 using NLog;
 using Shoko.Server;
@@ -28,27 +29,30 @@ namespace AniDBAPI
                 webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
 
                 webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                HttpWebResponse WebResponse = (HttpWebResponse) webReq.GetResponse();
+                using (HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse())
+                {
+                    if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
+                        throw new HttpException("Response Body was expected, but none returned");
+                    using (Stream responseStream = webResponse.GetResponseStream())
+                    {
+                        if (responseStream == null)
+                            throw new HttpException("Response Body was expected, but none returned");
+                        string charset = webResponse.CharacterSet;
+                        Encoding encoding = null;
+                        if (!string.IsNullOrEmpty(charset))
+                            encoding = Encoding.GetEncoding(charset);
+                        if (encoding == null)
+                            encoding = Encoding.UTF8;
+                        StreamReader reader = new StreamReader(responseStream, encoding);
 
-                Stream responseStream = WebResponse.GetResponseStream();
-                String enco = WebResponse.CharacterSet;
-                Encoding encoding = null;
-                if (!String.IsNullOrEmpty(enco))
-                    encoding = Encoding.GetEncoding(WebResponse.CharacterSet);
-                if (encoding == null)
-                    encoding = Encoding.Default;
-                StreamReader Reader = new StreamReader(responseStream, encoding);
-
-                string output = Reader.ReadToEnd();
-
-                WebResponse.Close();
-                responseStream.Close();
-
-                return output;
+                        string output = reader.ReadToEnd();
+                        return output;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in APIUtils.DownloadWebPage: {0}");
+                logger.Error(ex, "Error in APIUtils.DownloadWebPage: {0}", ex);
                 return string.Empty;
             }
         }
