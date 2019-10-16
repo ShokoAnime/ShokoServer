@@ -3,7 +3,7 @@
     public static class Constants
     {
         public static readonly string WebCacheError = @"<error>No Results</error>";
-        public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.dat.gz";
+        public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.xml.gz";
         public static readonly string AnonWebCacheUsername = @"AnonymousWebCacheUser";
 
         public const string DatabaseTypeKey = "Database";
