@@ -172,7 +172,13 @@ namespace Shoko.Server
 
             if (aniepsSpecial.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsSpecial, tvepsSpecial, ref matches);
-
+            if (matches.Count == 0)
+            {
+                //Special Exception, sometimes tvdb matches series as anidb movies or viceversa
+                if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
+                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsNormal.Count > 0))
+                    TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
+            }
             return matches;
         }
 
