@@ -790,7 +790,8 @@ namespace Shoko.Server
                 ISessionFactory _ = DatabaseFactory.SessionFactory;
 
                 // We need too much of the database initialized to do this anywhere else.
-                DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
+                // TODO make this a command request. Some people apparently have thousands (a different problem, but locks startup for hours)
+                // DatabaseFixes.FixAniDB_EpisodesWithMissingTitles();
 
                 Scanner.Instance.Init();
 
