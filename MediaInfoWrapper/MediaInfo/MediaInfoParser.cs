@@ -634,7 +634,7 @@ namespace MediaInfoWrapper
 
                 if (textCount > 0)
                 {
-                    for (int x = 0; x < audioCount; x++)
+                    for (int x = 0; x < textCount; x++)
                     {
                         Stream s = TranslateTextStream(_mInstance, x);
                         streams.Add(s);
