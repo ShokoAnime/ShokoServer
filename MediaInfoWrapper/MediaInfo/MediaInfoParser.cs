@@ -497,8 +497,10 @@ namespace MediaInfoWrapper
                 Part p = new Part();
                 Stream videoStream = null;
 
-                m.Duration = p.Duration = _mInstance.GetLong(StreamKind.General, 0, "Duration");
                 p.Size = _mInstance.GetLong(StreamKind.General, 0, "FileSize");
+                // If size is 0, then we have a corrupt file or failed opening of the file that was forced to continue
+                if (p.Size == 0) return null;
+                m.Duration = p.Duration = _mInstance.GetLong(StreamKind.General, 0, "Duration");
 
                 int brate = _mInstance.GetInt(StreamKind.General, 0, "BitRate");
                 if (brate != 0) m.Bitrate = (int) Math.Round(brate / 1000F);

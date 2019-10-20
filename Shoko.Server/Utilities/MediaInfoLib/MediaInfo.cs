@@ -42,18 +42,16 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 string strOutput = pProcess.StandardOutput.ReadToEnd().Trim();
                 //Wait for process to finish
                 pProcess.WaitForExit();
-                if (pProcess.ExitCode != 0)
-                {
-                    string error = pProcess.StandardError.ReadToEnd().Trim();
-                    if (!strOutput.EqualsInvariantIgnoreCase("null")) error = strOutput + " " + error;
-                    if (error.EqualsInvariantIgnoreCase("null")) error = "No message";
-                    logger.Error($"MediaInfo crashed on {filename}: {error}");
-                    return null;
-                }
                 
-                if (!strOutput.StartsWith("{"))
+                if (pProcess.ExitCode != 0 || !strOutput.StartsWith("{"))
                 {
                     // We have an error
+                    if (string.IsNullOrWhiteSpace(strOutput) || strOutput.EqualsInvariantIgnoreCase("null"))
+                        strOutput = pProcess.StandardError.ReadToEnd().Trim();
+
+                    if (string.IsNullOrWhiteSpace(strOutput) || strOutput.EqualsInvariantIgnoreCase("null"))
+                        strOutput = "No message";
+                    
                     logger.Error($"MediaInfo threw an error on {filename}: {strOutput}");
                     return null;
                 }
