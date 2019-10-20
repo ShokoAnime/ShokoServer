@@ -492,7 +492,7 @@ namespace MediaInfoWrapper
             lock (Lock)
             {
                 if (_mInstance == null) _mInstance = new MediaInfoDLL();
-                if (_mInstance.Open(filename) < 0) return null; //it's a boolean response.
+                if (_mInstance.Open(filename) == 0) return null; //it's a boolean response.
                 Media m = new Media();
                 Part p = new Part();
                 Stream videoStream = null;
