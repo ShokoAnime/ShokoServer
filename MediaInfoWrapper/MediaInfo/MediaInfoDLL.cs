@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 
@@ -249,13 +250,15 @@ namespace MediaInfoWrapper
                 return 0;
             if (MustUseAnsi)
             {
-                IntPtr FileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
-                int ToReturn = (int) MediaInfoA_Open(Handle, FileName_Ptr);
-                Marshal.FreeHGlobal(FileName_Ptr);
-                return ToReturn;
+                IntPtr fileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
+                int isOpen = (int) MediaInfoA_Open(Handle, fileName_Ptr);
+                Marshal.FreeHGlobal(fileName_Ptr);
+                // This is a...something. If you pass unicode to the above, then it always returns 0
+                if (FileName.Any(a => a > 128) && isOpen == 0) return 1;
+                return isOpen;
             }
-            else
-                return (int) MediaInfo_Open(Handle, FileName);
+            
+            return (int) MediaInfo_Open(Handle, FileName);
         }
 
         public int Open_Buffer_Init(Int64 File_Size, Int64 File_Offset)
