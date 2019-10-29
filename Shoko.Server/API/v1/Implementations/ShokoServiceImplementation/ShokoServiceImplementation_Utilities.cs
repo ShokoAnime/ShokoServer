@@ -21,6 +21,7 @@ using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -30,25 +31,11 @@ namespace Shoko.Server
         public List<CL_AnimeSeries_User> SearchSeriesWithFilename(int uid, [FromForm] string query)
         {
             string input = query ?? string.Empty;
-            input = input.ToLower(CultureInfo.InvariantCulture);
-            input = SanitizeFuzzy(input, true);
 
-            SVR_JMMUser user = RepoFactory.JMMUser.GetByID(uid);
-            List<CL_AnimeSeries_User> seriesList = new List<CL_AnimeSeries_User>();
-            if (user == null) return seriesList;
+            var series = SeriesSearch.Search(uid, query, int.MaxValue,
+                SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy);
 
-            var series = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null)
-                .AsParallel().Select(a => (a, GetLowestLevenshteinDistance(a, input))).OrderBy(a => a.Item2)
-                .ThenBy(a => a.Item1.GetSeriesName())
-                .Select(a => a.Item1).ToList();
-
-            foreach (SVR_AnimeSeries ser in series)
-            {
-                seriesList.Add(ser.GetUserContract(uid));
-            }
-
-            return seriesList;
+            return series.Select(a => a.Result).Select(ser => ser.GetUserContract(uid)).ToList();
         }
 
         /// <summary>

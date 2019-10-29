@@ -1273,6 +1273,7 @@
     <Compile Include="Utilities\MediaInfoLib\MediaInfoDLLInternal.cs" />
     <Compile Include="Utilities\MediaInfoLib\MediaInfoParserInternal.cs" />
     <Compile Include="Utilities\ReflectionUtils.cs" />
+    <Compile Include="Utilities\SeriesSearch.cs" />
     <Compile Include="Utilities\TagFilter.cs" />
     <Compile Include="Utilities\UPnP.cs" />
     <Compile Include="ImageDownload\ImageDetails.cs" />
