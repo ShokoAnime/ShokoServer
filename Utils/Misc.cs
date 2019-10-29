@@ -616,8 +616,9 @@ namespace Shoko.Commons.Utils
         {
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(query)) return false;
             int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
-            if (query.Length <= 4 || text.Length <= 4) k = 0;
-            return DiceFuzzySearch<string>(text, query, k, null).Index > -1;
+            double d = DiceFuzzySearch<string>(text, query, k, null).Distance;
+            if (text.Length <= 5 && d > 0.5D) return false;
+            return d < 0.8D;
         }
 
         private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
