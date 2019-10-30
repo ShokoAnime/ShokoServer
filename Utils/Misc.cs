@@ -589,10 +589,7 @@ namespace Shoko.Commons.Utils
             // Shortcut
             if (index > -1)
             {
-                // they are equal if the lengths are equal and one contains the other
-                int dist = Math.Abs(inputString.Length - query.Length);
-
-                return new SearchInfo<T> {Index = index, Distance = dist, ExactMatch = true, Result = value};
+                return new SearchInfo<T> {Index = index, Distance = 0, ExactMatch = true, Result = value};
             }
 
             // always search the longer string for the shorter one
@@ -616,9 +613,10 @@ namespace Shoko.Commons.Utils
         {
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(query)) return false;
             int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
-            double d = DiceFuzzySearch<string>(text, query, k, null).Distance;
-            if (text.Length <= 5 && d > 0.5D) return false;
-            return d < 0.8D;
+            SearchInfo<string> result = DiceFuzzySearch(text, query, k, text);
+            if (result.ExactMatch) return true;
+            if (text.Length <= 5 && result.Distance > 0.5D) return false;
+            return result.Distance < 0.8D;
         }
 
         private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
