@@ -61,7 +61,7 @@ namespace Shoko.Server.Utilities
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
             var dist = new Misc.SearchInfo<string> {Index = -1, Distance = int.MaxValue};
             string match = string.Empty;
-            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
+            foreach (string title in a.GetAllTitles())
             {
                 if (string.IsNullOrEmpty(title)) continue;
                 int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
@@ -72,7 +72,7 @@ namespace Shoko.Server.Utilities
                 {
                     dist = result;
                 }
-                else if (result.Distance == dist.Distance)
+                else if (Math.Abs(result.Distance - dist.Distance) < 0.0001D)
                 {
                     if (title.Length < match.Length) match = title;
                 }
@@ -84,7 +84,7 @@ namespace Shoko.Server.Utilities
                     (key, oldValue) =>
                     {
                         if (oldValue.Distance < dist.Distance) return oldValue;
-                        if (oldValue.Distance == dist.Distance)
+                        if (Math.Abs(oldValue.Distance - dist.Distance) < 0.0001D)
                             return oldValue.Result.Length < dist.Result.Length
                                 ? oldValue
                                 : dist;
@@ -123,7 +123,7 @@ namespace Shoko.Server.Utilities
                 if (dist.Distance < int.MaxValue)
                     distLevenshtein.AddOrUpdate(a, dist,
                         (key, oldValue) =>
-                            Math.Min(oldValue.Distance, dist.Distance) == dist.Distance ? dist : oldValue);
+                            Math.Abs(Math.Min(oldValue.Distance, dist.Distance) - dist.Distance) < 0.0001D ? dist : oldValue);
             }
 
             if (distLevenshtein.Count >= limit || a?.Contract?.AniDBAnime?.CustomTags == null ||
@@ -153,7 +153,8 @@ namespace Shoko.Server.Utilities
 
             if (dist.Distance < int.MaxValue)
                 distLevenshtein.AddOrUpdate(a, dist,
-                    (key, oldValue) => Math.Min(oldValue.Distance, dist.Distance) == dist.Distance ? dist : oldValue);
+                    (key, oldValue) => Math.Abs(Math.Min(oldValue.Distance, dist.Distance) - dist.Distance) < 0.0001D
+                        ? dist : oldValue);
         }
 
         /// <summary>
@@ -247,29 +248,25 @@ namespace Shoko.Server.Utilities
 
         private static List<SearchResult> SearchTitlesIndexOf(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
         {
-            List<SearchResult> seriesList = new List<SearchResult>();
             string sanitizedQuery = SanitizeFuzzy(query, false);
-            allSeries.ForAll(series1 =>
+            return allSeries.Select(series1 =>
             {
                 foreach (string title in series1.GetAllTitles())
                 {
                     int index = title.IndexOf(sanitizedQuery, StringComparison.InvariantCultureIgnoreCase);
                     if (index == -1) continue;
-                    lock(seriesList)
+                    return new SearchResult
                     {
-                        seriesList.Add(new SearchResult
-                        {
-                            Result = series1,
-                            Distance = 0,
-                            ExactMatch = true,
-                            Index = index,
-                            Match = sanitizedQuery
-                        });
-                    }
+                        Result = series1,
+                        Distance = 0,
+                        ExactMatch = true,
+                        Index = index,
+                        Match = sanitizedQuery
+                    };
                 }
-            });
 
-            return seriesList.OrderBy(a => a.Index).ThenBy(a => a.Result.GetSeriesName()).Take(limit).ToList();
+                return null;
+            }).Where(a => a != null).OrderBy(a => a.Index).ThenBy(a => a.Result.GetSeriesName()).Take(limit).ToList();
         }
 
         private static List<SearchResult> SearchTitlesFuzzy(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
