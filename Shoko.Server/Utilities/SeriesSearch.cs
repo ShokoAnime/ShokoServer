@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Server;
@@ -175,8 +176,6 @@ namespace Shoko.Server.Utilities
 
             #region Search_TitlesOnly
 
-            List<SearchResult> seriesList = new List<SearchResult>();
-            
             switch (flags)
             {
                 case SearchFlags.Titles:
@@ -195,83 +194,80 @@ namespace Shoko.Server.Utilities
                     titleResult.AddRange(SearchTagsEquals(query, tagLimit, allSeries));
                     return titleResult;
                 case SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles:
-                    
+                    var titles = SearchTitlesFuzzy(query, limit, allSeries);
 
-                    break;
+                    int tagLimit2 = limit - titles.Count;
+                    if (tagLimit2 <= 0) return titles;
+                    titles.AddRange(SearchTagsEquals(query, tagLimit2, allSeries));
+                    return titles;
             }
 
             #endregion
 
-            return seriesList;
+            return new List<SearchResult>();
         }
 
         private static List<SearchResult> SearchTagsEquals(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
         {
-            List<SearchResult> results = new List<SearchResult>();
-            List<SearchResult> results2 = new List<SearchResult>();
-            foreach (SVR_AnimeSeries series in allSeries)
-            {
-                foreach (CustomTag customTag in series.GetAnime().GetCustomTagsForAnime())
+            return allSeries.Select(series =>
                 {
-                    if (!customTag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)) continue;
-                    results.Add(new SearchResult
+                    foreach (CustomTag customTag in series.GetAnime().GetCustomTagsForAnime())
                     {
-                        Result = series,
-                        ExactMatch = true,
-                        Match = customTag.TagName
-                    });
-                    goto endOfOuterLoop;
-                }
+                        if (!customTag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)) continue;
 
-                if (results.Count >= limit) return results.OrderBy(a => a.Result.GetSeriesName()).Take(limit).ToList();
-                
-                results = results.OrderBy(a => a.Result.GetSeriesName()).ToList();
+                        return (true, new SearchResult
+                        {
+                            Result = series,
+                            ExactMatch = true,
+                            Match = customTag.TagName
+                        });
+                    }
 
-                foreach (AniDB_Anime_Tag animeTag in series.GetAnime().GetAnimeTags())
-                {
-                    var tag = RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID);
-                    if (tag == null) continue;
-                    if (!tag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)) continue;
-                    results2.Add(new SearchResult
+                    foreach (AniDB_Anime_Tag animeTag in series.GetAnime().GetAnimeTags())
                     {
-                        Result = series,
-                        ExactMatch = true,
-                        Match = tag.TagName,
-                        // 600 is a value pulled from the wiki and database
-                        // according to wiki, there are 6 levels, in db, they are by 100
-                        Distance = 600 - animeTag.Weight
-                    });
-                    goto endOfOuterLoop;
-                }
+                        var tag = RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID);
+                        if (tag == null) continue;
+                        if (!tag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)) continue;
+                        return (false, new SearchResult
+                        {
+                            Result = series,
+                            ExactMatch = true,
+                            Match = tag.TagName,
+                            // 600 is a value pulled from the wiki and database
+                            // according to wiki, there are 6 levels, in db, they are by 100
+                            Distance = 600 - animeTag.Weight
+                        });
+                    }
 
-                endOfOuterLoop: ;
-            }
-
-            int count = limit - results.Count;
-            results.AddRange(results2.OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).Take(count));
-            return results;
+                    return (false, null);
+                }).Where(result => result.Item2 != null).OrderBy(result => result.Item1)
+                .ThenBy(result => result.Item2.Result.GetSeriesName()).Select(result => result.Item2).Take(limit)
+                .ToList();
         }
 
         private static List<SearchResult> SearchTitlesIndexOf(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
         {
             List<SearchResult> seriesList = new List<SearchResult>();
             string sanitizedQuery = SanitizeFuzzy(query, false);
-            foreach (var series1 in allSeries)
+            allSeries.ForAll(series1 =>
             {
                 foreach (string title in series1.GetAllTitles())
                 {
                     int index = title.IndexOf(sanitizedQuery, StringComparison.InvariantCultureIgnoreCase);
                     if (index == -1) continue;
-                    seriesList.Add(new SearchResult
+                    lock(seriesList)
                     {
-                        Result = series1,
-                        Distance = 0,
-                        ExactMatch = true,
-                        Index = index,
-                        Match = sanitizedQuery
-                    });
+                        seriesList.Add(new SearchResult
+                        {
+                            Result = series1,
+                            Distance = 0,
+                            ExactMatch = true,
+                            Index = index,
+                            Match = sanitizedQuery
+                        });
+                    }
                 }
-            }
+            });
 
             return seriesList.OrderBy(a => a.Index).ThenBy(a => a.Result.GetSeriesName()).Take(limit).ToList();
         }
