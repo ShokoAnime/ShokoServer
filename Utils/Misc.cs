@@ -601,11 +601,11 @@ namespace Shoko.Commons.Utils
             }
 
             double result = DiceSearch.Distance(inputString, query);
-            // For Dice, 1 is no reasonable match
-            if (result >= 1) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
             // Don't count an error as liberally when the title is short
-            if (inputString.Length < 5 && result > 0.8) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
-            
+            if (inputString.Length < 5 && result > 0.5) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+
+            if (result >= 0.8) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+
             return new SearchInfo<T> {Index = 0, Distance = result, Result = value};
         }
 
