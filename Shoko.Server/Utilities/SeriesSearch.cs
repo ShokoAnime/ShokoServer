@@ -211,12 +211,15 @@ namespace Shoko.Server.Utilities
         private static List<SearchResult> SearchTagsFuzzy(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)
         {
             List<SearchResult> series = new List<SearchResult>();
-            IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll();
-            series.AddRange(customTags.SelectMany(a =>
+            IEnumerable<Misc.SearchInfo<CustomTag>> customTags = RepoFactory.CustomTag.GetAll().Select(a =>
             {
-                if (user.GetHideCategories().Contains(a.TagName)) return new List<SearchResult>();
+                if (user.GetHideCategories().Contains(a.TagName)) return null;
                 Misc.SearchInfo<CustomTag> tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a);
-                if (tag.Index == -1 || tag.Result == null) return new List<SearchResult>();
+                if (tag.Index == -1 || tag.Result == null) return null;
+                return tag;
+            }).Where(a => a != null).OrderBy(a => a.Distance);
+            series.AddRange(customTags.SelectMany(tag =>
+            {
                 return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
                     .Select(xref =>
                     {
@@ -233,16 +236,20 @@ namespace Shoko.Server.Utilities
                             Result = anime,
                             ExactMatch = tag.ExactMatch
                         };
-                    }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName()).ToList();
+                    }).Where(b => b != null).OrderBy(b => b.Result.GetSeriesName()).ToList();
             }).Take(limit));
 
             limit -= series.Count;
 
-            series.AddRange(allTags.SelectMany(tag =>
+            var tags = allTags.Select(tag =>
             {
                 var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
-                if (result.Index == -1 || result.Result == null) return new List<SearchResult>();
-                return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
+                if (result.Index == -1 || result.Result == null) return null;
+                return result;
+            }).Where(a => a != null).OrderBy(a => a.Distance);
+            series.AddRange(tags.SelectMany(tag =>
+            {
+                return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
                     .Select(xref =>
                     {
                         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
@@ -252,12 +259,12 @@ namespace Shoko.Server.Utilities
                         return new SearchResult
                         {
                             Distance = (600D - xref.Weight) / 600,
-                            Index = result.Index,
-                            Match = tag.TagName,
+                            Index = tag.Index,
+                            Match = tag.Result.TagName,
                             Result = anime,
-                            ExactMatch = result.ExactMatch
+                            ExactMatch = tag.ExactMatch
                         };
-                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).ToList();
+                    }).Where(a => a != null).OrderBy(a => a.Result.GetSeriesName()).ToList();
             }).Take(limit));
             return series;
         }
