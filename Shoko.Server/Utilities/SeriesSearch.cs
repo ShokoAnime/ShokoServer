@@ -177,7 +177,9 @@ namespace Shoko.Server.Utilities
                             ExactMatch = true
                         };
                     }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
-            }));
+            }).Take(limit));
+
+            limit -= series.Count;
 
             series.AddRange(allTags.Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)).SelectMany(tag =>
             {
@@ -197,8 +199,8 @@ namespace Shoko.Server.Utilities
                             ExactMatch = true
                         };
                     }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
-            }));
-            return series.Take(limit).ToList();
+            }).Take(limit));
+            return series;
         }
         
         private static List<SearchResult> SearchTagsFuzzy(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)
@@ -252,7 +254,7 @@ namespace Shoko.Server.Utilities
                         };
                     }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).ToList();
             }).Take(limit));
-            return series.ToList();
+            return series;
         }
 
         private static List<SearchResult> SearchTitlesIndexOf(string query, int limit,
