@@ -163,6 +163,7 @@ namespace Shoko.Server.Utilities
                 series.AddRange(from xref in RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTag.CustomTagID)
                     where xref.CrossRefType == (int) CustomTagCrossRefType.Anime
                     let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID)
+                    where anime != null
                     orderby anime.GetSeriesName()
                     select new SearchResult
                     {
@@ -180,6 +181,7 @@ namespace Shoko.Server.Utilities
             List<AniDB_Anime_Tag> xrefs = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID);
             series.AddRange(from xref in xrefs
                 let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID)
+                where anime != null
                 orderby xref.Weight descending, anime.GetSeriesName()
                 select new SearchResult
                 {
@@ -230,6 +232,7 @@ namespace Shoko.Server.Utilities
                 from xref in RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTag.CustomTagID)
                 where xref.CrossRefType == (int) CustomTagCrossRefType.Anime
                 let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID)
+                where anime != null
                 orderby anime.GetSeriesName()
                 select new SearchResult
                 {
@@ -243,6 +246,7 @@ namespace Shoko.Server.Utilities
             series.AddRange(from tag in allTags.Where(a => a.TagName.FuzzyMatches(query))
                 from xref in RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
                 let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID)
+                where anime != null
                 orderby xref.Weight descending, anime.GetSeriesName()
                 select new SearchResult
                 {
