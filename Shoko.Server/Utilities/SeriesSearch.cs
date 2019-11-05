@@ -14,6 +14,14 @@ namespace Shoko.Server.Utilities
 {
     public static class SeriesSearch
     {
+        [Flags]
+        public enum SearchFlags
+        {
+            Tags = 1,
+            Titles = 2,
+            Fuzzy = 4
+        }
+
         private static readonly char[] InvalidPathChars =
             $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
 
@@ -30,80 +38,78 @@ namespace Shoko.Server.Utilities
         }
 
         /// <summary>
-        /// function used in fuzzy search
+        ///     function used in fuzzy search
         /// </summary>
         /// <param name="grouping"></param>
         /// <param name="query"></param>
         private static SearchGrouping CheckTitlesFuzzy(IGrouping<int, SVR_AnimeSeries> grouping, string query)
         {
             if (!(grouping?.SelectMany(a => a.GetAllTitles()).Any() ?? false)) return null;
-            var dist = new SearchGrouping {Index = -1, Distance = int.MaxValue};
+            SearchGrouping dist = null;
 
             foreach (SVR_AnimeSeries item in grouping)
+            foreach (string title in item.GetAllTitles())
             {
-                foreach (string title in item.GetAllTitles())
+                if (string.IsNullOrEmpty(title)) continue;
+                int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
+                if (query.Length <= 4 || title.Length <= 4) k = 0;
+                Misc.SearchInfo<IGrouping<int, SVR_AnimeSeries>> result =
+                    Misc.DiceFuzzySearch(title, query, k, grouping);
+                if (result.Index == -1) continue;
+                SearchGrouping searchGrouping = new SearchGrouping
                 {
-
-                    if (string.IsNullOrEmpty(title)) continue;
-                    int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
-                    if (query.Length <= 4 || title.Length <= 4) k = 0;
-                    var result = Misc.DiceFuzzySearch(title, query, k, grouping);
-                    if (result.Index == -1) continue;
-                    var searchGrouping = new SearchGrouping
-                    {
-                        Distance = result.Distance,
-                        Index = result.Index,
-                        ExactMatch = result.ExactMatch,
-                        Match = title,
-                        Results = grouping.OrderBy(a => a.AirDate).ToList()
-                    };
-                    if (result.Distance < dist.Distance) dist = searchGrouping;
-                }
+                    Distance = result.Distance,
+                    Index = result.Index,
+                    ExactMatch = result.ExactMatch,
+                    Match = title,
+                    Results = grouping.OrderBy(a => a.AirDate).ToList()
+                };
+                if (result.Distance < (dist?.Distance ?? int.MaxValue)) dist = searchGrouping;
             }
 
             return dist;
         }
 
         /// <summary>
-        /// function used in fuzzy search
+        ///     function used in fuzzy search
         /// </summary>
         /// <param name="grouping"></param>
         /// <param name="query"></param>
         private static SearchGrouping CheckTitlesIndexOf(IGrouping<int, SVR_AnimeSeries> grouping, string query)
         {
             if (!(grouping?.SelectMany(a => a.GetAllTitles()).Any() ?? false)) return null;
-            var dist = new SearchGrouping {Index = -1, Distance = int.MaxValue};
+            SearchGrouping dist = null;
 
             foreach (SVR_AnimeSeries item in grouping)
+            foreach (string title in item.GetAllTitles())
             {
-                foreach (string title in item.GetAllTitles())
+                if (string.IsNullOrEmpty(title)) continue;
+                int result = title.IndexOf(query, StringComparison.OrdinalIgnoreCase);
+                if (result == -1) continue;
+                SearchGrouping searchGrouping = new SearchGrouping
                 {
-                    if (string.IsNullOrEmpty(title)) continue;
-                    var result = title.IndexOf(query, StringComparison.OrdinalIgnoreCase);
-                    if (result == -1) continue;
-                    var searchGrouping = new SearchGrouping
-                    {
-                        Distance = 0,
-                        Index = result,
-                        ExactMatch = true,
-                        Match = title,
-                        Results = grouping.OrderBy(a => a.AirDate).ToList()
-                    };
-                    if (result < dist.Index) dist = searchGrouping;
-                }
+                    Distance = 0,
+                    Index = result,
+                    ExactMatch = true,
+                    Match = title,
+                    Results = grouping.OrderBy(a => a.AirDate).ToList()
+                };
+                if (result < (dist?.Index ?? int.MaxValue)) dist = searchGrouping;
             }
 
             return dist;
         }
 
         /// <summary>
-        /// Search for series with given query in name or tag
+        ///     Search for series with given query in name or tag
         /// </summary>
         /// <param name="query">target string</param>
         /// <param name="userID">user id</param>
         /// <param name="limit">The number of results to return</param>
-        /// <param name="flags" >The SearchFlags to determine the type of search</param>
-        /// <returns><see cref="List{SearchResult}"/></returns>
+        /// <param name="flags">The SearchFlags to determine the type of search</param>
+        /// <returns>
+        ///     <see cref="List{SearchResult}" />
+        /// </returns>
         public static List<SearchResult> Search(int userID, string query, int limit, SearchFlags flags)
         {
             query = query.ToLowerInvariant();
@@ -128,14 +134,14 @@ namespace Shoko.Server.Utilities
                 case SearchFlags.Fuzzy | SearchFlags.Tags:
                     return SearchTagsFuzzy(query, limit, allTags);
                 case SearchFlags.Tags | SearchFlags.Titles:
-                    var titleResult = SearchTitlesIndexOf(query, limit, allSeries);
+                    List<SearchResult> titleResult = SearchTitlesIndexOf(query, limit, allSeries);
 
                     int tagLimit = limit - titleResult.Count;
                     if (tagLimit <= 0) return titleResult;
                     titleResult.AddRange(SearchTagsEquals(query, tagLimit, allTags));
                     return titleResult;
                 case SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles:
-                    var titles = SearchTitlesFuzzy(query, limit, allSeries);
+                    List<SearchResult> titles = SearchTitlesFuzzy(query, limit, allSeries);
 
                     int tagLimit2 = limit - titles.Count;
                     if (tagLimit2 <= 0) return titles;
@@ -154,7 +160,6 @@ namespace Shoko.Server.Utilities
             CustomTag customTag = RepoFactory.CustomTag.GetAll()
                 .FirstOrDefault(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase));
             if (customTag != null)
-            {
                 series.AddRange(from xref in RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTag.CustomTagID)
                     where xref.CrossRefType == (int) CustomTagCrossRefType.Anime
                     let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID)
@@ -167,9 +172,10 @@ namespace Shoko.Server.Utilities
                         Result = anime,
                         ExactMatch = true
                     });
-            }
+
             // due to exact match, only one is needed
-            AniDB_Tag tag = allTags.FirstOrDefault(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase));
+            AniDB_Tag tag =
+                allTags.FirstOrDefault(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase));
             if (tag == null) return series.Take(limit).ToList();
             List<AniDB_Anime_Tag> xrefs = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID);
             series.AddRange(from xref in xrefs
@@ -186,7 +192,8 @@ namespace Shoko.Server.Utilities
             return series.Take(limit).ToList();
         }
 
-        private static List<SearchResult> SearchTitlesIndexOf(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
+        private static List<SearchResult> SearchTitlesIndexOf(string query, int limit,
+            ParallelQuery<SVR_AnimeSeries> allSeries)
         {
             string sanitizedQuery = SanitizeFuzzy(query, false);
             return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesIndexOf(a, sanitizedQuery))
@@ -200,7 +207,8 @@ namespace Shoko.Server.Utilities
                 })).Take(limit).ToList();
         }
 
-        private static List<SearchResult> SearchTitlesFuzzy(string query, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
+        private static List<SearchResult> SearchTitlesFuzzy(string query, int limit,
+            ParallelQuery<SVR_AnimeSeries> allSeries)
         {
             return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesFuzzy(a, query)).Where(a => a != null)
                 .OrderBy(a => a.Index).ThenBy(a => a.Distance).SelectMany(a => a.Results.Select(b => new SearchResult
@@ -212,7 +220,7 @@ namespace Shoko.Server.Utilities
                     Result = b
                 })).Take(limit).ToList();
         }
-        
+
         private static List<SearchResult> SearchTagsFuzzy(string query, int limit, ParallelQuery<AniDB_Tag> allTags)
         {
             List<SearchResult> series = new List<SearchResult>();
@@ -263,14 +271,6 @@ namespace Shoko.Server.Utilities
         public class SearchResult : BaseSearchItem
         {
             public SVR_AnimeSeries Result { get; set; }
-        }
-
-        [Flags]
-        public enum SearchFlags
-        {
-            Tags = 1,
-            Titles = 2,
-            Fuzzy = 4
         }
     }
 }
