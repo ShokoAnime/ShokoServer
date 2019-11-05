@@ -209,9 +209,9 @@ namespace Shoko.Server.Utilities
             IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll();
             series.AddRange(customTags.SelectMany(a =>
             {
-                if (user.GetHideCategories().Contains(a.TagName)) return null;
+                if (user.GetHideCategories().Contains(a.TagName)) return new List<SearchResult>();
                 Misc.SearchInfo<CustomTag> tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a);
-                if (tag.Index == -1 || tag.Result == null) return null;
+                if (tag.Index == -1 || tag.Result == null) return new List<SearchResult>();
                 return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
                     .Select(xref =>
                     {
@@ -220,7 +220,7 @@ namespace Shoko.Server.Utilities
                         if (anime == null) return null;
                         // Because we are searching tags, then getting series from it, we need to make sure it's allowed
                         // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        if (anime.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
                         return new SearchResult
                         {
                             Distance = tag.Distance,
@@ -229,7 +229,7 @@ namespace Shoko.Server.Utilities
                             Result = anime,
                             ExactMatch = tag.ExactMatch
                         };
-                    }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName());
+                    }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName()).ToList();
             }).Take(limit));
 
             limit -= series.Count;
@@ -237,7 +237,7 @@ namespace Shoko.Server.Utilities
             series.AddRange(allTags.SelectMany(tag =>
             {
                 var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
-                if (result.Index == -1 || result.Result == null) return null;
+                if (result.Index == -1 || result.Result == null) return new List<SearchResult>();;
                 return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
                     .Select(xref =>
                     {
@@ -254,7 +254,7 @@ namespace Shoko.Server.Utilities
                             Result = anime,
                             ExactMatch = result.ExactMatch
                         };
-                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
+                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).ToList();
             }).Take(limit));
             return series.ToList();
         }
