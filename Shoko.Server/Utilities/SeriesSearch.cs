@@ -236,7 +236,7 @@ namespace Shoko.Server.Utilities
                             Result = anime,
                             ExactMatch = tag.ExactMatch
                         };
-                    }).Where(b => b != null).OrderBy(b => b.Result.GetSeriesName()).ToList();
+                    }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName()).ToList();
             }).Take(limit));
 
             limit -= series.Count;
@@ -264,7 +264,7 @@ namespace Shoko.Server.Utilities
                             Result = anime,
                             ExactMatch = tag.ExactMatch
                         };
-                    }).Where(a => a != null).OrderBy(a => a.Result.GetSeriesName()).ToList();
+                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName()).ToList();
             }).Take(limit));
             return series;
         }
