@@ -2249,10 +2249,6 @@ namespace Shoko.Server.API.v2.Modules
                     series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Result, uid, nocast, notag, level,
                         all,
                         ser.Match, allpic, pic, tagfilter));
-                    if (series_list.Count >= limit)
-                    {
-                        break;
-                    }
                 }
                 else
                 {
