@@ -165,10 +165,9 @@ namespace Shoko.Server.Utilities
                     {
                         if (xref.CrossRefType != (int) CustomTagCrossRefType.Anime) return null;
                         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                        if (anime == null) return null;
                         // Because we are searching tags, then getting series from it, we need to make sure it's allowed
                         // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
                         return new SearchResult
                         {
                             Distance = 0,
@@ -186,10 +185,9 @@ namespace Shoko.Server.Utilities
                     .Select(xref =>
                     {
                         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                        if (anime == null) return null;
                         // Because we are searching tags, then getting series from it, we need to make sure it's allowed
                         // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
                         return new SearchResult
                         {
                             Distance = (600 - xref.Weight) / 600D,
@@ -217,10 +215,9 @@ namespace Shoko.Server.Utilities
                     {
                         if (xref.CrossRefType != (int) CustomTagCrossRefType.Anime) return null;
                         SVR_AnimeSeries anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
-                        if (anime == null) return null;
                         // Because we are searching tags, then getting series from it, we need to make sure it's allowed
                         // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
+                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
                         return new SearchResult
                         {
                             Distance = tag.Distance,
@@ -237,18 +234,17 @@ namespace Shoko.Server.Utilities
             series.AddRange(allTags.SelectMany(tag =>
             {
                 var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
-                if (result.Index == -1 || result.Result == null) return new List<SearchResult>();;
+                if (result.Index == -1 || result.Result == null) return new List<SearchResult>();
                 return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
                     .Select(xref =>
                     {
                         var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
-                        if (anime == null) return null;
                         // Because we are searching tags, then getting series from it, we need to make sure it's allowed
                         // for example, porn could have the drugs tag, even though it's not a "porn tag"
-                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        if (anime?.GetAnime()?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? true) return null;
                         return new SearchResult
                         {
-                            Distance = (600 - xref.Weight) / 600D,
+                            Distance = (600D - xref.Weight) / 600,
                             Index = result.Index,
                             Match = tag.TagName,
                             Result = anime,
