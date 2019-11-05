@@ -130,22 +130,22 @@ namespace Shoko.Server.Utilities
                 case SearchFlags.Fuzzy | SearchFlags.Titles:
                     return SearchTitlesFuzzy(query, limit, allSeries);
                 case SearchFlags.Tags:
-                    return SearchTagsEquals(query, limit, allTags);
+                    return SearchTagsEquals(query, limit, user, allTags);
                 case SearchFlags.Fuzzy | SearchFlags.Tags:
-                    return SearchTagsFuzzy(query, limit, allTags);
+                    return SearchTagsFuzzy(query, limit, user, allTags);
                 case SearchFlags.Tags | SearchFlags.Titles:
                     List<SearchResult> titleResult = SearchTitlesIndexOf(query, limit, allSeries);
 
                     int tagLimit = limit - titleResult.Count;
                     if (tagLimit <= 0) return titleResult;
-                    titleResult.AddRange(SearchTagsEquals(query, tagLimit, allTags));
+                    titleResult.AddRange(SearchTagsEquals(query, tagLimit, user, allTags));
                     return titleResult;
                 case SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles:
                     List<SearchResult> titles = SearchTitlesFuzzy(query, limit, allSeries);
 
                     int tagLimit2 = limit - titles.Count;
                     if (tagLimit2 <= 0) return titles;
-                    titles.AddRange(SearchTagsFuzzy(query, tagLimit2, allTags));
+                    titles.AddRange(SearchTagsFuzzy(query, tagLimit2, user, allTags));
                     return titles;
             }
 
@@ -154,44 +154,109 @@ namespace Shoko.Server.Utilities
             return new List<SearchResult>();
         }
 
-        private static List<SearchResult> SearchTagsEquals(string query, int limit, ParallelQuery<AniDB_Tag> allTags)
+        private static List<SearchResult> SearchTagsEquals(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)
         {
             List<SearchResult> series = new List<SearchResult>();
-            CustomTag customTag = RepoFactory.CustomTag.GetAll()
-                .FirstOrDefault(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase));
-            if (customTag != null)
-                series.AddRange(from xref in RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTag.CustomTagID)
-                    where xref.CrossRefType == (int) CustomTagCrossRefType.Anime
-                    let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID)
-                    where anime != null
-                    orderby anime.GetSeriesName()
-                    select new SearchResult
+            IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll();
+            series.AddRange(customTags.Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)).SelectMany(tag =>
+            {
+                return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
+                    .Select(xref =>
                     {
-                        Distance = 0,
-                        Index = 0,
-                        Match = customTag.TagName,
-                        Result = anime,
-                        ExactMatch = true
-                    });
+                        if (xref.CrossRefType != (int) CustomTagCrossRefType.Anime) return null;
+                        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                        if (anime == null) return null;
+                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
+                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
+                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        return new SearchResult
+                        {
+                            Distance = 0,
+                            Index = 0,
+                            Match = tag.TagName,
+                            Result = anime,
+                            ExactMatch = true
+                        };
+                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
+            }));
 
-            // due to exact match, only one is needed
-            AniDB_Tag tag =
-                allTags.FirstOrDefault(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase));
-            if (tag == null) return series.Take(limit).ToList();
-            List<AniDB_Anime_Tag> xrefs = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID);
-            series.AddRange(from xref in xrefs
-                let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID)
-                where anime != null
-                orderby xref.Weight descending, anime.GetSeriesName()
-                select new SearchResult
-                {
-                    Distance = (600 - xref.Weight) / 600D,
-                    Index = 0,
-                    Match = tag.TagName,
-                    Result = anime,
-                    ExactMatch = true
-                });
+            series.AddRange(allTags.Where(a => a.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase)).SelectMany(tag =>
+            {
+                return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
+                    .Select(xref =>
+                    {
+                        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                        if (anime == null) return null;
+                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
+                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
+                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        return new SearchResult
+                        {
+                            Distance = (600 - xref.Weight) / 600D,
+                            Index = 0,
+                            Match = tag.TagName,
+                            Result = anime,
+                            ExactMatch = true
+                        };
+                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
+            }));
             return series.Take(limit).ToList();
+        }
+        
+        private static List<SearchResult> SearchTagsFuzzy(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)
+        {
+            List<SearchResult> series = new List<SearchResult>();
+            IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll();
+            series.AddRange(customTags.SelectMany(a =>
+            {
+                if (user.GetHideCategories().Contains(a.TagName)) return null;
+                Misc.SearchInfo<CustomTag> tag = Misc.DiceFuzzySearch(a.TagName, query, 0, a);
+                if (tag.Index == -1 || tag.Result == null) return null;
+                return RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
+                    .Select(xref =>
+                    {
+                        if (xref.CrossRefType != (int) CustomTagCrossRefType.Anime) return null;
+                        SVR_AnimeSeries anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
+                        if (anime == null) return null;
+                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
+                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
+                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        return new SearchResult
+                        {
+                            Distance = tag.Distance,
+                            Index = tag.Index,
+                            Match = tag.Result.TagName,
+                            Result = anime,
+                            ExactMatch = tag.ExactMatch
+                        };
+                    }).Where(b => b != null).OrderBy(b => b.Distance).ThenBy(b => b.Result.GetSeriesName());
+            }).Take(limit));
+
+            limit -= series.Count;
+
+            series.AddRange(allTags.SelectMany(tag =>
+            {
+                var result = Misc.DiceFuzzySearch(tag.TagName, query, 0, tag);
+                if (result.Index == -1 || result.Result == null) return null;
+                return RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
+                    .Select(xref =>
+                    {
+                        var anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
+                        if (anime == null) return null;
+                        // Because we are searching tags, then getting series from it, we need to make sure it's allowed
+                        // for example, porn could have the drugs tag, even though it's not a "porn tag"
+                        if (anime.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())) return null;
+                        return new SearchResult
+                        {
+                            Distance = (600 - xref.Weight) / 600D,
+                            Index = result.Index,
+                            Match = tag.TagName,
+                            Result = anime,
+                            ExactMatch = result.ExactMatch
+                        };
+                    }).Where(a => a != null).OrderBy(a => a.Distance).ThenBy(a => a.Result.GetSeriesName());
+            }).Take(limit));
+            return series.ToList();
         }
 
         private static List<SearchResult> SearchTitlesIndexOf(string query, int limit,
@@ -221,42 +286,6 @@ namespace Shoko.Server.Utilities
                     Match = a.Match,
                     Result = b
                 })).Take(limit).ToList();
-        }
-
-        private static List<SearchResult> SearchTagsFuzzy(string query, int limit, ParallelQuery<AniDB_Tag> allTags)
-        {
-            List<SearchResult> series = new List<SearchResult>();
-            IEnumerable<CustomTag> customTags = RepoFactory.CustomTag.GetAll()
-                .Where(a => a.TagName.FuzzyMatches(query));
-            series.AddRange(from customTag in customTags
-                from xref in RepoFactory.CrossRef_CustomTag.GetByCustomTagID(customTag.CustomTagID)
-                where xref.CrossRefType == (int) CustomTagCrossRefType.Anime
-                let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID)
-                where anime != null
-                orderby anime.GetSeriesName()
-                select new SearchResult
-                {
-                    Distance = 0,
-                    Index = 0,
-                    Match = customTag.TagName,
-                    Result = anime,
-                    ExactMatch = true
-                });
-
-            series.AddRange(from tag in allTags.Where(a => a.TagName.FuzzyMatches(query))
-                from xref in RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID)
-                let anime = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID)
-                where anime != null
-                orderby xref.Weight descending, anime.GetSeriesName()
-                select new SearchResult
-                {
-                    Distance = (600 - xref.Weight) / 600D,
-                    Index = 0,
-                    Match = tag.TagName,
-                    Result = anime,
-                    ExactMatch = true
-                });
-            return series.Take(limit).ToList();
         }
 
         public abstract class BaseSearchItem
