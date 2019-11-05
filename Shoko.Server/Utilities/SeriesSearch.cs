@@ -110,7 +110,7 @@ namespace Shoko.Server.Utilities
         /// <returns>
         ///     <see cref="List{SearchResult}" />
         /// </returns>
-        public static List<SearchResult> Search(int userID, string query, int limit, SearchFlags flags)
+        public static List<SearchResult> Search(int userID, string query, int limit, SearchFlags flags, TagFilter.Filter tagFilter = TagFilter.Filter.None)
         {
             query = query.ToLowerInvariant();
 
@@ -119,7 +119,12 @@ namespace Shoko.Server.Utilities
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel().Where(a =>
                 a?.GetAnime() != null && !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories()));
             ParallelQuery<AniDB_Tag> allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
-                .Where(a => !user.GetHideCategories().Contains(a.TagName));
+                .Where(a =>
+                {
+                    List<string> _ = new List<string>();
+                    return !user.GetHideCategories().Contains(a.TagName) &&
+                           !TagFilter.IsTagBlackListed(a.TagName, tagFilter, ref _);
+                });
 
             #region Search_TitlesOnly
 
