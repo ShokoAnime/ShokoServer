@@ -113,12 +113,12 @@ namespace AniDBAPI.Commands
             return "AniDBHTTPCommand_GetFullAnime_" + AnimeID.ToString();
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingAnimeHTTP;
+            return AniDBUDPResponseCode.GettingAnimeHTTP;
         }
 
-        public virtual enHelperActivityType Process()
+        public virtual AniDBUDPResponseCode Process()
         {
             XmlDocument docAnime = null;
 
@@ -152,7 +152,7 @@ namespace AniDBAPI.Commands
             {
                 logger.Trace("Anime data loaded for " + AnimeID + ". Processing and saving it.");
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
-                if (anime == null) return enHelperActivityType.NoSuchAnime;
+                if (anime == null) return AniDBUDPResponseCode.NoSuchAnime;
 
                 episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
                 titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
@@ -172,9 +172,9 @@ namespace AniDBAPI.Commands
                     similarAnime = null;
                     recommendations = null;
                 }
-                return enHelperActivityType.GotAnimeInfoHTTP;
+                return AniDBUDPResponseCode.GotAnimeInfoHTTP;
             }
-            return enHelperActivityType.NoSuchAnime;
+            return AniDBUDPResponseCode.NoSuchAnime;
         }
 
 

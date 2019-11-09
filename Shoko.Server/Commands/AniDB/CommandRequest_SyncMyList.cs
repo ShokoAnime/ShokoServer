@@ -70,8 +70,8 @@ namespace Shoko.Server.Commands
                 // Get the list from AniDB
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
                 cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                enHelperActivityType ev = cmd.Process();
-                if (ev != enHelperActivityType.GotMyListHTTP)
+                AniDBUDPResponseCode ev = cmd.Process();
+                if (ev != AniDBUDPResponseCode.GotMyListHTTP)
                 {
                     logger.Warn("AniDB did not return a successful code: " + ev);
                     return;

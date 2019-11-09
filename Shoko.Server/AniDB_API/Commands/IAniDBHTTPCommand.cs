@@ -2,8 +2,8 @@
 {
     public interface IAniDBHTTPCommand
     {
-        enHelperActivityType GetStartEventType();
-        enHelperActivityType Process();
+        AniDBUDPResponseCode GetStartEventType();
+        AniDBUDPResponseCode Process();
         string GetKey();
     }
 }

@@ -904,8 +904,8 @@ namespace Shoko.Server
             {
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
                 cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                enHelperActivityType ev = cmd.Process();
-                if (ev == enHelperActivityType.GotMyListHTTP)
+                AniDBUDPResponseCode ev = cmd.Process();
+                if (ev == AniDBUDPResponseCode.GotMyListHTTP)
                 {
                     foreach (Raw_AniDB_MyListFile myitem in cmd.MyListItems)
                     {

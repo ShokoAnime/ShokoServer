@@ -41,8 +41,8 @@ namespace Shoko.Server.Commands
             {
                 AniDBHTTPCommand_GetVotes cmd = new AniDBHTTPCommand_GetVotes();
                 cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-                enHelperActivityType ev = cmd.Process();
-                if (ev == enHelperActivityType.GotVotesHTTP)
+                AniDBUDPResponseCode ev = cmd.Process();
+                if (ev == AniDBUDPResponseCode.GotVotesHTTP)
                 {
                     foreach (Raw_AniDB_Vote_HTTP myVote in cmd.MyVotes)
                     {

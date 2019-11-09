@@ -8,9 +8,9 @@ namespace AniDBAPI.Commands
     {
         public string SessionID = string.Empty;
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.Ping;
+            return AniDBUDPResponseCode.Ping;
         }
 
         public string GetKey()
@@ -18,7 +18,7 @@ namespace AniDBAPI.Commands
             return "Ping";
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -26,17 +26,17 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.PingFailed;
+            if (errorOccurred) return AniDBUDPResponseCode.PingFailed;
 
             // Process Response
             string sMsgType = socketResponse.Substring(0, 3);
 
             // 300 PONG
-            return sMsgType.Equals("300") ? enHelperActivityType.PingFailed : enHelperActivityType.PingPong;
+            return sMsgType.Equals("300") ? AniDBUDPResponseCode.PingFailed : AniDBUDPResponseCode.PingPong;
         }
 
         public AniDBCommand_Ping()

@@ -29,12 +29,12 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetReview" + ReviewID.ToString();
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingReview;
+            return AniDBUDPResponseCode.GettingReview;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -42,11 +42,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchReview;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchReview;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
 
@@ -63,13 +63,13 @@ namespace AniDBAPI.Commands
                     // the rest of the information should be the data list
 
                     ReviewInfo = new Raw_AniDB_Review(socketResponse);
-                    return enHelperActivityType.GotReview;
+                    return AniDBUDPResponseCode.GotReview;
                 }
-                case "334": return enHelperActivityType.NoSuchReview;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "334": return AniDBUDPResponseCode.NoSuchReview;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchReview;
+            return AniDBUDPResponseCode.NoSuchReview;
         }
 
         public AniDBCommand_GetReview()

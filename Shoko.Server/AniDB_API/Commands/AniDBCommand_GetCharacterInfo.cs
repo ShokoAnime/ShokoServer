@@ -35,12 +35,12 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetCharacterInfo" + CharID.ToString();
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingCharInfo;
+            return AniDBUDPResponseCode.GettingCharInfo;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -48,12 +48,12 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
 
-            if (errorOccurred) return enHelperActivityType.NoSuchChar;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchChar;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCharacterInfo.Process: Response: {0}", socketResponse);
 
@@ -70,16 +70,16 @@ namespace AniDBAPI.Commands
                     // the rest of the information should be the data list
 
                     charInfo = new Raw_AniDB_Character(socketResponse);
-                    return enHelperActivityType.GotCharInfo;
+                    return AniDBUDPResponseCode.GotCharInfo;
 
 
                     // Response: 235 CHARACTER 99297|6267|25|539|5|01|The Girl Returns|Shoujo Kikan|????|1238976000
                 }
-                case "335": return enHelperActivityType.NoSuchChar;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "335": return AniDBUDPResponseCode.NoSuchChar;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchChar;
+            return AniDBUDPResponseCode.NoSuchChar;
         }
 
 

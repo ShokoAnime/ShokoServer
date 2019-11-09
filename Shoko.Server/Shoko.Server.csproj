@@ -1126,6 +1126,8 @@
     <Compile Include="Plex\PlexHelper.cs" />
     <Compile Include="Plex\Libraries\SVR_Directory.cs" />
     <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
+    <Compile Include="Providers\AniDB\MyList\AniDBMyList_Response.cs" />
+    <Compile Include="Providers\AniDB\MyList\Commands\AniDBMyList_BaseCommand.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCode.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
@@ -1742,6 +1744,7 @@
     <Resource Include="API\readme.txt" />
     <Content Include="API\v3\README.md" />
     <Content Include="Providers\AniDB\Models\Readme.md" />
+    <Content Include="Providers\AniDB\MyList\Readme.md" />
     <Content Include="Providers\AniDB\Readme.md" />
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

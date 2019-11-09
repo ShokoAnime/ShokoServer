@@ -17,12 +17,12 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_NotifyGet";
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingNotifyGet;
+            return AniDBUDPResponseCode.GettingNotifyGet;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -30,11 +30,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchNotify;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchNotify;
 
             // Process Response
             string sMsgType = socketResponse.Substring(0, 3);
@@ -45,26 +45,26 @@ namespace AniDBAPI.Commands
                 case "292":
                 {
                     NotifyMessage = new Raw_AniDB_NotifyMessage(socketResponse);
-                    return enHelperActivityType.GotNotifyGet;
+                    return AniDBUDPResponseCode.GotNotifyGet;
                 }
 
                 case "293":
                 {
                     NotifyAlert = new Raw_AniDB_NotifyAlert(socketResponse);
-                    return enHelperActivityType.GotNotifyGet;
+                    return AniDBUDPResponseCode.GotNotifyGet;
                 }
                 case "392":
                 case "393":
                 {
-                    return enHelperActivityType.NoSuchNotify;
+                    return AniDBUDPResponseCode.NoSuchNotify;
                 }
                 case "501":
                 {
-                    return enHelperActivityType.LoginRequired;
+                    return AniDBUDPResponseCode.LoginRequired;
                 }
             }
 
-            return enHelperActivityType.GotNotifyList;
+            return AniDBUDPResponseCode.GotNotifyList;
         }
 
         public AniDBCommand_NotifyGet()

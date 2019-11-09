@@ -20,9 +20,9 @@ namespace AniDBAPI.Commands
             set { forceRefresh = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingFileInfo;
+            return AniDBUDPResponseCode.GettingFileInfo;
         }
 
         public string GetKey()
@@ -30,7 +30,7 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetFileInfo" + fileData.ED2KHash;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -38,11 +38,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.FileDoesNotExist;
+            if (errorOccurred) return AniDBUDPResponseCode.FileDoesNotExist;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetFileInfo.Process: Response: {0}", socketResponse);
 
@@ -60,13 +60,13 @@ namespace AniDBAPI.Commands
 
                     fileInfo = new Raw_AniDB_File(socketResponse);
                     //episodeInfo = new Raw_AniDB_Episode(socketResponse, enEpisodeSourceType.File);
-                    return enHelperActivityType.GotFileInfo;
+                    return AniDBUDPResponseCode.GotFileInfo;
                 }
-                case "320": return enHelperActivityType.FileDoesNotExist;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "320": return AniDBUDPResponseCode.FileDoesNotExist;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_GetFileInfo()

@@ -6,9 +6,9 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_Logout : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.LoggingOut;
+            return AniDBUDPResponseCode.LoggingOut;
         }
 
         public string GetKey()
@@ -16,12 +16,12 @@ namespace AniDBAPI.Commands
             return "Logout";
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
-            return enHelperActivityType.LoggedOut;
+            return AniDBUDPResponseCode.LoggedOut;
         }
 
         public AniDBCommand_Logout()
