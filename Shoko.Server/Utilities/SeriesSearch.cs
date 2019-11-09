@@ -287,15 +287,16 @@ namespace Shoko.Server.Utilities
         private static List<SearchResult> SearchTitlesFuzzy(string query, int limit,
             ParallelQuery<SVR_AnimeSeries> allSeries)
         {
-            return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesFuzzy(a, query)).Where(a => a != null)
+            // ToList() after the Parallel compatible operations are done to prevent an OutOfMemoryException on the ParallelEnumerable
+            return allSeries.GroupBy(a => a.AnimeGroupID).Select(a => CheckTitlesFuzzy(a, query)).Where(a => a != null).ToList()
                 .OrderBy(a => a.Index).ThenBy(a => a.Distance).SelectMany(a => a.Results.Select(b => new SearchResult
-                {
-                    Distance = a.Distance,
-                    Index = a.Index,
-                    ExactMatch = a.ExactMatch,
-                    Match = a.Match,
-                    Result = b
-                })).Take(limit).ToList();
+            {
+                Distance = a.Distance,
+                Index = a.Index,
+                ExactMatch = a.ExactMatch,
+                Match = a.Match,
+                Result = b
+            })).Take(limit).ToList();
         }
 
         public abstract class BaseSearchItem
