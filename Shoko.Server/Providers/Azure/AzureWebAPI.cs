@@ -1,15 +1,13 @@
 ﻿﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
+ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using NLog;
-using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
+ using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -619,7 +617,7 @@ using Shoko.Server.Repositories;
                 SVR_AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
-                    uinfo.LastEpisodeWatched = AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
+                    uinfo.LastEpisodeWatched = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }
