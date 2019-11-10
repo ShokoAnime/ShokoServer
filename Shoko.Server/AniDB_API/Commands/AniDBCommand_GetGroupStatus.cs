@@ -27,12 +27,12 @@ namespace AniDBAPI.Commands
             set { grpStatus = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingGroupStatus;
+            return AniDBUDPResponseCode.GettingGroupStatus;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -40,11 +40,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoGroupsFound;
+            if (errorOccurred) return AniDBUDPResponseCode.NoGroupsFound;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetGroupStatus.Process: Response: {0}", socketResponse);
 
@@ -59,15 +59,15 @@ namespace AniDBAPI.Commands
                     // 225 GROUPSTATUS
 
                     grpStatus = new GroupStatusCollection(animeID, socketResponse);
-                    return enHelperActivityType.GotGroupStatus;
+                    return AniDBUDPResponseCode.GotGroupStatus;
                 }
-                case "330": return enHelperActivityType.NoSuchAnime;
+                case "330": return AniDBUDPResponseCode.NoSuchAnime;
                 case "325": // no such description
-                    return enHelperActivityType.NoGroupsFound;
-                case "501": return enHelperActivityType.LoginRequired;
+                    return AniDBUDPResponseCode.NoGroupsFound;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_GetGroupStatus()

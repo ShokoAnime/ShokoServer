@@ -462,8 +462,8 @@ namespace Shoko.Server.Databases
             // Get the list from AniDB
             AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
             cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-            enHelperActivityType ev = cmd.Process();
-            if (ev != enHelperActivityType.GotMyListHTTP)
+            AniDBUDPResponseCode ev = cmd.Process();
+            if (ev != AniDBUDPResponseCode.GotMyListHTTP)
             {
                 logger.Warn("AniDB did not return a successful code: " + ev);
                 return;
@@ -517,7 +517,7 @@ namespace Shoko.Server.Databases
                     var getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
                     getAnimeCmd.Init(animeID, false, false, true);
                     var result = getAnimeCmd.Process();
-                    if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                    if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
                         continue;
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())

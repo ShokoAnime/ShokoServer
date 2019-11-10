@@ -2241,7 +2241,7 @@ namespace Shoko.Server.API.v2.Modules
 
             List<Serie> series_list = new List<Serie>();
 
-            var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy));
+            var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
             foreach (SeriesSearch.SearchResult ser in series)
             {
                 if (offset == 0)
@@ -2249,10 +2249,6 @@ namespace Shoko.Server.API.v2.Modules
                     series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Result, uid, nocast, notag, level,
                         all,
                         ser.Match, allpic, pic, tagfilter));
-                    if (series_list.Count >= limit)
-                    {
-                        break;
-                    }
                 }
                 else
                 {

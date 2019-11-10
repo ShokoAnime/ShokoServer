@@ -35,12 +35,12 @@ namespace AniDBAPI.Commands
             set { forceRefresh = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingCreatorInfo;
+            return AniDBUDPResponseCode.GettingCreatorInfo;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -48,11 +48,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchCreator;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchCreator;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCreatorInfo.Process: Response: {0}", socketResponse);
 
@@ -69,16 +69,16 @@ namespace AniDBAPI.Commands
                     // the rest of the information should be the data list
 
                     creatorInfo = new Raw_AniDB_Creator(socketResponse);
-                    return enHelperActivityType.GotCreatorInfo;
+                    return AniDBUDPResponseCode.GotCreatorInfo;
 
 
                     // 245 CREATOR 200|?????|Suwabe Jun`ichi|1|17015.jpg||http://www.haikyo.or.jp/PROFILE/man/11470.html|Junichi_Suwabe|%E8%AB%8F%E8%A8%AA%E9%83%A8%E9%A0%86%E4%B8%80|1236300570
                 }
-                case "345": return enHelperActivityType.NoSuchCreator;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "345": return AniDBUDPResponseCode.NoSuchCreator;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchCreator;
+            return AniDBUDPResponseCode.NoSuchCreator;
         }
 
 

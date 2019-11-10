@@ -16,21 +16,21 @@ namespace Shoko.Server.Commands
             return "AniDBCommand_GetGroup_" + GroupID.ToString();
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingGroup;
+            return AniDBUDPResponseCode.GettingGroup;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
 
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
-            if (ResponseCode == 598) return enHelperActivityType.UnknownCommand_598;
-            if (ResponseCode == 555) return enHelperActivityType.Banned_555;
+            if (ResponseCode == 598) return AniDBUDPResponseCode.UnknownCommand_598;
+            if (ResponseCode == 555) return AniDBUDPResponseCode.Banned_555;
 
-            if (errorOccurred) return enHelperActivityType.NoSuchGroup;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchGroup;
 
 
             // Process Response
@@ -44,13 +44,13 @@ namespace Shoko.Server.Commands
                     // 250 GROUP
                     //3938|704|1900|53|1126|Ayako-Fansubs|Ayako|#Ayako|irc.rizon.net|http://ayakofansubs.info/|1669.png
                     Group = new Raw_AniDB_Group(socketResponse);
-                    return enHelperActivityType.GotGroup;
+                    return AniDBUDPResponseCode.GotGroup;
                 }
-                case "350": return enHelperActivityType.NoSuchGroup;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "350": return AniDBUDPResponseCode.NoSuchGroup;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_GetGroup()

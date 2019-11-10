@@ -26,12 +26,12 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetUpdated";
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingUpdated;
+            return AniDBUDPResponseCode.GettingUpdated;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             AnimeIDList = new List<int>();
@@ -42,11 +42,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoUpdates;
+            if (errorOccurred) return AniDBUDPResponseCode.NoUpdates;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Response: {0}", socketResponse);
 
@@ -73,13 +73,13 @@ namespace AniDBAPI.Commands
                         AnimeIDList = AnimeIDListRaw.Split(',').Select(int.Parse).ToList();
                     }
 
-                    return enHelperActivityType.GotUpdated;
+                    return AniDBUDPResponseCode.GotUpdated;
                 }
-                case "343": return enHelperActivityType.NoUpdates;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "343": return AniDBUDPResponseCode.NoUpdates;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoUpdates;
+            return AniDBUDPResponseCode.NoUpdates;
         }
 
         public AniDBCommand_GetUpdated()

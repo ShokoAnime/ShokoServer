@@ -37,12 +37,12 @@ namespace Shoko.Server.AniDB_API.Commands
             return "AniDBHTTPCommand_GetVotes";
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingVotesHTTP;
+            return AniDBUDPResponseCode.GettingVotesHTTP;
         }
 
-        public virtual enHelperActivityType Process()
+        public virtual AniDBUDPResponseCode Process()
         {
             XmlDocument docAnime = AniDBHTTPHelper.GetVotesXMLFromAPI(username, password);
 
@@ -50,10 +50,10 @@ namespace Shoko.Server.AniDB_API.Commands
             if (docAnime != null)
             {
                 myVotes = AniDBHTTPHelper.ProcessVotes(docAnime);
-                return enHelperActivityType.GotVotesHTTP;
+                return AniDBUDPResponseCode.GotVotesHTTP;
             }
             
-            return enHelperActivityType.NoSuchAnime;
+            return AniDBUDPResponseCode.NoSuchAnime;
         }
 
         public AniDBHTTPCommand_GetVotes()

@@ -27,12 +27,12 @@ namespace AniDBAPI.Commands
             set { animeDesc = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingAnimeDesc;
+            return AniDBUDPResponseCode.GettingAnimeDesc;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -40,12 +40,12 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
 
-            if (errorOccurred) return enHelperActivityType.NoSuchAnime;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchAnime;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetAnimeDescription.Process: Response: {0}", socketResponse);
 
@@ -62,15 +62,15 @@ namespace AniDBAPI.Commands
                     // the rest of the information should be the data list
 
                     animeDesc = new Raw_AniDB_AnimeDesc(socketResponse);
-                    return enHelperActivityType.GotAnimeDesc;
+                    return AniDBUDPResponseCode.GotAnimeDesc;
                 }
-                case "330": return enHelperActivityType.NoSuchAnime;
+                case "330": return AniDBUDPResponseCode.NoSuchAnime;
                 case "333": // no such description
-                    return enHelperActivityType.NoSuchAnime;
-                case "501": return enHelperActivityType.LoginRequired;
+                    return AniDBUDPResponseCode.NoSuchAnime;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_GetAnimeDescription()

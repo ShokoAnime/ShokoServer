@@ -21,12 +21,12 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_AddFile" + FileData.ED2KHash;
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.AddingFile;
+            return AniDBUDPResponseCode.AddingFile;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -34,10 +34,10 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
-            if (errorOccurred) return enHelperActivityType.NoSuchFile;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchFile;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
@@ -54,7 +54,7 @@ namespace AniDBAPI.Commands
                         int.TryParse(arrResult[1], out MyListID);
                         if (FileData == null) MyListID = 0;
                     }
-                    return enHelperActivityType.FileAdded;
+                    return AniDBUDPResponseCode.FileAdded;
                 }
                 case "310":
                 {
@@ -86,16 +86,16 @@ namespace AniDBAPI.Commands
                             WatchedDate = null;
                         }
                     }
-                    return enHelperActivityType.FileAlreadyExists;
+                    return AniDBUDPResponseCode.FileAlreadyExists;
                 }
-                case "311": return enHelperActivityType.UpdatingFile;
-                case "320": return enHelperActivityType.NoSuchFile;
-                case "411": return enHelperActivityType.NoSuchFile;
-                case "502": return enHelperActivityType.LoginFailed;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "311": return AniDBUDPResponseCode.UpdatingFile;
+                case "320": return AniDBUDPResponseCode.NoSuchFile;
+                case "411": return AniDBUDPResponseCode.NoSuchFile;
+                case "502": return AniDBUDPResponseCode.LoginFailed;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_AddFile()

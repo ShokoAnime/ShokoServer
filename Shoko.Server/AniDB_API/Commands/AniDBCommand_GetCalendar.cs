@@ -19,12 +19,12 @@ namespace AniDBAPI.Commands
             set { calendars = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingCalendar;
+            return AniDBUDPResponseCode.GettingCalendar;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -32,12 +32,12 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
 
-            if (errorOccurred) return enHelperActivityType.CalendarEmpty;
+            if (errorOccurred) return AniDBUDPResponseCode.CalendarEmpty;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetCalendar: Response: {0}", socketResponse);
 
@@ -50,13 +50,13 @@ namespace AniDBAPI.Commands
                 case "297":
                 {
                     calendars = new CalendarCollection(socketResponse);
-                    return enHelperActivityType.GotCalendar;
+                    return AniDBUDPResponseCode.GotCalendar;
                 }
-                case "397": return enHelperActivityType.CalendarEmpty;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "397": return AniDBUDPResponseCode.CalendarEmpty;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.CalendarEmpty;
+            return AniDBUDPResponseCode.CalendarEmpty;
         }
 
         public AniDBCommand_GetCalendar()

@@ -20,12 +20,12 @@ namespace AniDBAPI.Commands
             set { myListStats = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingMyListStats;
+            return AniDBUDPResponseCode.GettingMyListStats;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -33,11 +33,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchMyListFile;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchMyListFile;
 
 
             // Process Response
@@ -49,12 +49,12 @@ namespace AniDBAPI.Commands
                 case "222":
                 {
                     myListStats = new Raw_AniDB_MyListStats(socketResponse);
-                    return enHelperActivityType.GotMyListStats;
+                    return AniDBUDPResponseCode.GotMyListStats;
                 }
-                case "501": return enHelperActivityType.LoginRequired;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchMyListFile;
+            return AniDBUDPResponseCode.NoSuchMyListFile;
         }
 
         public AniDBCommand_GetMyListStats()

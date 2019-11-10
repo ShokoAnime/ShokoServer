@@ -376,7 +376,7 @@ namespace Shoko.Server
             msg = msg.Replace(password, "******");
             logger.Trace("udp command: {0}", msg);
             SetWaitingOnResponse(true);
-            enHelperActivityType ev = login.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+            AniDBUDPResponseCode ev = login.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                 new UnicodeEncoding(true, false));
             SetWaitingOnResponse(false);
 
@@ -389,11 +389,11 @@ namespace Shoko.Server
 
             switch (ev)
             {
-                case enHelperActivityType.LoginFailed:
+                case AniDBUDPResponseCode.LoginFailed:
                     logger.Error("AniDB Login Failed: invalid credentials");
                     LoginFailed?.Invoke(this, null);
                     break;
-                case enHelperActivityType.LoggedIn:
+                case AniDBUDPResponseCode.LoggedIn:
                     curSessionID = login.SessionID;
                     isLoggedOn = true;
                     IsInvalidSession = false;
@@ -425,7 +425,7 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchFile;
+            AniDBUDPResponseCode ev = AniDBUDPResponseCode.NoSuchFile;
             AniDBCommand_GetFileInfo getInfoCmd = null;
 
             lock (lockAniDBConnections)
@@ -438,7 +438,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotFileInfo && getInfoCmd.fileInfo != null)
+            if (ev == AniDBUDPResponseCode.GotFileInfo && getInfoCmd.fileInfo != null)
             {
                 try
                 {
@@ -475,17 +475,17 @@ namespace Shoko.Server
                 AniDBCommand_GetMyListFileInfo cmdGetFileStatus = new AniDBCommand_GetMyListFileInfo();
                 cmdGetFileStatus.Init(aniDBFileID);
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                AniDBUDPResponseCode ev = cmdGetFileStatus.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
                 switch (ev)
                 {
-                        case enHelperActivityType.Banned_555:
+                        case AniDBUDPResponseCode.Banned_555:
                             logger.Error("Recieved ban on trying to get MyList stats for file");
                             return;
                         // Ignore no info in MyList for file
-                        case enHelperActivityType.NoSuchMyListFile: return;
-                        case enHelperActivityType.LoginRequired:
+                        case AniDBUDPResponseCode.NoSuchMyListFile: return;
+                        case AniDBUDPResponseCode.LoginRequired:
                             logger.Error("Not logged in to AniDB");
                             return;
                 }
@@ -512,10 +512,10 @@ namespace Shoko.Server
                 AniDBCommand_GetMyListStats cmdGetMylistStats = new AniDBCommand_GetMyListStats();
                 cmdGetMylistStats.Init();
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdGetMylistStats.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                AniDBUDPResponseCode ev = cmdGetMylistStats.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
-                if (ev == enHelperActivityType.GotMyListStats && cmdGetMylistStats.MyListStats != null)
+                if (ev == AniDBUDPResponseCode.GotMyListStats && cmdGetMylistStats.MyListStats != null)
                 {
                     AniDB_MylistStats stat = null;
                     IReadOnlyList<AniDB_MylistStats> allStats = RepoFactory.AniDB_MylistStats.GetAll();
@@ -546,11 +546,11 @@ namespace Shoko.Server
                 AniDBCommand_GetUpdated cmdUpdated = new AniDBCommand_GetUpdated();
                 cmdUpdated.Init(lastUpdateTime.ToString());
                 SetWaitingOnResponse(true);
-                enHelperActivityType ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
+                AniDBUDPResponseCode ev = cmdUpdated.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
 
-                if (ev != enHelperActivityType.GotUpdated) return;
+                if (ev != AniDBUDPResponseCode.GotUpdated) return;
 
                 int records = cmdUpdated.RecordCount;
                 if (records <= 0) return;
@@ -573,7 +573,7 @@ namespace Shoko.Server
                         new UnicodeEncoding(true, false));
                     SetWaitingOnResponse(false);
 
-                    if (ev != enHelperActivityType.GotUpdated) return;
+                    if (ev != AniDBUDPResponseCode.GotUpdated) return;
 
                     // update records with new count
                     records = cmdUpdated.RecordCount;
@@ -606,7 +606,7 @@ namespace Shoko.Server
             {
                 if (watched && watchedDate == null) watchedDate = DateTime.Now;
 
-                enHelperActivityType ev;
+                AniDBUDPResponseCode ev;
                 // We have the ID, so update it
                 if (hash.MyListID > 0)
                 {
@@ -621,10 +621,10 @@ namespace Shoko.Server
                 {
                     logger.Trace($"File has no MyListID, attempting to add: {hash.ED2KHash}");
                     // We don't have the MyListID, so we'll act like it's not there, and AniDB will tell us
-                    ev = enHelperActivityType.NoSuchMyListFile;
+                    ev = AniDBUDPResponseCode.NoSuchMyListFile;
                 }
 
-                if (ev == enHelperActivityType.NoSuchMyListFile)
+                if (ev == AniDBUDPResponseCode.NoSuchMyListFile)
                 {
                     // Run synchronously, but still do all of the stuff with Trakt and whatnot
                     // We are skipping the watched state settings, as we are setting them here
@@ -659,7 +659,7 @@ namespace Shoko.Server
                     new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
 
-                if (ev == enHelperActivityType.NoSuchMyListFile)
+                if (ev == AniDBUDPResponseCode.NoSuchMyListFile)
                 {
                     // Run synchronously, but still do all of the stuff with Trakt and whatnot
                     // We are skipping the watched state settings, as we are setting them here
@@ -678,7 +678,7 @@ namespace Shoko.Server
 
             if (!Login()) return (null, watchedDate);
 
-            enHelperActivityType ev;
+            AniDBUDPResponseCode ev;
             AniDBCommand_AddFile cmdAddFile;
 
             lock (lockAniDBConnections)
@@ -692,7 +692,7 @@ namespace Shoko.Server
             }
 
             // if the user already has this file on
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
+            if (ev == AniDBUDPResponseCode.FileAlreadyExists && cmdAddFile.FileData != null)
             {
                 state = cmdAddFile.State;
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
@@ -709,7 +709,7 @@ namespace Shoko.Server
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
             if (!Login()) return (null, watchedDate);
 
-            enHelperActivityType ev;
+            AniDBUDPResponseCode ev;
             AniDBCommand_AddFile cmdAddFile;
 
             lock (lockAniDBConnections)
@@ -723,7 +723,7 @@ namespace Shoko.Server
             }
 
             // if the user already has this file on
-            if (ev == enHelperActivityType.FileAlreadyExists && cmdAddFile.FileData != null)
+            if (ev == AniDBUDPResponseCode.FileAlreadyExists && cmdAddFile.FileData != null)
             {
                 state = cmdAddFile.State;
                 return (cmdAddFile.MyListID, cmdAddFile.WatchedDate);
@@ -892,7 +892,7 @@ namespace Shoko.Server
 
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchAnime;
+            AniDBUDPResponseCode ev = AniDBUDPResponseCode.NoSuchAnime;
             AniDBCommand_GetAnimeInfo getAnimeCmd = null;
 
             lock (lockAniDBConnections)
@@ -905,7 +905,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotAnimeInfo && getAnimeCmd.AnimeInfo != null)
+            if (ev == AniDBUDPResponseCode.GotAnimeInfo && getAnimeCmd.AnimeInfo != null)
             {
                 // check for an existing record so we don't over write the description
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(getAnimeCmd.AnimeInfo.AnimeID);
@@ -921,7 +921,7 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchChar;
+            AniDBUDPResponseCode ev = AniDBUDPResponseCode.NoSuchChar;
             AniDBCommand_GetCharacterInfo getCharCmd = null;
             lock (lockAniDBConnections)
             {
@@ -934,7 +934,7 @@ namespace Shoko.Server
             }
 
             AniDB_Character chr = null;
-            if (ev == enHelperActivityType.GotCharInfo && getCharCmd.CharInfo != null)
+            if (ev == AniDBUDPResponseCode.GotCharInfo && getCharCmd.CharInfo != null)
             {
                 chr = RepoFactory.AniDB_Character.GetByCharID(charID);
                 if (chr == null) chr = new AniDB_Character();
@@ -950,7 +950,7 @@ namespace Shoko.Server
         {
             if (!Login()) return;
 
-            enHelperActivityType ev;
+            AniDBUDPResponseCode ev;
             AniDBCommand_GetGroup getCmd;
             lock (lockAniDBConnections)
             {
@@ -961,7 +961,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev != enHelperActivityType.GotGroup || getCmd.Group == null) return;
+            if (ev != AniDBUDPResponseCode.GotGroup || getCmd.Group == null) return;
             var relGroup = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(groupID) ?? new AniDB_ReleaseGroup();
 
             relGroup.Populate(getCmd.Group);
@@ -972,7 +972,7 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev;
+            AniDBUDPResponseCode ev;
             AniDBCommand_GetGroupStatus getCmd;
             lock (lockAniDBConnections)
             {
@@ -983,7 +983,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev != enHelperActivityType.GotGroupStatus || getCmd.GrpStatusCollection == null)
+            if (ev != AniDBUDPResponseCode.GotGroupStatus || getCmd.GrpStatusCollection == null)
                 return getCmd.GrpStatusCollection;
 
             // delete existing records
@@ -1030,7 +1030,7 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.CalendarEmpty;
+            AniDBUDPResponseCode ev = AniDBUDPResponseCode.CalendarEmpty;
             AniDBCommand_GetCalendar cmd = null;
             lock (lockAniDBConnections)
             {
@@ -1041,7 +1041,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(false);
             }
 
-            if (ev == enHelperActivityType.GotCalendar && cmd.Calendars != null)
+            if (ev == AniDBUDPResponseCode.GotCalendar && cmd.Calendars != null)
                 return cmd.Calendars;
 
             return null;
@@ -1051,7 +1051,7 @@ namespace Shoko.Server
         {
             if (!Login()) return null;
 
-            enHelperActivityType ev = enHelperActivityType.NoSuchReview;
+            AniDBUDPResponseCode ev = AniDBUDPResponseCode.NoSuchReview;
             AniDBCommand_GetReview cmd = null;
 
             lock (lockAniDBConnections)
@@ -1064,7 +1064,7 @@ namespace Shoko.Server
             }
 
             AniDB_Review review = null;
-            if (ev == enHelperActivityType.GotReview && cmd.ReviewInfo != null)
+            if (ev == AniDBUDPResponseCode.GotReview && cmd.ReviewInfo != null)
             {
                 review = RepoFactory.AniDB_Review.GetByReviewID(reviewID);
                 if (review == null) review = new AniDB_Review();
@@ -1088,7 +1088,7 @@ namespace Shoko.Server
                 SetWaitingOnResponse(true);
                 var ev = cmdVote.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 SetWaitingOnResponse(false);
-                if (ev != enHelperActivityType.Voted && ev != enHelperActivityType.VoteUpdated) return;
+                if (ev != AniDBUDPResponseCode.Voted && ev != AniDBUDPResponseCode.VoteUpdated) return;
                 AniDB_Vote thisVote = RepoFactory.AniDB_Vote.GetByEntityAndType(cmdVote.EntityID, voteType) ?? new AniDB_Vote
                 {
                     EntityID = cmdVote.EntityID
@@ -1143,7 +1143,7 @@ namespace Shoko.Server
                 getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
                 getAnimeCmd.Init(animeID, false, !skip, animeRecentlyUpdated);
                 var result = getAnimeCmd.Process();
-                if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
                 {
                     logger.Error($"Failed get anime info for {animeID}. AniDB ban or No Such Anime returned");
                     return null;

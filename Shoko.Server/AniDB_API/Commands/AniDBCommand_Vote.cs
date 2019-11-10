@@ -54,12 +54,12 @@ namespace AniDBAPI.Commands
                    episodeType.ToString();
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.AddingVote;
+            return AniDBUDPResponseCode.AddingVote;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -67,16 +67,16 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchVote;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchVote;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "260": return enHelperActivityType.Voted;
+                case "260": return AniDBUDPResponseCode.Voted;
                 case "261":
 
                     // this means we were trying to retrieve the vote
@@ -95,20 +95,20 @@ namespace AniDBAPI.Commands
                             this.episodeType);
                         this.voteValue = vote.VoteValue;
                     }
-                    return enHelperActivityType.VoteFound;
-                case "262": return enHelperActivityType.VoteUpdated;
-                case "263": return enHelperActivityType.VoteRevoked;
+                    return AniDBUDPResponseCode.VoteFound;
+                case "262": return AniDBUDPResponseCode.VoteUpdated;
+                case "263": return AniDBUDPResponseCode.VoteRevoked;
                     
-                case "360": return enHelperActivityType.NoSuchVote;
-                case "361": return enHelperActivityType.InvalidVoteType;
-                case "362": return enHelperActivityType.InvalidVoteValue;
-                case "363": return enHelperActivityType.PermVoteNotAllowed;
-                case "364": return enHelperActivityType.PermVoteAlready;
+                case "360": return AniDBUDPResponseCode.NoSuchVote;
+                case "361": return AniDBUDPResponseCode.InvalidVoteType;
+                case "362": return AniDBUDPResponseCode.InvalidVoteValue;
+                case "363": return AniDBUDPResponseCode.PermVoteNotAllowed;
+                case "364": return AniDBUDPResponseCode.PermVoteAlready;
 
-                case "501": return enHelperActivityType.LoginRequired;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchVote;
+            return AniDBUDPResponseCode.NoSuchVote;
         }
 
         public AniDBCommand_Vote()
