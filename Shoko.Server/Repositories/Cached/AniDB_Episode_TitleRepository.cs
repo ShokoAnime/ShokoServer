@@ -40,13 +40,6 @@ namespace Shoko.Server.Repositories
         }
 
 
-        public List<AniDB_Episode_Title> GetByAnimeID(int id)
-        {
-            lock (Cache)
-            {
-                return Episodes.GetMultiple(id);
-            }
-        }
 
         public ILookup<int, AniDB_Episode_Title> GetByEpisodeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
         {

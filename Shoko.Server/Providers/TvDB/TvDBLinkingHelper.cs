@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -15,6 +16,7 @@ namespace Shoko.Server
     public static class TvDBLinkingHelper
     {
         #region TvDB Matching
+         static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
@@ -172,12 +174,24 @@ namespace Shoko.Server
 
             if (aniepsSpecial.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsSpecial, tvepsSpecial, ref matches);
+            logger.Debug("Matching Anime: "+(anime?.PreferredTitle ?? "EMPTY")+" TvID: "+tvdbID+" Type: "+(anime?.AnimeType.ToString() ?? "None"));
+            logger.Debug("Anime Ep Count: "+aniepsNormal.Count+" Specials: "+aniepsSpecial.Count);
+            logger.Debug("TvDB Ep Count: "+tvepsNormal.Count+" Specials: "+tvepsSpecial.Count);
+            logger.Debug("Match Count: " + matches.Count);
             if (matches.Count == 0)
             {
                 //Special Exception, sometimes tvdb matches series as anidb movies or viceversa
                 if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
-                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsNormal.Count > 0))
+                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
                     TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
+                
+            }
+            if (matches.Count == 0)
+            {
+                //Special Exception (PATLABOR 1990) //Anime marked as an OVA in AniDb, and used as normal season in tvdb
+                if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
+                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
+                    TryToMatchNormalEpisodesToTvDB(aniepsSpecial, tvepsNormal, anime?.EndDate == null, ref matches);
             }
             return matches;
         }

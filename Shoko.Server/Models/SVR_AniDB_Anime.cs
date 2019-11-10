@@ -878,7 +878,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             taskTimer.Start();
 
-            CreateEpisodes(eps);
+            CreateEpisodes(eps,animeInfo.AnimeID);
             taskTimer.Stop();
             logger.Trace("CreateEpisodes in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
@@ -941,54 +941,33 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateAnimeReviews();
         }
 
-        public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
+        public void CreateEpisodes(List<Raw_AniDB_Episode> eps, int anidbid)
         {
             if (eps == null) return;
 
             EpisodeCountSpecial = 0;
             EpisodeCountNormal = 0;
 
-            HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
-            List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
-            List<AniDB_Episode_Title> titlesToDelete = new List<AniDB_Episode_Title>();
 
-            foreach (Raw_AniDB_Episode epraw in eps)
-            {
-                // we need to do this check because some times AniDB will replace an existing episode with a new episode
-                List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
-                    epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
 
-                // delete any old records
-                foreach (AniDB_Episode epOld in existingEps)
-                {
-                    titlesToDelete.AddRange(RepoFactory.AniDB_Episode_Title.GetByEpisodeID(epOld.EpisodeID));
-                    if (epOld.EpisodeID == epraw.EpisodeID) continue;
-                    // first delete any AnimeEpisode records that point to the new anidb episode
-                    SVR_AnimeEpisode aniep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
-                    if (aniep != null)
-                        animeEpsToDelete.Add(aniep);
-                    aniDBEpsToDelete.Add(epOld);
-                }
-            }
 
-            // check to see if there are extra orphans and remove them
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (series != null)
-            {
-                var allEps = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID);
-                animeEpsToDelete.UnionWith(allEps);
-            }
-
-            RepoFactory.AnimeEpisode.Delete(animeEpsToDelete);
-            RepoFactory.AniDB_Episode.Delete(aniDBEpsToDelete);
-            RepoFactory.AniDB_Episode_Title.Delete(titlesToDelete);
-
+            Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(anidbid).ToDictionary(a=>a.EpisodeID,a=>a);
+            Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).ToDictionary(a => a.AniDB_EpisodeID, a => a);
+            List<AniDB_Episode_Title> oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key)).SelectMany(a => a).ToList();
+            RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
+            
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
             List<AniDB_Episode_Title> titlesToSave = new List<AniDB_Episode_Title>();
+
             foreach (Raw_AniDB_Episode epraw in eps)
             {
-                AniDB_Episode epNew = RepoFactory.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID) ?? new AniDB_Episode();
-
+                AniDB_Episode epNew=new AniDB_Episode();
+                if (currentAniDBEpisodes.ContainsKey(epraw.EpisodeID))
+                {
+                    epNew = currentAniDBEpisodes[epraw.EpisodeID];
+                    currentAniDBEpisodes.Remove(epraw.EpisodeID);
+                    currentAnimeEpisodes.Remove(epraw.EpisodeID);
+                }
                 epNew.Populate(epraw);
                 epsToSave.Add(epNew);
 
@@ -1002,6 +981,21 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
                     EpisodeCountSpecial++;
             }
+
+            if (currentAniDBEpisodes.Count > 0)
+            {
+                logger.Trace("Deleting the following episodes (no longer in AniDB)");
+                foreach (AniDB_Episode ep in currentAniDBEpisodes.Values)
+                {
+                    logger.Trace("AniDB Ep: "+ep.EpisodeID+" Type: "+ep.EpisodeType+" Number: "+ep.EpisodeNumber);
+                }
+                foreach (AnimeEpisode ep in currentAnimeEpisodes.Values)
+                {
+                    logger.Trace("Shoko Ep: "+ep.AnimeEpisodeID+" AniEp: "+ep.AniDB_EpisodeID);
+                }
+            }
+            RepoFactory.AnimeEpisode.Delete(currentAnimeEpisodes.Values.ToList());
+            RepoFactory.AniDB_Episode.Delete(currentAniDBEpisodes.Values.ToList());
             RepoFactory.AniDB_Episode.Save(epsToSave);
             RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
 
