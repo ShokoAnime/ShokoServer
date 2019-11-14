@@ -203,7 +203,7 @@ namespace MediaInfoWrapper
             {
                 Handle = MediaInfo_New();
             }
-            catch (Exception ex)
+            catch
             {
                 Handle = (IntPtr) 0;
             }

@@ -4,14 +4,20 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using FluentNHibernate;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
 using NHibernate;
+using NHibernate.AdoNet;
+using NHibernate.Cfg;
+using NHibernate.Dialect;
+using NHibernate.Driver;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Configuration = NHibernate.Cfg.Configuration;
 
 // ReSharper disable InconsistentNaming
 
@@ -83,10 +89,21 @@ namespace Shoko.Server.Databases
                 };persist security info=True;user id={
                     ServerSettings.Instance.Database.Username
                 };password={ServerSettings.Instance.Database.Password}";
+            // SQL Server batching on Mono is busted atm.
+            // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
+            // but waiting for release
             return Fluently.Configure()
                 .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
-                .Mappings(m =>
-                    m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
+                {
+                    // SQL Server batching on Mono is busted atm.
+                    // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
+                    // but waiting for release. This will negatively affect performance, but there's not much choice
+                    if (!Utils.IsRunningOnMono()) return;
+                    prop.Batcher<NonBatchingBatcherFactory>();
+                    prop.BatchSize = 0;
+                }))
                 .BuildSessionFactory();
         }
 

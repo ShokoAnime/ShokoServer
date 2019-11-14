@@ -878,7 +878,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
             taskTimer.Start();
 
-            CreateEpisodes(eps,animeInfo.AnimeID);
+            CreateEpisodes(eps);
             taskTimer.Stop();
             logger.Trace("CreateEpisodes in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
@@ -941,7 +941,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateAnimeReviews();
         }
 
-        public void CreateEpisodes(List<Raw_AniDB_Episode> eps, int anidbid)
+        public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
         {
             if (eps == null) return;
 
@@ -951,7 +951,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
 
 
-            Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(anidbid).ToDictionary(a=>a.EpisodeID,a=>a);
+            Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID).ToDictionary(a=>a.EpisodeID,a=>a);
             Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).ToDictionary(a => a.AniDB_EpisodeID, a => a);
             List<AniDB_Episode_Title> oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key)).SelectMany(a => a).ToList();
             RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
