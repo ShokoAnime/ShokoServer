@@ -23,8 +23,15 @@ namespace Shoko.Server.Providers.TvDB
 {
     public static class TvDBApiHelper
     {
-        private static readonly ITvDbClient client = new TvDbClient();
+        private static readonly ITvDbClient client;
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
+        static TvDBApiHelper()
+        {
+            client=new TvDbClient();
+            client.BaseUrl = "https://api-dev.thetvdb.com";
+        }
+
 
         public static string CurrentServerTime
         {
@@ -639,15 +646,19 @@ namespace Shoko.Server.Providers.TvDB
                 var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
                 TvDBRateLimiter.Instance.EnsureRate();
                 var firstResponse = await client.Series.GetEpisodesAsync(seriesID, 1);
+                logger.Trace("First Page: First: " + (firstResponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (firstResponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (firstResponse?.Links?.Previous?.ToString() ?? "NULL") + "Last: " + (firstResponse?.Links?.Last?.ToString() ?? "NULL"));
 
                 for (int i = 2; i <= firstResponse.Links.Last; i++)
                 {
+                    logger.Trace("Adding Task: "+i);
                     TvDBRateLimiter.Instance.EnsureRate();
                     tasks.Add(client.Series.GetEpisodesAsync(seriesID, i));
                 }
 
                 var results = await Task.WhenAll(tasks);
-
+                var lastresponse = results.Length==0 ? firstResponse : results.Last();
+                logger.Trace("Last Page: First: " + (lastresponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (lastresponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (lastresponse?.Links?.Previous?.ToString() ?? "NULL") + "Last: " + (lastresponse?.Links?.Last?.ToString() ?? "NULL"));
+                logger.Trace("Last Count: "+(lastresponse?.Data.Length.ToString() ?? "NULL"));
                 apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
             }
             catch (TvDbServerException exception)

@@ -952,8 +952,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
 
             Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(anidbid).ToDictionary(a=>a.EpisodeID,a=>a);
-            Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).ToDictionary(a => a.AniDB_EpisodeID, a => a);
-            List<AniDB_Episode_Title> oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key)).SelectMany(a => a).ToList();
+            Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).Where(a=>a!=null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
+            List<AniDB_Episode_Title> oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key)).Where(a=>a!=null).SelectMany(a => a).ToList();
             RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
             
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
@@ -966,7 +966,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     epNew = currentAniDBEpisodes[epraw.EpisodeID];
                     currentAniDBEpisodes.Remove(epraw.EpisodeID);
-                    currentAnimeEpisodes.Remove(epraw.EpisodeID);
+                    if (currentAnimeEpisodes.ContainsKey(epraw.EpisodeID))
+                        currentAnimeEpisodes.Remove(epraw.EpisodeID);
                 }
                 epNew.Populate(epraw);
                 epsToSave.Add(epNew);

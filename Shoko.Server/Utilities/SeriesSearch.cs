@@ -117,7 +117,7 @@ namespace Shoko.Server.Utilities
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null) throw new Exception("User not found");
             ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel().Where(a =>
-                a?.GetAnime() != null && !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories()));
+                a?.GetAnime() != null && (a.GetAnime().GetAllTags().Count==0 || !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())));
             ParallelQuery<AniDB_Tag> allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
                 .Where(a =>
                 {
