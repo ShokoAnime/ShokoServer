@@ -153,7 +153,7 @@ namespace Shoko.Server.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
+                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(System.Web.HttpUtility.UrlDecode(criteria));
 
                 logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
