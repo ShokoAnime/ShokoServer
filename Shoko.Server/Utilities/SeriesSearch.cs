@@ -48,24 +48,32 @@ namespace Shoko.Server.Utilities
             SearchGrouping dist = null;
 
             foreach (SVR_AnimeSeries item in grouping)
-            foreach (string title in item.GetAllTitles())
             {
-                if (string.IsNullOrEmpty(title)) continue;
-                int k = Math.Max(Math.Min((int) (title.Length / 6D), (int) (query.Length / 6D)), 1);
-                if (query.Length <= 4 || title.Length <= 4) k = 0;
-                Misc.SearchInfo<IGrouping<int, SVR_AnimeSeries>> result =
-                    Misc.DiceFuzzySearch(title, query, k, grouping);
-                if (result.Index == -1) continue;
-                SearchGrouping searchGrouping = new SearchGrouping
+                if (int.TryParse(query, out int aid) && aid == item.AniDB_ID)
                 {
-                    Distance = result.Distance,
-                    Index = result.Index,
-                    ExactMatch = result.ExactMatch,
-                    Match = title,
-                    Results = grouping.OrderBy(a => a.AirDate).ToList()
-                };
-                if (result.Distance < (dist?.Distance ?? int.MaxValue)) dist = searchGrouping;
-            }
+                    query = item.GetSeriesName();
+                }
+
+                foreach (string title in item.GetAllTitles())
+                {
+                    if (string.IsNullOrEmpty(title)) continue;
+                    int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
+                    if (query.Length <= 4 || title.Length <= 4) k = 0;
+
+                    Misc.SearchInfo<IGrouping<int, SVR_AnimeSeries>> result =
+                        Misc.DiceFuzzySearch(title, query, k, grouping);
+                    if (result.Index == -1) continue;
+                    SearchGrouping searchGrouping = new SearchGrouping
+                    {
+                        Distance = result.Distance,
+                        Index = result.Index,
+                        ExactMatch = result.ExactMatch,
+                        Match = title,
+                        Results = grouping.OrderBy(a => a.AirDate).ToList()
+                    };
+                    if (result.Distance < (dist?.Distance ?? int.MaxValue)) dist = searchGrouping;
+                }
+        }
 
             return dist;
         }
@@ -116,8 +124,11 @@ namespace Shoko.Server.Utilities
 
             SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null) throw new Exception("User not found");
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll().AsParallel().Where(a =>
+
+            ParallelQuery<SVR_AnimeSeries> allSeries = 
+                RepoFactory.AnimeSeries.GetAll().AsParallel().Where(a =>
                 a?.GetAnime() != null && (a.GetAnime().GetAllTags().Count==0 || !a.GetAnime().GetAllTags().FindInEnumerable(user.GetHideCategories())));
+            
             ParallelQuery<AniDB_Tag> allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
                 .Where(a =>
                 {
@@ -125,6 +136,12 @@ namespace Shoko.Server.Utilities
                     return !user.GetHideCategories().Contains(a.TagName) &&
                            !TagFilter.IsTagBlackListed(a.TagName, tagFilter, ref _);
                 });
+
+            //search by anime id
+            if (int.TryParse(query, out int aid))
+            {
+                return SearchTitlesByAnimeID(aid, limit, allSeries);
+            }
 
             #region Search_TitlesOnly
 
@@ -157,6 +174,23 @@ namespace Shoko.Server.Utilities
             #endregion
 
             return new List<SearchResult>();
+        }
+
+        private static List<SearchResult> SearchTitlesByAnimeID(int aid, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
+        {
+            return allSeries
+                .Where(a => a.AniDB_ID == aid)
+                .GroupBy(a => a.AnimeGroupID)
+                .Select(a => CheckTitlesFuzzy(a, aid.ToString())).Where(a => a != null).ToList()
+                .OrderBy(a => a.Index).ThenBy(a => a.Distance).SelectMany(a => a.Results.Select(b => new SearchResult
+                {
+                    Distance = a.Distance,
+                    Index = a.Index,
+                    ExactMatch = a.ExactMatch,
+                    Match = a.Match,
+                    Result = b
+                })).Take(limit)
+                .ToList();
         }
 
         private static List<SearchResult> SearchTagsEquals(string query, int limit, SVR_JMMUser user, ParallelQuery<AniDB_Tag> allTags)

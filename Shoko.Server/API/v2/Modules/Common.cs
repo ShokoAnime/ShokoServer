@@ -1840,7 +1840,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (!string.IsNullOrEmpty(para.query))
             {
-                return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
+                return Search(HttpUtility.UrlDecode(para.query), para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
