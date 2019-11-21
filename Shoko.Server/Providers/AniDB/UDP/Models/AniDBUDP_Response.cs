@@ -2,7 +2,7 @@ using AniDBAPI;
 
 namespace Shoko.Server.Providers.AniDB.MyList
 {
-    public class AniDBMyList_Response<T> where T : class
+    public class AniDBUDP_Response<T> where T : class
     {
         public AniDBUDPResponseCode Code { get; set; }
         

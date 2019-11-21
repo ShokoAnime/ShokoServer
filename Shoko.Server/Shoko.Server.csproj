@@ -1126,8 +1126,15 @@
     <Compile Include="Plex\PlexHelper.cs" />
     <Compile Include="Plex\Libraries\SVR_Directory.cs" />
     <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
-    <Compile Include="Providers\AniDB\MyList\AniDBMyList_Response.cs" />
-    <Compile Include="Providers\AniDB\MyList\Commands\AniDBMyList_BaseCommand.cs" />
+    <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
+    <Compile Include="Providers\AniDB\BannedEventArgs.cs" />
+    <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
+    <Compile Include="Providers\AniDB\UDP\Commands\AniDBUDP_BaseCommand.cs" />
+    <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
+    <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponse.cs" />
+    <Compile Include="Providers\AniDB\UDP\Models\AniDBUDP_Response.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Commands\AniDBMyList_CommandAddFile.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Models\AniDBMyList_AddFileResponse.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCode.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
@@ -1743,9 +1750,9 @@
   <ItemGroup>
     <Resource Include="API\readme.txt" />
     <Content Include="API\v3\README.md" />
-    <Content Include="Providers\AniDB\Models\Readme.md" />
-    <Content Include="Providers\AniDB\MyList\Readme.md" />
     <Content Include="Providers\AniDB\Readme.md" />
+    <Content Include="Providers\AniDB\UDP\Models\Readme.md" />
+    <Content Include="Providers\AniDB\UDP\MyList\Readme.md" />
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

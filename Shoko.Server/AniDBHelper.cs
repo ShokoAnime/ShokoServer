@@ -263,7 +263,7 @@ namespace Shoko.Server
                 }
             }
             catch (SocketException ex) {
-                logger.Error(ex.ToString(), $"Failed to Shutdown and Disconnect the connection to AniDB: {0}");
+                logger.Error($"Failed to Shutdown and Disconnect the connection to AniDB: {ex}");
             }
             finally {
                 logger.Info("CLOSING ANIDB CONNECTION...");
