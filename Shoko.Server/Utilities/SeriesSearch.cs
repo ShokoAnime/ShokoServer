@@ -49,11 +49,6 @@ namespace Shoko.Server.Utilities
 
             foreach (SVR_AnimeSeries item in grouping)
             {
-                if (int.TryParse(query, out int aid) && aid == item.AniDB_ID)
-                {
-                    query = item.GetSeriesName();
-                }
-
                 foreach (string title in item.GetAllTitles())
                 {
                     if (string.IsNullOrEmpty(title)) continue;
@@ -73,7 +68,7 @@ namespace Shoko.Server.Utilities
                     };
                     if (result.Distance < (dist?.Distance ?? int.MaxValue)) dist = searchGrouping;
                 }
-        }
+            }
 
             return dist;
         }
@@ -140,7 +135,8 @@ namespace Shoko.Server.Utilities
             //search by anime id
             if (int.TryParse(query, out int aid))
             {
-                return SearchTitlesByAnimeID(aid, limit, allSeries);
+                var aidResults = SearchTitlesByAnimeID(aid, allSeries);
+                if (aidResults.Count > 0) return aidResults;
             }
 
             #region Search_TitlesOnly
@@ -176,20 +172,18 @@ namespace Shoko.Server.Utilities
             return new List<SearchResult>();
         }
 
-        private static List<SearchResult> SearchTitlesByAnimeID(int aid, int limit, ParallelQuery<SVR_AnimeSeries> allSeries)
+        private static List<SearchResult> SearchTitlesByAnimeID(int aid, ParallelQuery<SVR_AnimeSeries> allSeries)
         {
+            // We should only have one, but meh
             return allSeries
-                .Where(a => a.AniDB_ID == aid)
-                .GroupBy(a => a.AnimeGroupID)
-                .Select(a => CheckTitlesFuzzy(a, aid.ToString())).Where(a => a != null).ToList()
-                .OrderBy(a => a.Index).ThenBy(a => a.Distance).SelectMany(a => a.Results.Select(b => new SearchResult
+                .Where(a => a.AniDB_ID == aid).Select(b => new SearchResult
                 {
-                    Distance = a.Distance,
-                    Index = a.Index,
-                    ExactMatch = a.ExactMatch,
-                    Match = a.Match,
+                    Distance = 0,
+                    Index = 0,
+                    ExactMatch = true,
+                    Match = b.AniDB_ID.ToString(),
                     Result = b
-                })).Take(limit)
+                })
                 .ToList();
         }
 
