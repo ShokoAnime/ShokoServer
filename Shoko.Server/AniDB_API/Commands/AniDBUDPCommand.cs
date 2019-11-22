@@ -72,22 +72,12 @@ namespace AniDBAPI.Commands
 
             do
             {
-                if (part > 0)
-                {
-                    mcommandText = mcommandText.Replace("part=" + (part - 1).ToString(), "part=" + part.ToString());
-                    AniDbRateLimiter.Instance.EnsureRate();
-                }
                 if (commandType != enAniDBCommandType.Login)
                 {
                     string msg = string.Format("UDP_COMMAND: {0}", mcommandText);
                     ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
                 }
-                else
-                {
-                    //string msg = commandText.Replace(ShokoServer.settings.Username, "******");
-                    //msg = msg.Replace(ShokoServer.settings.Password, "******");
-                    //MyAnimeLog.Write("commandText: {0}", msg);
-                }
+
                 bool repeatcmd;
                 int received;
                 Byte[] byReceivedAdd = new Byte[2000]; // max length should actually be 1400

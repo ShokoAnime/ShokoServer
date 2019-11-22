@@ -3,7 +3,7 @@ using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB.MyList
 {
-    public class AniDBMyList_AddFileResponse
+    public class AniDBMyList_ResponseAddFile
     {
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }

@@ -1129,12 +1129,14 @@
     <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
     <Compile Include="Providers\AniDB\BannedEventArgs.cs" />
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
-    <Compile Include="Providers\AniDB\UDP\Commands\AniDBUDP_BaseCommand.cs" />
+    <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_BaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponse.cs" />
-    <Compile Include="Providers\AniDB\UDP\Models\AniDBUDP_Response.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Commands\AniDBMyList_CommandAddFile.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Models\AniDBMyList_AddFileResponse.cs" />
+    <Compile Include="Providers\AniDB\UDP\Responses\AniDBUDP_Response.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestAddFile.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Responses\AniDBMyList_ResponseAddFile.cs" />
+    <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_RequestLogin.cs" />
+    <Compile Include="Providers\AniDB\UDP\Responses\AniDBUDP_ResponseLogin.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCode.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
     <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
@@ -1751,7 +1753,7 @@
     <Resource Include="API\readme.txt" />
     <Content Include="API\v3\README.md" />
     <Content Include="Providers\AniDB\Readme.md" />
-    <Content Include="Providers\AniDB\UDP\Models\Readme.md" />
+    <Content Include="Providers\AniDB\UDP\Responses\Readme.md" />
     <Content Include="Providers\AniDB\UDP\MyList\Readme.md" />
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

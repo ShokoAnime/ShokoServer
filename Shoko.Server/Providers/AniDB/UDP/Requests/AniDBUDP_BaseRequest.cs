@@ -2,17 +2,12 @@ using Shoko.Server.Providers.AniDB.MyList.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.MyList.Commands
 {
-    public abstract class AniDBUDP_BaseCommand<T> where T : class
+    public abstract class AniDBUDP_BaseRequest<T> where T : class
     {
-        /// <summary>
-        /// The Base Command without parameters
-        /// </summary>
-        protected abstract string BaseCommand { get; }
-        
         /// <summary>
         /// Various Parameters to add to the base command
         /// </summary>
-        protected abstract string Command { get; set; }
+        protected abstract string Command { get; }
 
         protected bool HasEexecuted { get; set; }
         
@@ -38,6 +33,11 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 
             
             HasEexecuted = true;
+        }
+
+        protected void PreExecute()
+        {
+            
         }
     }
 }
