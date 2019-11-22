@@ -26,5 +26,10 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
             string sessionID = receivedData.Substring(0, i - 1).Trim();
             return new AniDBUDP_ResponseLogin { SessionID = sessionID };
         }
+
+        protected override void PreExecute(string sessionID)
+        {
+            // Ignore
+        }
     }
 }

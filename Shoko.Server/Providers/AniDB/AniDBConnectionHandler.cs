@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -7,8 +8,12 @@ using System.Threading;
 using System.Timers;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 using NLog;
 using Shoko.Commons.Properties;
+using Shoko.Server.AniDB_API;
+using Shoko.Server.Providers.AniDB.MyList;
+using Shoko.Server.Providers.AniDB.MyList.Exceptions;
 using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
 
@@ -409,6 +414,230 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Actually get data from AniDB
+        /// </summary>
+        /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
+        /// <param name="needsUnicode"></param>
+        /// <param name="disableLogging">Some commands have sensitive data</param>
+        /// <returns></returns>
+        public AniDBUDP_Response<string> CallAniDB(string command, bool needsUnicode = false, bool disableLogging = false)
+        {
+            // Steps:
+            // 1. Check Login State and Login if needed
+            // 2. Actually Call AniDB
+
+            // Actually Call AniDB
+            return CallAniDBDirectly(command, needsUnicode, disableLogging);
+        }
+
+        public AniDBUDP_Response<string> CallAniDBDirectly(string command, bool needsUnicode, bool disableLogging)
+        {
+            // 1. Call AniDB
+            // 2. Decode the response, converting Unicode and decompressing, as needed
+            // 3. Check for an Error Response
+            // 4. Return a pretty response object, with a parsed return code and trimmed string
+            EndPoint remotePoint = remoteIpEndPoint;
+            Encoding encoding = Encoding.ASCII;
+            if (needsUnicode) encoding = new UnicodeEncoding(true, false);
+
+            AniDbRateLimiter.Instance.EnsureRate();
+
+            DateTime start = DateTime.Now;
+
+            if (!disableLogging)
+            {
+                string msg = $"AniDB UDP Call: (Using {(needsUnicode ? "Unicode" : "ASCII")}) {command}";
+                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+            }
+
+            // TODO Maybe remove
+            bool repeat;
+            int received;
+            Byte[] byReceivedAdd = new Byte[2000]; // max length should actually be 1400
+            Encoding receivedEncoding;
+            do
+            {
+                repeat = false;
+                Byte[] sendByteAdd = encoding.GetBytes(command.ToCharArray());
+                try
+                {
+                    // TODO Event for LastAniDBMessage
+                    /*ShokoService.LastAniDBMessage = DateTime.Now;
+                    ShokoService.LastAniDBUDPMessage = DateTime.Now;
+                    if (commandType != enAniDBCommandType.Ping)
+                        ShokoService.LastAniDBMessageNonPing = DateTime.Now;
+                    else
+                        ShokoService.LastAniDBPing = DateTime.Now;*/
+
+                    // Send Request  
+                    AniDBSocket.SendTo(sendByteAdd, remoteIpEndPoint);
+
+                    // Receive Response
+                    received = AniDBSocket.ReceiveFrom(byReceivedAdd, ref remotePoint);
+                    // TODO Event for LastAniDBMessage
+                    /*ShokoService.LastAniDBMessage = DateTime.Now;
+                    ShokoService.LastAniDBUDPMessage = DateTime.Now;
+                    if (commandType != enAniDBCommandType.Ping)
+                        ShokoService.LastAniDBMessageNonPing = DateTime.Now;
+                    else
+                        ShokoService.LastAniDBPing = DateTime.Now;*/
+
+                    //MyAnimeLog.Write("Buffer length = {0}", received.ToString());
+                    if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
+                    {
+                        //deflate
+                        Byte[] buff = new byte[65536];
+                        Byte[] input = new byte[received - 2];
+                        Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
+                        Inflater inf = new Inflater(false);
+                        inf.SetInput(input);
+                        inf.Inflate(buff);
+                        byReceivedAdd = buff;
+                        received = (int) inf.TotalOut;
+                    }
+                }
+                catch (SocketException sex)
+                {
+                    // most likely we have timed out
+                    Logger.Error(sex);
+                    received = 0;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                    received = 0;
+                }
+
+                // TODO Need a graceful way to handle this. Hopefully, I'll receive a message from AniDB guys about how to handle it
+                receivedEncoding = GetEncoding(byReceivedAdd);
+/*
+                    if (commandType == Login && (receivedEncoding.EncodingName.ToLower().StartsWith("unicode") &&
+                                                                    !encoding.EncodingName.ToLower().StartsWith("unicode")))
+                    {
+                        //Previous Session used utf-16 and was not logged out, AniDB was not yet issued a timeout.
+                        //AUTH command was not understand because it was encoded in ASCII.
+                        repeatcmd = true;
+                    }
+*/
+            } while (repeat);
+
+            // decode
+            string decodedString = receivedEncoding.GetString(byReceivedAdd, 0, received);
+            byte[] bom = GetBOM(receivedEncoding);
+            decodedString = decodedString.Substring(bom.Length);
+
+            // there should be 2 newline characters in each response
+            // the first is after the command .e.g "220 FILE"
+            // the second is at the end of the data
+            string[] decodedParts = decodedString.Split('\n');
+            bool truncated = decodedString.Count(a => a == '\n') != 2;
+            
+            // If the parts don't have at least 2 items, then we don't have a valid response
+            // parts[0] => 200 FILE
+            // parts[1] => Response
+            // parts[2] => empty, since we ended with a newline
+            if (decodedParts.Length < 2) throw new UnexpectedAniDBResponse {Response = decodedString};
+
+            if (truncated)
+            {
+                TimeSpan ts = DateTime.Now - start;
+                string msg;
+                msg = decodedParts.Length > 0
+                    ? $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedParts[1]}"
+                    : $"UDP_RESPONSE_TRUNC in {ts.TotalMilliseconds}ms - {decodedString}";
+                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+            }
+            else
+            {
+                TimeSpan ts = DateTime.Now - start;
+                string msg = $"UDP_RESPONSE in {ts.TotalMilliseconds} ms - {decodedParts} ";
+                ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
+            }
+
+            string[] firstLineParts = decodedParts[0].Split(' ');
+            // If we don't have 2 parts of the first line, then it's not in the expected
+            // 200 FILE
+            // Format
+            if (firstLineParts.Length != 2) throw new UnexpectedAniDBResponse {Response = decodedString};
+
+            // Can't parse the code
+            if (!int.TryParse(firstLineParts[0], out int code)) throw new UnexpectedAniDBResponse {Response = decodedString};
+            
+            // if we get banned pause the command processor for a while
+            // so we don't make the ban worse
+            IsUdpBanned = code == 555;
+
+            // TODO Ban Event for these
+            // 598 UNKNOWN COMMAND usually means we had connections issue
+            // 506 INVALID SESSION
+            // 505 ILLEGAL INPUT OR ACCESS DENIED
+            // reset login status to start again
+            if (code == 598 || code == 506 || code == 505)
+            {
+                IsInvalidSession = true;
+                Logger.Trace("FORCING Logout because of invalid session");
+                //ForceReconnection();
+            }
+
+            // 600 INTERNAL SERVER ERROR
+            // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
+            // 602 SERVER BUSY - TRY AGAIN LATER
+            // 604 TIMEOUT - DELAY AND RESUBMIT
+            if (code == 600 || code == 601 || code == 602 || code == 604)
+            {
+                string errormsg = string.Empty;
+                switch (code)
+                {
+                    case 600:
+                        errormsg = "600 INTERNAL SERVER ERROR";
+                        break;
+                    case 601:
+                        errormsg = "601 ANIDB OUT OF SERVICE - TRY AGAIN LATER";
+                        break;
+                    case 602:
+                        errormsg = "602 SERVER BUSY - TRY AGAIN LATER";
+                        break;
+                    case 604:
+                        errormsg = "TIMEOUT - DELAY AND RESUBMIT";
+                        break;
+                }
+
+                Logger.Trace("FORCING Logout because of invalid session");
+                ExtendBanTimer(300, errormsg);
+            }
+            
+            return new AniDBUDP_Response<string> {Code = (AniDBUDPReturnCode) code, Response = decodedParts[1].Trim()};
+        }
+        
+        /// <summary>
+        /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).
+        /// Defaults to ASCII when detection of the text file's endianness fails.
+        /// </summary>
+        /// <param name="data">Byte array of the encoded string</param>
+        /// <returns>The detected encoding.</returns>
+        public static Encoding GetEncoding(byte[] data)
+        {
+            if (data.Length < 4) return Encoding.ASCII;
+            // Analyze the BOM
+            if (data[0] == 0x2b && data[1] == 0x2f && data[2] == 0x76) return Encoding.UTF7;
+            if (data[0] == 0xef && data[1] == 0xbb && data[2] == 0xbf) return Encoding.UTF8;
+            if (data[0] == 0xff && data[1] == 0xfe) return Encoding.Unicode; //UTF-16LE
+            if (data[0] == 0xfe && data[1] == 0xff) return Encoding.BigEndianUnicode; //UTF-16BE
+            if (data[0] == 0 && data[1] == 0 && data[2] == 0xfe && data[3] == 0xff) return Encoding.UTF32;
+            return Encoding.ASCII;
+        }
+
+        public static byte[] GetBOM(Encoding enc)
+        {
+            if (enc.Equals(Encoding.UTF7)) return new byte[] {0x2b, 0x2f, 0x76};
+            if (enc.Equals(Encoding.UTF8)) return new byte[] {0xef, 0xbb, 0xbf};
+            if (enc.Equals(Encoding.Unicode)) return new byte[] {0xff, 0xfe};
+            if (enc.Equals(Encoding.BigEndianUnicode)) return new byte[] {0xfe, 0xff};
+            if (enc.Equals(Encoding.UTF32)) return new byte[] {0x0, 0x0, 0xfe, 0xff};
+            return new byte[0];
         }
 
         public void ForceLogout()

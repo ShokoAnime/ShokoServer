@@ -4,6 +4,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 {
     public abstract class AniDBUDP_BaseRequest<T> where T : class
     {
+        protected string _command { get; set; } = string.Empty;
         /// <summary>
         /// Various Parameters to add to the base command
         /// </summary>
@@ -27,17 +28,19 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 
         protected abstract T ParseResponse(AniDBUDPReturnCode code, string receivedData);
 
-        public void Execute()
+        public void Execute(string sessionID)
         {
+            _command = Command;
+            PreExecute(sessionID);
             // TODO Adapt AniDBHelper to be less interdependent on the previous system
-
+            
             
             HasEexecuted = true;
         }
 
-        protected void PreExecute()
+        protected virtual void PreExecute(string sessionID)
         {
-            
+            _command += $"&s={sessionID}";
         }
     }
 }
