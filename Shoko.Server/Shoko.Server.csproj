@@ -1127,7 +1127,7 @@
     <Compile Include="Plex\Libraries\SVR_Directory.cs" />
     <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
     <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
-    <Compile Include="Providers\AniDB\BannedEventArgs.cs" />
+    <Compile Include="Providers\AniDB\AniDBStateUpdate.cs" />
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_BaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
