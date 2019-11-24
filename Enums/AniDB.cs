@@ -43,6 +43,15 @@ namespace Shoko.Models.Enums
         FILE_CHAPTERED = 4096 // file is chaptered, 0 means both not set and false
     }
 
+    public enum AniDBUpdateType
+    {
+        None = 0,
+        UDPBan = 1,
+        HTTPBan = 2,
+        Invalid_Session = 3,
+        WaitingOnResponse = 4,
+    }
+
     public enum AniDBRecommendationType
     {
         ForFans = 1,
