@@ -159,7 +159,7 @@
             public static readonly string TvDB_Series = @"https://thetvdb.com/?tab=series&id={0}";
 
             //public static readonly string tvDBEpisodeURLPrefix = @"http://anidb.net/perl-bin/animedb.pl?show=ep&eid={0}";
-            public static readonly string TvDB_Images = @"https://thetvdb.com/download/{0}";
+            public static readonly string TvDB_Images = @"https://artworks.thetvdb.com/banners/{0}";
             public static readonly string TvDB_Episode_Images = @"https://thetvdb.com/banners/{0}";
 
             public static readonly string MovieDB_Series = @"https://www.themoviedb.org/movie/{0}";
