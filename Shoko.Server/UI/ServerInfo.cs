@@ -9,9 +9,11 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
+using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -80,6 +82,70 @@ namespace Shoko.Server
                     };
                     CloudProviders.Add(p);
                 }
+            }
+            
+            // TODO Hook into AniDBConnectionHandler
+            //AniDBConnectionHandler.Instance.AniDBStateUpdate += OnAniDBStateUpdate;
+        }
+
+        private void OnAniDBStateUpdate(object sender, AniDBStateUpdate e)
+        {
+            switch (e.UpdateType)
+            {
+                case AniDBUpdateType.None:
+                    break;
+                case AniDBUpdateType.UDPBan:
+                    if (e.Value)
+                    {
+                        IsUDPBanned = true;
+                        UDPBanTime = e.UpdateTime;
+                        BanOrigin = @"UDP";
+                        BanReason = e.UpdateTime.ToString(CultureInfo.CurrentCulture);
+                    }
+                    else
+                    {
+                        IsUDPBanned = false;
+                        if (!IsHTTPBanned)
+                        {
+                            BanOrigin = string.Empty;
+                            BanReason = string.Empty;
+                        }
+                        else
+                        {
+                            BanOrigin = "HTTP";
+                            BanReason = HTTPBanTime.ToString(CultureInfo.CurrentCulture);
+                        }
+                    }
+                    break;
+                case AniDBUpdateType.HTTPBan:
+                    if (e.Value)
+                    {
+                        IsHTTPBanned = true;
+                        HTTPBanTime = e.UpdateTime;
+                        BanOrigin = @"HTTP";
+                        BanReason = e.UpdateTime.ToString(CultureInfo.CurrentCulture);
+                    }
+                    else
+                    {
+                        IsHTTPBanned = false;
+                        if (!IsUDPBanned)
+                        {
+                            BanOrigin = string.Empty;
+                            BanReason = string.Empty;
+                        }
+                        else
+                        {
+                            BanOrigin = "UDP";
+                            BanReason = UDPBanTime.ToString(CultureInfo.CurrentCulture);
+                        }
+                    }
+                    break;
+                case AniDBUpdateType.Invalid_Session:
+                    break;
+                case AniDBUpdateType.WaitingOnResponse:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -262,7 +328,36 @@ namespace Shoko.Server
             get => banOrigin;
             set => this.SetField(() => banOrigin, value);
         }
+        
+        private bool _isUDPBanned { get; set; }
+        
+        private bool IsUDPBanned
+        {
+            get => _isUDPBanned;
+            set
+            {
+                _isUDPBanned = value;
+                bool newValue = _isUDPBanned || _isHTTPBanned;
+                if (IsBanned != newValue) IsBanned = newValue;
+            }
+        }
 
+        private bool _isHTTPBanned { get; set; }
+
+        private bool IsHTTPBanned
+        {
+            get => _isHTTPBanned;
+            set
+            {
+                _isHTTPBanned = value;
+                bool newValue = _isUDPBanned || _isHTTPBanned;
+                if (IsBanned != newValue) IsBanned = newValue;
+            }
+        }
+
+        private DateTime UDPBanTime { get; set; }
+        private DateTime HTTPBanTime { get; set; }
+        
         private bool isBanned = false;
 
         public bool IsBanned

@@ -62,10 +62,6 @@ namespace Shoko.Server.Providers.AniDB
                 if (value)
                 {
                     HttpBanTime = DateTime.Now;
-                    // TODO Move this to a listener
-                    ServerInfo.Instance.IsBanned = true;
-                    ServerInfo.Instance.BanOrigin = @"HTTP";
-                    ServerInfo.Instance.BanReason = HttpBanTime.ToString();
                     if (_httpBanResetTimer.Enabled)
                     {
                         Logger.Warn("HTTP ban timer was already running, ban time extending");
@@ -99,13 +95,6 @@ namespace Shoko.Server.Providers.AniDB
                             }
                         }
                     }
-                    // TODO Move this to a listener
-                    if (!IsUdpBanned)
-                    {
-                        ServerInfo.Instance.IsBanned = false;
-                        ServerInfo.Instance.BanOrigin = string.Empty;
-                        ServerInfo.Instance.BanReason = string.Empty;
-                    }
                     AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                     {
                         Value = false,
@@ -125,10 +114,6 @@ namespace Shoko.Server.Providers.AniDB
                 if (value)
                 {
                     UdpBanTime = DateTime.Now;
-                    // TODO Move this to a listener
-                    ServerInfo.Instance.IsBanned = true;
-                    ServerInfo.Instance.BanOrigin = @"UDP";
-                    ServerInfo.Instance.BanReason = UdpBanTime.ToString();
                     AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                     {
                         Value = true,
@@ -168,13 +153,6 @@ namespace Shoko.Server.Providers.AniDB
                         UpdateType = AniDBUpdateType.UDPBan,
                         UpdateTime = DateTime.Now
                     });
-                    // TODO Move this to a listener
-                    if (!IsHttpBanned)
-                    {
-                        ServerInfo.Instance.IsBanned = false;
-                        ServerInfo.Instance.BanOrigin = string.Empty;
-                        ServerInfo.Instance.BanReason = string.Empty;
-                    }
                 }
             }
         }
@@ -277,8 +255,7 @@ namespace Shoko.Server.Providers.AniDB
             if (!BindToLocalPort()) IsNetworkAvailable = false;
             if (!BindToRemotePort()) IsNetworkAvailable = false;
 
-            // Set the Interval to 10 seconds. (At most 4 second wait, plus a few in case there's another type of command in between)
-            _logoutTimer = new Timer {Interval = 10000, Enabled = true, AutoReset = true};
+            _logoutTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
             _logoutTimer.Elapsed += LogoutTimer_Elapsed;
 
             Logger.Info("starting logout timer...");
@@ -367,8 +344,7 @@ namespace Shoko.Server.Providers.AniDB
                     ping.Process(ref AniDBSocket, ref remoteIpEndPoint, _sessionString, new UnicodeEncoding(true, false));
                 }
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
+                // TODO Make this update in the UI, rather than here
                 string msg = string.Format(Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
 
