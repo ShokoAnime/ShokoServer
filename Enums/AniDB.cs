@@ -49,7 +49,8 @@ namespace Shoko.Models.Enums
         UDPBan = 1,
         HTTPBan = 2,
         Invalid_Session = 3,
-        WaitingOnResponse = 4,
+        Overload_Backoff = 4,
+        WaitingOnResponse = 5,
     }
 
     public enum AniDBRecommendationType
