@@ -166,8 +166,12 @@ namespace Shoko.Server.Providers.AniDB
             set
             {
                 isInvalidSession = value;
-                // TODO event and listener
-                ServerInfo.Instance.IsInvalidSession = isInvalidSession;
+                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+                {
+                    UpdateType = AniDBUpdateType.Invalid_Session,
+                    UpdateTime = DateTime.Now,
+                    Value = value
+                });
             }
         }
 
@@ -187,22 +191,13 @@ namespace Shoko.Server.Providers.AniDB
             set
             {
                 _waitingOnResponse = value;
-                // TODO Event and Listener
-                ServerInfo.Instance.WaitingOnResponseAniDBUDP = value;
-
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
-                if (value)
+                WaitingOnResponseTime = value ? DateTime.Now : (DateTime?) null;
+                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                 {
-                    ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                        Resources.AniDB_ResponseWait;
-                    WaitingOnResponseTime = DateTime.Now;
-                }
-                else
-                {
-                    ServerInfo.Instance.WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
-                    WaitingOnResponseTime = null;
-                }
+                    UpdateType = AniDBUpdateType.WaitingOnResponse,
+                    Value = value,
+                    UpdateTime = DateTime.Now
+                });
             }
         }
 
@@ -357,36 +352,40 @@ namespace Shoko.Server.Providers.AniDB
 
         private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Info("HTTP ban (12h) is over");
+            Logger.Info($"HTTP ban ({HTTPBanTimerResetLength}h) is over");
             IsHttpBanned = false;
         }
 
         private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Info("UDP ban (12h) is over");
+            Logger.Info($"UDP ban ({UDPBanTimerResetLength}h) is over");
             IsUdpBanned = false;
         }
 
         public void ExtendBanTimer(int secsToPause, string pauseReason)
         {
-            // TODO Move this to a subscribed event, so as to not call unnecessary UI stuff from here
-            // Banned.Invoke(this, new BannedEventArgs {Banned = true, TimeSecs = secsToPause, Reason = pauseReason});
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
+            // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
             ExtendPauseSecs = secsToPause;
-            ExtendPauseReason = pauseReason;
-            ServerInfo.Instance.ExtendedPauseString = string.Format(Resources.AniDB_Paused, secsToPause, pauseReason);
-            ServerInfo.Instance.HasExtendedPause = true;
+            AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+            {
+                UpdateType = AniDBUpdateType.Overload_Backoff,
+                Value = true,
+                UpdateTime = DateTime.Now,
+                PauseTimeSecs = secsToPause,
+                Message = pauseReason
+            });
         }
 
         public void ResetBanTimer()
         {
-            // TODO Move this to a subscribed event, so as to not call unnecessary UI stuff from here
-            // Banned.Invoke(this, new BannedEventArgs {Banned = false});
+            // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
             ExtendPauseSecs = null;
-            ExtendPauseReason = string.Empty;
-            ServerInfo.Instance.ExtendedPauseString = string.Empty;
-            ServerInfo.Instance.HasExtendedPause = false;
+            AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+            {
+                UpdateType = AniDBUpdateType.Overload_Backoff,
+                Value = false,
+                UpdateTime = DateTime.Now
+            });
         }
         
         public bool Login(string userName, string password)
@@ -443,8 +442,9 @@ namespace Shoko.Server.Providers.AniDB
         public AniDBUDP_Response<string> CallAniDB(string command, bool needsUnicode = false, bool disableLogging = false, bool isPing = false)
         {
             // Steps:
-            // 1. Check Login State and Login if needed
-            // 2. Actually Call AniDB
+            // 1. Check Ban state and throw if Banned
+            // 2. Check Login State and Login if needed
+            // 3. Actually Call AniDB
 
             // Actually Call AniDB
             return CallAniDBDirectly(command, needsUnicode, disableLogging, isPing);
@@ -573,7 +573,6 @@ namespace Shoko.Server.Providers.AniDB
             // so we don't make the ban worse
             IsUdpBanned = code == 555;
 
-            // TODO Ban Event for these
             // 598 UNKNOWN COMMAND usually means we had connections issue
             // 506 INVALID SESSION
             // 505 ILLEGAL INPUT OR ACCESS DENIED

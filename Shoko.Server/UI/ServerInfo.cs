@@ -90,9 +90,11 @@ namespace Shoko.Server
 
         private void OnAniDBStateUpdate(object sender, AniDBStateUpdate e)
         {
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
             switch (e.UpdateType)
             {
                 case AniDBUpdateType.None:
+                    // We might use this somehow, but currently not fired 
                     break;
                 case AniDBUpdateType.UDPBan:
                     if (e.Value)
@@ -112,7 +114,7 @@ namespace Shoko.Server
                         }
                         else
                         {
-                            BanOrigin = "HTTP";
+                            BanOrigin = @"HTTP";
                             BanReason = HTTPBanTime.ToString(CultureInfo.CurrentCulture);
                         }
                     }
@@ -135,14 +137,40 @@ namespace Shoko.Server
                         }
                         else
                         {
-                            BanOrigin = "UDP";
+                            BanOrigin = @"UDP";
                             BanReason = UDPBanTime.ToString(CultureInfo.CurrentCulture);
                         }
                     }
                     break;
                 case AniDBUpdateType.Invalid_Session:
+                    IsInvalidSession = isInvalidSession;
                     break;
                 case AniDBUpdateType.WaitingOnResponse:
+                    WaitingOnResponseAniDBUDP = e.Value;
+
+                    if (e.Value)
+                    {
+                        // TODO Start the Update Timer to add seconds to the waiting on AniDB message
+                        WaitingOnResponseAniDBUDPString = Resources.AniDB_ResponseWait;
+                    }
+                    else
+                    {
+                        // TODO Stop the timer
+                        WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
+                    }
+                    break;
+                case AniDBUpdateType.Overload_Backoff:
+                    if (e.Value)
+                    {
+                        ExtendedPauseString = string.Format(Resources.AniDB_Paused, e.PauseTimeSecs, e.Message);
+                        HasExtendedPause = true;
+                    }
+                    else
+                    {
+                        ExtendedPauseString = string.Empty;
+                        HasExtendedPause = false;
+                    }
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

@@ -10,6 +10,10 @@ namespace Shoko.Server.Providers.AniDB
         /// </summary>
         public bool Value { get; set; }
         /// <summary>
+        /// Auxiliary Message for some states
+        /// </summary>
+        public string Message { get; set; }
+        /// <summary>
         /// Update type, Ban, Invalid Session, Waiting on Response, etc
         /// </summary>
         public AniDBUpdateType UpdateType { get; set; }
