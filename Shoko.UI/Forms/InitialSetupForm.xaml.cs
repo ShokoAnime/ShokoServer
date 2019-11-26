@@ -20,21 +20,21 @@ namespace Shoko.UI.Forms
         {
             InitializeComponent();
 
-            txtUsername.TextChanged += new TextChangedEventHandler(txtUsername_TextChanged);
-            txtPassword.PasswordChanged += new RoutedEventHandler(txtPassword_PasswordChanged);
-            txtClientPort.TextChanged += new TextChangedEventHandler(txtClientPort_TextChanged);
+            txtUsername.TextChanged += txtUsername_TextChanged;
+            txtPassword.PasswordChanged += txtPassword_PasswordChanged;
+            txtClientPort.TextChanged += txtClientPort_TextChanged;
 
-            btnTestConnection.Click += new RoutedEventHandler(btnTestConnection_Click);
-            btnClose.Click += new RoutedEventHandler(btnClose_Click);
+            btnTestConnection.Click += btnTestConnection_Click;
+            btnClose.Click += btnClose_Click;
 
-            workerTestLogin.DoWork += new DoWorkEventHandler(workerTestLogin_DoWork);
-            workerTestLogin.ProgressChanged += new ProgressChangedEventHandler(workerTestLogin_ProgressChanged);
+            workerTestLogin.DoWork += workerTestLogin_DoWork;
+            workerTestLogin.ProgressChanged += workerTestLogin_ProgressChanged;
             workerTestLogin.RunWorkerCompleted +=
-                new RunWorkerCompletedEventHandler(workerTestLogin_RunWorkerCompleted);
+                workerTestLogin_RunWorkerCompleted;
             workerTestLogin.WorkerReportsProgress = true;
             workerTestLogin.WorkerSupportsCancellation = true;
 
-            this.Loaded += new RoutedEventHandler(InitialSetupForm_Loaded);
+            Loaded += InitialSetupForm_Loaded;
         }
 
         void InitialSetupForm_Loaded(object sender, RoutedEventArgs e)
@@ -56,28 +56,29 @@ namespace Shoko.UI.Forms
         {
             try
             {
-                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Disposing);
+                // TODO Will need ported to the new system
+                workerTestLogin.ReportProgress(0, Commons.Properties.Resources.InitialSetup_Disposing);
                 ShokoService.AnidbProcessor.ForceLogout();
                 ShokoService.AnidbProcessor.CloseConnections();
                 Thread.Sleep(1000);
 
                 Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.Server_Initializing);
+                workerTestLogin.ReportProgress(0, Commons.Properties.Resources.Server_Initializing);
                 ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
                     ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,
                     ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
 
-                workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_Login);
+                workerTestLogin.ReportProgress(0, Commons.Properties.Resources.InitialSetup_Login);
                 if (ShokoService.AnidbProcessor.Login())
                 {
-                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginPass1);
+                    workerTestLogin.ReportProgress(0, Commons.Properties.Resources.InitialSetup_LoginPass1);
                     ShokoService.AnidbProcessor.ForceLogout();
-                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginPass2);
+                    workerTestLogin.ReportProgress(0, Commons.Properties.Resources.InitialSetup_LoginPass2);
                 }
                 else
                 {
-                    workerTestLogin.ReportProgress(0, Shoko.Commons.Properties.Resources.InitialSetup_LoginFail);
+                    workerTestLogin.ReportProgress(0, Commons.Properties.Resources.InitialSetup_LoginFail);
                 }
             }
             catch (Exception ex)
@@ -98,8 +99,8 @@ namespace Shoko.UI.Forms
 
             if (txtUsername.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterUsername,
-                    Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Commons.Properties.Resources.InitialSetup_EnterUsername,
+                    Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtUsername.Focus();
@@ -108,8 +109,8 @@ namespace Shoko.UI.Forms
 
             if (txtPassword.Password.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPassword,
-                    Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Commons.Properties.Resources.InitialSetup_EnterPassword,
+                    Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtPassword.Focus();
@@ -118,8 +119,8 @@ namespace Shoko.UI.Forms
 
             if (txtClientPort.Text.Trim().Length == 0)
             {
-                MessageBox.Show(Shoko.Commons.Properties.Resources.InitialSetup_EnterPort,
-                    Shoko.Commons.Properties.Resources.Error,
+                MessageBox.Show(Commons.Properties.Resources.InitialSetup_EnterPort,
+                    Commons.Properties.Resources.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 txtClientPort.Focus();
@@ -153,9 +154,9 @@ namespace Shoko.UI.Forms
 
         void btnClose_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
+            DialogResult = false;
             MainWindow.AniDBLoginOpen = false;
-            this.Close();
+            Close();
         }
     }
 }

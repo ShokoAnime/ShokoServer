@@ -1129,9 +1129,10 @@
     <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
     <Compile Include="Providers\AniDB\AniDBStateUpdate.cs" />
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
+    <Compile Include="Providers\AniDB\UDP\Exceptions\NotLoggedInException.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_BaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
-    <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponse.cs" />
+    <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
     <Compile Include="Providers\AniDB\UDP\Responses\AniDBUDP_Response.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestAddFile.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Responses\AniDBMyList_ResponseAddFile.cs" />

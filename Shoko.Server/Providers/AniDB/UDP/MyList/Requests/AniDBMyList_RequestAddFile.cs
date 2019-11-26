@@ -12,7 +12,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
     public class AniDBMyList_RequestAddFile : AniDBUDP_BaseRequest<AniDBMyList_ResponseAddFile>
     {
         // These are dependent on context
-        protected override string Command
+        protected override string BaseCommand
         {
             get
             {
@@ -40,7 +40,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
         
-        protected override AniDBMyList_ResponseAddFile ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override AniDBUDP_Response<AniDBMyList_ResponseAddFile> ParseResponse(AniDBUDPReturnCode code, string receivedData)
         {
             switch (code)
             {
@@ -54,12 +54,16 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
                     if (arrResult.Length >= 2)
                     {
                         int.TryParse(arrResult[1], out int myListID);
-                        return new AniDBMyList_ResponseAddFile
+                        return new AniDBUDP_Response<AniDBMyList_ResponseAddFile>
                         {
-                            MyListID = myListID,
-                            State = State,
-                            IsWatched = IsWatched,
-                            WatchedDate = WatchedDate
+                            Code = code,
+                            Response = new AniDBMyList_ResponseAddFile
+                            {
+                                MyListID = myListID,
+                                State = State,
+                                IsWatched = IsWatched,
+                                WatchedDate = WatchedDate
+                            }
                         };
                     }
                     break;
@@ -75,7 +79,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
                     {
                         string[] arrStatus = arrResult[1].Split('|');
                         bool hasMyListID = int.TryParse(arrStatus[0], out int myListID);
-                        if (!hasMyListID) throw new UnexpectedAniDBResponse
+                        if (!hasMyListID) throw new UnexpectedAniDBResponseException
                         {
                             Message = "MyListID was not provided. Use AniDBMyList_CommandAddEpisode for generic files.",
                             Response = receivedData,
@@ -96,19 +100,23 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 
                             watchedDate = utcDate.ToLocalTime();
                         }
-                        
-                        return new AniDBMyList_ResponseAddFile
+
+                        return new AniDBUDP_Response<AniDBMyList_ResponseAddFile>
                         {
-                            MyListID = myListID,
-                            State = state,
-                            IsWatched = watched,
-                            WatchedDate = watchedDate
+                            Code = code,
+                            Response = new AniDBMyList_ResponseAddFile
+                            {
+                                MyListID = myListID,
+                                State = state,
+                                IsWatched = watched,
+                                WatchedDate = watchedDate
+                            }
                         };
                     }
                     break;
                 }
             }
-            throw new UnexpectedAniDBResponse(code, receivedData);
+            throw new UnexpectedAniDBResponseException(code, receivedData);
         }
     }
 }

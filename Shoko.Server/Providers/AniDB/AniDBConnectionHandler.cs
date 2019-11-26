@@ -14,6 +14,7 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.AniDB_API;
 using Shoko.Server.Providers.AniDB.MyList;
+using Shoko.Server.Providers.AniDB.MyList.Commands;
 using Shoko.Server.Providers.AniDB.MyList.Exceptions;
 using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
@@ -390,41 +391,48 @@ namespace Shoko.Server.Providers.AniDB
         
         public bool Login(string userName, string password)
         {
-            // TODO move this to new system
             // check if we are already logged in
             if (isLoggedOn) return true;
 
-            if (!ValidAniDBCredentials(userName, password)) return false;
-
-            AniDBCommand_Login login = new AniDBCommand_Login();
-            login.Init(userName, password);
-
-            string msg = login.commandText.Replace(userName, "******");
-            msg = msg.Replace(password, "******");
-            Logger.Trace("udp command: {0}", msg);
-            WaitingOnResponse = true;
-            AniDBUDPResponseCode ev = login.Process(ref AniDBSocket, ref remoteIpEndPoint, _sessionString,
-                new UnicodeEncoding(true, false));
-            WaitingOnResponse = false;
-
-            if (login.errorOccurred)
-                Logger.Trace("error in login: {0}", login.errorMessage);
-
-            Thread.Sleep(2200);
-
-            switch (ev)
+            if (!ValidAniDBCredentials(userName, password))
             {
-                case AniDBUDPResponseCode.LoginFailed:
+                LoginFailed?.Invoke(this, null);
+                return false;
+            }
+
+            AniDBUDP_Response<AniDBUDP_ResponseLogin> response;
+            try
+            {
+                AniDBUDP_RequestLogin login = new AniDBUDP_RequestLogin
+                {
+                    Username = userName, Password = password, UseUnicode = true
+                };
+                // Never give Execute a null SessionID, except here
+                login.Execute(this, null);
+                response = login.Response;
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"Unable to login to AniDB: {e}");
+                response = new AniDBUDP_Response<AniDBUDP_ResponseLogin>();
+            }
+
+            switch (response.Code)
+            {
+                case AniDBUDPReturnCode.LOGIN_FAILED:
+                    IsInvalidSession = true;
+                    IsLoggedOn = false;
                     Logger.Error("AniDB Login Failed: invalid credentials");
                     LoginFailed?.Invoke(this, null);
                     break;
-                case AniDBUDPResponseCode.LoggedIn:
-                    _sessionString = login.SessionID;
+                case AniDBUDPReturnCode.LOGIN_ACCEPTED:
+                    _sessionString = response.Response.SessionID;
                     isLoggedOn = true;
                     IsInvalidSession = false;
                     return true;
                 default:
-                    Logger.Error($"AniDB Login Failed: error connecting to AniDB: {login.errorMessage}");
+                    IsLoggedOn = false;
+                    IsInvalidSession = true;
                     break;
             }
 
@@ -435,22 +443,32 @@ namespace Shoko.Server.Providers.AniDB
         /// Actually get data from AniDB
         /// </summary>
         /// <param name="command">The request to be made (AUTH user=baka&amp;pass....)</param>
-        /// <param name="needsUnicode"></param>
+        /// <param name="needsUnicode">Only for Login, specify whether to ask for UTF16</param>
         /// <param name="disableLogging">Some commands have sensitive data</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
-        public AniDBUDP_Response<string> CallAniDB(string command, bool needsUnicode = false, bool disableLogging = false, bool isPing = false)
+        public AniDBUDP_Response<string> CallAniDBUDP(string command, bool needsUnicode = false, bool disableLogging = false, bool isPing = false)
         {
             // Steps:
             // 1. Check Ban state and throw if Banned
             // 2. Check Login State and Login if needed
             // 3. Actually Call AniDB
+            
+            // Check Ban State
+            // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
+            if (IsUdpBanned) throw new UnexpectedAniDBResponseException {ReturnCode = AniDBUDPReturnCode.BANNED};
+            // TODO We need to handle Login Attempt Decay, so that we can try again if it's not just a bad userpass
+            if (IsInvalidSession) throw new NotLoggedInException();
+            
+            // Check Login State
+            if (!Login(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password))
+                throw new NotLoggedInException();
 
             // Actually Call AniDB
-            return CallAniDBDirectly(command, needsUnicode, disableLogging, isPing);
+            return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public AniDBUDP_Response<string> CallAniDBDirectly(string command, bool needsUnicode, bool disableLogging, bool isPing)
+        public AniDBUDP_Response<string> CallAniDBUDPDirectly(string command, bool needsUnicode, bool disableLogging, bool isPing)
         {
             // 1. Call AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -481,12 +499,10 @@ namespace Shoko.Server.Providers.AniDB
                 try
                 {
                     StampLastMessage(isPing);
-
-                    // Send Request
+                    WaitingOnResponse = true;
                     AniDBSocket.SendTo(sendByteAdd, remoteIpEndPoint);
-
-                    // Receive Response
                     received = AniDBSocket.ReceiveFrom(byReceivedAdd, ref remotePoint);
+                    WaitingOnResponse = false;
                     StampLastMessage(isPing);
 
                     //MyAnimeLog.Write("Buffer length = {0}", received.ToString());
@@ -543,7 +559,7 @@ namespace Shoko.Server.Providers.AniDB
             // parts[0] => 200 FILE
             // parts[1] => Response
             // parts[2] => empty, since we ended with a newline
-            if (decodedParts.Length < 2) throw new UnexpectedAniDBResponse {Response = decodedString};
+            if (decodedParts.Length < 2) throw new UnexpectedAniDBResponseException {Response = decodedString};
 
             if (truncated)
             {
@@ -564,10 +580,10 @@ namespace Shoko.Server.Providers.AniDB
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
-            if (firstLineParts.Length != 2) throw new UnexpectedAniDBResponse {Response = decodedString};
+            if (firstLineParts.Length != 2) throw new UnexpectedAniDBResponseException {Response = decodedString};
 
             // Can't parse the code
-            if (!int.TryParse(firstLineParts[0], out int code)) throw new UnexpectedAniDBResponse {Response = decodedString};
+            if (!int.TryParse(firstLineParts[0], out int code)) throw new UnexpectedAniDBResponseException {Response = decodedString};
             
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse

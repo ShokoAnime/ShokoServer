@@ -4,11 +4,11 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 {
     public abstract class AniDBUDP_BaseRequest<T> where T : class
     {
-        protected string _command { get; set; } = string.Empty;
+        protected string Command { get; set; } = string.Empty;
         /// <summary>
         /// Various Parameters to add to the base command
         /// </summary>
-        protected abstract string Command { get; }
+        protected abstract string BaseCommand { get; }
 
         protected bool HasEexecuted { get; set; }
         
@@ -17,7 +17,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
         /// <summary>
         /// The Response
         /// </summary>
-        protected AniDBUDP_Response<T> Response {
+        public AniDBUDP_Response<T> Response {
             get
             {
                 if (!HasEexecuted) throw new CommandNotExecutedException();;
@@ -26,21 +26,25 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
             set => _response = value;
         }
 
-        protected abstract T ParseResponse(AniDBUDPReturnCode code, string receivedData);
+        protected abstract AniDBUDP_Response<T> ParseResponse(AniDBUDPReturnCode code, string receivedData);
 
-        public void Execute(string sessionID)
+        public virtual void Execute(AniDBConnectionHandler handler, string sessionID)
         {
-            _command = Command;
+            Command = BaseCommand;
             PreExecute(sessionID);
-            // TODO Adapt AniDBHelper to be less interdependent on the previous system
-            
-            
+            AniDBUDP_Response<string> response = handler.CallAniDBUDP(Command);
+            Response = ParseResponse(response.Code, response.Response);
+            PostExecute(sessionID, _response);
             HasEexecuted = true;
         }
 
         protected virtual void PreExecute(string sessionID)
         {
-            _command += $"&s={sessionID}";
+            Command += $"&s={sessionID}";
+        }
+
+        protected virtual void PostExecute(string sessionID, AniDBUDP_Response<T> response)
+        {
         }
     }
 }
