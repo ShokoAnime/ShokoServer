@@ -392,15 +392,15 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-                    return string.Format(Constants.URLS.TvDB_Images, fanart.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, fanart.BannerPath);
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
-                    return string.Format(Constants.URLS.TvDB_Images, poster.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, poster.BannerPath);
 
                 case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
-                    return string.Format(Constants.URLS.TvDB_Images, wideBanner.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, wideBanner.BannerPath);
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
