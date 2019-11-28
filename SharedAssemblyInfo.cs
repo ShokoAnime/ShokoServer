@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 
-[assembly: AssemblyVersion("3.9.5.*")]
+[assembly: AssemblyVersion("3.9.6.*")]
 [assembly: AssemblyProduct("Shoko Server")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]

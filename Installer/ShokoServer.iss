@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.9.5.0
+AppVersion=3.9.6.0
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
@@ -38,59 +38,6 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
 
 [Files]
-Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.SwaggerUI.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Buffers.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Buffers.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Collections.Immutable.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Collections.Immutable.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.ComponentModel.Annotations.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Data.Common.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll.config"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Diagnostics.DiagnosticSource.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Diagnostics.DiagnosticSource.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Diagnostics.StackTrace.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Diagnostics.Tracing.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Globalization.Extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.pdb"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IO.Compression.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IO.Pipelines.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.IO.Pipelines.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Memory.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Memory.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.Sockets.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Net.WebSockets.WebSocketProtocol.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Numerics.Vectors.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Numerics.Vectors.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Reflection.Metadata.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Reflection.Metadata.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Runtime.CompilerServices.Unsafe.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Runtime.CompilerServices.Unsafe.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Runtime.Serialization.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.AccessControl.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Cng.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Xml.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Permissions.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.Principal.Windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Security.SecureString.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Text.Encoding.CodePages.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Text.Encodings.Web.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Text.Encodings.Web.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Threading.Channels.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Threading.Channels.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Threading.Overlapped.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Threading.Tasks.Extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Threading.Tasks.Extensions.xml"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\System.Xml.XPath.XDocument.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\TMDbLib.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Trinet.Core.IO.Ntfs.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\TvDbSharper.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -109,6 +56,9 @@ Source: "..\Shoko.Server\bin\Release\Iesi.Collections.xml"; DestDir: "{app}"; Fl
 Source: "..\Shoko.Server\bin\Release\Infralution.Localization.Wpf.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\JetBrains.Annotations.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\JetBrains.Annotations.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MediaInfoWrapper.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MediaInfoWrapper.exe.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\MediaInfoWrapper.pdb"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\MessagePack.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\MessagePack.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Microsoft.AI.Agent.Intercept.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -492,6 +442,58 @@ Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.Swagger.xml"; DestDi
 Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.SwaggerGen.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.SwaggerGen.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.SwaggerUI.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\Swashbuckle.AspNetCore.SwaggerUI.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Buffers.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Buffers.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Collections.Immutable.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Collections.Immutable.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.ComponentModel.Annotations.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.Common.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.dll.config"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Data.SQLite.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Diagnostics.DiagnosticSource.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Diagnostics.DiagnosticSource.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Diagnostics.StackTrace.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Diagnostics.Tracing.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Globalization.Extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.pdb"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IdentityModel.Tokens.Jwt.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IO.Compression.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IO.Pipelines.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.IO.Pipelines.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Memory.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Memory.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Http.Formatting.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.Sockets.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Net.WebSockets.WebSocketProtocol.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Numerics.Vectors.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Numerics.Vectors.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Reflection.Metadata.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Reflection.Metadata.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Runtime.CompilerServices.Unsafe.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Runtime.CompilerServices.Unsafe.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Runtime.Serialization.Primitives.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.AccessControl.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Algorithms.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Cng.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Cryptography.Xml.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Permissions.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.Principal.Windows.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Security.SecureString.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Text.Encoding.CodePages.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Text.Encodings.Web.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Text.Encodings.Web.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Threading.Channels.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Threading.Channels.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Threading.Overlapped.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Threading.Tasks.Extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Threading.Tasks.Extensions.xml"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\System.Xml.XPath.XDocument.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\Shoko.Server\bin\Release\TMDbLib.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\de\*"; DestDir: "{app}\de"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\en-gb\*"; DestDir: "{app}\en-gb"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\Shoko.Server\bin\Release\es\*"; DestDir: "{app}\es"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -523,7 +525,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "http add urlacl url=http://+:8111/ sdd
 Filename: "{app}\FixPermissions.bat";
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: "https://docs.shokoanime.com/server/install_windows"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
-Filename: "https://shokoanime.com/shoko-version-3-9-5-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.9.5 Release Notes"
+Filename: "https://shokoanime.com/shoko-version-3-9-6-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.9.6 Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
