@@ -1,4 +1,4 @@
-using Shoko.Server.Providers.AniDB.MyList.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.MyList.Commands
 {

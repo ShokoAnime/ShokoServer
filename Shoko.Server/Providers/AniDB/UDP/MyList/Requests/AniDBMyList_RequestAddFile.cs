@@ -1,7 +1,6 @@
 using System;
 using Shoko.Models.Enums;
-using Shoko.Server.Providers.AniDB.MyList.Exceptions;
-using static System.String;
+using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.MyList.Commands
 {

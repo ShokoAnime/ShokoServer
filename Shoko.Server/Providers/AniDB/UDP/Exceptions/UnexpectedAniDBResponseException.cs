@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Server.Providers.AniDB.MyList.Exceptions
+namespace Shoko.Server.Providers.AniDB.UDP.Exceptions
 {
     [Serializable]
     public class UnexpectedAniDBResponseException : Exception
