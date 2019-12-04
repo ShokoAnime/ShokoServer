@@ -5,10 +5,10 @@ using NLog;
 
 namespace Shoko.Server.AniDB_API
 {
-    public sealed class AniDbRateLimiter
+    public sealed class AniDBRateLimiter
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static readonly AniDbRateLimiter instance = new AniDbRateLimiter();
+        private static readonly AniDBRateLimiter instance = new AniDBRateLimiter();
 
         // Short Term:
         // A Client MUST NOT send more than 0.5 packets per second(that's one packet every two seconds, not two packets a second!)
@@ -32,15 +32,15 @@ namespace Shoko.Server.AniDB_API
 
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
-        static AniDbRateLimiter()
+        static AniDBRateLimiter()
         {
             _requestWatch.Start();
             _activeTimeWatch.Start();
         }
 
-        public static AniDbRateLimiter Instance => instance;
+        public static AniDBRateLimiter Instance => instance;
 
-        private AniDbRateLimiter()
+        private AniDBRateLimiter()
         {
         }
 

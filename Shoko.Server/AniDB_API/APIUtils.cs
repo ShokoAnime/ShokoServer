@@ -21,7 +21,7 @@ namespace AniDBAPI
         {
             try
             {
-                AniDbRateLimiter.Instance.EnsureRate();
+                AniDBRateLimiter.Instance.EnsureRate();
 
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
@@ -61,7 +61,7 @@ namespace AniDBAPI
         {
             try
             {
-                AniDbRateLimiter.Instance.EnsureRate();
+                AniDBRateLimiter.Instance.EnsureRate();
 
                 HttpWebResponse response = null;
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);

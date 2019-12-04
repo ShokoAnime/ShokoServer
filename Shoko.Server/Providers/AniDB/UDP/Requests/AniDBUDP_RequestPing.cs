@@ -1,6 +1,7 @@
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.Responses;
 
-namespace Shoko.Server.Providers.AniDB.MyList.Commands
+namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {
     public class AniDBUDP_RequestPing : AniDBUDP_BaseRequest<string>
     {
@@ -16,7 +17,7 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
             // Don't set the session for pings
         }
 
-        public override void Execute(AniDBConnectionHandler handler, string sessionID)
+        public override void Execute(AniDBConnectionHandler handler)
         {
             AniDBUDP_Response<string> response = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
             Response = ParseResponse(response.Code, response.Response);

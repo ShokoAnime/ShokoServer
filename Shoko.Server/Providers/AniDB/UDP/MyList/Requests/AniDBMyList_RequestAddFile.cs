@@ -1,8 +1,11 @@
 using System;
 using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.MyList.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Responses;
 
-namespace Shoko.Server.Providers.AniDB.MyList.Commands
+namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
 {
     /// <summary>
     /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.

@@ -1,6 +1,7 @@
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.Responses;
 
-namespace Shoko.Server.Providers.AniDB.MyList.Commands
+namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {
     public abstract class AniDBUDP_BaseRequest<T> where T : class
     {
@@ -28,13 +29,13 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
 
         protected abstract AniDBUDP_Response<T> ParseResponse(AniDBUDPReturnCode code, string receivedData);
 
-        public virtual void Execute(AniDBConnectionHandler handler, string sessionID)
+        public virtual void Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand;
-            PreExecute(sessionID);
+            PreExecute(handler.SessionID);
             AniDBUDP_Response<string> response = handler.CallAniDBUDP(Command);
             Response = ParseResponse(response.Code, response.Response);
-            PostExecute(sessionID, _response);
+            PostExecute(handler.SessionID, _response);
             HasEexecuted = true;
         }
 

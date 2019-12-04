@@ -1,6 +1,4 @@
-using AniDBAPI;
-
-namespace Shoko.Server.Providers.AniDB.MyList
+namespace Shoko.Server.Providers.AniDB.UDP.Responses
 {
     public class AniDBUDP_Response<T> where T : class
     {

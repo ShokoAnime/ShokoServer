@@ -1,7 +1,8 @@
 using System;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.Responses;
 
-namespace Shoko.Server.Providers.AniDB.MyList.Commands
+namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {
     public class AniDBUDP_RequestLogin : AniDBUDP_BaseRequest<AniDBUDP_ResponseLogin>
     {
@@ -35,14 +36,14 @@ namespace Shoko.Server.Providers.AniDB.MyList.Commands
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override void Execute(AniDBConnectionHandler handler, string sessionID)
+        public override void Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand;
-            PreExecute(sessionID);
+            PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
             AniDBUDP_Response<string> response = handler.CallAniDBUDPDirectly(Command, true, true, false);
             Response = ParseResponse(response.Code, response.Response);
-            PostExecute(sessionID, _response);
+            PostExecute(handler.SessionID, _response);
             HasEexecuted = true;
         }
     }

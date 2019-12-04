@@ -1,7 +1,7 @@
 using System;
 using Shoko.Models.Enums;
 
-namespace Shoko.Server.Providers.AniDB.MyList
+namespace Shoko.Server.Providers.AniDB.UDP.MyList.Responses
 {
     public class AniDBMyList_ResponseAddFile
     {

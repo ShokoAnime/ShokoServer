@@ -41,7 +41,7 @@ namespace AniDBAPI.Commands
             mcommandText = commandText;
             errorOccurred = false;
 
-            AniDbRateLimiter.Instance.EnsureRate();
+            AniDBRateLimiter.Instance.EnsureRate();
 
             if (commandType != enAniDBCommandType.Ping)
             {
@@ -313,7 +313,7 @@ namespace AniDBAPI.Commands
                 {
                     logger.Info("Forcing reconnection to AniDB");
                     ShokoService.AnidbProcessor.Dispose();
-                    AniDbRateLimiter.Instance.EnsureRate();
+                    AniDBRateLimiter.Instance.EnsureRate();
 
                     ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
                         ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,

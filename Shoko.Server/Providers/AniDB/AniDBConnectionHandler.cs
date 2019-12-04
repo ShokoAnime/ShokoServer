@@ -6,15 +6,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Timers;
-using AniDBAPI.Commands;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.AniDB_API;
-using Shoko.Server.Providers.AniDB.MyList;
-using Shoko.Server.Providers.AniDB.MyList.Commands;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Providers.AniDB.UDP.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Responses;
 using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
 
@@ -35,8 +34,8 @@ namespace Shoko.Server.Providers.AniDB
 
         private IPEndPoint _localIpEndPoint;
         private IPEndPoint _remoteIpEndPoint;
-        public Socket AniDBSocket;
-        private string _sessionString;
+        private Socket _aniDBSocket;
+        public string SessionID { get; private set; }
 
         private readonly string _serverHost;
         private readonly ushort _serverPort;
@@ -211,8 +210,6 @@ namespace Shoko.Server.Providers.AniDB
 
         public bool IsNetworkAvailable { private set; get; }
 
-        public string ExtendPauseReason { get; set; } = string.Empty;
-
         private DateTime LastAniDBPing { get; set; } = DateTime.MinValue;
 
         private DateTime LastAniDBMessageNonPing { get; set; } = DateTime.MinValue;
@@ -248,7 +245,7 @@ namespace Shoko.Server.Providers.AniDB
 
         private void InitInternal()
         {
-            AniDBSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            _aniDBSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
             _isLoggedOn = false;
 
@@ -279,14 +276,14 @@ namespace Shoko.Server.Providers.AniDB
         {
             _logoutTimer?.Stop();
             _logoutTimer = null;
-            if (AniDBSocket == null) return;
+            if (_aniDBSocket == null) return;
             Logger.Info("Disposing...");
             try
             {
-                AniDBSocket.Shutdown(SocketShutdown.Both);
-                if (AniDBSocket.Connected)
+                _aniDBSocket.Shutdown(SocketShutdown.Both);
+                if (_aniDBSocket.Connected)
                 {
-                    AniDBSocket.Disconnect(false);
+                    _aniDBSocket.Disconnect(false);
                 }
             }
             catch (SocketException ex)
@@ -296,9 +293,9 @@ namespace Shoko.Server.Providers.AniDB
             finally
             {
                 Logger.Info("Closing AniDB Connection...");
-                AniDBSocket.Close();
+                _aniDBSocket.Close();
                 Logger.Info("Closed AniDB Connection");
-                AniDBSocket = null;
+                _aniDBSocket = null;
             }
         }
 
@@ -346,7 +343,7 @@ namespace Shoko.Server.Providers.AniDB
                     !IsUdpBanned && !ExtendPauseSecs.HasValue)
                 {
                     AniDBUDP_RequestPing ping = new AniDBUDP_RequestPing();
-                    ping.Execute(this, null);
+                    ping.Execute(this);
                 }
 
                 // TODO Make this update in the UI, rather than here
@@ -417,7 +414,7 @@ namespace Shoko.Server.Providers.AniDB
                     Username = userName, Password = password, UseUnicode = true
                 };
                 // Never give Execute a null SessionID, except here
-                login.Execute(this, null);
+                login.Execute(this);
                 response = login.Response;
             }
             catch (Exception e)
@@ -435,7 +432,7 @@ namespace Shoko.Server.Providers.AniDB
                     LoginFailed?.Invoke(this, null);
                     break;
                 case AniDBUDPReturnCode.LOGIN_ACCEPTED:
-                    _sessionString = response.Response.SessionID;
+                    SessionID = response.Response.SessionID;
                     _isLoggedOn = true;
                     IsInvalidSession = false;
                     return true;
@@ -467,7 +464,8 @@ namespace Shoko.Server.Providers.AniDB
             // Check Ban State
             // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
             if (IsUdpBanned) throw new UnexpectedAniDBResponseException {ReturnCode = AniDBUDPReturnCode.BANNED};
-            // TODO We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
+            // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
+            // It wasn't handled before, and it's not caused serious problems
             if (IsInvalidSession) throw new NotLoggedInException();
 
             // Check Login State
@@ -489,7 +487,7 @@ namespace Shoko.Server.Providers.AniDB
             Encoding encoding = Encoding.ASCII;
             if (needsUnicode) encoding = new UnicodeEncoding(true, false);
 
-            AniDbRateLimiter.Instance.EnsureRate();
+            AniDBRateLimiter.Instance.EnsureRate();
             DateTime start = DateTime.Now;
 
             if (!disableLogging)
@@ -499,18 +497,17 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             int received;
-            byte[] byReceivedAdd = new byte[2000]; // max length should actually be 1400
+            byte[] byReceivedAdd = new byte[1600]; // max length should actually be 1400
             byte[] sendByteAdd = encoding.GetBytes(command.ToCharArray());
             try
             {
                 StampLastMessage(isPing);
                 WaitingOnResponse = true;
-                AniDBSocket.SendTo(sendByteAdd, _remoteIpEndPoint);
-                received = AniDBSocket.ReceiveFrom(byReceivedAdd, ref remotePoint);
+                _aniDBSocket.SendTo(sendByteAdd, _remoteIpEndPoint);
+                received = _aniDBSocket.ReceiveFrom(byReceivedAdd, ref remotePoint);
                 WaitingOnResponse = false;
                 StampLastMessage(isPing);
 
-                //MyAnimeLog.Write("Buffer length = {0}", received.ToString());
                 if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
                 {
                     //deflate
@@ -582,44 +579,52 @@ namespace Shoko.Server.Providers.AniDB
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
+            // TODO Move to Enum for readability
             IsUdpBanned = code == 555;
 
-            // 598 UNKNOWN COMMAND usually means we had connections issue
-            // 506 INVALID SESSION
-            // 505 ILLEGAL INPUT OR ACCESS DENIED
-            // reset login status to start again
-            if (code == 598 || code == 506 || code == 505)
+            switch (code)
             {
-                IsInvalidSession = true;
-                Logger.Trace("FORCING Logout because of invalid session");
-                ForceReconnection();
-            }
-
-            // 600 INTERNAL SERVER ERROR
-            // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
-            // 602 SERVER BUSY - TRY AGAIN LATER
-            // 604 TIMEOUT - DELAY AND RESUBMIT
-            if (code == 600 || code == 601 || code == 602 || code == 604)
-            {
-                string errormsg = string.Empty;
-                switch (code)
+                // 598 UNKNOWN COMMAND usually means we had connections issue
+                // 506 INVALID SESSION
+                // 505 ILLEGAL INPUT OR ACCESS DENIED
+                // reset login status to start again
+                case 598:
+                case 506:
+                case 505:
+                    IsInvalidSession = true;
+                    Logger.Trace("FORCING Logout because of invalid session");
+                    ForceReconnection();
+                    break;
+                // 600 INTERNAL SERVER ERROR
+                // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
+                // 602 SERVER BUSY - TRY AGAIN LATER
+                // 604 TIMEOUT - DELAY AND RESUBMIT
+                case 600:
+                case 601:
+                case 602:
+                case 604:
                 {
-                    case 600:
-                        errormsg = "600 INTERNAL SERVER ERROR";
-                        break;
-                    case 601:
-                        errormsg = "601 ANIDB OUT OF SERVICE - TRY AGAIN LATER";
-                        break;
-                    case 602:
-                        errormsg = "602 SERVER BUSY - TRY AGAIN LATER";
-                        break;
-                    case 604:
-                        errormsg = "TIMEOUT - DELAY AND RESUBMIT";
-                        break;
-                }
+                    string errormsg = string.Empty;
+                    switch (code)
+                    {
+                        case 600:
+                            errormsg = "600 INTERNAL SERVER ERROR";
+                            break;
+                        case 601:
+                            errormsg = "601 ANIDB OUT OF SERVICE - TRY AGAIN LATER";
+                            break;
+                        case 602:
+                            errormsg = "602 SERVER BUSY - TRY AGAIN LATER";
+                            break;
+                        case 604:
+                            errormsg = "TIMEOUT - DELAY AND RESUBMIT";
+                            break;
+                    }
 
-                Logger.Trace("FORCING Logout because of invalid session");
-                ExtendBanTimer(300, errormsg);
+                    Logger.Trace("FORCING Logout because of invalid session");
+                    ExtendBanTimer(300, errormsg);
+                    break;
+                }
             }
 
             return new AniDBUDP_Response<string> {Code = (AniDBUDPReturnCode) code, Response = decodedParts[1].Trim()};
@@ -637,7 +642,7 @@ namespace Shoko.Server.Providers.AniDB
                     ushort clientPort = _instance._clientPort;
                     _instance.CloseConnections();
                     _instance = null;
-                    AniDbRateLimiter.Instance.EnsureRate();
+                    AniDBRateLimiter.Instance.EnsureRate();
 
                     Init(serverHost, serverPort, clientPort);
                 }
@@ -688,11 +693,8 @@ namespace Shoko.Server.Providers.AniDB
         {
             // TODO Move this to new system
             if (!_isLoggedOn) return;
-            AniDBCommand_Logout logout = new AniDBCommand_Logout();
-            logout.Init();
-            WaitingOnResponse = true;
-            logout.Process(ref AniDBSocket, ref _remoteIpEndPoint, _sessionString, new UnicodeEncoding(true, false));
-            WaitingOnResponse = false;
+            AniDBUDP_RequestLogout req = new AniDBUDP_RequestLogout();
+            req.Execute(this);
             _isLoggedOn = false;
         }
 
@@ -717,8 +719,8 @@ namespace Shoko.Server.Providers.AniDB
             {
                 _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
 
-                AniDBSocket.Bind(_localIpEndPoint);
-                AniDBSocket.ReceiveTimeout = 30000; // 30 seconds
+                _aniDBSocket.Bind(_localIpEndPoint);
+                _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
 
                 Logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", _localIpEndPoint,
                     _clientPort, _localIpEndPoint.AddressFamily);

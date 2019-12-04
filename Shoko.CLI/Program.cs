@@ -8,6 +8,13 @@ namespace Shoko.CLI
     class Program
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static bool _running;
+
+        static Program()
+        {
+            _running = true;
+        }
+
         static void Main(string[] args)
         {
             for (int x = 0; x < args.Length; x++)
@@ -33,9 +40,7 @@ namespace Shoko.CLI
                 ShokoServer.RunWorkSetupDB();
             else logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
 
-            bool running = true;
-
-            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => running = false;
+            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => _running = false;
             Utils.YesNoRequired += (sender, e) =>
             {
                 e.Cancel = true;
@@ -49,9 +54,9 @@ namespace Shoko.CLI
                 }
             };
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"Queue state change: {ev.QueueState.formatMessage()}");
+                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
 
-            while (running)
+            while (_running)
             {
                 System.Threading.Thread.Sleep(TimeSpan.FromSeconds(60));
             }
