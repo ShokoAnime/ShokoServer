@@ -126,7 +126,8 @@ namespace Shoko.Server.Commands
                             {
                                 SVR_AniDB_File.Populate(aniFile, fileInfo);
                             }
-                            else aniFile = null;
+                            else
+                                aniFile = null;
                         }
                         else
                         {

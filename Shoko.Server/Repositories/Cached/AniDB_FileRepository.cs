@@ -68,6 +68,10 @@ namespace Shoko.Server.Repositories
 
         public void Save(SVR_AniDB_File obj, bool updateStats)
         {
+            if (obj.Anime_GroupName == null)
+                obj.Anime_GroupName = "UNKNOWN";
+            if (obj.Anime_GroupNameShort==null)
+                obj.Anime_GroupNameShort = "UNKNOWN";
             base.Save(obj);
             if (updateStats)
             {

@@ -268,10 +268,10 @@ namespace Shoko.Server.Models
 
         public static void Populate(SVR_AniDB_File anidbfile, Raw_AniDB_File fileInfo)
         {
-            anidbfile.Anime_GroupName = fileInfo.Anime_GroupName;
-            anidbfile.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort;
+            anidbfile.Anime_GroupName = fileInfo.Anime_GroupName ?? anidbfile.Anime_GroupNameShort ?? "UNKNOWN";
+            anidbfile.Anime_GroupNameShort = fileInfo.Anime_GroupNameShort ?? "UNKNOWN";
             anidbfile.AnimeID = fileInfo.AnimeID;
-            anidbfile.CRC = fileInfo.CRC;
+            anidbfile.CRC = fileInfo.CRC ?? "";
             anidbfile.DateTimeUpdated = DateTime.Now;
             anidbfile.Episode_Rating = fileInfo.Episode_Rating;
             anidbfile.Episode_Votes = fileInfo.Episode_Votes;
