@@ -38,6 +38,8 @@ namespace Shoko.Server.Models
 
         public int MyListID { get; set; }
 
+        [ScriptIgnore] public bool IsManualLink => GetAniDBFile() == null;
+
         [ScriptIgnore]
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 

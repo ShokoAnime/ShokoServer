@@ -577,20 +577,21 @@ namespace Shoko.Server.Providers.AniDB
             if (!int.TryParse(firstLineParts[0], out int code))
                 throw new UnexpectedAniDBResponseException {Response = decodedString};
 
+            AniDBUDPReturnCode status = (AniDBUDPReturnCode) code;
+
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
-            // TODO Move to Enum for readability
-            IsUdpBanned = code == 555;
+            IsUdpBanned = status == AniDBUDPReturnCode.BANNED;
 
-            switch (code)
+            switch (status)
             {
                 // 598 UNKNOWN COMMAND usually means we had connections issue
                 // 506 INVALID SESSION
                 // 505 ILLEGAL INPUT OR ACCESS DENIED
                 // reset login status to start again
-                case 598:
-                case 506:
-                case 505:
+                case AniDBUDPReturnCode.INVALID_SESSION:
+                case AniDBUDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
+                case AniDBUDPReturnCode.UNKNOWN_COMMAND:
                     IsInvalidSession = true;
                     Logger.Trace("FORCING Logout because of invalid session");
                     ForceReconnection();
@@ -599,35 +600,20 @@ namespace Shoko.Server.Providers.AniDB
                 // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
                 // 602 SERVER BUSY - TRY AGAIN LATER
                 // 604 TIMEOUT - DELAY AND RESUBMIT
-                case 600:
-                case 601:
-                case 602:
-                case 604:
+                case AniDBUDPReturnCode.INTERNAL_SERVER_ERROR:
+                case AniDBUDPReturnCode.ANIDB_OUT_OF_SERVICE:
+                case AniDBUDPReturnCode.SERVER_BUSY:
+                case AniDBUDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
                 {
-                    string errormsg = string.Empty;
-                    switch (code)
-                    {
-                        case 600:
-                            errormsg = "600 INTERNAL SERVER ERROR";
-                            break;
-                        case 601:
-                            errormsg = "601 ANIDB OUT OF SERVICE - TRY AGAIN LATER";
-                            break;
-                        case 602:
-                            errormsg = "602 SERVER BUSY - TRY AGAIN LATER";
-                            break;
-                        case 604:
-                            errormsg = "TIMEOUT - DELAY AND RESUBMIT";
-                            break;
-                    }
+                    var errorMessage = $"{(int) status} {status}";
 
                     Logger.Trace("FORCING Logout because of invalid session");
-                    ExtendBanTimer(300, errormsg);
+                    ExtendBanTimer(300, errorMessage);
                     break;
                 }
             }
 
-            return new AniDBUDP_Response<string> {Code = (AniDBUDPReturnCode) code, Response = decodedParts[1].Trim()};
+            return new AniDBUDP_Response<string> {Code = status, Response = decodedParts[1].Trim()};
         }
         
         public static void ForceReconnection()
@@ -691,7 +677,6 @@ namespace Shoko.Server.Providers.AniDB
 
         public void ForceLogout()
         {
-            // TODO Move this to new system
             if (!_isLoggedOn) return;
             AniDBUDP_RequestLogout req = new AniDBUDP_RequestLogout();
             req.Execute(this);

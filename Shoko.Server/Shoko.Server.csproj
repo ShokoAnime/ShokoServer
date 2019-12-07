@@ -923,7 +923,6 @@
     <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
     <Compile Include="AniDB_API\AniDBLib.cs" />
     <Compile Include="AniDB_API\AniDBImageRateLimiter.cs" />
-    <Compile Include="AniDB_API\AniDBRateLimiter.cs" />
     <Compile Include="AniDB_API\Calendar.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_DeleteFile.cs" />
@@ -1127,9 +1126,12 @@
     <Compile Include="Plex\Libraries\SVR_Directory.cs" />
     <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
     <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
+    <Compile Include="Providers\AniDB\AniDBRateLimiter.cs" />
     <Compile Include="Providers\AniDB\AniDBStateUpdate.cs" />
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\NotLoggedInException.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestAddEpisode.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestUpdateFile.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_BaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
