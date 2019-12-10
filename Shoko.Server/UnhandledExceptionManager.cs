@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
+using Sentry;
 
 namespace Shoko.Server
 {
@@ -279,6 +280,7 @@ namespace Shoko.Server
         private static void GenericExceptionHandler(Exception objException)
         {
             Analytics.PostException(objException, true);
+            SentrySdk.CaptureException(objException);
             //-- turn the exception into an informative string
             try
             {

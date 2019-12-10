@@ -24,6 +24,7 @@ using NLog.Targets;
 using NLog.Web;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
+using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -60,6 +61,7 @@ namespace Shoko.Server
         public static DateTime? StartTime = null;
 
         public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
+        private static IDisposable Sentry;
 
         internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
@@ -124,6 +126,12 @@ namespace Shoko.Server
 
         public bool StartUpServer()
         {
+            ShokoServer.Sentry = SentrySdk.Init(opts =>
+            {
+                opts.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
+                opts.Release = Utils.GetApplicationVersion();
+            });
+
             Analytics.PostEvent("Server", "Startup");
             if (Utils.IsLinux)
                 Analytics.PostEvent("Server", "Linux Startup");
@@ -1199,6 +1207,7 @@ namespace Shoko.Server
             StopWatchingFiles();
             AniDBDispose();
             StopHost();
+            Sentry.Dispose();
             ServerShutdown?.Invoke(this, null);
             Analytics.PostEvent("Server", "Shutdown");
         }

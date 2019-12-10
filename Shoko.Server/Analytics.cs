@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Shoko.Server.Extensions;
 using NLog;
 using System.Globalization;
+using Sentry;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server
@@ -37,12 +38,17 @@ namespace Shoko.Server
                 {"el", eventLabel ?? "" }
             });
 
-        internal static bool PostException(Exception ex, bool fatal = false) => PostData("exception",
-            new Dictionary<string, string>
-            {
-                {"exd", ex.GetType().FullName},
-                {"exf", (fatal ? 1 : 0).ToString()}
-            });
+        internal static bool PostException(Exception ex, bool fatal = false)
+        {
+                SentrySdk.CaptureException(ex);
+
+                return PostData("exception",
+                new Dictionary<string, string>
+                {
+                    {"exd", ex.GetType().FullName},
+                    {"exf", (fatal ? 1 : 0).ToString()}
+                });
+        }
 
         private static bool PostData(string type, IDictionary<string, string> extraData)
         {

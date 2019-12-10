@@ -22,6 +22,7 @@ using Microsoft.Extensions.FileProviders.Physical;
 using Newtonsoft.Json;
 using NLog;
 using Microsoft.Extensions.Primitives;
+using Sentry;
 
 namespace Shoko.Server.API
 {
@@ -142,6 +143,7 @@ namespace Shoko.Server.API
                 }
                 catch (Exception e)
                 {
+                    SentrySdk.CaptureException(e);
                     _logger.Error(e);
                     throw;
                 }
