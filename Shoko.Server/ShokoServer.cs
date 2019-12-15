@@ -61,7 +61,7 @@ namespace Shoko.Server
         public static DateTime? StartTime = null;
 
         public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
-        private static IDisposable Sentry;
+        private static IDisposable _sentry;
 
         internal static BlockingList<FileSystemEventArgs> queueFileEvents = new BlockingList<FileSystemEventArgs>();
         private static BackgroundWorker workerFileEvents = new BackgroundWorker();
@@ -112,7 +112,16 @@ namespace Shoko.Server
             };
         }
 
-        private ShokoServer() { }
+        private ShokoServer()
+        {
+            
+        }
+
+        ~ShokoServer()
+        {
+            _sentry.Dispose();
+            this.ShutDown();
+        }
 
         public void InitLogger()
         {
@@ -122,15 +131,44 @@ namespace Shoko.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
                 LogManager.ReconfigExistingLoggers();
             }
+
+            LogManager.Configuration
+                .AddSentry(o =>
+                {
+                    // Optionally specify a separate format for message
+                    o.Layout = "${message}";
+                    // Optionally specify a separate format for breadcrumbs
+                    o.BreadcrumbLayout = "${logger}: ${message}";
+
+                    // Debug and higher are stored as breadcrumbs (default is Info)
+                    o.MinimumBreadcrumbLevel = LogLevel.Debug;
+                    // Error and higher is sent as event (default is Error)
+                    o.MinimumEventLevel = LogLevel.Error;
+
+                    // Send the logger name as a tag
+                    o.AddTag("logger", "${logger}");
+
+                    // All Sentry Options are accessible here.
+                    o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
+                    o.AttachStacktrace = true;
+                    o.ConfigureClient = (client, dsn) =>
+                    {
+                        for (int i = 0; i < 100; i++)
+                            logger.Info(dsn.SentryUri.ToString());
+                    };
+                });
+
+            LogManager.ReconfigExistingLoggers();
         }
 
         public bool StartUpServer()
         {
-            ShokoServer.Sentry = SentrySdk.Init(opts =>
+            _sentry = SentrySdk.Init(opts =>
             {
                 opts.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
                 opts.Release = Utils.GetApplicationVersion();
             });
+
 
             Analytics.PostEvent("Server", "Startup");
             if (Utils.IsLinux)
@@ -1207,7 +1245,6 @@ namespace Shoko.Server
             StopWatchingFiles();
             AniDBDispose();
             StopHost();
-            Sentry.Dispose();
             ServerShutdown?.Invoke(this, null);
             Analytics.PostEvent("Server", "Shutdown");
         }

@@ -27,9 +27,9 @@ namespace Shoko.CLI
                     }
                 }
             }
-            
-            ShokoServer.Instance.InitLogger();
 
+            ShokoServer.Instance.InitLogger();
+            
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
             ShokoServer.Instance.StartUpServer();
