@@ -1143,6 +1143,7 @@
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\NotLoggedInException.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestAddEpisode.cs" />
+    <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestUpdateEpisode.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\AniDBMyList_RequestUpdateFile.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\AniDBUDP_BaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\CommandNotExecutedException.cs" />
