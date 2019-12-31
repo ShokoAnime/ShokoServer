@@ -29,7 +29,7 @@ namespace Shoko.Server.Providers.TvDB
         static TvDBApiHelper()
         {
             client=new TvDbClient();
-            client.BaseUrl = "https://api-dev.thetvdb.com";
+            client.BaseUrl = "https://api-beta.thetvdb.com";
         }
 
 
