@@ -7,18 +7,13 @@ using Shoko.Server.Providers.AniDB.UDP.Responses;
 
 namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
 {
-    /// <summary>
-    /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
-    /// If it exists, it will return the current status on AniDB. 
-    /// </summary>
-    public class AniDBMyList_RequestAddFile : AniDBUDP_BaseRequest<AniDBMyList_ResponseAddFile>
+    public class RequestAddEpisode : UDPBaseRequest<ResponseAddFile>
     {
-        // These are dependent on context
         protected override string BaseCommand
         {
             get
             {
-                string command = $"MYLISTADD size={Size}&ed2k={Hash}&state={State}";
+                string command = $"MYLISTADD aid={AnimeID}&epno={EpisodeNumber}&generic=1&state={State}";
                 if (IsWatched)
                 {
                     DateTime date = WatchedDate ?? DateTime.Now;
@@ -32,43 +27,33 @@ namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
                 return command;
             }
         }
-        
-        public string Hash { get; set; }
-        
-        public long Size { get; set; }
+
+        public int AnimeID { get; set; }
+
+        public int EpisodeNumber { get; set; }
 
         public AniDBFile_State State { get; set; }
-        
+
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
-        
-        protected override AniDBUDP_Response<AniDBMyList_ResponseAddFile> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+
+        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(AniDBUDPReturnCode code, string receivedData)
         {
             switch (code)
             {
                 case AniDBUDPReturnCode.MYLIST_ENTRY_ADDED:
                 {
-                    /* Response Format
-                     * {int4 mylist id of new entry}
-                     */
-                    // parse the MyList ID
-                    string[] arrResult = receivedData.Split('\n');
-                    if (arrResult.Length >= 2)
+                    // We're adding a generic file, so it won't return a MyListID
+                    return new UDPBaseResponse<ResponseAddFile>
                     {
-                        int.TryParse(arrResult[1], out int myListID);
-                        return new AniDBUDP_Response<AniDBMyList_ResponseAddFile>
+                        Code = code,
+                        Response = new ResponseAddFile
                         {
-                            Code = code,
-                            Response = new AniDBMyList_ResponseAddFile
-                            {
-                                MyListID = myListID,
-                                State = State,
-                                IsWatched = IsWatched,
-                                WatchedDate = WatchedDate
-                            }
-                        };
-                    }
-                    break;
+                            State = State,
+                            IsWatched = IsWatched,
+                            WatchedDate = WatchedDate
+                        }
+                    };
                 }
                 case AniDBUDPReturnCode.FILE_ALREADY_IN_MYLIST:
                 {
@@ -80,14 +65,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
                     if (arrResult.Length >= 2)
                     {
                         string[] arrStatus = arrResult[1].Split('|');
-                        bool hasMyListID = int.TryParse(arrStatus[0], out int myListID);
-                        if (!hasMyListID) throw new UnexpectedAniDBResponseException
-                        {
-                            Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
-                            Response = receivedData,
-                            ReturnCode = code
-                        };
-                        
+                        // We expect 0 for a MyListID
+                        int.TryParse(arrStatus[0], out int myListID);
 
                         AniDBFile_State state = (AniDBFile_State) int.Parse(arrStatus[6]);
 
@@ -103,10 +82,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
                             watchedDate = utcDate.ToLocalTime();
                         }
 
-                        return new AniDBUDP_Response<AniDBMyList_ResponseAddFile>
+                        return new UDPBaseResponse<ResponseAddFile>
                         {
                             Code = code,
-                            Response = new AniDBMyList_ResponseAddFile
+                            Response = new ResponseAddFile
                             {
                                 MyListID = myListID,
                                 State = state,

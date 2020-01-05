@@ -1,6 +1,6 @@
 namespace Shoko.Server.Providers.AniDB.UDP.Responses
 {
-    public class AniDBUDP_Response<T> where T : class
+    public class UDPBaseResponse<T> where T : class
     {
         public AniDBUDPReturnCode Code { get; set; }
         

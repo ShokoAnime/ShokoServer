@@ -4,13 +4,13 @@ using Shoko.Server.Providers.AniDB.UDP.Responses;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {
-    public class AniDBUDP_RequestLogout : AniDBUDP_BaseRequest<string>
+    public class RequestLogout : UDPBaseRequest<Void>
     {
         // Normally we would override Execute, but we are always logged in here, and Login() just returns if we are
         protected override string BaseCommand => "LOGOUT";
-        protected override AniDBUDP_Response<string> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<Void> ParseResponse(AniDBUDPReturnCode code, string receivedData)
         {
-            return new AniDBUDP_Response<string> {Code = code, Response = receivedData};
+            return new UDPBaseResponse<Void> {Code = code};
         }
 
         protected override void PreExecute(string sessionID)

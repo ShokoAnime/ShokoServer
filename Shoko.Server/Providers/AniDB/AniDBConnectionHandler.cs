@@ -342,7 +342,7 @@ namespace Shoko.Server.Providers.AniDB
                     tsPing.TotalSeconds >= Constants.PingFrequency &&
                     !IsUdpBanned && !ExtendPauseSecs.HasValue)
                 {
-                    AniDBUDP_RequestPing ping = new AniDBUDP_RequestPing();
+                    RequestPing ping = new RequestPing();
                     ping.Execute(this);
                 }
 
@@ -406,10 +406,10 @@ namespace Shoko.Server.Providers.AniDB
                 return false;
             }
 
-            AniDBUDP_Response<AniDBUDP_ResponseLogin> response;
+            UDPBaseResponse<ResponseLogin> response;
             try
             {
-                AniDBUDP_RequestLogin login = new AniDBUDP_RequestLogin
+                RequestLogin login = new RequestLogin
                 {
                     Username = userName, Password = password, UseUnicode = true
                 };
@@ -419,7 +419,7 @@ namespace Shoko.Server.Providers.AniDB
             catch (Exception e)
             {
                 Logger.Error($"Unable to login to AniDB: {e}");
-                response = new AniDBUDP_Response<AniDBUDP_ResponseLogin>();
+                response = new UDPBaseResponse<ResponseLogin>();
             }
 
             switch (response.Code)
@@ -452,7 +452,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="disableLogging">Some commands have sensitive data</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
-        public AniDBUDP_Response<string> CallAniDBUDP(string command, bool needsUnicode = false,
+        public UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode = false,
             bool disableLogging = false, bool isPing = false)
         {
             // Steps:
@@ -475,7 +475,7 @@ namespace Shoko.Server.Providers.AniDB
             return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public AniDBUDP_Response<string> CallAniDBUDPDirectly(string command, bool needsUnicode, bool disableLogging,
+        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode, bool disableLogging,
             bool isPing)
         {
             // 1. Call AniDB
@@ -612,7 +612,7 @@ namespace Shoko.Server.Providers.AniDB
                 }
             }
 
-            return new AniDBUDP_Response<string> {Code = status, Response = decodedParts[1].Trim()};
+            return new UDPBaseResponse<string> {Code = status, Response = decodedParts[1].Trim()};
         }
         
         public static void ForceReconnection()
@@ -677,7 +677,7 @@ namespace Shoko.Server.Providers.AniDB
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
-            AniDBUDP_RequestLogout req = new AniDBUDP_RequestLogout();
+            RequestLogout req = new RequestLogout();
             req.Execute(this);
             _isLoggedOn = false;
         }

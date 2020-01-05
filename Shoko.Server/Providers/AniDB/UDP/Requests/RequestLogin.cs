@@ -4,7 +4,7 @@ using Shoko.Server.Providers.AniDB.UDP.Responses;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {
-    public class AniDBUDP_RequestLogin : AniDBUDP_BaseRequest<AniDBUDP_ResponseLogin>
+    public class RequestLogin : UDPBaseRequest<ResponseLogin>
     {
         public string Username { get; set; }
         public string Password { get; set; }
@@ -20,14 +20,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
             }
         }
 
-        protected override AniDBUDP_Response<AniDBUDP_ResponseLogin> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseLogin> ParseResponse(AniDBUDPReturnCode code, string receivedData)
         {
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedAniDBResponseException(code, receivedData);
             string sessionID = receivedData.Substring(0, i - 1).Trim();
-            return new AniDBUDP_Response<AniDBUDP_ResponseLogin>
+            return new UDPBaseResponse<ResponseLogin>
             {
-                Response = new AniDBUDP_ResponseLogin {SessionID = sessionID}, Code = code
+                Response = new ResponseLogin {SessionID = sessionID}, Code = code
             };
         }
 
@@ -36,12 +36,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override AniDBUDP_Response<AniDBUDP_ResponseLogin> Execute(AniDBConnectionHandler handler)
+        public override UDPBaseResponse<ResponseLogin> Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            AniDBUDP_Response<string> rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false);
+            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false);
             var response = ParseResponse(rawResponse.Code, rawResponse.Response);
             PostExecute(handler.SessionID, response);
             return response;
