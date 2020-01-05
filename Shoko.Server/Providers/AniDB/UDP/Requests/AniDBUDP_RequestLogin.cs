@@ -36,15 +36,15 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override void Execute(AniDBConnectionHandler handler)
+        public override AniDBUDP_Response<AniDBUDP_ResponseLogin> Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            AniDBUDP_Response<string> response = handler.CallAniDBUDPDirectly(Command, true, true, false);
-            Response = ParseResponse(response.Code, response.Response);
-            PostExecute(handler.SessionID, _response);
-            HasEexecuted = true;
+            AniDBUDP_Response<string> rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false);
+            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
+            PostExecute(handler.SessionID, response);
+            return response;
         }
     }
 }

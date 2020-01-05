@@ -414,8 +414,7 @@ namespace Shoko.Server.Providers.AniDB
                     Username = userName, Password = password, UseUnicode = true
                 };
                 // Never give Execute a null SessionID, except here
-                login.Execute(this);
-                response = login.Response;
+                response = login.Execute(this);
             }
             catch (Exception e)
             {

@@ -11,32 +11,16 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
         /// </summary>
         protected abstract string BaseCommand { get; }
 
-        protected bool HasEexecuted { get; set; }
-        
-        protected AniDBUDP_Response<T> _response { get; set; }
-        
-        /// <summary>
-        /// The Response
-        /// </summary>
-        public AniDBUDP_Response<T> Response {
-            get
-            {
-                if (!HasEexecuted) throw new CommandNotExecutedException();;
-                return _response;
-            }
-            set => _response = value;
-        }
-
         protected abstract AniDBUDP_Response<T> ParseResponse(AniDBUDPReturnCode code, string receivedData);
 
-        public virtual void Execute(AniDBConnectionHandler handler)
+        public virtual AniDBUDP_Response<T> Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);
-            AniDBUDP_Response<string> response = handler.CallAniDBUDP(Command);
-            Response = ParseResponse(response.Code, response.Response);
-            PostExecute(handler.SessionID, _response);
-            HasEexecuted = true;
+            AniDBUDP_Response<string> rawResponse = handler.CallAniDBUDP(Command);
+            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
+            PostExecute(handler.SessionID, response);
+            return response;
         }
 
         protected virtual void PreExecute(string sessionID)

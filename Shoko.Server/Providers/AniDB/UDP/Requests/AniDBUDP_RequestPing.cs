@@ -17,11 +17,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
             // Don't set the session for pings
         }
 
-        public override void Execute(AniDBConnectionHandler handler)
+        public override AniDBUDP_Response<string> Execute(AniDBConnectionHandler handler)
         {
-            AniDBUDP_Response<string> response = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
-            Response = ParseResponse(response.Code, response.Response);
-            HasEexecuted = true;
+            AniDBUDP_Response<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
+            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
+            return response;
         }
     }
 }
