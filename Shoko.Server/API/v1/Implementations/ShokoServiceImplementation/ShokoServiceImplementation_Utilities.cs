@@ -612,8 +612,9 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID;
-                    return response;
+                    //response.ErrorMessage = "Could not find Rename Script ID: " + contract.RenameScriptID;
+                    //return response;
+                    script = new RenameScript();
                 }
 
                 if (string.IsNullOrEmpty(contract.ScriptName))
