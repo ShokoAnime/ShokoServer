@@ -262,7 +262,7 @@ namespace Shoko.Server.Extensions
         public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
         {
             episode.Id = apiEpisode.Id;
-            episode.SeriesID = int.Parse(apiEpisode.SeriesId);
+            episode.SeriesID =apiEpisode.SeriesId;
             episode.SeasonID = 0;
             episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
             episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
@@ -356,14 +356,10 @@ namespace Shoko.Server.Extensions
 
         public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Dto.Image image)
         {
-            if (image.Id == null) {
-                logger.Error("Error in TvDB_ImageFanart.Populate, image.Id is null, series: {0}",seriesID);
-                return false;
-            }
             try
             {
                 fanart.SeriesID = seriesID;
-                fanart.Id = image.Id ?? 0;
+                fanart.Id = image.Id;
                 fanart.BannerPath = image.FileName;
                 fanart.BannerType2 = image.Resolution;
                 fanart.Colors = string.Empty;
@@ -380,16 +376,11 @@ namespace Shoko.Server.Extensions
 
         public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
         {
-            if (image.Id == null)
-            {
-                logger.Error("Error in TvDB_ImagePoster.Populate, image.Id is null, series: {0}", seriesID);
-                return false;
-            }
             try
             {
                 poster.SeriesID = seriesID;
                 poster.SeasonNumber = null;
-                poster.Id = image.Id ?? 0;
+                poster.Id = image.Id;
                 poster.BannerPath = image.FileName;
                 poster.BannerType = image.KeyType;
                 poster.BannerType2 = image.Resolution;
@@ -404,11 +395,6 @@ namespace Shoko.Server.Extensions
 
         public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
         {
-            if (image.Id == null)
-            {
-                logger.Error("Error in TvDB_ImageWideBanner.Populate, image.Id is null, series: {0}", seriesID);
-                return false;
-            }
             try
             {
                 poster.SeriesID = seriesID;
@@ -421,7 +407,7 @@ namespace Shoko.Server.Extensions
                     poster.SeasonNumber = null;
                 }
 
-                poster.Id = image.Id ?? 0;
+                poster.Id = image.Id;
                 poster.BannerPath = image.FileName;
                 poster.BannerType = image.KeyType;
                 poster.BannerType2 = image.Resolution;
