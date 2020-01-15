@@ -304,8 +304,6 @@ namespace Shoko.Server.Providers.TvDB
             if (summary.Fanart > 0) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
             if (summary.Poster > 0 || summary.Season > 0)
                 DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-            if (summary.Seasonwide > 0 || summary.Series > 0)
-                DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
         }
 
         static ImagesSummary GetSeriesImagesCounts(int seriesID)
@@ -392,7 +390,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoFanartAmount) break;
@@ -458,7 +456,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoPostersAmount) break;
@@ -524,7 +522,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoWideBannersAmount) break;
@@ -651,22 +649,22 @@ namespace Shoko.Server.Providers.TvDB
                 }
         }
 
-        public static List<BasicEpisode> GetEpisodesOnline(int seriesID)
+        public static List<EpisodeRecord> GetEpisodesOnline(int seriesID)
         {
             return Task.Run(async () => await GetEpisodesOnlineAsync(seriesID)).Result;
         }
 
-        static async Task<List<BasicEpisode>> GetEpisodesOnlineAsync(int seriesID)
+        static async Task<List<EpisodeRecord>> GetEpisodesOnlineAsync(int seriesID)
         {
-            List<BasicEpisode> apiEpisodes = new List<BasicEpisode>();
+            List<EpisodeRecord> apiEpisodes = new List<EpisodeRecord>();
             try
             {
                 await CheckAuthorizationAsync();
 
-                var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
+                var tasks = new List<Task<TvDbResponse<EpisodeRecord[]>>>();
                 TvDBRateLimiter.Instance.EnsureRate();
                 var firstResponse = await client.Series.GetEpisodesAsync(seriesID, 1);
-                logger.Trace("First Page: First: " + (firstResponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (firstResponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (firstResponse?.Links?.Previous?.ToString() ?? "NULL") + "Last: " + (firstResponse?.Links?.Last?.ToString() ?? "NULL"));
+                logger.Trace("First Page: First: " + (firstResponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (firstResponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (firstResponse?.Links?.Prev?.ToString() ?? "NULL") + "Last: " + (firstResponse?.Links?.Last?.ToString() ?? "NULL"));
 
                 for (int i = 2; i <= firstResponse.Links.Last; i++)
                 {
@@ -677,7 +675,7 @@ namespace Shoko.Server.Providers.TvDB
 
                 var results = await Task.WhenAll(tasks);
                 var lastresponse = results.Length==0 ? firstResponse : results.Last();
-                logger.Trace("Last Page: First: " + (lastresponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (lastresponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (lastresponse?.Links?.Previous?.ToString() ?? "NULL") + "Last: " + (lastresponse?.Links?.Last?.ToString() ?? "NULL"));
+                logger.Trace("Last Page: First: " + (lastresponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (lastresponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (lastresponse?.Links?.Prev?.ToString() ?? "NULL") + "Last: " + (lastresponse?.Links?.Last?.ToString() ?? "NULL"));
                 logger.Trace("Last Count: "+(lastresponse?.Data.Length.ToString() ?? "NULL"));
                 apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
             }
@@ -816,11 +814,11 @@ namespace Shoko.Server.Providers.TvDB
                 if (downloadImages)
                     DownloadAutomaticImages(seriesID, forceRefresh);
 
-                List<BasicEpisode> episodeItems = GetEpisodesOnline(seriesID);
+                List<EpisodeRecord> episodeItems = GetEpisodesOnline(seriesID);
                 logger.Trace($"Found {episodeItems.Count} Episode nodes");
 
                 List<int> existingEpIds = new List<int>();
-                foreach (BasicEpisode item in episodeItems)
+                foreach (EpisodeRecord item in episodeItems)
                 {
                     if (!existingEpIds.Contains(item.Id))
                         existingEpIds.Add(item.Id);
