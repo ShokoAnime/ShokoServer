@@ -101,7 +101,8 @@ namespace Shoko.Server.Models
             // Override
             if (SeriesNameOverride != null) titles.Add(SeriesNameOverride);
             // AniDB
-            titles.UnionWith(GetAnime().GetAllTitles());
+            if (GetAnime() != null) titles.UnionWith(GetAnime().GetAllTitles());
+            else logger.Error($"A Series has a null AniDB_Anime. That is bad. The AniDB ID is {AniDB_ID}");
             // TvDB
             titles.UnionWith(GetTvDBSeries().Select(a => a.SeriesName).Where(a => a != null));
             // MovieDB
