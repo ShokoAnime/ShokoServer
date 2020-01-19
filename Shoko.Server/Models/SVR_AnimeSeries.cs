@@ -104,7 +104,10 @@ namespace Shoko.Server.Models
             if (GetAnime() != null) titles.UnionWith(GetAnime().GetAllTitles());
             else logger.Error($"A Series has a null AniDB_Anime. That is bad. The AniDB ID is {AniDB_ID}");
             // TvDB
-            titles.UnionWith(GetTvDBSeries().Select(a => a.SeriesName).Where(a => a != null));
+            var tvdb = GetTvDBSeries();
+            if (tvdb != null)
+                titles.UnionWith(tvdb.Select(a => a.SeriesName).Where(a => a != null));
+
             // MovieDB
             var movieDB = GetMovieDB();
             if (movieDB != null)
