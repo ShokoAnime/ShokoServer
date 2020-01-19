@@ -106,7 +106,7 @@ namespace Shoko.Server.Models
             // TvDB
             var tvdb = GetTvDBSeries();
             if (tvdb != null)
-                titles.UnionWith(tvdb.Select(a => a.SeriesName).Where(a => a != null));
+                titles.UnionWith(tvdb.Select(a => a?.SeriesName).Where(a => a != null));
 
             // MovieDB
             var movieDB = GetMovieDB();
@@ -196,7 +196,11 @@ namespace Shoko.Server.Models
             if (xrefs == null || xrefs.Count == 0) return sers;
 
             foreach (CrossRef_AniDB_TvDB xref in xrefs)
-                sers.Add(xref.GetTvDBSeries());
+            {
+                var series = xref.GetTvDBSeries();
+                if (series != null)
+                    sers.Add(series);
+            }
 
             return sers;
         }
