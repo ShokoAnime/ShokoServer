@@ -3,7 +3,6 @@ using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using System.Linq;
 using System;
 using Shoko.Commons.Collections;
@@ -17,24 +16,13 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-        public override void RegenerateDb()
-        {
-        }
-
-        protected override int SelectKey(CrossRef_AniDB_TraktV2 entity)
-        {
-            return entity.CrossRef_AniDB_TraktV2ID;
-        }
-
         private PocoIndex<int, CrossRef_AniDB_TraktV2, int> AnimeIDs;
-        public override void PopulateIndexes()
-        {
-            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TraktV2, int>(Cache, a => a.AnimeID);
-        }
 
         public static CrossRef_AniDB_TraktV2Repository Create()
         {
-            return new CrossRef_AniDB_TraktV2Repository();
+            var repo = new CrossRef_AniDB_TraktV2Repository();
+            RepoFactory.CachedRepositories.Add(repo);
+            return repo;
         }
 
         public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
@@ -42,23 +30,6 @@ namespace Shoko.Server.Repositories.Cached
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 return GetByAnimeID(session, id);
-            }
-        }
-
-        public ILookup<int, CrossRef_AniDB_TraktV2> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
-        {
-            if (animeIds == null)
-                throw new ArgumentNullException(nameof(animeIds));
-
-            if (animeIds.Count == 0)
-            {
-                return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
-            }
-
-            lock (Cache)
-            {
-                return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
-                    .ToLookup(xref => xref.AnimeID);
             }
         }
 
@@ -137,6 +108,37 @@ namespace Shoko.Server.Repositories.Cached
 
                 return new List<CrossRef_AniDB_TraktV2>(xrefs);
             }
+        }
+
+        internal ILookup<int, CrossRef_AniDB_TraktV2> GetByAnimeIDs(IReadOnlyCollection<int> animeIds)
+        {
+            if (animeIds == null)
+                throw new ArgumentNullException(nameof(animeIds));
+
+            if (animeIds.Count == 0)
+            {
+                return EmptyLookup<int, CrossRef_AniDB_TraktV2>.Instance;
+            }
+
+            lock (Cache)
+            {
+                return animeIds.SelectMany(id => AnimeIDs.GetMultiple(id))
+                    .ToLookup(xref => xref.AnimeID);
+            }
+        }
+
+        protected override int SelectKey(CrossRef_AniDB_TraktV2 entity)
+        {
+            return entity.CrossRef_AniDB_TraktV2ID;
+        }
+
+        public override void PopulateIndexes()
+        {
+            AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TraktV2, int>(Cache, a => a.AnimeID);
+        }
+
+        public override void RegenerateDb()
+        {
         }
     }
 }
