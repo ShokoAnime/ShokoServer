@@ -603,6 +603,15 @@ namespace Shoko.Server.Models
                         return false;
                     break;
 
+                case GroupFilterConditionType.AssignedTraktInfo:
+                    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
+                        contractGroup.Stat_HasTraktLink == false)
+                        return false;
+                    if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude &&
+                        contractGroup.Stat_HasTraktLink)
+                        return false;
+                    break;
+
                 case GroupFilterConditionType.AssignedMALInfo:
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include &&
                         contractGroup.Stat_HasMALLink == false)

@@ -627,6 +627,8 @@ namespace Shoko.Server.Models
                 h.Add(GroupFilterConditionType.AirDate);
             if (oldcontract == null || oldcontract.Stat_HasTvDBLink != newcontract.Stat_HasTvDBLink)
                 h.Add(GroupFilterConditionType.AssignedTvDBInfo);
+            if (oldcontract == null || oldcontract.Stat_HasTraktLink != newcontract.Stat_HasTraktLink)
+                h.Add(GroupFilterConditionType.AssignedTraktInfo);
             if (oldcontract == null || oldcontract.Stat_HasMALLink != newcontract.Stat_HasMALLink)
                 h.Add(GroupFilterConditionType.AssignedMALInfo);
             if (oldcontract == null || oldcontract.Stat_HasMovieDBLink != newcontract.Stat_HasMovieDBLink)
@@ -715,6 +717,8 @@ namespace Shoko.Server.Models
                 isThreadSafe: false);
             var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
                 () => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
+            var traktXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TraktV2>>(
+                () => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
             var allVidQualByGroup = new Lazy<ILookup<int, string>>(
                 () => RepoFactory.Adhoc.GetAllVideoQualityByGroup(session, allGroupIds.Value), isThreadSafe: false);
             var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
@@ -773,6 +777,7 @@ namespace Shoko.Server.Models
                     HashSet<string> subtitleLanguages = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
                     // Even though the contract value says 'has link', it's easier to think about whether it's missing
                     bool missingTvDBLink = false;
+                    bool missingTraktLink = false;
                     bool missingMALLink = false;
                     bool missingMovieDBLink = false;
                     bool missingTvDBAndMovieDBLink = false;
@@ -906,11 +911,14 @@ namespace Shoko.Server.Models
                         // For the group, if any of the series don't have a tvdb link
                         // we will consider the group as not having a tvdb link
                         bool foundTvDBLink = tvDbXrefByAnime.Value[anime.AnimeID].Any();
+                        bool foundTraktLink = traktXrefByAnime.Value[anime.AnimeID].Any();
                         bool foundMovieDBLink = movieDbXRefByAnime.Value[anime.AnimeID].Any();
                         bool isMovie = anime.AnimeType == (int) AnimeType.Movie;
                         if (!foundTvDBLink)
                             if (!isMovie && !(anime.Restricted > 0))
                                 missingTvDBLink = true;
+                        if (!foundTraktLink)
+                            missingTraktLink = true;
                         if (!foundMovieDBLink)
                             if (isMovie && !(anime.Restricted > 0))
                                 missingMovieDBLink = true;
@@ -960,6 +968,7 @@ namespace Shoko.Server.Models
                     contract.Stat_HasFinishedAiring = hasFinishedAiring;
                     contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
                     contract.Stat_HasTvDBLink = !missingTvDBLink; // Has a link if it isn't missing
+                    contract.Stat_HasTraktLink = !missingTraktLink; // Has a link if it isn't missing
                     contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
                     contract.Stat_HasMovieDBLink = !missingMovieDBLink; // Has a link if it isn't missing
                     contract.Stat_HasMovieDBOrTvDBLink = !missingTvDBAndMovieDBLink; // Has a link if it isn't missing

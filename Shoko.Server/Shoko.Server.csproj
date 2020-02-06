@@ -1393,7 +1393,7 @@
     <Compile Include="Repositories\ChangeTracker.cs" />
     <Compile Include="Repositories\Cached\CloudAccountRepository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_AniDB_MALRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_TraktV2Repository.cs" />
+    <Compile Include="Repositories\Cached\CrossRef_AniDB_TraktV2Repository.cs" />
     <Compile Include="Repositories\Direct\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
     <Compile Include="Repositories\Cached\CrossRef_CustomTagRepository.cs" />
     <Compile Include="Repositories\Cached\CustomTagRepository.cs" />

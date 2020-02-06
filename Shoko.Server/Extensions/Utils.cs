@@ -111,6 +111,7 @@ namespace Shoko.Server.Extensions
                 Stat_HasFinishedAiring = c.Stat_HasFinishedAiring,
                 Stat_IsCurrentlyAiring = c.Stat_IsCurrentlyAiring,
                 Stat_HasTvDBLink = c.Stat_HasTvDBLink,
+                Stat_HasTraktLink = c.Stat_HasTraktLink,
                 Stat_HasMALLink = c.Stat_HasMALLink,
                 Stat_HasMovieDBLink = c.Stat_HasMovieDBLink,
                 Stat_HasMovieDBOrTvDBLink = c.Stat_HasMovieDBOrTvDBLink,
