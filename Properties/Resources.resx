@@ -5271,4 +5271,7 @@ Please link to plex via Desktop under settings -&gt;users to use this.</value>
   <data name="LinkPlex" xml:space="preserve">
     <value>Please link your plex under users if you wish to use this.</value>
   </data>
+  <data name="GroupFilterConditionType_AssignedTraktInfo" xml:space="preserve">
+    <value>Has Trakt Link</value>
+  </data>
 </root>

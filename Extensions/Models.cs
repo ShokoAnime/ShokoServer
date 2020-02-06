@@ -822,6 +822,7 @@ namespace Shoko.Commons.Extensions
                 case GroupFilterConditionType.AnimeGroup: return Resources.GroupFilterConditionType_AnimeGroup;
                 case GroupFilterConditionType.AnimeType: return Resources.GroupFilterConditionType_AnimeType;
                 case GroupFilterConditionType.AssignedTvDBInfo: return Resources.GroupFilterConditionType_AssignedTvDBInfo;
+                case GroupFilterConditionType.AssignedTraktInfo: return Resources.GroupFilterConditionType_AssignedTraktInfo;
                 case GroupFilterConditionType.AssignedMALInfo: return Resources.GroupFilterConditionType_AssignedMALInfo;
                 case GroupFilterConditionType.AssignedMovieDBInfo: return Resources.GroupFilterConditionType_AssignedMovieDBInfo;
                 case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo: return Resources.GroupFilterConditionType_AssignedTvDBOrMovieDBInfo;
@@ -858,6 +859,7 @@ namespace Shoko.Commons.Extensions
             if (enumDesc == Resources.GroupFilterConditionType_AnimeGroup) return GroupFilterConditionType.AnimeGroup;
             if (enumDesc == Resources.GroupFilterConditionType_AnimeType) return GroupFilterConditionType.AnimeType;
             if (enumDesc == Resources.GroupFilterConditionType_AssignedTvDBInfo) return GroupFilterConditionType.AssignedTvDBInfo;
+            if (enumDesc == Resources.GroupFilterConditionType_AssignedTraktInfo) return GroupFilterConditionType.AssignedTraktInfo;
             if (enumDesc == Resources.GroupFilterConditionType_AssignedMALInfo) return GroupFilterConditionType.AssignedMALInfo;
             if (enumDesc == Resources.GroupFilterConditionType_AssignedMovieDBInfo) return GroupFilterConditionType.AssignedMovieDBInfo;
             if (enumDesc == Resources.GroupFilterConditionType_AssignedTvDBOrMovieDBInfo) return GroupFilterConditionType.AssignedTvDBOrMovieDBInfo;
@@ -903,6 +905,7 @@ namespace Shoko.Commons.Extensions
             cons.Add(GroupFilterConditionType.Favourite.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.VideoQuality.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.AssignedTvDBInfo.GetTextForEnum_ConditionType());
+            cons.Add(GroupFilterConditionType.AssignedTraktInfo.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.AssignedMALInfo.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.AssignedMovieDBInfo.GetTextForEnum_ConditionType());
             cons.Add(GroupFilterConditionType.AssignedTvDBOrMovieDBInfo.GetTextForEnum_ConditionType());
@@ -983,6 +986,7 @@ namespace Shoko.Commons.Extensions
                     ops.Add(GroupFilterOperator.NotIn.GetTextForEnum_Operator());
                     break;
                 case GroupFilterConditionType.AssignedTvDBInfo:
+                case GroupFilterConditionType.AssignedTraktInfo:
                 case GroupFilterConditionType.AssignedMALInfo:
                 case GroupFilterConditionType.AssignedMovieDBInfo:
                 case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
