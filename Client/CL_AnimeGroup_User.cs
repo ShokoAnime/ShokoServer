@@ -41,6 +41,7 @@ namespace Shoko.Models.Client
         public bool Stat_HasFinishedAiring { get; set; }
         public bool Stat_IsCurrentlyAiring { get; set; }
         public bool Stat_HasTvDBLink { get; set; }
+        public bool Stat_HasTraktLink { get; set; }
         public bool Stat_HasMALLink { get; set; }
         public bool Stat_HasMovieDBLink { get; set; }
         public bool Stat_HasMovieDBOrTvDBLink { get; set; }

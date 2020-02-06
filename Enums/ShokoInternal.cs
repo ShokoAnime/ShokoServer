@@ -119,7 +119,8 @@ namespace Shoko.Models.Enums
         LatestEpisodeAirDate = 32,
 
         Year = 34,
-        Season = 35
+        Season = 35,
+        AssignedTraktInfo = 36
     }
 
     public enum GroupFilterOperator
