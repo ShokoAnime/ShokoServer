@@ -455,7 +455,8 @@ namespace Shoko.Server.Databases
             // Don't even bother on new DBs
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                long vlCount = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult<long>();
+                var result = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult();
+                long vlCount = result is int ? (int) result : result is long ? (long) result : 0;
                 if (vlCount == 0) return;
             }
 
