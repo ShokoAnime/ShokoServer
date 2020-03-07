@@ -93,6 +93,8 @@ namespace Shoko.Server.API
 
             services.AddSingleton<EventEmitter>();
 
+            services.AddCors();
+
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc(options =>
                 {
@@ -186,6 +188,8 @@ namespace Shoko.Server.API
             {
                 conf.MapHub<EventsHub>("/signalr/events");
             });
+
+            app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
             app.UseMvc();
         }
