@@ -93,7 +93,19 @@ namespace Shoko.Server.API
 
             services.AddSingleton<EventEmitter>();
 
-            services.AddCors();
+            // allow CORS calls from other both local and non-local hosts
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+			builder =>
+                        {
+                		builder
+                		.AllowAnyOrigin()
+                		.AllowAnyMethod()
+                		.AllowAnyHeader();
+            		});
+
+            });
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
             services.AddMvc(options =>
