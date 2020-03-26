@@ -39,6 +39,7 @@ namespace Shoko.Server.API.v3
             {
                 return BadRequest(ModelState);
             }
+            ServerSettings.Instance.SaveSettings();
             return Ok();
         }
     }
