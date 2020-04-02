@@ -603,7 +603,7 @@ namespace Shoko.Server.Databases
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
-            new DatabaseCommand(81, 2, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
