@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 75;
+        public int RequiredVersion { get; } = 76;
 
 
         public void BackupDatabase(string fullfilename)
@@ -525,6 +525,7 @@ namespace Shoko.Server.Databases
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(74, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(75, 1, DatabaseFixes.RegenTvDBMatches),
+            new DatabaseCommand(76, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt timestamp NOT NULL default '2000-01-01 00:00:00'"),
         };
 
         private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)

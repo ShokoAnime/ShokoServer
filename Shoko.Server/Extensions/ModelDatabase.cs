@@ -85,17 +85,20 @@ namespace Shoko.Server.Extensions
                     var vlUser = vlUsers.Where(a => a.JMMUserID == uid && a.WatchedDate != null)
                         .MaxBy(a => a.WatchedDate).FirstOrDefault();
                     // create or update the record
-                    var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(uid,
-                                     existingEp.AnimeEpisodeID) ?? new SVR_AnimeEpisode_User
-                                 {
-                                     JMMUserID = uid,
-                                     WatchedDate = vlUser?.WatchedDate,
-                                     PlayedCount = vlUser != null ? 1 : 0,
-                                     WatchedCount = vlUser != null ? 1 : 0,
-                                     AnimeSeriesID = animeSeriesID,
-                                     AnimeEpisodeID = existingEp.AnimeEpisodeID
-                                 };
-                    RepoFactory.AnimeEpisode_User.Save(epUser);
+                    var epUser = RepoFactory.AnimeEpisode_User.GetByUserIDAndEpisodeID(uid, existingEp.AnimeEpisodeID);
+                    if (epUser == null)
+                    {
+                        epUser = new SVR_AnimeEpisode_User
+                        {
+                            JMMUserID = uid,
+                            WatchedDate = vlUser?.WatchedDate,
+                            PlayedCount = vlUser != null ? 1 : 0,
+                            WatchedCount = vlUser != null ? 1 : 0,
+                            AnimeSeriesID = animeSeriesID,
+                            AnimeEpisodeID = existingEp.AnimeEpisodeID
+                        };
+                        RepoFactory.AnimeEpisode_User.Save(epUser);
+                    }
                 }
             }
             else
