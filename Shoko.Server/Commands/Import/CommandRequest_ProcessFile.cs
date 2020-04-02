@@ -277,10 +277,26 @@ namespace Shoko.Server.Commands
                 {
                     logger.Debug("Creating groups, series and episodes....");
                     // check if there is an AnimeSeries Record associated with this AnimeID
-                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID) ?? anime.CreateAnimeSeriesAndGroup();
+                    var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
 
-                    ser.CreateAnimeEpisodes();
+                    if (ser == null)
+                    {
+                        ser = anime.CreateAnimeSeriesAndGroup();
+                        ser.CreateAnimeEpisodes();
+                        ser.UpdatedAt = DateTime.Now;
+                    }
+                    else
+                    { 
+                        TimeSpan ts = DateTime.Now - ser.UpdatedAt;
 
+                        // don't create episodes if we've done it recently...
+                        if (ts.TotalHours > 6)
+                        {
+                            ser.CreateAnimeEpisodes();
+                            ser.UpdatedAt = DateTime.Now;
+                        }
+                    }
+                    
                     // check if we have any group status data for this associated anime
                     // if not we will download it now
                     if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)

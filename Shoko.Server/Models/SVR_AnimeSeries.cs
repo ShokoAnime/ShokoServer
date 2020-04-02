@@ -35,6 +35,8 @@ namespace Shoko.Server.Models
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
 
+        public DateTime UpdatedAt { get; set; }
+
         #endregion
 
         public const int CONTRACT_VERSION = 9;
@@ -413,8 +415,10 @@ namespace Shoko.Server.Models
             SVR_AniDB_Anime anime = GetAnime();
             if (anime == null) return;
 
-            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes())
+            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes()) {
+                logger.Trace($"CreatingAnimeEpisode {ep.EpisodeNumber}");
                 ep.CreateAnimeEpisode(session, AnimeSeriesID);
+            }
         }
 
         /// <summary>

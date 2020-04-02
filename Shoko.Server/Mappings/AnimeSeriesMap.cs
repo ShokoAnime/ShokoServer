@@ -29,6 +29,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.ContractBlob).Nullable().CustomType("BinaryBlob");
             Map(x => x.ContractSize).Not.Nullable();
             Map(x => x.AirsOn);
+            Map(x => x.UpdatedAt).Not.Nullable();
         }
     }
 }

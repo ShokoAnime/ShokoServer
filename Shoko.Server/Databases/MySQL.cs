@@ -17,7 +17,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 87;
+        public int RequiredVersion { get; } = 88;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
@@ -624,6 +624,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(86, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(87, 1,"ALTER TABLE `AniDB_File` CHANGE COLUMN `File_AudioCodec` `File_AudioCodec` VARCHAR(500) NOT NULL;"),
+            new DatabaseCommand(88, 1,"ALTER TABLE `AnimeSeries` ADD `UpdatedAt` datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
