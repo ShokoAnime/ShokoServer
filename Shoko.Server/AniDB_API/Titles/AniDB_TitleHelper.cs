@@ -139,13 +139,17 @@ namespace Shoko.Server.AniDB_API.Titles
                 
                 // Ignore all certificate failures.
                 ServicePointManager.Expect100Continue = true;                
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                //ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
                 
                 // Download the file
                 using (var client = new WebClient())
                 {
-                    client.Headers.Add("Accept-Encoding", "gzip");
+                    client.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla / 5.0(Windows NT 10.0; Win64; x64; rv: 74.0) Gecko / 20100101 Firefox / 74.0");
+                    client.Headers.Add("Accept", "text / html,application / xhtml + xml,application / xml; q = 0.9,image / webp,*/*;q=0.8");
+                    client.Headers.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
+                    client.Headers.Add("Accept-Encoding", "gzip,deflate");
+
                     var stream = client.OpenRead(Constants.AniDBTitlesURL);
                     GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
                     var textResponse = new StreamReader(gzip).ReadToEnd();
