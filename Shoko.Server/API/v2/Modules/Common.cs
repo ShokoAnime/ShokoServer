@@ -2242,7 +2242,7 @@ namespace Shoko.Server.API.v2.Modules
             List<Serie> series_list = new List<Serie>();
 
             var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
-            foreach (SeriesSearch.SearchResult ser in series)
+            foreach (SeriesSearch.SearchResult<SVR_AnimeSeries> ser in series)
             {
                 if (offset == 0)
                 {

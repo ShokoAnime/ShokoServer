@@ -10,6 +10,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -283,7 +284,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (Cache)
             {
                 return Cache.Values.Where(p => p.Places.Any(
-                        a => a.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)))
+                        a => a.FilePath.FuzzyMatches(fileName)))
                     .ToList();
             }
         }

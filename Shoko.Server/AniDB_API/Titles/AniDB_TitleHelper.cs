@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Shoko.Commons.Utils;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.AniDB_API.Titles
 {
@@ -38,20 +39,13 @@ namespace Shoko.Server.AniDB_API.Titles
                 if (cache == null) CreateCache();
                 if (cache != null)
                 {
-                    // TODO Maybe sort this or something one day
-                    ConcurrentBag<AniDBRaw_AnimeTitle_Anime> matches = new ConcurrentBag<AniDBRaw_AnimeTitle_Anime>();
-                    Parallel.ForEach(cache.Animes.ToList(), anime =>
-                    {
-                        foreach (var animeTitle in anime.Titles)
-                        {
-                            if (!ServerSettings.Instance.LanguagePreference.Contains(animeTitle.TitleLanguage) &&
-                                animeTitle.TitleLanguage != "en" && animeTitle.TitleLanguage != "x-jat") continue;
-                            if (!animeTitle.Title.FuzzyMatches(query)) continue;
-                            matches.Add(anime);
-                            break;
-                        }
-                    });
-                    return matches.OrderBy(a => a.AnimeID).ToList();
+                    List<AniDBRaw_AnimeTitle_Anime> results = SeriesSearch.SearchCollection(query, cache.Animes,
+                        anime => anime.Titles.Where(a =>
+                                a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") ||
+                                ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
+                            .Select(a => a.Title)
+                            .ToList()).Select(a => a.Result).ToList();
+                    return results;
                 }
             }
             catch (Exception e)
