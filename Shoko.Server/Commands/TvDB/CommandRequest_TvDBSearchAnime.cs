@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -8,7 +9,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.TvDB;
@@ -67,15 +67,15 @@ namespace Shoko.Server.Commands
                             if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                             // Add overrides for specials
-                            var specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
+                            List<Azure_CrossRef_AniDB_TvDB> specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
                                 .OrderBy(a => a.AniDBStartEpisodeType).ThenBy(a => a.AniDBStartEpisodeNumber)
                                 .ToList();
                             if (specialXRefs.Count != 0)
                             {
-                                var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
-                                foreach (var episodeOverride in overrides)
+                                List<CrossRef_AniDB_TvDB_Episode_Override> overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
+                                foreach (CrossRef_AniDB_TvDB_Episode_Override episodeOverride in overrides)
                                 {
-                                    var exists =
+                                    CrossRef_AniDB_TvDB_Episode_Override exists =
                                         RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(
                                             episodeOverride.AniDBEpisodeID, episodeOverride.TvDBEpisodeID);
                                     if (exists != null) continue;
@@ -85,17 +85,16 @@ namespace Shoko.Server.Commands
                             foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
                             {
                                 TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
-                                if (tvser != null)
-                                {
-                                    logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
-                                    TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
-                                }
+                                if (tvser == null) continue;
+                                logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
+                                TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
                             }
                             return;
                         }
                     }
-                    catch (Exception)
+                    catch
                     {
+                        // ignored
                     }
                 }
 
@@ -116,7 +115,7 @@ namespace Shoko.Server.Commands
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
                 if (anime == null) return;
 
-                var searchCriteria = anime.MainTitle;
+                string searchCriteria = CleanTitle(anime.MainTitle);
 
                 // if not wanting to use web cache, or no match found on the web cache go to TvDB directly
                 List<TVDB_Series_Search_Response> results = TvDBApiHelper.SearchSeries(searchCriteria);
@@ -137,13 +136,15 @@ namespace Shoko.Server.Commands
                             StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    if (searchCriteria.Equals(title.Title, StringComparison.InvariantCultureIgnoreCase)) continue;
+                    string cleanTitle = CleanTitle(title.Title);
 
-                    searchCriteria = title.Title;
+                    if (searchCriteria.Equals(cleanTitle, StringComparison.InvariantCultureIgnoreCase)) continue;
+
+                    searchCriteria = cleanTitle;
                     results = TvDBApiHelper.SearchSeries(searchCriteria);
                     if (results.Count > 0) foundResult = true;
-                    logger.Trace("Found {0} tvdb results for search on {1}", results.Count, title.Title);
-                    if (ProcessSearchResults(results, title.Title)) return;
+                    logger.Trace("Found {0} tvdb results for search on {1}", results.Count, searchCriteria);
+                    if (ProcessSearchResults(results, searchCriteria)) return;
                 }
                 if (!foundResult) logger.Warn("Unable to find a matching TvDB series for {0}", anime.MainTitle);
             }
@@ -163,7 +164,7 @@ namespace Shoko.Server.Commands
                     logger.Trace("Found 1 tvdb results for search on {0} --- Linked to {1} ({2})", searchCriteria,
                         results[0].SeriesName,
                         results[0].SeriesID);
-                     tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
+                    tvser = TvDBApiHelper.GetSeriesInfoOnline(results[0].SeriesID, false);
                     TvDBApiHelper.LinkAniDBTvDB(AnimeID, results[0].SeriesID, true);
 
                     // add links for multiple seasons (for long shows)
@@ -209,6 +210,16 @@ namespace Shoko.Server.Commands
                 CrossRefSource = source
             };
             RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
+        }
+        
+        private static readonly Regex RemoveYear = new Regex(@"(^.*)( \([0-9]+\)$)", RegexOptions.Compiled);
+        private static readonly Regex RemoveAfterColon = new Regex(@"(^.*)(\:.*$)", RegexOptions.Compiled);
+
+        private static string CleanTitle(string title)
+        {
+            string result = RemoveYear.Replace(title, "$1");
+            result = RemoveAfterColon.Replace(result, "$1");
+            return result;
         }
 
         public override void GenerateCommandID()
