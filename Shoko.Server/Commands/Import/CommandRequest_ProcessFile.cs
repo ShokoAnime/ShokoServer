@@ -281,9 +281,9 @@ namespace Shoko.Server.Commands
 
                     if (ser == null)
                     {
+                        // We will put UpdatedAt in the CreateAnimeSeriesAndGroup method, to ensure it exists at first write
                         ser = anime.CreateAnimeSeriesAndGroup();
                         ser.CreateAnimeEpisodes();
-                        ser.UpdatedAt = DateTime.Now;
                     }
                     else
                     { 

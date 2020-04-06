@@ -399,6 +399,7 @@ namespace Shoko.Server.Models
             LatestLocalEpisodeNumber = 0;
             DateTimeUpdated = DateTime.Now;
             DateTimeCreated = DateTime.Now;
+            UpdatedAt = DateTime.Now;
             SeriesNameOverride = string.Empty;
         }
 
