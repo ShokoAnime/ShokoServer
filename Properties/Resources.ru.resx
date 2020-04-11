@@ -1762,13 +1762,13 @@
     <value>Узнать больше о веб-кэша</value>
   </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/settings.html#anidb</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#update-anidb-data</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
     <value>https://shokoanime.com/blog</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>https://docs.shokoanime.com/changelog.html</value>
+    <value>https://docs.shokoanime.com/changelog/</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
     <value>https://shokoanime.com/downloads</value>
@@ -1780,7 +1780,7 @@
     <value>https://shokoanime.com/streaming/</value>
   </data>
   <data name="Link_FileRenaming" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/utilities.html#file-renaming</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#file-renaming</value>
   </data>
   <data name="Link_GroupFilters" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/collection.html#filters</value>
@@ -4680,13 +4680,13 @@
     <value>https://docs.shokoanime.com/server/config.html#integrity-check</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/mysql.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
     <value>https://shokoanime.com/faq/</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/sqlserver.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>Сёко серверу не удалось найти существующий конфигурационный файл. Если это ваш первый раз, сервер Шоко, можно проигнорировать это сообщение и нажмите кнопку нет. Если ранее был установлен сервер JMM, нажмите кнопку Да, чтобы вручную выбрать конфигурационный файл.</value>
@@ -5258,10 +5258,10 @@
     <value>https://docs.shokoanime.com</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#import-folders</value>
+    <value>https://docs.shokoanime.com/server/config/#what-are-import-folders</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#supported-hosts</value>
+    <value>https://docs.shokoanime.com/server/config/#supported-cloud-hosts</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/ShokoAnime/</value>

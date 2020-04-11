@@ -6739,7 +6739,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/desktop/settings.html#anidb ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/desktop/utilities/#update-anidb-data ähnelt.
         /// </summary>
         public static string Link_AniDBSettings {
             get {
@@ -6757,7 +6757,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/changelog.html ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/changelog/ ähnelt.
         /// </summary>
         public static string Link_Changelog {
             get {
@@ -6766,7 +6766,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/config.html#supported-hosts ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/config/#supported-cloud-hosts ähnelt.
         /// </summary>
         public static string Link_CloudAccounts {
             get {
@@ -6829,7 +6829,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/desktop/utilities.html#file-renaming ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/desktop/utilities/#file-renaming ähnelt.
         /// </summary>
         public static string Link_FileRenaming {
             get {
@@ -6874,7 +6874,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/config.html#import-folders ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/config/#what-are-import-folders ähnelt.
         /// </summary>
         public static string Link_ImportFolders {
             get {
@@ -6919,7 +6919,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/mysql.html ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/install_windows/#install-first-run ähnelt.
         /// </summary>
         public static string Link_MySQL {
             get {
@@ -6955,7 +6955,7 @@ namespace Shoko.Commons.Properties {
         }
         
         /// <summary>
-        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/sqlserver.html ähnelt.
+        ///   Sucht eine lokalisierte Zeichenfolge, die https://docs.shokoanime.com/server/install_windows/#install-first-run ähnelt.
         /// </summary>
         public static string Link_SQLServer {
             get {

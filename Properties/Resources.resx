@@ -1792,13 +1792,13 @@
     <value>Learn more about the web cache</value>
   </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/settings.html#anidb</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#update-anidb-data</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
     <value>https://shokoanime.com/blog</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>https://docs.shokoanime.com/changelog.html</value>
+    <value>https://docs.shokoanime.com/changelog/</value>
   </data>
   <data name="Link_CommunityRecommendation" xml:space="preserve">
     <value>https://docs.shokoanime.com/faq.html</value>
@@ -1807,7 +1807,7 @@
     <value>https://shokoanime.com/downloads</value>
   </data>
   <data name="Link_FileRenaming" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/utilities.html#file-renaming</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#file-renaming</value>
   </data>
   <data name="Link_GroupFilters" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/collection.html#filters</value>
@@ -1816,7 +1816,7 @@
     <value>https://docs.shokoanime.com</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#import-folders</value>
+    <value>https://docs.shokoanime.com/server/config/#what-are-import-folders</value>
   </data>
   <data name="Link_Linking" xml:space="preserve">
     <value>https://docs.shokoanime.com/faq.html</value>
@@ -4712,7 +4712,7 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>https://docs.shokoanime.com/faq.html</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#supported-hosts</value>
+    <value>https://docs.shokoanime.com/server/config/#supported-cloud-hosts</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>https://shokoanime.com/contribute/</value>
@@ -4727,10 +4727,10 @@ Mark Unknown - Leaves the file on your list, but changes the state to unkown.</v
     <value>https://docs.shokoanime.com/server/config.html#integrity-check</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/mysql.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/sqlserver.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>Shoko Server was unable to find an existing config file. If this is your first time running Shoko Server, you can ignore this message and click no. If JMM Server was previously installed, click Yes to manually select the config file.</value>

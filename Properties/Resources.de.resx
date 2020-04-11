@@ -1762,13 +1762,13 @@
     <value>Erfahren Sie mehr über den Web-cache</value>
   </data>
   <data name="Link_AniDBSettings" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/settings.html#anidb</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#update-anidb-data</value>
   </data>
   <data name="Link_Blog" xml:space="preserve">
     <value>https://shokoanime.com/blog</value>
   </data>
   <data name="Link_Changelog" xml:space="preserve">
-    <value>https://docs.shokoanime.com/changelog.html</value>
+    <value>https://docs.shokoanime.com/changelog/</value>
   </data>
   <data name="Link_Download" xml:space="preserve">
     <value>https://shokoanime.com/downloads</value>
@@ -1780,35 +1780,41 @@
     <value>https://shokoanime.com/streaming/</value>
   </data>
   <data name="Link_FileRenaming" xml:space="preserve">
-    <value>https://docs.shokoanime.com/desktop/utilities.html#file-renaming</value>
+    <value>https://docs.shokoanime.com/desktop/utilities/#file-renaming</value>
   </data>
+  // TODO: new link?
   <data name="Link_GroupFilters" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/collection.html#filters</value>
   </data>
   <data name="Link_Linking" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html</value>
+    <value>https://docs.shokoanime.com/faq/</value>
   </data>
+  // TODO: find and replace in UI
   <data name="Link_MAL" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#mal</value>
   </data>
   <data name="Link_MPV" xml:space="preserve">
     <value>https://github.com/rossy/mpv-install/blob/master/README.md</value>
   </data>
+  // TODO: find new link
   <data name="Link_RelationSettings" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#relations</value>
   </data>
   <data name="Link_Site" xml:space="preserve">
     <value>https://shokoanime.com/</value>
   </data>
+  // TODO: new link or remove?
   <data name="Link_TMDb" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#tmdb</value>
   </data>
+  // TODO: new link or remove?
   <data name="Link_Trakt" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#trakt</value>
   </data>
   <data name="Link_TvDB" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#tvdb</value>
   </data>
+  // TODO: new link or remove?
   <data name="Link_VideoPlayer" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#video-player</value>
   </data>
@@ -4668,7 +4674,7 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
     <value>https://anidb.net/perl-bin/animedb.pl?show=signup</value>
   </data>
   <data name="Link_AniDBBan" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html</value>
+    <value>https://docs.shokoanime.com/faq/</value>
   </data>
   <data name="Link_Contribute" xml:space="preserve">
     <value>https://shokoanime.com/contribute/</value>
@@ -4677,16 +4683,16 @@ Mark-Unknown - bleibt die Datei auf Ihrer Liste, aber ändert den Zustand unbeka
     <value>https://shokoanime.com/</value>
   </data>
   <data name="Link_Integrity" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#integrity-check</value>
+    <value>https://docs.shokoanime.com/server/config/#what-is-an-integrity-check</value>
   </data>
   <data name="Link_MySQL" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/mysql.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="Link_SharedDrive" xml:space="preserve">
     <value>https://shokoanime.com/faq/</value>
   </data>
   <data name="Link_SQLServer" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/sqlserver.html</value>
+    <value>https://docs.shokoanime.com/server/install_windows/#install-first-run</value>
   </data>
   <data name="LocateSettingsFileDialog" xml:space="preserve">
     <value>Shoko-Server war nicht in der Lage, eine vorhandene Config-Datei zu finden. Wenn dies Ihr erstes Mal mit Shoko Server ist, können Sie diese Meldung ignorieren und klicken Sie auf Nein. Wenn JMM Server zuvor installiert wurde, klicken Sie auf Ja, um die Config-Datei manuell auswählen.</value>
@@ -5239,6 +5245,7 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
   <data name="Actions_SyncVotes" xml:space="preserve">
     <value>Laden Sie lokale Stimmen auf AniDB.!</value>
   </data>
+  // TODO: find new link or remove?
   <data name="Link_CommunitySites" xml:space="preserve">
     <value>https://docs.shokoanime.com/desktop/settings.html#community-sites</value>
   </data>
@@ -5249,19 +5256,19 @@ Bitte verlinken Sie auf Plex über Desktop unter Einstellungen-&gt; Benutzer, di
     <value>Erfahren Sie mehr über Community-Sites!</value>
   </data>
   <data name="Link_AniDBBanned" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html</value>
+    <value>https://docs.shokoanime.com/faq/</value>
   </data>
   <data name="Link_CommunityRecommendation" xml:space="preserve">
-    <value>https://docs.shokoanime.com/faq.html</value>
+    <value>https://docs.shokoanime.com/faq/</value>
   </data>
   <data name="Link_Help" xml:space="preserve">
     <value>https://docs.shokoanime.com</value>
   </data>
   <data name="Link_ImportFolders" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#import-folders</value>
+    <value>https://docs.shokoanime.com/server/config/#what-are-import-folders</value>
   </data>
   <data name="Link_CloudAccounts" xml:space="preserve">
-    <value>https://docs.shokoanime.com/server/config.html#supported-hosts</value>
+    <value>https://docs.shokoanime.com/server/config/#supported-cloud-hosts</value>
   </data>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/ShokoAnime/</value>
