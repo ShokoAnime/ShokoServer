@@ -9,6 +9,7 @@ using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Settings;
 using static Shoko.Models.Constants;
 
 namespace Shoko.Server.Renamer
@@ -30,7 +31,6 @@ namespace Shoko.Server.Renamer
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
 
-        private const int MaxEpisodeNameLength = 33;
         /* TESTS
         A   int     Anime id
         G   int     Group id
@@ -1578,7 +1578,7 @@ namespace Shoko.Server.Renamer
             {
                 var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
                     .FirstOrDefault()?.Title;
-                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
             }
 
@@ -1590,7 +1590,7 @@ namespace Shoko.Server.Renamer
             {
                 var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
                     .FirstOrDefault()?.Title;
-                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
             }
 

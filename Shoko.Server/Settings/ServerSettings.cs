@@ -60,6 +60,8 @@ namespace Shoko.Server.Settings
         /// </summary>
         public bool FirstRun { get; set; } = true;
 
+        public int LegacyRenamerMaxEpisodeLength { get; set; } = 33;
+
         public LogRotatorSettings LogRotator { get; set; } = new LogRotatorSettings();
 
         public DatabaseSettings Database { get; set; } = new DatabaseSettings();
