@@ -11,7 +11,7 @@ namespace Shoko.Server.Settings
         public string Password { get; set; }
 
         [Required(AllowEmptyStrings = false)]
-        public string ServerAddress { get; set; } = "api.anidb.info";
+        public string ServerAddress { get; set; } = "api.anidb.net";
 
         public ushort ServerPort { get; set; } = 9000;
 
