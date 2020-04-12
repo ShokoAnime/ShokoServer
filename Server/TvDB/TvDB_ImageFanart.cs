@@ -17,7 +17,6 @@ namespace Shoko.Models.Server
         public string BannerType2 { get; set; }
         public string Colors { get; set; }
         public string Language { get; set; }
-        public string ThumbnailPath { get; set; }
         public string VignettePath { get; set; }
         public int Enabled { get; set; }
         public int Chosen { get; set; }
