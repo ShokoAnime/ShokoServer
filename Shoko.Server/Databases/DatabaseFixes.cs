@@ -26,6 +26,13 @@ namespace Shoko.Server.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public static void MigrateAniDBToNet()
+        {
+            string anidb = ServerSettings.Instance.AniDb.ServerAddress;
+            if (!anidb.EndsWith(".info", StringComparison.InvariantCultureIgnoreCase)) return;
+            ServerSettings.Instance.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
+            ServerSettings.Instance.SaveSettings();
+        }
 
         public static void DeleteSerieUsersWithoutSeries()
         {

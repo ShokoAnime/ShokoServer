@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 81;
+        public int RequiredVersion { get; } = 82;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -604,6 +604,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

@@ -19,7 +19,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 76;
+        public int RequiredVersion { get; } = 77;
 
 
         public void BackupDatabase(string fullfilename)
@@ -526,6 +526,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(74, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(75, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(76, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt timestamp NOT NULL default '2000-01-01 00:00:00'"),
+            new DatabaseCommand(77, 1, DatabaseFixes.MigrateAniDBToNet),
         };
 
         private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
