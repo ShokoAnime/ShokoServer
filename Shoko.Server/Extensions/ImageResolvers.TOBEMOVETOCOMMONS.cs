@@ -54,13 +54,6 @@ namespace Shoko.Server.Extensions
             return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
-        public static string GetFullThumbnailPath(this TvDB_ImageFanart fanart)
-        {
-            string fname = fanart.ThumbnailPath;
-            fname = fanart.ThumbnailPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
-        }
-
         public static string GetFullImagePath(this TvDB_ImagePoster poster)
         {
             if (String.IsNullOrEmpty(poster.BannerPath)) return string.Empty;
@@ -81,16 +74,12 @@ namespace Shoko.Server.Extensions
 
         public static void Valid(this TvDB_ImageFanart fanart)
         {
-            if (!File.Exists(fanart.GetFullImagePath()) || !File.Exists(fanart.GetFullThumbnailPath()))
+            if (!File.Exists(fanart.GetFullImagePath()))
             {
                 //clean leftovers
                 if (File.Exists(fanart.GetFullImagePath()))
                 {
                     File.Delete(fanart.GetFullImagePath());
-                }
-                if (File.Exists(fanart.GetFullThumbnailPath()))
-                {
-                    File.Delete(fanart.GetFullThumbnailPath());
                 }
             }
         }

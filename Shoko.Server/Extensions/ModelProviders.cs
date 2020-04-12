@@ -343,7 +343,6 @@ namespace Shoko.Server.Extensions
                 fanart.BannerType2 = node["BannerType2"].InnerText;
                 fanart.Colors = node["Colors"].InnerText;
                 fanart.Language = node["Language"].InnerText;
-                fanart.ThumbnailPath = node["ThumbnailPath"].InnerText;
                 fanart.VignettePath = node["VignettePath"].InnerText;
                 return true;
             }
@@ -363,7 +362,6 @@ namespace Shoko.Server.Extensions
                 fanart.BannerPath = image.FileName;
                 fanart.BannerType2 = image.Resolution;
                 fanart.Colors = string.Empty;
-                fanart.ThumbnailPath = image.Thumbnail;
                 fanart.VignettePath = string.Empty;
                 return true;
             }

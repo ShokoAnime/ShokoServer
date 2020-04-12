@@ -281,7 +281,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private string GetFileName(ImageDownloadRequest req, bool thumbNailOnly)
+        private string GetFileName(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {

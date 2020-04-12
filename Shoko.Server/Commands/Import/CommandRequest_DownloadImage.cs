@@ -208,20 +208,11 @@ namespace Shoko.Server.Commands
                 List<string> fileNames = new List<string>();
                 List<string> downloadURLs = new List<string>();
 
-                string fileNameTemp = GetFileName(req, false);
-                string downloadURLTemp = GetFileURL(req, false);
+                string fileNameTemp = GetFileName(req);
+                string downloadURLTemp = GetFileURL(req);
 
                 fileNames.Add(fileNameTemp);
                 downloadURLs.Add(downloadURLTemp);
-
-                if (req.ImageType == ImageEntityType.TvDB_FanArt)
-                {
-                    fileNameTemp = GetFileName(req, true);
-                    downloadURLTemp = GetFileURL(req, true);
-
-                    fileNames.Add(fileNameTemp);
-                    downloadURLs.Add(downloadURLTemp);
-                }
 
                 for (int i = 0; i < fileNames.Count; i++)
                 {
@@ -382,7 +373,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public static string GetFileURL(ImageDownloadRequest req, bool thumbNailOnly)
+        public static string GetFileURL(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {
@@ -427,7 +418,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private string GetFileName(ImageDownloadRequest req, bool thumbNailOnly)
+        private string GetFileName(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {
@@ -441,10 +432,7 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-                    if (thumbNailOnly)
-                        return fanart.GetFullThumbnailPath();
-                    else
-                        return fanart.GetFullImagePath();
+                    return fanart.GetFullImagePath();
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;

@@ -47,7 +47,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("{type}/{id}")]
         public FileResult GetImage(int type, int id)
         {
-            string path = GetImagePath(type, id, false);
+            string path = GetImagePath(type, id);
 
             if (string.IsNullOrEmpty(path))
             {
@@ -75,7 +75,7 @@ namespace Shoko.Server.API.v2.Modules
             if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out float newratio))
                 newratio = 0.6667f;
 
-            string path = GetImagePath(type, id, false);
+            string path = GetImagePath(type, id);
 
             if (string.IsNullOrEmpty(path))
             {
@@ -139,9 +139,8 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="id">image id</param>
         /// <param name="type">image type</param>
-        /// <param name="thumb">thumb mode</param>
         /// <returns>string</returns>
-        internal string GetImagePath(int type, int id, bool thumb)
+        internal string GetImagePath(int type, int id)
         {
             ImageEntityType imageType = (ImageEntityType) type;
             string path;
@@ -255,23 +254,11 @@ namespace Shoko.Server.API.v2.Modules
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
                     if (fanart == null)
                         return null;
-                    if (thumb)
-                    {
-                        //ratio
-                        path = fanart.GetFullThumbnailPath();
-                        if (System.IO.File.Exists(path))
-                            return path;
-                        path = string.Empty;
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                    }
-                    else
-                    {
-                        path = fanart.GetFullImagePath();
-                        if (System.IO.File.Exists(path))
-                            return path;
-                        path = string.Empty;
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                    }
+                    path = fanart.GetFullImagePath();
+                    if (System.IO.File.Exists(path))
+                        return path;
+                    path = string.Empty;
+                    logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
                     break;
 
                 // 8

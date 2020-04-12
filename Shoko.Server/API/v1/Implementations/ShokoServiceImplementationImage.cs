@@ -300,26 +300,13 @@ namespace Shoko.Server
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
                     if (fanart == null) return null;
-                    if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
+                    if (System.IO.File.Exists(fanart.GetFullImagePath()))
                     {
-                        if (System.IO.File.Exists(fanart.GetFullThumbnailPath()))
-                        {
-                            return fanart.GetFullThumbnailPath();
-                        }
-                        
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                        return string.Empty;
+                        return fanart.GetFullImagePath();
                     }
-                    else
-                    {
-                        if (System.IO.File.Exists(fanart.GetFullImagePath()))
-                        {
-                            return fanart.GetFullImagePath();
-                        }
                         
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                        return string.Empty;
-                    }
+                    logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                    return string.Empty;
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(imageId);
