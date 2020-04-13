@@ -936,17 +936,12 @@
     <Compile Include="AniDB_API\Calendar.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_DeleteFile.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetAnimeDescription.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetAnimeInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetCalendar.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCharacterInfo.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCreatorInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetFileInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroup.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroupStatus.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListFileInfo.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListStats.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetReview.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_GetUpdated.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Login.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
@@ -954,8 +949,6 @@
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDisk.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsRemote.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsUnknown.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyGet.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_NotifyList.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Ping.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_UpdateFile.cs" />
     <Compile Include="AniDB_API\Commands\AniDBCommand_Vote.cs" />
@@ -968,12 +961,9 @@
     <Compile Include="AniDB_API\Commands\IAniDBUDPCommand.cs" />
     <Compile Include="AniDB_API\Enums.cs" />
     <Compile Include="AniDB_API\GroupStatusCollection.cs" />
-    <Compile Include="AniDB_API\NotifyListHeader.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_AnimeDesc.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime_Title.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Calendar.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Category.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Character.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Creator.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Episode.cs" />
@@ -982,9 +972,6 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_GroupStatus.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListFile.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListStats.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyAlert.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyList.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_NotifyMessage.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Recommendation.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
     <Compile Include="AniDB_API\Raws\Raw_AniDB_ResourceLink.cs" />
@@ -996,7 +983,6 @@
     <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote_HTTP.cs" />
     <Compile Include="AniDB_API\Titles\AniDBRaw_AnimeTitles.cs" />
     <Compile Include="AniDB_API\Titles\AniDB_TitleHelper.cs" />
-    <Compile Include="AniDB_API\UpdatesCollection.cs" />
     <Compile Include="AniDB_API\APIUtils.cs" />
     <Compile Include="AniDB_API\XMLBase.cs" />
     <Compile Include="API\Annotations\ApiInUseAttribute.cs" />

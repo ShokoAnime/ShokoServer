@@ -44,14 +44,6 @@ namespace AniDBAPI.Commands
             set => titles = value;
         }
 
-        private List<Raw_AniDB_Category> categories = new List<Raw_AniDB_Category>();
-
-        public List<Raw_AniDB_Category> Categories
-        {
-            get => categories;
-            set => categories = value;
-        }
-
         private List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();
 
         public List<Raw_AniDB_Tag> Tags
