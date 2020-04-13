@@ -1131,10 +1131,12 @@
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestUpdateFile.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestMyListStats.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Responses\ResponseMyListStats.cs" />
+    <Compile Include="Providers\AniDB\UDP\Requests\RequestCalendar.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\UDPBaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestLogout.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestPing.cs" />
+    <Compile Include="Providers\AniDB\UDP\Responses\ResponseCalendar.cs" />
     <Compile Include="Providers\AniDB\UDP\Responses\UDPBaseResponse.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestAddFile.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Responses\ResponseAddFile.cs" />

@@ -30,7 +30,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Requests
             if (CommandRegex.IsMatch(Command))
                 Command += $"&s={sessionID}";
             else
-                Command += $"s={sessionID}";
+                Command += $" s={sessionID}";
         }
 
         protected virtual void PostExecute(string sessionID, UDPBaseResponse<T> response)
