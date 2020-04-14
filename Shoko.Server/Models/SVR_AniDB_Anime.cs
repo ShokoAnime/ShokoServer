@@ -829,8 +829,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             // check for TvDB associations
             if (Restricted == 0)
             {
-                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
-                cmd.Save();
+                if (ServerSettings.Instance.TvDB.AutoLink)
+                {
+                    CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
+                    cmd.Save();
+                }
 
                 // check for Trakt associations
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))

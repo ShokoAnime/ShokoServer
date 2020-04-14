@@ -301,8 +301,8 @@ namespace Shoko.Server.Providers.TvDB
         {
             ImagesSummary summary = GetSeriesImagesCounts(seriesID);
             if (summary == null) return;
-            if (summary.Fanart > 0) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-            if (summary.Poster > 0 || summary.Season > 0)
+            if (summary.Fanart > 0 && ServerSettings.Instance.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+            if (summary.Poster > 0 || summary.Season > 0 && ServerSettings.Instance.TvDB.AutoPosters)
                 DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
         }
 
@@ -878,6 +878,8 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void ScanForMatches()
         {
+            if (!ServerSettings.Instance.TvDB.AutoLink) return;
+
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
 
             foreach (SVR_AnimeSeries ser in allSeries)
