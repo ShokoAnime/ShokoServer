@@ -1124,6 +1124,7 @@
     <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
     <Compile Include="Providers\AniDB\AniDBRateLimiter.cs" />
     <Compile Include="Providers\AniDB\AniDBStateUpdate.cs" />
+    <Compile Include="Providers\AniDB\Helpers\AniDBEpisodeNumber.cs" />
     <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\NotLoggedInException.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestAddEpisode.cs" />
@@ -1132,6 +1133,8 @@
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestMyListStats.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Responses\ResponseMyListStats.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestCalendar.cs" />
+    <Compile Include="Providers\AniDB\UDP\Requests\RequestVoteAnime.cs" />
+    <Compile Include="Providers\AniDB\UDP\Requests\RequestVoteEpisode.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\UDPBaseRequest.cs" />
     <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestLogout.cs" />
