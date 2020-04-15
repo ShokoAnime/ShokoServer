@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
@@ -539,7 +540,7 @@ namespace Shoko.Server.Models
             IReadOnlyCollection<SVR_AnimeSeries> seriesList,
             IEnumerable<SVR_JMMUser> allUsers, Action<SVR_AnimeGroup_User, bool> newAnimeGroupUsers)
         {
-            foreach (SVR_JMMUser juser in allUsers)
+            allUsers.AsParallel().ForAll(juser =>
             {
                 SVR_AnimeGroup_User userRecord = animeGroup.GetUserRecord(juser.JMMUserID);
                 bool isNewRecord = false;
@@ -558,26 +559,22 @@ namespace Shoko.Server.Models
                 userRecord.WatchedEpisodeCount = 0;
                 userRecord.WatchedDate = null;
 
-                foreach (SVR_AnimeSeries ser in seriesList)
+                foreach (var serUserRecord in seriesList.Select(ser => ser.GetUserRecord(juser.JMMUserID))
+                    .Where(serUserRecord => serUserRecord != null))
                 {
-                    SVR_AnimeSeries_User serUserRecord = ser.GetUserRecord(juser.JMMUserID);
+                    userRecord.WatchedCount += serUserRecord.WatchedCount;
+                    userRecord.UnwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
+                    userRecord.PlayedCount += serUserRecord.PlayedCount;
+                    userRecord.StoppedCount += serUserRecord.StoppedCount;
+                    userRecord.WatchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
 
-                    if (serUserRecord != null)
-                    {
-                        userRecord.WatchedCount += serUserRecord.WatchedCount;
-                        userRecord.UnwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
-                        userRecord.PlayedCount += serUserRecord.PlayedCount;
-                        userRecord.StoppedCount += serUserRecord.StoppedCount;
-                        userRecord.WatchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
-
-                        if (serUserRecord.WatchedDate != null
-                            && (userRecord.WatchedDate == null || serUserRecord.WatchedDate > userRecord.WatchedDate))
-                            userRecord.WatchedDate = serUserRecord.WatchedDate;
-                    }
+                    if (serUserRecord.WatchedDate != null
+                        && (userRecord.WatchedDate == null || serUserRecord.WatchedDate > userRecord.WatchedDate))
+                        userRecord.WatchedDate = serUserRecord.WatchedDate;
                 }
 
                 newAnimeGroupUsers(userRecord, isNewRecord);
-            }
+            });
         }
 
         /// <summary>
@@ -592,21 +589,26 @@ namespace Shoko.Server.Models
         private static void UpdateMissingEpisodeStats(SVR_AnimeGroup animeGroup,
             IEnumerable<SVR_AnimeSeries> seriesList)
         {
-            animeGroup.MissingEpisodeCount = 0;
-            animeGroup.MissingEpisodeCountGroups = 0;
+            int missingEpisodeCount = 0;
+            int missingEpisodeCountGroups = 0;
+            DateTime? latestEpisodeAirDate = null;
 
-            foreach (SVR_AnimeSeries series in seriesList)
+            seriesList.AsParallel().ForAll(series =>
             {
-                animeGroup.MissingEpisodeCount += series.MissingEpisodeCount;
-                animeGroup.MissingEpisodeCountGroups += series.MissingEpisodeCountGroups;
+                Interlocked.Add(ref missingEpisodeCount, series.MissingEpisodeCount);
+                Interlocked.Add(ref missingEpisodeCountGroups, series.MissingEpisodeCountGroups);
 
                 // Now series.LatestEpisodeAirDate should never be greater than today
-                if (series.LatestEpisodeAirDate.HasValue)
-                    if ((animeGroup.LatestEpisodeAirDate.HasValue && series.LatestEpisodeAirDate.Value >
-                         animeGroup.LatestEpisodeAirDate.Value)
-                        || !animeGroup.LatestEpisodeAirDate.HasValue)
-                        animeGroup.LatestEpisodeAirDate = series.LatestEpisodeAirDate;
-            }
+                if (!series.LatestEpisodeAirDate.HasValue) return;
+
+                if (latestEpisodeAirDate == null) latestEpisodeAirDate = series.LatestEpisodeAirDate;
+                else if (series.LatestEpisodeAirDate.Value > latestEpisodeAirDate.Value)
+                    latestEpisodeAirDate = series.LatestEpisodeAirDate;
+            });
+
+            animeGroup.MissingEpisodeCount = missingEpisodeCount;
+            animeGroup.MissingEpisodeCountGroups = missingEpisodeCountGroups;
+            animeGroup.LatestEpisodeAirDate = latestEpisodeAirDate;
         }
 
 
