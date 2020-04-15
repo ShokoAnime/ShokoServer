@@ -1032,7 +1032,9 @@ namespace Shoko.Server.Models
             List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
             HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
-            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
+            var gfs = RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n);
+            logger.Trace($"Updating {gfs.Count} Group Filters from Group {GroupName}");
+            foreach (SVR_GroupFilter gf in gfs)
             {
                 if (gf.UpdateGroupFilterFromGroup(Contract, null))
                     if (!tosave.Contains(gf))

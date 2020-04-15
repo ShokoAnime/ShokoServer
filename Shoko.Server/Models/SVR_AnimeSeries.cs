@@ -477,14 +477,15 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
         {
-            logger.Trace($"Updating Group Filters - Types: {string.Join(", ", types.Select(a => a.ToString()))}");
             IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> {user};
             if (user == null)
                 users = RepoFactory.JMMUser.GetAll();
             List<SVR_GroupFilter> tosave = new List<SVR_GroupFilter>();
 
             HashSet<GroupFilterConditionType> n = new HashSet<GroupFilterConditionType>(types);
-            foreach (SVR_GroupFilter gf in RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n))
+            var gfs = RepoFactory.GroupFilter.GetWithConditionTypesAndAll(n);
+            logger.Trace($"Updating {gfs.Count} Group Filters from Series {GetAnime().MainTitle}");
+            foreach (SVR_GroupFilter gf in gfs)
             {
                 if (gf.UpdateGroupFilterFromSeries(Contract, null))
                     if (!tosave.Contains(gf))
