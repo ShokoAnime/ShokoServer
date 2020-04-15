@@ -321,9 +321,10 @@ namespace Shoko.Commons.Extensions
 
         public static bool GetFutureDated(this AniDB_Episode episode)
         {
-            if (!episode.GetAirDateAsDate().HasValue) return true;
+            DateTime? date = episode.GetAirDateAsDate();
+            if (date == null) return true;
 
-            return episode.GetAirDateAsDate().Value > DateTime.Now;
+            return date.Value.ToLocalTime() > DateTime.Now;
         }
 
         public static EpisodeType GetEpisodeTypeEnum(this AniDB_Episode episode) => (EpisodeType) episode.EpisodeType;
