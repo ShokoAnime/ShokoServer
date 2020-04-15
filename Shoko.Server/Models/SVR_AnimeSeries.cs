@@ -477,6 +477,7 @@ namespace Shoko.Server.Models
 
         public void UpdateGroupFilters(HashSet<GroupFilterConditionType> types, SVR_JMMUser user = null)
         {
+            logger.Trace($"Updating Group Filters - Types: {string.Join(", ", types.Select(a => a.ToString()))}");
             IReadOnlyList<SVR_JMMUser> users = new List<SVR_JMMUser> {user};
             if (user == null)
                 users = RepoFactory.JMMUser.GetAll();
@@ -558,8 +559,7 @@ namespace Shoko.Server.Models
                 contract.DefaultAudioLanguage = series.DefaultAudioLanguage;
                 contract.DefaultSubtitleLanguage = series.DefaultSubtitleLanguage;
                 contract.LatestLocalEpisodeNumber = series.LatestLocalEpisodeNumber;
-                contract.LatestEpisodeAirDate = series.GetAnimeEpisodes().Select(a => a?.AniDB_Episode)
-                    .Where(a => a != null && !a.GetFutureDated()).Max(a => a.GetAirDateAsDate());
+                contract.LatestEpisodeAirDate = series.LatestEpisodeAirDate;
                 contract.AirsOn = series.AirsOn;
                 contract.EpisodeAddedDate = series.EpisodeAddedDate;
                 contract.MissingEpisodeCount = series.MissingEpisodeCount;

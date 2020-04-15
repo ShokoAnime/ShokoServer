@@ -190,6 +190,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
                 if (!skipgroupfilters && !isMigrating)
                 {
+                    DateTime start = DateTime.Now;
                     int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                     if (endyear == 0) endyear = DateTime.Today.Year;
                     int startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
@@ -208,6 +209,8 @@ namespace Shoko.Server.Repositories.Cached
 
                     // Update other existing filters
                     obj.UpdateGroupFilters(types);
+                    TimeSpan ts = DateTime.Now - start;
+                    logger.Trace($"While Saving SERIES {obj.GetSeriesName() ?? obj.AniDB_ID.ToString()} Updated GroupFilters in {ts.Milliseconds}ms");
                 }
                 Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
