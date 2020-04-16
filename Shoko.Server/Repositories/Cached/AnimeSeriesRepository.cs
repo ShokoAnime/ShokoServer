@@ -198,7 +198,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (updateGroups && !isMigrating)
                 {
                     start = DateTime.Now;
-                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Group (moved series)");
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Group");
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
