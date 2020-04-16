@@ -125,6 +125,8 @@ namespace Shoko.Server.Repositories.Cached
         public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false,
             bool alsoupdateepisodes = false)
         {
+            DateTime start = DateTime.Now;
+            TimeSpan ts;
             bool newSeries = false;
             SVR_AnimeGroup oldGroup = null;
             bool isMigrating = false;
@@ -136,13 +138,19 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     // get the old version from the DB
                     SVR_AnimeSeries oldSeries;
+                    start = DateTime.Now;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
                         lock (globalDBLock)
                         {
+
                             oldSeries = session.Get<SVR_AnimeSeries>(obj.AnimeSeriesID);
                         }
                     }
+
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Got existing record from database in {ts.Milliseconds}ms");
+
                     if (oldSeries != null)
                     {
                         // means we are moving series to a different group
@@ -155,6 +163,12 @@ namespace Shoko.Server.Repositories.Cached
                             newSeries = true;
                         }
                     }
+                    else
+                    {
+                        // should not happen, but if it does, recover
+                        newSeries = true;
+                        logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Failed to get valid record from database, making a new one");
+                    }
                 }
                 if (newSeries && !isMigrating)
                 {
@@ -164,33 +178,44 @@ namespace Shoko.Server.Repositories.Cached
                 var seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
                 if (seasons == null || seasons.Count == 0)
                 {
+                    start = DateTime.Now;
                     var anime = obj.GetAnime();
                     if (anime != null)
                         RepoFactory.AniDB_Anime.Save(anime);
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Seasons in {ts.Milliseconds}ms");
                 }
 
+                start = DateTime.Now;
                 HashSet<GroupFilterConditionType> types = obj.UpdateContract(onlyupdatestats);
+                ts = DateTime.Now - start;
+                logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Contract in {ts.Milliseconds}ms");
+                start = DateTime.Now;
                 base.Save(obj);
-                seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
+                ts = DateTime.Now - start;
+                logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Saved to Database in {ts.Milliseconds}ms");
 
                 if (updateGroups && !isMigrating)
                 {
-                    logger.Trace("Updating group stats by series from AnimeSeriesRepository.Save: {0}",
-                        obj.AnimeSeriesID);
+                    start = DateTime.Now;
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Group (moved series)");
                     SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
                     if (grp != null)
                         RepoFactory.AnimeGroup.Save(grp, true, true);
 
-                    if (oldGroup != null)
+                    // Last ditch to make sure we aren't just updating the same group twice (shouldn't be)
+                    if (oldGroup != null && grp.AnimeGroupID != oldGroup.AnimeGroupID)
                     {
-                        logger.Trace("Updating group stats by group from AnimeSeriesRepository.Save: {0}",
-                            oldGroup.AnimeGroupID);
+                        logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Previous Group (moved series)");
                         RepoFactory.AnimeGroup.Save(oldGroup, true, true);
                     }
+
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Group Stats in {ts.Milliseconds}ms");
                 }
                 if (!skipgroupfilters && !isMigrating)
                 {
-                    DateTime start = DateTime.Now;
+                    start = DateTime.Now;
                     int endyear = obj.Contract?.AniDBAnime?.AniDBAnime?.EndYear ?? 0;
                     if (endyear == 0) endyear = DateTime.Today.Year;
                     int startyear = obj.Contract?.AniDBAnime?.AniDBAnime?.BeginYear ?? 0;
@@ -203,21 +228,27 @@ namespace Shoko.Server.Repositories.Cached
                             : new HashSet<int>(Enumerable.Range(startyear, endyear - startyear + 1));
                     }
 
+                    // Reinit this in case it was updated in the contract
+                    seasons = obj.Contract?.AniDBAnime?.Stat_AllSeasons;
                     //This call will create extra years or tags if the Group have a new year or tag
                     RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false,
                         obj.Contract?.AniDBAnime?.AniDBAnime?.GetAllTags(), allyears, seasons);
 
                     // Update other existing filters
                     obj.UpdateGroupFilters(types);
-                    TimeSpan ts = DateTime.Now - start;
-                    logger.Trace($"While Saving SERIES {obj.GetSeriesName() ?? obj.AniDB_ID.ToString()} Updated GroupFilters in {ts.Milliseconds}ms");
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated GroupFilters in {ts.Milliseconds}ms");
                 }
                 Changes.AddOrUpdate(obj.AnimeSeriesID);
             }
             if (alsoupdateepisodes)
             {
+                logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updating Episodes");
+                start = DateTime.Now;
                 List<SVR_AnimeEpisode> eps = RepoFactory.AnimeEpisode.GetBySeriesID(obj.AnimeSeriesID);
                 RepoFactory.AnimeEpisode.Save(eps);
+                ts = DateTime.Now - start;
+                logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Episodes in {ts.Milliseconds}ms");
             }
         }
 
