@@ -256,12 +256,12 @@ namespace Shoko.Server.Models
         {
             try
             {
-                CL_AnimeSeries_User contract = Contract?.DeepClone();
+                CL_AnimeSeries_User contract = (CL_AnimeSeries_User) Contract?.Clone();
                 if (contract == null)
                 {
                     logger.Trace($"Series with ID [{AniDB_ID}] has a null contract on get. Updating");
                     RepoFactory.AnimeSeries.Save(this, false, false, true);
-                    contract = _contract?.DeepClone();
+                    contract = (CL_AnimeSeries_User) _contract?.Clone();
                 }
 
                 if (contract == null)
@@ -543,7 +543,7 @@ namespace Shoko.Server.Models
 
             foreach (SVR_AnimeSeries series in seriesBatch)
             {
-                CL_AnimeSeries_User contract = series.Contract?.DeepClone();
+                CL_AnimeSeries_User contract = (CL_AnimeSeries_User) series.Contract?.Clone();
                 bool seriesOnlyStats = onlyStats;
 
                 if (contract == null)
@@ -581,7 +581,7 @@ namespace Shoko.Server.Models
 
                     if (animeRec != null)
                     {
-                        contract.AniDBAnime = animeRec.Contract.DeepClone();
+                        contract.AniDBAnime = (CL_AniDB_AnimeDetailed) animeRec.Contract.Clone();
 
                         CL_AniDB_Anime aniDbAnime = contract.AniDBAnime.AniDBAnime;
 
@@ -639,7 +639,7 @@ namespace Shoko.Server.Models
             {
                 DateTime start = DateTime.Now;
                 TimeSpan ts;
-                CL_AnimeSeries_User contract = Contract?.DeepClone();
+                CL_AnimeSeries_User contract = (CL_AnimeSeries_User) Contract?.Clone();
                 ts = DateTime.Now - start;
                 logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Cloned Series Contract in {ts.TotalMilliseconds}ms");
                 if (contract == null)
@@ -699,7 +699,7 @@ namespace Shoko.Server.Models
                     start = DateTime.Now;
                     if (animeRec.Contract == null)
                         RepoFactory.AniDB_Anime.Save(animeRec);
-                    contract.AniDBAnime = animeRec.Contract.DeepClone();
+                    contract.AniDBAnime = (CL_AniDB_AnimeDetailed) animeRec.Contract.Clone();
                     ts = DateTime.Now - start;
                     logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();

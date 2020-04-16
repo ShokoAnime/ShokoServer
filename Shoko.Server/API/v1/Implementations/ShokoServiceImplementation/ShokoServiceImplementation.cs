@@ -1374,7 +1374,6 @@ namespace Shoko.Server
                             if (anime != null)
                             {
                                 CL_AniDB_Character cl = chr.ToClient(aniChars[0].CharType);
-                                cl.Anime = anime.Contract.AniDBAnime;
                                 chars.Add(cl);
                             }
                         }
