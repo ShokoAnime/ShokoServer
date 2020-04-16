@@ -155,6 +155,8 @@ namespace Shoko.Server.Settings
                 return;
             }
             LoadSettingsFromFile(path, false);
+
+            ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
 
         private static ServerSettings LoadLegacySettings()

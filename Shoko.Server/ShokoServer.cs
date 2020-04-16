@@ -161,6 +161,17 @@ namespace Shoko.Server
             LogManager.ReconfigExistingLoggers();
         }
 
+        public static void SetTraceLogging(bool enabled)
+        {
+            var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
+            if (rule == null) return;
+            if (enabled)
+                rule.EnableLoggingForLevel(LogLevel.Trace);
+            else
+                rule.DisableLoggingForLevel(LogLevel.Trace);
+            LogManager.ReconfigExistingLoggers();
+        }
+
         public bool StartUpServer()
         {
             _sentry = SentrySdk.Init(opts =>
