@@ -52,6 +52,7 @@ namespace Shoko.Models.Client
         {
             var seriesBase = new CL_AnimeSeries_User(this)
             {
+                AnimeGroupID = AnimeGroupID,
                 AniDB_ID = AniDB_ID,
                 DateTimeUpdated = DateTimeUpdated,
                 DateTimeCreated = DateTimeCreated,
