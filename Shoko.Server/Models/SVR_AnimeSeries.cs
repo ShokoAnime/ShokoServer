@@ -417,10 +417,33 @@ namespace Shoko.Server.Models
             SVR_AniDB_Anime anime = GetAnime();
             if (anime == null) return;
 
-            foreach (AniDB_Episode ep in anime.GetAniDBEpisodes()) {
-                logger.Trace($"CreatingAnimeEpisode {ep.EpisodeNumber}");
+            var eps = anime.GetAniDBEpisodes();
+            int one_forth = (int) Math.Round(eps.Count / 4D, 0, MidpointRounding.AwayFromZero);
+            int one_half = (int) Math.Round(eps.Count / 2D, 0, MidpointRounding.AwayFromZero);
+            int three_forths = (int) Math.Round(eps.Count * 3 / 4D, 0, MidpointRounding.AwayFromZero);
+
+            logger.Trace($"Generating {eps.Count} episodes for {anime.MainTitle}");
+            for (int i = 0; i < eps.Count; i++)
+            {
+                if (i == one_forth) logger.Trace($"Generating episodes for {anime.MainTitle}: 25%");
+                if (i == one_half) logger.Trace($"Generating episodes for {anime.MainTitle}: 50%");
+                if (i == three_forths) logger.Trace($"Generating episodes for {anime.MainTitle}: 75%");
+                if (i == eps.Count - 1) logger.Trace($"Generating episodes for {anime.MainTitle}: 100%");
+                var ep = eps[i];
                 ep.CreateAnimeEpisode(session, AnimeSeriesID);
             }
+        }
+
+        public bool NeedsEpisodeUpdate()
+        {
+            SVR_AniDB_Anime anime = GetAnime();
+            if (anime == null) return false;
+
+            return anime.GetAniDBEpisodes()
+                .Select(episode => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID))
+                .Any(ep => ep == null) || GetAnimeEpisodes()
+                .Select(episode => RepoFactory.AniDB_Episode.GetByEpisodeID(episode.AniDB_EpisodeID))
+                .Any(ep => ep == null);
         }
 
         /// <summary>

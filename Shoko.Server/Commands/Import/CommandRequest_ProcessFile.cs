@@ -289,11 +289,15 @@ namespace Shoko.Server.Commands
                     { 
                         TimeSpan ts = DateTime.Now - ser.UpdatedAt;
 
-                        // don't create episodes if we've done it recently...
+                        // don't even check episodes if we've done it recently...
                         if (ts.TotalHours > 6)
                         {
-                            ser.CreateAnimeEpisodes();
-                            ser.UpdatedAt = DateTime.Now;
+                            if (ser.NeedsEpisodeUpdate())
+                            {
+                                logger.Info($"Series {anime.MainTitle} needs episodes regenerated (an episode was added or deleted from AniDB)");
+                                ser.CreateAnimeEpisodes();
+                                ser.UpdatedAt = DateTime.Now;
+                            }
                         }
                     }
                     
