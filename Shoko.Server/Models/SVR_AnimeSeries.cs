@@ -637,7 +637,11 @@ namespace Shoko.Server.Models
         {
             try
             {
+                DateTime start = DateTime.Now;
+                TimeSpan ts;
                 CL_AnimeSeries_User contract = Contract?.DeepClone();
+                ts = DateTime.Now - start;
+                logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Cloned Series Contract in {ts.TotalMilliseconds}ms");
                 if (contract == null)
                 {
                     contract = new CL_AnimeSeries_User();
@@ -667,8 +671,11 @@ namespace Shoko.Server.Models
                 contract.WatchedEpisodeCount = 0;
                 if (onlystats)
                 {
+                    start = DateTime.Now;
                     HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
                     Contract = contract;
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
                     return types2;
                 }
                 SVR_AniDB_Anime animeRec = GetAnime();
@@ -689,9 +696,12 @@ namespace Shoko.Server.Models
                 // get AniDB data
                 if (animeRec != null)
                 {
+                    start = DateTime.Now;
                     if (animeRec.Contract == null)
                         RepoFactory.AniDB_Anime.Save(animeRec);
                     contract.AniDBAnime = animeRec.Contract.DeepClone();
+                    ts = DateTime.Now - start;
+                    logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                     {
@@ -728,7 +738,10 @@ namespace Shoko.Server.Models
                     contract.MovieDB_Movie = movie;
                 }
                 contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+                start = DateTime.Now;
                 HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
+                ts = DateTime.Now - start;
+                logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
                 Contract = contract;
                 return types;
             }
