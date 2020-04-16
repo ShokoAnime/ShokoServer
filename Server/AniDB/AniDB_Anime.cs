@@ -3,7 +3,7 @@
 
 namespace Shoko.Models.Server
 {
-    public class AniDB_Anime
+    public class AniDB_Anime : ICloneable
     {
         #region Server DB columns
 
@@ -51,5 +51,51 @@ namespace Shoko.Models.Server
 
         #endregion
 
+        public object Clone()
+        {
+            return new AniDB_Anime
+            {
+                AniDB_AnimeID = AniDB_AnimeID,
+                AnimeID = AnimeID,
+                EpisodeCount = EpisodeCount,
+                AirDate = AirDate,
+                EndDate = EndDate,
+                URL = URL,
+                Picname = Picname,
+                BeginYear = BeginYear,
+                EndYear = EndYear,
+                AnimeType = AnimeType,
+                MainTitle = MainTitle,
+                AllTitles = AllTitles,
+                AllTags = AllTags,
+                Description = Description,
+                EpisodeCountNormal = EpisodeCountNormal,
+                EpisodeCountSpecial = EpisodeCountSpecial,
+                Rating = Rating,
+                VoteCount = VoteCount,
+                TempRating = TempRating,
+                TempVoteCount = TempVoteCount,
+                AvgReviewRating = AvgReviewRating,
+                ReviewCount = ReviewCount,
+                DateTimeUpdated = DateTimeUpdated,
+                DateTimeDescUpdated = DateTimeDescUpdated,
+                ImageEnabled = ImageEnabled,
+                AwardList = AwardList,
+                Restricted = Restricted,
+                AnimePlanetID = AnimePlanetID,
+                ANNID = ANNID,
+                AllCinemaID = AllCinemaID,
+                AnimeNfo = AnimeNfo,
+                AnisonID = AnisonID,
+                SyoboiID = SyoboiID,
+                Site_JP = Site_JP,
+                Site_EN = Site_EN,
+                Wikipedia_ID = Wikipedia_ID,
+                WikipediaJP_ID = WikipediaJP_ID,
+                CrunchyrollID = CrunchyrollID,
+                LatestEpisodeNumber = LatestEpisodeNumber,
+                DisableExternalLinksFlag = DisableExternalLinksFlag
+            };
+        }
     }
 }

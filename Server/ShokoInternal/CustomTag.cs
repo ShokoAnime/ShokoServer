@@ -1,6 +1,8 @@
-﻿namespace Shoko.Models.Server
+﻿using System;
+
+namespace Shoko.Models.Server
 {
-    public class CustomTag
+    public class CustomTag : ICloneable
     {
         public CustomTag()
         {
@@ -9,5 +11,14 @@
         public string TagName { get; set; }
         public string TagDescription { get; set; }
 
+        public object Clone()
+        {
+            return new CustomTag
+            {
+                CustomTagID = CustomTagID,
+                TagName = TagName,
+                TagDescription = TagDescription
+            };
+        }
     }
 }

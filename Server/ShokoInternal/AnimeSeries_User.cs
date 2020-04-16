@@ -2,7 +2,7 @@
 
 namespace Shoko.Models.Server
 {
-    public class AnimeSeries_User
+    public class AnimeSeries_User : ICloneable
     {
         #region DB Columns
 
@@ -21,5 +21,20 @@ namespace Shoko.Models.Server
         #endregion
 
 
+        public object Clone()
+        {
+            return new AnimeSeries_User
+            {
+                AnimeSeries_UserID = AnimeSeries_UserID,
+                JMMUserID = JMMUserID,
+                AnimeSeriesID = AnimeSeriesID,
+                UnwatchedEpisodeCount = UnwatchedEpisodeCount,
+                WatchedEpisodeCount = WatchedEpisodeCount,
+                WatchedDate = WatchedDate,
+                PlayedCount = PlayedCount,
+                WatchedCount = WatchedCount,
+                StoppedCount = StoppedCount
+            };
+        }
     }
 }

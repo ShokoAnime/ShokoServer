@@ -1,6 +1,8 @@
-﻿namespace Shoko.Models.Server
+﻿using System;
+
+namespace Shoko.Models.Server
 {
-    public class CrossRef_AniDB_TvDBV2
+    public class CrossRef_AniDB_TvDBV2 : ICloneable
     {
         public int CrossRef_AniDB_TvDBV2ID { get; set; }
         public int AnimeID { get; set; }
@@ -18,5 +20,21 @@
         {
         }
 
+        public object Clone()
+        {
+            return new CrossRef_AniDB_TvDBV2
+            {
+                CrossRef_AniDB_TvDBV2ID = CrossRef_AniDB_TvDBV2ID,
+                AnimeID = AnimeID,
+                AniDBStartEpisodeType = AniDBStartEpisodeType,
+                AniDBStartEpisodeNumber = AniDBStartEpisodeNumber,
+                TvDBID = TvDBID,
+                TvDBSeasonNumber = TvDBSeasonNumber,
+                TvDBStartEpisodeNumber = TvDBStartEpisodeNumber,
+                TvDBTitle = TvDBTitle,
+                CrossRefSource = CrossRefSource,
+                IsAdditive = IsAdditive
+            };
+        }
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace Shoko.Models.Client
+﻿using System;
+
+namespace Shoko.Models.Client
 {
-    public class CL_AnimeTag
+    public class CL_AnimeTag : ICloneable
     {
         public int TagID { get; set; }
         //public int Spoiler { get; set; }
@@ -21,6 +23,19 @@
         {
             get => tagDescription == null ? null : string.Intern(tagDescription);
             set => tagDescription = value == null ? null : string.Intern(value);
+        }
+
+        public object Clone()
+        {
+            return new CL_AnimeTag
+            {
+                TagID = TagID,
+                LocalSpoiler = LocalSpoiler,
+                GlobalSpoiler = GlobalSpoiler,
+                Weight = Weight,
+                tagName = tagName,
+                tagDescription = tagDescription
+            };
         }
     }
 }

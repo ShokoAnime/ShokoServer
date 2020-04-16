@@ -1,8 +1,9 @@
-﻿using Shoko.Models.Interfaces;
+﻿using System;
+using Shoko.Models.Interfaces;
 
 namespace Shoko.Models.Server
 {
-    public class MovieDB_Fanart : IImageEntity
+    public class MovieDB_Fanart : IImageEntity, ICloneable
     {
         public MovieDB_Fanart()
         {
@@ -17,5 +18,20 @@ namespace Shoko.Models.Server
         public int ImageHeight { get; set; }
         public int Enabled { get; set; }
 
+        public object Clone()
+        {
+            return new MovieDB_Fanart
+            {
+                MovieDB_FanartID = MovieDB_FanartID,
+                ImageID = ImageID,
+                MovieId = MovieId,
+                ImageType = ImageType,
+                ImageSize = ImageSize,
+                URL = URL,
+                ImageWidth = ImageWidth,
+                ImageHeight = ImageHeight,
+                Enabled = Enabled
+            };
+        }
     }
 }

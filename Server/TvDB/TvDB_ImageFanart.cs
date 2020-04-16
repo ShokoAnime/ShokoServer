@@ -1,10 +1,11 @@
 ﻿
+using System;
 using Shoko.Models.Interfaces;
 
 
 namespace Shoko.Models.Server
 {
-    public class TvDB_ImageFanart : IImageEntity
+    public class TvDB_ImageFanart : IImageEntity, ICloneable
     {
         public TvDB_ImageFanart()
         {
@@ -20,5 +21,22 @@ namespace Shoko.Models.Server
         public string VignettePath { get; set; }
         public int Enabled { get; set; }
         public int Chosen { get; set; }
+        public object Clone()
+        {
+            return new TvDB_ImageFanart
+            {
+                TvDB_ImageFanartID = TvDB_ImageFanartID,
+                Id = Id,
+                SeriesID = SeriesID,
+                BannerPath = BannerPath,
+                BannerType = BannerType,
+                BannerType2 = BannerType2,
+                Colors = Colors,
+                Language = Language,
+                VignettePath = VignettePath,
+                Enabled = Enabled,
+                Chosen = Chosen
+            };
+        }
     }
 }

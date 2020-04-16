@@ -1,10 +1,11 @@
 ﻿
+using System;
 using Shoko.Models.Interfaces;
 
 
 namespace Shoko.Models.Server
 {
-    public class TvDB_ImagePoster : IImageEntity
+    public class TvDB_ImagePoster : IImageEntity, ICloneable
     {
         public TvDB_ImagePoster()
         {
@@ -19,5 +20,20 @@ namespace Shoko.Models.Server
         public string Language { get; set; }
         public int Enabled { get; set; }
         public int? SeasonNumber { get; set; }
+        public object Clone()
+        {
+            return new TvDB_ImagePoster
+            {
+                TvDB_ImagePosterID = TvDB_ImagePosterID,
+                Id = Id,
+                SeriesID = SeriesID,
+                BannerPath = BannerPath,
+                BannerType = BannerType,
+                BannerType2 = BannerType2,
+                Language = Language,
+                Enabled = Enabled,
+                SeasonNumber = SeasonNumber
+            };
+        }
     }
 }
