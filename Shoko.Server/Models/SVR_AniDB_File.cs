@@ -394,9 +394,11 @@ namespace Shoko.Server.Models
             // Use a single session A. for efficiency and B. to prevent regenerating stats
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                foreach (CrossRef_File_Episode fileEp in fileEps)
-                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session,
-                        fileEp.CrossRef_File_EpisodeID);
+                using (var trans = session.BeginTransaction())
+                {
+                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, fileEps);
+                    trans.Commit();
+                }
 
                 fileEps = new List<CrossRef_File_Episode>();
 
@@ -434,8 +436,12 @@ namespace Shoko.Server.Models
                 }
 
                 // There is a chance that AniDB returned a dup, however unlikely
-                RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
+                using (var trans = session.BeginTransaction())
+                {
+                    RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
                     fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
+                    trans.Commit();
+                }
             }
         }
 

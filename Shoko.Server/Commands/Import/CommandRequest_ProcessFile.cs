@@ -207,7 +207,13 @@ namespace Shoko.Server.Commands
                                     // in this case we need to save the cross refs manually as AniDB did not provide them
                                     // use a session to prevent updating stats
                                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
-                                        RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session, xrefEnt);
+                                    {
+                                        using (var trans = session.BeginTransaction())
+                                        {
+                                            RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session, xrefEnt);
+                                            trans.Commit();
+                                        }
+                                    }
                                 }
                             }
                         }
