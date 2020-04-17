@@ -290,7 +290,7 @@ namespace Shoko.Models.Interfaces
         string AssociateSingleFileWithMultipleEpisodes(int videoLocalID, int animeSeriesID, int startingEpisodeNumber, int endEpisodeNumber);
 
         [Rest("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}", Verbs.Post)]
-        string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode);
+        string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, string startingEpisodeNumber, bool singleEpisode);
 
         [Rest("File/Resume/{videoLocalID}/{resumeposition}/{userID}", Verbs.Post)]
         string SetResumePosition(int videoLocalID, long resumeposition, int userID);
