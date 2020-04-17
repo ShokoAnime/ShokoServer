@@ -779,7 +779,7 @@ namespace Shoko.Server
         }
 
         [HttpPost("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
-        public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode)
+        public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, string startingEpisodeNumber, bool singleEpisode)
         {
             try
             {
@@ -787,8 +787,37 @@ namespace Shoko.Server
                 if (ser == null)
                     return "Could not find anime series record";
 
-                int epNumber = startingEpisodeNumber;
-                int total = startingEpisodeNumber + videoLocalIDs.Count - 1;
+                EpisodeType typeEnum = EpisodeType.Episode;
+                if (!int.TryParse(startingEpisodeNumber, out int epNumber))
+                {
+                    char type = startingEpisodeNumber[0];
+                    string text = startingEpisodeNumber.Substring(1);
+                    if (int.TryParse(text, out int epNum))
+                    {
+                        switch (type)
+                        {
+                            case 'S':
+                                typeEnum = EpisodeType.Special;
+                                break;
+                            case 'C':
+                                typeEnum = EpisodeType.Credits;
+                                break;
+                            case 'T':
+                                typeEnum = EpisodeType.Trailer;
+                                break;
+                            case 'P':
+                                typeEnum = EpisodeType.Parody;
+                                break;
+                            case 'O':
+                                typeEnum = EpisodeType.Other;
+                                break;
+                        }
+
+                        epNumber = epNum;
+                    }
+                }
+
+                int total = epNumber + videoLocalIDs.Count - 1;
                 int count = 1;
 
                 foreach (int videoLocalID in videoLocalIDs)
@@ -800,7 +829,7 @@ namespace Shoko.Server
                         return "Could not associate a cloud file without hash, hash it locally first";
 
                     List<AniDB_Episode> anieps =
-                        RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, epNumber);
+                        RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(ser.AniDB_ID, typeEnum, epNumber);
                     if (anieps.Count == 0)
                         return "Could not find the AniDB episode record";
 
