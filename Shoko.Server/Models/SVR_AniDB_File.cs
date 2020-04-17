@@ -8,6 +8,7 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
@@ -390,46 +391,52 @@ namespace Shoko.Server.Models
             if (episodesRAW == null) return;
             List<CrossRef_File_Episode> fileEps = RepoFactory.CrossRef_File_Episode.GetByHash(Hash);
 
-            foreach (CrossRef_File_Episode fileEp in fileEps)
-                RepoFactory.CrossRef_File_Episode.Delete(fileEp.CrossRef_File_EpisodeID);
-
-            fileEps = new List<CrossRef_File_Episode>();
-
-            char apostrophe = "'".ToCharArray()[0];
-            char epiSplit = ',';
-            if (episodesRAW.Contains(apostrophe))
-                epiSplit = apostrophe;
-
-            char eppSplit = ',';
-            if (episodesPercentRAW.Contains(apostrophe))
-                eppSplit = apostrophe;
-
-            string[] epi = episodesRAW.Split(epiSplit);
-            string[] epp = episodesPercentRAW.Split(eppSplit);
-            for (int x = 0; x < epi.Length; x++)
+            // Use a single session A. for efficiency and B. to prevent regenerating stats
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                string epis = epi[x].Trim();
-                string epps = epp[x].Trim();
-                if (epis.Length <= 0) continue;
-                if(!int.TryParse(epis, out int epid)) continue;
-                if(!int.TryParse(epps, out int eppp)) continue;
-                if (epid == 0) continue;
-                CrossRef_File_Episode cross = new CrossRef_File_Episode
+                foreach (CrossRef_File_Episode fileEp in fileEps)
+                    RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session,
+                        fileEp.CrossRef_File_EpisodeID);
+
+                fileEps = new List<CrossRef_File_Episode>();
+
+                char apostrophe = "'".ToCharArray()[0];
+                char epiSplit = ',';
+                if (episodesRAW.Contains(apostrophe))
+                    epiSplit = apostrophe;
+
+                char eppSplit = ',';
+                if (episodesPercentRAW.Contains(apostrophe))
+                    eppSplit = apostrophe;
+
+                string[] epi = episodesRAW.Split(epiSplit);
+                string[] epp = episodesPercentRAW.Split(eppSplit);
+                for (int x = 0; x < epi.Length; x++)
                 {
-                    Hash = Hash,
-                    CrossRefSource = (int)CrossRefSource.AniDB,
-                    AnimeID = AnimeID,
-                    EpisodeID = epid,
-                    Percentage = eppp,
-                    EpisodeOrder = x + 1,
-                    FileName = localFileName,
-                    FileSize = FileSize
-                };
-                fileEps.Add(cross);
+                    string epis = epi[x].Trim();
+                    string epps = epp[x].Trim();
+                    if (epis.Length <= 0) continue;
+                    if (!int.TryParse(epis, out int epid)) continue;
+                    if (!int.TryParse(epps, out int eppp)) continue;
+                    if (epid == 0) continue;
+                    CrossRef_File_Episode cross = new CrossRef_File_Episode
+                    {
+                        Hash = Hash,
+                        CrossRefSource = (int) CrossRefSource.AniDB,
+                        AnimeID = AnimeID,
+                        EpisodeID = epid,
+                        Percentage = eppp,
+                        EpisodeOrder = x + 1,
+                        FileName = localFileName,
+                        FileSize = FileSize
+                    };
+                    fileEps.Add(cross);
+                }
+
+                // There is a chance that AniDB returned a dup, however unlikely
+                RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session,
+                    fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}").ToList());
             }
-            // There is a chance that AniDB returned a dup, however unlikely
-            fileEps.DistinctBy(a => $"{a.Hash}-{a.EpisodeID}")
-                .ForEach(fileEp => RepoFactory.CrossRef_File_Episode.Save(fileEp));
         }
 
         public string ToXML()

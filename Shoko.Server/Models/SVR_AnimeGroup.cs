@@ -441,8 +441,11 @@ namespace Shoko.Server.Models
         public void UpdateStatsFromTopLevel(bool updateGroupStatsOnly, bool watchedStats, bool missingEpsStats)
         {
             if (AnimeGroupParentID.HasValue) return;
+            DateTime start = DateTime.Now;
+            logger.Info(
+                $"Starting Updating STATS for GROUP {GroupName} from Top Level (recursively) - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}, Groups Only: {updateGroupStatsOnly}");
 
-            // update the stats for all the sries first
+            // update the stats for all the series first
             if (!updateGroupStatsOnly)
                 foreach (SVR_AnimeSeries ser in GetAllSeries())
                     ser.UpdateStats(watchedStats, missingEpsStats, false);
@@ -453,6 +456,7 @@ namespace Shoko.Server.Models
                 grp.UpdateStats(watchedStats, missingEpsStats);
 
             UpdateStats(watchedStats, missingEpsStats);
+            logger.Trace($"Finished Updating STATS for GROUP {GroupName} from Top Level (recursively) in {(DateTime.Now - start).TotalMilliseconds}ms");
         }
 
         /// <summary>
@@ -461,13 +465,12 @@ namespace Shoko.Server.Models
         /// </summary>
         public void UpdateStats(bool watchedStats, bool missingEpsStats)
         {
+            DateTime start = DateTime.Now;
+            logger.Info(
+                $"Starting Updating STATS for GROUP {GroupName} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
             List<SVR_AnimeSeries> seriesList = GetAllSeries();
 
-            if (missingEpsStats)
-            {
-                UpdateMissingEpisodeStats(this, seriesList);
-                RepoFactory.AnimeGroup.Save(this, true, false);
-            }
+            if (missingEpsStats) UpdateMissingEpisodeStats(this, seriesList);
 
             if (watchedStats)
             {
@@ -480,6 +483,8 @@ namespace Shoko.Server.Models
                     RepoFactory.AnimeGroup_User.Save(userRecord);
                 });
             }
+            RepoFactory.AnimeGroup.Save(this, true, false);
+            logger.Trace($"Finished Updating STATS for GROUP {GroupName} in {(DateTime.Now - start).TotalMilliseconds}ms");
         }
 
         /// <summary>

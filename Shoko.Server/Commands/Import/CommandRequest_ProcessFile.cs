@@ -12,6 +12,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
@@ -204,7 +205,9 @@ namespace Shoko.Server.Commands
                                 {
                                     crossRefs.Add(xrefEnt);
                                     // in this case we need to save the cross refs manually as AniDB did not provide them
-                                    RepoFactory.CrossRef_File_Episode.Save(xrefEnt);
+                                    // use a session to prevent updating stats
+                                    using (var session = DatabaseFactory.SessionFactory.OpenSession())
+                                        RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session, xrefEnt);
                                 }
                             }
                         }

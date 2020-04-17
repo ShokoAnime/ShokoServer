@@ -1066,7 +1066,7 @@ namespace Shoko.Server.Models
             DateTime initialStart = DateTime.Now;
             string name = GetAnime()?.MainTitle ?? AniDB_ID.ToString();
             logger.Info(
-                $"Starting Updating STATS for SERIES {name} ({watchedStats} - {missingEpsStats} - {updateAllGroupsAbove})");
+                $"Starting Updating STATS for SERIES {name} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}, Update Group Stats: {updateAllGroupsAbove}");
 
             DateTime startEps = DateTime.Now;
             List<SVR_AnimeEpisode> eps = GetAnimeEpisodes().Where(a => a.AniDB_Episode != null).ToList();
