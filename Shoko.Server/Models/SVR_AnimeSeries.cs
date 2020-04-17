@@ -1064,7 +1064,7 @@ namespace Shoko.Server.Models
         {
             DateTime start = DateTime.Now;
             DateTime initialStart = DateTime.Now;
-            string name = GetSeriesName();
+            string name = GetAnime()?.MainTitle ?? AniDB_ID.ToString();
             logger.Info(
                 $"Starting Updating STATS for SERIES {name} ({watchedStats} - {missingEpsStats} - {updateAllGroupsAbove})");
 
@@ -1229,13 +1229,14 @@ namespace Shoko.Server.Models
             logger.Trace($"Updated MISSING EPS stats for SERIES {name} in {ts.TotalMilliseconds}ms");
             start = DateTime.Now;
 
-            RepoFactory.AnimeSeries.Save(this, false, false);
+            // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
+            RepoFactory.AnimeSeries.Save(this, updateGroups: false, onlyupdatestats: false, skipgroupfilters: updateAllGroupsAbove);
             ts = DateTime.Now - start;
             logger.Trace($"Saved stats for SERIES {name} in {ts.TotalMilliseconds}ms");
-            start = DateTime.Now;
 
             if (updateAllGroupsAbove)
             {
+                start = DateTime.Now;
                 AnimeGroup?.TopLevelAnimeGroup?.UpdateStatsFromTopLevel(true, watchedStats, missingEpsStats);
                 ts = DateTime.Now - start;
                 logger.Trace($"Updated group stats for SERIES {name} in {ts.TotalMilliseconds}ms");

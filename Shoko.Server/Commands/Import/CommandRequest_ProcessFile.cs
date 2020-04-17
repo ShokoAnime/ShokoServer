@@ -310,14 +310,16 @@ namespace Shoko.Server.Commands
                         cmdStatus.Save();
                     }
 
-                    // update stats
+                    // Only save the date, we'll update GroupFilters and stats in one pass
+                    // don't bother saving the series here, it'll happen in SVR_AniDB_Anime.UpdateStatsByAnimeID()
+                    // just don't do anything that needs this changed data before then
                     ser.EpisodeAddedDate = DateTime.Now;
-                    RepoFactory.AnimeSeries.Save(ser, false, false);
 
                     foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
                     {
                         grp.EpisodeAddedDate = DateTime.Now;
-                        RepoFactory.AnimeGroup.Save(grp, true, false);
+                        
+                        RepoFactory.AnimeGroup.Save(grp, false, false, false);
                     }
 
                     // We do this inside, as the info will not be available as needed otherwise
@@ -338,18 +340,21 @@ namespace Shoko.Server.Commands
                                 if (watchedVideo == null) continue;
 
                                 var watchedRecord = watchedVideo.GetUserRecord(user.JMMUserID);
-                                var userrecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                                var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
                                 {
                                     JMMUserID = user.JMMUserID,
                                     VideoLocalID = vidLocal.VideoLocalID,
                                 };
 
-                                userrecord.WatchedDate = watchedRecord.WatchedDate;
-                                userrecord.ResumePosition = watchedRecord.ResumePosition;
+                                userRecord.WatchedDate = watchedRecord.WatchedDate;
+                                userRecord.ResumePosition = watchedRecord.ResumePosition;
 
-                                RepoFactory.VideoLocalUser.Save(userrecord);
+                                RepoFactory.VideoLocalUser.Save(userRecord);
                             }
                         }
+                        
+                        // update stats for groups and series
+                        SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
                         if (ServerSettings.Instance.FileQualityFilterEnabled)
                         {
@@ -365,10 +370,6 @@ namespace Shoko.Server.Commands
                             videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveAndDeleteFile()));
                         }
                     }
-
-                    // update stats for groups and series
-                    // update all the groups above this series in the heirarchy
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
                 }
                 else
                 {

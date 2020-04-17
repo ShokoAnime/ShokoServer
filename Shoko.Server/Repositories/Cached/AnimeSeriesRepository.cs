@@ -125,7 +125,7 @@ namespace Shoko.Server.Repositories.Cached
         public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool skipgroupfilters = false,
             bool alsoupdateepisodes = false)
         {
-            DateTime start = DateTime.Now;
+            DateTime start;
             TimeSpan ts;
             bool newSeries = false;
             SVR_AnimeGroup oldGroup = null;
@@ -179,11 +179,11 @@ namespace Shoko.Server.Repositories.Cached
                 if (seasons == null || seasons.Count == 0)
                 {
                     start = DateTime.Now;
-                    var anime = obj.GetAnime();
+                    SVR_AniDB_Anime anime = obj.GetAnime();
                     if (anime != null)
-                        RepoFactory.AniDB_Anime.Save(anime);
+                        RepoFactory.AniDB_Anime.Save(anime, true);
                     ts = DateTime.Now - start;
-                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Updated Seasons in {ts.Milliseconds}ms");
+                    logger.Trace($"While Saving SERIES {obj.GetAnime()?.MainTitle ?? obj.AniDB_ID.ToString()}, Regenerated AniDB_Anime contract in {ts.Milliseconds}ms");
                 }
 
                 start = DateTime.Now;

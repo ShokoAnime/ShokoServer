@@ -90,6 +90,11 @@ namespace Shoko.Server.Repositories
 
         public override void Save(SVR_AniDB_Anime obj)
         {
+            Save(obj, true);
+        }
+
+        public void Save(SVR_AniDB_Anime obj, bool generateTvDBMatches)
+        {
             lock (globalDBLock)
             {
                 lock (obj)
@@ -106,7 +111,10 @@ namespace Shoko.Server.Repositories
                     // populate the database
                     base.Save(obj);
                 }
-                // Update TvDB Linking. Doing it here as updating anime updates epiosde info in batch
+            }
+            if (generateTvDBMatches)
+            {
+                // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
                 TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
             }
         }

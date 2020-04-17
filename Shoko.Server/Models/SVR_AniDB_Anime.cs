@@ -876,7 +876,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
 
             // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(this);
+            RepoFactory.AniDB_Anime.Save(this, generateTvDBMatches: false);
 
             taskTimer.Start();
 
@@ -927,31 +927,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return true;
         }
 
-        /// <summary>
-        /// we are depending on the HTTP api call to get most of the info
-        /// we only use UDP to get mssing information
-        /// </summary>
-        /// <param name="animeInfo"></param>
-        public void PopulateAndSaveFromUDP(Raw_AniDB_Anime animeInfo)
-        {
-            // raw fields
-            reviewIDListRAW = animeInfo.ReviewIDListRAW;
-
-            // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(this);
-
-            CreateAnimeReviews();
-        }
-
         public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
         {
             if (eps == null) return;
 
             EpisodeCountSpecial = 0;
             EpisodeCountNormal = 0;
-
-
-
 
             Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID).ToDictionary(a=>a.EpisodeID,a=>a);
             Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).Where(a=>a!=null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
@@ -992,7 +973,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     logger.Trace("AniDB Ep: "+ep.EpisodeID+" Type: "+ep.EpisodeType+" Number: "+ep.EpisodeNumber);
                 }
-                foreach (AnimeEpisode ep in currentAnimeEpisodes.Values)
+                foreach (SVR_AnimeEpisode ep in currentAnimeEpisodes.Values)
                 {
                     logger.Trace("Shoko Ep: "+ep.AnimeEpisodeID+" AniEp: "+ep.AniDB_EpisodeID);
                 }
@@ -1921,12 +1902,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (an != null)
                 RepoFactory.AniDB_Anime.Save(an);
             SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(id);
-            if (series != null)
-            {
-                // Update more than just stats in case the xrefs have changed
-                series.UpdateStats(true, true, true);
-                RepoFactory.AnimeSeries.Save(series, true, false, alsoupdateepisodes: true);
-            }
+            // Updating stats saves everything and updates groups
+            series?.UpdateStats(true, true, true);
         }
 
         public DateTime GetDateTimeUpdated()

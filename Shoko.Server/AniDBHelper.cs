@@ -883,26 +883,24 @@ namespace Shoko.Server
             {
                 // update the anime with a record of the latest subbed episode
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                if (anime != null)
-                {
-                    anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
-                    RepoFactory.AniDB_Anime.Save(anime);
+                if (anime == null) return getCmd.GrpStatusCollection;
 
-                    // check if we have this episode in the database
-                    // if not get it now by updating the anime record
-                    List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
-                        getCmd.GrpStatusCollection.LatestEpisodeNumber);
-                    if (eps.Count == 0)
-                    {
-                        CommandRequest_GetAnimeHTTP cr_anime =
-                            new CommandRequest_GetAnimeHTTP(animeID, true, false, 0);
-                        cr_anime.Save();
-                    }
-                    // update the missing episode stats on groups and children
-                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                    series?.QueueUpdateStats();
-                    //series.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+                anime.LatestEpisodeNumber = getCmd.GrpStatusCollection.LatestEpisodeNumber;
+                RepoFactory.AniDB_Anime.Save(anime, false);
+
+                // check if we have this episode in the database
+                // if not get it now by updating the anime record
+                List<AniDB_Episode> eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(animeID,
+                    getCmd.GrpStatusCollection.LatestEpisodeNumber);
+                if (eps.Count == 0)
+                {
+                    CommandRequest_GetAnimeHTTP cr_anime =
+                        new CommandRequest_GetAnimeHTTP(animeID, true, false, 0);
+                    cr_anime.Save();
                 }
+                // update the missing episode stats on groups and children
+                SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                series?.QueueUpdateStats();
             }
 
             return getCmd.GrpStatusCollection;
@@ -1033,7 +1031,6 @@ namespace Shoko.Server
 
             // create AnimeEpisode records for all episodes in this anime only if we have a series
             SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            RepoFactory.AniDB_Anime.Save(anime);
             if (ser != null)
             {
                 ser.CreateAnimeEpisodes(session);

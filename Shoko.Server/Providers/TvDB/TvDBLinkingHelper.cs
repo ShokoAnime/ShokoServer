@@ -20,6 +20,7 @@ namespace Shoko.Server
 
         public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
+            DateTime start = DateTime.Now;
             // wipe old links except User Verified
             if (!skipMatchClearing)
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
@@ -62,9 +63,19 @@ namespace Shoko.Server
                 tosave.Add(xref);
             }
 
-            if (tosave.Count == 0) return;
+            TimeSpan ts;
+            string anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.MainTitle ?? animeID.ToString();
+
+            if (tosave.Count == 0)
+            {
+                ts = DateTime.Now - start;
+                logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
+                return;
+            }
 
             tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Save);
+            ts = DateTime.Now - start;
+            logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
         }
 
         public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
