@@ -125,21 +125,16 @@ namespace Shoko.Server.API.v2.Models.common
                         g.roles.Add(role);
                     }
                 }
-            }
 
-            if (level > 0)
-            {
-                List<int> series = null;
-                if (filter?.SeriesIds.ContainsKey(uid) == true)
-                    series = filter.SeriesIds[uid].ToList();
-                foreach (SVR_AnimeSeries ada in ag.GetSeries())
+                if (level > 0)
                 {
-                    if (series != null && series.Count > 0 && !series.Contains(ada.AnimeSeriesID)) continue;
-                    g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic,
-                        pic, tagfilter));
+                    foreach (SVR_AnimeSeries ada in animes.Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID)))
+                    {
+                        g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, nocast, notag, (level - 1), all, allpic,
+                            pic, tagfilter));
+                    }
+                    // we already sorted animes, so no need to sort
                 }
-                // This should be faster
-                g.series.Sort();
             }
 
             return g;

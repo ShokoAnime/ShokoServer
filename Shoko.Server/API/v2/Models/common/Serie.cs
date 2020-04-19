@@ -467,12 +467,12 @@ namespace Shoko.Server.API.v2.Models.common
                 if (s > s1) return 1;
             }
             // Does it have an air date? Sort by it
-            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")) &&
-                !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToString("dd-MM-yyyy")))
+            if (!string.IsNullOrEmpty(a.air) && !a.air.Equals(DateTime.MinValue.ToPlexDate()) &&
+                !string.IsNullOrEmpty(air) && !air.Equals(DateTime.MinValue.ToPlexDate()))
             {
-                if (DateTime.TryParseExact(a.air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                if (DateTime.TryParseExact(a.air, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
                         out DateTime d1) &&
-                    DateTime.TryParseExact(air, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime d))
+                    DateTime.TryParseExact(air, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime d))
                 {
                     if (d < d1) return -1;
                     if (d > d1) return 1;
