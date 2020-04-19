@@ -1139,6 +1139,7 @@
     <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestLogout.cs" />
     <Compile Include="Providers\AniDB\UDP\Requests\RequestPing.cs" />
+    <Compile Include="Providers\AniDB\UDP\Responses\ResponseVote.cs" />
     <Compile Include="Providers\AniDB\UDP\Responses\ResponseCalendar.cs" />
     <Compile Include="Providers\AniDB\UDP\Responses\UDPBaseResponse.cs" />
     <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestAddFile.cs" />

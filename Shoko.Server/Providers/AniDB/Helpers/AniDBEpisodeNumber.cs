@@ -1,3 +1,4 @@
+using System;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB.Helpers
@@ -22,10 +23,26 @@ namespace Shoko.Server.Providers.AniDB.Helpers
                 case EpisodeType.Episode:
                     prefix = string.Empty;
                     break;
-
+                case EpisodeType.Special:
+                    prefix = "S";
+                    break;
+                case EpisodeType.Credits:
+                    prefix = "C";
+                    break;
+                case EpisodeType.Trailer:
+                    prefix = "T";
+                    break;
+                case EpisodeType.Parody:
+                    prefix = "P";
+                    break;
+                case EpisodeType.Other:
+                    prefix = "O";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
-            return EpisodeNumber.ToString();
+            return prefix + EpisodeNumber;
         }
     }
 }
