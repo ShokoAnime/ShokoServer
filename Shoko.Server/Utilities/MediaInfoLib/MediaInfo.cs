@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-using System.Web.Configuration;
+using System.Text;
 using Newtonsoft.Json;
 using NLog;
 using Shoko.Models.PlexAndKodi;
@@ -17,6 +17,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
         private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.exe");
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public static Media GetMediaInfoFromWrapper(string filename)
         {
             try
@@ -24,19 +25,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 var filenameArgs = GetFilenameAndArgsForOS(filename);
 
                 logger.Trace($"Calling MediaInfoWrapper for file: {filenameArgs.Item1} {filenameArgs.Item2}");
-                
-                Process pProcess = new Process
-                {
-                    StartInfo =
-                    {
-                        FileName = filenameArgs.Item1,
-                        Arguments = filenameArgs.Item2,
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Hidden,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true
-                    }
-                };
+
+                Process pProcess = GetProcess(filenameArgs.Item1, filenameArgs.Item2);
 
                 pProcess.Start();
                 string strOutput = pProcess.StandardOutput.ReadToEnd().Trim();
@@ -66,6 +56,65 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 logger.Error($"MediaInfo threw an error on {filename}: {e}");
                 return null;
             }
+        }
+
+        private static Process GetProcess(string filename, string args)
+        {
+            Process pProcess;
+            try
+            {
+                pProcess = new Process
+                {
+                    StartInfo =
+                    {
+                        FileName = filename,
+                        Arguments = args,
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = Encoding.Unicode,
+                        StandardErrorEncoding = Encoding.Unicode
+                    }
+                };
+            }
+            catch
+            {
+                try
+                {
+                    pProcess = new Process
+                    {
+                        StartInfo =
+                        {
+                            FileName = filename,
+                            Arguments = args,
+                            UseShellExecute = false,
+                            WindowStyle = ProcessWindowStyle.Hidden,
+                            RedirectStandardOutput = true,
+                            CreateNoWindow = true,
+                            StandardOutputEncoding = Encoding.UTF8,
+                            StandardErrorEncoding = Encoding.UTF8
+                        }
+                    };
+                }
+                catch
+                {
+                    pProcess = new Process
+                    {
+                        StartInfo =
+                        {
+                            FileName = filename,
+                            Arguments = args,
+                            UseShellExecute = false,
+                            WindowStyle = ProcessWindowStyle.Hidden,
+                            RedirectStandardOutput = true,
+                            CreateNoWindow = true
+                        }
+                    };
+                }
+            }
+
+            return pProcess;
         }
         
         private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
