@@ -60,59 +60,18 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         private static Process GetProcess(string filename, string args)
         {
-            Process pProcess;
-            try
+            Process pProcess = new Process
             {
-                pProcess = new Process
+                StartInfo =
                 {
-                    StartInfo =
-                    {
-                        FileName = filename,
-                        Arguments = args,
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Hidden,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = Encoding.Unicode,
-                        StandardErrorEncoding = Encoding.Unicode
-                    }
-                };
-            }
-            catch
-            {
-                try
-                {
-                    pProcess = new Process
-                    {
-                        StartInfo =
-                        {
-                            FileName = filename,
-                            Arguments = args,
-                            UseShellExecute = false,
-                            WindowStyle = ProcessWindowStyle.Hidden,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true,
-                            StandardOutputEncoding = Encoding.UTF8,
-                            StandardErrorEncoding = Encoding.UTF8
-                        }
-                    };
+                    FileName = filename,
+                    Arguments = args,
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
                 }
-                catch
-                {
-                    pProcess = new Process
-                    {
-                        StartInfo =
-                        {
-                            FileName = filename,
-                            Arguments = args,
-                            UseShellExecute = false,
-                            WindowStyle = ProcessWindowStyle.Hidden,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true
-                        }
-                    };
-                }
-            }
+            };
 
             return pProcess;
         }
