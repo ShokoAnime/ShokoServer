@@ -2,7 +2,7 @@ FROM mono:6.0
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 ENV PUID=1000 \
-    PGID=100  \ 
+    PGID=100  \
     TargetFrameworkDirectory=/usr/lib/mono/
 
 RUN apt-get install apt
@@ -37,7 +37,7 @@ RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | ap
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
+RUN apt-get update && apt-get install -y apt-utils libmediainfo0 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .
