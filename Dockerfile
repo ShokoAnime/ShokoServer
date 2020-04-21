@@ -10,9 +10,10 @@ RUN apt-get update && apt-get install -y gnupg curl wget
 
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
+RUN echo "deb https://mediaarea.net/repo/deb/debian/ jesse main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
+RUN apt-get update && apt-get install -y apt-utils libmediainfo0 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
 
 RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 2.2
 
@@ -37,7 +38,7 @@ RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | ap
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils libmediainfo0 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
+RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sqlite.interop jq unzip libunwind-dev apt-transport-https && apt-get install -y -t stretch-backports gosu
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .

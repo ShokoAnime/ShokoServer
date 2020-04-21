@@ -633,8 +633,8 @@ namespace Shoko.Server
             ret = ret.Replace(@"?", "\uff1f"); // ？ (FULL WIDTH QUESTION MARK)
             ret = ret.Replace(@"...", "\u2026"); // … (HORIZONTAL ELLIPSIS)
             if (ret.StartsWith(".", StringComparison.Ordinal)) ret = "․" + ret.Substring(1, ret.Length - 1);
-            if (ret.EndsWith(".", StringComparison.Ordinal))
-                ret = ret.Substring(0, ret.Length - 1) + "․";
+            if (ret.EndsWith(".", StringComparison.Ordinal)) // U+002E
+                ret = ret.Substring(0, ret.Length - 1) + "․"; // U+2024
             return ret.Trim();
         }
 
