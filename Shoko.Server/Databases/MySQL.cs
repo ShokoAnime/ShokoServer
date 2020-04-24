@@ -6,6 +6,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using MySql.Data.MySqlClient;
 using NHibernate;
+using NHibernate.Cfg;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -836,6 +837,11 @@ namespace Shoko.Server.Databases
                         .Username(ServerSettings.Instance.Database.Username)
                         .Password(ServerSettings.Instance.Database.Password)))
                 .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
+                {
+                    // uncomment this for SQL output
+                    //prop.LogSqlInConsole = true;
+                }))
                 .BuildSessionFactory();
         }
 

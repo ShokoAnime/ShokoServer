@@ -664,7 +664,7 @@ namespace Shoko.Server.Models
                 TimeSpan ts;
                 CL_AnimeSeries_User contract = (CL_AnimeSeries_User) Contract?.Clone();
                 ts = DateTime.Now - start;
-                logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Cloned Series Contract in {ts.TotalMilliseconds}ms");
+                logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Cloned Series Contract in {ts.TotalMilliseconds}ms");
                 if (contract == null)
                 {
                     contract = new CL_AnimeSeries_User();
@@ -698,7 +698,7 @@ namespace Shoko.Server.Models
                     HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
                     Contract = contract;
                     ts = DateTime.Now - start;
-                    logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
+                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
                     return types2;
                 }
                 SVR_AniDB_Anime animeRec = GetAnime();
@@ -724,7 +724,7 @@ namespace Shoko.Server.Models
                         RepoFactory.AniDB_Anime.Save(animeRec);
                     contract.AniDBAnime = (CL_AniDB_AnimeDetailed) animeRec.Contract.Clone();
                     ts = DateTime.Now - start;
-                    logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
+                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
                     contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
                     if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
                     {
@@ -764,7 +764,7 @@ namespace Shoko.Server.Models
                 start = DateTime.Now;
                 HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
                 ts = DateTime.Now - start;
-                logger.Trace($"While Update SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
+                logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
                 Contract = contract;
                 return types;
             }
@@ -1137,7 +1137,7 @@ namespace Shoko.Server.Models
                 // find out which groups the user is collecting
 
                 int latestLocalEpNumber = 0;
-                DateTime lastEpAirDate = DateTime.MinValue;
+                DateTime? lastEpAirDate = null;
                 EpisodeList epReleasedList = new EpisodeList(animeType);
                 EpisodeList epGroupReleasedList = new EpisodeList(animeType);
                 Dictionary<DayOfWeek, int> daysofweekcounter = new Dictionary<DayOfWeek, int>();
@@ -1184,7 +1184,7 @@ namespace Shoko.Server.Models
                             daysofweekcounter[airdateLocal.DayOfWeek]++;
                         }
 
-                        if (lastEpAirDate < airdate) lastEpAirDate = airdate.Value;
+                        if (lastEpAirDate == null || lastEpAirDate < airdate) lastEpAirDate = airdate.Value;
                     }
 
                     // does this episode have a file released

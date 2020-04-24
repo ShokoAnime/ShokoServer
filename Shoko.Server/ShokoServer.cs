@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using NHibernate;
+using NLog.Layouts;
 using NLog.Targets;
 using NLog.Web;
 using NutzCode.CloudFileSystem;
@@ -157,7 +158,6 @@ namespace Shoko.Server
                             logger.Info(dsn.SentryUri.ToString());
                     };
                 });
-
             LogManager.ReconfigExistingLoggers();
         }
 

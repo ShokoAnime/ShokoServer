@@ -2285,25 +2285,8 @@ namespace Shoko.Server
                 }
 
                 // make sure the anime exists first
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-
-                AniDB_AnimeUpdate update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-                bool animeRecentlyUpdated = false;
-
-                if (update != null)
-                {
-                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
-                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
-                }
-
-                // even if we are missing episode info, don't get data  more than once every 4 hours
-                // this is to prevent banning
-                if (!animeRecentlyUpdated)
-                {
-                    logger.Debug("Getting Anime record from AniDB....");
-                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                        ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
-                }
+                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, false,
+                    ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
 
                 if (anime == null)
                 {
@@ -2325,13 +2308,8 @@ namespace Shoko.Server
                     cmdStatus.Save();
                 }
 
-                // update stats
-                RepoFactory.AnimeSeries.Save(ser, false, false);
-
-                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    RepoFactory.AnimeGroup.Save(grp, true, false);
-                }
+                // update stats, skip the missing and watched stats. We don't have any files for this series yet!
+                ser.UpdateStats(false, false, true);
 
                 response.Result = ser.GetUserContract(userID);
                 return response;

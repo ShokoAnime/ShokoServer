@@ -7,6 +7,7 @@ using System.Linq;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using NHibernate;
+using NHibernate.Cfg;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -51,6 +52,11 @@ namespace Shoko.Server.Databases
                     .UsingFile(GetDatabaseFilePath()))
                 .Mappings(m =>
                     m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
+                {
+                    // uncomment this for SQL output
+                    //prop.LogSqlInConsole = true;
+                }))
                 .BuildSessionFactory();
         }
 

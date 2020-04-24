@@ -103,6 +103,8 @@ namespace Shoko.Server.Databases
                     if (!Utils.IsRunningOnMono()) return;
                     prop.Batcher<NonBatchingBatcherFactory>();
                     prop.BatchSize = 0;
+                    // uncomment this for SQL output
+                    //prop.LogSqlInConsole = true;
                 }))
                 .BuildSessionFactory();
         }
