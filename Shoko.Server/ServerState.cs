@@ -1,12 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using NLog;
 using Microsoft.Win32;
-using System;
 using Microsoft.Win32.TaskScheduler;
+using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
 

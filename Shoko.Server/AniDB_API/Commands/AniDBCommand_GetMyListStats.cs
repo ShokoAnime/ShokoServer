@@ -12,7 +12,7 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetMyListStats";
         }
 
-        private Raw_AniDB_MyListStats myListStats = null;
+        private Raw_AniDB_MyListStats myListStats;
 
         public Raw_AniDB_MyListStats MyListStats
         {

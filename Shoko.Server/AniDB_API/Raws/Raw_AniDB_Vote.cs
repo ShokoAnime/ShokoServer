@@ -40,11 +40,11 @@ namespace AniDBAPI
             // 2. 1 ** vote type
             // 3. 4521 ** animeid
 
-            this.EntityID = animeID;
-            this.EpisodeNumber = -1;
-            this.VoteValue = int.Parse(sDetails[1].Trim());
-            this.VoteType = (int) vtype;
-            this.EpisodeType = (int) Shoko.Models.Enums.EpisodeType.Episode;
+            EntityID = animeID;
+            EpisodeNumber = -1;
+            VoteValue = int.Parse(sDetails[1].Trim());
+            VoteType = (int) vtype;
+            EpisodeType = (int) Shoko.Models.Enums.EpisodeType.Episode;
         }
 
         public void ProcessVoteFoundEpisode(string sRecMessage, int animeID, int epno, EpisodeType epType)
@@ -60,11 +60,11 @@ namespace AniDBAPI
             // 2. 1 ** ???
             // 3. 63091 ** episodeid
 
-            this.EntityID = animeID;
-            this.EpisodeNumber = epno;
-            this.VoteValue = int.Parse(sDetails[1].Trim());
-            this.VoteType = (int) AniDBVoteType.Episode;
-            this.EpisodeType = (int) epType;
+            EntityID = animeID;
+            EpisodeNumber = epno;
+            VoteValue = int.Parse(sDetails[1].Trim());
+            VoteType = (int) AniDBVoteType.Episode;
+            EpisodeType = (int) epType;
         }
 
         public override string ToString()

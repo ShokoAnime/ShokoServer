@@ -3,23 +3,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using Shoko.Models.Server;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Client;
-using NutzCode.CloudFileSystem;
-using Shoko.Server.Commands;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Server.Extensions;
-using Shoko.Commons.Utils;
-using Shoko.Server.AniDB_API.Titles;
+using System.Web;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
+using NutzCode.CloudFileSystem;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Shoko.Server.AniDB_API.Titles;
+using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -538,7 +540,7 @@ namespace Shoko.Server
                     return ret;
                 }
                 if (ret.VideoLocal == null)
-                    ret.VideoLocal = new CL_VideoLocal() {VideoLocalID = videoLocalID };
+                    ret.VideoLocal = new CL_VideoLocal {VideoLocalID = videoLocalID };
             }
             catch (Exception ex)
             {
@@ -688,7 +690,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID).Cast<AniDB_Recommendation>().ToList();
+                return RepoFactory.AniDB_Recommendation.GetByAnimeID(animeID).ToList();
             }
             catch (Exception ex)
             {
@@ -721,7 +723,7 @@ namespace Shoko.Server
                             AnimeID = anime.AnimeID,
                             MainTitle = anime.MainTitle,
                             Titles =
-                            new HashSet<string>(anime.AllTitles.Split(new char[] { '|' },
+                            new HashSet<string>(anime.AllTitles.Split(new[] { '|' },
                                 StringSplitOptions.RemoveEmptyEntries))
                         };
 
@@ -741,7 +743,7 @@ namespace Shoko.Server
                 else
                 {
                     // title search so look at the web cache
-                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(System.Web.HttpUtility.UrlDecode(titleQuery));
+                    List<AniDBRaw_AnimeTitle_Anime> titles = AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(titleQuery));
 
                     foreach (AniDBRaw_AnimeTitle_Anime tit in titles)
                     {
@@ -1165,7 +1167,7 @@ namespace Shoko.Server
             List<CL_DuplicateFile> dupFiles = new List<CL_DuplicateFile>();
             try
             {
-                return RepoFactory.DuplicateFile.GetAll().Select(a => ModelClients.ToClient(a)).ToList();
+                return RepoFactory.DuplicateFile.GetAll().Select(a => a.ToClient()).ToList();
             }
             catch (Exception ex)
             {
@@ -1344,8 +1346,8 @@ namespace Shoko.Server
             string resolution,
             string videoSource, int videoBitDepth, int userID)
         {
-            relGroupName = System.Net.WebUtility.UrlDecode(relGroupName);
-            videoSource = System.Net.WebUtility.UrlDecode(videoSource);
+            relGroupName = WebUtility.UrlDecode(relGroupName);
+            videoSource = WebUtility.UrlDecode(videoSource);
 
             List<CL_VideoDetailed> vids = new List<CL_VideoDetailed>();
 
@@ -1467,8 +1469,8 @@ namespace Shoko.Server
             {
                 return "TV";
             }
-            else
-                return origSource;
+
+            return origSource;
         }
 
         [HttpGet("AniDB/ReleaseGroup/Quality/{animeID}")]
@@ -1489,7 +1491,7 @@ namespace Shoko.Server
                     File_Source = anidbFile == null
                         ? string.Intern("Manual Link")
                         : anidbFile.File_Source ?? string.Intern("unknown"),
-                    VideoResolution = a.VideoResolution
+                    a.VideoResolution
                 };
             });
             int rank = lookup.Count;

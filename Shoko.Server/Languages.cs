@@ -9,8 +9,7 @@ namespace Shoko.Server
         {
             get
             {
-                string[] lans = new string[]
-                {
+                string[] lans = {
                     "EN", "X-JAT", "JA", "AR", "BD", "BG", "CA", "CS", "CZ", "DA", "DK", "DE", "EL", "ES", "ET", "FI",
                     "FR", "GL", "GR", "HE", "HU", "IL", "IT", "KO", "LT", "MN", "MS", "MY", "NL", "NO", "PL", "PT",
                     "PT-BR", "RO", "RU", "SK", "SL", "SR", "SV", "SE", "TH", "TR", "UK", "UA", "VI", "ZH", "ZH-HANS",
@@ -26,7 +25,7 @@ namespace Shoko.Server
             {
                 List<NamingLanguage> lans = new List<NamingLanguage>();
 
-                foreach (string lan in Languages.AllLanguages)
+                foreach (string lan in AllLanguages)
                 {
                     NamingLanguage nlan = new NamingLanguage(lan);
                     lans.Add(nlan);

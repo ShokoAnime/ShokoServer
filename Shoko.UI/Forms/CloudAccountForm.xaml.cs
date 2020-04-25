@@ -7,12 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Application = System.Windows.Application;
 
 namespace Shoko.UI.Forms
 {
@@ -53,7 +51,7 @@ namespace Shoko.UI.Forms
                     if (ServerInfo.Instance.CloudAccounts.Any(
                         a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
-                        Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
+                        Utils.ShowErrorMessage(Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
                     }
                     if (SaveAccount == null)
@@ -90,7 +88,7 @@ namespace Shoko.UI.Forms
                     if (ServerInfo.Instance.CloudAccounts.Any(
                         a => a.Name == txtCloudAccountName.Text && a.CloudID != WorkingAccount.CloudID))
                     {
-                        Utils.ShowErrorMessage(Shoko.Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
+                        Utils.ShowErrorMessage(Commons.Properties.Resources.CloudAccounts_CloudNameAlreadyExists);
                         return;
                     }
                     WorkingAccount.Provider = ((ServerInfo.CloudProvider) comboProvider.SelectedItem).Name;
@@ -142,8 +140,8 @@ namespace Shoko.UI.Forms
             Application.Current.Dispatcher.Invoke(() =>
                 TextStatus.Text =
                     IsConnected
-                        ? Shoko.Commons.Properties.Resources.CloudAccount_Connected
-                        : Shoko.Commons.Properties.Resources.CloudAccount_NotConnected);
+                        ? Commons.Properties.Resources.CloudAccount_Connected
+                        : Commons.Properties.Resources.CloudAccount_NotConnected);
             this.OnPropertyChanged(() => IsConnected, () => IsNotConnected);
         }
 

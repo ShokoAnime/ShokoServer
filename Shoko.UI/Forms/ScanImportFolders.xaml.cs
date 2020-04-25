@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
@@ -66,14 +65,14 @@ namespace Shoko.UI.Forms
             };
             RepoFactory.Scan.Save(s);
             SelectedScan = s;
-            this.DialogResult = true;
-            this.Close();
+            DialogResult = true;
+            Close();
         }
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
-            this.Close();
+            DialogResult = false;
+            Close();
         }
     }
 }

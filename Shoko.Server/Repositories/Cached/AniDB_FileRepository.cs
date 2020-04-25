@@ -1,10 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
-using NHibernate;
-using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
@@ -26,7 +21,7 @@ namespace Shoko.Server.Repositories
 
         private AniDB_FileRepository()
         {
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 if (cr.AnimeID > 0)
                     SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);

@@ -65,12 +65,12 @@ namespace Shoko.UI.Forms
 
         public void PopulateMainDir(string initialpath)
         {
-            this.Cursor = Cursors.Wait;
+            Cursor = Cursors.Wait;
             _account.FileSystem.Populate();
             initialpath = initialpath.Replace("/", "\\");
             while (initialpath.StartsWith("\\"))
                 initialpath = initialpath.Substring(1);
-            string[] pars = initialpath.Split(new char[] {'\\'}, StringSplitOptions.RemoveEmptyEntries);
+            string[] pars = initialpath.Split(new[] {'\\'}, StringSplitOptions.RemoveEmptyEntries);
             if (pars.Length > 0 && _account.FileSystem.Name == pars[0])
             {
                 string[] pars2 = new string[pars.Length - 1];
@@ -78,7 +78,7 @@ namespace Shoko.UI.Forms
                 pars = pars2;
             }
             RecursiveAddFromDirectory(TrView.Items, _account.FileSystem, pars, 0);
-            this.Cursor = Cursors.Arrow;
+            Cursor = Cursors.Arrow;
         }
 
         private TreeViewItem GenerateFromDirectory(IDirectory d)
@@ -94,7 +94,7 @@ namespace Shoko.UI.Forms
 
         private void Item_Expanded(object sender, RoutedEventArgs e)
         {
-            this.Cursor = Cursors.Wait;
+            Cursor = Cursors.Wait;
             TreeViewItem item = (TreeViewItem) sender;
             if (item.Items.Count > 0 && item.Items[0] == obj)
             {
@@ -110,7 +110,7 @@ namespace Shoko.UI.Forms
                 {
                 }
             }
-            this.Cursor = Cursors.Arrow;
+            Cursor = Cursors.Arrow;
         }
 
         private void TrView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)

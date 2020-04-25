@@ -1,28 +1,24 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Models.Server;
-using NLog;
-
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Plex;
-using Shoko.Server.Plex.Libraries;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Shoko.Models.Plex.Collection;
-using Shoko.Models.Plex.Libraries;
-using Shoko.Server.Commands.Plex;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -326,7 +322,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 // Attempt to convert the input value
                 var valueAsString = valueProviderResult.FirstValue;
-                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() });
+                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType, new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
                 if (result != null)
                 {
                     

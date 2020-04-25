@@ -2,12 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.ServiceModel.Channels;
+using System.ServiceModel;
 using System.ServiceModel.Web;
-using System.Text;
-using System.Threading.Tasks;
-using FluentNHibernate.Mapping;
-using Nancy;
 using Shoko.Commons.Extensions;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
@@ -37,7 +33,7 @@ namespace Shoko.Server.PlexAndKodi
                                 ?.RequestUri.Scheme;
             if (host == null)
             {
-                var context = System.ServiceModel.OperationContext.Current;
+                var context = OperationContext.Current;
                 if (context != null && context.IncomingMessageHeaders?.To != null)
                 {
                     Uri ur = context.IncomingMessageHeaders?.To;

@@ -8,7 +8,6 @@ using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {

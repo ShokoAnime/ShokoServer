@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Direct

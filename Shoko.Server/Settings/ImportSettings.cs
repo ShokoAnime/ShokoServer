@@ -5,7 +5,7 @@ namespace Shoko.Server.Settings
     public class ImportSettings
     {
         
-        public string[] VideoExtensions { get; set; } = new[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
+        public string[] VideoExtensions { get; set; } = { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
 
         public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
 

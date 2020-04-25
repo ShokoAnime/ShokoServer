@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 // ReSharper disable InconsistentNaming
@@ -251,7 +250,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             {"unk", "xx"},
         };
 
-        public static readonly Dictionary<string, string> Extensions = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> Extensions = new Dictionary<string, string>
         {
             {"utf", "text/plain"},
             {"utf8", "text/plain"},

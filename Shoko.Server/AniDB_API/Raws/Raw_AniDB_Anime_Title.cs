@@ -15,20 +15,16 @@ namespace AniDBAPI
 
         #endregion
 
-        public Raw_AniDB_Anime_Title()
-        {
-        }
-
         public void ProcessFromHTTPResult(XmlNode node, int anid)
         {
-            this.AnimeID = anid;
-            this.TitleType = string.Empty;
-            this.Language = string.Empty;
-            this.Title = string.Empty;
+            AnimeID = anid;
+            TitleType = string.Empty;
+            Language = string.Empty;
+            Title = string.Empty;
 
-            this.TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
-            this.Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
-            this.Title = node.InnerText.Trim().Replace('`', '\'');
+            TitleType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            Language = AniDBHTTPHelper.TryGetAttribute(node, "xml:lang");
+            Title = node.InnerText.Trim().Replace('`', '\'');
 
             // Title Types
             // -------------

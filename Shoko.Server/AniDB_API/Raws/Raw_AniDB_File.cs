@@ -1,10 +1,9 @@
 using System;
 using System.Text;
 using System.Xml.Serialization;
-using Shoko.Server;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Server;
 
 namespace AniDBAPI
 {
@@ -192,11 +191,11 @@ namespace AniDBAPI
             // 33. Eclipse Productions ** group name
             // 34. Eclipse ** group name short
 
-            this.FileSize = long.Parse(sDetails[8].Trim());
-            this.ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
-            this.MD5 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
-            this.SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
-            this.CRC = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim()).ToUpper();
+            FileSize = long.Parse(sDetails[8].Trim());
+            ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
+            MD5 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
+            SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
+            CRC = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim()).ToUpper();
             FileID = int.Parse(sDetails[0].Trim());
             AnimeID = int.Parse(sDetails[1].Trim());
 
@@ -289,15 +288,15 @@ namespace AniDBAPI
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("Raw_AniDB_File:: hash: " + ED2KHash);
-            sb.Append(" | fileID: " + FileID.ToString());
+            sb.Append(" | fileID: " + FileID);
             sb.Append(" | Source: " + File_Source);
             //sb.Append(" | episodeID: " + EpisodeID.ToString());
-            sb.Append(" | animeID: " + AnimeID.ToString());
-            sb.Append(" | IsWatched: " + IsWatched.ToString());
+            sb.Append(" | animeID: " + AnimeID);
+            sb.Append(" | IsWatched: " + IsWatched);
             sb.Append(" | FileName: " + FileName);
-            sb.Append(" | FileSize: " + FileSize.ToString());
-            sb.Append(" | DateTimeUpdated: " + DateTimeUpdated.ToString());
-            sb.Append(" | EpisodesRAW: " + EpisodesRAW.ToString());
+            sb.Append(" | FileSize: " + FileSize);
+            sb.Append(" | DateTimeUpdated: " + DateTimeUpdated);
+            sb.Append(" | EpisodesRAW: " + EpisodesRAW);
             sb.Append(" | EpisodesPercentRAW: " + EpisodesPercentRAW);
             sb.Append(" | LanguagesRAW: " + LanguagesRAW);
             sb.Append(" | SubtitlesRAW: " + SubtitlesRAW);

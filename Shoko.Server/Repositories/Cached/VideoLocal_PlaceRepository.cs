@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
 
@@ -87,16 +86,16 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_ImportFolder ifolder in shares)
             {
                 string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
+                string importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + $"{System.IO.Path.DirectorySeparatorChar}";
+                importLocationFull = importLocationFull + $"{Path.DirectorySeparatorChar}";
 
-                importLocation = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
+                importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
                 if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
-                    filePath = filePath.TrimStart(System.IO.Path.DirectorySeparatorChar);
+                    filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
                     return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
             }

@@ -13,14 +13,11 @@ using System.Threading;
 using System.Timers;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Extensions.Logging;
 using NHibernate;
-using NLog.Layouts;
+using NLog;
 using NLog.Targets;
 using NLog.Web;
 using NutzCode.CloudFileSystem;
@@ -29,13 +26,12 @@ using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API;
 using Shoko.Server.Commands;
-using Shoko.Server.Commands.Azure;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
-using Shoko.Server.FileHelper.Subtitles;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
@@ -44,7 +40,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.UI;
 using Trinet.Core.IO.Ntfs;
-using Shoko.Server.API;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
@@ -59,7 +54,7 @@ namespace Shoko.Server
         private static DateTime lastTraktInfoUpdate = DateTime.Now;
         private static DateTime lastVersionCheck = DateTime.Now;
 
-        public static DateTime? StartTime = null;
+        public static DateTime? StartTime;
 
         public static TimeSpan? UpTime => StartTime == null ? null : DateTime.Now - StartTime;
         private static IDisposable _sentry;
@@ -121,7 +116,7 @@ namespace Shoko.Server
         ~ShokoServer()
         {
             _sentry.Dispose();
-            this.ShutDown();
+            ShutDown();
         }
 
         public void InitLogger()
@@ -220,7 +215,7 @@ namespace Shoko.Server
             }
             catch (Exception e)
             {
-                logger.Log(NLog.LogLevel.Error, e);
+                logger.Log(LogLevel.Error, e);
             }
 
             try

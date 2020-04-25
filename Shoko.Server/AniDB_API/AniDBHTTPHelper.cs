@@ -5,7 +5,6 @@ using System.Threading;
 using System.Xml;
 using NLog;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.Models;

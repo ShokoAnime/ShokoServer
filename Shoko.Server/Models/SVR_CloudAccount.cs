@@ -5,7 +5,6 @@ using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.OAuth2;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -14,10 +13,6 @@ namespace Shoko.Server.Models
 {
     public class SVR_CloudAccount : CloudAccount
     {
-        public SVR_CloudAccount()
-        {
-        }
-
         public new string Provider
         {
             get { return base.Provider; }
@@ -74,7 +69,7 @@ namespace Shoko.Server.Models
         [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
-        internal bool NeedSave { get; set; } = false;
+        internal bool NeedSave { get; set; }
 
         private static AuthorizationFactory _cache; //lazy init, because 
         private static AuthorizationFactory AuthInstance

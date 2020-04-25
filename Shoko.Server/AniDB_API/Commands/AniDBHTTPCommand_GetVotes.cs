@@ -63,8 +63,8 @@ namespace Shoko.Server.AniDB_API.Commands
 
         public void Init(string uname, string pword)
         {
-            this.username = uname;
-            this.password = pword;
+            username = uname;
+            password = pword;
             commandID = "VOTES";
         }
     }

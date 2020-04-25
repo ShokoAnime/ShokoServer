@@ -5,19 +5,8 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
-using CL_AniDB_Anime_Relation = Shoko.Models.Client.CL_AniDB_Anime_Relation;
-using CL_AniDB_Anime_Similar = Shoko.Models.Client.CL_AniDB_Anime_Similar;
-using CL_AniDB_Character = Shoko.Models.Client.CL_AniDB_Character;
-using CL_AniDB_GroupStatus = Shoko.Models.Client.CL_AniDB_GroupStatus;
-using CL_AnimeEpisode_User = Shoko.Models.Client.CL_AnimeEpisode_User;
-using CL_AnimeGroup_User = Shoko.Models.Client.CL_AnimeGroup_User;
-using CL_AnimeSeries_User = Shoko.Models.Client.CL_AnimeSeries_User;
-using CL_BookmarkedAnime = Shoko.Models.Client.CL_BookmarkedAnime;
 
 namespace Shoko.Server.Extensions
 {

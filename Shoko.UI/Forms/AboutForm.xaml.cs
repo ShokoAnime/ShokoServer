@@ -1,7 +1,8 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Shoko.Server;
 using Shoko.Server.Settings;
@@ -25,22 +26,22 @@ namespace Shoko.UI.Forms
 
         void btnUpdates_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow mdw = this.Owner as MainWindow;
+            MainWindow mdw = Owner as MainWindow;
             if (mdw == null) return;
 
-            this.Close();
+            Close();
             ShokoServer.Instance.CheckForUpdatesNew(true);
         }
 
 
-        private void cbUpdateChannel_DropDownClosed(object sender, System.EventArgs e)
+        private void cbUpdateChannel_DropDownClosed(object sender, EventArgs e)
         {
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
                 ServerSettings.Instance.UpdateChannel = cbUpdateChannel.Text;
         }
 
         private void cbUpdateChannel_SelectionChanged(object sender,
-            System.Windows.Controls.SelectionChangedEventArgs e)
+            SelectionChangedEventArgs e)
         {
             if (!string.IsNullOrEmpty(cbUpdateChannel.Text))
                 ServerSettings.Instance.UpdateChannel = cbUpdateChannel.Text;

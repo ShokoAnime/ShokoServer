@@ -1,6 +1,4 @@
-﻿using Shoko.Server.Utilities;
-
-namespace Shoko.Server.API.v2.Models.core
+﻿namespace Shoko.Server.API.v2.Models.core
 {
     /// <summary>
     /// This is a class to which request should be bind to harvers parameters send to api

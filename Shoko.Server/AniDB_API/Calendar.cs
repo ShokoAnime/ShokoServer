@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Server;
 using Shoko.Commons.Utils;
 
 namespace AniDBAPI
@@ -31,7 +30,7 @@ namespace AniDBAPI
             set { releaseDateRaw = value; }
         }
 
-        private int dateFlags = 0;
+        private int dateFlags;
 
         public int DateFlags
         {
@@ -111,7 +110,7 @@ namespace AniDBAPI
             string ret = string.Empty;
             foreach (Calendar cal in calendars)
             {
-                ret += cal.ToString() + Environment.NewLine;
+                ret += cal + Environment.NewLine;
             }
             return ret;
         }

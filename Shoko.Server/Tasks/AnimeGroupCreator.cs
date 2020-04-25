@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Shoko.Models.Server;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -237,7 +235,7 @@ namespace Shoko.Server.Tasks
                 SVR_AnimeGroup group = new SVR_AnimeGroup();
                 SVR_AnimeSeries series = seriesList[grp];
 
-                @group.Populate(series, now);
+                group.Populate(series, now);
                 newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
             }
 

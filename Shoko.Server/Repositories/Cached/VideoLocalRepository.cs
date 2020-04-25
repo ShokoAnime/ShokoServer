@@ -1,16 +1,18 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FluentNHibernate.Utils;
-using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Extensions;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
+using Shoko.Models.Server;
+using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -69,7 +71,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void RegenerateDb()
         {
             ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Validating, nameof(VideoLocal), " Generating Media Info");
+                Resources.Database_Validating, nameof(VideoLocal), " Generating Media Info");
             int count = 0;
             int max;
             try
@@ -91,7 +93,7 @@ namespace Shoko.Server.Repositories.Cached
                         Save(a, false);
                         count++;
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                            Resources.Database_Validating, nameof(VideoLocal),
                             " Generating Media Info - " + count + "/" + max);
                     });
             }
@@ -107,7 +109,7 @@ namespace Shoko.Server.Repositories.Cached
                     .GroupBy(a => a.Hash)
                     .ToDictionary(g => g.Key, g => g.ToList());
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                    Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Empty Records");
                 using (var transaction = session.BeginTransaction())
                 {
@@ -119,7 +121,7 @@ namespace Shoko.Server.Repositories.Cached
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                         count++;
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                            Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Empty Records - " + count + "/" + max);
                     }
                     transaction.Commit();
@@ -128,7 +130,7 @@ namespace Shoko.Server.Repositories.Cached
                 var comparer = new VideoLocalComparer();
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                    Resources.Database_Validating, nameof(VideoLocal),
                     " Checking for Duplicate Records");
 
                 foreach (string hash in locals.Keys)
@@ -164,7 +166,7 @@ namespace Shoko.Server.Repositories.Cached
                         {
                             count++;
                             ServerState.Instance.CurrentSetupStatus = string.Format(
-                                Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                                Resources.Database_Validating, nameof(VideoLocal),
                                 " Cleaning Duplicate Records - " + count + "/" + max);
                             DeleteWithOpenTransaction(session, remove);
                         }
@@ -173,7 +175,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                    Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Fragmented Records");
                 using (var transaction = session.BeginTransaction())
                 {
@@ -188,7 +190,7 @@ namespace Shoko.Server.Repositories.Cached
                         RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
                         count++;
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, nameof(VideoLocal),
+                            Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Fragmented Records - " + count + "/" + max);
                     }
                     transaction.Commit();
@@ -359,7 +361,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
 
-            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            IEnumerator IEnumerable.GetEnumerator()
             {
                 return GetEnumerator();
             }

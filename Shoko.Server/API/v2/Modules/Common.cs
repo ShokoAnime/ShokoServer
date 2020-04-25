@@ -5,7 +5,6 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -15,10 +14,8 @@ using Newtonsoft.Json;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.API.v2.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
@@ -38,10 +35,6 @@ namespace Shoko.Server.API.v2.Modules
     {
         //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
-        public Common()
-        {
-        }
-        
         #region 01. Import Folders
 
         /// <summary>
@@ -1121,7 +1114,7 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult<List<Episode>> GetEpisodeFromHash(string hash, int pic = 1)
         {
             JMMUser user = HttpContext.GetUser();
-            if (String.IsNullOrEmpty(hash)) return BadRequest("missing 'hash'");
+            if (string.IsNullOrEmpty(hash)) return BadRequest("missing 'hash'");
 
             List<SVR_AnimeEpisode> list_aep = RepoFactory.AnimeEpisode.GetByHash(hash);
             
@@ -1593,15 +1586,11 @@ namespace Shoko.Server.API.v2.Modules
                     RepoFactory.BookmarkedAnime.Save(ba);
                     return Ok();
                 }
-                else
-                {
-                    return Ok("already added");
-                }
+
+                return Ok("already added");
             }
-            else
-            {
-                return BadRequest();
-            }
+
+            return BadRequest();
         }
 
         /// <summary>
@@ -1969,7 +1958,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Info class above</returns>
         internal object GetSeriesInfoByFolder(int id)
         {
-            Info info = new Info()
+            Info info = new Info
             {
                 id = id
             };
@@ -2004,7 +1993,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        SeriesInfo ser = new SeriesInfo()
+                        SeriesInfo ser = new SeriesInfo
                         {
                             id = series.AnimeSeriesID,
                             filesize = vl.FileSize,

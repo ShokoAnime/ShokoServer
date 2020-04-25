@@ -1,13 +1,11 @@
-﻿using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
-using System;
-using System.IO;
+﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
 
 namespace LeanWork.IO.FileSystem
 {
@@ -27,22 +25,22 @@ namespace LeanWork.IO.FileSystem
     /// </devdoc>
     public class BufferingFileSystemWatcher : Component
     {
-        private FileSystemWatcher _containedFSW = null;
+        private FileSystemWatcher _containedFSW;
 
-        private FileSystemEventHandler _onExistedHandler = null;
-        private FileSystemEventHandler _onAllChangesHandler = null;
+        private FileSystemEventHandler _onExistedHandler;
+        private FileSystemEventHandler _onAllChangesHandler;
 
-        private FileSystemEventHandler _onCreatedHandler = null;
-        private FileSystemEventHandler _onChangedHandler = null;
-        private FileSystemEventHandler _onDeletedHandler = null;
-        private RenamedEventHandler _onRenamedHandler = null;
+        private FileSystemEventHandler _onCreatedHandler;
+        private FileSystemEventHandler _onChangedHandler;
+        private FileSystemEventHandler _onDeletedHandler;
+        private RenamedEventHandler _onRenamedHandler;
 
-        private ErrorEventHandler _onErrorHandler = null;
+        private ErrorEventHandler _onErrorHandler;
 
         //We use a single buffer for all change types. Alternatively we could use one buffer per event type, costing additional enumerate tasks.
-        private BlockingCollection<FileSystemEventArgs> _fileSystemEventBuffer = null;
+        private BlockingCollection<FileSystemEventArgs> _fileSystemEventBuffer;
 
-        private CancellationTokenSource _cancellationTokenSource = null;
+        private CancellationTokenSource _cancellationTokenSource;
 
         #region Contained FileSystemWatcher
 
@@ -333,7 +331,7 @@ namespace LeanWork.IO.FileSystem
                     ? SearchOption.AllDirectories
                     : SearchOption.TopDirectoryOnly;
                 var sortedFileNames = from fi in new DirectoryInfo(Path).GetFiles(Filter, searchSubDirectoriesOption)
-                                      orderby fi.LastWriteTime ascending
+                                      orderby fi.LastWriteTime
                                       select fi.Name;
                 foreach (var fileName in sortedFileNames)
                 {
@@ -359,7 +357,7 @@ namespace LeanWork.IO.FileSystem
         {
             if (eventHandler != null)
             {
-                if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
+                if (_containedFSW.SynchronizingObject != null && _containedFSW.SynchronizingObject.InvokeRequired)
                     _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
@@ -370,7 +368,7 @@ namespace LeanWork.IO.FileSystem
         {
             if (eventHandler != null)
             {
-                if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
+                if (_containedFSW.SynchronizingObject != null && _containedFSW.SynchronizingObject.InvokeRequired)
                     _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);
@@ -381,7 +379,7 @@ namespace LeanWork.IO.FileSystem
         {
             if (eventHandler != null)
             {
-                if (_containedFSW.SynchronizingObject != null && this._containedFSW.SynchronizingObject.InvokeRequired)
+                if (_containedFSW.SynchronizingObject != null && _containedFSW.SynchronizingObject.InvokeRequired)
                     _containedFSW.SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);

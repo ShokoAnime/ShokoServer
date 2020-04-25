@@ -511,7 +511,7 @@ namespace Shoko.Server.Providers.AniDB
                 {
                     //deflate
                     byte[] buff = new byte[65536];
-                    Byte[] input = new byte[received - 2];
+                    byte[] input = new byte[received - 2];
                     Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
                     Inflater inf = new Inflater(false);
                     inf.SetInput(input);

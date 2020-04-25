@@ -6,7 +6,9 @@ using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
+using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
+using Stream = System.IO.Stream;
 
 namespace Shoko.Server.API.v1.Implementations
 {
@@ -19,7 +21,7 @@ namespace Shoko.Server.API.v1.Implementations
         CommonImplementation _impl = new CommonImplementation();
 
         [HttpGet("Image/Support/{name}")]
-        public System.IO.Stream GetSupportImage(string name)
+        public Stream GetSupportImage(string name)
         {
             return _impl.GetSupportImage(name);
         }
@@ -67,11 +69,11 @@ namespace Shoko.Server.API.v1.Implementations
         public MediaDevice CurrentDevice(int userId) => _impl.CurrentDevice(userId);
 
         [HttpPost("Linking/Directories/{userId}")]
-        public void UseDirectories(int userId, List<Shoko.Models.Plex.Libraries.Directory> directories) =>
+        public void UseDirectories(int userId, List<Directory> directories) =>
             _impl.UseDirectories(userId, directories);
 
         [HttpGet("Linking/Directories/{userId}")]
-        public Shoko.Models.Plex.Libraries.Directory[] Directories(int userId) => _impl.Directories(userId);
+        public Directory[] Directories(int userId) => _impl.Directories(userId);
 
         [HttpPost("Linking/Servers/{userId}")]
         public void UseDevice(int userId, MediaDevice server) => _impl.UseDevice(userId, server);

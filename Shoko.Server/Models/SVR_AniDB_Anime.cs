@@ -1248,52 +1248,52 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     case AniDB_ResourceLinkType.ANN:
                     {
-                        this.ANNID = resource.ID;
+                        ANNID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.ALLCinema:
                     {
-                        this.AllCinemaID = resource.ID;
+                        AllCinemaID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.AnimeNFO:
                     {
-                        this.AnimeNfo = resource.ID;
+                        AnimeNfo = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Site_JP:
                     {
-                        this.Site_JP = resource.RawID;
+                        Site_JP = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Site_EN:
                     {
-                        this.Site_EN = resource.RawID;
+                        Site_EN = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Wiki_EN:
                     {
-                        this.Wikipedia_ID = resource.RawID;
+                        Wikipedia_ID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Wiki_JP:
                     {
-                        this.WikipediaJP_ID = resource.RawID;
+                        WikipediaJP_ID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Syoboi:
                     {
-                        this.SyoboiID = resource.ID;
+                        SyoboiID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Anison:
                     {
-                        this.AnisonID = resource.ID;
+                        AnisonID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Crunchyroll:
                     {
-                        this.CrunchyrollID = resource.RawID;
+                        CrunchyrollID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.MAL:

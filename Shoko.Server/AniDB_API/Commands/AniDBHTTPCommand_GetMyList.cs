@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using NLog;
-using Shoko.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
@@ -118,8 +117,8 @@ namespace AniDBAPI.Commands
 
         public void Init(string uname, string pword)
         {
-            this.username = uname;
-            this.password = pword;
+            username = uname;
+            password = pword;
             commandID = "MYLIST";
         }
     }

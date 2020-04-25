@@ -16,7 +16,7 @@ namespace Shoko.Server
     {
         private static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
         {
-            ContractResolver = new EmitEmptyEnumerableInsteadOfNullResolver()
+            ContractResolver = new EmitEmptyEnumerableInsteadOfNullResolver
             {
                 NamingStrategy = new DefaultNamingStrategy()
             },

@@ -1,31 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-//using Microsoft.SqlServer.Management.Smo;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.SqlServer.Management.Smo;
 using NLog;
-using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Utilities;
-using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.SqlServer.Management.Smo;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings;
-using Microsoft.AspNetCore.Authorization;
+using Shoko.Server.Utilities;
+using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings; //using Microsoft.SqlServer.Management.Smo;
+using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
 
 //using Microsoft.SqlServer.Management.Smo;
 
@@ -38,66 +34,6 @@ namespace Shoko.Server.API.v2.Modules
     public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
-        /// <inheritdoc />
-        /// <summary>
-        /// Preinit Module for connection testing and setup
-        /// Settings will be loaded prior to this starting
-        /// Unless otherwise noted, these will only work before server init
-        /// </summary>
-        public Init()// : base("/api/init")
-        {
-            /*// Get version, regardless of server status
-            // This will work after init
-            Get("/version", ctx => GetVersion());
-
-            // Get the startup state
-            // This will work after init
-            Get("/status", ctx => GetServerStatus());
-
-            // Get the Default User Credentials
-            Get("/defaultuser", ctx => GetDefaultUserCredentials());
-
-            // Set the Default User Credentials
-            // Pass this a Credentials object
-            Post("/defaultuser", ctx => SetDefaultUserCredentials());
-
-            // Set AniDB user/pass
-            // Pass this a Credentials object
-            Post("/anidb", ctx => SetAniDB());
-
-            // Get existing AniDB user, don't provide pass
-            Get("/anidb", ctx => GetAniDB());
-
-            // Test AniDB login
-            Get("/anidb/test", ctx => TestAniDB());
-
-            // Get Database Settings
-            Get("/database", ctx => GetDatabaseSettings());
-
-            // Set Database Settings
-            Post("/database", ctx => SetDatabaseSettings());
-
-            // Test Database Connection
-            Get("/database/test", ctx => TestDatabaseConnection());
-
-            // Get SQL Server Instances on the Machine
-            Get("/database/sqlserverinstance", ctx => GetMSSQLInstances());
-
-            // Get the whole settings file
-            Get("/config", ctx => ExportConfig());
-
-            // Replace the whole settings file
-            Post("/config", ctx => ImportConfig());
-
-            // Get a single setting value
-            Get("/setting", ctx => GetSetting());
-
-            // Set a single setting value
-            Patch("/setting", ctx => SetSetting());
-
-            // Start the server
-            Get("/startserver", ctx => StartServer());*/
-        }
 
         /// <summary>
         /// Return current version of ShokoServer and several modules

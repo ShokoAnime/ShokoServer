@@ -1,4 +1,7 @@
-﻿namespace Shoko.Server
+﻿using System;
+using Shoko.Commons.Properties;
+
+namespace Shoko.Server
 {
     public static class Constants
     {
@@ -11,7 +14,7 @@
         public static readonly int ForceLogoutPeriod = 300;
         public static readonly int PingFrequency = 45;
 
-        public static readonly System.TimeSpan ContractLifespan = System.TimeSpan.FromHours(2);
+        public static readonly TimeSpan ContractLifespan = TimeSpan.FromHours(2);
 
 
         public static readonly string NO_GROUP_INFO = "NO GROUP INFO";
@@ -19,7 +22,7 @@
 
         public struct GroupFilterName
         {
-            public static readonly string ContinueWatching = Commons.Properties.Resources.Filter_Continue;
+            public static readonly string ContinueWatching = Resources.Filter_Continue;
         }
 
         public struct DatabaseType
@@ -189,12 +192,12 @@
 
         public struct EpisodeTypeStrings
         {
-            public static readonly string Normal = Commons.Properties.Resources.EpisodeType_Episodes;
-            public static readonly string Credits = Commons.Properties.Resources.EpisodeType_Credits;
-            public static readonly string Specials = Commons.Properties.Resources.EpisodeType_Specials;
-            public static readonly string Trailer = Commons.Properties.Resources.EpisodeType_Trailer;
-            public static readonly string Parody = Commons.Properties.Resources.EpisodeType_Parody;
-            public static readonly string Other = Commons.Properties.Resources.EpisodeType_Other;
+            public static readonly string Normal = Resources.EpisodeType_Episodes;
+            public static readonly string Credits = Resources.EpisodeType_Credits;
+            public static readonly string Specials = Resources.EpisodeType_Specials;
+            public static readonly string Trailer = Resources.EpisodeType_Trailer;
+            public static readonly string Parody = Resources.EpisodeType_Parody;
+            public static readonly string Other = Resources.EpisodeType_Other;
         }
 
         public struct TvDB

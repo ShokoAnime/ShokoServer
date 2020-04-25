@@ -2,15 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using Microsoft.AspNetCore.Http;
-using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
-using Shoko.Server.API.v3;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Filter = Shoko.Server.API.v2.Models.common.Filter;
 
 namespace Shoko.Server.API.v2
 {

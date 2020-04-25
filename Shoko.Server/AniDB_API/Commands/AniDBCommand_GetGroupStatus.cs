@@ -16,10 +16,10 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_GetGroupStatus" + AnimeID.ToString();
+            return "AniDBCommand_GetGroupStatus" + AnimeID;
         }
 
-        private GroupStatusCollection grpStatus = null;
+        private GroupStatusCollection grpStatus;
 
         public GroupStatusCollection GrpStatusCollection
         {
@@ -78,7 +78,7 @@ namespace AniDBAPI.Commands
         public void Init(int animeID)
         {
             this.animeID = animeID;
-            commandText = "GROUPSTATUS aid=" + animeID.ToString();
+            commandText = "GROUPSTATUS aid=" + animeID;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetGroupStatus.Process: Request: {0}", commandText);
 

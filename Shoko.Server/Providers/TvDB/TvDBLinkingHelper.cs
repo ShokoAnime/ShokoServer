@@ -477,7 +477,7 @@ namespace Shoko.Server
                                     (aniep, tvep) =>
                                         aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
                                         tvep.AirDate?.ToIso8601WeekNumber() &&
-                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a) >=
                                 prequelEps.Count * 2D / 3D;
 
                             if (!match) continue;
@@ -534,7 +534,7 @@ namespace Shoko.Server
                                     (aniep, tvep) =>
                                         aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
                                         tvep.AirDate?.ToIso8601WeekNumber() &&
-                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a) >=
                                 epsilon;
                             if (!match) continue;
 

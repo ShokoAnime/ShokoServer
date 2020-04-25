@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using NLog;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct

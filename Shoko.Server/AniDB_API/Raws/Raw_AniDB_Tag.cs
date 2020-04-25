@@ -21,36 +21,32 @@ namespace AniDBAPI
 
         #endregion
 
-        public Raw_AniDB_Tag()
-        {
-        }
-
         public void ProcessFromHTTPResult(XmlNode node, int anid)
         {
-            this.AnimeID = anid;
-            this.TagID = 0;
-            this.Spoiler = 0;
-            this.LocalSpoiler = 0;
-            this.GlobalSpoiler = 0;
-            this.TagName = string.Empty;
-            this.TagDescription = string.Empty;
-            this.TagCount = 0;
-            this.Approval = 0;
-            this.Weight = 0;
+            AnimeID = anid;
+            TagID = 0;
+            Spoiler = 0;
+            LocalSpoiler = 0;
+            GlobalSpoiler = 0;
+            TagName = string.Empty;
+            TagDescription = string.Empty;
+            TagCount = 0;
+            Approval = 0;
+            Weight = 0;
 
-            this.TagID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
+            TagID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "weight"), out int tapp);
-            this.Weight = tapp;
+            Weight = tapp;
 
-            this.TagName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
-            this.TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
+            TagName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            TagDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
 
             bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "localspoiler"), out bool lsp);
-            this.Spoiler |= lsp ? 1 : 0;
+            Spoiler |= lsp ? 1 : 0;
 
             bool.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "globalspoiler"), out bool gsp);
-            this.Spoiler |= gsp ? 1 : 0;
+            Spoiler |= gsp ? 1 : 0;
         }
     }
 }

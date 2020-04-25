@@ -1,6 +1,4 @@
-﻿using System;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+﻿using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -8,7 +6,7 @@ namespace Shoko.Server.Repositories.Cached
     {
         private CloudAccountRepository()
         {
-            EndSaveCallback = (obj) => { obj.NeedSave = false; };
+            EndSaveCallback = obj => { obj.NeedSave = false; };
         }
 
         public static CloudAccountRepository Create()

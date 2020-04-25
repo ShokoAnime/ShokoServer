@@ -13,7 +13,7 @@ namespace Shoko.Server.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_GetGroup_" + GroupID.ToString();
+            return "AniDBCommand_GetGroup_" + GroupID;
         }
 
         public virtual AniDBUDPResponseCode GetStartEventType()
@@ -61,8 +61,8 @@ namespace Shoko.Server.Commands
 
         public void Init(int groupID)
         {
-            this.GroupID = groupID;
-            commandText = "GROUP gid=" + GroupID.ToString();
+            GroupID = groupID;
+            commandText = "GROUP gid=" + GroupID;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetGroupStatus.Process: Request: {0}", commandText);
 

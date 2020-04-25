@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
 
@@ -15,7 +15,7 @@ namespace Shoko.Server.FileHelper
 
         public delegate int OnHashProgress([MarshalAs(UnmanagedType.LPWStr)] string strFileName, int nProgressPct);
 
-        [System.Flags]
+        [Flags]
         internal enum LoadLibraryFlags : uint
         {
             DONT_RESOLVE_DLL_REFERENCES = 0x00000001,
@@ -55,7 +55,7 @@ namespace Shoko.Server.FileHelper
 
         static Hasher()
         {
-            string fullexepath = System.Reflection.Assembly.GetEntryAssembly().Location;
+            string fullexepath = Assembly.GetEntryAssembly().Location;
             try
             {
                 if (fullexepath != null)
@@ -90,7 +90,7 @@ namespace Shoko.Server.FileHelper
             bool getCRC32, bool getMD5, bool getSHA1)
         {
             logger.Trace("Using DLL to hash file: {0}", strFileName);
-            OnHashProgress pHashProgress = new OnHashProgress(HashProgress);
+            OnHashProgress pHashProgress = HashProgress;
             GCHandle gcHashProgress = GCHandle.Alloc(pHashProgress); //to make sure the GC doesn't dispose the delegate
 
             return CalculateHashes_callback_dll(strFileName, hash, pHashProgress, getCRC32, getMD5, getSHA1);

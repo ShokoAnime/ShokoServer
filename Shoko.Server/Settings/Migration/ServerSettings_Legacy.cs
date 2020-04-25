@@ -15,13 +15,11 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
-using NLog.Targets;
 using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Utilities;
 using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Settings.Migration
@@ -1822,7 +1820,7 @@ namespace Shoko.Server.Settings.Migration
             get
             {
                 string values = Get(nameof(Plex_Libraries));
-                if (String.IsNullOrEmpty(values)) return new int[0];
+                if (string.IsNullOrEmpty(values)) return new int[0];
                 return values.Split(',').Select(int.Parse).ToArray();
             }
             set => Set(nameof(Plex_Libraries), string.Join(",", value));
@@ -1846,7 +1844,7 @@ namespace Shoko.Server.Settings.Migration
         {
             get
             {
-                if (!Int32.TryParse(Get(nameof(Linux_UID)), out int val)) return -1;
+                if (!int.TryParse(Get(nameof(Linux_UID)), out int val)) return -1;
                 return val;
             }
             set { Set(nameof(Linux_UID), value.ToString()); }
@@ -1856,7 +1854,7 @@ namespace Shoko.Server.Settings.Migration
         {
             get
             {
-                if (!Int32.TryParse(Get(nameof(Linux_GID)), out int val)) return -1;
+                if (!int.TryParse(Get(nameof(Linux_GID)), out int val)) return -1;
                 return val;
             }
             set { Set(nameof(Linux_GID), value.ToString()); }
@@ -1872,7 +1870,7 @@ namespace Shoko.Server.Settings.Migration
         {
             get
             {
-                if (!Int32.TryParse(Get(nameof(AniDB_MaxRelationDepth)), out int val)) return 3;
+                if (!int.TryParse(Get(nameof(AniDB_MaxRelationDepth)), out int val)) return 3;
                 return val;
             }
             set { Set(nameof(AniDB_MaxRelationDepth), value.ToString()); }
@@ -2007,7 +2005,7 @@ namespace Shoko.Server.Settings.Migration
                 WebUI_Settings = WebUI_Settings,
 
                 //Plex
-                Plex_Sections = String.Join(",", Plex_Libraries),
+                Plex_Sections = string.Join(",", Plex_Libraries),
                 Plex_ServerHost = Plex_Server
             };
             return contract;

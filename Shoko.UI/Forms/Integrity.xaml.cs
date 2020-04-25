@@ -49,8 +49,8 @@ namespace Shoko.UI.Forms
         private void BtnDeleteClick(object sender, RoutedEventArgs e)
         {
             if (
-                MessageBox.Show(Shoko.Commons.Properties.Resources.Integrity_DeleteMessage,
-                    Shoko.Commons.Properties.Resources.Integrity_DeleteTitle,
+                MessageBox.Show(Commons.Properties.Resources.Integrity_DeleteMessage,
+                    Commons.Properties.Resources.Integrity_DeleteTitle,
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 Scanner.Instance.ClearScan();
@@ -68,9 +68,9 @@ namespace Shoko.UI.Forms
             bool? result = frm.ShowDialog();
             if (result.HasValue && result.Value)
             {
-                this.IsEnabled = false;
+                IsEnabled = false;
                 Cursor = Cursors.Wait;
-                SVR_Scan s = (SVR_Scan) frm.SelectedScan;
+                SVR_Scan s = frm.SelectedScan;
                 HashSet<int> imp = new HashSet<int>(s.GetImportFolderList());
                 List<SVR_VideoLocal> vl = imp.SelectMany(a => RepoFactory.VideoLocal.GetByImportFolder(a))
                     .Distinct()
@@ -92,7 +92,7 @@ namespace Shoko.UI.Forms
                     }
                 }
                 RepoFactory.ScanFile.Save(files);
-                this.IsEnabled = true;
+                IsEnabled = true;
                 Scanner.Instance.Scans.Add(s);
                 comboProvider.SelectedItem = s;
                 Cursor = Cursors.Arrow;
@@ -101,7 +101,7 @@ namespace Shoko.UI.Forms
 
         private Window GetTopParent()
         {
-            DependencyObject dpParent = this.Parent;
+            DependencyObject dpParent = Parent;
             do
             {
                 dpParent = LogicalTreeHelper.GetParent(dpParent);
@@ -117,8 +117,8 @@ namespace Shoko.UI.Forms
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage,
-                        Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
+                    MessageBox.Show(Commons.Properties.Resources.Integerity_ReaddMessage,
+                        Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
                         MessageBoxImage.Information);
                     return;
                 }
@@ -143,8 +143,8 @@ namespace Shoko.UI.Forms
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddSingleMessage,
-                        Shoko.Commons.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,
+                    MessageBox.Show(Commons.Properties.Resources.Integerity_ReaddSingleMessage,
+                        Commons.Properties.Resources.Integerity_ReaddSingleTitle, MessageBoxButton.OK,
                         MessageBoxImage.Information);
                     return;
                 }
@@ -167,8 +167,8 @@ namespace Shoko.UI.Forms
             {
                 if (scan.GetScanStatus() == ScanStatus.Running)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.Integerity_ReaddMessage,
-                        Shoko.Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
+                    MessageBox.Show(Commons.Properties.Resources.Integerity_ReaddMessage,
+                        Commons.Properties.Resources.Integerity_ReaddTitle, MessageBoxButton.OK,
                         MessageBoxImage.Information);
                     return;
                 }

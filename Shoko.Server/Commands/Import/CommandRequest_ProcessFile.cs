@@ -11,7 +11,6 @@ using Shoko.Models.Azure;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.Azure;

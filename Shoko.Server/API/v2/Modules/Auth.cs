@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
 
@@ -11,13 +10,6 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersionNeutral]
     public class Auth : BaseController
     {
-        /// <summary>
-        /// Authentication module
-        /// </summary>
-        public Auth()// : base("/api/auth")
-        {
-        }
-
         /// <summary>
         /// Get an authentication token for the user.
         /// </summary>

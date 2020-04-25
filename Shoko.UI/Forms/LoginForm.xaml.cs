@@ -22,7 +22,7 @@ namespace Shoko.UI.Forms
             bool scopecommaseparated)
         {
             InitializeComponent();
-            this.Title = string.IsNullOrEmpty(name) ? "Login" : name;
+            Title = string.IsNullOrEmpty(name) ? "Login" : name;
             WebView.Navigated += WebView_Navigated;
             WebView.Navigating += WebView_Navigating;
             string responsetype = "code";
@@ -31,7 +31,7 @@ namespace Shoko.UI.Forms
                 HttpUtility.UrlEncode(string.Join(sep, scopes)), HttpUtility.UrlEncode(responsetype),
                 HttpUtility.UrlEncode(redirect), authurl);
             uri = new Uri(url);
-            this.Visibility = Visibility.Visible;
+            Visibility = Visibility.Visible;
         }
 
         private void WebView_Navigating(object sender, NavigatingCancelEventArgs e)
@@ -44,7 +44,7 @@ namespace Shoko.UI.Forms
             CheckUrl(e.Uri.ToString());
         }
 
-        bool checke = false;
+        bool checke;
 
         private void CheckUrl(string url)
         {

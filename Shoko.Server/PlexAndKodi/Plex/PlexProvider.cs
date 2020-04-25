@@ -1,11 +1,7 @@
 ﻿using System;
-using System.IO;
-using System.ServiceModel.Web;
 using System.Text;
-using System.Xml.Serialization;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
-using Nancy;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.PlexAndKodi.Plex

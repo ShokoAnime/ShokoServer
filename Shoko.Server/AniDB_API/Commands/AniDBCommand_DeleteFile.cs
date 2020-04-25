@@ -7,8 +7,8 @@ namespace AniDBAPI.Commands
     public class AniDBCommand_DeleteFile : AniDBUDPCommand, IAniDBUDPCommand
     {
         public string Hash = string.Empty;
-        public long FileSize = 0;
-        public int FileID = 0;
+        public long FileSize;
+        public int FileID;
 
         public string GetKey()
         {
@@ -60,7 +60,7 @@ namespace AniDBAPI.Commands
 
             commandID = "Deleting File: " + Hash;
 
-            commandText = "MYLISTDEL size=" + FileSize.ToString();
+            commandText = "MYLISTDEL size=" + FileSize;
             commandText += "&ed2k=" + Hash;
         }
 
@@ -70,9 +70,9 @@ namespace AniDBAPI.Commands
             FileSize = 0;
             FileID = fileID;
 
-            commandID = "Deleting File: " + fileID.ToString();
+            commandID = "Deleting File: " + fileID;
 
-            commandText = "MYLISTDEL lid=" + fileID.ToString();
+            commandText = "MYLISTDEL lid=" + fileID;
         }
     }
 }

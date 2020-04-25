@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models.Server;
-using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
@@ -26,12 +24,12 @@ namespace Shoko.Server.Repositories.Cached
 
         private AnimeSeriesRepository()
         {
-            BeginDeleteCallback = (cr) =>
+            BeginDeleteCallback = cr =>
             {
                 RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
                 Changes.Remove(cr.AnimeSeriesID);
             };
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 cr.DeleteFromFilters();
                 if (cr.AnimeGroupID > 0)
@@ -76,7 +74,7 @@ namespace Shoko.Server.Repositories.Cached
                         .ToList();
                 int max = sers.Count;
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
+                    Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AnimeSeries s in sers)
                 {
@@ -92,12 +90,12 @@ namespace Shoko.Server.Repositories.Cached
                     if (cnt % 10 == 0)
                     {
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name,
+                            Resources.Database_Validating, typeof(AnimeSeries).Name,
                             " DbRegen - " + cnt + "/" + max);
                     }
                 }
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AnimeSeries).Name,
+                    Resources.Database_Validating, typeof(AnimeSeries).Name,
                     " DbRegen - " + max + "/" + max);
             }
             catch (Exception e)

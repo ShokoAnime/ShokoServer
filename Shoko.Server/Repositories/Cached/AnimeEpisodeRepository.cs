@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
-using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
@@ -21,7 +18,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private AnimeEpisodeRepository()
         {
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 RepoFactory.AnimeEpisode_User.Delete(
                     RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));

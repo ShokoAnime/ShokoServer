@@ -7,12 +7,12 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_GetFileInfo : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public Raw_AniDB_File fileInfo = null;
+        public Raw_AniDB_File fileInfo;
 
         //public Raw_AniDB_Episode episodeInfo = null;
-        public IHash fileData = null;
+        public IHash fileData;
 
-        private bool forceRefresh = false;
+        private bool forceRefresh;
 
         public bool ForceRefresh
         {
@@ -88,12 +88,12 @@ namespace AniDBAPI.Commands
             int aByte4 = 192; // amask - byte4
 
             this.fileData = fileData;
-            this.forceRefresh = force;
+            forceRefresh = force;
 
             commandID = fileData.Info;
             // 220 FILE572794|6107|99294|2723|c646d82a184a33f4e4f98af39f29a044|8452c4bf|high|HDTV|Vorbis (Ogg Vorbis)|148|H264/AVC|1773|1280x720|mkv|1470||1239494400|2|The Day It Began|Hajimari no Hi|712|14|Eclipse Productions|Eclipse
 
-            commandText = "FILE size=" + fileData.FileSize.ToString();
+            commandText = "FILE size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText +=
                 $"&fmask={fByte1.ToString("X").PadLeft(2, '0')}{fByte2.ToString("X").PadLeft(2, '0')}{fByte3.ToString("X").PadLeft(2, '0')}{fByte4.ToString("X").PadLeft(2, '0')}{fByte5.ToString("X").PadLeft(2, '0')}";

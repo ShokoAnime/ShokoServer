@@ -1,9 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Shoko.Models.Server;
+﻿using System.Linq;
 using NHibernate.Criterion;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;

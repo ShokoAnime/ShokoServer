@@ -15,7 +15,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private AniDB_VoteRepository()
         {
-            EndSaveCallback = (cr) =>
+            EndSaveCallback = cr =>
             {
                 switch (cr.VoteType)
                 {
@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
                         break;
                 }
             };
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 switch (cr.VoteType)
                 {

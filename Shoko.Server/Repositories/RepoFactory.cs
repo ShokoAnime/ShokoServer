@@ -4,6 +4,7 @@ using System.Runtime;
 using System.Threading.Tasks;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 
@@ -146,7 +147,7 @@ namespace Shoko.Server.Repositories
                 CachedRepositories.ForEach(repo =>
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " DbRegen");
+                        Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " DbRegen");
                     repo.RegenerateDb();
                 });
                 CachedRepositories.ForEach(repo => repo.PostProcess());

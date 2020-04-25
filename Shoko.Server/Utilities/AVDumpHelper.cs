@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using NLog;
-using SharpCompress.Archives;
-using SharpCompress.Archives.Rar;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
@@ -52,7 +49,7 @@ namespace Shoko.Server
                     {
                         if (!reader.Entry.IsDirectory)
                         {
-                            reader.WriteEntryToDirectory(Destination, new ExtractionOptions()
+                            reader.WriteEntryToDirectory(Destination, new ExtractionOptions
                             {
                                 // This may have serious problems in the future, but for now, AVDump is flat
                                 ExtractFullPath = false,

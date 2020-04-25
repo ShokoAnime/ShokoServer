@@ -25,8 +25,8 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = AniDBVoteType.Anime;
-            this.EntityID = int.Parse(node.Attributes["aid"].Value);
+            VoteType = AniDBVoteType.Anime;
+            EntityID = int.Parse(node.Attributes["aid"].Value);
             double.TryParse(node.InnerText.Trim(), style, culture, out double val);
             int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;
@@ -37,8 +37,8 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = AniDBVoteType.AnimeTemp;
-            this.EntityID = int.Parse(node.Attributes["aid"].Value);
+            VoteType = AniDBVoteType.AnimeTemp;
+            EntityID = int.Parse(node.Attributes["aid"].Value);
             double.TryParse(node.InnerText.Trim(), style, culture, out double val);
             int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;
@@ -49,8 +49,8 @@ namespace Shoko.Server.AniDB_API.Raws
             NumberStyles style = NumberStyles.Number;
             CultureInfo culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-            this.VoteType = AniDBVoteType.Episode;
-            this.EntityID = int.Parse(node.Attributes["eid"].Value);
+            VoteType = AniDBVoteType.Episode;
+            EntityID = int.Parse(node.Attributes["eid"].Value);
             double.TryParse(node.InnerText.Trim(), style, culture, out double val);
             int.TryParse((val * 100).ToString(), out int ival);
             VoteValue = ival;

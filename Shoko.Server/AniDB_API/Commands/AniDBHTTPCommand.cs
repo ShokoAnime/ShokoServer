@@ -1,7 +1,4 @@
-﻿using System;
-using Shoko.Server;
-
-namespace AniDBAPI.Commands
+﻿namespace AniDBAPI.Commands
 {
     public abstract class AniDBHTTPCommand
     {

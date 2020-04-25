@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Configuration;
 using System.IO;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Settings;
@@ -60,7 +57,7 @@ namespace Shoko.Server.FileHelper
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in GetVideoExtensions: " + ex.ToString());
+                logger.Error(ex, "Error in GetVideoExtensions: " + ex);
             }
 
             return extList;

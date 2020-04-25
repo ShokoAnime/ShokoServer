@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 
@@ -43,7 +43,7 @@ namespace Shoko.Server.Repositories.Cached
                 i++;
                 if (i % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
+                        Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
                         $" DbRegen - {i}/{list.Count}");
             }
         }

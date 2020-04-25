@@ -12,7 +12,7 @@ namespace Shoko.Server
         /// <returns></returns>
         public static byte[] ConvertStringToByteArray(string stringToConvert)
         {
-            System.Text.UTF8Encoding utf = new UTF8Encoding();
+            UTF8Encoding utf = new UTF8Encoding();
             return utf.GetBytes(stringToConvert);
         }
 
@@ -21,7 +21,7 @@ namespace Shoko.Server
         /// </summary>
         /// <param name="characters">Unicode Byte Array to be converted to String</param>
         /// <returns>String converted from Unicode Byte Array</returns>
-        private String ConvertByteArrayToString(Byte[] characters)
+        private string ConvertByteArrayToString(byte[] characters)
         {
             UTF8Encoding encoding = new UTF8Encoding();
             return encoding.GetString(characters);
@@ -65,7 +65,7 @@ namespace Shoko.Server
             if (string.IsNullOrEmpty(sourceString))
                 return sourceString;
             return startIndex > sourceString.Length 
-                ? String.Empty 
+                ? string.Empty 
                 : sourceString.Substring(startIndex, Math.Min(maxLength, sourceString.Length - startIndex));
         }
     }

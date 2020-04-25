@@ -1,6 +1,7 @@
-﻿using Shoko.Server;
-using System;
+﻿using System;
+using System.Threading;
 using NLog;
+using Shoko.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.CLI
@@ -19,12 +20,10 @@ namespace Shoko.CLI
         {
             for (int x = 0; x < args.Length; x++)
             {
-                if (args[x].Equals("instance", StringComparison.InvariantCultureIgnoreCase))
+                if (!args[x].Equals("instance", StringComparison.InvariantCultureIgnoreCase)) continue;
+                if (x + 1 < args.Length)
                 {
-                    if (x + 1 < args.Length)
-                    {
-                        ServerSettings.DefaultInstance = args[x + 1];
-                    }
+                    ServerSettings.DefaultInstance = args[x + 1];
                 }
             }
 
@@ -58,7 +57,7 @@ namespace Shoko.CLI
 
             while (_running)
             {
-                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(60));
+                Thread.Sleep(TimeSpan.FromSeconds(60));
             }
         }
     }

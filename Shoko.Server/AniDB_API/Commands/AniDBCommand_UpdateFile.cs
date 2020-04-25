@@ -3,9 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Shoko.Commons.Utils;
-using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
-using Shoko.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands

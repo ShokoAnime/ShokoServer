@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 
 namespace Shoko.Server.Utilities
@@ -26,8 +27,8 @@ namespace Shoko.Server.Utilities
             int val = _baseReader.Read();
             try
             {
-                char c = System.Convert.ToChar(val);
-                _position += _encoding.GetByteCount(new char[] {c});
+                char c = Convert.ToChar(val);
+                _position += _encoding.GetByteCount(new[] {c});
             }
             catch
             {

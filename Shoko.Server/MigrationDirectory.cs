@@ -1,14 +1,8 @@
 ﻿ using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+ using System.IO;
+ using System.Linq;
 
-namespace Shoko.Server
+ namespace Shoko.Server
 {
     public class MigrationDirectory
     {
@@ -67,14 +61,14 @@ namespace Shoko.Server
         }
 
 
-        private void MoveDirectory(string @from, string to)
+        private void MoveDirectory(string from, string to)
         {
-            DirectoryInfo fromDir = new DirectoryInfo(@from);
+            DirectoryInfo fromDir = new DirectoryInfo(from);
             DirectoryInfo toDir = new DirectoryInfo(to);
 
             if (fromDir.Root.Name.Equals(toDir.Root.Name, StringComparison.InvariantCultureIgnoreCase))
             {
-                Directory.Move(@from, to);
+                Directory.Move(from, to);
                 return;
             }
 
@@ -90,7 +84,7 @@ namespace Shoko.Server
                 string newPath = Path.Combine(to, subDir.Name);
                 MoveDirectory(subDir.FullName, newPath);
             }
-            Directory.Delete(@from, true);
+            Directory.Delete(from, true);
         }
     }
 }

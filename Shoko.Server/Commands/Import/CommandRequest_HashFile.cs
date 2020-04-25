@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Xml;
-using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -380,7 +378,7 @@ namespace Shoko.Server.Commands
                     ShokoService.CmdProcessorHasher.QueueState = PrettyDescriptionHashing;
                     DateTime start = DateTime.Now;
                     // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
+                    var hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                         true, true, true);
                     TimeSpan ts = DateTime.Now - start;
                     logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds, FileName,
@@ -544,12 +542,12 @@ namespace Shoko.Server.Commands
                     tp.Add("CRC32");
                 logger.Trace("Calculating missing {1} hashes for: {0}", FileName, string.Join(",", tp));
                 // update the VideoLocal record with the Hash, since cloud support we calculate everything
-                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
+                Hashes hashes = FileHashHelper.GetHashInfo(FileName.Replace("/", $"{Path.DirectorySeparatorChar}"), true, ShokoServer.OnHashProgress,
                     needcrc32, needmd5, needsha1);
                 TimeSpan ts = DateTime.Now - start;
                 logger.Trace("Hashed file in {0:#0.0} seconds --- {1} ({2})", ts.TotalSeconds,
                     FileName, Utils.FormatByteSize(vlocal.FileSize));
-                if (String.IsNullOrEmpty(vlocal.Hash))
+                if (string.IsNullOrEmpty(vlocal.Hash))
                     vlocal.Hash = hashes.ED2K?.ToUpperInvariant();
                 if (needsha1)
                     vlocal.SHA1 = hashes.SHA1?.ToUpperInvariant();

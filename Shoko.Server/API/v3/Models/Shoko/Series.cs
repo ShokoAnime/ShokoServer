@@ -9,6 +9,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -112,7 +113,7 @@ namespace Shoko.Server.API.v3
             Images images = new Images();
             Random rand = ctx.Items["Random"] as Random;
             
-            var allImages = GetArt(ctx, ser.AniDB_ID, false);
+            var allImages = GetArt(ctx, ser.AniDB_ID);
             var defaultPoster = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(ser.AniDB_ID,
                 (int) ImageSizeType.Poster);
             
@@ -247,7 +248,7 @@ namespace Shoko.Server.API.v3
             }
             
             // Add Poster
-            v3.Images images = new Images();
+            Images images = new Images();
             AddAniDBPoster(ctx, images, anime.AnimeID);
             aniDB.Poster = images.Posters.FirstOrDefault();
 
@@ -269,7 +270,7 @@ namespace Shoko.Server.API.v3
                 if (tvdbSer.Rating != null)
                     model.Rating = new Rating {Source = "TvDB", Value = tvdbSer.Rating.Value, MaxValue = 10};
                 
-                v3.Images images = new Images();
+                Images images = new Images();
                 AddTvDBImages(ctx, images, ser.AniDB_ID);
                 model.Posters = images.Posters;
                 model.Fanarts = images.Fanarts;

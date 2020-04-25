@@ -1,25 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v1;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
 using Mime = MimeMapping.MimeUtility;
-using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
@@ -127,7 +122,7 @@ namespace Shoko.Server
                 {
                     outstream.CrossPosition = (long) (totalsize * WatchedThreshold);
                     outstream.CrossPositionCrossed +=
-                        (a) =>
+                        a =>
                         {
                             Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
                                 new CancellationToken(),
@@ -202,10 +197,10 @@ namespace Shoko.Server
         public static string Base64DecodeUrl(string base64EncodedData)
         {
             var base64EncodedBytes =
-                System.Convert.FromBase64String(base64EncodedData.Replace("-", "+")
+                Convert.FromBase64String(base64EncodedData.Replace("-", "+")
                     .Replace("_", "/")
                     .Replace(",", "="));
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            return Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
         private InfoResult FinishResolve(InfoResult r, int? userId, bool? autowatch)

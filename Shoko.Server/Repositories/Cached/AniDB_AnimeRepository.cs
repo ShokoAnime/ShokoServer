@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
+using Shoko.Commons.Properties;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
@@ -55,7 +55,7 @@ namespace Shoko.Server.Repositories
                 int count = 0;
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
+                    Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
@@ -78,12 +78,12 @@ namespace Shoko.Server.Repositories
                     }
 
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name,
+                        Resources.Database_Validating, typeof(AniDB_Anime).Name,
                         " DbRegen - " + count + "/" + max);
                 }
 
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name,
+                    Resources.Database_Validating, typeof(AniDB_Anime).Name,
                     " DbRegen - " + max + "/" + max);
             }
         }

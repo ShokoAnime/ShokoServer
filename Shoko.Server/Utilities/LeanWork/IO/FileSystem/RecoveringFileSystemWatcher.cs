@@ -1,8 +1,8 @@
-﻿using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
-using System;
-using System.IO;
+﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Threading;
+using LeanWork.IO.FileSystem.Watcher.LeanWork.IO.FileSystem;
 using NLog;
 
 namespace LeanWork.IO.FileSystem
@@ -12,14 +12,13 @@ namespace LeanWork.IO.FileSystem
         public TimeSpan DirectoryMonitorInterval = TimeSpan.FromMinutes(5);
         public TimeSpan DirectoryRetryInterval = TimeSpan.FromSeconds(5);
 
-        private System.Threading.Timer _monitorTimer = null;
+        private Timer _monitorTimer;
 
-        private bool _isRecovering = false;
+        private bool _isRecovering;
         private static Logger _trace = LogManager.GetCurrentClassLogger();
 
 
         public RecoveringFileSystemWatcher()
-            : base()
         {
         }
 
@@ -34,7 +33,7 @@ namespace LeanWork.IO.FileSystem
         }
 
         //To allow consumer to cancel default error handling
-        private EventHandler<FileWatcherErrorEventArgs> _onErrorHandler = null;
+        private EventHandler<FileWatcherErrorEventArgs> _onErrorHandler;
 
         public new event EventHandler<FileWatcherErrorEventArgs> Error
         {
@@ -73,7 +72,7 @@ namespace LeanWork.IO.FileSystem
         {
             try
             {
-                _monitorTimer = new System.Threading.Timer(_monitorTimer_Elapsed);
+                _monitorTimer = new Timer(_monitorTimer_Elapsed);
 
                 Disposed += (_, __) => { _monitorTimer.Dispose(); };
 
@@ -94,17 +93,15 @@ namespace LeanWork.IO.FileSystem
                 {
                     throw new DirectoryNotFoundException($"Directory not found {Path}");
                 }
-                else
-                {
-                    if (!EnableRaisingEvents)
-                    {
-                        EnableRaisingEvents = true;
-                        if (_isRecovering)
-                            _trace.Warn("<= Watcher recovered");
-                    }
 
-                    ReStartIfNeccessary(DirectoryMonitorInterval);
+                if (!EnableRaisingEvents)
+                {
+                    EnableRaisingEvents = true;
+                    if (_isRecovering)
+                        _trace.Warn("<= Watcher recovered");
                 }
+
+                ReStartIfNeccessary(DirectoryMonitorInterval);
             }
             catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
             {
@@ -203,17 +200,15 @@ namespace LeanWork.IO.FileSystem
                 InvokeHandler(_onErrorHandler, e);
                 return e.Handled;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         private void InvokeHandler(EventHandler<FileWatcherErrorEventArgs> eventHandler, FileWatcherErrorEventArgs e)
         {
             if (eventHandler != null)
             {
-                if (SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
+                if (SynchronizingObject != null && SynchronizingObject.InvokeRequired)
                     SynchronizingObject.BeginInvoke(eventHandler, new object[] {this, e});
                 else
                     eventHandler(this, e);

@@ -25,7 +25,7 @@ namespace AniDBAPI
 
         public bool IsWatched
         {
-            get { return this.ViewDateUDP > 0 || this.ViewDateHTTP.Trim().Length > 0; }
+            get { return ViewDateUDP > 0 || ViewDateHTTP.Trim().Length > 0; }
         }
 
         // default constructor
@@ -73,18 +73,18 @@ namespace AniDBAPI
             // 10.    ** other
             // 11. 0  ** filestate
 
-            this.ListID = AniDBAPILib.ProcessAniDBInt(sDetails[0]);
-            this.FileID = AniDBAPILib.ProcessAniDBInt(sDetails[1]);
-            this.EpisodeID = AniDBAPILib.ProcessAniDBInt(sDetails[2]);
-            this.AnimeID = AniDBAPILib.ProcessAniDBInt(sDetails[3]);
-            this.GroupID = AniDBAPILib.ProcessAniDBInt(sDetails[4]);
-            this.FileDate = AniDBAPILib.ProcessAniDBString(sDetails[5]);
-            this.State = AniDBAPILib.ProcessAniDBInt(sDetails[6]);
-            this.ViewDateUDP = AniDBAPILib.ProcessAniDBInt(sDetails[7]);
-            this.Storage = AniDBAPILib.ProcessAniDBString(sDetails[8]);
-            this.Source = AniDBAPILib.ProcessAniDBString(sDetails[9]);
-            this.Other = AniDBAPILib.ProcessAniDBString(sDetails[10]);
-            this.FileState = AniDBAPILib.ProcessAniDBInt(sDetails[11]);
+            ListID = AniDBAPILib.ProcessAniDBInt(sDetails[0]);
+            FileID = AniDBAPILib.ProcessAniDBInt(sDetails[1]);
+            EpisodeID = AniDBAPILib.ProcessAniDBInt(sDetails[2]);
+            AnimeID = AniDBAPILib.ProcessAniDBInt(sDetails[3]);
+            GroupID = AniDBAPILib.ProcessAniDBInt(sDetails[4]);
+            FileDate = AniDBAPILib.ProcessAniDBString(sDetails[5]);
+            State = AniDBAPILib.ProcessAniDBInt(sDetails[6]);
+            ViewDateUDP = AniDBAPILib.ProcessAniDBInt(sDetails[7]);
+            Storage = AniDBAPILib.ProcessAniDBString(sDetails[8]);
+            Source = AniDBAPILib.ProcessAniDBString(sDetails[9]);
+            Other = AniDBAPILib.ProcessAniDBString(sDetails[10]);
+            FileState = AniDBAPILib.ProcessAniDBInt(sDetails[11]);
 
             // calculate the watched date
             if (ViewDateUDP > 0)
@@ -141,7 +141,7 @@ namespace AniDBAPI
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Error processing View Date HTTP: " + ex.ToString());
+                    logger.Error(ex, "Error processing View Date HTTP: " + ex);
                 }
             }
 

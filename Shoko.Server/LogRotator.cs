@@ -1,12 +1,10 @@
-﻿using NLog;
-using NLog.Targets;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using NLog;
+using NLog.Targets;
 using Shoko.Server.Settings;
-
 
 namespace Shoko.Server
 {
@@ -14,9 +12,6 @@ namespace Shoko.Server
     {
         private static readonly Lazy<LogRotator> _instance = new Lazy<LogRotator>(() => new LogRotator());
         public static LogRotator Instance => _instance.Value;
-        public LogRotator()
-        {
-        }
 
         public void Start()
         {
@@ -91,11 +86,11 @@ namespace Shoko.Server
 
                     if (File.Exists(path + "txt"))
                     {
-                        using (System.IO.FileStream fs =
-                            new System.IO.FileStream(@path + "zip", System.IO.FileMode.Create))
+                        using (FileStream fs =
+                            new FileStream(path + "zip", FileMode.Create))
                         using (ZipArchive arch = new ZipArchive(fs, ZipArchiveMode.Create))
                         {
-                            arch.CreateEntryFromFile(@path + "txt", file_ext);
+                            arch.CreateEntryFromFile(path + "txt", file_ext);
                         }
 
                         File.Delete(path + "txt");

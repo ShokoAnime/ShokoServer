@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models.Client;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
-
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -52,7 +52,7 @@ namespace Shoko.Server.Repositories.Cached
                                         a.AnimeEpisode_UserID == 0)
                     .ToList();
             int max = sers.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name, " DbRegen");
             if (max <= 0) return;
             foreach (SVR_AnimeEpisode_User g in sers)
@@ -61,10 +61,10 @@ namespace Shoko.Server.Repositories.Cached
                 cnt++;
                 if (cnt % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AnimeEpisode_User).Name,
+                        Resources.Database_Validating, typeof(AnimeEpisode_User).Name,
                         " DbRegen - " + cnt + "/" + max);
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
         }

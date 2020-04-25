@@ -25,7 +25,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public int RelDepth { get; set; } = 0;
+        public int RelDepth { get; set; }
 
         public CommandRequest_GetAnimeHTTP()
         {

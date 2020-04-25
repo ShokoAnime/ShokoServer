@@ -7,7 +7,7 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_MarkFileAsDisk : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public int MyListID = 0;
+        public int MyListID;
 
         public string GetKey()
         {

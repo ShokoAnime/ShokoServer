@@ -6,8 +6,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Resources;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -54,10 +52,8 @@ namespace Shoko.Server.API.v2.Modules
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
-            }
+
+            return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
 
         /// <summary>
@@ -82,13 +78,11 @@ namespace Shoko.Server.API.v2.Modules
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                FileStream fs = System.IO.File.OpenRead(path);
-                contentType = Mime.GetMimeMapping(path);
-                System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
-                return File(ResizeImageToRatio(im, newratio), contentType);
-            }
+
+            FileStream fs = System.IO.File.OpenRead(path);
+            contentType = Mime.GetMimeMapping(path);
+            System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
+            return File(ResizeImageToRatio(im, newratio), contentType);
         }
 
         /// <summary>
@@ -358,10 +352,8 @@ namespace Shoko.Server.API.v2.Modules
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
-            }
+
+            return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
 
         private string GetRandomImagePath(int type)

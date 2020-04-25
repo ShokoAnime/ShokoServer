@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
-using Shoko.Models.Server;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using NHibernate;
 using NHibernate.Criterion;
-using Shoko.Server.Databases;
-using System.Linq;
-using System;
-using Shoko.Commons.Collections;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Collections;
+using Shoko.Models.Server;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Cached
 {

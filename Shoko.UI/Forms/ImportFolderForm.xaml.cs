@@ -2,13 +2,15 @@
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Forms;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using MessageBox = System.Windows.MessageBox;
 
 //using System.Windows.Media;
 //using System.Windows.Media.Imaging;
@@ -21,7 +23,7 @@ namespace Shoko.UI.Forms
     /// </summary>
     public partial class ImportFolderForm : Window
     {
-        private SVR_ImportFolder importFldr = null;
+        private SVR_ImportFolder importFldr;
 
         public ImportFolderForm()
         {
@@ -65,7 +67,7 @@ namespace Shoko.UI.Forms
             }
         }
 
-        private void ComboProvider_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        private void ComboProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (importFldr == null)
                 return;
@@ -104,7 +106,7 @@ namespace Shoko.UI.Forms
                 }
                 else
                 {
-                    System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+                    FolderBrowserDialog dialog = new FolderBrowserDialog();
 
                     if (!string.IsNullOrEmpty(txtImportFolderLocation.Text) &&
                         Directory.Exists(txtImportFolderLocation.Text))
@@ -136,8 +138,8 @@ namespace Shoko.UI.Forms
                     chkDropDestination.IsChecked.Value &&
                     chkDropSource.IsChecked.Value)
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.ImportFolders_SameFolder,
-                        Shoko.Commons.Properties.Resources.Error,
+                    MessageBox.Show(Commons.Properties.Resources.ImportFolders_SameFolder,
+                        Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -145,8 +147,8 @@ namespace Shoko.UI.Forms
                 // The import folder location cannot be blank. Enter a valid path on OMM Server
                 if (string.IsNullOrEmpty(txtImportFolderLocation.Text))
                 {
-                    MessageBox.Show(Shoko.Commons.Properties.Resources.ImportFolders_BlankImport,
-                        Shoko.Commons.Properties.Resources.Error,
+                    MessageBox.Show(Commons.Properties.Resources.ImportFolders_BlankImport,
+                        Commons.Properties.Resources.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     txtImportFolderLocation.Focus();
                     return;
@@ -173,7 +175,7 @@ namespace Shoko.UI.Forms
                 }
                 catch (Exception exception)
                 {
-                    MessageBox.Show(exception.Message, Shoko.Commons.Properties.Resources.Error,
+                    MessageBox.Show(exception.Message, Commons.Properties.Resources.Error,
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                     return;
@@ -186,14 +188,14 @@ namespace Shoko.UI.Forms
                 Utils.ShowErrorMessage(ex);
             }
 
-            this.DialogResult = true;
-            this.Close();
+            DialogResult = true;
+            Close();
         }
 
         void btnCancel_Click(object sender, RoutedEventArgs e)
         {
-            this.DialogResult = false;
-            this.Close();
+            DialogResult = false;
+            Close();
         }
 
         public void Init(SVR_ImportFolder ifldr)
@@ -201,7 +203,7 @@ namespace Shoko.UI.Forms
             try
             {
                 ServerInfo.Instance.RefreshFolderProviders();
-                importFldr = new SVR_ImportFolder()
+                importFldr = new SVR_ImportFolder
                 {
                     ImportFolderID = ifldr.ImportFolderID,
                     ImportFolderType = ifldr.ImportFolderType,

@@ -43,7 +43,7 @@ namespace Shoko.UI.Forms
         {
             InitializeComponent();
 
-            hlURL.Click += new RoutedEventHandler(hlURL_Click);
+            hlURL.Click += hlURL_Click;
         }
 
         void hlURL_Click(object sender, RoutedEventArgs e)

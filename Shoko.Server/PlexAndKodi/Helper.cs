@@ -4,10 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Xml.Serialization;
-using FluentNHibernate.Utils;
 using NHibernate;
-using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
@@ -20,7 +17,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
-using AnimeTypes = Shoko.Models.PlexAndKodi.AnimeTypes;
 using Directory = Shoko.Models.PlexAndKodi.Directory;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
@@ -519,7 +515,7 @@ namespace Shoko.Server.PlexAndKodi
                 Random rand = new Random();
                 art = list[rand.Next(0, list.Count)];
             }
-            ImageDetails details = new ImageDetails()
+            ImageDetails details = new ImageDetails
             {
                 ImageID = art.ImageID,
                 ImageType = (ImageEntityType) art.ImageType
@@ -595,10 +591,10 @@ namespace Shoko.Server.PlexAndKodi
                             Value = seiyuu?.SeiyuuName
                         };
                         if (seiyuu != null)
-                            t.TagPicture = Helper.ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
+                            t.TagPicture = ConstructSeiyuuImage(null, seiyuu.AniDB_SeiyuuID);
                         t.Role = ch;
                         t.RoleDescription = c?.CharDescription;
-                        t.RolePicture = Helper.ConstructCharacterImage(null, c.CharID);
+                        t.RolePicture = ConstructCharacterImage(null, c.CharID);
                         v.Roles.Add(t);
                     }
                 }
@@ -607,7 +603,7 @@ namespace Shoko.Server.PlexAndKodi
                     v.Fanarts = new List<Contract_ImageDetails>();
                     cserie?.AniDBAnime?.AniDBAnime?.Fanarts.ForEach(
                         a =>
-                            v.Fanarts.Add(new Contract_ImageDetails()
+                            v.Fanarts.Add(new Contract_ImageDetails
                             {
                                 ImageID = a.AniDB_Anime_DefaultImageID,
                                 ImageType = a.ImageType
@@ -617,7 +613,7 @@ namespace Shoko.Server.PlexAndKodi
                 v.Banners = new List<Contract_ImageDetails>();
                 cserie?.AniDBAnime?.AniDBAnime?.Banners.ForEach(
                     a =>
-                        v.Banners.Add(new Contract_ImageDetails()
+                        v.Banners.Add(new Contract_ImageDetails
                         {
                             ImageID = a.AniDB_Anime_DefaultImageID,
                             ImageType = a.ImageType
@@ -784,7 +780,7 @@ namespace Shoko.Server.PlexAndKodi
                     p.Fanarts = new List<Contract_ImageDetails>();
                     anime.Fanarts.ForEach(
                         a =>
-                            p.Fanarts.Add(new Contract_ImageDetails()
+                            p.Fanarts.Add(new Contract_ImageDetails
                             {
                                 ImageID = a.AniDB_Anime_DefaultImageID,
                                 ImageType = a.ImageType
@@ -795,7 +791,7 @@ namespace Shoko.Server.PlexAndKodi
                     p.Banners = new List<Contract_ImageDetails>();
                     anime.Banners.ForEach(
                         a =>
-                            p.Banners.Add(new Contract_ImageDetails()
+                            p.Banners.Add(new Contract_ImageDetails
                             {
                                 ImageID = a.AniDB_Anime_DefaultImageID,
                                 ImageType = a.ImageType

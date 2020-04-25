@@ -6,6 +6,7 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using MySql.Data.MySqlClient;
 using NHibernate;
+using Shoko.Commons.Properties;
 using NHibernate.Cfg;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -21,7 +22,7 @@ namespace Shoko.Server.Databases
         public int RequiredVersion { get; } = 89;
 
 
-        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
+        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
         {
             new DatabaseCommand(0, 1,
                 "CREATE TABLE `Versions` ( `VersionsID` INT NOT NULL AUTO_INCREMENT , `VersionType` VARCHAR(100) NOT NULL , `VersionValue` VARCHAR(100) NOT NULL ,  PRIMARY KEY (`VersionsID`) ) ; "),
@@ -905,7 +906,7 @@ namespace Shoko.Server.Databases
 
         public void CreateAndUpdateSchema()
         {
-            ConnectionWrapper(GetConnectionString(), (myConn) =>
+            ConnectionWrapper(GetConnectionString(), myConn =>
             {
                 bool create = false;
                 bool fixtablesforlinux = false;
@@ -925,7 +926,7 @@ namespace Shoko.Server.Databases
                 }
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 count = ExecuteScalar(myConn,
@@ -940,7 +941,7 @@ namespace Shoko.Server.Databases
                     ExecuteWithException(myConn, createTables);
                 if (fixtablesforlinux)
                     ExecuteWithException(myConn, linuxTableFixes);
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.CurrentSetupStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });
@@ -949,10 +950,10 @@ namespace Shoko.Server.Databases
         private static void MySQLFixUTF8()
         {
             string sql = 
-                $"SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
-                $"FROM information_schema.COLUMNS " +
+                "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
+                "FROM information_schema.COLUMNS " +
                 $"WHERE table_schema = '{ServerSettings.Instance.Database.Schema}' " +
-                $"AND collation_name != 'utf8mb4_unicode_ci'";
+                "AND collation_name != 'utf8mb4_unicode_ci'";
 
             using (MySqlConnection conn = new MySqlConnection($"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={ServerSettings.Instance.Database.Schema}"))
             {

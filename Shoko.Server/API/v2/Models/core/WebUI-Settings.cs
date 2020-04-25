@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace Shoko.Server.API.v2.Models.core
@@ -16,7 +15,7 @@ namespace Shoko.Server.API.v2.Models.core
 
         public bool Valid()
         {
-            if (String.IsNullOrEmpty(uiTheme)) return false;
+            if (string.IsNullOrEmpty(uiTheme)) return false;
             bool validChannel = channels.Any(s => otherUpdateChannel.Contains(s));
             if (validChannel == false) return false;
             if (logDelta < 0) return false;

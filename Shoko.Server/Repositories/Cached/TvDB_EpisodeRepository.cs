@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -22,7 +19,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private TvDB_EpisodeRepository()
         {
-            EndSaveCallback += (episode) =>
+            EndSaveCallback += episode =>
             {
                 var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID);
                 xref.ForEach(a => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(a.AniDBID));

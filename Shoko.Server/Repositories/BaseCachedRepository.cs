@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -27,7 +28,7 @@ namespace Shoko.Server.Repositories
         {
             if (displayname)
                 ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
+                    Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
                     string.Empty);
 
             // This is only called from main thread, so we don't need to lock

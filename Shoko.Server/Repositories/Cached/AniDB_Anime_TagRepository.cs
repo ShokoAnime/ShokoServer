@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories

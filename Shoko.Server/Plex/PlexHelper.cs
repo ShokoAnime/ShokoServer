@@ -41,10 +41,10 @@ namespace Shoko.Server.Plex
         private DateTime _lastCacheTime = DateTime.MinValue;
         private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
-        private MediaDevice[] _plexMediaDevices = null;
+        private MediaDevice[] _plexMediaDevices;
 
         private MediaDevice _mediaDevice;
-        private bool? isAuthenticated = null;
+        private bool? isAuthenticated;
 
         static PlexHelper()
         {

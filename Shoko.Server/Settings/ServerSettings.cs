@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -9,10 +12,7 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
-using System.Globalization;
 
 namespace Shoko.Server.Settings
 {
@@ -78,17 +78,17 @@ namespace Shoko.Server.Settings
 
         public PlexSettings Plex { get; set; } = new PlexSettings();
 
-        public bool AutoGroupSeries { get; set; } = false;
+        public bool AutoGroupSeries { get; set; }
 
         public string AutoGroupSeriesRelationExclusions { get; set; } = "same setting|character";
 
-        public bool AutoGroupSeriesUseScoreAlgorithm { get; set; } = false;
+        public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
-        public bool FileQualityFilterEnabled { get; set; } = false;
+        public bool FileQualityFilterEnabled { get; set; }
 
         public FileQualityPreferences FileQualityFilterPreferences { get; set; } = new FileQualityPreferences();
 
-        public string[] LanguagePreference { get; set; } = new[] { "x-jat", "en" };
+        public string[] LanguagePreference { get; set; } = { "x-jat", "en" };
 
         public string EpisodeLanguagePreference { get; set; } = string.Empty;
 
@@ -115,7 +115,7 @@ namespace Shoko.Server.Settings
 
         public string VLCLocation { get; set; } = string.Empty;
 
-        public bool MinimizeOnStartup { get; set; } = false;
+        public bool MinimizeOnStartup { get; set; }
 
         public TraktSettings TraktTv { get; set; } = new TraktSettings();
 
@@ -123,7 +123,7 @@ namespace Shoko.Server.Settings
 
         public LinuxSettings Linux { get; set; } = new LinuxSettings();
 
-        public bool TraceLog { get; set; } = false;
+        public bool TraceLog { get; set; }
 
         [JsonIgnore]
         public Guid GA_Client
@@ -154,7 +154,7 @@ namespace Shoko.Server.Settings
                 Instance.SaveSettings();
                 return;
             }
-            LoadSettingsFromFile(path, false);
+            LoadSettingsFromFile(path);
 
             ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
@@ -162,7 +162,7 @@ namespace Shoko.Server.Settings
         private static ServerSettings LoadLegacySettings()
         {
             Legacy.LoadSettings();
-            var settings = new ServerSettings()
+            var settings = new ServerSettings
             {
                 ImagesPath = Legacy.ImagesPath,
                 AnimeXmlDirectory = Legacy.AnimeXmlDirectory,
@@ -172,14 +172,14 @@ namespace Shoko.Server.Settings
                 Culture = Legacy.Culture,
                 WebUI_Settings = Legacy.WebUI_Settings,
                 FirstRun = Legacy.FirstRun,
-                LogRotator = new LogRotatorSettings()
+                LogRotator = new LogRotatorSettings
                 {
                     Enabled = Legacy.RotateLogs,
                     Zip = Legacy.RotateLogs_Zip,
                     Delete = Legacy.RotateLogs_Delete,
                     Delete_Days = Legacy.RotateLogs_Delete_Days
                 },
-                AniDb = new AniDbSettings()
+                AniDb = new AniDbSettings
                 {
                     Username = Legacy.AniDB_Username,
                     Password = Legacy.AniDB_Password,
@@ -208,7 +208,7 @@ namespace Shoko.Server.Settings
                     DownloadCreators = Legacy.AniDB_DownloadCreators,
                     MaxRelationDepth = Legacy.AniDB_MaxRelationDepth
                 },
-                WebCache = new WebCacheSettings()
+                WebCache = new WebCacheSettings
                 {
                     Address = Legacy.WebCache_Address,
                     XRefFileEpisode_Get = Legacy.WebCache_XRefFileEpisode_Get,
@@ -218,7 +218,7 @@ namespace Shoko.Server.Settings
                     Trakt_Get = Legacy.WebCache_Trakt_Get,
                     Trakt_Send = Legacy.WebCache_Trakt_Send,
                 },
-                TvDB = new TvDBSettings()
+                TvDB = new TvDBSettings
                 {
                     AutoLink = Legacy.TvDB_AutoLink,
                     AutoFanart = Legacy.TvDB_AutoFanart,
@@ -230,14 +230,14 @@ namespace Shoko.Server.Settings
                     UpdateFrequency = Legacy.TvDB_UpdateFrequency,
                     Language = Legacy.TvDB_Language
                 },
-                MovieDb = new MovieDbSettings()
+                MovieDb = new MovieDbSettings
                 {
                     AutoFanart = Legacy.MovieDB_AutoFanart,
                     AutoFanartAmount = Legacy.MovieDB_AutoFanartAmount,
                     AutoPosters = Legacy.MovieDB_AutoPosters,
                     AutoPostersAmount = Legacy.MovieDB_AutoPostersAmount
                 },
-                Import = new ImportSettings()
+                Import = new ImportSettings
                 {
                     VideoExtensions = Legacy.VideoExtensions.Split(','),
                     DefaultSeriesLanguage = Legacy.DefaultSeriesLanguage,
@@ -249,7 +249,7 @@ namespace Shoko.Server.Settings
                     Hash_SHA1 = Legacy.Hash_SHA1,
                     UseExistingFileWatchedStatus = Legacy.Import_UseExistingFileWatchedStatus
                 },
-                Plex = new PlexSettings()
+                Plex = new PlexSettings
                 {
                     ThumbnailAspects = Legacy.PlexThumbnailAspects,
                     Libraries = Legacy.Plex_Libraries,
@@ -270,7 +270,7 @@ namespace Shoko.Server.Settings
                 SeriesNameSource = Legacy.SeriesNameSource,
                 VLCLocation = Legacy.VLCLocation,
                 MinimizeOnStartup = Legacy.MinimizeOnStartup,
-                TraktTv = new TraktSettings()
+                TraktTv = new TraktSettings
                 {
                     Enabled = Legacy.Trakt_IsEnabled,
                     PIN = Legacy.Trakt_PIN,
@@ -281,7 +281,7 @@ namespace Shoko.Server.Settings
                     SyncFrequency = Legacy.Trakt_SyncFrequency
                 },
                 UpdateChannel = Legacy.UpdateChannel,
-                Linux = new LinuxSettings()
+                Linux = new LinuxSettings
                 {
                     UID = Legacy.Linux_UID,
                     GID = Legacy.Linux_GID,
@@ -290,7 +290,7 @@ namespace Shoko.Server.Settings
                 TraceLog = Legacy.TraceLog
             };
 
-            settings.Database = new DatabaseSettings()
+            settings.Database = new DatabaseSettings
             {
                 MySqliteDirectory = Legacy.MySqliteDirectory,
                 DatabaseBackupDirectory = Legacy.DatabaseBackupDirectory

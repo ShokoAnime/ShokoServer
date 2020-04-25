@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Extensions;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
@@ -1312,8 +1311,8 @@ namespace Shoko.Server
                     files.Sort(FileQualityFilter.CompareTo);
                     return files.Select(a => a.ToClientDetailed(userID)).ToList();
                 }
-                else
-                    return new List<CL_VideoDetailed>();
+
+                return new List<CL_VideoDetailed>();
             }
             catch (Exception ex)
             {
@@ -1907,7 +1906,7 @@ namespace Shoko.Server
                     DeleteAnimeGroup(subGroup.AnimeGroupID, deleteFiles);
                 }
                 List<SVR_GroupFilter> gfs =
-                    RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>()
+                    RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>
                     {
                         GroupFilterConditionType.AnimeGroup
                     });
@@ -2049,7 +2048,7 @@ namespace Shoko.Server
                     if (grp == null)
                     {
                         contractout.ErrorMessage = "Could not find existing group with ID: " +
-                                                   contract.AnimeGroupID.Value.ToString();
+                                                   contract.AnimeGroupID.Value;
                         return contractout;
                     }
                 }
@@ -2121,7 +2120,7 @@ namespace Shoko.Server
                 ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                 {
-                    contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID.ToString();
+                    contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID;
                     return contractout;
                 }
 
@@ -2129,7 +2128,7 @@ namespace Shoko.Server
                 SVR_AnimeGroup grpTemp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
                 if (grpTemp == null)
                 {
-                    contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID.ToString();
+                    contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                     return contractout;
                 }
 
@@ -2197,7 +2196,7 @@ namespace Shoko.Server
                     if (ser == null)
                     {
                         contractout.ErrorMessage = "Could not find existing series with ID: " +
-                                                   contract.AnimeSeriesID.Value.ToString();
+                                                   contract.AnimeSeriesID.Value;
                         return contractout;
                     }
 
@@ -2926,7 +2925,7 @@ namespace Shoko.Server
                 if (gf == null)
                 {
                     response.ErrorMessage = "Could not find existing Group Filter with ID: " +
-                                            contract.GroupFilterID.ToString();
+                                            contract.GroupFilterID;
                     return response;
                 }
             }
@@ -3165,7 +3164,7 @@ namespace Shoko.Server
                     if (pl == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Playlist with ID: " +
-                                                   contract.PlaylistID.ToString();
+                                                   contract.PlaylistID;
                         return contractRet;
                     }
                 }
@@ -3352,7 +3351,7 @@ namespace Shoko.Server
                     if (ctag == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing custom tag with ID: " +
-                                                   contract.CustomTagID.ToString();
+                                                   contract.CustomTagID;
                         return contractRet;
                     }
                 }

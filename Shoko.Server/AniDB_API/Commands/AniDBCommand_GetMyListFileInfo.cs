@@ -6,7 +6,7 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_GetMyListFileInfo : AniDBUDPCommand, IAniDBUDPCommand
     {
-        private int fileID = 0;
+        private int fileID;
 
         public int FileID
         {
@@ -16,10 +16,10 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_GetMyListFileInfo" + FileID.ToString();
+            return "AniDBCommand_GetMyListFileInfo" + FileID;
         }
 
-        private Raw_AniDB_MyListFile myListFile = null;
+        private Raw_AniDB_MyListFile myListFile;
 
         public Raw_AniDB_MyListFile MyListFile
         {
@@ -74,8 +74,8 @@ namespace AniDBAPI.Commands
 
         public void Init(int fileId)
         {
-            this.fileID = fileId;
-            commandText = "MYLIST fid=" + fileID.ToString();
+            fileID = fileId;
+            commandText = "MYLIST fid=" + fileID;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetMyListFileInfo.Process: Request: {0}", commandText);
 

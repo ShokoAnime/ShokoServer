@@ -1,28 +1,27 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using NLog;
+using Sentry;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.Extensions.FileProviders.Physical;
-using Newtonsoft.Json;
-using NLog;
-using Microsoft.Extensions.Primitives;
-using Sentry;
 
 namespace Shoko.Server.API
 {
@@ -116,13 +115,13 @@ namespace Shoko.Server.API
                     {
                         if (formatter.GetType() == typeof(JsonInputFormatter))
                             ((JsonInputFormatter)formatter).SupportedMediaTypes.Add(
-                                Microsoft.Net.Http.Headers.MediaTypeHeaderValue.Parse("text/plain"));
+                                MediaTypeHeaderValue.Parse("text/plain"));
                     }
                 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {
                     json.SerializerSettings.MaxDepth = 10;
-                    json.SerializerSettings.ContractResolver = new OmitEmptyEnumerableResolver()
+                    json.SerializerSettings.ContractResolver = new OmitEmptyEnumerableResolver
                     {
                         NamingStrategy = new DefaultNamingStrategy()
                     };
@@ -174,7 +173,7 @@ namespace Shoko.Server.API
             var dir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(path), "webui"));
             if (!dir.Exists) dir.Create();
 
-            app.UseStaticFiles(new StaticFileOptions()
+            app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new WebUiFileProvider(dir.FullName),
                 RequestPath = "/webui",
@@ -217,7 +216,7 @@ namespace Shoko.Server.API
 
         static Info CreateInfoForApiVersion(ApiVersionDescription description)
         {
-            var info = new Info()
+            var info = new Info
             {
                 Title = $"Shoko API {description.ApiVersion}",
                 Version = description.ApiVersion.ToString(),

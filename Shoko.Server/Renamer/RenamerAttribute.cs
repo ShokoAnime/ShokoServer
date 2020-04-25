@@ -11,7 +11,7 @@ namespace Shoko.Server.Renamer
         }
 
         public string RenamerId { get; }
-        private string _desc = null;
+        private string _desc;
 
         public string Description
         {

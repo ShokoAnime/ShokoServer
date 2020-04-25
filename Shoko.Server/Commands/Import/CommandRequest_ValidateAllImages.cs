@@ -410,7 +410,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_ValidateAllImages";
+            CommandID = "CommandRequest_ValidateAllImages";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

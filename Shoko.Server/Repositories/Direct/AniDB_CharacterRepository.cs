@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Commons.Collections;
 using Shoko.Models.Client;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -96,7 +95,7 @@ namespace Shoko.Server.Repositories.Direct
             AnimeID = animeID;
             Character = character;
             Seiyuu = seiyuu;
-            CharacterType = characterType ?? String.Empty;
+            CharacterType = characterType ?? string.Empty;
         }
 
         public CL_AniDB_Character ToClient()

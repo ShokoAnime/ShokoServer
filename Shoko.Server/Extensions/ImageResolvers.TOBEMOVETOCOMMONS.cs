@@ -1,14 +1,9 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 using Shoko.Server.ImageDownload;
-using Shoko.Server.Properties;
-using Resources = Shoko.Commons.Properties.Resources;
 
 namespace Shoko.Server.Extensions
 {
@@ -16,60 +11,60 @@ namespace Shoko.Server.Extensions
     {
         public static string GetFullImagePath(this MovieDB_Fanart fanart)
         {
-            if (String.IsNullOrEmpty(fanart.URL)) return string.Empty;
+            if (string.IsNullOrEmpty(fanart.URL)) return string.Empty;
 
             //strip out the base URL
             int pos = fanart.URL.IndexOf('/', 0);
             string fname = fanart.URL.Substring(pos + 1, fanart.URL.Length - pos - 1);
-            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
+            fname = fname.Replace("/", $"{Path.DirectorySeparatorChar}");
             return Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
         public static string GetFullImagePath(this MovieDB_Poster movie)
         {
-            if (String.IsNullOrEmpty(movie.URL)) return string.Empty;
+            if (string.IsNullOrEmpty(movie.URL)) return string.Empty;
 
             //strip out the base URL
             int pos = movie.URL.IndexOf('/', 0);
             string fname = movie.URL.Substring(pos + 1, movie.URL.Length - pos - 1);
-            fname = fname.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
+            fname = fname.Replace("/", $"{Path.DirectorySeparatorChar}");
+            return Path.Combine(ImageUtils.GetMovieDBImagePath(), fname);
         }
 
         public static string GetFullImagePath(this TvDB_Episode episode)
         {
-            if (String.IsNullOrEmpty(episode.Filename)) return string.Empty;
+            if (string.IsNullOrEmpty(episode.Filename)) return string.Empty;
 
             string fname = episode.Filename;
-            fname = episode.Filename.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+            fname = episode.Filename.Replace("/", $"{Path.DirectorySeparatorChar}");
+            return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static string GetFullImagePath(this TvDB_ImageFanart fanart)
         {
-            if (String.IsNullOrEmpty(fanart.BannerPath)) return string.Empty;
+            if (string.IsNullOrEmpty(fanart.BannerPath)) return string.Empty;
 
             string fname = fanart.BannerPath;
-            fname = fanart.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+            fname = fanart.BannerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
+            return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static string GetFullImagePath(this TvDB_ImagePoster poster)
         {
-            if (String.IsNullOrEmpty(poster.BannerPath)) return string.Empty;
+            if (string.IsNullOrEmpty(poster.BannerPath)) return string.Empty;
 
             string fname = poster.BannerPath;
-            fname = poster.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+            fname = poster.BannerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
+            return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static string GetFullImagePath(this TvDB_ImageWideBanner banner)
         {
-            if (String.IsNullOrEmpty(banner.BannerPath)) return string.Empty;
+            if (string.IsNullOrEmpty(banner.BannerPath)) return string.Empty;
 
             string fname = banner.BannerPath;
-            fname = banner.BannerPath.Replace("/", $"{System.IO.Path.DirectorySeparatorChar}");
-            return System.IO.Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
+            fname = banner.BannerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
+            return Path.Combine(ImageUtils.GetTvDBImagePath(), fname);
         }
 
         public static void Valid(this TvDB_ImageFanart fanart)
@@ -86,16 +81,16 @@ namespace Shoko.Server.Extensions
 
         public static string GetPosterPath(this AniDB_Character character)
         {
-            if (String.IsNullOrEmpty(character.PicName)) return string.Empty;
+            if (string.IsNullOrEmpty(character.PicName)) return string.Empty;
 
-            return System.IO.Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharID), character.PicName);
+            return Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharID), character.PicName);
         }
 
         public static string GetPosterPath(this AniDB_Seiyuu seiyuu)
         {
-            if (String.IsNullOrEmpty(seiyuu.PicName)) return string.Empty;
+            if (string.IsNullOrEmpty(seiyuu.PicName)) return string.Empty;
 
-            return System.IO.Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
+            return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(seiyuu.SeiyuuID), seiyuu.PicName);
         }
 
         //The resources need to be moved

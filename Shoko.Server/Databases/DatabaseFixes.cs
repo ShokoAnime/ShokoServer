@@ -7,12 +7,11 @@ using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
-using NHibernate.Criterion;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
@@ -284,7 +283,7 @@ namespace Shoko.Server.Databases
                     if (count % 50 == 0)
                     {
                         ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
+                            Resources.Database_Validating, "Generating TvDB Episode Matchings",
                             $" {count}/{list.Count}");
                     }
 
@@ -309,7 +308,7 @@ namespace Shoko.Server.Databases
                 if (count % 50 == 0)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
+                        Resources.Database_Validating, "Generating TvDB Episode Matchings",
                         $" {count}/{list.Count}");
                 }
 
@@ -339,7 +338,7 @@ namespace Shoko.Server.Databases
                     }
 
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating,
+                        Resources.Database_Validating,
                         $"Generating Episode Info for {anime.MainTitle}",
                         $" {count}/{animeIDs.Count}");
                     XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
@@ -488,7 +487,7 @@ namespace Shoko.Server.Databases
                 if (count % 10 == 0)
                 {
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
+                        Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
                         $" {count}/{list.Count}");
                 }
 
@@ -517,7 +516,7 @@ namespace Shoko.Server.Databases
             {
                 if (i % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating AniDB Info from Cache",
+                        Resources.Database_Validating, "Populating AniDB Info from Cache",
                         $" {i}/{list.Count}");
                 i++;
                 try
@@ -607,7 +606,7 @@ namespace Shoko.Server.Databases
             {
                 if (i % 10 == 0)
                     ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating Resource Links from Cache",
+                        Resources.Database_Validating, "Populating Resource Links from Cache",
                         $" {i}/{animes.Count}");
                 i++;
                 try
@@ -632,7 +631,7 @@ namespace Shoko.Server.Databases
                 foreach (var animeBatch in batches)
                 {
                     i++;
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+                    ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
                         "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
                     try
                     {

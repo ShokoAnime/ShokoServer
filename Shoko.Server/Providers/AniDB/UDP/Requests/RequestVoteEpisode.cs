@@ -1,8 +1,6 @@
 using System;
-using Shoko.Server.Providers.AniDB.Helpers;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Responses;
-using Void = Shoko.Server.Providers.AniDB.UDP.Responses.Void;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Requests
 {

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;

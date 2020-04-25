@@ -2,24 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Shoko.Models;
-using Shoko.Models.Server;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Client;
-using Shoko.Models.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-
-using Shoko.Server.Extensions;
-using Shoko.Server.Plex;
-using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Mvc;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Plex;
+using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server
@@ -40,7 +39,7 @@ namespace Shoko.Server
             List<CL_BookmarkedAnime> baList = new List<CL_BookmarkedAnime>();
             try
             {
-                return RepoFactory.BookmarkedAnime.GetAll().Select(a => ModelClients.ToClient(a)).ToList();
+                return RepoFactory.BookmarkedAnime.GetAll().Select(a => a.ToClient()).ToList();
             }
             catch (Exception ex)
             {
@@ -65,7 +64,7 @@ namespace Shoko.Server
                     if (ba == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Bookmark with ID: " +
-                                                   contract.BookmarkedAnimeID.ToString();
+                                                   contract.BookmarkedAnimeID;
                         return contractRet;
                     }
                 }
@@ -76,7 +75,7 @@ namespace Shoko.Server
                     if (baTemp != null)
                     {
                         contractRet.ErrorMessage = "A bookmark with the AnimeID already exists: " +
-                                                   contract.AnimeID.ToString();
+                                                   contract.AnimeID;
                         return contractRet;
                     }
 
@@ -90,7 +89,7 @@ namespace Shoko.Server
 
                 RepoFactory.BookmarkedAnime.Save(ba);
 
-                contractRet.Result = ModelClients.ToClient(ba);
+                contractRet.Result = ba.ToClient();
             }
             catch (Exception ex)
             {
@@ -126,7 +125,7 @@ namespace Shoko.Server
         {
             try
             {
-                return ModelClients.ToClient(RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID));
+                return RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID).ToClient();
             }
             catch (Exception ex)
             {
@@ -617,7 +616,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Save server settings exception:\n " + ex.ToString());
+                logger.Error(ex, "Save server settings exception:\n " + ex);
                 contract.ErrorMessage = ex.Message;
             }
             return contract;

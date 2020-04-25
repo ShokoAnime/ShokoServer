@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
-using Shoko.Models.PlexAndKodi;
+using Microsoft.AspNetCore.Http;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.API.v2.Models.common
 {

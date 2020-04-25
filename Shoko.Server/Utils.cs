@@ -10,10 +10,6 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
-
-using System.Threading;
-using Shoko.Models.Server;
-
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
@@ -144,7 +140,7 @@ namespace Shoko.Server
         /// <param name="OldFilePort">The port JMMServer was set to use for files.</param>
         public static bool SetNetworkRequirements(string Port, string FilePort, string OldPort, string OldFilePort)
         {
-            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "NetworkConfig.bat");
+            string BatchFile = Path.Combine(Path.GetTempPath(), "NetworkConfig.bat");
             Process proc = new Process
             {
                 StartInfo =
@@ -1040,9 +1036,9 @@ namespace Shoko.Server
 
         public static void RestartAsAdmin()
         {
-            if (Utils.IsRunningOnMono()) return; //Again, mono cannot handle this.
+            if (IsRunningOnMono()) return; //Again, mono cannot handle this.
 
-            string BatchFile = Path.Combine(System.IO.Path.GetTempPath(), "RestartAsAdmin.bat");
+            string BatchFile = Path.Combine(Path.GetTempPath(), "RestartAsAdmin.bat");
             var exeName = Process.GetCurrentProcess().MainModule.FileName;
 
             Process proc = new Process();

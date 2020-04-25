@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v3
@@ -87,7 +86,7 @@ namespace Shoko.Server.API.v3
             Sizes s = new Sizes
             {
                 Total =
-                    new Sizes.EpisodeCounts()
+                    new Sizes.EpisodeCounts
                     {
                         Episodes = eps,
                         Credits = credits,
@@ -96,7 +95,7 @@ namespace Shoko.Server.API.v3
                         Parodies = parodies,
                         Others = others
                     },
-                Local = new Sizes.EpisodeCounts()
+                Local = new Sizes.EpisodeCounts
                 {
                     Episodes = localEps,
                     Credits = localCredits,
@@ -105,7 +104,7 @@ namespace Shoko.Server.API.v3
                     Parodies = localParodies,
                     Others = localOthers
                 },
-                Watched = new Sizes.EpisodeCounts()
+                Watched = new Sizes.EpisodeCounts
                 {
                     Episodes = watchedEps,
                     Credits = watchedCredits,

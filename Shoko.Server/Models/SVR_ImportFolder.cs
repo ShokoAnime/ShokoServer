@@ -24,7 +24,7 @@ namespace Shoko.Server.Models
             get { return base.IsWatched; }
             set
             {
-                this.SetField(() => base.IsWatched, (r) => base.IsWatched = r, value, () => IsWatched,
+                this.SetField(() => base.IsWatched, r => base.IsWatched = r, value, () => IsWatched,
                     () => FolderIsWatched);
             }
         }
@@ -42,7 +42,7 @@ namespace Shoko.Server.Models
             get { return base.IsDropSource; }
             set
             {
-                this.SetField(() => base.IsDropSource, (r) => base.IsDropSource = r, value, () => IsDropSource,
+                this.SetField(() => base.IsDropSource, r => base.IsDropSource = r, value, () => IsDropSource,
                     () => FolderIsDropSource);
             }
         }
@@ -53,7 +53,7 @@ namespace Shoko.Server.Models
             get { return base.IsDropDestination; }
             set
             {
-                this.SetField(() => base.IsDropDestination, (r) => base.IsDropDestination = r, value,
+                this.SetField(() => base.IsDropDestination, r => base.IsDropDestination = r, value,
                     () => IsDropDestination, () => FolderIsDropDestination);
             }
         }
@@ -180,10 +180,6 @@ namespace Shoko.Server.Models
         public override string ToString()
         {
             return string.Format("{0} - {1} ({2})", ImportFolderName, ImportFolderLocation, ImportFolderID);
-        }
-
-        public SVR_ImportFolder()
-        {
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

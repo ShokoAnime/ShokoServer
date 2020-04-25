@@ -3,11 +3,17 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using NLog;
 using Sentry;
+using Encoder = System.Drawing.Imaging.Encoder;
 
 namespace Shoko.Server
 {
@@ -17,13 +23,13 @@ namespace Shoko.Server
         private static bool _blnLogToScreenshotOK = false;
         private static bool _blnLogToEventLogOK;
 
-        private static System.Drawing.Imaging.ImageFormat _ScreenshotImageFormat =
-            System.Drawing.Imaging.ImageFormat.Png;
+        private static ImageFormat _ScreenshotImageFormat =
+            ImageFormat.Png;
 
         private static string _strScreenshotFullPath = string.Empty;
 
         private static string _strLogFullPath = string.Empty;
-        private static Assembly _objParentAssembly = null;
+        private static Assembly _objParentAssembly;
         private static string _strException;
 
         private static string _strExceptionType;
@@ -57,11 +63,11 @@ namespace Shoko.Server
 
         #endregion "win32api screenshot calls"
 
-        private static System.Reflection.Assembly ParentAssembly()
+        private static Assembly ParentAssembly()
         {
             return _objParentAssembly ?? (_objParentAssembly =
-                       System.Reflection.Assembly.GetEntryAssembly() ??
-                       System.Reflection.Assembly.GetCallingAssembly());
+                       Assembly.GetEntryAssembly() ??
+                       Assembly.GetCallingAssembly());
         }
 
         //--
@@ -84,8 +90,8 @@ namespace Shoko.Server
             ParentAssembly();
 
             //-- for console applications
-            System.AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
-            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+            AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
+            AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
 
             //-- I cannot find a good way to programatically detect a console app, so that must be specified.
             //_blnConsoleApp = blnConsoleApp;
@@ -94,7 +100,7 @@ namespace Shoko.Server
         //--
         //-- handles Application.ThreadException event
         //--
-        public static void ThreadExceptionHandler(System.Object sender, System.Threading.ThreadExceptionEventArgs e)
+        public static void ThreadExceptionHandler(object sender, ThreadExceptionEventArgs e)
         {
             GenericExceptionHandler(e.Exception);
         }
@@ -102,7 +108,7 @@ namespace Shoko.Server
         //--
         //-- handles AppDomain.CurrentDoamin.UnhandledException event
         //--
-        private static void UnhandledExceptionHandler(System.Object sender, UnhandledExceptionEventArgs args)
+        private static void UnhandledExceptionHandler(object sender, UnhandledExceptionEventArgs args)
         {
             Exception objException = (Exception) args.ExceptionObject;
             GenericExceptionHandler(objException);
@@ -111,11 +117,11 @@ namespace Shoko.Server
         //--
         //-- exception-safe file attrib retrieval; we don't care if this fails
         //--
-        private static DateTime AssemblyFileTime(System.Reflection.Assembly objAssembly)
+        private static DateTime AssemblyFileTime(Assembly objAssembly)
         {
             try
             {
-                return System.IO.File.GetLastWriteTime(objAssembly.Location);
+                return File.GetLastWriteTime(objAssembly.Location);
             }
             catch
             {
@@ -130,10 +136,10 @@ namespace Shoko.Server
         //--
         //-- filesystem create time is used, if revision and build were overridden by user
         //--
-        private static DateTime AssemblyBuildDate(System.Reflection.Assembly objAssembly, bool blnForceFileDate = false)
+        private static DateTime AssemblyBuildDate(Assembly objAssembly, bool blnForceFileDate = false)
         {
-            System.Version objVersion = objAssembly.GetName().Version;
-            DateTime dtBuild = default(DateTime);
+            Version objVersion = objAssembly.GetName().Version;
+            DateTime dtBuild = default;
 
             if (blnForceFileDate)
             {
@@ -165,7 +171,7 @@ namespace Shoko.Server
         //--
         private static string StackFrameToString(StackFrame sf)
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            StringBuilder sb = new StringBuilder();
             int intParam = 0;
             MemberInfo mi = sf.GetMethod();
 
@@ -200,14 +206,14 @@ namespace Shoko.Server
             _with1.Append("       ");
             if (sf.GetFileName() == null || sf.GetFileName().Length == 0)
             {
-                _with1.Append(System.IO.Path.GetFileName(ParentAssembly().CodeBase));
+                _with1.Append(Path.GetFileName(ParentAssembly().CodeBase));
                 //-- native code offset is always available
                 _with1.Append(": N ");
                 _with1.Append(string.Format("{0:#00000}", sf.GetNativeOffset()));
             }
             else
             {
-                _with1.Append(System.IO.Path.GetFileName(sf.GetFileName()));
+                _with1.Append(Path.GetFileName(sf.GetFileName()));
                 _with1.Append(": line ");
                 _with1.Append(string.Format("{0:#0000}", sf.GetFileLineNumber()));
                 _with1.Append(", col ");
@@ -230,7 +236,7 @@ namespace Shoko.Server
         {
             int intFrame = 0;
 
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            StringBuilder sb = new StringBuilder();
 
             sb.Append(Environment.NewLine);
             sb.Append("---- Stack Trace ----");
@@ -336,7 +342,7 @@ namespace Shoko.Server
         //--
         private static void KillApp()
         {
-            System.Diagnostics.Process.GetCurrentProcess().Kill();
+            Process.GetCurrentProcess().Kill();
         }
 
         //--
@@ -345,7 +351,7 @@ namespace Shoko.Server
         //--
         private static string FormatExceptionForUser(bool blnConsoleApp)
         {
-            System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
+            StringBuilder objStringBuilder = new StringBuilder();
             string strBullet = null;
             if (blnConsoleApp)
             {
@@ -455,10 +461,8 @@ namespace Shoko.Server
                 //return "c:\\" + Regex.Replace(ParentAssembly().CodeBase(), "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
                 return @"c:\" + Regex.Replace(ParentAssembly().CodeBase, "[\\/\\\\\\:\\*\\?\\\"\\<\\>\\|]", "_") + ".";
             }
-            else
-            {
-                return System.AppDomain.CurrentDomain.BaseDirectory + System.AppDomain.CurrentDomain.FriendlyName + ".";
-            }
+
+            return AppDomain.CurrentDomain.BaseDirectory + AppDomain.CurrentDomain.FriendlyName + ".";
         }
 
         //--
@@ -468,7 +472,7 @@ namespace Shoko.Server
         {
             try
             {
-                System.Diagnostics.EventLog.WriteEntry(System.AppDomain.CurrentDomain.FriendlyName,
+                EventLog.WriteEntry(AppDomain.CurrentDomain.FriendlyName,
                     Environment.NewLine + _strException, EventLogEntryType.Error);
                 _blnLogToEventLogOK = true;
             }
@@ -494,7 +498,7 @@ namespace Shoko.Server
         //--
         private static void ExceptionToFile()
         {
-            NLog.LogManager.GetCurrentClassLogger().Fatal(_strException);
+            LogManager.GetCurrentClassLogger().Fatal(_strException);
 
             /*_strLogFullPath = GetApplicationPath() + _strLogName;
 			try
@@ -535,7 +539,7 @@ namespace Shoko.Server
         {
             try
             {
-                return System.Environment.UserDomainName + "\\" + System.Environment.UserName;
+                return Environment.UserDomainName + "\\" + Environment.UserName;
             }
             catch
             {
@@ -563,7 +567,7 @@ namespace Shoko.Server
         //--
         static internal string SysInfoToString(bool blnIncludeStackTrace = false)
         {
-            System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
+            StringBuilder objStringBuilder = new StringBuilder();
 
             var _with4 = objStringBuilder;
 
@@ -595,7 +599,7 @@ namespace Shoko.Server
             try
             {
                 //_with4.Append(System.AppDomain.CurrentDomain.FriendlyName());
-                _with4.Append(System.AppDomain.CurrentDomain.FriendlyName);
+                _with4.Append(AppDomain.CurrentDomain.FriendlyName);
             }
             catch (Exception e)
             {
@@ -630,7 +634,7 @@ namespace Shoko.Server
             try
             {
                 //_with4.Append(ParentAssembly().GetName().Version().ToString);
-                _with4.Append(ParentAssembly().GetName().Version.ToString());
+                _with4.Append(ParentAssembly().GetName().Version);
             }
             catch (Exception e)
             {
@@ -663,7 +667,7 @@ namespace Shoko.Server
         //--
         static internal string ExceptionToString(Exception objException)
         {
-            System.Text.StringBuilder objStringBuilder = new System.Text.StringBuilder();
+            StringBuilder objStringBuilder = new StringBuilder();
 
             if (objException.InnerException != null)
             {
@@ -777,12 +781,12 @@ namespace Shoko.Server
         //--
         private static void BitmapToJPEG(Bitmap objBitmap, string strFilename, long lngCompression = 75)
         {
-            System.Drawing.Imaging.EncoderParameters objEncoderParameters =
-                new System.Drawing.Imaging.EncoderParameters(1);
-            System.Drawing.Imaging.ImageCodecInfo objImageCodecInfo = GetEncoderInfo("image/jpeg");
+            EncoderParameters objEncoderParameters =
+                new EncoderParameters(1);
+            ImageCodecInfo objImageCodecInfo = GetEncoderInfo("image/jpeg");
 
             objEncoderParameters.Param[0] =
-                new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality,
+                new EncoderParameter(Encoder.Quality,
                     lngCompression);
             objBitmap.Save(strFilename, objImageCodecInfo, objEncoderParameters);
         }
@@ -796,7 +800,7 @@ namespace Shoko.Server
         {
             try
             {
-                string strIP = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName()).AddressList[0].ToString();
+                string strIP = Dns.GetHostEntry(Dns.GetHostName()).AddressList[0].ToString();
                 return strIP;
             }
             catch

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Models.TvDB
@@ -18,7 +16,7 @@ namespace Shoko.Models.TvDB
         public Dictionary<int, TvDBDetails> TvDetails = new Dictionary<int, TvDBDetails>();
 
         // All the TvDB cross refs for this anime
-        private List<CrossRef_AniDB_TvDB> crossRefTvDB = null;
+        private List<CrossRef_AniDB_TvDB> crossRefTvDB;
 
         public List<CrossRef_AniDB_TvDB> CrossRefTvDB
         {
@@ -45,7 +43,7 @@ namespace Shoko.Models.TvDB
         }
 
         // All the episode overrides for this anime
-        private List<CrossRef_AniDB_TvDB_Episode_Override> crossRefTvDBEpisodes = null;
+        private List<CrossRef_AniDB_TvDB_Episode_Override> crossRefTvDBEpisodes;
 
         public List<CrossRef_AniDB_TvDB_Episode_Override> CrossRefTvDBEpisodes
         {
@@ -59,7 +57,7 @@ namespace Shoko.Models.TvDB
             }
         }
 
-        private Dictionary<int, int> dictTvDBCrossRefEpisodes = null;
+        private Dictionary<int, int> dictTvDBCrossRefEpisodes;
 
         public Dictionary<int, int> DictTvDBCrossRefEpisodes
         {
@@ -76,7 +74,7 @@ namespace Shoko.Models.TvDB
         }
 
         // All the episodes regardless of which cross ref they come from 
-        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
 
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {

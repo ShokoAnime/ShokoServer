@@ -23,7 +23,7 @@ namespace Shoko.Server.Repositories.Cached
         private CrossRef_AniDB_TvDBRepository()
         {
             EndSaveCallback +=
-                (db) => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(db.AniDBID);
+                db => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(db.AniDBID);
         }
 
         public static CrossRef_AniDB_TvDBRepository Create()

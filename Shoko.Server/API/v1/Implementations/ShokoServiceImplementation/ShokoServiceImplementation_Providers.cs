@@ -529,8 +529,7 @@ namespace Shoko.Server
             {
                 if (tvDBID.HasValue)
                     return RepoFactory.TvDB_ImagePoster.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
+                return RepoFactory.TvDB_ImagePoster.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -546,8 +545,7 @@ namespace Shoko.Server
             {
                 if (tvDBID.HasValue)
                     return RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
+                return RepoFactory.TvDB_ImageWideBanner.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -563,8 +561,7 @@ namespace Shoko.Server
             {
                 if (tvDBID.HasValue)
                     return RepoFactory.TvDB_ImageFanart.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
+                return RepoFactory.TvDB_ImageFanart.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -580,8 +577,7 @@ namespace Shoko.Server
             {
                 if (tvDBID.HasValue)
                     return RepoFactory.TvDB_Episode.GetBySeriesID(tvDBID.Value);
-                else
-                    return RepoFactory.TvDB_Episode.GetAll().ToList();
+                return RepoFactory.TvDB_Episode.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -601,8 +597,7 @@ namespace Shoko.Server
             {
                 if (traktShowID.HasValue)
                     return RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
-                else
-                    return RepoFactory.Trakt_Episode.GetAll().ToList();
+                return RepoFactory.Trakt_Episode.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -694,7 +689,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).Cast<CrossRef_AniDB_TraktV2>().ToList();
+                return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).ToList();
             }
             catch (Exception ex)
             {
@@ -870,18 +865,18 @@ namespace Shoko.Server
         {
             try
             {
-                Providers.TraktTV.ScrobblePlayingStatus statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                ScrobblePlayingStatus statusTraktV2 = ScrobblePlayingStatus.Start;
 
                 switch (status)
                 {
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Start:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Start;
+                    case (int)ScrobblePlayingStatus.Start:
+                        statusTraktV2 = ScrobblePlayingStatus.Start;
                         break;
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Pause:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Pause;
+                    case (int)ScrobblePlayingStatus.Pause:
+                        statusTraktV2 = ScrobblePlayingStatus.Pause;
                         break;
-                    case (int)Providers.TraktTV.ScrobblePlayingStatus.Stop:
-                        statusTraktV2 = Providers.TraktTV.ScrobblePlayingStatus.Stop;
+                    case (int)ScrobblePlayingStatus.Stop:
+                        statusTraktV2 = ScrobblePlayingStatus.Stop;
                         break;
                 }
 
@@ -892,14 +887,14 @@ namespace Shoko.Server
                     switch (type)
                     {
                         // Movie
-                        case (int) Providers.TraktTV.ScrobblePlayingType.movie:
-                            return Providers.TraktTV.TraktTVHelper.Scrobble(
-                                Providers.TraktTV.ScrobblePlayingType.movie, animeId.ToString(),
+                        case (int) ScrobblePlayingType.movie:
+                            return TraktTVHelper.Scrobble(
+                                ScrobblePlayingType.movie, animeId.ToString(),
                                 statusTraktV2, progressTrakt);
                         // TV episode
-                        case (int) Providers.TraktTV.ScrobblePlayingType.episode:
-                            return Providers.TraktTV.TraktTVHelper.Scrobble(
-                                Providers.TraktTV.ScrobblePlayingType.episode,
+                        case (int) ScrobblePlayingType.episode:
+                            return TraktTVHelper.Scrobble(
+                                ScrobblePlayingType.episode,
                                 animeId.ToString(), statusTraktV2, progressTrakt);
                     }
                 }
@@ -975,7 +970,7 @@ namespace Shoko.Server
         {
             try
             {
-                return RepoFactory.CrossRef_AniDB_TraktV2.GetAll().Cast<CrossRef_AniDB_TraktV2>().ToList();
+                return RepoFactory.CrossRef_AniDB_TraktV2.GetAll().ToList();
             }
             catch (Exception ex)
             {
@@ -1045,7 +1040,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in GetTraktDeviceCode: " + ex.ToString());
+                logger.Error(ex, "Error in GetTraktDeviceCode: " + ex);
                 return null;
             }
         }
@@ -1175,8 +1170,7 @@ namespace Shoko.Server
             {
                 if (movieID.HasValue)
                     return RepoFactory.MovieDB_Poster.GetByMovieID(movieID.Value);
-                else
-                    return RepoFactory.MovieDB_Poster.GetAllOriginal();
+                return RepoFactory.MovieDB_Poster.GetAllOriginal();
             }
             catch (Exception ex)
             {
@@ -1192,8 +1186,7 @@ namespace Shoko.Server
             {
                 if (movieID.HasValue)
                     return RepoFactory.MovieDB_Fanart.GetByMovieID(movieID.Value);
-                else
-                    return RepoFactory.MovieDB_Fanart.GetAllOriginal();
+                return RepoFactory.MovieDB_Fanart.GetAllOriginal();
             }
             catch (Exception ex)
             {

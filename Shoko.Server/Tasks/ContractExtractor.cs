@@ -5,18 +5,15 @@ using System.IO.Compression;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Criterion;
 using NHibernate.Criterion.Lambda;
 using Shoko.Models.Client;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.LZ4;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
-
 
 namespace Shoko.Server.Tasks
 {
@@ -111,7 +108,7 @@ namespace Shoko.Server.Tasks
         /// <returns>The zip archive <see cref="System.IO.Stream"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">The specified <paramref name="entityType"/> is not valid.</exception>
-        public System.IO.Stream GetContractsAsZipStream(string entityType)
+        public Stream GetContractsAsZipStream(string entityType)
         {
             using (IStatelessSession session = DatabaseFactory.SessionFactory.OpenStatelessSession())
             {
@@ -127,7 +124,7 @@ namespace Shoko.Server.Tasks
         /// <returns>The zip archive <see cref="System.IO.Stream"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">The specified <paramref name="entityType"/> is not valid.</exception>
-        public System.IO.Stream GetContractsAsZipStream(ISessionWrapper session, string entityType)
+        public Stream GetContractsAsZipStream(ISessionWrapper session, string entityType)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -136,7 +133,7 @@ namespace Shoko.Server.Tasks
 
             using (ZipArchive zip = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
             {
-                if (String.IsNullOrEmpty(entityType))
+                if (string.IsNullOrEmpty(entityType))
                 {
                     // When no entityType has been specified, we'll just dump everything
                     foreach (var contractDumpAction in ContractExtractors.Values)

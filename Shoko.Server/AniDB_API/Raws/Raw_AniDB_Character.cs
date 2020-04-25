@@ -51,7 +51,7 @@ namespace AniDBAPI
         {
             InitFields();
 
-            this.AnimeID = 0;
+            AnimeID = 0;
 
             // remove the header info
             string[] sDetails = sRecMessage.Substring(14).Split('|');
@@ -78,14 +78,14 @@ namespace AniDBAPI
         {
             InitFields();
 
-            this.AnimeID = anid;
-            this.CharID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
-            this.CharType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            AnimeID = anid;
+            CharID = int.Parse(AniDBHTTPHelper.TryGetAttribute(node, "id"));
+            CharType = AniDBHTTPHelper.TryGetAttribute(node, "type");
 
-            this.CharName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
-            this.CharDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
-            this.EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes") ?? string.Empty;
-            this.PicName = AniDBHTTPHelper.TryGetProperty(node, "picture");
+            CharName = AniDBHTTPHelper.TryGetProperty(node, "name")?.Replace('`', '\'');
+            CharDescription = AniDBHTTPHelper.TryGetProperty(node, "description")?.Replace('`', '\'');
+            EpisodeListRaw = AniDBHTTPHelper.TryGetProperty(node, "episodes") ?? string.Empty;
+            PicName = AniDBHTTPHelper.TryGetProperty(node, "picture");
 
             CreatorListRaw = string.Empty;
             foreach (XmlNode nodeChild in node.ChildNodes)
@@ -116,7 +116,7 @@ namespace AniDBAPI
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("charID: " + CharID.ToString());
+            sb.Append("charID: " + CharID);
             sb.Append(" | characterName: " + CharName);
             sb.Append(" | picName: " + PicName);
             return sb.ToString();

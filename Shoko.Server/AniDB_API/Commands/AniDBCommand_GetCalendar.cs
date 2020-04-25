@@ -11,7 +11,7 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetCalendar";
         }
 
-        private CalendarCollection calendars = null;
+        private CalendarCollection calendars;
 
         public CalendarCollection Calendars
         {

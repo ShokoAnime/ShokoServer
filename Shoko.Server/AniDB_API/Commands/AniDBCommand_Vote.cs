@@ -49,9 +49,9 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_Vote" + entityID.ToString() + "_" + episodeNumber.ToString() + "_" +
-                   voteType.ToString() + "_" +
-                   episodeType.ToString();
+            return "AniDBCommand_Vote" + entityID + "_" + episodeNumber + "_" +
+                   voteType + "_" +
+                   episodeType;
         }
 
         public virtual AniDBUDPResponseCode GetStartEventType()
@@ -84,16 +84,16 @@ namespace AniDBAPI.Commands
                     {
                         // 261 VOTE FOUNDCode Geass Hangyaku no Lelouch|900|1|4521
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
-                        vote.ProcessVoteFoundAnime(socketResponse, this.entityID, this.voteType);
-                        this.voteValue = vote.VoteValue;
+                        vote.ProcessVoteFoundAnime(socketResponse, entityID, voteType);
+                        voteValue = vote.VoteValue;
                     }
                     if (voteType == AniDBVoteType.Episode)
                     {
                         //261 VOTE FOUNDThe Day a New Demon Was Born|700|1|63091
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
-                        vote.ProcessVoteFoundEpisode(socketResponse, this.entityID, this.episodeNumber,
-                            this.episodeType);
-                        this.voteValue = vote.VoteValue;
+                        vote.ProcessVoteFoundEpisode(socketResponse, entityID, episodeNumber,
+                            episodeType);
+                        voteValue = vote.VoteValue;
                     }
                     return AniDBUDPResponseCode.VoteFound;
                 case "262": return AniDBUDPResponseCode.VoteUpdated;
@@ -129,14 +129,14 @@ namespace AniDBAPI.Commands
             // votes will be updated automatically (no questions asked)
             // tmpvoting when there exist a perm vote is not possible
 
-            this.entityID = entityid;
-            this.episodeNumber = -1;
+            entityID = entityid;
+            episodeNumber = -1;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue * 100);
+                voteValue = (int) (votevalue * 100);
             else
-                this.voteValue = (int) votevalue;
-            this.voteType = votetype;
-            this.episodeType = EpisodeType.Episode;
+                voteValue = (int) votevalue;
+            voteType = votetype;
+            episodeType = EpisodeType.Episode;
 
             commandID = entityID.ToString();
 
@@ -157,9 +157,9 @@ namespace AniDBAPI.Commands
                     break;
             }
 
-            commandText = "VOTE type=" + iVoteType.ToString();
-            commandText += "&id=" + entityID.ToString();
-            commandText += "&value=" + voteValue.ToString();
+            commandText = "VOTE type=" + iVoteType;
+            commandText += "&id=" + entityID;
+            commandText += "&value=" + voteValue;
         }
 
         public void InitEpisode(int entityid, int epno, decimal votevalue, EpisodeType epType)
@@ -175,14 +175,14 @@ namespace AniDBAPI.Commands
             // votes will be updated automatically (no questions asked)
             // tmpvoting when there exist a perm vote is not possible
 
-            this.entityID = entityid;
-            this.episodeNumber = epno;
+            entityID = entityid;
+            episodeNumber = epno;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue * 100);
+                voteValue = (int) (votevalue * 100);
             else
-                this.voteValue = (int) votevalue;
-            this.voteType = AniDBVoteType.Episode;
-            this.episodeType = epType;
+                voteValue = (int) votevalue;
+            voteType = AniDBVoteType.Episode;
+            episodeType = epType;
 
             commandID = entityID.ToString();
 
@@ -192,25 +192,25 @@ namespace AniDBAPI.Commands
             switch (epType)
             {
                 case EpisodeType.Credits:
-                    epNumberFormatted = "C" + epno.ToString();
+                    epNumberFormatted = "C" + epno;
                     break;
                 case EpisodeType.Special:
-                    epNumberFormatted = "S" + epno.ToString();
+                    epNumberFormatted = "S" + epno;
                     break;
                 case EpisodeType.Other:
-                    epNumberFormatted = "0" + epno.ToString();
+                    epNumberFormatted = "0" + epno;
                     break;
                 case EpisodeType.Trailer:
-                    epNumberFormatted = "T" + epno.ToString();
+                    epNumberFormatted = "T" + epno;
                     break;
                 case EpisodeType.Parody:
-                    epNumberFormatted = "P" + epno.ToString();
+                    epNumberFormatted = "P" + epno;
                     break;
             }
 
-            commandText = "VOTE type=" + iVoteType.ToString();
-            commandText += "&id=" + entityID.ToString();
-            commandText += "&value=" + voteValue.ToString();
+            commandText = "VOTE type=" + iVoteType;
+            commandText += "&id=" + entityID;
+            commandText += "&value=" + voteValue;
             commandText += "&epno=" + epNumberFormatted;
         }
     }

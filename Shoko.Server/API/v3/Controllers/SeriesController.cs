@@ -252,7 +252,7 @@ namespace Shoko.Server.API.v3
                     if (title1 == null && title2 == null) return 0;
                     if (title1 == null) return 1;
                     if (title2 == null) return -1;
-                    return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
+                    return string.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
                 });
                 var result = new SearchGrouping
                 {

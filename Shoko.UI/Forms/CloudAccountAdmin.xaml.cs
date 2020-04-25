@@ -41,8 +41,8 @@ namespace Shoko.UI.Forms
                     SVR_CloudAccount ns = (SVR_CloudAccount) obj;
 
                     MessageBoxResult res = MessageBox.Show(
-                        string.Format(Shoko.Commons.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,
-                            ns.Provider), Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
+                        string.Format(Commons.Properties.Resources.CloudAccounts_RemoveMessage, ns.Name,
+                            ns.Provider), Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
                         MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {

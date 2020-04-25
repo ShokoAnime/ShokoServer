@@ -5,19 +5,16 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
-
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Queue;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 
@@ -192,7 +189,7 @@ namespace Shoko.Server
             RepoFactory.ScanFile.Delete(files);
         }
 
-        private bool cancelIntegrityCheck = false;
+        private bool cancelIntegrityCheck;
         internal SVR_Scan RunScan;
 
         public static int OnHashProgress(string fileName, int percentComplete)
@@ -225,7 +222,7 @@ namespace Shoko.Server
                                 sf.Status = (int) ScanFileStatus.ErrorInvalidSize;
                             else
                             {
-                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                                ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                                 {
                                     queueState = QueueStateEnum.HashingFile,
                                     extraParams = new[] { sf.FullName }
@@ -255,7 +252,7 @@ namespace Shoko.Server
                     sf.CheckDate = DateTime.Now;
                     RepoFactory.ScanFile.Save(sf);
                     if (sf.Status > (int) ScanFileStatus.ProcessedOK)
-                        Scanner.Instance.AddErrorScan(sf);
+                        Instance.AddErrorScan(sf);
                     Refresh();
 
                     if (cancelIntegrityCheck)

@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Force.DeepCloner;
-using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -20,11 +17,9 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
-using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
-using Formatting = Newtonsoft.Json.Formatting;
 
 namespace Shoko.Server.Models
 {
@@ -658,120 +653,113 @@ namespace Shoko.Server.Models
 
         public HashSet<GroupFilterConditionType> UpdateContract(bool onlystats = false)
         {
-            try
-            {
-                DateTime start = DateTime.Now;
-                TimeSpan ts;
-                CL_AnimeSeries_User contract = (CL_AnimeSeries_User) Contract?.Clone();
-                ts = DateTime.Now - start;
+            DateTime start = DateTime.Now;
+            TimeSpan ts;
+            CL_AnimeSeries_User contract = (CL_AnimeSeries_User) Contract?.Clone();
+            ts = DateTime.Now - start;
                 logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Cloned Series Contract in {ts.TotalMilliseconds}ms");
-                if (contract == null)
-                {
-                    contract = new CL_AnimeSeries_User();
-                    onlystats = false;
-                }
-
-                contract.AniDB_ID = AniDB_ID;
-                contract.AnimeGroupID = AnimeGroupID;
-                contract.AnimeSeriesID = AnimeSeriesID;
-                contract.DateTimeUpdated = DateTimeUpdated;
-                contract.DateTimeCreated = DateTimeCreated;
-                contract.DefaultAudioLanguage = DefaultAudioLanguage;
-                contract.DefaultSubtitleLanguage = DefaultSubtitleLanguage;
-                contract.LatestLocalEpisodeNumber = LatestLocalEpisodeNumber;
-                contract.LatestEpisodeAirDate = LatestEpisodeAirDate;
-                contract.AirsOn = AirsOn;
-                contract.EpisodeAddedDate = EpisodeAddedDate;
-                contract.MissingEpisodeCount = MissingEpisodeCount;
-                contract.MissingEpisodeCountGroups = MissingEpisodeCountGroups;
-                contract.SeriesNameOverride = SeriesNameOverride;
-                contract.DefaultFolder = DefaultFolder;
-                contract.PlayedCount = 0;
-                contract.StoppedCount = 0;
-                contract.UnwatchedEpisodeCount = 0;
-                contract.WatchedCount = 0;
-                contract.WatchedDate = null;
-                contract.WatchedEpisodeCount = 0;
-                if (onlystats)
-                {
-                    start = DateTime.Now;
-                    HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
-                    Contract = contract;
-                    ts = DateTime.Now - start;
-                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
-                    return types2;
-                }
-                SVR_AniDB_Anime animeRec = GetAnime();
-                List<CrossRef_AniDB_TvDB> tvDBCrossRefs = GetCrossRefTvDB();
-                CrossRef_AniDB_Other movieDBCrossRef = CrossRefMovieDB;
-                MovieDB_Movie movie = null;
-                if (movieDBCrossRef != null)
-                    movie = movieDBCrossRef.GetMovieDB_Movie();
-                List<TvDB_Series> sers = new List<TvDB_Series>();
-                foreach (CrossRef_AniDB_TvDB xref in tvDBCrossRefs)
-                {
-                    TvDB_Series tvser = xref.GetTvDBSeries();
-                    if (tvser != null)
-                        sers.Add(tvser);
-                    else
-                        logger.Warn("You are missing database information for TvDB series: {0}", xref.TvDBID);
-                }
-                // get AniDB data
-                if (animeRec != null)
-                {
-                    start = DateTime.Now;
-                    if (animeRec.Contract == null)
-                        RepoFactory.AniDB_Anime.Save(animeRec);
-                    contract.AniDBAnime = (CL_AniDB_AnimeDetailed) animeRec.Contract.Clone();
-                    ts = DateTime.Now - start;
-                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
-                    contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
-                    if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
-                    {
-                        ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
-                        if (im != null)
-                            contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
-                            {
-                                AnimeID = im.ImageID,
-                                ImageType = (int)im.ImageType
-                            };
-                    }
-                    contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
-                    if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
-                    {
-                        ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
-                        if (im != null)
-                            contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
-                            {
-                                AnimeID = im.ImageID,
-                                ImageType = (int)im.ImageType
-                            };
-                    }
-                    contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
-                }
-
-                contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
-
-
-                contract.TvDB_Series = sers;
-                contract.CrossRefAniDBMovieDB = null;
-                if (movieDBCrossRef != null)
-                {
-                    contract.CrossRefAniDBMovieDB = movieDBCrossRef;
-                    contract.MovieDB_Movie = movie;
-                }
-                contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
-                start = DateTime.Now;
-                HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
-                ts = DateTime.Now - start;
-                logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
-                Contract = contract;
-                return types;
-            }
-            catch
+            if (contract == null)
             {
-                throw;
+                contract = new CL_AnimeSeries_User();
+                onlystats = false;
             }
+
+            contract.AniDB_ID = AniDB_ID;
+            contract.AnimeGroupID = AnimeGroupID;
+            contract.AnimeSeriesID = AnimeSeriesID;
+            contract.DateTimeUpdated = DateTimeUpdated;
+            contract.DateTimeCreated = DateTimeCreated;
+            contract.DefaultAudioLanguage = DefaultAudioLanguage;
+            contract.DefaultSubtitleLanguage = DefaultSubtitleLanguage;
+            contract.LatestLocalEpisodeNumber = LatestLocalEpisodeNumber;
+            contract.LatestEpisodeAirDate = LatestEpisodeAirDate;
+            contract.AirsOn = AirsOn;
+            contract.EpisodeAddedDate = EpisodeAddedDate;
+            contract.MissingEpisodeCount = MissingEpisodeCount;
+            contract.MissingEpisodeCountGroups = MissingEpisodeCountGroups;
+            contract.SeriesNameOverride = SeriesNameOverride;
+            contract.DefaultFolder = DefaultFolder;
+            contract.PlayedCount = 0;
+            contract.StoppedCount = 0;
+            contract.UnwatchedEpisodeCount = 0;
+            contract.WatchedCount = 0;
+            contract.WatchedDate = null;
+            contract.WatchedEpisodeCount = 0;
+            if (onlystats)
+            {
+                start = DateTime.Now;
+                HashSet<GroupFilterConditionType> types2 = GetConditionTypesChanged(Contract, contract);
+                Contract = contract;
+                ts = DateTime.Now - start;
+                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
+                return types2;
+            }
+            SVR_AniDB_Anime animeRec = GetAnime();
+            List<CrossRef_AniDB_TvDB> tvDBCrossRefs = GetCrossRefTvDB();
+            CrossRef_AniDB_Other movieDBCrossRef = CrossRefMovieDB;
+            MovieDB_Movie movie = null;
+            if (movieDBCrossRef != null)
+                movie = movieDBCrossRef.GetMovieDB_Movie();
+            List<TvDB_Series> sers = new List<TvDB_Series>();
+            foreach (CrossRef_AniDB_TvDB xref in tvDBCrossRefs)
+            {
+                TvDB_Series tvser = xref.GetTvDBSeries();
+                if (tvser != null)
+                    sers.Add(tvser);
+                else
+                    logger.Warn("You are missing database information for TvDB series: {0}", xref.TvDBID);
+            }
+            // get AniDB data
+            if (animeRec != null)
+            {
+                start = DateTime.Now;
+                if (animeRec.Contract == null)
+                    RepoFactory.AniDB_Anime.Save(animeRec);
+                contract.AniDBAnime = (CL_AniDB_AnimeDetailed) animeRec.Contract.Clone();
+                ts = DateTime.Now - start;
+                    logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got and Cloned AniDB_Anime Contract in {ts.TotalMilliseconds}ms");
+                contract.AniDBAnime.AniDBAnime.DefaultImagePoster = animeRec.GetDefaultPoster()?.ToClient();
+                if (contract.AniDBAnime.AniDBAnime.DefaultImagePoster == null)
+                {
+                    ImageDetails im = animeRec.GetDefaultPosterDetailsNoBlanks();
+                    if (im != null)
+                        contract.AniDBAnime.AniDBAnime.DefaultImagePoster = new CL_AniDB_Anime_DefaultImage
+                        {
+                            AnimeID = im.ImageID,
+                            ImageType = (int)im.ImageType
+                        };
+                }
+                contract.AniDBAnime.AniDBAnime.DefaultImageFanart = animeRec.GetDefaultFanart()?.ToClient();
+                if (contract.AniDBAnime.AniDBAnime.DefaultImageFanart == null)
+                {
+                    ImageDetails im = animeRec.GetDefaultFanartDetailsNoBlanks();
+                    if (im != null)
+                        contract.AniDBAnime.AniDBAnime.DefaultImageFanart = new CL_AniDB_Anime_DefaultImage
+                        {
+                            AnimeID = im.ImageID,
+                            ImageType = (int)im.ImageType
+                        };
+                }
+                contract.AniDBAnime.AniDBAnime.DefaultImageWideBanner = animeRec.GetDefaultWideBanner()?.ToClient();
+            }
+
+            contract.CrossRefAniDBTvDBV2 = RepoFactory.CrossRef_AniDB_TvDB.GetV2LinksFromAnime(AniDB_ID);
+
+
+            contract.TvDB_Series = sers;
+            contract.CrossRefAniDBMovieDB = null;
+            if (movieDBCrossRef != null)
+            {
+                contract.CrossRefAniDBMovieDB = movieDBCrossRef;
+                contract.MovieDB_Movie = movie;
+            }
+            contract.CrossRefAniDBMAL = CrossRefMAL?.ToList() ?? new List<CrossRef_AniDB_MAL>();
+            start = DateTime.Now;
+            HashSet<GroupFilterConditionType> types = GetConditionTypesChanged(Contract, contract);
+            ts = DateTime.Now - start;
+                logger.Trace($"While Updating SERIES {GetAnime()?.MainTitle ?? AniDB_ID.ToString()}, Got GroupFilterConditionTypesChanged in {ts.TotalMilliseconds}ms");
+            Contract = contract;
+            return types;
         }
 
 
@@ -1290,7 +1278,7 @@ namespace Shoko.Server.Models
                         goto label0;
                     }
                 // People hate goto, but this is a legit use for it.
-                label0: continue;
+                label0: ;
             }
             return results;
         }

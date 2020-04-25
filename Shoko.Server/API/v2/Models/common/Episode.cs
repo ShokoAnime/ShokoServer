@@ -44,10 +44,6 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public List<RawFile> files { get; set; }
 
-        public Episode()
-        {
-        }
-
         internal static Episode GenerateFromAnimeEpisodeID(HttpContext ctx, int anime_episode_id, int uid, int level, int pic = 1)
         {
             Episode ep = new Episode();
@@ -122,7 +118,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         var cont_image =
                             fanarts[new Random().Next(fanarts.Count)];
-                        ep.art.fanart.Add(new Art()
+                        ep.art.fanart.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                 cont_image.AniDB_Anime_DefaultImageID),

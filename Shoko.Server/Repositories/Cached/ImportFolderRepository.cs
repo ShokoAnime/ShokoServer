@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NLog;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 

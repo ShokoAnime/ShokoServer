@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Shoko.Models.Server;
+using System.Web;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
@@ -153,7 +152,7 @@ namespace Shoko.Server.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(System.Web.HttpUtility.UrlDecode(criteria));
+                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(HttpUtility.UrlDecode(criteria));
 
                 logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
@@ -181,7 +180,7 @@ namespace Shoko.Server.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                TvShow result = client.GetTvShow(id, TvShowMethods.Images, null);
+                TvShow result = client.GetTvShow(id, TvShowMethods.Images);
 
                 if (result != null)
                 {

@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Shoko.Commons.Utils;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

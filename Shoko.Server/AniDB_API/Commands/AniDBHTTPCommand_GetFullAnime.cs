@@ -102,7 +102,7 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBHTTPCommand_GetFullAnime_" + AnimeID.ToString();
+            return "AniDBHTTPCommand_GetFullAnime_" + AnimeID;
         }
 
         public virtual AniDBUDPResponseCode GetStartEventType()
@@ -177,11 +177,11 @@ namespace AniDBAPI.Commands
 
         public void Init(int animeID, bool createSeriesRecord, bool forceFromAniDB, bool cacheOnly)
         {
-            this.ForceFromAniDB = forceFromAniDB;
-            this.CacheOnly = cacheOnly;
+            ForceFromAniDB = forceFromAniDB;
+            CacheOnly = cacheOnly;
             this.animeID = animeID;
             commandID = animeID.ToString();
-            this.createAnimeSeriesRecord = createSeriesRecord;
+            createAnimeSeriesRecord = createSeriesRecord;
         }
     }
 }

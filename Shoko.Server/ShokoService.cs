@@ -1,9 +1,6 @@
 ﻿using System;
-using Shoko.Server.Databases;
-using NHibernate;
 using NLog;
 using Shoko.Server.Commands;
-using Shoko.Models.TvDB;
 
 namespace Shoko.Server
 {
@@ -35,7 +32,7 @@ namespace Shoko.Server
             {
                 lock (lockLastAniDBMessage)
                 {
-                    return ShokoService.lastAniDBMessage;
+                    return lastAniDBMessage;
                 }
             }
             set { lastAniDBMessage = value; }
@@ -49,7 +46,7 @@ namespace Shoko.Server
             {
                 lock (lockLastAniDBUDPMessage)
                 {
-                    return ShokoService.lastAniDBUDPMessage;
+                    return lastAniDBUDPMessage;
                 }
             }
             set { lastAniDBUDPMessage = value; }
@@ -63,7 +60,7 @@ namespace Shoko.Server
             {
                 lock (lockLastAniDBHTTPMessage)
                 {
-                    return ShokoService.lastAniDBHTTPMessage;
+                    return lastAniDBHTTPMessage;
                 }
             }
             set { lastAniDBHTTPMessage = value; }
@@ -78,7 +75,7 @@ namespace Shoko.Server
             {
                 lock (lockLastAniDBMessageNonPing)
                 {
-                    return ShokoService.lastAniDBMessageNonPing;
+                    return lastAniDBMessageNonPing;
                 }
             }
             set { lastAniDBMessageNonPing = value; }
@@ -92,7 +89,7 @@ namespace Shoko.Server
             {
                 lock (lockLastAniDBPing)
                 {
-                    return ShokoService.lastAniDBPing;
+                    return lastAniDBPing;
                 }
             }
             set { lastAniDBPing = value; }
@@ -106,7 +103,7 @@ namespace Shoko.Server
             {
                 lock (cmdLockGeneral)
                 {
-                    return ShokoService.cmdProcessorGeneral;
+                    return cmdProcessorGeneral;
                 }
             }
         }
@@ -119,7 +116,7 @@ namespace Shoko.Server
             {
                 lock (cmdLockImages)
                 {
-                    return ShokoService.cmdProcessorImages;
+                    return cmdProcessorImages;
                 }
             }
         }
@@ -132,7 +129,7 @@ namespace Shoko.Server
             {
                 lock (cmdLockHasher)
                 {
-                    return ShokoService.cmdProcessorHasher;
+                    return cmdProcessorHasher;
                 }
             }
         }
@@ -141,7 +138,7 @@ namespace Shoko.Server
 
         public static AniDBHelper AnidbProcessor
         {
-            get { return ShokoService.anidbProcessor; }
+            get { return anidbProcessor; }
         }
     }
 }

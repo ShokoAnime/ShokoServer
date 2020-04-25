@@ -3,27 +3,27 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FluentNHibernate.Utils;
-using Shoko.Models.Server;
-using Shoko.Models.Azure;
-using Shoko.Models.Enums;
-using Shoko.Server.Commands;
-using Shoko.Server.Commands.AniDB;
-using Shoko.Server.Commands.Azure;
 using NLog;
-using Shoko.Server.Databases;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
+using Shoko.Models.Azure;
+using Shoko.Models.Enums;
 using Shoko.Models.Queue;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
+using Shoko.Server.Commands;
+using Shoko.Server.Commands.AniDB;
+using Shoko.Server.Commands.Azure;
+using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server
@@ -138,7 +138,7 @@ namespace Shoko.Server
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
-                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                     {
                         queueState = QueueStateEnum.CheckingFile,
                         extraParams = new[] {v.FileName}
@@ -185,7 +185,7 @@ namespace Shoko.Server
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace(true);
                         if (p != null && p.ImportFolder.CloudID == 0)
                         {
-                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                             {
                                 queueState = QueueStateEnum.HashingFile,
                                 extraParams = new[] {v.FileName}
@@ -244,7 +244,7 @@ namespace Shoko.Server
                     catch (Exception ex)
                     {
                         string msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.FullServerPath,
-                            ex.ToString());
+                            ex);
                         logger.Info(msg);
                     }
                 }
@@ -351,7 +351,7 @@ namespace Shoko.Server
                 {
                     string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}",
                         ((vl.FullServerPath ?? vl.FilePath) ?? vl.VideoLocal_Place_ID.ToString()),
-                        ex.ToString());
+                        ex);
                     logger.Error(msg);
                     //throw;
                 }
@@ -1413,7 +1413,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex.ToString());
+                logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex);
             }
         }
 

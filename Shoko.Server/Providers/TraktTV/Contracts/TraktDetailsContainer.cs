@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV
@@ -24,7 +22,7 @@ namespace Shoko.Server.Providers.TraktTV
         }
 
 
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
+        private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
 
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {
@@ -66,7 +64,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        private Dictionary<int, int> dictTraktSeasons = null;
+        private Dictionary<int, int> dictTraktSeasons;
 
         public Dictionary<int, int> DictTraktSeasons
         {
@@ -106,7 +104,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        private Dictionary<int, int> dictTraktSeasonsSpecials = null;
+        private Dictionary<int, int> dictTraktSeasonsSpecials;
 
         public Dictionary<int, int> DictTraktSeasonsSpecials
         {
@@ -169,7 +167,7 @@ namespace Shoko.Server.Providers.TraktTV
             }
         }
 
-        private List<Trakt_Episode> traktEpisodes = null;
+        private List<Trakt_Episode> traktEpisodes;
 
         public List<Trakt_Episode> TraktEpisodes
         {

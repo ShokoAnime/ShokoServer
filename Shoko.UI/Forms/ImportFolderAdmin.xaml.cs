@@ -16,9 +16,9 @@ namespace Shoko.UI.Forms
         {
             InitializeComponent();
 
-            btnAddImportFolder.Click += new RoutedEventHandler(btnAddImportFolder_Click);
-            btnDeleteImportFolder.Click += new RoutedEventHandler(btnDeleteImportFolder_Click);
-            lbImportFolders.MouseDoubleClick += new MouseButtonEventHandler(lbImportFolders_MouseDoubleClick);
+            btnAddImportFolder.Click += btnAddImportFolder_Click;
+            btnDeleteImportFolder.Click += btnDeleteImportFolder_Click;
+            lbImportFolders.MouseDoubleClick += lbImportFolders_MouseDoubleClick;
         }
 
         void lbImportFolders_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -46,21 +46,21 @@ namespace Shoko.UI.Forms
 
                     MessageBoxResult res =
                         MessageBox.Show(
-                            string.Format(Shoko.Commons.Properties.Resources.ImportFolders_RemoveFolder,
+                            string.Format(Commons.Properties.Resources.ImportFolders_RemoveFolder,
                                 ns.ImportFolderLocation),
-                            Shoko.Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
+                            Commons.Properties.Resources.Confirm, MessageBoxButton.YesNo,
                             MessageBoxImage.Question);
                     if (res == MessageBoxResult.Yes)
                     {
-                        this.Cursor = Cursors.Wait;
+                        Cursor = Cursors.Wait;
                         Importer.DeleteImportFolder(ns.ImportFolderID);
-                        this.Cursor = Cursors.Arrow;
+                        Cursor = Cursors.Arrow;
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.Cursor = Cursors.Arrow;
+                Cursor = Cursors.Arrow;
                 Utils.ShowErrorMessage(ex);
             }
         }
@@ -84,7 +84,7 @@ namespace Shoko.UI.Forms
 
         private Window GetTopParent()
         {
-            DependencyObject dpParent = this.Parent;
+            DependencyObject dpParent = Parent;
             do
             {
                 dpParent = LogicalTreeHelper.GetParent(dpParent);

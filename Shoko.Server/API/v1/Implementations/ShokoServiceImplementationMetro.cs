@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -11,17 +11,14 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.ImageDownload;
-using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Models.TvDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.ImageDownload;
+using Shoko.Server.Models;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {

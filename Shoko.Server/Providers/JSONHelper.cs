@@ -14,7 +14,7 @@ namespace Shoko.Server.Providers
         public static T Deserialize<T>(string json)
         {
             var obj = JsonConvert.DeserializeObject<T>(json,
-                new JsonSerializerSettings()
+                new JsonSerializerSettings
                 {
                     EqualityComparer = StringComparer.InvariantCultureIgnoreCase,
                     MissingMemberHandling = MissingMemberHandling.Ignore,

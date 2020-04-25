@@ -3,12 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Principal;
 using System.Web.Script.Serialization;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Models
 {

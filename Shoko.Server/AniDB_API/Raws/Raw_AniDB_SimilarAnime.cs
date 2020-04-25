@@ -28,16 +28,16 @@ namespace AniDBAPI
         {
             InitFields();
 
-            this.AnimeID = anid;
+            AnimeID = anid;
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id);
-            this.SimilarAnimeID = id;
+            SimilarAnimeID = id;
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "approval"), out int appr);
-            this.Approval = appr;
+            Approval = appr;
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "total"), out int tot);
-            this.Total = tot;
+            Total = tot;
         }
     }
 }

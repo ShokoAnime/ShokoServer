@@ -1,20 +1,17 @@
-﻿using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
+using Microsoft.AspNetCore.Http;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.Extensions;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
-using Microsoft.AspNetCore.Http;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -66,7 +63,7 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_AniDB_Anime aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
-                Commands.CommandRequest_GetAnimeHTTP cr_anime = new Commands.CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
+                CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
                 cr_anime.Save();
  
                 Serie empty_serie = new Serie
@@ -289,7 +286,7 @@ namespace Shoko.Server.API.v2.Models.common
             sr.localsize = local_eps + local_credits + local_specials + local_trailers + local_parodies + local_others;
             sr.viewed = watched_eps + watched_credits + watched_specials + watched_trailers + watched_parodies + watched_others;
 
-            sr.total_sizes = new Sizes()
+            sr.total_sizes = new Sizes
             {
                 Episodes = eps,
                 Credits = credits,
@@ -299,7 +296,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = others
             };
 
-            sr.local_sizes = new Sizes()
+            sr.local_sizes = new Sizes
             {
                 Episodes = local_eps,
                 Credits = local_credits,
@@ -309,7 +306,7 @@ namespace Shoko.Server.API.v2.Models.common
                 Others = local_others
             };
 
-            sr.watched_sizes = new Sizes()
+            sr.watched_sizes = new Sizes
             {
                 Episodes = watched_eps,
                 Credits = watched_credits,
@@ -343,7 +340,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (pic_index < pic)
                         {
-                            sr.art.thumb.Add(new Art()
+                            sr.art.thumb.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                     cont_image.AniDB_Anime_DefaultImageID),
@@ -362,7 +359,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (pic_index < pic)
                     {
-                        sr.art.fanart.Add(new Art()
+                        sr.art.fanart.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
                                 cont_image.TvDB_ImageFanartID),
@@ -381,7 +378,7 @@ namespace Shoko.Server.API.v2.Models.common
                 {
                     if (pic_index < pic)
                     {
-                        sr.art.banner.Add(new Art()
+                        sr.art.banner.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
                                 cont_image.TvDB_ImageWideBannerID),
@@ -398,7 +395,7 @@ namespace Shoko.Server.API.v2.Models.common
             else if (pic > 0)
             {
                 var poster = anime.GetDefaultPosterDetailsNoBlanks();
-                sr.art.thumb.Add(new Art()
+                sr.art.thumb.Add(new Art
                 {
                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) poster.ImageType, poster.ImageID),
                     index = 0
@@ -410,7 +407,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                     if (default_fanart != null)
                     {
-                        sr.art.fanart.Add(new Art()
+                        sr.art.fanart.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
                                 default_fanart.AniDB_Anime_DefaultImageID),
@@ -420,7 +417,7 @@ namespace Shoko.Server.API.v2.Models.common
                     else
                     {
                         var tvdbart = fanarts[rand.Next(fanarts.Count)];
-                        sr.art.fanart.Add(new Art()
+                        sr.art.fanart.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
                                 tvdbart.TvDB_ImageFanartID),
@@ -435,7 +432,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                     if (default_fanart != null)
                     {
-                        sr.art.banner.Add(new Art()
+                        sr.art.banner.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
                                 default_fanart.AniDB_Anime_DefaultImageID),
@@ -445,7 +442,7 @@ namespace Shoko.Server.API.v2.Models.common
                     else
                     {
                         var tvdbart = banners[rand.Next(banners.Count)];
-                        sr.art.banner.Add(new Art()
+                        sr.art.banner.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
                                 tvdbart.TvDB_ImageWideBannerID),
@@ -493,7 +490,7 @@ namespace Shoko.Server.API.v2.Models.common
                     if (s > s1) return 1;
                 }
             }
-            return String.Compare(name, a.name, StringComparison.InvariantCultureIgnoreCase);
+            return string.Compare(name, a.name, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

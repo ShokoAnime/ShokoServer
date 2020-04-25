@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using NLog;
-using System;
 
 namespace Shoko.Server.Providers.TvDB
 {

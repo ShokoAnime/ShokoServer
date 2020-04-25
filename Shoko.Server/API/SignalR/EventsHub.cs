@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Shoko.Server.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Shoko.Server.API.SignalR
 {
@@ -40,24 +35,24 @@ namespace Shoko.Server.API.SignalR
                 {
                     State = ShokoService.CmdProcessorGeneral.QueueState.formatMessage(),
                     Count = ShokoService.CmdProcessorGeneral.QueueCount,
-                    ProcessingCommands = ShokoService.CmdProcessorGeneral.ProcessingCommands,
-                    Paused = ShokoService.CmdProcessorGeneral.Paused
+                    ShokoService.CmdProcessorGeneral.ProcessingCommands,
+                    ShokoService.CmdProcessorGeneral.Paused
                 },
 
                 Hasher = new
                 {
                     State = ShokoService.CmdProcessorHasher.QueueState.formatMessage(),
                     Count = ShokoService.CmdProcessorHasher.QueueCount,
-                    ProcessingCommands = ShokoService.CmdProcessorHasher.ProcessingCommands,
-                    Paused = ShokoService.CmdProcessorHasher.Paused
+                    ShokoService.CmdProcessorHasher.ProcessingCommands,
+                    ShokoService.CmdProcessorHasher.Paused
                 },
 
                 Images = new
                 {
                     State = ShokoService.CmdProcessorImages.QueueState.formatMessage(),
                     Count = ShokoService.CmdProcessorImages.QueueCount,
-                    ProcessingCommands = ShokoService.CmdProcessorImages.ProcessingCommands,
-                    Paused = ShokoService.CmdProcessorImages.Paused
+                    ShokoService.CmdProcessorImages.ProcessingCommands,
+                    ShokoService.CmdProcessorImages.Paused
                 },
             });
         }

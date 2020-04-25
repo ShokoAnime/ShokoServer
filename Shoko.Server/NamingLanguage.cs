@@ -15,7 +15,7 @@
 
         public NamingLanguage(string language)
         {
-            this.Language = language;
+            Language = language;
         }
 
         public override string ToString()

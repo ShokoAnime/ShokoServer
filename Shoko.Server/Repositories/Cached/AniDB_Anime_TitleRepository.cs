@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
 
@@ -38,7 +39,7 @@ namespace Shoko.Server.Repositories
         public override void RegenerateDb()
         {
             ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime_Title).Name, " DbRegen");
+                Resources.Database_Validating, typeof(AniDB_Anime_Title).Name, " DbRegen");
             List<AniDB_Anime_Title> titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
             foreach (AniDB_Anime_Title title in titles)
             {

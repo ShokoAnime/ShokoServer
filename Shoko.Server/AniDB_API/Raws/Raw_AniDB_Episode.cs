@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
 using System.Xml;
@@ -9,7 +8,6 @@ using System.Xml.Serialization;
 using Newtonsoft.Json;
 using Shoko.Commons.Utils;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories;
 
 namespace AniDBAPI
 {

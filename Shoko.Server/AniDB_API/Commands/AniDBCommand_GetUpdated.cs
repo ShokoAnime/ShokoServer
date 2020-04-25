@@ -91,9 +91,9 @@ namespace AniDBAPI.Commands
         public void Init(string startTime)
         {
             RecordCount = 0;
-            this.LastUpdateTime = startTime;
+            LastUpdateTime = startTime;
 
-            commandText = string.Format("UPDATED entity=1&time={0}", this.LastUpdateTime);
+            commandText = string.Format("UPDATED entity=1&time={0}", LastUpdateTime);
             //commandText = "UPDATED entity=1&age=1";
 
             commandID = "UPDATED ";

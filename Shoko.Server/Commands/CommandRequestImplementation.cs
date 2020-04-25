@@ -4,7 +4,6 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 using JetBrains.Annotations;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
@@ -35,7 +34,7 @@ namespace Shoko.Server.Commands
         public int Priority { get; set; }
 
         [XmlIgnore]
-        public int CommandType => (int) ((int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1);
+        public int CommandType => (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
 
         [XmlIgnore]
         public string CommandID { get; set; }

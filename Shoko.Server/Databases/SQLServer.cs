@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using FluentNHibernate;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.SqlServer.Management.Common;
@@ -13,11 +12,9 @@ using Microsoft.Win32;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Cfg;
-using NHibernate.Dialect;
-using NHibernate.Driver;
+using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Configuration = NHibernate.Cfg.Configuration;
 
 // ReSharper disable InconsistentNaming
 
@@ -141,7 +138,7 @@ namespace Shoko.Server.Databases
             db.Create();
         }
 
-        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
+        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
         {
             new DatabaseCommand(0, 1,
                 "CREATE TABLE [Versions]( [VersionsID] [int] IDENTITY(1,1) NOT NULL, [VersionType] [varchar](100) NOT NULL, [VersionValue] [varchar](100) NOT NULL,  CONSTRAINT [PK_Versions] PRIMARY KEY CLUSTERED  ( [VersionsID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
@@ -683,12 +680,12 @@ namespace Shoko.Server.Databases
 
         public void CreateAndUpdateSchema()
         {
-            ConnectionWrapper(GetConnectionString(), (myConn) =>
+            ConnectionWrapper(GetConnectionString(), myConn =>
             {
                 bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 bool update = (ExecuteScalar(myConn,
@@ -702,7 +699,7 @@ namespace Shoko.Server.Databases
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.CurrentSetupStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });

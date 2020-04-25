@@ -1,25 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -439,7 +435,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
+                if (obj.GetType() != GetType()) return false;
                 return Equals((AniEpSummary) obj);
             }
 
@@ -470,7 +466,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 if (ReferenceEquals(null, obj)) return false;
                 if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
+                if (obj.GetType() != GetType()) return false;
                 return Equals((TvDBEpSummary) obj);
             }
 
@@ -767,7 +763,7 @@ namespace Shoko.Server.API.v2.Modules
                 delete = ServerSettings.Instance.LogRotator.Delete
             };
             int day = 0;
-            if (!String.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
+            if (!string.IsNullOrEmpty(ServerSettings.Instance.LogRotator.Delete_Days))
             {
                 int.TryParse(ServerSettings.Instance.LogRotator.Delete_Days, out day);
             }

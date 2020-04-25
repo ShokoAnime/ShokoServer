@@ -5,11 +5,10 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -88,7 +87,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                 g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
                 g.summary = anime.Description ?? string.Empty;
-                g.titles = anime.GetTitles().Select(s => new Shoko.Models.PlexAndKodi.AnimeTitle()
+                g.titles = anime.GetTitles().Select(s => new AnimeTitle
                 {
                     Type = s.TitleType,
                     Language = s.Language,
@@ -166,7 +165,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             if (pic_index < pic)
                             {
-                                grp.art.thumb.Add(new Art()
+                                grp.art.thumb.Add(new Art
                                 {
                                     url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, cont_image.ImageType,
                                         cont_image.AniDB_Anime_DefaultImageID),
@@ -185,7 +184,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (pic_index < pic)
                         {
-                            grp.art.fanart.Add(new Art()
+                            grp.art.fanart.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
                                     cont_image.TvDB_ImageFanartID),
@@ -204,7 +203,7 @@ namespace Shoko.Server.API.v2.Models.common
                     {
                         if (pic_index < pic)
                         {
-                            grp.art.banner.Add(new Art()
+                            grp.art.banner.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
                                     cont_image.TvDB_ImageWideBannerID),
@@ -221,7 +220,7 @@ namespace Shoko.Server.API.v2.Models.common
                 else if (pic > 0)
                 {
                     var poster = anime.GetDefaultPosterDetailsNoBlanks();
-                    grp.art.thumb.Add(new Art()
+                    grp.art.thumb.Add(new Art
                     {
                         url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) poster.ImageType, poster.ImageID),
                         index = 0
@@ -233,7 +232,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                         if (default_fanart != null)
                         {
-                            grp.art.fanart.Add(new Art()
+                            grp.art.fanart.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
                                     default_fanart.AniDB_Anime_DefaultImageID),
@@ -243,7 +242,7 @@ namespace Shoko.Server.API.v2.Models.common
                         else
                         {
                             var tvdbart = fanarts[rand.Next(fanarts.Count)];
-                            grp.art.fanart.Add(new Art()
+                            grp.art.fanart.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_FanArt,
                                     tvdbart.TvDB_ImageFanartID),
@@ -258,7 +257,7 @@ namespace Shoko.Server.API.v2.Models.common
 
                         if (default_fanart != null)
                         {
-                            grp.art.banner.Add(new Art()
+                            grp.art.banner.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, default_fanart.ImageType,
                                     default_fanart.AniDB_Anime_DefaultImageID),
@@ -268,7 +267,7 @@ namespace Shoko.Server.API.v2.Models.common
                         else
                         {
                             var tvdbart = banners[rand.Next(banners.Count)];
-                            grp.art.banner.Add(new Art()
+                            grp.art.banner.Add(new Art
                             {
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
                                     tvdbart.TvDB_ImageWideBannerID),

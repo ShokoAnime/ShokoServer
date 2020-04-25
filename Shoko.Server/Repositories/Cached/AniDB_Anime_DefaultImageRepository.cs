@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {

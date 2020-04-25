@@ -1,15 +1,13 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 
 namespace Shoko.Server
 {
@@ -64,7 +62,7 @@ namespace Shoko.Server
             UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
             string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
             asse.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
-            foreach (string dll in Directory.GetFiles(dirname, $"Renamer.*.dll", SearchOption.AllDirectories))
+            foreach (string dll in Directory.GetFiles(dirname, "Renamer.*.dll", SearchOption.AllDirectories))
             {
                 try
                 {

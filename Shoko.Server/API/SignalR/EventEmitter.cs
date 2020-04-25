@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Shoko.Server.Commands;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Server.Commands;
 
 namespace Shoko.Server.API.SignalR
 {
@@ -13,13 +10,13 @@ namespace Shoko.Server.API.SignalR
         public EventEmitter(IHubContext<EventsHub> hub)
         {
             Hub = hub;
-            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += (e) => OnQueueCountChangedEvent("images", e);
+            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("general", e);
+            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("hasher", e);
+            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("images", e);
 
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += (e) => OnQueueStateChangedEvent("images", e);
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("general", e);
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("hasher", e);
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("images", e);
         }
 
         private IHubContext<EventsHub> Hub
@@ -47,7 +44,7 @@ namespace Shoko.Server.API.SignalR
         {
             var currentState = e.QueueState.formatMessage();
 
-            if (_lastState.ContainsKey(queue) == true && _lastState.TryGetValue(queue, out var previousState) &&
+            if (_lastState.ContainsKey(queue) && _lastState.TryGetValue(queue, out var previousState) &&
                 previousState == currentState)
             {
                 return;
@@ -61,7 +58,7 @@ namespace Shoko.Server.API.SignalR
         {
             var currentCount = e.QueueCount;
 
-            if (_lastCount.ContainsKey(queue) == true && _lastCount.TryGetValue(queue, out var previousCount) &&
+            if (_lastCount.ContainsKey(queue) && _lastCount.TryGetValue(queue, out var previousCount) &&
                 previousCount == currentCount)
             {
                 return;

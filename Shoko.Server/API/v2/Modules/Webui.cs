@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -57,15 +57,15 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls11 | System.Net.SecurityProtocolType.Tls12;
-                var client = new System.Net.WebClient();
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+                var client = new WebClient();
                 client.Headers.Add("Accept: application/vnd.github.v3+json");
                 client.Headers.Add("User-Agent", "jmmserver");
                 var response = client.DownloadString(
                     new Uri("https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/tags/" +
                             tag_name));
 
-                dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+                dynamic result = JsonConvert.DeserializeObject(response);
                 string url = string.Empty;
                 foreach (dynamic obj in result.assets)
                 {
@@ -103,14 +103,14 @@ namespace Shoko.Server.API.v2.Modules
             try
             {
                 //download latest version
-                var client = new System.Net.WebClient();
+                var client = new WebClient();
                 client.Headers.Add("User-Agent", "shokoserver");
                 client.DownloadFile(url, Path.Combine(path, "latest.zip"));
 
                 //create 'old' dictionary
                 if (!Directory.Exists(Path.Combine(path, "old")))
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine(path, "old"));
+                    Directory.CreateDirectory(Path.Combine(path, "old"));
                 }
                 try
                 {
@@ -135,7 +135,7 @@ namespace Shoko.Server.API.v2.Modules
                     try
                     {
                         //extract latest webui
-                        System.IO.Compression.ZipFile.ExtractToDirectory(Path.Combine(path, "latest.zip"), path);
+                        ZipFile.ExtractToDirectory(Path.Combine(path, "latest.zip"), path);
 
                         //clean because we already have working updated webui
                         Directory.Delete(Path.Combine(path, "old"), true);
@@ -203,13 +203,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         internal ComponentVersion WebUIGetLatestVersion(bool stable)
         {
-            var client = new System.Net.WebClient();
+            var client = new WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "jmmserver");
             var response = client.DownloadString(new Uri(
                 "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases/latest"));
 
-            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+            dynamic result = JsonConvert.DeserializeObject(response);
 
             ComponentVersion version = new ComponentVersion();
 
@@ -248,13 +248,13 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         internal string WebUIGetVersionsTag(bool stable)
         {
-            var client = new System.Net.WebClient();
+            var client = new WebClient();
             client.Headers.Add("Accept: application/vnd.github.v3+json");
             client.Headers.Add("User-Agent", "shokoserver");
             var response = client.DownloadString(new Uri(
                 "https://api.github.com/repos/japanesemediamanager/shokoserver-webui/releases"));
 
-            dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(response);
+            dynamic result = JsonConvert.DeserializeObject(response);
 
             foreach (dynamic obj in result)
             {
@@ -306,8 +306,8 @@ namespace Shoko.Server.API.v2.Modules
                     return APIStatus.InternalError("error while reading webui settings");
                 }
             }
-            else
-                return APIStatus.OK();
+
+            return APIStatus.OK();
         }
 
         /// <summary>

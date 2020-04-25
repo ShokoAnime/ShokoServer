@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Client;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
@@ -53,7 +52,7 @@ namespace Shoko.Server.API.v3
         [HttpPatch]
         public ActionResult EditFolder(ImportFolder folder)
         {
-            if (String.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
+            if (string.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
                 return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
 
             if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)

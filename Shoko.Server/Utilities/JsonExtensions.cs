@@ -57,7 +57,7 @@ namespace Shoko.Server.Utilities
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in Serialization: " + ex.ToString());
+                logger.Error(ex, "Error in Serialization: " + ex);
                 return new List<T>();
             }
         }
@@ -70,7 +70,7 @@ namespace Shoko.Server.Utilities
         /// <returns></returns>
         public static T FromJSON<T>(this string json)
         {
-            if (string.IsNullOrEmpty(json)) return default(T);
+            if (string.IsNullOrEmpty(json)) return default;
 
             try
             {
@@ -85,7 +85,7 @@ namespace Shoko.Server.Utilities
             }
             catch
             {
-                return default(T);
+                return default;
             }
         }
 

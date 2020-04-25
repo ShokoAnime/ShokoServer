@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
@@ -524,7 +523,7 @@ namespace Shoko.UI
             }
             else
             {
-                System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+                FolderBrowserDialog dialog = new FolderBrowserDialog();
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     ServerSettings.Instance.ImagesPath = dialog.SelectedPath;
@@ -674,10 +673,10 @@ namespace Shoko.UI
         {
             List<string> ls=new List<string>();
             RegistryKey rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Microsoft SQL Server");
-            String[] instances = (String[])rk.GetValue("InstalledInstances");
+            string[] instances = (string[])rk.GetValue("InstalledInstances");
             if (instances.Length > 0)
             {
-                foreach (String element in instances)
+                foreach (string element in instances)
                 {
                     if (element == "MSSQLSERVER")
                         ls.Add(Environment.MachineName);
@@ -1091,7 +1090,7 @@ namespace Shoko.UI
 
         void TippuTrayNotify_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            this.Show();
+            Show();
         }
 
         private void CreateMenus()

@@ -1,14 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using NLog;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
-using Shoko.Server.LZ4;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
-using System;
 
 namespace Shoko.Server.Models
 {
@@ -21,7 +19,7 @@ namespace Shoko.Server.Models
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract = null;
+        private Video _plexContract;
 
         public virtual Video PlexContract
         {

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.Direct;
 using NLog;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Providers.TraktTV
@@ -18,7 +16,7 @@ namespace Shoko.Server.Providers.TraktTV
         public Dictionary<string, TraktDetailsContainer> TraktDetails = new Dictionary<string, TraktDetailsContainer>();
 
         // All the Trakt cross refs for this anime
-        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2 = null;
+        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2;
 
         public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
         {
@@ -45,7 +43,7 @@ namespace Shoko.Server.Providers.TraktTV
         }
 
         // All the episodes regardless of which cross ref they come from 
-        private Dictionary<int, Trakt_Episode> dictTraktEpisodes = null;
+        private Dictionary<int, Trakt_Episode> dictTraktEpisodes;
 
         public Dictionary<int, Trakt_Episode> DictTraktEpisodes
         {

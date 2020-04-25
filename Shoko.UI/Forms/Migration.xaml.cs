@@ -15,7 +15,7 @@ namespace Shoko.UI.Forms
         {
             InitializeComponent();
             Info.Text = text;
-            this.Loaded += Migration_Loaded;
+            Loaded += Migration_Loaded;
         }
 
         private const int GWL_STYLE = -16;

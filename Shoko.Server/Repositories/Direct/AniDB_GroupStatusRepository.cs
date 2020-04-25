@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate.Criterion;
 using NLog;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -19,7 +19,7 @@ namespace Shoko.Server.Repositories.Direct
 
         private AniDB_GroupStatusRepository()
         {
-            EndDeleteCallback = (obj) =>
+            EndDeleteCallback = obj =>
             {
                 if (obj.AnimeID > 0)
                 {

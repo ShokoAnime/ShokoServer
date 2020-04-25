@@ -16,7 +16,7 @@ namespace Shoko.UI.Forms
         {
             InitializeComponent();
             tbUpdateAvailable.Visibility = IsNewVersionAvailable() ? Visibility.Visible : Visibility.Hidden;
-            this.Loaded += UpdateForm_Loaded;
+            Loaded += UpdateForm_Loaded;
         }
 
         private void UpdateForm_Loaded(object sender, RoutedEventArgs e)

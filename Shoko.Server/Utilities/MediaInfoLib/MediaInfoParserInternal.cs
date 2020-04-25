@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using SeekOrigin = System.IO.SeekOrigin;
 using System.Linq;
 using System.Runtime;
 using System.Runtime.ExceptionServices;
@@ -10,7 +9,6 @@ using System.Threading.Tasks;
 using NLog;
 using Shoko.Models.PlexAndKodi;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
-
 
 namespace Shoko.Server.Utilities.MediaInfoLib
 {
