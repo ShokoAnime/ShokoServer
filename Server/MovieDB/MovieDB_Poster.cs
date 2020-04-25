@@ -5,9 +5,6 @@ namespace Shoko.Models.Server
 {
     public class MovieDB_Poster : IImageEntity, ICloneable
     {
-        public MovieDB_Poster()
-        {
-        }
         public int MovieDB_PosterID { get; set; }
         public string ImageID { get; set; }
         public int MovieId { get; set; }

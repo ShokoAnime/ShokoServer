@@ -1,6 +1,5 @@
 ﻿using System;
 
-
 namespace Shoko.Models.Server
 {
     public class AniDB_Episode
@@ -20,10 +19,5 @@ namespace Shoko.Models.Server
         public DateTime DateTimeUpdated { get; set; }
 
         #endregion
-
-        public AniDB_Episode() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

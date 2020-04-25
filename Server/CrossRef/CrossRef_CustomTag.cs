@@ -2,9 +2,6 @@
 {
     public class CrossRef_CustomTag
     {
-        public CrossRef_CustomTag()
-        {
-        }
         public int CrossRef_CustomTagID { get; set; }
         public int CustomTagID { get; set; }
         public int CrossRefID { get; set; }

@@ -6,9 +6,6 @@ namespace Shoko.Models.Server
 {
     public class TvDB_Episode
     {
-        public TvDB_Episode()
-        {
-        }
         public int TvDB_EpisodeID { get; set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }

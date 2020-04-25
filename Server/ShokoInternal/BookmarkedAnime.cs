@@ -8,8 +8,5 @@ namespace Shoko.Models.Server
         public int Priority { get; set; }
         public string Notes { get; set; }
         public int Downloading { get; set; }
-        public BookmarkedAnime()
-        {
-        }
     }
 }

@@ -11,10 +11,5 @@
         public string EpisodeListRaw { get; set; }
 
         #endregion
-
-        public AniDB_Anime_Character() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

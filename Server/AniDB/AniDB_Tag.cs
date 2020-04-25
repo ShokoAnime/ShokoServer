@@ -24,9 +24,5 @@
             get => tagDescription == null ? null : string.Intern(tagDescription);
             set => tagDescription = value == null ? null : string.Intern(value);
         }
-
-        public AniDB_Tag()
-        {
-        }
     }
 }

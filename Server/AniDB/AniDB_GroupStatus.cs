@@ -15,10 +15,5 @@ namespace Shoko.Models.Server
         public int Votes { get; set; }
         public string EpisodeRange { get; set; }
         #endregion
-
-        public AniDB_GroupStatus() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

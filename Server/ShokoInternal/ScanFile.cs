@@ -14,10 +14,5 @@ namespace Shoko.Models.Server
         public DateTime? CheckDate { get; set; }
         public string Hash { get; set; }
         public string HashResult { get; set; }
-
-        public ScanFile()
-        {
-            
-        }
     }
 }

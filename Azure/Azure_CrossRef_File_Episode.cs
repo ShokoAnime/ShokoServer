@@ -10,9 +10,5 @@
         public int EpisodeOrder { get; set; }
         public string Username { get; set; }
         public long DateTimeUpdated { get; set; }
-
-        public Azure_CrossRef_File_Episode()
-        {
-        }
     }
 }

@@ -2,9 +2,6 @@
 {
     public class IgnoreAnime
     {
-        public IgnoreAnime()
-        {
-        }
         public int IgnoreAnimeID { get; set; }
         public int JMMUserID { get; set; }
         public int AnimeID { get; set; }

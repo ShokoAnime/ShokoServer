@@ -11,10 +11,5 @@
         public int Total { get; set; }
 
         #endregion
-
-        public AniDB_Anime_Similar() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

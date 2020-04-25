@@ -1,6 +1,4 @@
-﻿using System.Dynamic;
-
-namespace Shoko.Models.Client
+﻿namespace Shoko.Models.Client
 {
     public class CL_ServerSettings
     {

@@ -10,10 +10,5 @@
         public int RelatedAnimeID { get; set; }
 
         #endregion
-
-        public AniDB_Anime_Relation() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

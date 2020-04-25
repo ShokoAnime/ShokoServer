@@ -8,7 +8,7 @@ namespace Shoko.Models.PlexAndKodi
 {
     [XmlType("MediaContainer")]
     [Serializable]
-    [DataContract()]
+    [DataContract]
     [KnownType(typeof(Video))]
     [KnownType(typeof(Directory))]
  

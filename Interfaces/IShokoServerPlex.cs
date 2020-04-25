@@ -3,7 +3,9 @@ using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.Plex.Connections;
 using Shoko.Models.PlexAndKodi;
+using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.PlexAndKodi.MediaContainer;
+using Stream = System.IO.Stream;
 
 namespace Shoko.Models.Interfaces
 {
@@ -11,7 +13,7 @@ namespace Shoko.Models.Interfaces
     public interface IShokoServerPlex
     {
         [Rest("Image/Support/{name}", Verbs.Get)]
-        System.IO.Stream GetSupportImage(string name);
+        Stream GetSupportImage(string name);
 
         [Rest("Filters/{userId}", Verbs.Get)]
         MediaContainer GetFilters(string userId);
@@ -40,10 +42,10 @@ namespace Shoko.Models.Interfaces
         MediaDevice CurrentDevice(int userId);
 
         [Rest("Linking/Directories/{userId}", Verbs.Post)]
-        void UseDirectories(int userId, List<Plex.Libraries.Directory> directories);
+        void UseDirectories(int userId, List<Directory> directories);
 
         [Rest("Linking/Directories/{userId}", Verbs.Get, TimeOutSeconds = 600)]
-        Plex.Libraries.Directory[] Directories(int userId);
+        Directory[] Directories(int userId);
 
         [Rest("Linking/Servers/{userId}", Verbs.Post)]
         void UseDevice(int userId, MediaDevice server);

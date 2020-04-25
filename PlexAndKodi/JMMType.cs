@@ -1,6 +1,5 @@
 ﻿using System.Runtime.Serialization;
 
-
 namespace Shoko.Models.PlexAndKodi
 {
     [DataContract]

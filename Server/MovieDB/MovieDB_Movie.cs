@@ -6,9 +6,6 @@ namespace Shoko.Models.Server
 {
     public class MovieDB_Movie : ICloneable
     {
-        public MovieDB_Movie()
-        {
-        }
         public int MovieDB_MovieID { get; set; }
         public int MovieId { get; set; }
         public string MovieName { get; set; }

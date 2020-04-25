@@ -24,9 +24,5 @@ namespace Shoko.Models.Server
         public int Reviews { get; set; }
         public int ViewiedLength { get; set; }
         #endregion
-
-        public AniDB_MylistStats()
-        {
-        }
     }
 }

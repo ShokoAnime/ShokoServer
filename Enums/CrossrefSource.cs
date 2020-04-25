@@ -1,5 +1,3 @@
-using System;
-
 namespace Shoko.Models.Enums
 {
     public enum CrossRefSource

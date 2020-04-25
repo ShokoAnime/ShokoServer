@@ -9,10 +9,6 @@ namespace Shoko.Models.Server
         public string SeiyuuName { get; set; }
         public string PicName { get; set; }
 
-        public AniDB_Seiyuu()
-        {
-        }
-
         public object Clone()
         {
             return new AniDB_Seiyuu

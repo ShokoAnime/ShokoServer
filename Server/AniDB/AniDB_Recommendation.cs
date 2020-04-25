@@ -8,10 +8,5 @@ namespace Shoko.Models.Server
         public int UserID { get; set; }
         public int RecommendationType { get; set; }
         public string RecommendationText { get; set; }
-
-        public AniDB_Recommendation() //Empty Constructor for nhibernate
-        {
-
-        }
     }
 }

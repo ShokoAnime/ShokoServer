@@ -23,9 +23,5 @@
         public int EpisodeID { get; set; }
         public int Percentage { get; set; }
         public int EpisodeOrder { get; set; }
-
-        public CrossRef_File_Episode()
-        {
-        }
     }
 }

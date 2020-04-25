@@ -2,9 +2,6 @@
 {
     public class Playlist
     {
-        public Playlist()
-        {
-        }
         public int PlaylistID { get; set; }
         public string PlaylistName { get; set; }
         public string PlaylistItems { get; set; }

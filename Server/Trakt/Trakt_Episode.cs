@@ -2,9 +2,6 @@
 {
     public class Trakt_Episode
     {
-        public Trakt_Episode()
-        {
-        }
         public int Trakt_EpisodeID { get; set; }
         public int Trakt_ShowID { get; set; }
         public int Season { get; set; }

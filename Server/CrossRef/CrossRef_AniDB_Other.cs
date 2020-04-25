@@ -10,10 +10,6 @@ namespace Shoko.Models.Server
         public int CrossRefSource { get; set; }
         public int CrossRefType { get; set; }
 
-        public CrossRef_AniDB_Other()
-        {
-        }
-
         public object Clone()
         {
             return new CrossRef_AniDB_Other

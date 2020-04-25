@@ -6,9 +6,6 @@ namespace Shoko.Models.Server
 {
     public class TvDB_Series : ICloneable
     {
-        public TvDB_Series()
-        {
-        }
         public int TvDB_SeriesID { get; set; }
         public int SeriesID { get; set; }
         public string Overview { get; set; }

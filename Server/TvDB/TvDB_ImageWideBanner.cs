@@ -2,14 +2,10 @@
 using System;
 using Shoko.Models.Interfaces;
 
-
 namespace Shoko.Models.Server
 {
     public class TvDB_ImageWideBanner : IImageEntity, ICloneable
     {
-        public TvDB_ImageWideBanner()
-        {
-        }
         public int TvDB_ImageWideBannerID { get; set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }

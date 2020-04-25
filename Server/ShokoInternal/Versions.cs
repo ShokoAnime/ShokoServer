@@ -2,9 +2,6 @@
 {
     public class Versions
     {
-        public Versions()
-        {
-        }
         public int VersionsID { get; set; }
         public string VersionType { get; set; }
         public string VersionValue { get; set; }

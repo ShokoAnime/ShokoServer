@@ -16,11 +16,6 @@ namespace Shoko.Models.Server
 
         #endregion
 
-        public AniDB_Character() //Empty Constructor for nhibernate
-        {
-
-        }
-
         public object Clone()
         {
             return new AniDB_Character

@@ -9,11 +9,6 @@ namespace Shoko.Models
     [DataContract]
     public class FileQualityPreferences
     {
-        public FileQualityPreferences()
-        {
-
-        }
-
         [IgnoreDataMember]
         public static readonly Dictionary<string, string> SimplifiedSources;
 
@@ -82,7 +77,7 @@ namespace Shoko.Models
         /// Whether or not to prefer Bit Depth. If/when 12bit becomes more prominant, this can be changed to an integer.
         /// This will not apply to codecs that don't support.
         [DataMember]
-        public bool Prefer8BitVideo = false;
+        public bool Prefer8BitVideo;
 
         /// <summary>
         /// Allow deletion of the file being imported.
@@ -90,7 +85,7 @@ namespace Shoko.Models
         /// If ServerSettings.FileQualityFilterEnabled is not true, this does nothing
         /// </summary>
         [DataMember]
-        public bool AllowDeletionOfImportedFiles = false;
+        public bool AllowDeletionOfImportedFiles;
 
         /// These are used to determine whether or not a file that isn't found to be the most preferred is kept.
         /// Each Setting must have an operation type, except for Types
@@ -120,21 +115,21 @@ namespace Shoko.Models
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ, IN, NOTIN
         [DataMember(Name = "RequiredResolutions")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredresolutions =
-            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"1080p"},
+            new Tuple<string[], FileQualityFilterOperationType>(new[] {"1080p"},
                 FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Source. Default must be BD or DVD release.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredSources")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredsources =
-            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"bd", "dvd"},
+            new Tuple<string[], FileQualityFilterOperationType>(new[] {"bd", "dvd"},
                 FileQualityFilterOperationType.IN);
 
         /// The required Subbing/Release Groups and the operator. Defaulting to not HorribleSubs for example.
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredSubGroups")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredsubgroups =
-            new Tuple<string[], FileQualityFilterOperationType>(new string[] { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
+            new Tuple<string[], FileQualityFilterOperationType>(new[] { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
 
         /// Required Subtitle Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
@@ -146,7 +141,7 @@ namespace Shoko.Models
         /// Accepts IN, NOTIN
         [DataMember(Name = "RequiredVideoCodecs")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredvideocodecs =
-            new Tuple<string[], FileQualityFilterOperationType>(new string[] {"hevc", "h264/avc"},
+            new Tuple<string[], FileQualityFilterOperationType>(new[] {"hevc", "h264/avc"},
                 FileQualityFilterOperationType.IN);
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.

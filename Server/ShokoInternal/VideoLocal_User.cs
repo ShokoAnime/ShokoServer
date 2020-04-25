@@ -4,9 +4,6 @@ namespace Shoko.Models.Server
 {
     public class VideoLocal_User
     {
-        public VideoLocal_User()
-        {
-        }
         public int VideoLocal_UserID { get; set; }
         public int JMMUserID { get; set; }
         public int VideoLocalID { get; set; }

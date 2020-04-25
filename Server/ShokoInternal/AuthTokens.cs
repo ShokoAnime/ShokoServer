@@ -2,10 +2,6 @@
 {
     public class AuthTokens
     {
-        public AuthTokens()
-        {
-        }
-
         public int AuthID { get; set; }
         public int UserID { get; set; }
         public string DeviceName { get; set; }

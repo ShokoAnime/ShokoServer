@@ -1,6 +1,5 @@
 ﻿using System;
 
-
 namespace Shoko.Models.Server
 {
     public class AniDB_Anime : ICloneable

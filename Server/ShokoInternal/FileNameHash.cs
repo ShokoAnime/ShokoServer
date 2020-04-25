@@ -4,9 +4,6 @@ namespace Shoko.Models.Server
 {
     public class FileNameHash
     {
-        public FileNameHash()
-        {
-        }
         public int FileNameHashID { get; set; }
         public string FileName { get; set; }
         public long FileSize { get; set; }

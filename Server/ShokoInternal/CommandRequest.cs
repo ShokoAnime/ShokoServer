@@ -4,9 +4,6 @@ namespace Shoko.Models.Server
 {
     public class CommandRequest
     {
-        public CommandRequest()
-        {
-        }
         public int CommandRequestID { get; set; }
         public int Priority { get; set; }
         public int CommandType { get; set; }

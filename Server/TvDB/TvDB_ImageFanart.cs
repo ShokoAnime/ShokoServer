@@ -2,14 +2,10 @@
 using System;
 using Shoko.Models.Interfaces;
 
-
 namespace Shoko.Models.Server
 {
     public class TvDB_ImageFanart : IImageEntity, ICloneable
     {
-        public TvDB_ImageFanart()
-        {
-        }
         public int TvDB_ImageFanartID { get; set; }
         public int Id { get; set; }
         public int SeriesID { get; set; }

@@ -13,10 +13,6 @@ namespace Shoko.Models.Server
         public int ImageType { get; set; }
 
         #endregion
-        public AniDB_Anime_DefaultImage() //Empty Constructor for nhibernate
-        {
-
-        }
 
         public object Clone()
         {

@@ -4,7 +4,7 @@ namespace Shoko.Models
 {
     public class SeasonComparator : IComparer<string>
     {
-        private readonly Dictionary<string, int> Seasons = new Dictionary<string, int>()
+        private readonly Dictionary<string, int> Seasons = new Dictionary<string, int>
         {
             {"Winter", 0},
             {"Spring", 1},

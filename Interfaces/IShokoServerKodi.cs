@@ -1,6 +1,7 @@
 ﻿using Nancy.Rest.Annotations.Atributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.PlexAndKodi;
+using Stream = System.IO.Stream;
 
 namespace Shoko.Models.Interfaces
 {
@@ -8,7 +9,7 @@ namespace Shoko.Models.Interfaces
     public interface IShokoServerKodi
     {
         [Rest("Image/Support/{name}",Verbs.Get)]
-        System.IO.Stream GetSupportImage(string name);
+        Stream GetSupportImage(string name);
 
         [Rest("Filters/{userId}", Verbs.Get)]
         MediaContainer GetFilters(string userId);

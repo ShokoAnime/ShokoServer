@@ -2,9 +2,6 @@
 {
     public class FileFfdshowPreset
     {
-        public FileFfdshowPreset()
-        {
-        }
         public int FileFfdshowPresetID { get; set; }
         public string Hash { get; set; }
         public long FileSize { get; set; }

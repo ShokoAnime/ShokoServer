@@ -16,10 +16,6 @@ namespace Shoko.Models.Server
         public int CrossRefSource { get; set; }
         public bool IsAdditive { get; set; }
 
-        public CrossRef_AniDB_TvDBV2()
-        {
-        }
-
         public object Clone()
         {
             return new CrossRef_AniDB_TvDBV2
