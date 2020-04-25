@@ -11,12 +11,15 @@ using Newtonsoft.Json.Serialization;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Models.Plex.Collection;
+using Shoko.Models.Plex.Libraries;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
+using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 
