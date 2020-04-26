@@ -5,6 +5,7 @@
     <RuntimeIdentifiers>win;win10-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <!-- Not sure how much this is needed, but at least need the DEBUG and TRACE definitions only in Debug -->
