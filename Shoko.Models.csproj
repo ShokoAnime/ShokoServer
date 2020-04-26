@@ -1,263 +1,27 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F73F9DF6-580A-4341-B516-8717626F9D42}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Shoko.Models</RootNamespace>
-    <AssemblyName>Shoko.Models</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RuntimeIdentifiers>win;win10-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
+    <Platforms>x64;x86</Platforms>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <!-- Not sure how much this is needed, but at least need the DEBUG and TRACE definitions only in Debug -->
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <!-- Not sure how much this is needed, but at least need the DEBUG and TRACE definitions only in Debug -->
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Azure\Azure_AnimeCharacter.cs" />
-    <Compile Include="Azure\Azure_AnimeDetail.cs" />
-    <Compile Include="Azure\Azure_AnimeFull.cs" />
-    <Compile Include="Azure\Azure_AnimeIDTitle.cs" />
-    <Compile Include="Azure\Azure_AnimeLink.cs" />
-    <Compile Include="Azure\Azure_AnimeShout.cs" />
-    <Compile Include="Azure\Azure_AnimeXML.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_Other.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_Other_Request.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_Trakt.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_Trakt_Request.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_TvDB.cs" />
-    <Compile Include="Azure\Azure_CrossRef_AniDB_TvDB_Request.cs" />
-    <Compile Include="Azure\Azure_CrossRef_File_Episode.cs" />
-    <Compile Include="Azure\Azure_CrossRef_File_Episode_Request.cs" />
-    <Compile Include="Azure\Azure_FileHash.cs" />
-    <Compile Include="Azure\Azure_FileHash_Request.cs" />
-    <Compile Include="Azure\Azure_Media.cs" />
-    <Compile Include="Azure\Azure_Media_Request.cs" />
-    <Compile Include="Azure\Azure_UserInfo.cs" />
-    <Compile Include="Client\CL_AniDB_Anime_Similar.cs" />
-    <Compile Include="Client\CL_AniDB_Anime.cs" />
-    <Compile Include="Client\CL_AniDB_Anime_DefaultImage.cs" />
-    <Compile Include="Client\CL_AniDB_Anime_Relation.cs" />
-    <Compile Include="Client\CL_AniDB_Character.cs" />
-    <Compile Include="Client\CL_AniDB_Episode.cs" />
-    <Compile Include="Client\CL_AniDB_GroupStatus.cs" />
-    <Compile Include="Client\CL_AnimeEpisode_User.cs" />
-    <Compile Include="Client\CL_AnimeGroup_User.cs" />
-    <Compile Include="Client\CL_CloudAccount.cs" />
-    <Compile Include="Client\CL_Response.cs" />
-    <Compile Include="Client\CL_TraktDeviceCode.cs" />
-    <Compile Include="Enums\AniDB.cs" />
-    <Compile Include="Enums\ShokoInternal.cs" />
-    <Compile Include="Enums\CrossrefSource.cs" />
-    <Compile Include="Enums\CrossRefType.cs" />
-    <Compile Include="Enums\TraktActivityAction.cs" />
-    <Compile Include="Enums\TraktActivityType.cs" />
-    <Compile Include="Interfaces\IHash.cs" />
-    <Compile Include="Interfaces\IImageEntity.cs" />
-    <Compile Include="Interfaces\IShokoServerPlex.cs" />
-    <Compile Include="Interfaces\IShokoServerImage.cs" />
-    <Compile Include="Interfaces\IShokoServerKodi.cs" />
-    <Compile Include="Interfaces\IShokoServerMetro.cs" />
-    <Compile Include="Interfaces\IShokoServerStream.cs" />
-    <Compile Include="PlexAndKodi\AnimeTitle.cs" />
-    <Compile Include="PlexAndKodi\AnimeTypes.cs" />
-    <Compile Include="PlexAndKodi\Contract_ImageDetails.cs" />
-    <Compile Include="PlexAndKodi\Directory.cs" />
-    <Compile Include="PlexAndKodi\Extras.cs" />
-    <Compile Include="PlexAndKodi\Hub.cs" />
-    <Compile Include="PlexAndKodi\Media.cs" />
-    <Compile Include="PlexAndKodi\MediaContainer.cs" />
-    <Compile Include="PlexAndKodi\Part.cs" />
-    <Compile Include="PlexAndKodi\JMMType.cs" />
-    <Compile Include="PlexAndKodi\PlexContract_User.cs" />
-    <Compile Include="PlexAndKodi\PlexContract_Users.cs" />
-    <Compile Include="PlexAndKodi\Response.cs" />
-    <Compile Include="PlexAndKodi\RoleTag.cs" />
-    <Compile Include="PlexAndKodi\Stream.cs" />
-    <Compile Include="PlexAndKodi\Tag.cs" />
-    <Compile Include="PlexAndKodi\Video.cs" />
-    <Compile Include="Plex\Collection\MediaContainer.cs" />
-    <Compile Include="Plex\Collection\PlexLibrary.cs" />
-    <Compile Include="Plex\Connections\Connection.cs" />
-    <Compile Include="Plex\Connections\MediaContainer.cs" />
-    <Compile Include="Plex\Connections\MediaDevice.cs" />
-    <Compile Include="Plex\Libraries\Directory.cs" />
-    <Compile Include="Plex\Libraries\Location.cs" />
-    <Compile Include="Plex\Libraries\MediaContainer.cs" />
-    <Compile Include="Plex\Login\Location.cs" />
-    <Compile Include="Plex\Login\PlexAccount.cs" />
-    <Compile Include="Plex\Login\PlexKey.cs" />
-    <Compile Include="Plex\Login\Roles.cs" />
-    <Compile Include="Plex\Login\Subscription.cs" />
-    <Compile Include="Plex\Login\User.cs" />
-    <Compile Include="Plex\MediaContainer.cs" />
-    <Compile Include="Plex\PlexType.cs" />
-    <Compile Include="Plex\TagHolder.cs" />
-    <Compile Include="Plex\TVShow\Episode.cs" />
-    <Compile Include="Plex\TVShow\Media.cs" />
-    <Compile Include="Plex\TVShow\MediaContainer.cs" />
-    <Compile Include="Plex\TVShow\Part.cs" />
-    <Compile Include="Queue\QueueStateEnum.cs" />
-    <Compile Include="Constants.cs" />
-    <Compile Include="Client\CL_AniDB_AnimeCrossRefs.cs" />
-    <Compile Include="Client\CL_AniDB_AnimeDetailed.cs" />
-    <Compile Include="Client\CL_AnimeGroup_Save_Request.cs" />
-    <Compile Include="Client\CL_AnimeRating.cs" />
-    <Compile Include="Client\CL_AnimeSearch.cs" />
-    <Compile Include="Client\CL_AnimeSeries_User.cs" />
-    <Compile Include="Client\CL_AnimeSeries_FileStats.cs" />
-    <Compile Include="Client\CL_AnimeSeries_Save_Request.cs" />
-    <Compile Include="Client\CL_AnimeTag.cs" />
-    <Compile Include="Client\CL_AnimeTitle.cs" />
-    <Compile Include="Client\CL_AppVersions.cs" />
-    <Compile Include="Client\CL_BookmarkedAnime.cs" />
-    <Compile Include="Client\CL_Changes.cs" />
-    <Compile Include="Client\CL_CrossRef_AniDB_Other_Response.cs" />
-    <Compile Include="Client\CL_DuplicateFile.cs" />
-    <Compile Include="Client\CL_GroupFileSummary.cs" />
-    <Compile Include="Client\CL_GroupFilter.cs" />
-    <Compile Include="Client\CL_GroupFilterExtended.cs" />
-    <Compile Include="Client\CL_GroupVideoQuality.cs" />
-    <Compile Include="Client\CL_IgnoreAnime.cs" />
-    <Compile Include="Client\CL_MainChanges.cs" />
-    <Compile Include="Client\CL_MissingEpisode.cs" />
-    <Compile Include="Client\CL_MissingFile.cs" />
-    <Compile Include="Client\CL_MovieDBMovieSearch_Response.cs" />
-    <Compile Include="Client\CL_Recommendation.cs" />
-    <Compile Include="Client\CL_ServerSettings.cs" />
-    <Compile Include="Client\CL_ServerStatus.cs" />
-    <Compile Include="Client\CL_TraktTVShowResponse.cs" />
-    <Compile Include="Client\CL_Trakt_Season.cs" />
-    <Compile Include="Client\CL_Trakt_Comment.cs" />
-    <Compile Include="Client\CL_Trakt_CommentUser.cs" />
-    <Compile Include="Client\CL_Trakt_Show.cs" />
-    <Compile Include="Client\CL_Trakt_User.cs" />
-    <Compile Include="Client\CL_Trakt_WatchedEpisode.cs" />
-    <Compile Include="Client\CL_VideoDetailed.cs" />
-    <Compile Include="Client\CL_VideoLocal.cs" />
-    <Compile Include="Client\CL_VideoLocal_ManualLink.cs" />
-    <Compile Include="Client\CL_VideoLocal_Renamed.cs" />
-    <Compile Include="Client\CL_VideoLocal_Place.cs" />
-    <Compile Include="Enums\CustomTagCrossRefType.cs" />
-    <Compile Include="Enums\AzureLinkType.cs" />
-    <Compile Include="SeasonComparator.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Character.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_DefaultImage.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Relation.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Review.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Similar.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Tag.cs" />
-    <Compile Include="Server\AniDB\AniDB_Anime_Title.cs" />
-    <Compile Include="Server\AniDB\AniDB_Character.cs" />
-    <Compile Include="Server\AniDB\AniDB_Character_Seiyuu.cs" />
-    <Compile Include="Server\AniDB\AniDB_Episode.cs" />
-    <Compile Include="Server\AniDB\AniDB_File.cs" />
-    <Compile Include="Server\AniDB\AniDB_GroupStatus.cs" />
-    <Compile Include="Server\AniDB\AniDB_MylistStats.cs" />
-    <Compile Include="Server\AniDB\AniDB_Recommendation.cs" />
-    <Compile Include="Server\AniDB\AniDB_ReleaseGroup.cs" />
-    <Compile Include="Server\AniDB\AniDB_Review.cs" />
-    <Compile Include="Server\AniDB\AniDB_Seiyuu.cs" />
-    <Compile Include="Server\AniDB\AniDB_Tag.cs" />
-    <Compile Include="Server\AniDB\AniDB_Vote.cs" />
-    <Compile Include="Server\AniDB\AniDB_Episode_Title.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB_Episode.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_Anime_Staff.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_MAL.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_Other.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TraktV2.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_Trakt_Episode.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDBV2.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_AniDB_TvDB_Episode_Override.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_CustomTag.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_File_Episode.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_Languages_AniDB_File.cs" />
-    <Compile Include="Server\CrossRef\CrossRef_Subtitles_AniDB_File.cs" />
-    <Compile Include="Interfaces\IShokoServer.cs" />
-    <Compile Include="Metro\Metro_AniDB_Character.cs" />
-    <Compile Include="Metro\Metro_Anime_Detail.cs" />
-    <Compile Include="Metro\Metro_Anime_Episode.cs" />
-    <Compile Include="Metro\Metro_Anime_Summary.cs" />
-    <Compile Include="Metro\Metro_CommunityLinks.cs" />
-    <Compile Include="Metro\Metro_Comment.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Azure\Azure_AdminMessage.cs" />
-    <Compile Include="Server\MovieDB\MovieDB_Fanart.cs" />
-    <Compile Include="Server\MovieDB\MovieDB_Movie.cs" />
-    <Compile Include="Server\MovieDB\MovieDB_Poster.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeEpisode.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeEpisode_User.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeGroup.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeGroup_User.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeSeries.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeSeries_User.cs" />
-    <Compile Include="Server\ShokoInternal\AuthTokens.cs" />
-    <Compile Include="Server\ShokoInternal\BookmarkedAnime.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeCharacter.cs" />
-    <Compile Include="Server\ShokoInternal\CloudAccount.cs" />
-    <Compile Include="Server\ShokoInternal\CommandRequest.cs" />
-    <Compile Include="Server\ShokoInternal\CustomTag.cs" />
-    <Compile Include="Server\ShokoInternal\DuplicateFile.cs" />
-    <Compile Include="Server\ShokoInternal\FileFfdshowPreset.cs" />
-    <Compile Include="Server\ShokoInternal\FileNameHash.cs" />
-    <Compile Include="Server\ShokoInternal\FileQualityPreferences.cs" />
-    <Compile Include="Server\ShokoInternal\GroupFilter.cs" />
-    <Compile Include="Server\ShokoInternal\GroupFilterCondition.cs" />
-    <Compile Include="Server\ShokoInternal\Hashes.cs" />
-    <Compile Include="Server\ShokoInternal\IgnoreAnime.cs" />
-    <Compile Include="Server\ShokoInternal\ImportFolder.cs" />
-    <Compile Include="Server\ShokoInternal\JMMUser.cs" />
-    <Compile Include="Server\ShokoInternal\Language.cs" />
-    <Compile Include="Server\ShokoInternal\Playlist.cs" />
-    <Compile Include="Server\ShokoInternal\RenameScript.cs" />
-    <Compile Include="Server\ShokoInternal\Scan.cs" />
-    <Compile Include="Server\ShokoInternal\ScanFile.cs" />
-    <Compile Include="Server\ShokoInternal\ScheduledUpdate.cs" />
-    <Compile Include="Server\ShokoInternal\AnimeStaff.cs" />
-    <Compile Include="Server\ShokoInternal\Versions.cs" />
-    <Compile Include="Server\ShokoInternal\VideoLocal.cs" />
-    <Compile Include="Server\ShokoInternal\VideoLocal_Place.cs" />
-    <Compile Include="Server\ShokoInternal\VideoLocal_User.cs" />
-    <Compile Include="Server\Trakt\Trakt_Episode.cs" />
-    <Compile Include="Server\Trakt\Trakt_Friend.cs" />
-    <Compile Include="Server\Trakt\Trakt_Season.cs" />
-    <Compile Include="Server\Trakt\Trakt_Show.cs" />
-    <Compile Include="Server\TvDB\TvDB_Episode.cs" />
-    <Compile Include="Server\TvDB\TvDB_ImageFanart.cs" />
-    <Compile Include="Server\TvDB\TvDB_ImagePoster.cs" />
-    <Compile Include="Server\TvDB\TvDB_ImageWideBanner.cs" />
-    <Compile Include="Server\TvDB\TvDB_Series.cs" />
-    <Compile Include="TvDB\TvDB_Language.cs" />
-    <Compile Include="TvDB\TVDB_Series_Search_Response.cs" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.3.7-beta" />
   </ItemGroup>
-  <Import Project="$(SolutionDir)DefineSettings.targets" Condition="exists('$(SolutionDir)DefineSettings.targets')" />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
