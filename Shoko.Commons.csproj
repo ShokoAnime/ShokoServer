@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net471</TargetFrameworks>
     <RuntimeIdentifiers>win;win10-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Shoko.Models\**\*</DefaultItemExcludes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <!-- Not sure how much this is needed, but at least need the DEBUG and TRACE definitions only in Debug -->
@@ -141,8 +142,5 @@
     <PackageReference Include="System.Threading.Timer" Version="4.3.0" />
     <PackageReference Include="System.Xml.ReaderWriter" Version="4.3.0" />
     <PackageReference Include="System.Xml.XDocument" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="Shoko.Models\*\*" />
   </ItemGroup>
 </Project>
