@@ -6,6 +6,8 @@
     <Platforms>x64;x86</Platforms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefaultItemExcludes>$(DefaultItemExcludes);Shoko.Models\**\*</DefaultItemExcludes>
+    <Deterministic>false</Deterministic>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <!-- Not sure how much this is needed, but at least need the DEBUG and TRACE definitions only in Debug -->
