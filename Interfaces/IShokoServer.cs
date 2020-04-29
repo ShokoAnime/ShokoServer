@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Nancy.Rest.Annotations.Atributes;
+using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.Azure;
 using Shoko.Models.Client;

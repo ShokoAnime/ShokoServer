@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using Nancy.Rest.Annotations.Atributes;
+using Nancy.Rest.Annotations.Attributes;
 
 namespace Shoko.Models.PlexAndKodi
 {

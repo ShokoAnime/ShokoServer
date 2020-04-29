@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using Nancy.Rest.Annotations.Atributes;
+using Nancy.Rest.Annotations.Attributes;
 using Shoko.Models.Client;
 
 namespace Shoko.Models.PlexAndKodi

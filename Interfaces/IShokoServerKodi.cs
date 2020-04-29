@@ -1,4 +1,4 @@
-﻿using Nancy.Rest.Annotations.Atributes;
+﻿using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.PlexAndKodi;
 using Stream = System.IO.Stream;

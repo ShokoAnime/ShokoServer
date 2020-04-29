@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Nancy.Rest.Annotations.Atributes;
+using Nancy.Rest.Annotations.Attributes;
 using Nancy.Rest.Annotations.Enums;
 using Shoko.Models.Client;
 using Shoko.Models.Metro;
