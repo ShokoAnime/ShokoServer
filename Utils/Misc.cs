@@ -22,7 +22,7 @@ namespace Shoko.Commons.Utils
 {
     public static class Misc
     {
-        [DllImport("Shlwapi.dll", CharSet = CharSet.Auto)]
+        [DllImport("Shlwapi.dll", CharSet = CharSet.Unicode)]
         private static extern long StrFormatByteSize(long fileSize,
             [MarshalAs(UnmanagedType.LPTStr)] StringBuilder buffer, int bufferSize);
 
