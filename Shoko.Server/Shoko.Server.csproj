@@ -90,14 +90,16 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj" />
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj" />
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj" />
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj" />
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
-    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj" />
+    <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
+    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
+  
+    <!-- <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" /> -->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
@@ -491,7 +493,7 @@
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="System.Threading" Version="4.3.0" />
     <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
-  <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
