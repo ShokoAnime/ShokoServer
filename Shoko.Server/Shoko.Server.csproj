@@ -240,6 +240,9 @@
     <Content Include="Providers\AniDB\Readme.md" />
     <Content Include="Providers\AniDB\UDP\Responses\Readme.md" />
     <Content Include="Providers\AniDB\UDP\MyList\Readme.md" />
+    <Content Include="nlog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="webui\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

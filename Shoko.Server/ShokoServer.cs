@@ -139,7 +139,7 @@ namespace Shoko.Server
                     // Debug and higher are stored as breadcrumbs (default is Info)
                     o.MinimumBreadcrumbLevel = LogLevel.Debug;
                     // Error and higher is sent as event (default is Error)
-                    o.MinimumEventLevel = LogLevel.Error;
+                    o.MinimumEventLevel = LogLevel.Fatal;
 
                     // Send the logger name as a tag
                     o.AddTag("logger", "${logger}");
@@ -147,11 +147,6 @@ namespace Shoko.Server
                     // All Sentry Options are accessible here.
                     o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
                     o.AttachStacktrace = true;
-                    o.ConfigureClient = (client, dsn) =>
-                    {
-                        for (int i = 0; i < 100; i++)
-                            logger.Info(dsn.SentryUri.ToString());
-                    };
                 });
             LogManager.ReconfigExistingLoggers();
         }
