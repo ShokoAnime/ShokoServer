@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.ServiceModel;
-using System.ServiceModel.Web;
 using Shoko.Commons.Extensions;
 using Shoko.Server.PlexAndKodi.Plex;
 using UPnP;
@@ -26,21 +24,9 @@ namespace Shoko.Server.PlexAndKodi
         private static Tuple<string, string> GetSchemeHost(this IProvider prov, bool externalip = false)
         {
             var req = prov?.HttpContext?.Request;
+            string host = req?.Host.Host;
+            string scheme = req?.Scheme;
 
-            string host = req?.Host.Host ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                              ?.RequestUri.Host;
-            string scheme = req?.Scheme ?? WebOperationContext.Current?.IncomingRequest?.UriTemplateMatch
-                                ?.RequestUri.Scheme;
-            if (host == null)
-            {
-                var context = OperationContext.Current;
-                if (context != null && context.IncomingMessageHeaders?.To != null)
-                {
-                    Uri ur = context.IncomingMessageHeaders?.To;
-                    host = ur.Host;
-                    scheme = ur.Scheme;
-                }
-            }
             if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(scheme)) return null;
             if (externalip)
             {
@@ -65,10 +51,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 return prov.HttpContext.Request.Query[name];
             }
-            if (WebOperationContext.Current == null)
-                return null;
-            if (WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.UriTemplateMatch.QueryParameters[name];
+
             return null;
         }
 
@@ -89,9 +72,7 @@ namespace Shoko.Server.PlexAndKodi
                 if (prov.HttpContext.Request.Headers.Keys.Contains(name))
                     return prov.HttpContext.Request.Headers[name].ElementAt(0);
             }
-            else if (WebOperationContext.Current != null &&
-                     WebOperationContext.Current.IncomingRequest.Headers.AllKeys.Contains(name))
-                return WebOperationContext.Current.IncomingRequest.Headers[name];
+
             return null;
         }
 
@@ -112,13 +93,6 @@ namespace Shoko.Server.PlexAndKodi
             {
                 headers.Select(a => (a.Key, a.Value)).ForEach(a => prov.HttpContext.Response.Headers[a.Key] = a.Value);
                 prov.HttpContext.Response.ContentType = contentype;
-            }
-            else if (WebOperationContext.Current != null)
-            {
-                foreach (string n in headers.Keys)
-                    WebOperationContext.Current.OutgoingResponse.Headers.Add(n, headers[n]);
-                if (contentype != null)
-                    WebOperationContext.Current.OutgoingResponse.ContentType = contentype;
             }
         }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NutzCode.CloudFileSystem;
@@ -26,18 +25,15 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public byte[] Bitmap => _plugin?.Icon;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public byte[] Icon => _plugin?.Icon;
         private ICloudPlugin _plugin;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public IFileSystem FileSystem
@@ -66,7 +62,6 @@ namespace Shoko.Server.Models
             get { return ServerState.Instance.ConnectedFileSystems.ContainsKey(Name ?? string.Empty); }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         internal bool NeedSave { get; set; }

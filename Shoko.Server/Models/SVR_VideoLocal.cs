@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web.Script.Serialization;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
@@ -38,9 +37,9 @@ namespace Shoko.Server.Models
 
         public int MyListID { get; set; }
 
-        [ScriptIgnore] public bool IsManualLink => GetAniDBFile() == null;
+        public bool IsManualLink => GetAniDBFile() == null;
 
-        [ScriptIgnore]
+        
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
@@ -91,7 +90,6 @@ namespace Shoko.Server.Models
             return sb.ToString();
         }
 
-        [ScriptIgnore]
         public string ED2KHash
         {
             get => Hash;

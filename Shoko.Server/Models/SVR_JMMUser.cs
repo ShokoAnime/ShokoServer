@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Principal;
-using System.Web.Script.Serialization;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
@@ -72,7 +71,6 @@ namespace Shoko.Server.Models
         }
 
         // IUserIdentity implementation
-        [ScriptIgnore]
         public string UserName
         {
             get { return Username; }

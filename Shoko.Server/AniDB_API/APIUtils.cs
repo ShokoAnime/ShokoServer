@@ -32,11 +32,11 @@ namespace AniDBAPI
                 using (HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse())
                 {
                     if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
-                        throw new HttpException("Response Body was expected, but none returned");
+                        throw new Exception("Response Body was expected, but none returned");
                     using (Stream responseStream = webResponse.GetResponseStream())
                     {
                         if (responseStream == null)
-                            throw new HttpException("Response Body was expected, but none returned");
+                            throw new Exception("Response Body was expected, but none returned");
                         string charset = webResponse.CharacterSet;
                         Encoding encoding = null;
                         if (!string.IsNullOrEmpty(charset))

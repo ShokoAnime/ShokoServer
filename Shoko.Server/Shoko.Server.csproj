@@ -1,28 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.props" Condition="Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.props')" />
-  <Import Project="..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.props" Condition="Exists('..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.props')" />
-  <Import Project="..\packages\Microsoft.DiaSymReader.Native.1.7.0\build\Microsoft.DiaSymReader.Native.props" Condition="Exists('..\packages\Microsoft.DiaSymReader.Native.1.7.0\build\Microsoft.DiaSymReader.Native.props')" />
-  <Import Project="..\packages\Microsoft.AspNetCore.Razor.Design.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Razor.Design.props" Condition="Exists('..\packages\Microsoft.AspNetCore.Razor.Design.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Razor.Design.props')" />
-  <Import Project="..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.props" Condition="Exists('..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{DA8F0783-0F82-4106-9860-6F09BA2EA522}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Shoko.Server</RootNamespace>
-    <AssemblyName>Shoko.Server</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <Deterministic>false</Deterministic>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -39,17 +20,10 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;UNSAFE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <LangVersion>7.1</LangVersion>
@@ -57,14 +31,7 @@
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE;UNSAFE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <LangVersion>7.1</LangVersion>
@@ -75,1499 +42,46 @@
     <ApplicationIcon>db.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject></StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AppGlue">
-      <HintPath>$(SolutionDir)Dependencies\AppGlue.dll</HintPath>
-    </Reference>
-    <Reference Include="DeepCloner, Version=0.10.0.0, Culture=neutral, PublicKeyToken=dc0b95cf99bf4e99, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\DeepCloner.0.10.1\lib\net40\DeepCloner.dll</HintPath>
-    </Reference>
-    <Reference Include="F23.StringSimilarity, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\F23.StringSimilarity.3.1.0\lib\netstandard1.0\F23.StringSimilarity.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="FluentNHibernate, Version=2.0.3.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\FluentNHibernate.2.0.3.0\lib\net40\FluentNHibernate.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
-      <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Iesi.Collections, Version=4.0.0.4000, Culture=neutral, PublicKeyToken=aa95f207798dfdb4">
-      <HintPath>..\packages\Iesi.Collections.4.0.2\lib\net461\Iesi.Collections.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Infralution.Localization.Wpf">
-      <HintPath>$(SolutionDir)Dependencies\Infralution.Localization.Wpf.dll</HintPath>
-    </Reference>
-    <Reference Include="JetBrains.Annotations, Version=10.4.0.0, Culture=neutral, PublicKeyToken=1010a0d8d6380325">
-      <HintPath>..\packages\TaskScheduler.2.5.28\lib\net452\JetBrains.Annotations.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MessagePack, Version=1.7.3.4, Culture=neutral, PublicKeyToken=b4a0369545f0a1be, processorArchitecture=MSIL">
-      <HintPath>..\packages\MessagePack.1.7.3.4\lib\net47\MessagePack.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AI.Agent.Intercept, Version=2.4.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.Agent.Intercept.2.4.0\lib\net45\Microsoft.AI.Agent.Intercept.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AI.DependencyCollector, Version=2.4.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.DependencyCollector.2.4.1\lib\net45\Microsoft.AI.DependencyCollector.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AI.PerfCounterCollector, Version=2.4.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.PerfCounterCollector.2.4.1\lib\net45\Microsoft.AI.PerfCounterCollector.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AI.ServerTelemetryChannel, Version=2.4.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel.2.4.0\lib\net45\Microsoft.AI.ServerTelemetryChannel.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.ApplicationInsights, Version=2.4.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.2.4.0\lib\net46\Microsoft.ApplicationInsights.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.ApplicationInsights.AspNetCore, Version=2.1.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.ApplicationInsights.AspNetCore.2.1.1\lib\net451\Microsoft.ApplicationInsights.AspNetCore.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Antiforgery, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Antiforgery.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Antiforgery.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.ApplicationInsights.HostingStartup, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.ApplicationInsights.HostingStartup.2.2.0\lib\net461\Microsoft.AspNetCore.ApplicationInsights.HostingStartup.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication.Cookies, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.Cookies.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.Cookies.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.Core.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication.JwtBearer, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.JwtBearer.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authentication.OAuth, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authentication.OAuth.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authentication.OAuth.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authorization, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authorization.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authorization.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Authorization.Policy, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Authorization.Policy.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Authorization.Policy.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Connections.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Connections.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Connections.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.CookiePolicy, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.CookiePolicy.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.CookiePolicy.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Cors, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Cors.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Cors.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Cryptography.Internal, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Cryptography.Internal.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Cryptography.Internal.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Cryptography.KeyDerivation.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Cryptography.KeyDerivation.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.DataProtection, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.DataProtection.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.DataProtection.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.DataProtection.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.DataProtection.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.DataProtection.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.DataProtection.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.DataProtection.Extensions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.DataProtection.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Diagnostics, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Diagnostics.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Diagnostics.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Diagnostics.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Diagnostics.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Diagnostics.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Diagnostics.HealthChecks.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Diagnostics.HealthChecks.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.HostFiltering, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.HostFiltering.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.HostFiltering.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Hosting, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Hosting.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Hosting.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Hosting.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Hosting.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Hosting.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Hosting.Server.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Hosting.Server.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Hosting.Server.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Html.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Html.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Html.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http, Version=2.2.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.2.2.2\lib\netstandard2.0\Microsoft.AspNetCore.Http.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Http.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Connections, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Connections.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.Http.Connections.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Connections.Common, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Connections.Common.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.Http.Connections.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Extensions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Http.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Http.Features, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Http.Features.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Http.Features.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.HttpOverrides, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.HttpOverrides.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.HttpOverrides.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.HttpsPolicy, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.HttpsPolicy.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.HttpsPolicy.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Identity, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Identity.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Identity.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Identity.UI, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Identity.UI.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Identity.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Identity.UI.Views.V3, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Identity.UI.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Identity.UI.Views.V3.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Identity.UI.Views.V4, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Identity.UI.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Identity.UI.Views.V4.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.JsonPatch, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.JsonPatch.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.JsonPatch.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Localization, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Localization.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Localization.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Localization.Routing, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Localization.Routing.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Localization.Routing.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.MiddlewareAnalysis, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.MiddlewareAnalysis.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.MiddlewareAnalysis.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.ApiExplorer, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.ApiExplorer.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.ApiExplorer.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Core, Version=2.2.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Core.2.2.2\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Cors, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Cors.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Cors.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.DataAnnotations, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.DataAnnotations.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.DataAnnotations.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Formatters.Json, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Formatters.Json.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Formatters.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Formatters.Xml, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Formatters.Xml.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Formatters.Xml.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Localization, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Localization.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Localization.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Razor, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Razor.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Razor.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\lib\net46\Microsoft.AspNetCore.Mvc.Razor.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.RazorPages, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.RazorPages.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.RazorPages.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.TagHelpers, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.TagHelpers.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.TagHelpers.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Versioning, Version=3.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Versioning.3.1.2\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Versioning.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer, Version=3.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer.3.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Mvc.ViewFeatures, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Mvc.ViewFeatures.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Mvc.ViewFeatures.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.NodeServices, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.NodeServices.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.NodeServices.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Owin, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Owin.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Owin.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Razor, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Razor.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Razor.Language, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Razor.Language.2.2.0\lib\net46\Microsoft.AspNetCore.Razor.Language.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Razor.Runtime, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Razor.Runtime.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Razor.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.ResponseCaching, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.ResponseCaching.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.ResponseCaching.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.ResponseCaching.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.ResponseCaching.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.ResponseCaching.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.ResponseCompression, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.ResponseCompression.2.2.0\lib\net461\Microsoft.AspNetCore.ResponseCompression.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Rewrite, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Rewrite.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Rewrite.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Routing, Version=2.2.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Routing.2.2.2\lib\netstandard2.0\Microsoft.AspNetCore.Routing.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Routing.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Routing.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Routing.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.HttpSys, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.HttpSys.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.HttpSys.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.IIS, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.IIS.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.IIS.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.IISIntegration, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.IISIntegration.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.IISIntegration.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.Core.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel.Https, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.Https.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.Https.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets, Version=2.2.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.2.2.1\lib\netstandard2.0\Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.Session, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.Session.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.Session.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SignalR, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SignalR.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SignalR.Common, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SignalR.Common.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SignalR.Core, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SignalR.Core.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SignalR.Protocols.Json, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SignalR.Protocols.Json.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Protocols.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SignalR.Redis, Version=1.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SignalR.Redis.1.1.0\lib\netstandard2.0\Microsoft.AspNetCore.SignalR.Redis.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SpaServices, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SpaServices.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.SpaServices.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.SpaServices.Extensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.SpaServices.Extensions.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.SpaServices.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.StaticFiles, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.StaticFiles.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.StaticFiles.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.WebSockets, Version=2.2.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.WebSockets.2.2.1\lib\netstandard2.0\Microsoft.AspNetCore.WebSockets.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.AspNetCore.WebUtilities, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.AspNetCore.WebUtilities.2.2.0\lib\netstandard2.0\Microsoft.AspNetCore.WebUtilities.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis, Version=2.8.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.Common.2.8.0\lib\netstandard1.3\Microsoft.CodeAnalysis.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.CSharp, Version=2.8.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.CSharp.2.8.0\lib\netstandard1.3\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.CodeAnalysis.Razor, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.CodeAnalysis.Razor.2.2.0\lib\net46\Microsoft.CodeAnalysis.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Microsoft.DotNet.PlatformAbstractions, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.DotNet.PlatformAbstractions.2.1.0\lib\net45\Microsoft.DotNet.PlatformAbstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Caching.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Caching.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Caching.Memory, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Caching.Memory.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Caching.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.Binder, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.Binder.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.Binder.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.CommandLine, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.CommandLine.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.CommandLine.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.EnvironmentVariables, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.EnvironmentVariables.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.EnvironmentVariables.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.FileExtensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.FileExtensions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.FileExtensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.Json, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.Json.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Configuration.UserSecrets, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.2.2.0\lib\net461\Microsoft.Extensions.DependencyInjection.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyModel, Version=2.1.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DependencyModel.2.1.0\lib\net451\Microsoft.Extensions.DependencyModel.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DiagnosticAdapter, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.DiagnosticAdapter.2.2.0\lib\net461\Microsoft.Extensions.DiagnosticAdapter.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Diagnostics.HealthChecks, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Diagnostics.HealthChecks.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Diagnostics.HealthChecks.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileProviders.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.FileProviders.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileProviders.Composite, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Composite.2.2.0\lib\netstandard2.0\Microsoft.Extensions.FileProviders.Composite.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileProviders.Embedded, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\lib\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileProviders.Physical, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileProviders.Physical.2.2.0\lib\netstandard2.0\Microsoft.Extensions.FileProviders.Physical.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.FileSystemGlobbing, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.FileSystemGlobbing.2.2.0\lib\netstandard2.0\Microsoft.Extensions.FileSystemGlobbing.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Hosting.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Hosting.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Identity.Core, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Identity.Core.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Identity.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Identity.Stores, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Identity.Stores.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Identity.Stores.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Localization, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Localization.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Localization.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Localization.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Localization.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Localization.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Abstractions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Configuration, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Configuration.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Configuration.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Console, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Console.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Console.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Debug, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.Debug.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Debug.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.EventSource, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Logging.EventSource.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Logging.EventSource.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.ObjectPool, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.ObjectPool.2.2.0\lib\netstandard2.0\Microsoft.Extensions.ObjectPool.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Options, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Options.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Options.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Options.ConfigurationExtensions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Options.ConfigurationExtensions.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Primitives, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.Primitives.2.2.0\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.WebEncoders, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Extensions.WebEncoders.2.2.0\lib\netstandard2.0\Microsoft.Extensions.WebEncoders.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel.JsonWebTokens, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.IdentityModel.JsonWebTokens.5.3.0\lib\net461\Microsoft.IdentityModel.JsonWebTokens.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel.Logging, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.IdentityModel.Logging.5.3.0\lib\net461\Microsoft.IdentityModel.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel.Protocols, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.IdentityModel.Protocols.5.3.0\lib\net461\Microsoft.IdentityModel.Protocols.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.IdentityModel.Protocols.OpenIdConnect.5.3.0\lib\net461\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.IdentityModel.Tokens, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\Microsoft.IdentityModel.Tokens.5.3.0\lib\net461\Microsoft.IdentityModel.Tokens.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Net.Http.Headers, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Net.Http.Headers.2.2.0\lib\netstandard2.0\Microsoft.Net.Http.Headers.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.ConnectionInfoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.ConnectionInfoExtended.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Management.Sdk.Sfc.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.Smo, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.Smo.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SmoExtended, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SmoExtended.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlClrProvider, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlClrProvider.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.SqlServer.SqlEnum, Version=12.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\Microsoft.SQLServer.SMO.12.0.2000.8\lib\Microsoft.SqlServer.SqlEnum.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Win32.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\Microsoft.Win32.Primitives.4.3.0\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Microsoft.Win32.Registry, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Win32.Registry.4.5.0\lib\net461\Microsoft.Win32.Registry.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Win32.TaskScheduler, Version=2.5.28.0, Culture=neutral, PublicKeyToken=0d013ddd5178a2ae">
-      <HintPath>..\packages\TaskScheduler.2.5.28\lib\net452\Microsoft.Win32.TaskScheduler.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MimeMapping, Version=1.0.1.12, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\MimeMapping.1.0.1.12\lib\netstandard1.1\MimeMapping.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="MySql.Data, Version=6.9.9.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d">
-      <HintPath>..\packages\MySql.Data.6.9.9\lib\net45\MySql.Data.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="MySqlBackup, Version=2.0.9.2, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)Dependencies\MySqlBackup.dll</HintPath>
-    </Reference>
-    <Reference Include="Nancy.Rest.Annotations, Version=1.4.4, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Nancy.Rest.Annotations.1.4.4\lib\net452\Nancy.Rest.Annotations.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json.Bson, Version=1.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.Bson.1.0.1\lib\net45\Newtonsoft.Json.Bson.dll</HintPath>
-    </Reference>
-    <Reference Include="NHibernate, Version=4.1.0.4000, Culture=neutral, PublicKeyToken=aa95f207798dfdb4">
-      <HintPath>..\packages\NHibernate.4.1.1.4000\lib\net40\NHibernate.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c">
-      <HintPath>..\packages\NLog.4.6.2\lib\net45\NLog.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="NLog.Extensions.Logging, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
-      <HintPath>..\packages\NLog.Extensions.Logging.1.4.0\lib\net461\NLog.Extensions.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="NLog.Web.AspNetCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c">
-      <HintPath>..\packages\NLog.Web.AspNetCore.4.8.1\lib\net461\NLog.Web.AspNetCore.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Sentry, Version=1.2.0.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0, processorArchitecture=MSIL">
-      <HintPath>..\packages\Sentry.1.2.0\lib\net461\Sentry.dll</HintPath>
-    </Reference>
-    <Reference Include="Sentry.NLog, Version=1.2.0.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0, processorArchitecture=MSIL">
-      <HintPath>..\packages\Sentry.NLog.1.2.0\lib\net461\Sentry.NLog.dll</HintPath>
-    </Reference>
-    <Reference Include="Sentry.PlatformAbstractions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0, processorArchitecture=MSIL">
-      <HintPath>..\packages\Sentry.PlatformAbstractions.1.0.0\lib\net471\Sentry.PlatformAbstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Sentry.Protocol, Version=1.0.6.0, Culture=neutral, PublicKeyToken=fba2ec45388e2af0, processorArchitecture=MSIL">
-      <HintPath>..\packages\Sentry.Protocol.1.0.6\lib\net46\Sentry.Protocol.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpCompress, Version=0.17.1.0, Culture=neutral, PublicKeyToken=afb0a02973931d96, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpCompress.0.17.1\lib\net45\SharpCompress.dll</HintPath>
-    </Reference>
-    <Reference Include="StackExchange.Redis.StrongName, Version=1.2.6.0, Culture=neutral, PublicKeyToken=c219ff1ca8c2ce46, processorArchitecture=MSIL">
-      <HintPath>..\packages\StackExchange.Redis.StrongName.1.2.6\lib\net46\StackExchange.Redis.StrongName.dll</HintPath>
-    </Reference>
-    <Reference Include="Swashbuckle.AspNetCore.Swagger, Version=4.0.1.0, Culture=neutral, PublicKeyToken=62657d7474907593">
-      <HintPath>..\packages\Swashbuckle.AspNetCore.Swagger.4.0.1\lib\netstandard2.0\Swashbuckle.AspNetCore.Swagger.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Swashbuckle.AspNetCore.SwaggerGen, Version=4.0.1.0, Culture=neutral, PublicKeyToken=d84d99fb0135530a">
-      <HintPath>..\packages\Swashbuckle.AspNetCore.SwaggerGen.4.0.1\lib\netstandard2.0\Swashbuckle.AspNetCore.SwaggerGen.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Swashbuckle.AspNetCore.SwaggerUI, Version=4.0.1.0, Culture=neutral, PublicKeyToken=4232c99127b3c254">
-      <HintPath>..\packages\Swashbuckle.AspNetCore.SwaggerUI.4.0.1\lib\netstandard2.0\Swashbuckle.AspNetCore.SwaggerUI.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.AppContext, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.AppContext.4.3.0\lib\net463\System.AppContext.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Collections.Immutable, Version=1.2.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
-    </Reference>
-    <Reference Include="System.ComponentModel.Annotations, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.ComponentModel.Annotations.4.5.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
-    </Reference>
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Console, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Console.4.3.0\lib\net46\System.Console.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Data" />
-    <Reference Include="System.Data.OracleClient" />
-    <Reference Include="System.Data.SQLite, Version=1.0.105.2, Culture=neutral, PublicKeyToken=db937bc2d44ff139">
-      <HintPath>..\packages\System.Data.SQLite.Core.1.0.105.2\lib\net46\System.Data.SQLite.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Diagnostics.DiagnosticSource, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
-      <HintPath>..\packages\System.Diagnostics.DiagnosticSource.4.5.0\lib\net46\System.Diagnostics.DiagnosticSource.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Diagnostics.FileVersionInfo, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Diagnostics.FileVersionInfo.4.3.0\lib\net46\System.Diagnostics.FileVersionInfo.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Diagnostics.StackTrace, Version=4.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Diagnostics.StackTrace.4.3.0\lib\net46\System.Diagnostics.StackTrace.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Diagnostics.Tracing, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Diagnostics.Tracing.4.3.0\lib\net462\System.Diagnostics.Tracing.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Globalization.Calendars, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Globalization.Calendars.4.3.0\lib\net46\System.Globalization.Calendars.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IdentityModel.Tokens.Jwt, Version=5.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <HintPath>..\packages\System.IdentityModel.Tokens.Jwt.5.3.0\lib\net461\System.IdentityModel.Tokens.Jwt.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.Compression, Version=4.1.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.Compression.4.3.0\lib\net46\System.IO.Compression.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.Compression.FileSystem" />
-    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.FileSystem, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.FileSystem.4.3.0\lib\net46\System.IO.FileSystem.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.FileSystem.Primitives.4.3.0\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.IO.Pipelines, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.Pipelines.4.5.2\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Linq, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Linq.4.3.0\lib\net463\System.Linq.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Linq.Expressions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Linq.Expressions.4.3.0\lib\net463\System.Linq.Expressions.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Memory, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Memory.4.5.1\lib\netstandard2.0\System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Net.Http.4.3.2\lib\net46\System.Net.Http.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Net.Sockets, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Net.WebSockets.WebSocketProtocol, Version=4.0.0.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Net.WebSockets.WebSocketProtocol.4.5.3\lib\netstandard2.0\System.Net.WebSockets.WebSocketProtocol.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Reflection.Metadata, Version=1.4.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.Extensions, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Runtime.Extensions.4.3.0\lib\net462\System.Runtime.Extensions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.InteropServices, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.InteropServices.4.3.0\lib\net463\System.Runtime.InteropServices.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Security" />
-    <Reference Include="System.Security.AccessControl, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.AccessControl.4.5.0\lib\net461\System.Security.AccessControl.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Cng, Version=4.3.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.Cng.4.5.0\lib\net47\System.Security.Cryptography.Cng.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>$(SolutionDir)packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Security.Cryptography.Xml, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Cryptography.Xml.4.5.0\lib\net461\System.Security.Cryptography.Xml.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Permissions, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Permissions.4.5.0\lib\net461\System.Security.Permissions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Principal.Windows, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Security.Principal.Windows.4.5.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.ServiceModel.Web" />
-    <Reference Include="System.ServiceProcess" />
-    <Reference Include="System.Text.Encoding.CodePages, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Text.Encoding.CodePages.4.3.0\lib\net46\System.Text.Encoding.CodePages.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Text.Encodings.Web, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Text.Encodings.Web.4.5.0\lib\netstandard2.0\System.Text.Encodings.Web.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Text.RegularExpressions, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Text.RegularExpressions.4.3.0\lib\net463\System.Text.RegularExpressions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Threading.Channels, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Threading.Channels.4.5.0\lib\netstandard2.0\System.Threading.Channels.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
-      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.1\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Threading.Thread, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Threading.Thread.4.3.0\lib\net46\System.Threading.Thread.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Transactions" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Xaml" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Xml.ReaderWriter, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <HintPath>..\packages\System.Xml.ReaderWriter.4.3.0\lib\net46\System.Xml.ReaderWriter.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XmlDocument, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XmlDocument.4.3.0\lib\net46\System.Xml.XmlDocument.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XPath, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XPath.4.3.0\lib\net46\System.Xml.XPath.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.XPath.XDocument, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Xml.XPath.XDocument.4.3.0\lib\net46\System.Xml.XPath.XDocument.dll</HintPath>
-      <Private>True</Private>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TMDbLib, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\TMDbLib.1.4.0\lib\net45\TMDbLib.dll</HintPath>
-    </Reference>
-    <Reference Include="Trinet.Core.IO.Ntfs, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0aeaaa20a328a46c">
-      <HintPath>..\packages\Trinet.Core.IO.Ntfs.4.0.0\lib\net35\Trinet.Core.IO.Ntfs.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="TvDbSharper, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\TvDbSharper.3.0.1\lib\netstandard1.1\TvDbSharper.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <!-- <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition> -->
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="Analytics.cs" />
-    <Compile Include="AniDBHelper.cs" />
-    <Compile Include="AniDB_API\AniDBHTTPHelper.cs" />
-    <Compile Include="AniDB_API\AniDBLib.cs" />
-    <Compile Include="AniDB_API\AniDBImageRateLimiter.cs" />
-    <Compile Include="AniDB_API\Calendar.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_AddFile.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_DeleteFile.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetCalendar.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetFileInfo.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroup.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetGroupStatus.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListFileInfo.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetMyListStats.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_GetUpdated.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_Login.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_Logout.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDeleted.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsDisk.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsRemote.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_MarkFileAsUnknown.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_Ping.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_UpdateFile.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBCommand_Vote.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetFullAnime.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetMyList.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBHTTPCommand_GetVotes.cs" />
-    <Compile Include="AniDB_API\Commands\AniDBUDPCommand.cs" />
-    <Compile Include="AniDB_API\Commands\IAniDBHTTPCommand.cs" />
-    <Compile Include="AniDB_API\Commands\IAniDBUDPCommand.cs" />
-    <Compile Include="AniDB_API\Enums.cs" />
-    <Compile Include="AniDB_API\GroupStatusCollection.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Anime_Title.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Calendar.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Character.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Creator.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Episode.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_File.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Group.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_GroupStatus.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListFile.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_MyListStats.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Recommendation.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_RelatedAnime.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_ResourceLink.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Review.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Seiyuu.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_SimilarAnime.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Tag.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote.cs" />
-    <Compile Include="AniDB_API\Raws\Raw_AniDB_Vote_HTTP.cs" />
-    <Compile Include="AniDB_API\Titles\AniDBRaw_AnimeTitles.cs" />
-    <Compile Include="AniDB_API\Titles\AniDB_TitleHelper.cs" />
-    <Compile Include="AniDB_API\APIUtils.cs" />
-    <Compile Include="AniDB_API\XMLBase.cs" />
-    <Compile Include="API\Annotations\ApiInUseAttribute.cs" />
-    <Compile Include="API\Annotations\ApiV3Attribute.cs" />
-    <Compile Include="API\APIHelper.cs" />
-    <Compile Include="API\Authentication\CustomAuthHandler.cs" />
-    <Compile Include="API\Authentication\CustomAuthOptions.cs" />
-    <Compile Include="API\Authentication\InitUser.cs" />
-    <Compile Include="API\BaseController.cs" />
-    <Compile Include="API\Resolvers\EmitEmptyEnumerableInsteadOfNullResolver.cs" />
-    <Compile Include="API\Resolvers\OmitEmptyEnumerableResolver.cs" />
-    <Compile Include="API\RestController.cs" />
-    <Compile Include="API\SignalR\EventEmitter.cs" />
-    <Compile Include="API\SignalR\EventsHub.cs" />
-    <Compile Include="API\Startup.cs" />
-    <Compile Include="API\UserHandler.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementationKodi.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementationPlex.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation_Entities.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation_Providers.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementation\ShokoServiceImplementation_Utilities.cs" />
-    <Compile Include="API\v1\Modules\KodiModule.cs" />
-    <Compile Include="API\v1\Modules\MetroModule.cs" />
-    <Compile Include="API\v1\Modules\ImageModule.cs" />
-    <Compile Include="API\v1\Modules\MainModule.cs" />
-    <Compile Include="API\v1\Modules\PlexModule.cs" />
-    <Compile Include="API\v1\Modules\StreamModule.cs" />
-    <Compile Include="API\v2\APIV2Helper.cs" />
-    <Compile Include="API\v2\Models\BaseDirectory.cs" />
-    <Compile Include="API\v2\Models\common\Art.cs" />
-    <Compile Include="API\v2\Models\common\Group.cs" />
-    <Compile Include="API\v2\Models\common\ObjectList.cs" />
-    <Compile Include="API\v2\Models\common\RawFile.cs" />
-    <Compile Include="API\v2\Models\common\Filter.cs" />
-    <Compile Include="API\v2\Models\common\Filters.cs" />
-    <Compile Include="API\v2\Models\common\SearchResult.cs" />
-    <Compile Include="API\v2\Models\common\Sizes.cs" />
-    <Compile Include="API\v2\Models\core\DatabaseSettings.cs" />
-    <Compile Include="API\v2\Models\core\Logs.cs" />
-    <Compile Include="API\v2\Models\core\API_Call_Parameters.cs" />
-    <Compile Include="API\v2\Models\common\Episode.cs" />
-    <Compile Include="API\v2\Models\common\Role.cs" />
-    <Compile Include="API\v2\Models\common\Serie.cs" />
-    <Compile Include="API\v2\Models\core\OSFile.cs" />
-    <Compile Include="API\v2\Models\core\ServerStatus.cs" />
-    <Compile Include="API\v2\Models\core\Setting.cs" />
-    <Compile Include="API\v2\Models\core\WebUI-Settings.cs" />
-    <Compile Include="API\v2\Modules\Auth.cs" />
-    <Compile Include="API\v2\Modules\Common.cs" />
-    <Compile Include="API\v2\Modules\Core.cs" />
-    <Compile Include="API\v2\Modules\DashboardModules.cs" />
-    <Compile Include="API\v2\Modules\Dev.cs" />
-    <Compile Include="API\v2\Modules\Image.cs" />
-    <Compile Include="API\v2\Modules\Init.cs" />
-    <Compile Include="API\v2\Modules\Version.cs" />
-    <Compile Include="API\v2\Modules\PlexWebhook.cs" />
-    <Compile Include="API\v2\Modules\Webui.cs" />
-    <Compile Include="API\v2\Modules\Webui_Redirect.cs" />
-    <Compile Include="API\Negotiation\BinaryProcessor.cs" />
-    <Compile Include="API\Response\ByteArrayResponse.cs" />
-    <Compile Include="API\v3\Controllers\EpisodeController.cs" />
-    <Compile Include="API\v3\Controllers\FileController.cs" />
-    <Compile Include="API\v3\Controllers\FilterController.cs" />
-    <Compile Include="API\v3\Controllers\GroupController.cs" />
-    <Compile Include="API\v3\Controllers\ImageController.cs" />
-    <Compile Include="API\v3\Controllers\ImportFolderController.cs" />
-    <Compile Include="API\v3\Controllers\SeriesController.cs" />
-    <Compile Include="API\v3\Controllers\SettingsController.cs" />
-    <Compile Include="API\v3\Controllers\TreeController.cs" />
-    <Compile Include="API\v3\Helpers\APIGroupFilterSortingHelper.cs" />
-    <Compile Include="API\v3\Helpers\ModelHelper.cs" />
-    <Compile Include="API\v3\Models\Common\BaseModel.cs" />
-    <Compile Include="API\v3\Models\Common\IDs.cs" />
-    <Compile Include="API\v3\Models\Common\IFullModel.cs" />
-    <Compile Include="API\v3\Models\Common\Image.cs" />
-    <Compile Include="API\v3\Models\Common\Images.cs" />
-    <Compile Include="API\v3\Models\Common\Rating.cs" />
-    <Compile Include="API\v3\Models\Common\Role.cs" />
-    <Compile Include="API\v3\Models\Common\Sizes.cs" />
-    <Compile Include="API\v3\Models\Common\Tag.cs" />
-    <Compile Include="API\v3\Models\Common\Title.cs" />
-    <Compile Include="API\v3\Models\Shoko\Filter.cs" />
-    <Compile Include="API\v3\Models\Shoko\Group.cs" />
-    <Compile Include="API\v3\Models\Shoko\Series.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetFileMyListStatus.cs" />
-    <Compile Include="Commands\CommandRequest_Null.cs" />
-    <Compile Include="Commands\Import\CommandRequest_DownloadAniDBImages.cs" />
-    <Compile Include="Commands\Import\CommandRequest_DownloadImage.cs" />
-    <Compile Include="Commands\Import\CommandRequest_HashFile.cs" />
-    <Compile Include="Commands\Import\CommandRequest_LinkFileManually.cs" />
-    <Compile Include="Commands\Import\CommandRequest_ProcessFile.cs" />
-    <Compile Include="Commands\Import\CommandRequest_ReadMediaInfo.cs" />
-    <Compile Include="Commands\Import\CommandRequest_ValidateAllImages.cs" />
-    <Compile Include="Commands\MovieDB\CommandRequest_MovieDBSearchAnime.cs" />
-    <Compile Include="Commands\Plex\CommandRequest_PlexSyncWatched.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateEpisode.cs" />
-    <Compile Include="Exceptions\CloudFilesystemException.cs" />
-    <Compile Include="Extensions\ImageResolvers.TOBEMOVETOCOMMONS.cs" />
-    <Compile Include="Extensions\ModelDatabase.cs" />
-    <Compile Include="Extensions\ModelClients.cs" />
-    <Compile Include="API\Bootstrapper.cs" />
-    <Compile Include="API\v2\Models\core\APIMessage.cs" />
-    <Compile Include="API\v2\Models\core\AuthUser.cs" />
-    <Compile Include="API\v2\Models\core\ComponentVersion.cs" />
-    <Compile Include="API\v2\Models\core\Counter.cs" />
-    <Compile Include="API\v2\Models\core\Credentials.cs" />
-    <Compile Include="API\v2\Models\core\ImagePath.cs" />
-    <Compile Include="API\v2\Models\core\OSFolder.cs" />
-    <Compile Include="API\v2\Models\core\QueueInfo.cs" />
-    <Compile Include="API\v2\Models\core\RecentFile.cs" />
-    <Compile Include="API\v2\Models\core\WebNews.cs" />
-    <Compile Include="Commands\CommandRequest_RefreshGroupFilter.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_LinkAniDBTvDB.cs" />
-    <Compile Include="Databases\BaseDatabase.cs" />
-    <Compile Include="Databases\DatabaseCommandException.cs" />
-    <Compile Include="Databases\DatabaseCommand.cs" />
-    <Compile Include="Databases\DatabaseFactory.cs" />
-    <Compile Include="Databases\DatabaseFixes.cs" />
-    <Compile Include="Databases\IDatabase.cs" />
-    <Compile Include="FileHelper\NativeHasher.cs" />
-    <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="Import\FileQualityFilter.cs" />
-    <Compile Include="Import\Importer.cs" />
-    <Compile Include="Mappings\AniDB_AnimeUpdateMap.cs" />
-    <Compile Include="Mappings\AniDB_Episode_TitleMap.cs" />
-    <Compile Include="Mappings\AnimeCharacterMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TvDBMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TvDB_Episode_OverrideMap.cs" />
-    <Compile Include="Mappings\CrossRef_Anime_StaffMap.cs" />
-    <Compile Include="Mappings\AnimeStaffMap.cs" />
-    <Compile Include="Models\AniDB_AnimeUpdate.cs" />
-    <Compile Include="Models\SVR_Scan.cs" />
-    <Compile Include="Plex\TVShow\SVR_Episode.cs" />
-    <Compile Include="Plex\PlexConverter.cs" />
-    <Compile Include="Plex\PlexHelper.cs" />
-    <Compile Include="Plex\Libraries\SVR_Directory.cs" />
-    <Compile Include="Plex\Collection\SVR_PlexLibrary.cs" />
-    <Compile Include="Providers\AniDB\AniDBConnectionHandler.cs" />
-    <Compile Include="Providers\AniDB\AniDBRateLimiter.cs" />
-    <Compile Include="Providers\AniDB\AniDBStateUpdate.cs" />
-    <Compile Include="Providers\AniDB\Helpers\AniDBEpisodeNumber.cs" />
-    <Compile Include="Providers\AniDB\UDP\AniDBUDPReturnCode.cs" />
-    <Compile Include="Providers\AniDB\UDP\Exceptions\NotLoggedInException.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestAddEpisode.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestUpdateEpisode.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestUpdateFile.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestMyListStats.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Responses\ResponseMyListStats.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestCalendar.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestVoteAnime.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestVoteEpisode.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\UDPBaseRequest.cs" />
-    <Compile Include="Providers\AniDB\UDP\Exceptions\UnexpectedAniDBResponseException.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestLogout.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestPing.cs" />
-    <Compile Include="Providers\AniDB\UDP\Responses\ResponseVote.cs" />
-    <Compile Include="Providers\AniDB\UDP\Responses\ResponseCalendar.cs" />
-    <Compile Include="Providers\AniDB\UDP\Responses\UDPBaseResponse.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Requests\RequestAddFile.cs" />
-    <Compile Include="Providers\AniDB\UDP\MyList\Responses\ResponseAddFile.cs" />
-    <Compile Include="Providers\AniDB\UDP\Requests\RequestLogin.cs" />
-    <Compile Include="Providers\AniDB\UDP\Responses\ResponseLogin.cs" />
-    <Compile Include="Providers\AniDB\UDP\Responses\Void.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCode.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodePoll.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthDeviceCodeToken.cs" />
-    <Compile Include="Providers\TvDB\TvDBApiHelper.cs" />
-    <Compile Include="Providers\TvDB\TvDBLinkingHelper.cs" />
-    <Compile Include="Providers\TvDB\TvDBRateLimiter.cs" />
-    <Compile Include="Renamer\GroupAwareSortingRenamer.cs" />
-    <Compile Include="Renamer\IRenamer.cs" />
-    <Compile Include="Renamer\LegacyRenamer.cs" />
-    <Compile Include="Renamer\RenameFileHelper.cs" />
-    <Compile Include="Renamer\RenamerAttribute.cs" />
-    <Compile Include="Repositories\Cached\AniDB_Anime_DefaultImageRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_Episode_TitleRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_VoteRepository.cs" />
-    <Compile Include="Repositories\Cached\AuthTokensRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeCharacterRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDBRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_Episode_OverrideRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_AniDB_TvDB_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_Anime_StaffRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeStaffRepository.cs" />
-    <Compile Include="Repositories\Cached\TvDB_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Cached\TvDB_ImageFanartRepository.cs" />
-    <Compile Include="Repositories\Cached\TvDB_ImagePosterRepository.cs" />
-    <Compile Include="Repositories\Cached\TvDB_ImageWideBannerRepository.cs" />
-    <Compile Include="Repositories\Cached\TvDB_SeriesRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_AnimeUpdateRepository.cs" />
-    <Compile Include="Repositories\Direct\CommandRequestRepository.cs" />
-    <Compile Include="Repositories\ICachedRepository.cs" />
-    <Compile Include="Settings\AniDbSettings.cs" />
-    <Compile Include="Settings\DatabaseSettings.cs" />
-    <Compile Include="Settings\ImportSettings.cs" />
-    <Compile Include="Settings\LinuxSettings.cs" />
-    <Compile Include="Settings\LogRotatorSettings.cs" />
-    <Compile Include="Settings\Migration\ServerSettings_Legacy.cs" />
-    <Compile Include="Settings\MovieDbSettings.cs" />
-    <Compile Include="Settings\PlexSettings.cs" />
-    <Compile Include="Settings\ServerSettings.cs" />
-    <Compile Include="Settings\TraktSettings.cs" />
-    <Compile Include="Settings\TvDBSettings.cs" />
-    <Compile Include="Settings\WebCacheSettings.cs" />
-    <Compile Include="ShokoServer.cs" />
-    <Compile Include="Models\SVR_CloudAccount.cs" />
-    <Compile Include="Models\SVR_VideoLocal_Place.cs" />
-    <Compile Include="Extensions\Utils.cs" />
-    <Compile Include="Extensions\ModelProviders.cs" />
-    <Compile Include="FileHelper\Crc32.cs" />
-    <Compile Include="FileHelper\FileHashHelper.cs" />
-    <Compile Include="FileHelper\Hasher.cs" />
-    <Compile Include="FileHelper\MD4Managed.cs" />
-    <Compile Include="FileHelper\Subtitles\ISubtitles.cs" />
-    <Compile Include="FileHelper\Subtitles\SubtitleHelper.cs" />
-    <Compile Include="FileHelper\Subtitles\TextSubtitles.cs" />
-    <Compile Include="FileHelper\Subtitles\VobSubSubtitles.cs" />
-    <Compile Include="PlexAndKodi\HttpExtensions.cs" />
-    <Compile Include="PlexAndKodi\Plex\PlexClient.cs" />
-    <Compile Include="PlexAndKodi\Plex\PlexDeviceInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">
+    <Compile Update="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Providers\MovieDB\SyncExtensions.cs" />
-    <Compile Include="Tasks\AutoAnimeGroupCalculator.cs" />
-    <Compile Include="Tasks\AnimeGroupCreator.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementationImage.cs" />
-    <Compile Include="LogRotator.cs" />
-    <Compile Include="LZ4\CompressionHelper.cs" />
-    <Compile Include="LZ4\LZ4Codec.cs" />
-    <Compile Include="LZ4\LZ4Codec.Safe.cs" />
-    <Compile Include="LZ4\LZ4Codec.Safe32.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Safe32HC.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Safe64.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Safe64HC.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Unsafe.cs" />
-    <Compile Include="LZ4\LZ4Codec.Unsafe32.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
-    <Compile Include="LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
-    <Compile Include="Mappings\AuthTokensMap.cs" />
-    <Compile Include="Mappings\CloudAccountMap.cs" />
-    <Compile Include="Mappings\ScanFileMap.cs" />
-    <Compile Include="Mappings\ScanMap.cs" />
-    <Compile Include="Mappings\VideoLocal_PlaceMap.cs" />
-    <Compile Include="MigrationDirectory.cs" />
-    <Compile Include="PlexAndKodi\IProvider.cs" />
-    <Compile Include="PlexAndKodi\Kodi\KodiProvider.cs" />
-    <Compile Include="PlexAndKodi\Plex\PlexProvider.cs" />
-    <Compile Include="PocoCache.cs" />
-    <Compile Include="BitMaskHelper.cs" />
-    <Compile Include="BlockingList.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetFile.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListStats.cs" />
-    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeFull.cs" />
-    <Compile Include="Commands\Azure\CommandRequest_Azure_SendAnimeXML.cs" />
-    <Compile Include="Commands\Azure\CommandRequest_Azure_SendUserInfo.cs" />
-    <Compile Include="Commands\CommandHelper.cs" />
-    <Compile Include="Commands\CommandProcessorGeneral.cs" />
-    <Compile Include="Commands\CommandProcessorHasher.cs" />
-    <Compile Include="Commands\CommandProcessorImages.cs" />
-    <Compile Include="Commands\CommandRequestImplementation.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_AddFileToMyList.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_DeleteFileFromMyList.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetAniDBTitles.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetAnimeHTTP.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetCalendar.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroup.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetReleaseGroupStatus.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetReviews.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_GetUpdated.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_SyncMyList.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_SyncMyVotes.cs" />
-    <Compile Include="Commands\CommandRequest_RefreshAnime.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktCollectionEpisode.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktSearchAnime.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktHistoryEpisode.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollection.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktSyncCollectionSeries.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateInfo.cs" />
-    <Compile Include="Commands\Trakt\CommandRequest_TraktUpdateAllSeries.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_TvDBDownloadImages.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_TvDBUpdateSeries.cs" />
-    <Compile Include="Commands\TvDB\CommandRequest_TvDBSearchAnime.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_UpdateMyListFileStatus.cs" />
-    <Compile Include="Commands\AniDB\CommandRequest_VoteAnime.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBOther.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTrakt.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefAniDBTvDB.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheDeleteXRefFileEpisode.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBOther.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTrakt.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefAniDBTvDB.cs" />
-    <Compile Include="Commands\WebCache\CommandRequest_WebCacheSendXRefFileEpisode.cs" />
-    <Compile Include="Commands\ICommandRequest.cs" />
-    <Compile Include="Commands\QueueCountEventArgs.cs" />
-    <Compile Include="Commands\QueueStateEventArgs.cs" />
-    <Compile Include="Constants.cs" />
-    <Compile Include="Databases\MySQL.cs" />
-    <Compile Include="UI\AuthProvider.cs" />
-    <Compile Include="UI\ServerInfo.cs" />
-    <Compile Include="Utilities\AsyncObservableCollection.cs" />
-    <Compile Include="Utilities\AVDumpHelper.cs" />
-    <Compile Include="Utilities\LinuxFS.cs" />
-    <Compile Include="Utilities\MediaInfoLib\MediaInfo.cs" />
-    <Compile Include="Utilities\MediaInfoLib\MediaInfoDLLInternal.cs" />
-    <Compile Include="Utilities\MediaInfoLib\MediaInfoParserInternal.cs" />
-    <Compile Include="Utilities\ReflectionUtils.cs" />
-    <Compile Include="Utilities\SeriesSearch.cs" />
-    <Compile Include="Utilities\TagFilter.cs" />
-    <Compile Include="Utilities\UPnP.cs" />
-    <Compile Include="ImageDownload\ImageDetails.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />
-    <Compile Include="PlexAndKodi\CommonImplementation.cs" />
-    <Compile Include="API\v1\Implementations\ShokoServiceImplementationStream.cs" />
-    <Compile Include="Mappings\AniDB_MylistStatsMap.cs" />
-    <Compile Include="Mappings\AniDB_RecommendationMap.cs" />
-    <Compile Include="Mappings\BookmarkedAnimeMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_MALMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TraktV2Map.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_Trakt_EpisodeMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_TvDB_EpisodeMap.cs" />
-    <Compile Include="Mappings\CrossRef_CustomTagMap.cs" />
-    <Compile Include="Mappings\CustomTagMap.cs" />
-    <Compile Include="Mappings\FileFfdshowPresetMap.cs" />
-    <Compile Include="Mappings\PlaylistMap.cs" />
-    <Compile Include="Mappings\RenameScriptMap.cs" />
-    <Compile Include="PlexAndKodi\Breadcrumbs.cs" />
-    <Compile Include="PlexAndKodi\MediaContainerTypes.cs" />
-    <Compile Include="PlexAndKodi\EpisodeType.cs" />
-    <Compile Include="PlexAndKodi\Extensions.cs" />
-    <Compile Include="PlexAndKodi\Helper.cs" />
-    <Compile Include="PlexAndKodi\BaseObject.cs" />
-    <Compile Include="PlexAndKodi\Utf8SringWriter.cs" />
-    <Compile Include="Providers\Azure\AzureWebAPI.cs" />
-    <Compile Include="Providers\JMMAutoUpdates\JMMAutoUpdatesHelper.cs" />
-    <Compile Include="Providers\JMMAutoUpdates\JMMVersions.cs" />
-    <Compile Include="Providers\JMMAutoUpdates\Update.cs" />
-    <Compile Include="Providers\JMMAutoUpdates\Updates.cs" />
-    <Compile Include="Providers\JMMAutoUpdates\Versions.cs" />
-    <Compile Include="Providers\JSONHelper.cs" />
-    <Compile Include="Providers\MovieDB\MovieDBHelper.cs" />
-    <Compile Include="Providers\MovieDB\MovieDB_Image_Result.cs" />
-    <Compile Include="Providers\MovieDB\MovieDB_Movie_Result.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodesByNumber.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncWatchedEpisodesByNumber.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Temp.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthPIN.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktAuthToken.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Airs.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedEpisode.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2CollectedSeason.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Comment.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2CommentShowPost.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Episode.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2EpisodeIds.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2EpisodePost.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Follower.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Ids.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Logo.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Movie.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchShowResult.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Search\TraktV2SearchTvDBIDShowResult.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleEpisode.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2ScrobbleMovie.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Season.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2SeasonIds.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Show.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowCollectedResult.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2ShowExtended.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowIdsPost.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowPost.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2ShowWatchedResult.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2SyncCollectionEpisodes.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2Thumb.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2User.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktV2UserEpisodeHistory.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedEpisode.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Sync\TraktV2WatchedSeason.cs" />
-    <Compile Include="Providers\TraktTV\TraktConstants.cs" />
-    <Compile Include="Providers\TraktTV\TraktTVHelper.cs" />
-    <Compile Include="Providers\TraktTV\TraktURIs.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\Auth\TraktV2RefreshToken.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktDetailsContainer.cs" />
-    <Compile Include="Providers\TraktTV\Contracts\TraktSummaryContainer.cs" />
-    <Compile Include="Providers\TvDB\TvDBDetails.cs" />
-    <Compile Include="Providers\TvDB\TvDBSummary.cs" />
-    <Compile Include="Repositories\BaseCachedRepository.cs" />
-    <Compile Include="Repositories\BaseDirectRepository.cs" />
-    <Compile Include="Repositories\Direct\ScanFileRepository.cs" />
-    <Compile Include="Repositories\Direct\ScanRepository.cs" />
-    <Compile Include="Repositories\IRepository.cs" />
-    <Compile Include="Repositories\RepoFactory.cs" />
-    <Compile Include="Repositories\Direct\AniDB_MylistStatsRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_RecommendationRepository.cs" />
-    <Compile Include="Repositories\Direct\BookmarkedAnimeRepository.cs" />
-    <Compile Include="Repositories\ChangeTracker.cs" />
-    <Compile Include="Repositories\Cached\CloudAccountRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_MALRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_AniDB_TraktV2Repository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_Trakt_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_CustomTagRepository.cs" />
-    <Compile Include="Repositories\Cached\CustomTagRepository.cs" />
-    <Compile Include="Repositories\Direct\FileFfdshowPresetRepository.cs" />
-    <Compile Include="Repositories\NHibernate\ISessionWrapper.cs" />
-    <Compile Include="Repositories\NHibernate\SessionWrapper.cs" />
-    <Compile Include="Repositories\NHibernate\SessionExtensions.cs" />
-    <Compile Include="Repositories\NHibernate\StatelessSessionWrapper.cs" />
-    <Compile Include="Repositories\NHibernate\StatelessSessionExtensions.cs" />
-    <Compile Include="Repositories\Direct\PlaylistRepository.cs" />
-    <Compile Include="Repositories\Direct\RenameScriptRepository.cs" />
-    <Compile Include="Repositories\Cached\VideoLocal_PlaceRepository.cs" />
-    <Compile Include="Scanner.cs" />
-    <Compile Include="Security\CRC32.cs" />
-    <Compile Include="Security\Digest.cs" />
-    <Compile Include="MyAnime2Helper\MA2Progress.cs" />
-    <Compile Include="Databases\SQLite.cs" />
-    <Compile Include="Databases\SQLServer.cs" />
-    <Compile Include="Models\SVR_AniDB_Anime.cs" />
-    <Compile Include="Models\SVR_AniDB_File.cs" />
-    <Compile Include="Models\SVR_AnimeEpisode.cs" />
-    <Compile Include="Models\SVR_AnimeEpisode_User.cs" />
-    <Compile Include="Models\SVR_AnimeGroup.cs" />
-    <Compile Include="Models\SVR_AnimeGroup_User.cs" />
-    <Compile Include="Models\SVR_AnimeSeries.cs" />
-    <Compile Include="Models\SVR_AnimeSeries_User.cs" />
-    <Compile Include="Models\SVR_GroupFilter.cs" />
-    <Compile Include="Models\SVR_ImportFolder.cs" />
-    <Compile Include="Models\SVR_JMMUser.cs" />
-    <Compile Include="Models\SVR_VideoLocal.cs" />
-    <Compile Include="Enums.cs" />
-    <Compile Include="ImageDownload\ImageDownloadRequest.cs" />
-    <Compile Include="ImageDownload\ImageUtils.cs" />
-    <Compile Include="ShokoService.cs" />
-    <Compile Include="Languages.cs" />
-    <Compile Include="Mappings\AniDB_AnimeMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_CharacterMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_DefaultImageMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_RelationMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_ReviewMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_SimilarMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_TagMap.cs" />
-    <Compile Include="Mappings\AniDB_Anime_TitleMap.cs" />
-    <Compile Include="Mappings\AniDB_CharacterMap.cs" />
-    <Compile Include="Mappings\AniDB_Character_SeiyuuMap.cs" />
-    <Compile Include="Mappings\AniDB_SeiyuuMap.cs" />
-    <Compile Include="Mappings\AniDB_EpisodeMap.cs" />
-    <Compile Include="Mappings\AniDB_FileMap.cs" />
-    <Compile Include="Mappings\AniDB_GroupStatusMap.cs" />
-    <Compile Include="Mappings\AniDB_ReleaseGroupMap.cs" />
-    <Compile Include="Mappings\AniDB_ReviewMap.cs" />
-    <Compile Include="Mappings\AniDB_TagMap.cs" />
-    <Compile Include="Mappings\AniDB_VoteMap.cs" />
-    <Compile Include="Mappings\AnimeEpisodeMap.cs" />
-    <Compile Include="Mappings\AnimeEpisode_UserMap.cs" />
-    <Compile Include="Mappings\AnimeGroupMap.cs" />
-    <Compile Include="Mappings\AnimeGroup_UserMap.cs" />
-    <Compile Include="Mappings\AnimeSeriesMap.cs" />
-    <Compile Include="Mappings\AnimeSeries_UserMap.cs" />
-    <Compile Include="Mappings\CommandRequestMap.cs" />
-    <Compile Include="Mappings\CrossRef_AniDB_OtherMap.cs" />
-    <Compile Include="Mappings\CrossRef_File_EpisodeMap.cs" />
-    <Compile Include="Mappings\CrossRef_Languages_AniDB_FileMap.cs" />
-    <Compile Include="Mappings\CrossRef_Subtitles_AniDB_FileMap.cs" />
-    <Compile Include="Mappings\DuplicateFileMap.cs" />
-    <Compile Include="Mappings\FileNameHashMap.cs" />
-    <Compile Include="Mappings\GroupFilterConditionMap.cs" />
-    <Compile Include="Mappings\GroupFilterMap.cs" />
-    <Compile Include="Mappings\IgnoreAnimeMap.cs" />
-    <Compile Include="Mappings\ImportFolderMap.cs" />
-    <Compile Include="Mappings\JMMUserMap.cs" />
-    <Compile Include="Mappings\LanguageMap.cs" />
-    <Compile Include="Mappings\MovieDB_FanartMap.cs" />
-    <Compile Include="Mappings\MovieDB_MovieMap.cs" />
-    <Compile Include="Mappings\MovieDB_PosterMap.cs" />
-    <Compile Include="Mappings\ScheduledUpdateMap.cs" />
-    <Compile Include="Mappings\Trakt_EpisodeMap.cs" />
-    <Compile Include="Mappings\Trakt_FriendMap.cs" />
-    <Compile Include="Mappings\Trakt_SeasonMap.cs" />
-    <Compile Include="Mappings\Trakt_ShowMap.cs" />
-    <Compile Include="Mappings\TvDB_EpisodeMap.cs" />
-    <Compile Include="Mappings\TvDB_ImageFanartMap.cs" />
-    <Compile Include="Mappings\TvDB_ImagePosterMap.cs" />
-    <Compile Include="Mappings\TvDB_ImageWideBannerMap.cs" />
-    <Compile Include="Mappings\TvDB_SeriesMap.cs" />
-    <Compile Include="Mappings\VersionsMap.cs" />
-    <Compile Include="Mappings\VideoLocalMap.cs" />
-    <Compile Include="Mappings\VideoLocal_UserMap.cs" />
-    <Compile Include="NamingLanguage.cs" />
-    <Compile Include="Repositories\AdhocRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_AnimeRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Anime_CharacterRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Anime_RelationRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Anime_ReviewRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Anime_SimilarRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_Anime_TagRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_Anime_TitleRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_CharacterRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_Character_SeiyuuRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_SeiyuuRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_FileRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_GroupStatusRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_ReleaseGroupRepository.cs" />
-    <Compile Include="Repositories\Direct\AniDB_ReviewRepository.cs" />
-    <Compile Include="Repositories\Cached\AniDB_TagRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeEpisodeRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeEpisode_UserRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeGroupRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeGroup_UserRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeSeriesRepository.cs" />
-    <Compile Include="Repositories\Cached\AnimeSeries_UserRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_AniDB_OtherRepository.cs" />
-    <Compile Include="Repositories\Cached\CrossRef_File_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_Languages_AniDB_FileRepository.cs" />
-    <Compile Include="Repositories\Direct\CrossRef_Subtitles_AniDB_FileRepository.cs" />
-    <Compile Include="Repositories\Direct\DuplicateFileRepository.cs" />
-    <Compile Include="Repositories\Direct\FileNameHashRepository.cs" />
-    <Compile Include="Repositories\Direct\GroupFilterConditionRepository.cs" />
-    <Compile Include="Repositories\Cached\GroupFilterRepository.cs" />
-    <Compile Include="Repositories\Direct\IgnoreAnimeRepository.cs" />
-    <Compile Include="Repositories\Cached\ImportFolderRepository.cs" />
-    <Compile Include="Repositories\Cached\JMMUserRepository.cs" />
-    <Compile Include="Repositories\Direct\LanguageRepository.cs" />
-    <Compile Include="Repositories\Direct\MovieDB_FanartRepository.cs" />
-    <Compile Include="Repositories\Direct\MovieDb_MovieRepository.cs" />
-    <Compile Include="Repositories\Direct\MovieDB_PosterRepository.cs" />
-    <Compile Include="Repositories\Direct\ScheduledUpdateRepository.cs" />
-    <Compile Include="Repositories\Direct\Trakt_EpisodeRepository.cs" />
-    <Compile Include="Repositories\Direct\Trakt_FriendRepository.cs" />
-    <Compile Include="Repositories\Direct\Trakt_SeasonRepository.cs" />
-    <Compile Include="Repositories\Direct\Trakt_ShowRepository.cs" />
-    <Compile Include="Repositories\Direct\VersionsRepository.cs" />
-    <Compile Include="Repositories\Cached\VideoLocalRepository.cs" />
-    <Compile Include="Repositories\Cached\VideoLocal_UserRepository.cs" />
-    <Compile Include="Security\StringTools.cs" />
-    <Compile Include="ServerState.cs" />
-    <Compile Include="Utilities\SubStream.cs" />
-    <Compile Include="Tasks\ContractExtractor.cs" />
-    <Compile Include="TimeUpdater.cs" />
-    <Compile Include="UnhandledExceptionManager.cs" />
-    <Compile Include="UserCulture.cs" />
-    <Compile Include="Utilities\GroupFilterHelper.cs" />
-    <Compile Include="Utilities\GroupFilterSortingCriteria.cs" />
-    <Compile Include="Utilities\JsonExtensions.cs" />
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs">
+    <Compile Update="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\EventQueueOverflowException.cs" />
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\FileWatcherErrorEventArgs.cs" />
-    <Compile Include="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs">
+    <Compile Update="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Utilities\LogReader.cs" />
-    <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
+    <Compile Update="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
+    <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="ApplicationInsights.config" />
-    <None Include="packages.config">
+    <None Update="testing.config">
       <SubType>Designer</SubType>
     </None>
-    <None Include="testing.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Properties\Settings.settings">
+    <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
-    <None Include="Resources\plex_404.bin" />
-    <None Include="Resources\plex_404V.bin" />
-    <None Include="Resources\plex_credits.bin" />
-    <None Include="Resources\plex_episodes.bin" />
-    <None Include="Resources\plex_misc.bin" />
-    <None Include="Resources\plex_movies.bin" />
-    <None Include="Resources\plex_others.bin" />
-    <None Include="Resources\plex_ovas.bin" />
-    <None Include="Resources\plex_parodies.bin" />
-    <None Include="Resources\plex_playlists.bin" />
-    <None Include="Resources\plex_specials.bin" />
-    <None Include="Resources\plex_trailers.bin" />
-    <None Include="Resources\plex_tvepisodes.bin" />
-    <None Include="Resources\plex_unsort.bin" />
-    <None Include="Resources\plex_webclips.bin" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_sync.png" />
@@ -1576,38 +90,14 @@
     <Resource Include="db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj">
-      <Project>{d24d15aa-3e71-45a5-b2af-7490681def68}</Project>
-      <Name>NutzCode.CloudFileSystem.Plugins.OneDrive</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj">
-      <Project>{d202b61e-a658-4208-83fc-745e04f43bde}</Project>
-      <Name>NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj">
-      <Project>{964a62e6-2dae-4723-926d-d3e9597b5213}</Project>
-      <Name>NutzCode.CloudFileSystem.Plugins.GoogleDrive</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj">
-      <Project>{2a705c96-21d4-4061-876f-1bb954e39d25}</Project>
-      <Name>NutzCode.CloudFileSystem.Plugins.LocalFileSystem</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj">
-      <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
-      <Name>NutzCode.CloudFileSystem</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj">
-      <Project>{865c8b13-eb43-439e-9d69-ce7b54dca4ff}</Project>
-      <Name>NutzCode.Libraries.Web</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Commons.csproj">
-      <Project>{e0399140-9902-4f38-909d-85e42717ec30}</Project>
-      <Name>Shoko.Commons</Name>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj">
-      <Project>{f73f9df6-580a-4341-b516-8717626f9d42}</Project>
-      <Name>Shoko.Models</Name>
-    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj" />
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj" />
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj" />
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj" />
+    <ProjectReference Include="$(SolutionDir)CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
+    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Commons.csproj" />
+    <ProjectReference Include="$(SolutionDir)Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\32_new.png" />
@@ -1752,51 +242,279 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
+  <!-- <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+  </ItemGroup> -->
+  <ItemGroup>
+    <PackageReference Include="DeepCloner" Version="0.10.1" />
+    <PackageReference Include="F23.StringSimilarity" Version="3.1.0" />
+    <PackageReference Include="FluentNHibernate" Version="2.0.3.0" />
+    <PackageReference Include="Iesi.Collections" Version="4.0.2" />
+    <PackageReference Include="ILMerge" Version="2.14.1208" />
+    <PackageReference Include="Libuv" Version="1.10.0" />
+    <PackageReference Include="MessagePack" Version="1.9.11" />
+    <PackageReference Include="Microsoft.ApplicationInsights" Version="2.4.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.Agent.Intercept" Version="2.4.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.1.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.DependencyCollector" Version="2.4.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.PerfCounterCollector" Version="2.4.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel" Version="2.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Antiforgery" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.ApplicationInsights.HostingStartup" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Core" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OAuth" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization.Policy" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Connections.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.CookiePolicy" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.Internal" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.HostFiltering" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Server.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Html.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Connections" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Common" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Extensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.HttpOverrides" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.HttpsPolicy" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.JsonPatch" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Localization" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Localization.Routing" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.MiddlewareAnalysis" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Analyzers" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.ApiExplorer" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Cors" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.DataAnnotations" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Json" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Formatters.Xml" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Localization" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.Extensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.ViewCompilation" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.RazorPages" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.TagHelpers" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="3.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="3.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.NodeServices" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Owin" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Language" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Razor.Runtime" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.ResponseCaching.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Rewrite" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Routing.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.HttpSys" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.IIS" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.IISIntegration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Core" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Https" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets" Version="2.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Session" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.Json" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Redis" Version="1.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="1.1.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="2.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Razor" Version="2.2.0" />
+    <PackageReference Include="Microsoft.DiaSymReader.Native" Version="1.7.0" />
+    <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.DiagnosticAdapter" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Composite" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventSource" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.WebEncoders" Version="2.2.0" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="5.3.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Logging" Version="5.3.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols" Version="5.3.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="5.3.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="5.3.0" />
+    <PackageReference Include="Microsoft.Net.Http.Headers" Version="2.2.0" />
+    <PackageReference Include="Microsoft.NETCore.Platforms" Version="3.1.0" />
+    <PackageReference Include="Microsoft.SQLServer.SMO" Version="12.0.2000.8" />
+    <PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="4.7.0" />
+    <PackageReference Include="MimeMapping" Version="1.0.1.12" />
+    <PackageReference Include="MySql.Data" Version="8.0.20" />
+    <PackageReference Include="MySqlBackup.NET" Version="2.3.1" />
+    <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.1" />
+    <PackageReference Include="NHibernate" Version="4.1.1.4000" />
+    <PackageReference Include="NLog" Version="4.6.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="4.8.1" />
+    <PackageReference Include="Sentry" Version="1.2.0" />
+    <PackageReference Include="Sentry.NLog" Version="1.2.0" />
+    <PackageReference Include="Sentry.PlatformAbstractions" Version="1.0.0" />
+    <PackageReference Include="Sentry.Protocol" Version="1.0.6" />
+    <PackageReference Include="SharpCompress" Version="0.17.1" />
+    <PackageReference Include="SharpZipLib" Version="0.86.0" />
+    <PackageReference Include="StackExchange.Redis.StrongName" Version="1.2.6" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="4.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="4.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="4.0.1" />
+    <PackageReference Include="System.AppContext" Version="4.3.0" />
+    <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+    <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
+    <PackageReference Include="System.Configuration" Version="2.0.5" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="System.Console" Version="4.3.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.105.2" />
+    <PackageReference Include="System.Diagnostics.Debug" Version="4.3.0" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="4.7.0" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="4.7.0" />
+    <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.3.0" />
+    <PackageReference Include="System.Diagnostics.StackTrace" Version="4.3.0" />
+    <PackageReference Include="System.Diagnostics.Tools" Version="4.3.0" />
+    <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Dynamic.Runtime" Version="4.3.0" />
+    <PackageReference Include="System.Globalization" Version="4.3.0" />
+    <PackageReference Include="System.Globalization.Calendars" Version="4.3.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="5.3.0" />
+    <PackageReference Include="System.IO" Version="4.3.0" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.IO.Compression.ZipFile" Version="4.3.0" />
+    <PackageReference Include="System.IO.FileSystem" Version="4.3.0" />
+    <PackageReference Include="System.IO.FileSystem.Primitives" Version="4.3.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.2" />
+    <PackageReference Include="System.Linq" Version="4.3.0" />
+    <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
+    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <PackageReference Include="System.Net.Primitives" Version="4.3.1" />
+    <PackageReference Include="System.Net.Sockets" Version="4.3.0" />
+    <PackageReference Include="System.Net.WebSockets.WebSocketProtocol" Version="4.5.3" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageReference Include="System.ObjectModel" Version="4.3.0" />
+    <PackageReference Include="System.Reflection" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.Metadata" Version="1.6.0" />
+    <PackageReference Include="System.Reflection.Primitives" Version="4.3.0" />
+    <PackageReference Include="System.Resources.ResourceManager" Version="4.3.0" />
+    <PackageReference Include="System.Runtime" Version="4.3.1" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
+    <PackageReference Include="System.Runtime.Extensions" Version="4.3.1" />
+    <PackageReference Include="System.Runtime.Handles" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+    <PackageReference Include="System.Security.AccessControl" Version="4.7.0" />
+    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
+    <PackageReference Include="System.Security.Cryptography.Cng" Version="4.5.0" />
+    <PackageReference Include="System.Security.Cryptography.Encoding" Version="4.3.0" />
+    <PackageReference Include="System.Security.Cryptography.Primitives" Version="4.3.0" />
+    <PackageReference Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="4.5.0" />
+    <PackageReference Include="System.Security.Permissions" Version="4.7.0" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="4.7.0" />
+    <PackageReference Include="System.Text.Encoding" Version="4.3.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
+    <PackageReference Include="System.Text.Encoding.Extensions" Version="4.3.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="4.5.0" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+    <PackageReference Include="System.Threading" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Channels" Version="4.5.0" />
+  <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Timer" Version="4.3.0" />
+    <PackageReference Include="System.Xml.ReaderWriter" Version="4.3.1" />
+    <PackageReference Include="System.Xml.XDocument" Version="4.3.0" />
+    <PackageReference Include="System.Xml.XmlDocument" Version="4.3.0" />
+    <PackageReference Include="System.Xml.XPath" Version="4.3.0" />
+    <PackageReference Include="System.Xml.XPath.XDocument" Version="4.3.0" />
+    <PackageReference Include="TaskScheduler" Version="2.5.28" />
+    <PackageReference Include="TMDbLib" Version="1.4.0" />
+    <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.0.0" />
+    <PackageReference Include="TvDbSharper" Version="3.0.1" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-  </PropertyGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Server.IIS.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IIS.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Server.IIS.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IIS.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Server.IISIntegration.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IISIntegration.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Server.IISIntegration.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IISIntegration.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Razor.Design.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Razor.Design.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Razor.Design.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Razor.Design.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.DiaSymReader.Native.1.7.0\build\Microsoft.DiaSymReader.Native.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.DiaSymReader.Native.1.7.0\build\Microsoft.DiaSymReader.Native.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.props'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.targets'))" />
-    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets'))" />
-  </Target>
-  <Import Project="$(SolutionDir)packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('$(SolutionDir)packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets')" />
-  <Import Project="..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.targets" Condition="Exists('..\packages\Microsoft.Extensions.Configuration.UserSecrets.2.2.0\build\netstandard2.0\Microsoft.Extensions.Configuration.UserSecrets.targets')" />
-  <Import Project="..\packages\Microsoft.AspNetCore.Server.IIS.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IIS.targets" Condition="Exists('..\packages\Microsoft.AspNetCore.Server.IIS.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IIS.targets')" />
-  <Import Project="..\packages\Microsoft.AspNetCore.Server.IISIntegration.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IISIntegration.targets" Condition="Exists('..\packages\Microsoft.AspNetCore.Server.IISIntegration.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Server.IISIntegration.targets')" />
-  <Import Project="..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.targets" Condition="Exists('..\packages\Microsoft.Extensions.FileProviders.Embedded.2.2.0\build\netstandard2.0\Microsoft.Extensions.FileProviders.Embedded.targets')" />
-  <Import Project="..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.targets" Condition="Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.Extensions.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.Extensions.targets')" />
-  <Import Project="..\packages\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.targets" Condition="Exists('..\packages\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.2.2.0\build\netstandard2.0\Microsoft.AspNetCore.Mvc.Razor.ViewCompilation.targets')" />
-  <Import Project="..\packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.105.2\build\net46\System.Data.SQLite.Core.targets')" />
-  <!--<Import Project="$(SolutionDir)packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('$(SolutionDir)packages\System.Data.SQLite.Core.1.0.104.0\build\net46\System.Data.SQLite.Core.targets')" />-->
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+  <ItemGroup>
+    <Compile Remove="App.cs" />
+    <Compile Remove="Commands\AniDB\CommandRequest_GetCharacter.cs" />
+    <Compile Remove="Commands\AniDB\CommandRequest_GetCharactersCreators.cs" />
+    <Compile Remove="Commands\AniDB\CommandRequest_GetCreator.cs" />
+    <Compile Remove="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
+    <Compile Remove="ShokoBaseEvents.cs" />
+    <Compile Remove="UPnPServerBrowserDialog.cs" />
+  </ItemGroup>
+  <PropertyGroup />
+  <PropertyGroup />
 </Project>

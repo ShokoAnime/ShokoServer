@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Web.Script.Serialization;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
@@ -84,7 +83,6 @@ namespace Shoko.Server.Models
 
         private IFileSystem _filesystem;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public IFileSystem FileSystem
@@ -117,7 +115,6 @@ namespace Shoko.Server.Models
 
         private byte[] _bitmap;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public byte[] Bitmap
@@ -136,7 +133,6 @@ namespace Shoko.Server.Models
             }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public IDirectory BaseDirectory
@@ -162,17 +158,14 @@ namespace Shoko.Server.Models
             get { return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem"; }
         }
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public bool FolderIsWatched => IsWatched == 1;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public bool FolderIsDropSource => IsDropSource == 1;
 
-        [ScriptIgnore]
         [JsonIgnore]
         [XmlIgnore]
         public bool FolderIsDropDestination => IsDropDestination == 1;

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Web.Script.Serialization;
 using System.Xml;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
@@ -39,7 +38,7 @@ namespace AniDBAPI
 
         public int IsDoubleEpisode { get; set; }
 
-        [ScriptIgnore, JsonIgnore, XmlIgnore]
+        [JsonIgnore, XmlIgnore]
         public bool IsValid { get; private set; }
 
         public List<AniDB_Episode_Title> Titles = new List<AniDB_Episode_Title>();

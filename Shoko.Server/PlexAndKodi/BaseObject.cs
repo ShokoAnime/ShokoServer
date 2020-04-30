@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.ServiceModel.Web;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Server.PlexAndKodi.Plex;
 
@@ -89,15 +88,13 @@ namespace Shoko.Server.PlexAndKodi
             Size = int.MaxValue;
             if (prov.HttpContext == null)
             {
-                if (WebOperationContext.Current != null)
+                if (prov.HttpContext.Request.Method == "OPTIONS")
                 {
-                    if (WebOperationContext.Current.IncomingRequest.Method == "OPTIONS")
-                    {
-                        prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
-                        return false;
-                    }
+                    prov.AddResponseHeaders(HttpExtensions.GetOptions(), "text/plain");
+                    return false;
                 }
             }
+            
             string nsize = prov.RequestHeader("X-Plex-Container-Size");
             if (nsize != null)
             {
