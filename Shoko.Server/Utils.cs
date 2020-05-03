@@ -793,7 +793,7 @@ namespace Shoko.Server
 
         public static string FormatByteSize(long fileSize)
         {
-            if (IsRunningOnMono()) return GetBytesReadable(fileSize);
+            if (IsRunningOnLinuxOrMac()) return GetBytesReadable(fileSize);
 
             StringBuilder sbBuffer = new StringBuilder(20);
             StrFormatByteSize(fileSize, sbBuffer, 20);
@@ -1036,7 +1036,7 @@ namespace Shoko.Server
 
         public static void RestartAsAdmin()
         {
-            if (IsRunningOnMono()) return; //Again, mono cannot handle this.
+            if (IsRunningOnLinuxOrMac()) return; //Again, mono cannot handle this.
 
             string BatchFile = Path.Combine(Path.GetTempPath(), "RestartAsAdmin.bat");
             var exeName = Process.GetCurrentProcess().MainModule.FileName;
@@ -1103,6 +1103,7 @@ namespace Shoko.Server
             }
         }
 
+        public static bool IsRunningOnLinuxOrMac() => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         public static bool IsRunningOnMono() => Type.GetType("Mono.Runtime") != null;
     }
 }

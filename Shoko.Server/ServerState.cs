@@ -290,7 +290,7 @@ namespace Shoko.Server
 
             VLCLocation = ServerSettings.Instance.VLCLocation;
 
-            if (Utils.IsRunningOnMono()) return;
+            if (Utils.IsRunningOnLinuxOrMac()) return;
             
             if (autostartMethod == AutostartMethod.Registry)
             {

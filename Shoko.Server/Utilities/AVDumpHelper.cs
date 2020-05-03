@@ -192,7 +192,7 @@ namespace Shoko.Server
                        $"{ServerSettings.Instance.AniDb.AVDumpKey.Trim()}" +
                        $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
-            if (Utils.IsRunningOnMono())
+            if (Utils.IsRunningOnLinuxOrMac())
             {
                 executable = "mono";
                 args = $"{avdumpDestination} {args}";
