@@ -619,7 +619,8 @@ namespace Shoko.Commons.Utils
             return result.Distance < 0.8D;
         }
 
-        private static readonly SecurityIdentifier _everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        //Lazy Load this because it throws an error on cctor.
+        private static readonly Lazy<SecurityIdentifier> _everyone = new Lazy<SecurityIdentifier>(() => new SecurityIdentifier(WellKnownSidType.WorldSid, null));
         public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
         {
             List<string> dirs=new List<string>();
@@ -630,7 +631,7 @@ namespace Shoko.Commons.Utils
             bool found = false;
             foreach (AuthorizationRule ar in coll)
             {
-                if (ar.IdentityReference.Value == _everyone.Value)
+                if (ar.IdentityReference.Value == _everyone.Value.Value)
                 {
                     FileSystemAccessRule facr = (FileSystemAccessRule)ar;
                     if (facr.AccessControlType == AccessControlType.Allow && 
