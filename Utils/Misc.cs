@@ -22,15 +22,51 @@ namespace Shoko.Commons.Utils
 {
     public static class Misc
     {
-        [DllImport("Shlwapi.dll", CharSet = CharSet.Unicode)]
-        private static extern long StrFormatByteSize(long fileSize,
-            [MarshalAs(UnmanagedType.LPTStr)] StringBuilder buffer, int bufferSize);
-
         public static string FormatByteSize(long fileSize)
         {
-            StringBuilder sbBuffer = new StringBuilder(20);
-            StrFormatByteSize(fileSize, sbBuffer, 20);
-            return sbBuffer.ToString();
+            // Get absolute value
+            long absoluteFileSize = fileSize < 0 ? -fileSize : fileSize;
+            // Determine the suffix and readable value
+            string suffix;
+            double readable;
+            if (absoluteFileSize >= 0x1000000000000000) // Exabyte
+            {
+                suffix = "EB";
+                readable = fileSize >> 50;
+            }
+            else if (absoluteFileSize >= 0x4000000000000) // Petabyte
+            {
+                suffix = "PB";
+                readable = fileSize >> 40;
+            }
+            else if (absoluteFileSize >= 0x10000000000) // Terabyte
+            {
+                suffix = "TB";
+                readable = fileSize >> 30;
+            }
+            else if (absoluteFileSize >= 0x40000000) // Gigabyte
+            {
+                suffix = "GB";
+                readable = fileSize >> 20;
+            }
+            else if (absoluteFileSize >= 0x100000) // Megabyte
+            {
+                suffix = "MB";
+                readable = fileSize >> 10;
+            }
+            else if (absoluteFileSize >= 0x400) // Kilobyte
+            {
+                suffix = "KB";
+                readable = fileSize;
+            }
+            else
+            {
+                return fileSize.ToString("0 B"); // Byte
+            }
+            // Divide by 1024 to get fractional value
+            readable = readable / 1024;
+            // Return formatted number with suffix
+            return readable.ToString("0.# ") + suffix;
         }
 
         public static string DownloadWebPage(string url)
