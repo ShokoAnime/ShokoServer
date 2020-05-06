@@ -1131,7 +1131,8 @@ namespace Shoko.Server.Models
                 Dictionary<DayOfWeek, int> daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
                 List<int> userReleaseGroups = new List<int>();
-                eps.AsParallel().ForAll(ep =>
+                // This was always Episodes only. Maybe in the future, we'll have a reliable way to check specials.
+                eps.AsParallel().Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).ForAll(ep =>
                 {
                     var vids = ep.GetVideoLocals();
 
