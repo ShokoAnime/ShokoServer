@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+    <ProjectReference Include="..\MediaInfoWrapper\MediaInfoWrapper.csproj" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
