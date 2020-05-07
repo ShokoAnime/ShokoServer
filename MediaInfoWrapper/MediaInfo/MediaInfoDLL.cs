@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 #pragma warning disable 1591 // Disable XML documentation warnings
 
@@ -98,82 +99,67 @@ namespace MediaInfoWrapper
         private static IntPtr curlHandle = IntPtr.Zero;
 
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
+#if _WINDOWS_
+        private const string DLL = "MedidInfo.dll";
+#elif _LINUX_
         private const string DLL = "libmediainfo.so.0";
+#else
+        private const string DLL = "libmediainfo.so.0";
+#endif
+
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_New();
-
         [DllImport(DLL)]
-        private static extern void MediaInfo_Delete(IntPtr Handle);
-
+        private static extern void   MediaInfo_Delete(IntPtr Handle);
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfo_Open(IntPtr Handle, [MarshalAs(UnmanagedType.LPWStr)] string FileName);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open(IntPtr Handle, IntPtr FileName);
-
+        private static extern IntPtr MediaInfo_Open(IntPtr Handle, IntPtr FileName);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Init(IntPtr Handle, Int64 File_Size, Int64 File_Offset);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open(IntPtr Handle, Int64 File_Size, Int64 File_Offset);
-
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Continue(IntPtr Handle, IntPtr Buffer, IntPtr Buffer_Size);
-
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open_Buffer_Continue(IntPtr Handle, Int64 File_Size, byte[] Buffer,
-            IntPtr Buffer_Size);
-
-        [DllImport(DLL)]
-        private static extern Int64 MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
-
-        [DllImport(DLL)]
-        private static extern Int64 MediaInfoA_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
-
+        private static extern Int64  MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Finalize(IntPtr Handle);
-
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open_Buffer_Finalize(IntPtr Handle);
-
-        [DllImport(DLL)]
-        private static extern void MediaInfo_Close(IntPtr Handle);
-
+        private static extern void   MediaInfo_Close(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Inform(IntPtr Handle, IntPtr Reserved);
-
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Inform(IntPtr Handle, IntPtr Reserved);
-
+        private static extern IntPtr MediaInfo_GetI(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber, IntPtr Parameter, IntPtr KindOfInfo);
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfo_GetI(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber,
-            IntPtr Parameter, IntPtr KindOfInfo);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_GetI(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber,
-            IntPtr Parameter, IntPtr KindOfInfo);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfo_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber,
-            [MarshalAs(UnmanagedType.LPWStr)] string Parameter, IntPtr KindOfInfo, IntPtr KindOfSearch);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber,
-            IntPtr Parameter, IntPtr KindOfInfo, IntPtr KindOfSearch);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfo_Option(IntPtr Handle, [MarshalAs(UnmanagedType.LPWStr)] string Option,
-            [MarshalAs(UnmanagedType.LPWStr)] string Value);
-
-        [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Option(IntPtr Handle, IntPtr Option, IntPtr Value);
-
+        private static extern IntPtr MediaInfo_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber, IntPtr Parameter, IntPtr KindOfInfo, IntPtr KindOfSearch);
+        [DllImport(DLL, CharSet=CharSet.Unicode)]
+        private static extern IntPtr MediaInfo_Option(IntPtr Handle, IntPtr Option, IntPtr Value);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_State_Get(IntPtr Handle);
-
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Count_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber);
 
+        
+        //Helpers
+        private static string String_From_UTF32_Ptr(IntPtr Ptr)
+        {
+            int Length = 0;
+            while (Marshal.ReadInt32(Ptr, Length)!=0)
+                Length+=4;
+
+            byte[] Buffer = new byte[Length];
+            Marshal.Copy(Ptr, Buffer, 0, Buffer.Length);
+            return new UTF32Encoding(!BitConverter.IsLittleEndian, false, false).GetString(Buffer);
+        }
+
+        private static IntPtr UTF32_Ptr_From_String(string Str)
+        {
+            Encoding Codec = new UTF32Encoding(!BitConverter.IsLittleEndian, false, false);
+            int Length = Codec.GetByteCount(Str);
+            byte[] Buffer = new byte[Length+4];
+            Codec.GetBytes(Str, 0, Str.Length, Buffer, 0);
+            IntPtr Ptr = Marshal.AllocHGlobal(Buffer.Length);
+            Marshal.Copy(Buffer, 0, Ptr, Buffer.Length);
+            return Ptr;
+        }
+        
         //MediaInfo class
         public MediaInfoDLL()
         {
@@ -204,9 +190,19 @@ namespace MediaInfoWrapper
             }
             catch
             {
+                throw;
                 Handle = (IntPtr) 0;
             }
-            MustUseAnsi = !IsWindows();
+
+            if (!IsWindows())
+            {
+                UnicodeIs32Bits=true;
+                Option("setlocale_LC_CTYPE", "");
+            }
+            else
+            {
+                UnicodeIs32Bits=false;
+            }
         }
 
         ~MediaInfoDLL()
@@ -243,17 +239,20 @@ namespace MediaInfoWrapper
 
             if (Handle == (IntPtr) 0)
                 return 0;
-            if (MustUseAnsi)
+            if (UnicodeIs32Bits)
             {
-                IntPtr fileName_Ptr = Marshal.StringToHGlobalAnsi(FileName);
-                int isOpen = (int) MediaInfoA_Open(Handle, fileName_Ptr);
-                Marshal.FreeHGlobal(fileName_Ptr);
-                // This is a...something. If you pass unicode to the above, then it always returns 0
-                if (FileName.Any(a => a > 128) && isOpen == 0) return 1;
-                return isOpen;
+                IntPtr FileName_Ptr = UTF32_Ptr_From_String(FileName);
+                int ToReturn = (int)MediaInfo_Open(Handle, FileName_Ptr);
+                Marshal.FreeHGlobal(FileName_Ptr);
+                return ToReturn;
             }
-            
-            return (int) MediaInfo_Open(Handle, FileName);
+            else
+            {
+                IntPtr FileName_Ptr = Marshal.StringToHGlobalUni(FileName);
+                int ToReturn = (int)MediaInfo_Open(Handle, FileName_Ptr);
+                Marshal.FreeHGlobal(FileName_Ptr);
+                return ToReturn;
+            }
         }
 
         public int Open_Buffer_Init(Int64 File_Size, Int64 File_Offset)
@@ -290,8 +289,8 @@ namespace MediaInfoWrapper
         {
             if (Handle == (IntPtr) 0)
                 return "Unable to load MediaInfo library";
-            if (MustUseAnsi)
-                return Marshal.PtrToStringAnsi(MediaInfoA_Inform(Handle, (IntPtr) 0));
+            if (UnicodeIs32Bits)
+                return String_From_UTF32_Ptr(MediaInfo_Inform(Handle, (IntPtr)0));
             return Marshal.PtrToStringUni(MediaInfo_Inform(Handle, (IntPtr) 0));
         }
 
@@ -300,26 +299,29 @@ namespace MediaInfoWrapper
         {
             if (Handle == (IntPtr) 0)
                 return "Unable to load MediaInfo library";
-            if (MustUseAnsi)
+            IntPtr Parameter_Ptr;
+            string ToReturn;
+            if (UnicodeIs32Bits)
             {
-                IntPtr Parameter_Ptr = Marshal.StringToHGlobalAnsi(Parameter);
-                string ToReturn = Marshal.PtrToStringAnsi(MediaInfoA_Get(Handle, (IntPtr) StreamKind,
-                    (IntPtr) StreamNumber, Parameter_Ptr, (IntPtr) KindOfInfo, (IntPtr) KindOfSearch));
+                Parameter_Ptr = UTF32_Ptr_From_String(Parameter);
+                ToReturn = String_From_UTF32_Ptr(MediaInfo_Get(Handle, (IntPtr)StreamKind, (IntPtr)StreamNumber, Parameter_Ptr, (IntPtr)KindOfInfo, (IntPtr)KindOfSearch));
                 Marshal.FreeHGlobal(Parameter_Ptr);
                 return ToReturn;
             }
 
-            return Marshal.PtrToStringUni(MediaInfo_Get(Handle, (IntPtr) StreamKind, (IntPtr) StreamNumber,
-                Parameter, (IntPtr) KindOfInfo, (IntPtr) KindOfSearch));
+            Parameter_Ptr = Marshal.StringToHGlobalUni(Parameter);
+            ToReturn = Marshal.PtrToStringUni(MediaInfo_Get(Handle, (IntPtr)StreamKind, (IntPtr)StreamNumber, Parameter_Ptr, (IntPtr)KindOfInfo, (IntPtr)KindOfSearch));
+            Marshal.FreeHGlobal(Parameter_Ptr);
+            return ToReturn;
         }
 
         public string Get(StreamKind StreamKind, int StreamNumber, int Parameter, InfoKind KindOfInfo)
         {
             if (Handle == (IntPtr) 0)
                 return "Unable to load MediaInfo library";
-            if (MustUseAnsi)
-                return Marshal.PtrToStringAnsi(MediaInfoA_GetI(Handle, (IntPtr) StreamKind, (IntPtr) StreamNumber,
-                    (IntPtr) Parameter, (IntPtr) KindOfInfo));
+            if (UnicodeIs32Bits)
+                return String_From_UTF32_Ptr(MediaInfo_GetI(Handle, (IntPtr)StreamKind, (IntPtr)StreamNumber, (IntPtr)Parameter, (IntPtr)KindOfInfo));
+
             return Marshal.PtrToStringUni(MediaInfo_GetI(Handle, (IntPtr) StreamKind, (IntPtr) StreamNumber,
                 (IntPtr) Parameter, (IntPtr) KindOfInfo));
         }
@@ -328,17 +330,24 @@ namespace MediaInfoWrapper
         {
             if (Handle == (IntPtr) 0)
                 return "Unable to load MediaInfo library";
-            if (MustUseAnsi)
+            if (UnicodeIs32Bits)
             {
-                IntPtr Option_Ptr = Marshal.StringToHGlobalAnsi(Option);
-                IntPtr Value_Ptr = Marshal.StringToHGlobalAnsi(Value);
-                string ToReturn = Marshal.PtrToStringAnsi(MediaInfoA_Option(Handle, Option_Ptr, Value_Ptr));
+                IntPtr Option_Ptr=UTF32_Ptr_From_String(Option);
+                IntPtr Value_Ptr=UTF32_Ptr_From_String(Value);
+                String ToReturn=String_From_UTF32_Ptr(MediaInfo_Option(Handle, Option_Ptr, Value_Ptr));
                 Marshal.FreeHGlobal(Option_Ptr);
                 Marshal.FreeHGlobal(Value_Ptr);
                 return ToReturn;
             }
-
-            return Marshal.PtrToStringUni(MediaInfo_Option(Handle, Option, Value));
+            else
+            {
+                IntPtr Option_Ptr=Marshal.StringToHGlobalUni(Option);
+                IntPtr Value_Ptr=Marshal.StringToHGlobalUni(Value);
+                String ToReturn=Marshal.PtrToStringUni(MediaInfo_Option(Handle, Option_Ptr, Value_Ptr));
+                Marshal.FreeHGlobal(Option_Ptr);
+                Marshal.FreeHGlobal(Value_Ptr);
+                return ToReturn;
+            }
         }
 
         public int State_Get()
@@ -354,7 +363,7 @@ namespace MediaInfoWrapper
         }
 
         private IntPtr Handle;
-        private bool MustUseAnsi;
+        private bool UnicodeIs32Bits;
 
         //Default values, if you know how to set default values in C#, say me
         public string Get(StreamKind StreamKind, int StreamNumber, string Parameter, InfoKind KindOfInfo)
