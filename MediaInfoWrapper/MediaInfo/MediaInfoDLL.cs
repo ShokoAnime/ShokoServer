@@ -100,7 +100,7 @@ namespace MediaInfoWrapper
 
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
 #if _WINDOWS_
-        private const string DLL = "MedidInfo.dll";
+        private const string DLL = "MediaInfo.dll";
 #elif _LINUX_
         private const string DLL = "libmediainfo.so.0";
 #else
@@ -110,7 +110,7 @@ namespace MediaInfoWrapper
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_New();
         [DllImport(DLL)]
-        private static extern void   MediaInfo_Delete(IntPtr Handle);
+        private static extern void MediaInfo_Delete(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open(IntPtr Handle, IntPtr FileName);
         [DllImport(DLL)]
@@ -118,11 +118,11 @@ namespace MediaInfoWrapper
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Continue(IntPtr Handle, IntPtr Buffer, IntPtr Buffer_Size);
         [DllImport(DLL)]
-        private static extern Int64  MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
+        private static extern Int64 MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Finalize(IntPtr Handle);
         [DllImport(DLL)]
-        private static extern void   MediaInfo_Close(IntPtr Handle);
+        private static extern void MediaInfo_Close(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Inform(IntPtr Handle, IntPtr Reserved);
         [DllImport(DLL)]
