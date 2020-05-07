@@ -16,7 +16,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -95,17 +94,40 @@ namespace MediaInfoWrapper
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool FreeLibrary(IntPtr hModule);
 
-        private static IntPtr moduleHandle = IntPtr.Zero;
         private static IntPtr curlHandle = IntPtr.Zero;
 
+        static MediaInfoDLL()
+        {
+            NativeLibrary.SetDllImportResolver(typeof(MediaInfoDLL).Assembly, ImportResolver);
+        }
+
+        private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            IntPtr libHandle = IntPtr.Zero;
+            if (libraryName == DLL)
+            {
+                // Load from x64 folder
+                string fullexepath = Assembly.GetEntryAssembly()?.Location;
+                if (!string.IsNullOrEmpty(fullexepath))
+                {
+                    FileInfo fi = new FileInfo(fullexepath);
+                    string path = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
+                        "MediaInfo.dll");
+                    NativeLibrary.TryLoad(path, out libHandle);
+                }
+
+                // Load from System Path and Application Path
+                NativeLibrary.TryLoad("MediaInfo.dll", assembly, DllImportSearchPath.System32 | DllImportSearchPath.ApplicationDirectory, out libHandle);
+                // Load from Linux system paths
+                NativeLibrary.TryLoad("libmediainfo.so.0", assembly, DllImportSearchPath.System32, out libHandle);
+                // TODO maybe add mac. idgaf
+            }
+            return libHandle;
+        }
+
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
-#if _WINDOWS_
-        private const string DLL = "MediaInfo.dll";
-#elif _LINUX_
-        private const string DLL = "libmediainfo.so.0";
-#else
-        private const string DLL = "libmediainfo.so.0";
-#endif
+        // straight mediainfo can resolve on some systems. The above gives other options.
+        private const string DLL = "mediainfo";
 
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_New();
@@ -171,14 +193,9 @@ namespace MediaInfoWrapper
                 if (!string.IsNullOrEmpty(fullexepath))
                 {
                     FileInfo fi = new FileInfo(fullexepath);
-                    fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                        "MediaInfo.dll");
                     string curlpath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                         "libcurl.dll");
-
-                    moduleHandle = LoadLibraryEx(fullexepath, IntPtr.Zero, 0);
                     curlHandle = LoadLibraryEx(curlpath, IntPtr.Zero, 0);
-                    if (moduleHandle == IntPtr.Zero) throw new FileNotFoundException("Unable to load MediaInfo.dll");
                 }
             }
 
@@ -188,9 +205,14 @@ namespace MediaInfoWrapper
             {
                 Handle = MediaInfo_New();
             }
-            catch
+            catch (DllNotFoundException)
             {
+                // rethrow DllNotFound. That's important to know about
                 throw;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
                 Handle = (IntPtr) 0;
             }
 
@@ -211,18 +233,11 @@ namespace MediaInfoWrapper
             MediaInfo_Delete(Handle);
 
             #region Shoko
-
-            if (moduleHandle != IntPtr.Zero)
-            {
-                FreeLibrary(moduleHandle);
-                moduleHandle = IntPtr.Zero;
-            }
             if (curlHandle != IntPtr.Zero)
             {
                 FreeLibrary(curlHandle);
                 curlHandle = IntPtr.Zero;
             }
-
             #endregion
         }
 
