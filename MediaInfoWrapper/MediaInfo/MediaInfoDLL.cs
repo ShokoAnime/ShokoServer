@@ -63,6 +63,7 @@ namespace MediaInfoWrapper
         FileOption_Max = 0x04
     }
 
+    [Flags]
     public enum Status
     {
         None = 0x00,
@@ -74,17 +75,6 @@ namespace MediaInfoWrapper
 
     public class MediaInfoDLL : IDisposable
     {
-        #region SHOKO
-
-        //TODO: Fix this up so it isn't a hack and requiring a compilation for linux.
-        #if _WINDOWS_
-        private const string DLL = "MedidInfo.dll";
-        #elif _LINUX_
-        private const string DLL = "libmediainfo.so.0";
-        #else
-        private const string DLL = "libmediainfo.so.0";
-        #endif
-
 
         [Flags]
         internal enum LoadLibraryFlags : uint
@@ -107,9 +97,8 @@ namespace MediaInfoWrapper
         private static IntPtr moduleHandle = IntPtr.Zero;
         private static IntPtr curlHandle = IntPtr.Zero;
 
-        #endregion
-
         //Import of DLL functions. DO NOT USE until you know what you do (MediaInfo DLL do NOT use CoTaskMemAlloc to allocate memory)
+        private const string DLL = "libmediainfo.so.0";
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_New();
 
@@ -123,23 +112,23 @@ namespace MediaInfoWrapper
         private static extern IntPtr MediaInfoA_Open(IntPtr Handle, IntPtr FileName);
 
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfo_Open_Buffer_Init(IntPtr Handle, long File_Size, long File_Offset);
+        private static extern IntPtr MediaInfo_Open_Buffer_Init(IntPtr Handle, Int64 File_Size, Int64 File_Offset);
 
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open(IntPtr Handle, long File_Size, long File_Offset);
+        private static extern IntPtr MediaInfoA_Open(IntPtr Handle, Int64 File_Size, Int64 File_Offset);
 
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Continue(IntPtr Handle, IntPtr Buffer, IntPtr Buffer_Size);
 
         [DllImport(DLL)]
-        private static extern IntPtr MediaInfoA_Open_Buffer_Continue(IntPtr Handle, long File_Size, byte[] Buffer,
+        private static extern IntPtr MediaInfoA_Open_Buffer_Continue(IntPtr Handle, Int64 File_Size, byte[] Buffer,
             IntPtr Buffer_Size);
 
         [DllImport(DLL)]
-        private static extern long MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
+        private static extern Int64 MediaInfo_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
 
         [DllImport(DLL)]
-        private static extern long MediaInfoA_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
+        private static extern Int64 MediaInfoA_Open_Buffer_Continue_GoTo_Get(IntPtr Handle);
 
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Finalize(IntPtr Handle);
@@ -190,14 +179,14 @@ namespace MediaInfoWrapper
         {
             #region Shoko
 
-            if ((Handle == IntPtr.Zero) && !IsRunningOnMono())
+            if ((Handle == IntPtr.Zero) && IsWindows())
             {
                 string fullexepath = Assembly.GetEntryAssembly()?.Location;
                 if (!string.IsNullOrEmpty(fullexepath))
                 {
                     FileInfo fi = new FileInfo(fullexepath);
                     fullexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                        DLL);
+                        "MediaInfo.dll");
                     string curlpath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
                         "libcurl.dll");
 
@@ -217,10 +206,7 @@ namespace MediaInfoWrapper
             {
                 Handle = (IntPtr) 0;
             }
-            if (Environment.OSVersion.ToString().IndexOf("Windows", StringComparison.OrdinalIgnoreCase) == -1)
-                MustUseAnsi = true;
-            else
-                MustUseAnsi = false;
+            MustUseAnsi = !IsWindows();
         }
 
         ~MediaInfoDLL()
@@ -248,10 +234,9 @@ namespace MediaInfoWrapper
         {
             #region Shoko
 
-            if (!IsLinux)
-                FileName = FileName.StartsWith(@"\\")
-                    ? FileName
-                    : @"\\?\" + FileName; // add long path prefix if not running on linux, and not a unc path.
+            FileName = IsWindows() && FileName.StartsWith(@"\\")
+                ? FileName
+                : @"\\?\" + FileName; // add long path prefix if not running on linux, and not a unc path.
 
 
             #endregion
@@ -271,7 +256,7 @@ namespace MediaInfoWrapper
             return (int) MediaInfo_Open(Handle, FileName);
         }
 
-        public int Open_Buffer_Init(long File_Size, long File_Offset)
+        public int Open_Buffer_Init(Int64 File_Size, Int64 File_Offset)
         {
             if (Handle == (IntPtr) 0) return 0;
             return (int) MediaInfo_Open_Buffer_Init(Handle, File_Size, File_Offset);
@@ -283,7 +268,7 @@ namespace MediaInfoWrapper
             return (int) MediaInfo_Open_Buffer_Continue(Handle, Buffer, Buffer_Size);
         }
 
-        public long Open_Buffer_Continue_GoTo_Get()
+        public Int64 Open_Buffer_Continue_GoTo_Get()
         {
             if (Handle == (IntPtr) 0) return 0;
             return MediaInfo_Open_Buffer_Continue_GoTo_Get(Handle);
@@ -405,16 +390,7 @@ namespace MediaInfoWrapper
             }
             GC.SuppressFinalize(this);
         }
-        
-        public static bool IsLinux
-        {
-            get
-            {
-                int p = (int)Environment.OSVersion.Platform;
-                return (p == 4) || (p == 6) || (p == 128);
-            }
-        }
 
-        public static bool IsRunningOnMono() => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     }
 }

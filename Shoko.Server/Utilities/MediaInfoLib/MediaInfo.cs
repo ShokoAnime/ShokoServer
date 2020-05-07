@@ -13,6 +13,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 {
     public static class MediaInfo
     {
+        // TODO This may help with DLL issues. https://github.com/dotnet/runtime/blob/master/docs/design/features/dllmap.md
+
         private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.dll");
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
@@ -68,6 +70,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     UseShellExecute = false,
                     WindowStyle = ProcessWindowStyle.Hidden,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true
                 }
             };
