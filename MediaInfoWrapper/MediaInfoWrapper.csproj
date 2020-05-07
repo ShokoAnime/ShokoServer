@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <RuntimeIdentifiers>win;win10-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
