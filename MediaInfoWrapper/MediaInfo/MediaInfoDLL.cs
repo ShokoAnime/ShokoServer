@@ -133,7 +133,7 @@ namespace MediaInfoWrapper
         private static extern IntPtr MediaInfo_New();
         [DllImport(DLL)]
         private static extern void MediaInfo_Delete(IntPtr Handle);
-        [DllImport(DLL)]
+        [DllImport(DLL, CharSet = CharSet.Unicode)]
         private static extern IntPtr MediaInfo_Open(IntPtr Handle, IntPtr FileName);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Open_Buffer_Init(IntPtr Handle, Int64 File_Size, Int64 File_Offset);
@@ -145,15 +145,15 @@ namespace MediaInfoWrapper
         private static extern IntPtr MediaInfo_Open_Buffer_Finalize(IntPtr Handle);
         [DllImport(DLL)]
         private static extern void MediaInfo_Close(IntPtr Handle);
-        [DllImport(DLL)]
+        [DllImport(DLL, CharSet = CharSet.Unicode)]
         private static extern IntPtr MediaInfo_Inform(IntPtr Handle, IntPtr Reserved);
-        [DllImport(DLL)]
+        [DllImport(DLL, CharSet = CharSet.Unicode)]
         private static extern IntPtr MediaInfo_GetI(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber, IntPtr Parameter, IntPtr KindOfInfo);
-        [DllImport(DLL)]
+        [DllImport(DLL, CharSet = CharSet.Unicode)]
         private static extern IntPtr MediaInfo_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber, IntPtr Parameter, IntPtr KindOfInfo, IntPtr KindOfSearch);
         [DllImport(DLL, CharSet=CharSet.Unicode)]
         private static extern IntPtr MediaInfo_Option(IntPtr Handle, IntPtr Option, IntPtr Value);
-        [DllImport(DLL)]
+        [DllImport(DLL, CharSet = CharSet.Unicode)]
         private static extern IntPtr MediaInfo_State_Get(IntPtr Handle);
         [DllImport(DLL)]
         private static extern IntPtr MediaInfo_Count_Get(IntPtr Handle, IntPtr StreamKind, IntPtr StreamNumber);
@@ -245,7 +245,7 @@ namespace MediaInfoWrapper
         {
             #region Shoko
 
-            FileName = IsWindows() && FileName.StartsWith(@"\\")
+            FileName = !IsWindows() || FileName.StartsWith(@"\\")
                 ? FileName
                 : @"\\?\" + FileName; // add long path prefix if not running on linux, and not a unc path.
 
