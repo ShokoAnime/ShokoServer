@@ -77,6 +77,22 @@ namespace Shoko.Server.Models
             }
         }
 
+        public List<TvDB_Episode> TvDBEpisodes
+        {
+            get
+            {
+                // Try Overrides first, then regular
+                var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
+                return overrides.Count > 0
+                    ? overrides
+                    : RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                        .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                        .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
+            }
+        }
+
         public double UserRating
         {
             get
