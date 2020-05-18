@@ -81,8 +81,8 @@ namespace Shoko.Server.API.v3
         /// Get Episodes for Series with seriesID. Filter or group info is irrelevant at this level
         /// </summary>
         /// <returns></returns>
-        [HttpGet("Series/{seriesID}/Episodes")]
-        public ActionResult<List<Episode>> GetEpisodes(int seriesID)
+        [HttpGet("Series/{seriesID}/Episode")]
+        public ActionResult<List<Episode>> GetEpisodes(int seriesID, bool includeMissing = false)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
