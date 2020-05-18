@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get the series with ID
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{id}")]
         public ActionResult<Series> GetSeries(int id)
@@ -46,7 +46,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get AniDB Info for series with ID
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{id}/AniDB")]
         public ActionResult<Series.AniDB> GetSeriesAniDBDetails(int id)
@@ -61,7 +61,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get TvDB Info for series with ID
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{id}/TvDB")]
         public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails(int id)
@@ -74,7 +74,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <param name="includeDisabled"></param>
         /// <returns></returns>
         [HttpGet("{id}/Images/{IncludeDisabled?}")]
@@ -88,7 +88,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <param name="filter"></param>
         /// <returns></returns>
         [HttpGet("{id}/Tags/{filter}")]
@@ -104,7 +104,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get the cast listing for series with ID
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{id}/Cast")]
         public ActionResult<List<Role>> GetSeriesCast(int id)
@@ -117,7 +117,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get the group for a series ID
         /// </summary>
-        /// <param name="seriesID"></param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/Group")]
         public ActionResult<Group> GetGroup(int seriesID)
@@ -132,7 +132,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Move the series to a new group, and update accordingly
         /// </summary>
-        /// <param name="seriesID"></param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <param name="newGroupID"></param>
         /// <returns></returns>
         [HttpPatch("{seriesID}/Move/{newGroupID}")]

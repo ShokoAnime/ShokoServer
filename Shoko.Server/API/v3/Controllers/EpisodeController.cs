@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
@@ -10,6 +11,11 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class EpisodeController : BaseController
     {
+        /// <summary>
+        /// Get an Episode by Shoko ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
         [HttpGet("{id}")]
         public ActionResult<Episode> GetEpisode(int id)
         {
@@ -18,6 +24,27 @@ namespace Shoko.Server.API.v3
             return new Episode(HttpContext, ep);
         }
 
+        /// <summary>
+        /// Get the AniDB details for episode with Shoko ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/AniDB")]
+        public ActionResult<Episode.AniDB> GetEpisodeAniDBDetails(int id)
+        {
+            var ep = RepoFactory.AnimeEpisode.GetByID(id);
+            if (ep == null) return BadRequest("No Episode with ID");
+            var anidb = ep.AniDB_Episode;
+            if (anidb == null) return BadRequest("AniDB data not found");
+            return Episode.GetAniDBInfo(anidb);
+        }
+        
+        /// <summary>
+        /// Set the watched status on an episode
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <param name="watched"></param>
+        /// <returns></returns>
         [HttpPost("{id}/watched/{watched}")]
         public ActionResult SetWatchedStatusOnEpisode(int id, bool watched)
         {
