@@ -26,8 +26,8 @@ namespace Shoko.Server.API.v3
         [HttpGet]
         public ActionResult<List<Series>> GetAllSeries()
         {
-            var allSeries = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).ToList();
-            return allSeries.Select(a => new Series(HttpContext, a)).ToList();
+            var allSeries = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a));
+            return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
         }
 
         /// <summary>
@@ -40,6 +40,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
         }
 
@@ -53,6 +54,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetAniDBInfo(HttpContext, anime);
@@ -68,6 +70,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetTvDBInfo(HttpContext, ser);
         }
         
@@ -82,6 +85,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetArt(HttpContext, ser.AniDB_ID, includeDisabled);
         }
         
@@ -96,6 +100,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetTags(HttpContext, anime, filter);
@@ -111,6 +116,7 @@ namespace Shoko.Server.API.v3
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetCast(HttpContext, ser.AniDB_ID);
         }
         
@@ -124,6 +130,7 @@ namespace Shoko.Server.API.v3
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(series)) return BadRequest("Series not allowed for current user");
             var grp = series.AnimeGroup;
             if (grp == null) return BadRequest("No Group for Series");
             return new Group(HttpContext, grp);
