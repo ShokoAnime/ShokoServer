@@ -87,7 +87,8 @@ namespace Shoko.Server.API.v3
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return ser.GetAnimeEpisodes().Select(a => new Episode(HttpContext, a)).ToList();
+            return ser.GetAnimeEpisodes().Select(a => new Episode(HttpContext, a))
+                .Where(a => a.Size > 0 || includeMissing).ToList();
         }
     }
     
