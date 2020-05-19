@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3
 {
@@ -13,8 +15,7 @@ namespace Shoko.Server.API.v3
     public class ImportFolderController : BaseController
     {
         /// <summary>
-        /// Handle /api/folder/list
-        /// List all saved Import Folders
+        /// List all Import Folders
         /// </summary>
         /// <returns></returns>
         [HttpGet]
@@ -24,8 +25,7 @@ namespace Shoko.Server.API.v3
         }
 
         /// <summary>
-        /// Handle /api/folder/add
-        /// Add Folder to Import Folders repository
+        /// Add an Import Folder. Does not run import on the folder, so you must scan it yourself.
         /// </summary>
         /// <returns>ImportFolder with generated values like ID</returns>
         [HttpPost]
@@ -48,12 +48,29 @@ namespace Shoko.Server.API.v3
             }
         }
 
+        [HttpPatch("{id}")]
+        public ActionResult PatchImportFolder(int id, [FromBody] JsonPatchDocument<ImportFolder> folder)
+        {
+            if (folder == null) return BadRequest("object is invalid.");
+            var existing = RepoFactory.ImportFolder.GetByID(id);
+            if (existing == null) return BadRequest("No Import Folder with ID");
+            var patchModel = new ImportFolder(existing);
+            folder.ApplyTo(patchModel, ModelState);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var serverModel = patchModel.GetServerModel();
+            RepoFactory.ImportFolder.SaveImportFolder(serverModel);
+            return Ok();
+        }
+
         /// <summary>
-        /// Handle /api/folder/edit
-        /// Edit folder giving full ImportFolder object with ID
+        /// Edit Import Folder. This replaces all values. 
         /// </summary>
         /// <returns>APIStatus</returns>
-        [HttpPatch]
+        [HttpPut]
         public ActionResult EditFolder(ImportFolder folder)
         {
             if (string.IsNullOrEmpty(folder.Path))
@@ -74,17 +91,31 @@ namespace Shoko.Server.API.v3
         }
 
         /// <summary>
-        /// Handle /api/folder/delete
-        /// Delete Import Folder out of Import Folder repository
+        /// Delete an Import Folder. This removes records and send deleted commands to AniDB, so don't use it frivolously
         /// </summary>
-        /// <returns>APIStatus</returns>
-        [HttpDelete]
-        public ActionResult DeleteFolder(ImportFolder folder)
+        /// <param name="id">Import Folder ID</param>
+        /// <returns></returns>
+        [HttpDelete("{id}")]
+        public ActionResult DeleteFolder(int id)
         {
-            if (folder.ID == 0) return BadRequest("ID missing");
+            if (id == 0) return BadRequest("ID missing");
             
-            string res = Importer.DeleteImportFolder(folder.ID);
+            string res = Importer.DeleteImportFolder(id);
             return res == string.Empty ? Ok() : InternalError(res);
+        }
+
+        /// <summary>
+        /// Scan a Specific Import Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves 
+        /// </summary>
+        /// <param name="id">Import Folder ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/Scan")]
+        public ActionResult ScanImportFolder(int id)
+        {
+            var folder = RepoFactory.ImportFolder.GetByID(id);
+            if (folder == null) return BadRequest("No Import Folder with ID");
+            Importer.RunImport_ScanFolder(id);
+            return Ok();
         }
     }
 }
