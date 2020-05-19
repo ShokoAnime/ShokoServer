@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFrameworks>
     <Deterministic>false</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
