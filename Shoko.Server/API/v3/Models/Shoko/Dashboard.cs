@@ -43,6 +43,21 @@ namespace Shoko.Server.API.v3
             /// The percentage of files that are either duplicates or belong to the same episode
             /// </summary>
             public decimal PercentDuplicate { get; set; }
+            
+            /// <summary>
+            /// The Number of missing episodes, regardless of where they are from or available
+            /// </summary>
+            public int MissingEpisodes { get; set; }
+            
+            /// <summary>
+            /// The number of missing episodes from groups we are collecting. This should not be used as a rule, as it's not very reliable
+            /// </summary>
+            public int MissingEpisodesCollecting { get; set; }
+            
+            /// <summary>
+            /// Number of Unrecognized Files 
+            /// </summary>
+            public int UnrecognizedFiles { get; set; }
         }
         
         public class SeriesSummary

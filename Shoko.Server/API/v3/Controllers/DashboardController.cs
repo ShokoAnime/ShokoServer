@@ -4,8 +4,10 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
+using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
@@ -21,23 +23,23 @@ namespace Shoko.Server.API.v3
         [HttpGet("Stats")]
         public Dashboard.CollectionStats GetStats()
         {
-            var series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).ToList();
+            List<SVR_AnimeSeries> series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).ToList();
             int seriesCount = series.Count;
 
-            var groupCount = series.DistinctBy(a => a.AnimeGroupID).Count();
+            int groupCount = series.DistinctBy(a => a.AnimeGroupID).Count();
 
-            var episodes = series.SelectMany(a => a.GetAnimeEpisodes()).ToList();
+            List<SVR_AnimeEpisode> episodes = series.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
-            var files = episodes.SelectMany(a => a?.GetVideoLocals()).Where(a => a != null)
+            List<SVR_VideoLocal> files = episodes.SelectMany(a => a?.GetVideoLocals()).Where(a => a != null)
                 .DistinctBy(a => a.VideoLocalID).ToList();
             int fileCount = files.Count;
             long size = files.Sum(a => a.FileSize);
 
-            var watchedEpisodes = episodes.Where(a => a?.GetUserContract(User.JMMUserID)?.WatchedDate != null).ToList();
+            List<SVR_AnimeEpisode> watchedEpisodes = episodes.Where(a => a?.GetUserContract(User.JMMUserID)?.WatchedDate != null).ToList();
 
             int watchedSeries = RepoFactory.AnimeSeries.GetAll().Count(a =>
             {
-                var contract = a.GetUserContract(User.JMMUserID);
+                CL_AnimeSeries_User contract = a.GetUserContract(User.JMMUserID);
                 if (contract == null) return false;
                 return contract.WatchedEpisodeCount == a.GetAnimeEpisodesAndSpecialsCountWithVideoLocal();
             });
@@ -45,12 +47,17 @@ namespace Shoko.Server.API.v3
             decimal hours = Math.Round((decimal) watchedEpisodes.Select(a => a.GetVideoLocals().FirstOrDefault())
                 .Where(a => a != null).Sum(a => a.Duration) / 3600000, 1, MidpointRounding.AwayFromZero); // Duration in ms => 60m*60s*1000ms = 3600000
 
-            var places = files.SelectMany(a => a.Places).ToList();
+            List<SVR_VideoLocal_Place> places = files.SelectMany(a => a.Places).ToList();
             int duplicate = places.SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
                 .GroupBy(a => a.EpisodeID).Count(a => a.Count() > 1);
 
             decimal percentDupe =
                 Math.Round((decimal) duplicate * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
+
+            int missing = series.Sum(a => a.MissingEpisodeCount);
+            int missingCollecting = series.Sum(a => a.MissingEpisodeCountGroups);
+
+            int unrecognized = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count();
 
             return new Dashboard.CollectionStats
             {
@@ -61,7 +68,10 @@ namespace Shoko.Server.API.v3
                 FinishedSeries = watchedSeries,
                 WatchedEpisodes = watchedEpisodes.Count,
                 WatchedHours = hours,
-                PercentDuplicate = percentDupe
+                PercentDuplicate = percentDupe,
+                MissingEpisodes = missing,
+                MissingEpisodesCollecting = missingCollecting,
+                UnrecognizedFiles = unrecognized
             };
         }
 
