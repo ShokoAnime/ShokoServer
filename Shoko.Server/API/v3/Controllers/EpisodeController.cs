@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,19 @@ namespace Shoko.Server.API.v3
             var anidb = ep.AniDB_Episode;
             if (anidb == null) return BadRequest("AniDB data not found");
             return Episode.GetAniDBInfo(anidb);
+        }
+        
+        /// <summary>
+        /// Get the TvDB details for episode with Shoko ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/TvDB")]
+        public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails(int id)
+        {
+            var ep = RepoFactory.AnimeEpisode.GetByID(id);
+            if (ep == null) return BadRequest("No Episode with ID");
+            return Episode.GetTvDBInfo(ep.AniDB_EpisodeID);
         }
         
         /// <summary>
