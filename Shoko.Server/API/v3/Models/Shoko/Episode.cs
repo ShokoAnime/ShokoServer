@@ -22,7 +22,7 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Length of the Episode
         /// </summary>
-        public TimeSpan Length { get; set; }
+        public TimeSpan Duration { get; set; }
         
         /// <summary>
         /// The Last Watched Date for the current user. If null, it is unwatched
@@ -45,7 +45,7 @@ namespace Shoko.Server.API.v3
             var anidb = ep.AniDB_Episode;
             if (anidb != null)
             {
-                Length = new TimeSpan(0, 0, anidb.LengthSeconds);
+                Duration = new TimeSpan(0, 0, anidb.LengthSeconds);
             }
 
             var uid = ctx.GetUser()?.JMMUserID ?? 0;

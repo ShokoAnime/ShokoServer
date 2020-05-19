@@ -40,6 +40,16 @@ namespace Shoko.Server.API.v3
         /// links to series pages on various sites
         /// </summary>
         public List<Resource> Links { get; set; }
+        
+        /// <summary>
+        /// The time when the series was created, during the process of the first file being added
+        /// </summary>
+        public DateTime Created { get; set; }
+        
+        /// <summary>
+        /// The time when the series was last updated
+        /// </summary>
+        public DateTime Updated { get; set; }
 
         #region Constructors and Helper Methods
 
@@ -62,6 +72,9 @@ namespace Shoko.Server.API.v3
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                    Sizes.Local.Specials + Sizes.Local.Trailers;
+
+            Created = ser.DateTimeCreated;
+            Updated = ser.DateTimeUpdated;
         }
 
         private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
