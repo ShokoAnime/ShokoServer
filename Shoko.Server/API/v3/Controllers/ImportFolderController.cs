@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
@@ -18,9 +16,12 @@ namespace Shoko.Server.API.v3
         /// Handle /api/folder/list
         /// List all saved Import Folders
         /// </summary>
-        /// <returns>List<ImportFolder></returns>
+        /// <returns></returns>
         [HttpGet]
-        public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
+        public ActionResult<List<ImportFolder>> GetFolders()
+        {
+            return RepoFactory.ImportFolder.GetAll().Select(a => new ImportFolder(a)).ToList();
+        }
 
         /// <summary>
         /// Handle /api/folder/add
@@ -31,16 +32,19 @@ namespace Shoko.Server.API.v3
         public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (folder.ImportFolderLocation == string.Empty)
-                return new APIMessage(StatusCodes.Status400BadRequest,
-                    "Bad Request: The Folder path must not be Empty");
+            if (folder.Path == string.Empty)
+                return BadRequest("The Folder path must not be Empty");
             try
             {
-                return RepoFactory.ImportFolder.SaveImportFolder(folder);
+                Shoko.Models.Server.ImportFolder import = folder.GetServerModel();
+
+                var newFolder = RepoFactory.ImportFolder.SaveImportFolder(import);
+
+                return new ImportFolder(newFolder);
             }
             catch (Exception e)
             {
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
         }
 
@@ -52,24 +56,20 @@ namespace Shoko.Server.API.v3
         [HttpPatch]
         public ActionResult EditFolder(ImportFolder folder)
         {
-            if (string.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
-                return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
+            if (string.IsNullOrEmpty(folder.Path))
+                return BadRequest("Path missing. Import Folders must be a location that exists on the server");
 
-            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                return new APIMessage(StatusCodes.Status409Conflict,
-                    "The Import Folder can't be both Destination and Source");
-
-            if (folder.ImportFolderID == 0)
-                return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
+            if (folder.ID == 0)
+                return BadRequest("ID missing. If this is a new Folder, then use POST");
 
             try
             {
-                RepoFactory.ImportFolder.SaveImportFolder(folder);
+                RepoFactory.ImportFolder.SaveImportFolder(folder.GetServerModel());
                 return Ok();
             }
             catch (Exception e)
             {
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
         }
 
@@ -79,18 +79,12 @@ namespace Shoko.Server.API.v3
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpDelete]
-        public ActionResult DeleteFolder(int folderId)
+        public ActionResult DeleteFolder(ImportFolder folder)
         {
-            if (folderId != 0)
-            {
-                string res = Importer.DeleteImportFolder(folderId);
-                if (res == string.Empty)
-                {
-                    return APIStatus.OK();
-                }
-                return new APIMessage(500, res);
-            }
-            return new APIMessage(400, "ImportFolderID missing");
+            if (folder.ID == 0) return BadRequest("ID missing");
+            
+            string res = Importer.DeleteImportFolder(folder.ID);
+            return res == string.Empty ? Ok() : InternalError(res);
         }
     }
 }
