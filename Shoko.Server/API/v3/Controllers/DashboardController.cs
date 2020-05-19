@@ -65,12 +65,21 @@ namespace Shoko.Server.API.v3
             };
         }
 
+        /// <summary>
+        /// Get the Top 10 Most Common Tags that are visible to the user
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("TopTags")]
         public List<Tag> GetTopTags()
         {
             return GetTopTags(10);
         }
 
+        /// <summary>
+        /// Gets the top <para>number</para> most common tags visible to the current user 
+        /// </summary>
+        /// <param name="number"></param>
+        /// <returns></returns>
         [HttpGet("TopTags/{number}")]
         public List<Tag> GetTopTags(int number)
         {
@@ -88,6 +97,10 @@ namespace Shoko.Server.API.v3
             return tags;
         }
 
+        /// <summary>
+        /// Gets counts for all of the commands currently queued
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("QueueSummary")]
         public Dictionary<CommandRequestType, int> GetQueueSummary()
         {
@@ -95,10 +108,14 @@ namespace Shoko.Server.API.v3
                 .ToDictionary(a => (CommandRequestType) a.Key, a => a.Count());
         }
 
+        /// <summary>
+        /// Gets a breakdown of which types of anime the user has access to
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("SeriesSummary")]
         public Dashboard.SeriesSummary GetSeriesSummary()
         {
-            var series = RepoFactory.AnimeSeries.GetAll().GroupBy(a => (AnimeType) (a.GetAnime()?.AnimeType ?? -1))
+            var series = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a)).GroupBy(a => (AnimeType) (a.GetAnime()?.AnimeType ?? -1))
                 .ToDictionary(a => a.Key, a => a.Count());
 
             if (!series.TryGetValue(AnimeType.TVSeries, out int seriesCount)) seriesCount = 0;
