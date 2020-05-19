@@ -27,6 +27,7 @@ COPY --from=0 /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
 
 WORKDIR /usr/src/app/build/webui
+#RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '. | map(select(.prerelease==false)) | .[0].assets[0].browser_download_url') -o latest.zip
 RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip
 RUN unzip -o latest.zip
 RUN rm latest.zip
