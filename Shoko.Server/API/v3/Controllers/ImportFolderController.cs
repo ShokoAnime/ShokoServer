@@ -48,6 +48,12 @@ namespace Shoko.Server.API.v3
             }
         }
 
+        /// <summary>
+        /// Patch an Import Folder with JSON Patch.
+        /// </summary>
+        /// <param name="id">Import Folder ID</param>
+        /// <param name="folder">JSON Patch document</param>
+        /// <returns></returns>
         [HttpPatch("{id}")]
         public ActionResult PatchImportFolder(int id, [FromBody] JsonPatchDocument<ImportFolder> folder)
         {
