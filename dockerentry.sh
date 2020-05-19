@@ -4,7 +4,7 @@
 PUID=${PUID:-1000}
 PGID=${PGID:-100}
 
-[ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && mono --debug /usr/src/app/build/Shoko.CLI.exe
+[ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && dotnet /usr/src/app/build/Shoko.CLI.dll
 
 GROUP="shokogroup"
 USER="shoko"
@@ -56,4 +56,4 @@ User gid:    $(id -g $USER)
 "
 
 # Go and run the server 
-exec gosu $USER:$GROUP mono --debug /usr/src/app/build/Shoko.CLI.exe
+exec gosu $USER:$GROUP dotnet /usr/src/app/build/Shoko.CLI.dll
