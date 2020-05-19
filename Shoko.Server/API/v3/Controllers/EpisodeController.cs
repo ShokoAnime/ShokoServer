@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
 {
-    [ApiController, Route("/api/{version:apiVersion}/[controller]"), ApiV3]
+    [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
     public class EpisodeController : BaseController
     {

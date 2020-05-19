@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using NHibernate;
+using NHibernate.Util;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
@@ -133,17 +134,22 @@ namespace Shoko.Server.Models
             return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID);
         }
 
+        public int GetAnimeEpisodesCountWithVideoLocal()
+        {
+            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Count(a => a.GetVideoLocals().Any());
+        }
+
         public int GetAnimeEpisodesNormalCountWithVideoLocal()
         {
-            return
-                RepoFactory.AnimeEpisode
-                    .GetBySeriesID(AnimeSeriesID)
-                    .Count(a => a.AniDB_Episode != null && a.EpisodeTypeEnum == EpisodeType.Episode &&
-                                RepoFactory.CrossRef_File_Episode
-                                    .GetByEpisodeID(RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)
-                                                        ?.EpisodeID ?? 0)
-                                    .Select(b => RepoFactory.VideoLocal.GetByHash(b.Hash))
-                                    .Count(b => b != null) > 0);
+            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Count(a =>
+                a.AniDB_Episode != null && a.GetVideoLocals().Any() && a.EpisodeTypeEnum == EpisodeType.Episode);
+        }
+
+        public int GetAnimeEpisodesAndSpecialsCountWithVideoLocal()
+        {
+            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID).Count(a =>
+                a.AniDB_Episode != null && a.GetVideoLocals().Any() &&
+                (a.EpisodeTypeEnum == EpisodeType.Episode || a.EpisodeTypeEnum == EpisodeType.Special));
         }
 
         public int GetAnimeNumberOfEpisodeTypes()
@@ -158,16 +164,6 @@ namespace Shoko.Server.Models
                 .Select(a => a.EpisodeTypeEnum)
                 .Distinct()
                 .Count();
-        }
-
-        public int GetAnimeEpisodesCountWithVideoLocal()
-        {
-            return RepoFactory.AnimeEpisode.GetBySeriesID(AnimeSeriesID)
-                .Count(a => RepoFactory.CrossRef_File_Episode
-                                .GetByEpisodeID(
-                                    RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDB_EpisodeID)?.EpisodeID ?? 0)
-                                .Select(b => RepoFactory.VideoLocal.GetByHash(b.Hash))
-                                .Count(b => b != null) > 0);
         }
 
         public MovieDB_Movie GetMovieDB()

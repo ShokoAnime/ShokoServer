@@ -236,10 +236,6 @@
       <Project>{29861d1a-968c-49ca-a637-88b391aa5063}</Project>
       <Name>NutzCode.CloudFileSystem</Name>
     </ProjectReference>
-    <ProjectReference Include="..\MediaInfoWrapper\MediaInfoWrapper.csproj">
-      <Project>{f3d0c468-467f-4544-905d-20c75d01d2ce}</Project>
-      <Name>MediaInfoWrapper</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj">
       <Project>{e0399140-9902-4f38-909d-85e42717ec30}</Project>
       <Name>Shoko.Commons</Name>
