@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
@@ -157,6 +159,7 @@ namespace Shoko.Server.API.v3
             /// <summary>
             /// When we last got data on this file
             /// </summary>
+            [JsonConverter(typeof(IsoDateTimeConverter))]
             public DateTime Updated { get; set; }
 
             public class AniDBReleaseGroup

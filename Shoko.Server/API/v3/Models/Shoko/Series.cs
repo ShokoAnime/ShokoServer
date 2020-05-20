@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -44,11 +46,13 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// The time when the series was created, during the process of the first file being added
         /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Created { get; set; }
         
         /// <summary>
         /// The time when the series was last updated
         /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime Updated { get; set; }
 
         #region Constructors and Helper Methods

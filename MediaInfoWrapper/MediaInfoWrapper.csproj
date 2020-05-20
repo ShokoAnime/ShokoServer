@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RuntimeIdentifiers>win;win10-x64;win-x86;linux-x64;linux-x86</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win10-x64;win;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Deterministic>false</Deterministic>

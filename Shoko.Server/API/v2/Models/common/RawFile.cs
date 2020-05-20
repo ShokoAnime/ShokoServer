@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
@@ -27,9 +29,11 @@ namespace Shoko.Server.API.v2.Models.common
         public string sha1 { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime created { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime updated { get; set; }
 
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
@@ -82,6 +86,24 @@ namespace Shoko.Server.API.v2.Models.common
 
         [DataMember(IsRequired = false, EmitDefaultValue = true)]
         public int is_preferred { get; set; }
+
+        [DataContract]
+        public class RecentFile : RawFile
+        {
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
+            public int series_id { get; set; }
+
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
+            public int ep_id { get; set; }
+
+            public RecentFile() {}
+
+            public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+                vl, level, uid, e)
+            {
+                
+            }
+        }
 
         public RawFile()
         {
