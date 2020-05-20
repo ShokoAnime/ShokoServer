@@ -61,6 +61,10 @@ namespace Shoko.Server.API.v3
 
             int missingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
 
+            int multipleEps = episodes.Count(a => a.GetVideoLocals().Count(b => b.IsVariation == 0) > 1);
+
+            int duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
+
             return new Dashboard.CollectionStats
             {
                 FileCount = fileCount,
@@ -74,7 +78,9 @@ namespace Shoko.Server.API.v3
                 MissingEpisodes = missing,
                 MissingEpisodesCollecting = missingCollecting,
                 UnrecognizedFiles = unrecognized,
-                SeriesWithMissingLinks = missingLinks
+                SeriesWithMissingLinks = missingLinks,
+                EpisodesWithMultipleFiles = multipleEps,
+                FilesWithDuplicateLocations = duplicateFiles
             };
         }
 

@@ -63,6 +63,16 @@ namespace Shoko.Server.API.v3
             /// The number of series missing both the TvDB and MovieDB Links
             /// </summary>
             public int SeriesWithMissingLinks { get; set; }
+
+            /// <summary>
+            /// The number of Episodes with more than one File (not marked as a variation)
+            /// </summary>
+            public int EpisodesWithMultipleFiles { get; set; }
+
+            /// <summary>
+            /// The number of files that exist in more than one location
+            /// </summary>
+            public int FilesWithDuplicateLocations { get; set; }
         }
         
         public class SeriesSummary
