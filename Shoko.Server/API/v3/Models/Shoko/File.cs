@@ -11,6 +11,11 @@ namespace Shoko.Server.API.v3
     public class File
     {
         /// <summary>
+        /// The ID of the File. You'll need this to play it.
+        /// </summary>
+        public int ID { get; set; }
+        
+        /// <summary>
         /// The Filesize in bytes
         /// </summary>
         public long Size { get; set; }
@@ -20,6 +25,11 @@ namespace Shoko.Server.API.v3
         /// </summary>
         /// <returns></returns>
         public Hashes Hashes { get; set; }
+        
+        /// <summary>
+        /// All of the Locations that this file exists in
+        /// </summary>
+        public List<Location> Locations { get; set; }
 
 
         /// <summary>
@@ -64,6 +74,25 @@ namespace Shoko.Server.API.v3
                 AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList(),
                 SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList()
             };
+        }
+
+        public class Location
+        {
+            /// <summary>
+            /// The Import Folder that this file resides in 
+            /// </summary>
+            public int ImportFolderID { get; set; }
+            
+            /// <summary>
+            /// The relative path from the import folder's path on the server. The Filename can be easily extracted from this. Using the ImportFolder, you can get the full server path of the file or map it if the client has remote access to the filesystem. 
+            /// </summary>
+            public string RelativePath { get; set; }
+            
+            /// <summary>
+            /// 
+            /// </summary>
+            [JsonRequired]
+            public bool Accessible { get; set; }
         }
 
         /// <summary>
