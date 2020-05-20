@@ -59,6 +59,8 @@ namespace Shoko.Server.API.v3
 
             int unrecognized = RepoFactory.VideoLocal.GetVideosWithoutEpisodeUnsorted().Count();
 
+            int missingLinks = series.Count(MissingBothTvDBAndMovieDBLink);
+
             return new Dashboard.CollectionStats
             {
                 FileCount = fileCount,
@@ -71,8 +73,20 @@ namespace Shoko.Server.API.v3
                 PercentDuplicate = percentDupe,
                 MissingEpisodes = missing,
                 MissingEpisodesCollecting = missingCollecting,
-                UnrecognizedFiles = unrecognized
+                UnrecognizedFiles = unrecognized,
+                SeriesWithMissingLinks = missingLinks
             };
+        }
+
+        private static bool MissingBothTvDBAndMovieDBLink(SVR_AnimeSeries ser)
+        {
+            if (ser?.Contract == null || ser?.GetAnime() == null) return false;
+            if (ser?.GetAnime()?.Restricted > 0) return false;
+            // MovieDB is in AniDB_Other, and that's a Direct repository, so we don't want to call it on API
+            bool movieLinkMissing = ser?.Contract.CrossRefAniDBMovieDB == null;
+            bool tvlinkMissing =
+                RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
+            return movieLinkMissing && tvlinkMissing;
         }
 
         /// <summary>

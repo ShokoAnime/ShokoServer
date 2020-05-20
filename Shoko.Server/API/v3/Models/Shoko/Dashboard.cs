@@ -58,6 +58,11 @@ namespace Shoko.Server.API.v3
             /// Number of Unrecognized Files 
             /// </summary>
             public int UnrecognizedFiles { get; set; }
+            
+            /// <summary>
+            /// The number of series missing both the TvDB and MovieDB Links
+            /// </summary>
+            public int SeriesWithMissingLinks { get; set; }
         }
         
         public class SeriesSummary
