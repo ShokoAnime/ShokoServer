@@ -17,6 +17,23 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public static MediaContainer GetMediaInfo_New(string filename)
+        {
+            string output = null;
+            
+            // TODO Find MediaInfo per platform, execute it with --OUTPUT=JSON, read the standard out, deserialize with the following settings
+            
+            var settings = new JsonSerializerSettings
+            {
+                Converters =  new JsonConverter[] {new StreamJsonConverter(), new BooleanConverter()},
+                DateFormatString = "UTC yyyy-MM-dd HH:mm:ss"
+            };
+
+            // assuming json, as it starts with {
+            MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
+            return m;
+        }
+
         public static Media GetMediaInfoFromWrapper(string filename)
         {
             try
