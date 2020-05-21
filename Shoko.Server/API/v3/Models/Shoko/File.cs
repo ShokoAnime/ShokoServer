@@ -4,6 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
@@ -30,6 +31,33 @@ namespace Shoko.Server.API.v3
         /// All of the Locations that this file exists in
         /// </summary>
         public List<Location> Locations { get; set; }
+        
+        /// <summary>
+        /// Try to fit this file's resolution to something like 1080p, 480p, etc
+        /// </summary>
+        public string RoundedStandardResolution { get; set; }
+
+        public File() {}
+        
+        public File(SVR_VideoLocal vl)
+        {
+            ID = vl.VideoLocalID;
+            Size = vl.FileSize;
+            Hashes = new Hashes
+            {
+                ED2K = vl.Hash,
+                MD5 = vl.MD5,
+                CRC32 = vl.CRC32,
+                SHA1 = vl.SHA1
+            };
+            RoundedStandardResolution = FileQualityFilter.GetResolution(vl);
+            Locations = vl.Places.Select(a => new Location
+            {
+                ImportFolderID = a.ImportFolderID,
+                RelativePath = a.FilePath,
+                Accessible = a.GetFile() != null
+            }).ToList();
+        }
 
 
         /// <summary>

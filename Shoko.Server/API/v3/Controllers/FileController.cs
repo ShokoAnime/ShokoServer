@@ -12,6 +12,18 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class FileController : BaseController
     {
+        /// <summary>
+        /// Get File Details
+        /// </summary>
+        /// <param name="id">Shoko VideoLocalID</param>
+        /// <returns></returns>
+        [HttpGet("{id}")]
+        public ActionResult<File> GetFile(int id)
+        {
+            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            if (videoLocal == null) return BadRequest("No File with ID");
+            return new File(videoLocal);
+        }
         
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
@@ -22,7 +34,7 @@ namespace Shoko.Server.API.v3
         public ActionResult<File.AniDB> GetFileAniDBDetails(int id)
         {
             var videoLocal = RepoFactory.VideoLocal.GetByID(id);
-            if (videoLocal == null) return BadRequest("No Episode with ID");
+            if (videoLocal == null) return BadRequest("No File with ID");
             var anidb = videoLocal.GetAniDBFile();
             if (anidb == null) return BadRequest("AniDB data not found");
             return v3.File.GetAniDBInfo(id);
