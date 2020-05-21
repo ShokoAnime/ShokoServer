@@ -12,6 +12,11 @@ namespace Shoko.Models.MediaInfo
     /// </summary>
     public class MediaContainer
     {
+        public Media media { get; set; }
+    }
+
+    public class Media
+    {
         public List<Stream> track { get; set; }
     }
 
@@ -105,12 +110,6 @@ namespace Shoko.Models.MediaInfo
         
         public string matrix_coefficients { get; set; }
         
-        public VideoExtra extra { get; set; }
-    }
-
-    public class VideoExtra
-    {
-        // Video
         public string MasteringDisplay_ColorPrimaries { get; set; }
         
         public string MasteringDisplay_Luminance { get; set; }
@@ -187,7 +186,7 @@ namespace Shoko.Models.MediaInfo
         public override string type => "Text";
     }
 
-    public class ChapterStream : Stream
+    public class MenuStream : Stream
     {
         public override string type => "Menu";
         
