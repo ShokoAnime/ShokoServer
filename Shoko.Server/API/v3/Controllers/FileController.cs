@@ -12,6 +12,22 @@ namespace Shoko.Server.API.v3
     [Authorize]
     public class FileController : BaseController
     {
+        
+        /// <summary>
+        /// Get the AniDB details for episode with Shoko ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/AniDB")]
+        public ActionResult<File.AniDB> GetFileAniDBDetails(int id)
+        {
+            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            if (videoLocal == null) return BadRequest("No Episode with ID");
+            var anidb = videoLocal.GetAniDBFile();
+            if (anidb == null) return BadRequest("AniDB data not found");
+            return v3.File.GetAniDBInfo(id);
+        }
+        
         /// <summary>
         /// Mark a file as watched or unwatched
         /// </summary>
