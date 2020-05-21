@@ -342,7 +342,15 @@ namespace Shoko.Server.Settings
                 throw new ValidationException();
             }
 
-            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented, new StringEnumConverter { AllowIntegerValues = true }));
+            JsonSerializerSettings serializerSettings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented,
+                DefaultValueHandling = DefaultValueHandling.Include,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            serializerSettings.Converters.Add(new StringEnumConverter { AllowIntegerValues = true });
+
+            File.WriteAllText(path, JsonConvert.SerializeObject(this, serializerSettings));
         }
 
         public CL_ServerSettings ToContract()

@@ -436,6 +436,11 @@ namespace Shoko.Server.Commands
                         logger.Warn($"Existing File: {dupPlace.FullServerPath}");
                         logger.Warn("---------------------------------------------");
 
+                        if (ServerSettings.Instance.Import.AutomaticallyDeleteDuplicatesOnImport)
+                        {
+                            vlocalplace.RemoveRecordAndDeletePhysicalFile();
+                            return;
+                        }
                         // check if we have a record of this in the database, if not create one
                         List<DuplicateFile> dupFiles = RepoFactory.DuplicateFile.GetByFilePathsAndImportFolder(
                             vlocalplace.FilePath,
