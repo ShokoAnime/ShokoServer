@@ -1011,5 +1011,76 @@
         }
       ]
     }
+  },
+  // old
+  {
+    "Parts": [
+      {
+        "Accessible": 1,
+        "Exists": 1,
+        "Streams": [
+          {
+            "Language": "japanese",
+            "Duration": 1437162,
+            "Id": 2,
+            "Profile": "lc",
+            "CodecID": "A_AAC-2",
+            "Codec": "aac",
+            "StreamType": 2,
+            "SamplingRate": 48000,
+            "LanguageCode": "jpn",
+            "Channels": 2,
+            "Selected": 1
+          },
+          {
+            "Language": "english",
+            "Id": 3,
+            "CodecID": "S_TEXT/ASS",
+            "Index": 1,
+            "Codec": "ass",
+            "StreamType": 3,
+            "LanguageCode": "eng",
+            "Selected": 1,
+            "Format": "ass"
+          },
+          {
+            "Duration": 1437146,
+            "Height": 720,
+            "Width": 1280,
+            "Bitrate": 3428,
+            "Id": 1,
+            "ScanType": "progressive",
+            "RefFrames": 4,
+            "Profile": "main",
+            "Level": 31,
+            "FrameRateMode": "cfr",
+            "FrameRate": 23.976,
+            "ColorSpace": "yuv",
+            "CodecID": "V_MPEG4/ISO/AVC",
+            "ChromaSubsampling": "4:2:0",
+            "Cabac": 1,
+            "BitDepth": 8,
+            "Index": 254,
+            "Codec": "h264",
+            "StreamType": 1
+          }
+        ],
+        "Size": 615849744,
+        "Duration": 1437162,
+        "Container": "mkv"
+      }
+    ],
+    "Duration": 1437162,
+    "VideoFrameRate": "24p",
+    "Container": "mkv",
+    "VideoCodec": "V_MPEG4/ISO/AVC",
+    "AudioCodec": "A_AAC-2",
+    "AudioChannels": 2,
+    "AspectRatio": 1.78,
+    "Height": 720,
+    "Width": 1280,
+    "Bitrate": 3428,
+    "Id": 59322,
+    "VideoResolution": "720p"
   }
 ]

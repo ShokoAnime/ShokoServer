@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
+using Shoko.Models.MediaInfo;
+
+// ReSharper disable StringLiteralTypo
 
 namespace Shoko.Models.PlexAndKodi
 {
@@ -75,7 +78,7 @@ namespace Shoko.Models.PlexAndKodi
         {
             Media newMedia = new Media
             {
-                Parts = Parts?.Select(a => (Part)a.Clone()).ToList(),
+                Parts = Parts?.Select(a => (Part) a.Clone()).ToList(),
                 Duration = Duration,
                 VideoFrameRate = VideoFrameRate,
                 Container = Container,
@@ -92,6 +95,56 @@ namespace Shoko.Models.PlexAndKodi
                 Chaptered = Chaptered
             };
             return newMedia;
+        }
+
+        public Media()
+        {
+
+        }
+
+        /// <summary>
+        /// Generate a Legacy Media model from the VideoLocalID and MediaContainer
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="m"></param>
+        public Media(int id, MediaInfo.MediaContainer m)
+        {
+            Id = id;
+            Chaptered = m.MenuStreams.Any();
+            if (m.GeneralStream != null)
+            {
+                Duration = (long) m.GeneralStream.Duration;
+                Bitrate = m.GeneralStream.OverallBitRate;
+                Container = LegacyMediaUtils.TranslateContainer(m.GeneralStream.Format);
+                OptimizedForStreaming = (byte) (m.GeneralStream.IsStreamable ? 1 : 0);
+            }
+
+            if (m.VideoStream != null)
+            {
+                Height = m.VideoStream.Height;
+                Width = m.VideoStream.Width;
+                AspectRatio = (float) m.VideoStream.Width / m.VideoStream.Height;
+                VideoResolution = MediaInfoUtils.GetStandardResolution(Tuple.Create(Width, Height));
+                VideoFrameRate = LegacyMediaUtils.TranslateFrameRate(m);
+                VideoCodec = m.VideoStream.CodecID;
+            }
+
+            if (m.AudioStreams.Any())
+            {
+                AudioChannels = (byte) (m.AudioStreams.FirstOrDefault()?.Channels ?? 0);
+                AudioCodec = m.AudioStreams.FirstOrDefault()?.CodecID;
+            }
+
+            Parts = new List<Part>
+            {
+                new Part
+                {
+                    Streams = new List<Stream>()
+                }
+            };
+            Parts[0].Streams.Add(LegacyMediaUtils.TranslateVideoStream(m));
+            Parts[0].Streams.AddRange(LegacyMediaUtils.TranslateAudioStreams(m));
+            Parts[0].Streams.AddRange(LegacyMediaUtils.TranslateTextStreams(m));
         }
     }
 }

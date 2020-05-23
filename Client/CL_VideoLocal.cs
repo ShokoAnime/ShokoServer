@@ -12,6 +12,6 @@ namespace Shoko.Models.Client
         public long ResumePosition { get; set; }
         public List<CL_VideoLocal_Place> Places { get; set; }
         public Media Media { get; set; }
-
+        public long Duration { get; set; }
     }
 }
