@@ -437,16 +437,7 @@ namespace Shoko.Server
 
         private static void ExceptionToUI()
         {
-            /*const string _strWhatHappened =
-                "There was an unexpected error in (app). This may be due to a programming bug.";
-            string _strHowUserAffected = null;
-            const string _strWhatUserCanDo =
-                "Restart (app), and try repeating your last action. Try alternative methods of performing the same action.";
-
-            _strHowUserAffected = "The action you requested was not performed.";*/
-
-
-            //ApplicationController.ShowError(_strHowUserAffected, FormatExceptionForUser(false));
+            // TODO API error notification queue
         }
 
         //--

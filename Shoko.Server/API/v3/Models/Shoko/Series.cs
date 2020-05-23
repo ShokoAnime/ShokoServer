@@ -201,22 +201,12 @@ namespace Shoko.Server.API.v3
 
         public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter, bool excludeDescriptions = false)
         {
-            // TODO This is probably slow. Make it faster.
             var tags = new List<Tag>();
             
-            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToDictionary(a => a.TagName, a => a);
-            var filteredTags = TagFilter.ProcessTags(filter, allTags.Keys.ToList());
-            foreach (string filteredTag in filteredTags)
+            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
+            var filteredTags = TagFilter.ProcessTags(filter, allTags, tag => tag.TagName);
+            foreach (AniDB_Tag tag in filteredTags)
             {
-                AniDB_Tag tag = allTags.ContainsKey(filteredTag)
-                    ? allTags[filteredTag]
-                    : RepoFactory.AniDB_Tag.GetByName(filteredTag).FirstOrDefault();
-                if (tag == null)
-                {
-                    tags.Add(new Tag { Name = filteredTag });
-                    continue;
-                }
-                
                 var toAPI = new Tag
                 {
                     Name = tag.TagName

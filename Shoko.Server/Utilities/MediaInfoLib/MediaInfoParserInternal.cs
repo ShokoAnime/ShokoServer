@@ -18,14 +18,6 @@ namespace Shoko.Server.Utilities.MediaInfoLib
     {
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        private static string TranslateCodec(string codec)
-        {
-            codec = codec.ToLowerInvariant();
-            if (CodecIDs.ContainsKey(codec))
-                return CodecIDs[codec];
-            return codec;
-        }
-
         private static int BiggerFromList(string list)
         {
             int max = 0;
@@ -40,6 +32,14 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             }
 
             return max;
+        }
+
+        private static string TranslateCodec(string codec)
+        {
+            codec = codec.ToLowerInvariant();
+            if (CodecIDs.ContainsKey(codec))
+                return CodecIDs[codec];
+            return codec;
         }
 
         private static string TranslateProfile(string codec, string profile)
@@ -80,47 +80,6 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 level = "high";
 
             return level;
-        }
-
-        private static string GetLanguageFromCode3(string code3, string full)
-        {
-            for (int x = 0; x < languages.GetUpperBound(0); x++)
-            {
-                if (languages[x, 2] == code3)
-                {
-                    return languages[x, 0];
-                }
-            }
-
-            return full;
-        }
-
-        public static string PostTranslateCode3(string c)
-        {
-            c = c.ToLowerInvariant();
-            foreach (string k in code3_post.Keys)
-            {
-                if (c.Contains(k))
-                {
-                    return code3_post[k];
-                }
-            }
-
-            return c;
-        }
-
-        public static string PostTranslateLan(string c)
-        {
-            c = c.ToLowerInvariant();
-            foreach (string k in lan_post.Keys)
-            {
-                if (c.Contains(k))
-                {
-                    return lan_post[k];
-                }
-            }
-
-            return c;
         }
 
         private static string TranslateContainer(string container)
@@ -439,7 +398,6 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 if (forced.ToLower(CultureInfo.InvariantCulture) == "yes")
                     s.Forced = 1;
             }
-
 
             return s;
         }
@@ -812,6 +770,47 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();
             }
+        }
+
+        private static string GetLanguageFromCode3(string code3, string full)
+        {
+            for (int x = 0; x < languages.GetUpperBound(0); x++)
+            {
+                if (languages[x, 2] == code3)
+                {
+                    return languages[x, 0];
+                }
+            }
+
+            return full;
+        }
+
+        public static string PostTranslateCode3(string c)
+        {
+            c = c.ToLowerInvariant();
+            foreach (string k in code3_post.Keys)
+            {
+                if (c.Contains(k))
+                {
+                    return code3_post[k];
+                }
+            }
+
+            return c;
+        }
+
+        public static string PostTranslateLan(string c)
+        {
+            c = c.ToLowerInvariant();
+            foreach (string k in lan_post.Keys)
+            {
+                if (c.Contains(k))
+                {
+                    return lan_post[k];
+                }
+            }
+
+            return c;
         }
 
         private static bool FindInBuffer(string atom, int start, int max, byte[] buffer, out int pos, out int posmax)

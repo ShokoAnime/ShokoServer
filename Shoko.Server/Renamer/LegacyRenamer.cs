@@ -335,7 +335,7 @@ namespace Shoko.Server.Renamer
 
                 if (!int.TryParse(test, out int testBitDepth)) return false;
 
-                if (!int.TryParse(vid.VideoBitDepth, out int vidBitDepth)) return false;
+                if (vid.Media?.VideoStream == null) return false;
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -343,26 +343,26 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        return testBitDepth == vidBitDepth;
+                        return testBitDepth == vid.Media?.VideoStream?.BitDepth;
                     }
-                    return testBitDepth != vidBitDepth;
+                    return testBitDepth != vid.Media?.VideoStream?.BitDepth;
                 }
                 if (greaterThan)
                 {
-                    return vidBitDepth > testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth > testBitDepth;
                 }
 
                 if (greaterThanEqual)
                 {
-                    return vidBitDepth >= testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth >= testBitDepth;
                 }
 
                 if (lessThan)
                 {
-                    return vidBitDepth < testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth < testBitDepth;
                 }
 
-                return vidBitDepth <= testBitDepth;
+                return vid.Media?.VideoStream?.BitDepth <= testBitDepth;
             }
             catch (Exception ex)
             {
@@ -1245,12 +1245,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.VideoBitDepth.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    bool bitDepthExists = false;
-                    if (!string.IsNullOrEmpty(vid?.VideoBitDepth))
-                    {
-                        int.TryParse(vid.VideoBitDepth, out int bitDepth);
-                        if (bitDepth > 0) bitDepthExists = true;
-                    }
+                    bool bitDepthExists = vid?.Media?.VideoStream != null && vid.Media?.VideoStream?.BitDepth != 0;
                     if (!bitDepthExists)
                     {
                         return notCondition;
@@ -1702,7 +1697,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
             {
                 newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec,
-                    aniFile?.File_VideoCodec ?? vid.VideoCodec);
+                    aniFile?.File_VideoCodec ?? vid?.Media?.VideoStream?.CodecID);
             }
 
             #endregion
@@ -1712,7 +1707,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
             {
                 newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec,
-                    aniFile?.File_AudioCodec ?? vid.AudioCodec);
+                    aniFile?.File_AudioCodec ?? vid?.Media?.AudioStreams.FirstOrDefault()?.CodecID);
             }
 
             #endregion
@@ -1721,7 +1716,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoBitDepth))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth, vid.VideoBitDepth);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth,
+                    (vid?.Media?.VideoStream?.BitDepth).ToString());
             }
 
             #endregion

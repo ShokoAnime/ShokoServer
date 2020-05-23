@@ -23,12 +23,12 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 82;
+        public int RequiredVersion { get; } = 83;
 
         public void BackupDatabase(string fullfilename)
         {
             fullfilename = Path.GetFileName(fullfilename) + ".bak";
-            //TODO We cannot write the backup anywere, because
+            //TODO We cannot write the backup anywhere, because
             //1) The server could be elsewhere,
             //2) The SqlServer running account should have read write access to our backup dir which is nono
             // So we backup in the default SQL SERVER BACKUP DIRECTORY.
@@ -604,6 +604,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
+            new DatabaseCommand(83, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, VideoBitrate, VideoFrameRate, VideoResolution, AudioCodec, AudioBitrate, Duration")
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

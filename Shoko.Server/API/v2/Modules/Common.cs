@@ -752,7 +752,7 @@ namespace Shoko.Server.API.v2.Modules
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                 .Where(_tuple => _tuple.anidb != null)
                 .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
                 .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 
@@ -771,7 +771,7 @@ namespace Shoko.Server.API.v2.Modules
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                     .Where(_tuple => _tuple.anidb != null)
                     .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
                     .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;

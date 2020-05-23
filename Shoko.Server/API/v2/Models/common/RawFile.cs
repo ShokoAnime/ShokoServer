@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
@@ -157,17 +158,19 @@ namespace Shoko.Server.API.v2.Models.common
             if (vl.Media == null || level < 0) return;
 
             MediaInfo new_media = new MediaInfo();
+            
+            Media legacy = new Media(vl.VideoLocalID, vl.Media);
 
-            new_media.AddGeneral(MediaInfo.General.format, vl.Media.Container);
-            new_media.AddGeneral(MediaInfo.General.duration, vl.Media.Duration);
-            new_media.AddGeneral(MediaInfo.General.id, vl.Media.Id);
-            new_media.AddGeneral(MediaInfo.General.overallbitrate, vl.Media.Bitrate);
+            new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
+            new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);
+            new_media.AddGeneral(MediaInfo.General.id, legacy.Id);
+            new_media.AddGeneral(MediaInfo.General.overallbitrate, legacy.Bitrate);
 
-            if (vl.Media.Parts != null)
+            if (legacy.Parts != null)
             {
-                new_media.AddGeneral(MediaInfo.General.size, vl.Media.Parts[0].Size);
+                new_media.AddGeneral(MediaInfo.General.size, legacy.Parts[0].Size);
 
-                foreach (Stream p in vl.Media.Parts[0].Streams)
+                foreach (Stream p in legacy.Parts[0].Streams)
                 {
                     switch (p.StreamType)
                     {
@@ -186,7 +189,6 @@ namespace Shoko.Server.API.v2.Models.common
                         //menu
                         case 4:
                             Dictionary<string, string> mdict = new Dictionary<string, string>();
-                            //TODO APIv2: menu object could be usefull for external players
                             new_media.AddMenu(mdict);
                             break;
                     }

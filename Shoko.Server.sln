@@ -52,7 +52,38 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "x64", "x64", "{99CC23E0-FC6
 		Dependencies\x64\librhash.dll = Dependencies\x64\librhash.dll
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaInfoWrapper", "MediaInfoWrapper\MediaInfoWrapper.csproj", "{F3D0C468-467F-4544-905D-20C75D01D2CE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MediaInfo", "MediaInfo", "{1148AE1A-8E8D-4CB9-8309-075377B04353}"
+ProjectSection(SolutionItems) = preProject
+	Dependencies\MediaInfo\History.txt = Dependencies\MediaInfo\History.txt
+	Dependencies\MediaInfo\LIBCURL.DLL = Dependencies\MediaInfo\LIBCURL.DLL
+	Dependencies\MediaInfo\LICENSE = Dependencies\MediaInfo\LICENSE
+	Dependencies\MediaInfo\License.html = Dependencies\MediaInfo\License.html
+	Dependencies\MediaInfo\MediaInfo.exe = Dependencies\MediaInfo\MediaInfo.exe
+	Dependencies\MediaInfo\ReadMe.txt = Dependencies\MediaInfo\ReadMe.txt
+EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugin", "Plugin", "{B64164CA-4140-4985-BD98-A4A8FEB3DC3F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Custom", "Custom", "{EF538055-F3B7-4E6C-8D97-C9C6C19F7AAD}"
+ProjectSection(SolutionItems) = preProject
+	Dependencies\MediaInfo\Plugin\Custom\en.Example.csv = Dependencies\MediaInfo\Plugin\Custom\en.Example.csv
+	Dependencies\MediaInfo\Plugin\Custom\en.Example_HTML.csv = Dependencies\MediaInfo\Plugin\Custom\en.Example_HTML.csv
+	Dependencies\MediaInfo\Plugin\Custom\Example.csv = Dependencies\MediaInfo\Plugin\Custom\Example.csv
+	Dependencies\MediaInfo\Plugin\Custom\Example_HTML.csv = Dependencies\MediaInfo\Plugin\Custom\Example_HTML.csv
+	Dependencies\MediaInfo\Plugin\Custom\fr.Example.csv = Dependencies\MediaInfo\Plugin\Custom\fr.Example.csv
+	Dependencies\MediaInfo\Plugin\Custom\it.Esempio.csv = Dependencies\MediaInfo\Plugin\Custom\it.Esempio.csv
+	Dependencies\MediaInfo\Plugin\Custom\it.Esempio_HTML.csv = Dependencies\MediaInfo\Plugin\Custom\it.Esempio_HTML.csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by fields, compact (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by fields, compact (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by fields, short (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by fields, short (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by fields, standard (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by fields, standard (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by fields, verbose (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by fields, verbose (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by streams, compact (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by streams, compact (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by streams, short (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by streams, short (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by streams, standard (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by streams, standard (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\Table by streams, verbose (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\Table by streams, verbose (HTML).csv
+	Dependencies\MediaInfo\Plugin\Custom\XML.csv = Dependencies\MediaInfo\Plugin\Custom\XML.csv
+	Dependencies\MediaInfo\Plugin\Custom\zzz_Contrib - Dusil (HTML).csv = Dependencies\MediaInfo\Plugin\Custom\zzz_Contrib - Dusil (HTML).csv
+EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -414,38 +445,6 @@ Global
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|Win32.Build.0 = Release|Any CPU
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.ActiveCfg = Release|Any CPU
 		{3A8E0177-9701-4A59-A6CD-16C6908839EA}.Release|x64.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Any CPU.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Any CPU.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Mixed Platforms.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Win32.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|Win32.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|x64.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.CLI|x64.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Any CPU.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Win32.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|Win32.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|x64.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug CLI|x64.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|Win32.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Debug|x64.Build.0 = Debug|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Win32.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|Win32.Build.0 = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|x64.ActiveCfg = Release|Any CPU
-		{F3D0C468-467F-4544-905D-20C75D01D2CE}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -460,6 +459,9 @@ Global
 		{00DED27E-E274-4202-9527-4E7D07E384FC} = {64D264D0-B20E-4889-B535-EFDC52F921C0}
 		{700D0E2E-FF22-4810-8BC5-537207182EDF} = {00DED27E-E274-4202-9527-4E7D07E384FC}
 		{99CC23E0-FC68-4531-8C8D-72D38CA98F06} = {00DED27E-E274-4202-9527-4E7D07E384FC}
+		{1148AE1A-8E8D-4CB9-8309-075377B04353} = {00DED27E-E274-4202-9527-4E7D07E384FC}
+		{B64164CA-4140-4985-BD98-A4A8FEB3DC3F} = {1148AE1A-8E8D-4CB9-8309-075377B04353}
+		{EF538055-F3B7-4E6C-8D97-C9C6C19F7AAD} = {B64164CA-4140-4985-BD98-A4A8FEB3DC3F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1486091B-315E-44FE-8C38-3F9D6E97919B}

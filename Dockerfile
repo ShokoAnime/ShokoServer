@@ -11,10 +11,13 @@ RUN apt-get update && apt-get install -y gnupg curl wget ca-certificates apt-tra
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
-RUN echo "deb https://mediaarea.net/repo/deb/debian/ stretch main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sqlite.interop jq unzip libunwind-dev && apt-get install -y -t stretch-backports gosu
+RUN apt-get update && apt-get install -y apt-utils librhash0 sqlite.interop jq unzip libunwind-dev && apt-get install -y -t stretch-backports gosu
+
+# THIS NEEDS VERIFIED WORKING
+RUN curl https://mediaarea.net/repo/deb/repo-mediaarea_1.0-13_all.deb && dpkg -i repo-mediaarea_1.0-13_all.deb && apt-get update
+RUN apt-get install -y mediainfo
 
 RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 2.2
 
@@ -38,10 +41,13 @@ RUN apt-get update && apt-get install -y gnupg curl wget ca-certificates apt-tra
 RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
 RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
-RUN echo "deb https://mediaarea.net/repo/deb/debian/ stretch main" | tee -a /etc/apt/sources.list
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils libmediainfo0v5 librhash0 sqlite.interop jq unzip libunwind-dev && apt-get install -y -t stretch-backports gosu
+RUN apt-get update && apt-get install -y apt-utils librhash0 sqlite.interop jq unzip libunwind-dev && apt-get install -y -t stretch-backports gosu
+
+# THIS NEEDS VERIFIED WORKING
+RUN curl https://mediaarea.net/repo/deb/repo-mediaarea_1.0-13_all.deb && dpkg -i repo-mediaarea_1.0-13_all.deb && apt-get update
+RUN apt-get install -y mediainfo
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .

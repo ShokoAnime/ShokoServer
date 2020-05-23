@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using NLog;
-using Shoko.Models.PlexAndKodi;
+using Shoko.Models.MediaInfo;
 using Shoko.Server.Extensions;
 using Shoko.Server.Settings;
 
@@ -19,19 +21,45 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         public static MediaContainer GetMediaInfo_New(string filename)
         {
-            string output = null;
-            
-            // TODO Find MediaInfo per platform, execute it with --OUTPUT=JSON, read the standard out, deserialize with the following settings
-            
-            var settings = new JsonSerializerSettings
+            try
             {
-                Converters =  new JsonConverter[] {new StreamJsonConverter(), new BooleanConverter()},
-                DateFormatString = "UTC yyyy-MM-dd HH:mm:ss"
-            };
+                string exe = GetMediaInfoPathForOS();
+                string args = $"--OUTPUT=JSON \"{filename}\"";
 
-            // assuming json, as it starts with {
-            MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
-            return m;
+                var pProcess = GetProcess(exe, args);
+                pProcess.Start();
+                string output = pProcess.StandardOutput.ReadToEnd().Trim();
+                //Wait for process to finish
+                pProcess.WaitForExit();
+
+                if (pProcess.ExitCode != 0 || !output.StartsWith("{"))
+                {
+                    // We have an error
+                    if (string.IsNullOrWhiteSpace(output) || output.EqualsInvariantIgnoreCase("null"))
+                        output = pProcess.StandardError.ReadToEnd().Trim();
+
+                    if (string.IsNullOrWhiteSpace(output) || output.EqualsInvariantIgnoreCase("null"))
+                        output = "No message";
+
+                    logger.Error($"MediaInfo threw an error on {filename}: {output}");
+                    return null;
+                }
+
+                var settings = new JsonSerializerSettings
+                {
+                    Converters =  new JsonConverter[] {new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter()},
+                    DateFormatString = "UTC yyyy-MM-dd HH:mm:ss"
+                };
+
+                // assuming json, as it starts with {
+                MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
+                return m;
+            }
+            catch (Exception e)
+            {
+                logger.Error($"MediaInfo threw an error on {filename}: {e}");
+                return null;
+            }
         }
 
         public static Media GetMediaInfoFromWrapper(string filename)
@@ -92,6 +120,16 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
             return pProcess;
         }
+
+        private static string GetMediaInfoPathForOS()
+        {
+            if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
+
+            string appPath = Path.Combine(Assembly.GetExecutingAssembly().Location, "MediaInfo", "MediaInfo.exe");
+            if (File.Exists(appPath)) return appPath;
+
+            return null;
+        }
         
         private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
         {
@@ -122,11 +160,23 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             return Tuple.Create(executable, args);
         }
 
-        public static Media GetMediaInfo(string filename)
+        public static MediaContainer GetMediaInfo(string filename)
         {
-            // if (Utils.IsRunningOnMono())
-            //    return MediaInfoParserInternal.Convert(filename, ServerSettings.Instance.Import.MediaInfoTimeoutMinutes);
-            return GetMediaInfoFromWrapper(filename);
+            MediaContainer m = null;
+            Task<MediaContainer> mediaTask = Task.FromResult(GetMediaInfo_New(filename));
+
+            int timeout = ServerSettings.Instance.Import.MediaInfoTimeoutMinutes;
+            if (timeout > 0)
+            {
+                Task task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;
+                if (task == mediaTask) m = mediaTask.Result;
+            }
+            else
+            {
+                m = mediaTask.Result;
+            }
+            
+            return m;
         }
     }
 }
