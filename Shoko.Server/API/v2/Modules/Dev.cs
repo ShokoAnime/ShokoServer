@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.MediaInfo;
 using Shoko.Server.Repositories;
+using Media = Shoko.Models.PlexAndKodi.Media;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -75,6 +77,14 @@ namespace Shoko.Server.API.v2.Modules
                     MainTitle = RepoFactory.AniDB_Anime.GetByAnimeID(a)?.MainTitle
                 }).ToList()
             };
+        }
+
+        [HttpGet("Media/{id}")]
+        public ActionResult<Media> GetLegacyConverted(int id)
+        {
+            var video = RepoFactory.VideoLocal.GetByID(id);
+            if (video == null) return BadRequest("Not found");
+            return video.Media == null ? null : new Media(id, video.Media);
         }
     }
 }

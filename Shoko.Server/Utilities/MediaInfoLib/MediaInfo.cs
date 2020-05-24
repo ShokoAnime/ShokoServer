@@ -47,8 +47,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
                 var settings = new JsonSerializerSettings
                 {
-                    Converters =  new JsonConverter[] {new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter()},
-                    DateFormatString = "UTC yyyy-MM-dd HH:mm:ss"
+                    Converters =  new JsonConverter[] {new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter(), new DateTimeConverter() { DateTimeFormat = "UTC yyyy-MM-dd HH:mm:ss"} }
                 };
 
                 // assuming json, as it starts with {

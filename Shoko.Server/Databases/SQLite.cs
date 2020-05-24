@@ -570,7 +570,7 @@ namespace Shoko.Server.Databases
             }
         }
 
-    private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
+        private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
         {
             try
             {
@@ -846,7 +846,7 @@ namespace Shoko.Server.Databases
             ConnectionWrapper(GetConnectionString(), myConn =>
             {
                 bool create = (ExecuteScalar(myConn,
-                                   "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0);
+                    "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0);
                 if (create)
                 {
                     ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
