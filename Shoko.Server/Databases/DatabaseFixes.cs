@@ -79,22 +79,22 @@ namespace Shoko.Server.Databases
 
         public static void FixEmptyVideoInfos()
         {
-            List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll()
-                .Where(a => string.IsNullOrEmpty(a.FileName))
-                .ToList();
-            foreach (SVR_VideoLocal v in locals)
-            {
-                SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
-                if (!string.IsNullOrEmpty(p?.FilePath) && v.Media != null)
-                {
-                    v.FileName = p.FilePath;
-                    int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
-                    if (a > 0)
-                        v.FileName = p.FilePath.Substring(a + 1);
-                    SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);
-                    RepoFactory.VideoLocal.Save(v, false);
-                }
-            }
+            // List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll()
+            //     .Where(a => string.IsNullOrEmpty(a.FileName))
+            //     .ToList();
+            // foreach (SVR_VideoLocal v in locals)
+            // {
+            //     SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+            //     if (!string.IsNullOrEmpty(p?.FilePath) && v.Media != null)
+            //     {
+            //         v.FileName = p.FilePath;
+            //         int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
+            //         if (a > 0)
+            //             v.FileName = p.FilePath.Substring(a + 1);
+            //         SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);
+            //         RepoFactory.VideoLocal.Save(v, false);
+            //     }
+            // }
         }
 
         public static void RemoveOldMovieDBImageRecords()

@@ -40,15 +40,11 @@ namespace Shoko.Server.API.v3
 
         public ImportFolder(SVR_ImportFolder folder)
         {
-            var series = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
-                .DistinctBy(b => b.VideoLocalID)
-                .SelectMany(b =>
-                    string.IsNullOrEmpty(b.VideoLocal?.Hash)
-                        ? null
-                        : RepoFactory.CrossRef_File_Episode.GetByHash(b.VideoLocal.Hash)).Where(b => b != null)
-                .DistinctBy(b => b.AnimeID).Count();
+            int series = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
+                .Select(a => a?.VideoLocal?.Hash).Where(a => !string.IsNullOrEmpty(a)).Distinct()
+                .SelectMany(RepoFactory.CrossRef_File_Episode.GetByHash).DistinctBy(a => a.AnimeID).Count();
             long size = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID)
-                .DistinctBy(b => b.VideoLocalID).Select(b => b.VideoLocal).Where(b => b != null)
+                .Select(a => a.VideoLocal).Where(b => b != null)
                 .Sum(b => b.FileSize);
 
             DropFolderType type;

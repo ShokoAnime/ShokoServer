@@ -783,7 +783,6 @@ namespace Shoko.Server
         public static void RemoveRecordsWithoutPhysicalFiles()
         {
             logger.Info("Remove Missing Files: Start");
-            HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -804,7 +803,7 @@ namespace Shoko.Server
                         if (obj != null && obj.IsOk) continue;
                         // delete video local record
                         logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
-                        vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                        vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     }
                 }
 
@@ -870,7 +869,6 @@ namespace Shoko.Server
                             {
                                 if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
                                 logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
-                                episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                                 seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                     .DistinctBy(a => a.AnimeSeriesID));
                                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
@@ -897,7 +895,6 @@ namespace Shoko.Server
                     if (v.Places?.Count > 0) continue;
                     // delete video local record
                     logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
-                    episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
                     CommandRequest_DeleteFileFromMyList cmdDel =
@@ -925,23 +922,6 @@ namespace Shoko.Server
                 }
 
                 // update everything we modified
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-                {
-                    if (ep.AnimeEpisodeID == 0)
-                    {
-                        ep.PlexContract = null;
-                        RepoFactory.AnimeEpisode.Save(ep);
-                    }
-                    try
-                    {
-                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
-                }
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
                     ser.QueueUpdateStats();

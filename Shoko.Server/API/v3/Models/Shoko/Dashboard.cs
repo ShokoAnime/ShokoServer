@@ -43,6 +43,36 @@ namespace Shoko.Server.API.v3
             /// The percentage of files that are either duplicates or belong to the same episode
             /// </summary>
             public decimal PercentDuplicate { get; set; }
+            
+            /// <summary>
+            /// The Number of missing episodes, regardless of where they are from or available
+            /// </summary>
+            public int MissingEpisodes { get; set; }
+            
+            /// <summary>
+            /// The number of missing episodes from groups we are collecting. This should not be used as a rule, as it's not very reliable
+            /// </summary>
+            public int MissingEpisodesCollecting { get; set; }
+            
+            /// <summary>
+            /// Number of Unrecognized Files 
+            /// </summary>
+            public int UnrecognizedFiles { get; set; }
+            
+            /// <summary>
+            /// The number of series missing both the TvDB and MovieDB Links
+            /// </summary>
+            public int SeriesWithMissingLinks { get; set; }
+
+            /// <summary>
+            /// The number of Episodes with more than one File (not marked as a variation)
+            /// </summary>
+            public int EpisodesWithMultipleFiles { get; set; }
+
+            /// <summary>
+            /// The number of files that exist in more than one location
+            /// </summary>
+            public int FilesWithDuplicateLocations { get; set; }
         }
         
         public class SeriesSummary

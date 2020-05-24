@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
@@ -40,6 +42,18 @@ namespace Shoko.Server.API.v3
         /// links to series pages on various sites
         /// </summary>
         public List<Resource> Links { get; set; }
+        
+        /// <summary>
+        /// The time when the series was created, during the process of the first file being added
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime Created { get; set; }
+        
+        /// <summary>
+        /// The time when the series was last updated
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime Updated { get; set; }
 
         #region Constructors and Helper Methods
 
@@ -62,6 +76,9 @@ namespace Shoko.Server.API.v3
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                    Sizes.Local.Specials + Sizes.Local.Trailers;
+
+            Created = ser.DateTimeCreated;
+            Updated = ser.DateTimeUpdated;
         }
 
         private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
@@ -184,22 +201,12 @@ namespace Shoko.Server.API.v3
 
         public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter, bool excludeDescriptions = false)
         {
-            // TODO This is probably slow. Make it faster.
             var tags = new List<Tag>();
             
-            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToDictionary(a => a.TagName, a => a);
-            var filteredTags = TagFilter.ProcessTags(filter, allTags.Keys.ToList());
-            foreach (string filteredTag in filteredTags)
+            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
+            var filteredTags = TagFilter.ProcessTags(filter, allTags, tag => tag.TagName);
+            foreach (AniDB_Tag tag in filteredTags)
             {
-                AniDB_Tag tag = allTags.ContainsKey(filteredTag)
-                    ? allTags[filteredTag]
-                    : RepoFactory.AniDB_Tag.GetByName(filteredTag).FirstOrDefault();
-                if (tag == null)
-                {
-                    tags.Add(new Tag { Name = filteredTag });
-                    continue;
-                }
-                
                 var toAPI = new Tag
                 {
                     Name = tag.TagName

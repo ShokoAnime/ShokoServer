@@ -80,7 +80,7 @@ namespace Shoko.Server.Extensions
         public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
             //Cleanup any File subtitles from media information.
-            Media m = (Media) v.Media.Clone();
+            Media m = new Media(v.VideoLocalID, v.Media);
             if (m.Parts != null && m.Parts.Count > 0)
             {
                 foreach (Part p in m.Parts)

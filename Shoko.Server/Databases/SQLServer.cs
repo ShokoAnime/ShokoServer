@@ -12,6 +12,7 @@ using Microsoft.Win32;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Cfg;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -23,12 +24,12 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 82;
+        public int RequiredVersion { get; } = 83;
 
         public void BackupDatabase(string fullfilename)
         {
             fullfilename = Path.GetFileName(fullfilename) + ".bak";
-            //TODO We cannot write the backup anywere, because
+            //TODO We cannot write the backup anywhere, because
             //1) The server could be elsewhere,
             //2) The SqlServer running account should have read write access to our backup dir which is nono
             // So we backup in the default SQL SERVER BACKUP DIRECTORY.
@@ -604,6 +605,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
+            new DatabaseCommand(83, 1, DropVideoLocalMediaColumns)
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
@@ -615,6 +617,39 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(
                 "CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
         };
+
+        private static void DropVideoLocalMediaColumns()
+        {
+            string[] columns =
+            {
+                "VideoCodec", "VideoBitrate", "VideoBitDepth", "VideoFrameRate", "VideoResolution", "AudioCodec", "AudioBitrate",
+                "Duration"
+            };
+            columns.ForEach(a => DropColumnWithDefaultConstraint("VideoLocal", a));
+        }
+
+        private static void DropColumnWithDefaultConstraint(string table, string column)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            {
+                using (var trans = session.BeginTransaction())
+                {
+                    string query = $@"DECLARE @ConstraintName nvarchar(200)
+SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS
+WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns
+                        WHERE NAME = N'{column}'
+                        AND object_id = OBJECT_ID(N'{table}'))
+IF @ConstraintName IS NOT NULL
+EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
+                    session.CreateSQLQuery(query).ExecuteUpdate();
+
+                    query = $@"ALTER TABLE {table} DROP COLUMN {column}";
+                    session.CreateSQLQuery(query).ExecuteUpdate();
+                    trans.Commit();
+                }
+            }
+        }
 
         protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
         {

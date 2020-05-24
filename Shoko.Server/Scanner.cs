@@ -164,23 +164,6 @@ namespace Shoko.Server
                     place.RemoveAndDeleteFileWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
                 });
                 // update everything we modified
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-                {
-                    if (ep.AnimeEpisodeID == 0)
-                    {
-                        ep.PlexContract = null;
-                        RepoFactory.AnimeEpisode.Save(ep);
-                    }
-                    try
-                    {
-                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
-                }
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
                     ser?.QueueUpdateStats();

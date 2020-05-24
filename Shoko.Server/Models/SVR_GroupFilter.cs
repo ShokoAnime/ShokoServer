@@ -1022,12 +1022,13 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedTvDBOrMovieDBInfo:
-                    bool restricted = (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
-                    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null && !restricted;
+                    // return true if excluding
+                    if (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0)
+                        return gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude;
+                    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null;
                     bool tvlinkMissing =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0 &&
-                        !restricted;
-                    bool bothMissing = movieLinkMissing && tvlinkMissing;
+                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
+                        bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !bothMissing) return false;
                     break;

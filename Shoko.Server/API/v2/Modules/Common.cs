@@ -752,7 +752,7 @@ namespace Shoko.Server.API.v2.Modules
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                 .Where(_tuple => _tuple.anidb != null)
                 .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
                 .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 
@@ -771,7 +771,7 @@ namespace Shoko.Server.API.v2.Modules
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
                     .Where(_tuple => _tuple.anidb != null)
                     .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
+                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
                     .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
@@ -875,18 +875,20 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>List<RawFile></returns>
         [HttpGet("file/recent")]
-        public List<RawFile> GetRecentFiles(int limit = 0, int level = 0)
+        public List<RawFile.RecentFile> GetRecentFiles(int limit = 0, int level = 0)
         {
-            JMMUser user = HttpContext.GetUser();
             // default 50 as that's reasonable
             if (limit == 0) limit = 50;
 
-            List<RawFile> list = new List<RawFile>();
-            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, user.JMMUserID))
+            List<RawFile.RecentFile> list = new List<RawFile.RecentFile>();
+            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID))
             {
-                var allowed = !file.GetAnimeEpisodes().Any(a => a.GetAnimeSeries()?.GetAnime()?.GetAllTags()
-                                        ?.FindInEnumerable(user.GetHideCategories()) ?? false);
-                if (allowed) list.Add(new RawFile(HttpContext, file, level, user?.JMMUserID ?? 0));
+                if (file.GetAnimeEpisodes().Any(a => !User.AllowedSeries(a?.GetAnimeSeries()))) continue;
+                list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
+                {
+                    ep_id = file.GetAnimeEpisodes().FirstOrDefault()?.AnimeEpisodeID ?? 0,
+                    series_id = file.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries()?.AnimeSeriesID ?? 0
+                });
             }
 
             return list;

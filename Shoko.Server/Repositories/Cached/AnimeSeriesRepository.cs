@@ -127,6 +127,8 @@ namespace Shoko.Server.Repositories.Cached
             TimeSpan ts;
             bool newSeries = false;
             SVR_AnimeGroup oldGroup = null;
+            // Updated Now
+            obj.DateTimeUpdated = DateTime.Now;
             bool isMigrating = false;
             lock (obj)
             {

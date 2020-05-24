@@ -8,6 +8,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Azure;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
@@ -23,6 +24,8 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Directory = System.IO.Directory;
+using Media = Shoko.Models.PlexAndKodi.Media;
+using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.Models
@@ -261,8 +264,7 @@ namespace Shoko.Server.Models
         }
 
 
-        public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeEpisode> episodesToUpdate,
-            ICollection<SVR_AnimeSeries> seriesToUpdate, bool updateMyListStatus = true)
+        public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeSeries> seriesToUpdate, bool updateMyListStatus = true)
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
@@ -281,7 +283,6 @@ namespace Shoko.Server.Models
                 }
 
                 List<SVR_AnimeEpisode> eps = v?.GetAnimeEpisodes()?.Where(a => a != null).ToList();
-                eps?.ForEach(episodesToUpdate.Add);
                 eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.GetAnimeSeries()).ToList().ForEach(seriesToUpdate.Add);
                 using (var transaction = session.BeginTransaction())
                 {
@@ -312,104 +313,42 @@ namespace Shoko.Server.Models
             return fobj.Result as IFile;
         }
 
-        public static void FillVideoInfoFromMedia(SVR_VideoLocal info, Media m)
-        {
-            info.VideoResolution = m.Width != 0 && m.Height != 0 ? m.Width + "x" + m.Height : string.Empty;
-            info.VideoCodec = !string.IsNullOrEmpty(m.VideoCodec)
-                ? m.VideoCodec
-                : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == 1)?.CodecID ?? string.Empty;
-            info.AudioCodec = !string.IsNullOrEmpty(m.AudioCodec)
-                ? m.AudioCodec
-                : m.Parts.SelectMany(a => a.Streams).FirstOrDefault(a => a.StreamType == 2)?.CodecID ?? string.Empty;
-
-
-            info.Duration = m.Duration;
-
-            info.VideoBitrate = info.VideoBitDepth = info.VideoFrameRate = info.AudioBitrate = string.Empty;
-            List<Stream> vparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == 1).ToList();
-            if (vparts.Count > 0)
-            {
-                info.VideoBitrate = vparts[0].Bitrate.ToString();
-                info.VideoBitDepth = vparts[0].BitDepth.ToString();
-                info.VideoFrameRate = vparts[0].FrameRate.ToString();
-            }
-            List<Stream> aparts = m.Parts.SelectMany(a => a.Streams).Where(a => a.StreamType == 2).ToList();
-            if (aparts.Count > 0) info.AudioBitrate = aparts[0].Bitrate.ToString();
-        }
-
         public bool RefreshMediaInfo()
         {
             try
             {
                 logger.Trace("Getting media info for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
-                Media m = null;
+                MediaContainer m = null;
                 if (VideoLocal == null)
                 {
                     logger.Error($"VideoLocal for {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                     return false;
                 }
 
-                if (ServerSettings.Instance.WebCache.Enabled)
-                {
-                    List<Azure_Media> webmedias = AzureWebAPI.Get_Media(VideoLocal.ED2KHash);
-                    if (webmedias != null && webmedias.Count > 0 && webmedias.FirstOrDefault(a => a != null) != null)
-                    {
-                        m = webmedias.FirstOrDefault(a => a != null).ToMedia();
-                    }
-                }
-
-                if (m == null && FullServerPath != null)
+                if (FullServerPath != null)
                 {
                     if (GetFile() == null)
                     {
                         logger.Error($"File {FullServerPath ?? VideoLocal_Place_ID.ToString()} failed to be retrived for MediaInfo");
                         return false;
                     }
-                    string name = (ImportFolder.CloudID == null)
-                        ? FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}")
-                        : ((IProvider) null).ReplaceSchemeHost(((IProvider) null).ConstructVideoLocalStream(0,
-                            VideoLocalID, "file", false));
+
+                    string name = FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
                     m = MediaInfo.GetMediaInfo(name); //Mediainfo should have libcurl.dll for http
-                    if ((m?.Duration ?? 0) == 0)
+                    var duration = m?.GeneralStream?.Duration ?? 0;
+                    if (duration == 0)
                         m = null;
-                    if (m != null && ServerSettings.Instance.WebCache.Enabled)
-                        AzureWebAPI.Send_Media(VideoLocal.ED2KHash, m);
                 }
 
 
                 if (m != null)
                 {
                     SVR_VideoLocal info = VideoLocal;
-                    FillVideoInfoFromMedia(info, m);
 
-                    m.Id = VideoLocalID;
-                    List<Stream> subs = SubtitleHelper.GetSubtitleStreams(this);
+                    List<TextStream> subs = SubtitleHelper.GetSubtitleStreams(this);
                     if (subs.Count > 0)
                     {
-                        m.Parts[0].Streams.AddRange(subs);
-                    }
-                    foreach (Part p in m.Parts)
-                    {
-                        p.Id = 0;
-                        p.Accessible = 1;
-                        p.Exists = 1;
-                        bool vid = false;
-                        bool aud = false;
-                        bool txt = false;
-                        foreach (Stream ss in p.Streams.ToArray())
-                        {
-                            if (ss.StreamType == 1 && !vid) vid = true;
-                            if (ss.StreamType == 2 && !aud)
-                            {
-                                aud = true;
-                                ss.Selected = 1;
-                            }
-                            if (ss.StreamType == 3 && !txt)
-                            {
-                                txt = true;
-                                ss.Selected = 1;
-                            }
-                        }
+                        m.media.track.AddRange(subs);
                     }
                     info.Media = m;
                     return true;
@@ -555,26 +494,26 @@ namespace Shoko.Server.Models
                 if (fileSystem == null)
                 {
                     logger.Info("Unable to delete file, filesystem not found. Removing record.");
-                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     return;
                 }
                 if (FullServerPath == null)
                 {
                     logger.Info("Unable to delete file, fullserverpath is null. Removing record.");
-                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     return;
                 }
                 FileSystemResult<IObject> fr = fileSystem.Resolve(FullServerPath);
                 if (fr == null || !fr.IsOk)
                 {
                     logger.Info($"Unable to find file. Removing Record: {FullServerPath}");
-                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     return;
                 }
                 if (!(fr.Result is IFile file))
                 {
                     logger.Info($"Seems '{FullServerPath}' is a directory. Removing Record");
-                    RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     return;
                 }
                 try
@@ -591,7 +530,7 @@ namespace Shoko.Server.Models
                     if (ex is FileNotFoundException)
                     {
                         RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
-                        RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                        RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                         return;
                     }
 
@@ -599,7 +538,7 @@ namespace Shoko.Server.Models
                     return;
                 }
                 RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
-                RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                 // For deletion of files from Trakt, we will rely on the Daily sync
             }
             catch (Exception ex)

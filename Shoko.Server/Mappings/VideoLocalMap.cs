@@ -24,14 +24,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.MediaVersion).Not.Nullable();
             Map(x => x.MediaBlob).Nullable().CustomType("BinaryBlob");
             Map(x => x.MediaSize).Not.Nullable();
-            Map(x => x.AudioBitrate).Not.Nullable();
-            Map(x => x.AudioCodec).Not.Nullable();
-            Map(x => x.VideoBitrate).Not.Nullable();
-            Map(x => x.VideoCodec).Not.Nullable();
-            Map(x => x.VideoFrameRate).Not.Nullable();
-            Map(x => x.VideoResolution).Not.Nullable();
-            Map(x => x.VideoBitDepth).Not.Nullable();
-            Map(x => x.Duration).Not.Nullable();
             Map(x => x.MyListID).Not.Nullable();
         }
     }

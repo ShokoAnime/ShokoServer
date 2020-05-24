@@ -186,7 +186,7 @@ namespace Shoko.Server.PlexAndKodi
                 AnimeType = AnimeTypes.AnimeFile.ToString(),
                 Id = v.VideoLocalID,
                 Type = "episode",
-                Summary = "Episode Overview Not Available", //TODO Intenationalization
+                Summary = "Episode Overview Not Available", //TODO Internationalization
                 Title = Path.GetFileNameWithoutExtension(v.FileName),
                 AddedAt = v.DateTimeCreated.ToUnixTime(),
                 UpdatedAt = v.DateTimeUpdated.ToUnixTime(),
@@ -199,19 +199,13 @@ namespace Shoko.Server.PlexAndKodi
                 l.LastViewedAt = vlr.WatchedDate.Value.ToUnixTime();
             if (vlr?.ResumePosition > 0)
                 l.ViewOffset = vlr.ResumePosition;
-            Media m = v.Media;
-            if (m?.Duration != 0)
+            if (v.Media != null)
             {
-                SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
-                if (pl?.RefreshMediaInfo() == true)
-                    RepoFactory.VideoLocal.Save(v, true);
-                m = v.Media;
-            }
-            if (m != null)
-            {
+                Media m = new Media(v.VideoLocalID, v.Media);
                 l.Medias.Add(m);
                 l.Duration = m.Duration;
             }
+
             AddLinksToAnimeEpisodeVideo(prov, l, userid);
             return l;
         }
@@ -223,18 +217,6 @@ namespace Shoko.Server.PlexAndKodi
             Video v = e.Key.PlexContract?.Clone<Video>(prov);
             if (v?.Thumb != null)
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
-            if (v != null && (v.Medias == null || v.Medias.Count == 0))
-            {
-                foreach (SVR_VideoLocal vl2 in e.Key.GetVideoLocals())
-                {
-                    if (vl2.Media?.Duration != 0) continue;
-                    SVR_VideoLocal_Place pl = vl2.GetBestVideoLocalPlace();
-                    if (pl?.RefreshMediaInfo() == true)
-                        RepoFactory.VideoLocal.Save(vl2, true);
-                }
-                RepoFactory.AnimeEpisode.Save(e.Key);
-                v = e.Key.PlexContract?.Clone<Video>(prov);
-            }
             if (v != null)
             {
                 if (e.Key.AniDB_Episode == null) return v;
@@ -293,21 +275,14 @@ namespace Shoko.Server.PlexAndKodi
                 l.Medias = new List<Media>();
                 foreach (SVR_VideoLocal v in vids)
                 {
-                    if ((v.Media?.Duration ?? 0) == 0)
-                    {
-                        SVR_VideoLocal_Place pl = v.GetBestVideoLocalPlace();
-                        if (pl?.RefreshMediaInfo() == true)
-                            RepoFactory.VideoLocal.Save(v, true);
-                    }
-                    v.Media?.Parts?.Where(a => a != null)
-                        ?.ToList()
-                        ?.ForEach(a =>
+                    if (v.Media == null) continue;
+                    var legacy = new Media(v.VideoLocalID, v.Media);
+                    legacy.Parts.ForEach(a =>
                         {
                             if (string.IsNullOrEmpty(a.LocalKey))
                                 a.LocalKey = v?.GetBestVideoLocalPlace()?.FullServerPath ?? null;
                         });
-                    if (v.Media != null)
-                        l.Medias.Add(v.Media);
+                    l.Medias.Add(legacy);
                 }
 
                 string title = ep.Title;

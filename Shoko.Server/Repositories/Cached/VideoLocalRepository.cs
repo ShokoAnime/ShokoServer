@@ -209,7 +209,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private void UpdateMediaContracts(SVR_VideoLocal obj)
         {
-            if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration == 0)
+            if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
             {
                 SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace(true);
                 place?.RefreshMediaInfo();
@@ -445,8 +445,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION ||
-                                               a.Duration == 0)
+                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
                     .ToList();
             }
         }

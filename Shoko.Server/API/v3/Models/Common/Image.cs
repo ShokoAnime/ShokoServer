@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
-using System.IO;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -184,7 +183,7 @@ namespace Shoko.Server.API.v3
                     if (anime == null)
                         return null;
                     path = anime.PosterPath;
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -199,7 +198,7 @@ namespace Shoko.Server.API.v3
                     if (wideBanner == null)
                         return null;
                     path = wideBanner.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -215,7 +214,7 @@ namespace Shoko.Server.API.v3
                     if (poster == null)
                         return null;
                     path = poster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -231,7 +230,7 @@ namespace Shoko.Server.API.v3
                     if (ep == null)
                         return null;
                     path = ep.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -247,7 +246,7 @@ namespace Shoko.Server.API.v3
                     if (fanart == null)
                         return null;
                     path = fanart.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                         return path;
 
                     path = string.Empty;
@@ -262,7 +261,7 @@ namespace Shoko.Server.API.v3
                     if (mFanart == null)
                         return null;
                     path = mFanart.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -281,7 +280,7 @@ namespace Shoko.Server.API.v3
                     if (mPoster == null)
                         return null;
                     path = mPoster.GetFullImagePath();
-                    if (File.Exists(path))
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -295,8 +294,8 @@ namespace Shoko.Server.API.v3
                     AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(id);
                     if (character == null)
                         return null;
-                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar + character.ImagePath;
-                    if (File.Exists(path))
+                    path = ImageUtils.GetBaseAniDBCharacterImagesPath() + System.IO.Path.DirectorySeparatorChar + character.ImagePath;
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }
@@ -310,8 +309,8 @@ namespace Shoko.Server.API.v3
                     var staff = RepoFactory.AnimeStaff.GetByID(id);
                     if (staff == null)
                         return null;
-                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar + staff.ImagePath;
-                    if (File.Exists(path))
+                    path = ImageUtils.GetBaseAniDBCreatorImagesPath() + System.IO.Path.DirectorySeparatorChar + staff.ImagePath;
+                    if (System.IO.File.Exists(path))
                     {
                         return path;
                     }

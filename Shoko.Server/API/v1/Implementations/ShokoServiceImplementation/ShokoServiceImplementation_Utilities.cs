@@ -1360,8 +1360,7 @@ namespace Shoko.Server
                 {
                     int thisBitDepth = 8;
 
-                    if (int.TryParse(vid.VideoBitDepth, out int bitDepth))
-                        thisBitDepth = bitDepth;
+                    if (vid.Media?.VideoStream?.BitDepth != null) thisBitDepth = vid.Media.VideoStream.BitDepth;
 
                     List<SVR_AnimeEpisode> eps = vid.GetAnimeEpisodes();
                     if (eps.Count == 0) continue;
@@ -1502,10 +1501,9 @@ namespace Shoko.Server
                 List<SVR_AnimeEpisode> eps = videoLocals.Select(a => a?.GetAnimeEpisodes().FirstOrDefault()).Where(a => a != null).ToList();
                 SVR_AniDB_File ani = videoLocals.First().GetAniDBFile();
                 contract.AudioStreamCount = videoLocals.First()
-                    .Media?.Parts.SelectMany(a => a.Streams)
-                    .Count(a => a.StreamType == 2) ?? 0;
+                    .Media?.AudioStreams.Count ?? 0;
                 contract.IsChaptered =
-                    (ani?.IsChaptered ?? (videoLocals.First()?.Media?.Chaptered ?? false ? 1 : 0)) == 1;
+                    (ani?.IsChaptered ?? (videoLocals.First()?.Media?.MenuStreams.Any() ?? false ? 1 : 0)) == 1;
                 contract.FileCountNormal = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Episode);
                 contract.FileCountSpecials = eps.Count(a => a?.EpisodeTypeEnum == EpisodeType.Special);
                 contract.GroupName = key.Key.GroupName;
@@ -1518,11 +1516,10 @@ namespace Shoko.Server
                 contract.TotalFileSize = videoLocals.Sum(a => a?.FileSize ?? 0);
                 contract.TotalRunningTime = videoLocals.Sum(a => a?.Duration ?? 0);
                 contract.VideoSource = key.Key.File_Source;
-                string bitDepth = videoLocals.First().VideoBitDepth;
-                if (!string.IsNullOrEmpty(bitDepth))
+                int? bitDepth = videoLocals.First().Media?.VideoStream?.BitDepth;
+                if (bitDepth != null)
                 {
-                    if (int.TryParse(bitDepth, out int bit))
-                        contract.VideoBitDepth = bit;
+                    contract.VideoBitDepth = bitDepth.Value;
                 }
                 vidQuals.Add(contract);
 

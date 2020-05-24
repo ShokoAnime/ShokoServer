@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using NLog;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
@@ -12,6 +16,8 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class RawFile : BaseDirectory
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
+        
         public override string type => "file";
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
@@ -27,9 +33,11 @@ namespace Shoko.Server.API.v2.Models.common
         public string sha1 { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime created { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime updated { get; set; }
 
         [DataMember(IsRequired = true, EmitDefaultValue = true)]
@@ -83,6 +91,24 @@ namespace Shoko.Server.API.v2.Models.common
         [DataMember(IsRequired = false, EmitDefaultValue = true)]
         public int is_preferred { get; set; }
 
+        [DataContract]
+        public class RecentFile : RawFile
+        {
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
+            public int series_id { get; set; }
+
+            [DataMember(IsRequired = false, EmitDefaultValue = false)]
+            public int ep_id { get; set; }
+
+            public RecentFile() {}
+
+            public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+                vl, level, uid, e)
+            {
+                
+            }
+        }
+
         public RawFile()
         {
         }
@@ -132,43 +158,51 @@ namespace Shoko.Server.API.v2.Models.common
 
             recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
 
-            if (vl.Media == null || level < 0) return;
+            if (vl.Media?.GeneralStream == null || level < 0) return;
 
             MediaInfo new_media = new MediaInfo();
 
-            new_media.AddGeneral(MediaInfo.General.format, vl.Media.Container);
-            new_media.AddGeneral(MediaInfo.General.duration, vl.Media.Duration);
-            new_media.AddGeneral(MediaInfo.General.id, vl.Media.Id);
-            new_media.AddGeneral(MediaInfo.General.overallbitrate, vl.Media.Bitrate);
-
-            if (vl.Media.Parts != null)
+            try
             {
-                new_media.AddGeneral(MediaInfo.General.size, vl.Media.Parts[0].Size);
+                Media legacy = new Media(vl.VideoLocalID, vl.Media);
 
-                foreach (Stream p in vl.Media.Parts[0].Streams)
+                new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
+                new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);
+                new_media.AddGeneral(MediaInfo.General.id, legacy.Id);
+                new_media.AddGeneral(MediaInfo.General.overallbitrate, legacy.Bitrate);
+
+                if (legacy.Parts != null)
                 {
-                    switch (p.StreamType)
+                    new_media.AddGeneral(MediaInfo.General.size, legacy.Parts[0].Size);
+
+                    foreach (Stream p in legacy.Parts[0].Streams)
                     {
-                        //video
-                        case 1:
-                            new_media.AddVideo(p);
-                            break;
-                        //audio
-                        case 2:
-                            new_media.AddAudio(p);
-                            break;
-                        //subtitle
-                        case 3:
-                            new_media.AddSubtitle(p);
-                            break;
-                        //menu
-                        case 4:
-                            Dictionary<string, string> mdict = new Dictionary<string, string>();
-                            //TODO APIv2: menu object could be usefull for external players
-                            new_media.AddMenu(mdict);
-                            break;
+                        switch (p.StreamType)
+                        {
+                            //video
+                            case 1:
+                                new_media.AddVideo(p);
+                                break;
+                            //audio
+                            case 2:
+                                new_media.AddAudio(p);
+                                break;
+                            //subtitle
+                            case 3:
+                                new_media.AddSubtitle(p);
+                                break;
+                            //menu
+                            case 4:
+                                Dictionary<string, string> mdict = new Dictionary<string, string>();
+                                new_media.AddMenu(mdict);
+                                break;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
             }
 
             media = new_media;

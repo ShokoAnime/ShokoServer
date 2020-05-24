@@ -13,31 +13,7 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeEpisode : AnimeEpisode
     {
-        private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract;
-
-        public virtual Video PlexContract
-        {
-            get
-            {
-                if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
-                {
-                    _lastPlexRegen = DateTime.Now;
-                    return _plexContract = Helper.GenerateVideoFromAnimeEpisode(this);
-                }
-                return _plexContract;
-            }
-            set
-            {
-                _plexContract = value;
-                _lastPlexRegen = DateTime.Now;
-            }
-        }
-
-        public void CollectContractMemory()
-        {
-            _plexContract = null;
-        }
+        public virtual Video PlexContract => Helper.GenerateVideoFromAnimeEpisode(this);
 
         public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 

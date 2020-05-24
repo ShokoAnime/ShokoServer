@@ -47,22 +47,14 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-
-        private void UpdatePlexContract(SVR_AnimeEpisode e)
-        {
-            e.PlexContract = Helper.GenerateVideoFromAnimeEpisode(e);
-        }
-
         public override void Save(SVR_AnimeEpisode obj)
         {
             lock (obj)
             {
                 if (obj.AnimeEpisodeID == 0)
                 {
-                    obj.PlexContract = null;
                     base.Save(obj);
                 }
-                UpdatePlexContract(obj);
                 base.Save(obj);
             }
         }

@@ -21,6 +21,8 @@ namespace Shoko.Server.Settings
 
         public bool UseExistingFileWatchedStatus { get; set; } = true;
 
+        public bool AutomaticallyDeleteDuplicatesOnImport { get; set; } = false;
+
         public bool FileLockChecking { get; set; } = true;
 
         public bool AggressiveFileLockChecking { get; set; } = true;
