@@ -234,7 +234,6 @@ namespace Shoko.Models.MediaInfo
             {"qu", Tuple.Create("que", "Quechua")},
             {"rm", Tuple.Create("roh", "RaetoRomance")},
             {"rn", Tuple.Create("run", "Rundi")},
-            {"ro", Tuple.Create("ron", "Romanian")},
             {"ro", Tuple.Create("rum", "Romanian")},
             {"ru", Tuple.Create("rus", "Russian")},
             {"rw", Tuple.Create("kin", "Kinyarwanda")},
