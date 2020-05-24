@@ -18,6 +18,19 @@
             "stopAtEntry": false
         },
         {
+            "name": ".NET Core Launch (mediainfo) ",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-mediainfo",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/netcoreapp3.1/MediaInfoWrapper.dll",
+            "args": ["/share/raid/Hentai/Vicious/[RG] Vicious - 2 (640x480 DVD XviD) [BC5B644C].ogm", "5"],
+            "cwd": "${workspaceFolder}",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",

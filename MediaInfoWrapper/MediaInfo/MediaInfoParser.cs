@@ -489,7 +489,7 @@ namespace MediaInfoWrapper
             lock (Lock)
             {
                 if (_mInstance == null) _mInstance = new MediaInfoDLL();
-                if (_mInstance.Open(filename) == 0) return null; //it's a boolean response.
+                if (_mInstance.Open(filename) == 0) throw new Exception($"MediaInfo was unable to open {filename}"); //it's a boolean response.
                 Media m = new Media();
                 Part p = new Part();
                 Stream videoStream = null;
@@ -702,7 +702,7 @@ namespace MediaInfoWrapper
         public static async Task<Media> ConvertAsync(string filename, int timeout)
         {
             if (filename == null)
-                return null;
+                throw new Exception("Filename was null");
             try
             {
                 Task<Media> mediaTask = Task.FromResult(GetMediaInfo(filename));
@@ -719,19 +719,12 @@ namespace MediaInfoWrapper
                     m = await mediaTask;
                     finished = true;
                 }
+                
+                if (!finished) throw new TimeoutException($"Reading the Media Info took longer than {timeout} minutes");
 
-                if (!finished || m == null)
+                if (m == null)
                 {
-                    try
-                    {
-                        CloseMediaInfo();
-                    }
-                    catch
-                    {
-                        /*ignored*/
-                    }
-
-                    return null;
+                    throw new Exception("MediaInfo was unable to read the file. No other information is available.");
                 }
 
                 Part p = m.Parts[0];

@@ -2,6 +2,13 @@ namespace Shoko.Server.API.v3
 {
     public class Tag
     {
+        public Tag() {}
+
+        public Tag(string name)
+        {
+            Name = name;
+        }
+
         /// <summary>
         /// The tag itself
         /// </summary>

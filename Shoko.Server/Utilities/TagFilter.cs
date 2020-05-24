@@ -394,6 +394,53 @@ namespace Shoko.Server
             Invert        = 1 << 31,
         }
 
+        /// <summary>
+        /// T needs to have a T(string name) constructor
+        /// </summary>
+        /// <param name="flags"></param>
+        /// <param name="tags"></param>
+        /// <param name="selector"></param>
+        /// <param name="addTags"></param>
+        /// <param name="invert"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static List<T> ProcessTags<T>(Filter flags, List<T> tags, Func<T, string> selector, bool addTags = true, bool invert = false) where T : class
+        {
+            if (tags.Count == 0) return tags;
+
+            List<string> toAdd = new List<string>();
+
+            if (tags.Count == 1)
+            {
+                if (IsTagBlackListed(selector(tags[0]), flags, ref toAdd) ^ invert) tags.Clear();
+                return tags;
+            }
+
+            List<string> toRemove = new List<string>((int)Math.Ceiling(tags.Count / 2D));
+
+            var stringsSet = new HashSet<string>(tags.Select(selector));
+            tags.AsParallel().ForAll(a => MarkTagsForRemoval(selector(a), flags, ref toRemove, ref toAdd));
+
+            foreach (var a in toRemove)
+                if (stringsSet.Contains(a))
+                    tags.Remove(tags.Find(b => selector(b).Equals(a)));
+
+            if (addTags) toAdd.ForEach(a =>
+            {
+                if (typeof(T) == typeof(string))
+                {
+                    tags.Add(a as T);
+                }
+                else
+                {
+                    T newT = (T) Activator.CreateInstance(typeof(T), a);
+                    tags.Add(newT);
+                }
+            });
+
+            return tags;
+        }
+
 
         /// <summary>
         /// Filters tags based on settings specified in flags
@@ -410,26 +457,7 @@ namespace Shoko.Server
         /// <returns>the original list with items removed based on rules provided</returns>
         public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true, bool invert = false)
         {
-            if (strings.Count == 0) return strings;
-
-            List<string> toAdd = new List<string>();
-
-            if (strings.Count == 1)
-            {
-                if (IsTagBlackListed(strings[0], flags, ref toAdd) ^ invert) strings.Clear();
-                return strings;
-            }
-
-            List<string> toRemove = new List<string>((int)Math.Ceiling(strings.Count / 2D));
-
-            var stringsSet = new HashSet<string>(strings);
-            strings.AsParallel().ForAll(a => MarkTagsForRemoval(a, flags, ref toRemove, ref toAdd));
-
-            foreach (var a in toRemove) if (stringsSet.Contains(a)) strings.Remove(a);
-
-            if (addTags) toAdd.ForEach(strings.Add);
-
-            return strings;
+            return ProcessTags(flags, strings, s => s, addTags, invert);
         }
 
         private static void MarkTagsForRemoval(string a, Filter flags, ref List<string> toRemove, ref List<string> toAdd)

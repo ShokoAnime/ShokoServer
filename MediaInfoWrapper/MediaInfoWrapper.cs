@@ -15,15 +15,17 @@ namespace MediaInfoWrapper
             bool asciiOnly;
             try
             {
-                // try UTF-16
-                Console.OutputEncoding = Encoding.Unicode;
+                // try UTF-8
+                // Linux would default to UTF-8 in most cases.
+                Console.OutputEncoding = Encoding.UTF8;
                 asciiOnly = false;
             }
             catch
             {
                 try
                 {
-                    Console.OutputEncoding = Encoding.UTF8;
+                    //UTF-16 backup.
+                    Console.OutputEncoding = Encoding.Unicode;
                     asciiOnly = false;
                 }
                 catch

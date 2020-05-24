@@ -13,7 +13,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 {
     public static class MediaInfo
     {
-        private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.exe");
+        private static string WrapperPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "MediaInfoWrapper.dll");
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -68,6 +68,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     UseShellExecute = false,
                     WindowStyle = ProcessWindowStyle.Hidden,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     CreateNoWindow = true
                 }
             };
@@ -93,6 +94,12 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 #else
                 args = $"{WrapperPath} {args}";
                 #endif
+            }
+
+            if (Utils.IsRunningOnLinuxOrMac())
+            {
+                executable = "dotnet";
+                args = $"{WrapperPath} {args}";
             }
 
             return Tuple.Create(executable, args);

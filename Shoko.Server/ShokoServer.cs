@@ -345,7 +345,7 @@ namespace Shoko.Server
 
         private bool CheckBlockedFiles()
         {
-            if (Utils.IsRunningOnMono()) return true;
+            if (Utils.IsRunningOnLinuxOrMac()) return true;
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
             {
                 // do stuff on windows only
@@ -425,7 +425,7 @@ namespace Shoko.Server
 
         void UninstallJMMServer()
         {
-            if (Utils.IsRunningOnMono()) return; //This will be handled by the OS or user, as we cannot reliably learn what package management system they use.
+            if (Utils.IsRunningOnLinuxOrMac()) return; //This will be handled by the OS or user, as we cannot reliably learn what package management system they use.
             try
             {
                 // Check in registry if installed

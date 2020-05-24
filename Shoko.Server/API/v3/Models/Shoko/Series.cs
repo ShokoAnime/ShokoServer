@@ -556,10 +556,19 @@ namespace Shoko.Server.API.v3
         #endregion
     }
 
+    /// <summary>
+    /// An Extended Series Model with Values for Search Results
+    /// </summary>
     public class SeriesSearchResult : Series
     {
+        /// <summary>
+        /// What is the string we matched on
+        /// </summary>
         public string Match { get; set; }
         
+        /// <summary>
+        /// The Sorensen-Dice Distance of the match
+        /// </summary>
         public double Distance { get; set; }
         public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist) : base(ctx, ser)
         {
