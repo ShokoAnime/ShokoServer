@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using NLog;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
@@ -15,6 +16,8 @@ namespace Shoko.Server.API.v2.Models.common
     [DataContract]
     public class RawFile : BaseDirectory
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
+        
         public override string type => "file";
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
@@ -155,44 +158,51 @@ namespace Shoko.Server.API.v2.Models.common
 
             recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
 
-            if (vl.Media == null || level < 0) return;
+            if (vl.Media?.GeneralStream == null || level < 0) return;
 
             MediaInfo new_media = new MediaInfo();
-            
-            Media legacy = new Media(vl.VideoLocalID, vl.Media);
 
-            new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
-            new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);
-            new_media.AddGeneral(MediaInfo.General.id, legacy.Id);
-            new_media.AddGeneral(MediaInfo.General.overallbitrate, legacy.Bitrate);
-
-            if (legacy.Parts != null)
+            try
             {
-                new_media.AddGeneral(MediaInfo.General.size, legacy.Parts[0].Size);
+                Media legacy = new Media(vl.VideoLocalID, vl.Media);
 
-                foreach (Stream p in legacy.Parts[0].Streams)
+                new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
+                new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);
+                new_media.AddGeneral(MediaInfo.General.id, legacy.Id);
+                new_media.AddGeneral(MediaInfo.General.overallbitrate, legacy.Bitrate);
+
+                if (legacy.Parts != null)
                 {
-                    switch (p.StreamType)
+                    new_media.AddGeneral(MediaInfo.General.size, legacy.Parts[0].Size);
+
+                    foreach (Stream p in legacy.Parts[0].Streams)
                     {
-                        //video
-                        case 1:
-                            new_media.AddVideo(p);
-                            break;
-                        //audio
-                        case 2:
-                            new_media.AddAudio(p);
-                            break;
-                        //subtitle
-                        case 3:
-                            new_media.AddSubtitle(p);
-                            break;
-                        //menu
-                        case 4:
-                            Dictionary<string, string> mdict = new Dictionary<string, string>();
-                            new_media.AddMenu(mdict);
-                            break;
+                        switch (p.StreamType)
+                        {
+                            //video
+                            case 1:
+                                new_media.AddVideo(p);
+                                break;
+                            //audio
+                            case 2:
+                                new_media.AddAudio(p);
+                                break;
+                            //subtitle
+                            case 3:
+                                new_media.AddSubtitle(p);
+                                break;
+                            //menu
+                            case 4:
+                                Dictionary<string, string> mdict = new Dictionary<string, string>();
+                                new_media.AddMenu(mdict);
+                                break;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
             }
 
             media = new_media;
