@@ -138,6 +138,7 @@ namespace Shoko.Models.MediaInfo
             {"ee", Tuple.Create("ewe", "Ewe")},
             {"el", Tuple.Create("ell", "Greek")},
             {"en", Tuple.Create("eng", "English")},
+            {"enm", Tuple.Create("enm", "Middle English")},
             {"eo", Tuple.Create("epo", "Esperanto")},
             {"es", Tuple.Create("spa", "Spanish")},
             {"et", Tuple.Create("est", "Estonian")},
@@ -291,6 +292,7 @@ namespace Shoko.Models.MediaInfo
             {"unk", Tuple.Create("unk", "Unknown")},
             {"mis", Tuple.Create("mis", "Miscoded")},
             {"mul", Tuple.Create("mis", "Multiple Languages")},
+            {"sgn", Tuple.Create("sgn", "Signs")},
         };
 
         public static string GetLanguageCode(string language)
@@ -393,6 +395,7 @@ namespace Shoko.Models.MediaInfo
 
         public static string TranslateContainer(string container)
         {
+            if (container == null) return null;
             container = container.ToLowerInvariant();
             foreach (string k in FileContainers.Keys)
             {
@@ -407,7 +410,8 @@ namespace Shoko.Models.MediaInfo
 
         public static PlexAndKodi.Stream TranslateVideoStream(MediaContainer c)
         {
-            VideoStream m = c.VideoStream;
+            VideoStream m = c?.VideoStream;
+            if (m == null) return null;
             PlexAndKodi.Stream s = new PlexAndKodi.Stream
             {
                 Id = m.ID,
@@ -416,7 +420,7 @@ namespace Shoko.Models.MediaInfo
                 StreamType = 1,
                 Width = m.Width,
                 Height = m.Height,
-                Duration = (long) c.GeneralStream.Duration,
+                Duration = (long) (c.GeneralStream?.Duration ?? 0),
                 Title = m.Title,
                 LanguageCode = m.LanguageCode,
                 Language = m.LanguageName,
@@ -431,7 +435,7 @@ namespace Shoko.Models.MediaInfo
                 ScanType = m.ScanType?.ToLower(),
                 RefFrames = (byte) m.Format_Settings_RefFrames,
                 HeaderStripping =
-                    (byte) (m.MuxingMode.IndexOf("strip", StringComparison.InvariantCultureIgnoreCase) != -1
+                    (byte) (m.MuxingMode?.IndexOf("strip", StringComparison.InvariantCultureIgnoreCase) != -1
                         ? 1
                         : 0),
                 Cabac = (byte) (m.Format_Settings_CABAC ? 1 : 0),
@@ -479,6 +483,7 @@ namespace Shoko.Models.MediaInfo
         public static List<PlexAndKodi.Stream> TranslateAudioStreams(MediaContainer c)
         {
             List<PlexAndKodi.Stream> output = new List<PlexAndKodi.Stream>();
+            if (c == null) return output;
             foreach (AudioStream m in c.AudioStreams)
             {
                 PlexAndKodi.Stream s = new PlexAndKodi.Stream
@@ -538,6 +543,7 @@ namespace Shoko.Models.MediaInfo
 
         public static IEnumerable<PlexAndKodi.Stream> TranslateTextStreams(MediaContainer c)
         {
+            if (c == null) return new List<PlexAndKodi.Stream>();
             return c.TextStreams.Select(m => new {m, subFormat = GetSubFormat(m.CodecID, m.Format)})
                 .Select(t => new PlexAndKodi.Stream
                 {
