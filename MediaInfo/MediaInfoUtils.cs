@@ -249,7 +249,6 @@ namespace Shoko.Models.MediaInfo
             {"sn", Tuple.Create("sna", "Shona")},
             {"so", Tuple.Create("som", "Somali")},
             {"sq", Tuple.Create("alb", "Albanian")},
-            {"sr", Tuple.Create("scc", "Serbian")},
             {"sr", Tuple.Create("srp", "Serbian")},
             {"ss", Tuple.Create("ssw", "Swati")},
             {"st", Tuple.Create("sot", "Sotho")},
