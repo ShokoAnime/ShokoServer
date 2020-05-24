@@ -52,6 +52,15 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
                 // assuming json, as it starts with {
                 MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
+                m.media.track.ForEach(a =>
+                {
+                    if (!string.IsNullOrEmpty(a.Language))
+                    {
+                        var langs = MediaInfoUtils.GetLanguageMapping(a.Language);
+                        a.LanguageCode = langs.Item1;
+                        a.LanguageName = langs.Item2;
+                    }
+                });
                 return m;
             }
             catch (Exception e)
