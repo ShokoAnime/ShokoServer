@@ -25,7 +25,7 @@ namespace Shoko.Server.FileHelper.Subtitles
                 FileSystemResult<IObject> r = vplace.ImportFolder.FileSystem.Resolve(newname);
                 if (r == null || !r.IsOk || !(r.Result is IFile)) continue;
                 MediaContainer m = MediaInfo.GetMediaInfo(newname);
-                List<TextStream> tStreams = m.TextStreams;
+                List<TextStream> tStreams = m?.TextStreams;
                 if (tStreams != null && tStreams.Count > 0)
                     streams.AddRange(tStreams);
             }
