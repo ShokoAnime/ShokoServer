@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
@@ -38,6 +39,19 @@ namespace Shoko.Server.API.v3
             var anidb = videoLocal.GetAniDBFile();
             if (anidb == null) return BadRequest("AniDB data not found");
             return v3.File.GetAniDBInfo(id);
+        }
+        
+        /// <summary>
+        /// Get the AniDB details for episode with Shoko ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/MediaInfo")]
+        public ActionResult<MediaContainer> GetFileMediaInfo(int id)
+        {
+            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            if (videoLocal == null) return BadRequest("No File with ID");
+            return v3.File.GetMedia(id);
         }
         
         /// <summary>

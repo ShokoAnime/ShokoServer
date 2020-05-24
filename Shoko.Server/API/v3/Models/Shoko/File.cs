@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
@@ -57,6 +58,12 @@ namespace Shoko.Server.API.v3
                 RelativePath = a.FilePath,
                 Accessible = a.GetFile() != null
             }).ToList();
+        }
+
+        public static MediaContainer GetMedia(int id)
+        {
+            var vl = RepoFactory.VideoLocal.GetByID(id);
+            return vl?.Media;
         }
 
 
