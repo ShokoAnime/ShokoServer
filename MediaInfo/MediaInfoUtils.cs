@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 
@@ -96,6 +97,7 @@ namespace Shoko.Models.MediaInfo
                 Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
         }
         
+        [SuppressMessage("ReSharper", "StringLiteralTypo")] 
         public static readonly Dictionary<string, Tuple<string, string>> LanguageMapping_2_1_Name = new Dictionary<string, Tuple<string, string>>
         {
             {"aa", Tuple.Create("aar", "Afar")},
@@ -285,6 +287,10 @@ namespace Shoko.Models.MediaInfo
             {"zh", Tuple.Create("chi", "Chinese")},
             {"zu", Tuple.Create("zul", "Zulu")},
             {"xx", Tuple.Create("unk", "Unknown")},
+            {"zxx", Tuple.Create("unk", "Unknown")},
+            {"unk", Tuple.Create("unk", "Unknown")},
+            {"mis", Tuple.Create("mis", "Miscoded")},
+            {"mul", Tuple.Create("mis", "Multiple Languages")},
         };
 
         public static string GetLanguageCode(string language)
