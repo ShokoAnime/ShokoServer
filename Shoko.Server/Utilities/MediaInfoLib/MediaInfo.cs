@@ -57,6 +57,11 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     if (!string.IsNullOrEmpty(a.Language))
                     {
                         var langs = MediaInfoUtils.GetLanguageMapping(a.Language);
+                        if (langs == null)
+                        {
+                            logger.Error($"{filename} had a missing language code: {a.Language}");
+                            return;
+                        }
                         a.LanguageCode = langs.Item1;
                         a.LanguageName = langs.Item2;
                     }
