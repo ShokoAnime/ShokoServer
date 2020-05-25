@@ -16,7 +16,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (!(existingValue is string existingString)) return null;
+            if (!(reader.Value is string existingString)) return existingValue;
             try
             {
                 string[] strings = existingString.Split(new[] {"/", " ", "-"}, StringSplitOptions.RemoveEmptyEntries);
@@ -40,6 +40,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
             return existingValue;
         }
+
+        public override bool CanWrite => false;
 
         public override bool CanConvert(Type objectType)
         {

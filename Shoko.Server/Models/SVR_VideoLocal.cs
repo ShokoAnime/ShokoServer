@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
@@ -17,6 +18,7 @@ using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities.MediaInfoLib;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
@@ -49,14 +51,16 @@ namespace Shoko.Server.Models
         public const int MEDIA_VERSION = 4;
 
 
-        internal MediaContainer _media;
+        private MediaContainer _media { get; set; }
 
         public virtual MediaContainer Media
         {
             get
             {
-                if (MediaVersion == MEDIA_VERSION && _media == null && MediaBlob != null && MediaBlob.Length > 0 && MediaSize > 0)
-                    _media = CompressionHelper.DeserializeObject<MediaContainer>(MediaBlob, MediaSize);
+                if (MediaVersion == MEDIA_VERSION && (_media?.GeneralStream?.Duration ?? 0) == 0 && MediaBlob != null &&
+                    MediaBlob.Length > 0 && MediaSize > 0)
+                    _media = CompressionHelper.DeserializeObject<MediaContainer>(MediaBlob, MediaSize,
+                        new JsonConverter[] {new StreamJsonConverter()});
                 return _media;
             }
             set
@@ -422,7 +426,16 @@ namespace Shoko.Server.Models
                 cl.ResumePosition = userRecord.ResumePosition;
             }
 
-            if (Media != null) cl.Media = new Media(VideoLocalID, Media);
+            try
+            {
+
+                if (Media?.GeneralStream != null) cl.Media = new Media(VideoLocalID, Media);
+            }
+            catch (Exception e)
+            {
+                logger.Error($"There was an error generating a Desktop client contract: {e}");
+            }
+
             return cl;
         }
 

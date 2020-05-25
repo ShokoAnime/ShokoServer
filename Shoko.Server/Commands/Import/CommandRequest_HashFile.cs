@@ -514,7 +514,7 @@ namespace Shoko.Server.Commands
             }
 
 
-            if ((vlocal.Media == null) || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || vlocal.Duration == 0)
+            if (((vlocal.Media?.GeneralStream?.Duration ?? 0) == 0) || vlocal.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
             {
                 if (vlocalplace.RefreshMediaInfo())
                     RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);

@@ -20,40 +20,44 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
                 var obj = JObject.Load(reader);
 
-                Stream stream; 
+                Stream stream;
 
                 string type = obj.GetValue("@type", StringComparison.OrdinalIgnoreCase)?.ToString();
 
-                switch (type)
+                if (type == null) type = obj.GetValue("type", StringComparison.OrdinalIgnoreCase)?.ToString();
+
+                if (type == "General" || type == ((int)StreamType.General).ToString())
                 {
-                    case "General":
-                    {
-                        JsonObjectContract contract = (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(GeneralStream));
-                        stream = existingValue as GeneralStream ?? (GeneralStream) contract.DefaultCreator?.Invoke();
-                    } break;
-                    case "Video":
-                    {
-                        JsonObjectContract contract = (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(VideoStream));
-                        stream = existingValue as VideoStream ?? (VideoStream) contract.DefaultCreator?.Invoke();
-                    } break;
-                    case "Audio":
-                    {
-                        JsonObjectContract contract = (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(AudioStream));
-                        stream = existingValue as AudioStream ?? (AudioStream) contract.DefaultCreator?.Invoke();
-                    } break;
-                    case "Text":
-                    {
-                        JsonObjectContract contract = (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(TextStream));
-                        stream = existingValue as TextStream ?? (TextStream) contract.DefaultCreator?.Invoke();
-                    } break;
-                    case "Menu":
-                    {
-                        JsonObjectContract contract = (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(MenuStream));
-                        stream = existingValue as MenuStream ?? (MenuStream) contract.DefaultCreator?.Invoke();
-                    } break;
-                    default:
-                        return null;
+                    JsonObjectContract contract =
+                        (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(GeneralStream));
+                    stream = existingValue as GeneralStream ?? (GeneralStream) contract.DefaultCreator?.Invoke();
                 }
+                else if (type == "Video" || type == ((int)StreamType.Video).ToString())
+                {
+                    JsonObjectContract contract =
+                        (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(VideoStream));
+                    stream = existingValue as VideoStream ?? (VideoStream) contract.DefaultCreator?.Invoke();
+                }
+                else if (type == "Audio" || type == ((int)StreamType.Audio).ToString())
+                {
+                    JsonObjectContract contract =
+                        (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(AudioStream));
+                    stream = existingValue as AudioStream ?? (AudioStream) contract.DefaultCreator?.Invoke();
+                }
+                else if (type == "Text" || type == ((int)StreamType.Text).ToString())
+                {
+                    JsonObjectContract contract =
+                        (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(TextStream));
+                    stream = existingValue as TextStream ?? (TextStream) contract.DefaultCreator?.Invoke();
+                }
+                else if (type == "Menu" || type == ((int)StreamType.Menu).ToString())
+                {
+                    JsonObjectContract contract =
+                        (JsonObjectContract) serializer.ContractResolver.ResolveContract(typeof(MenuStream));
+                    stream = existingValue as MenuStream ?? (MenuStream) contract.DefaultCreator?.Invoke();
+                }
+                else
+                    return null;
 
                 if (stream == null) return null;
 
@@ -64,7 +68,9 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 return stream;
             }
 
-            public override bool CanWrite { get { return false; } }
+            public override bool CanWrite => false;
+
+            public override bool CanRead => true;
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {

@@ -50,7 +50,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     Converters = new JsonConverter[]
                     {
                         new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter(),
-                        new DateTimeConverter() {DateTimeFormat = "UTC yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
+                        new DateTimeConverter() {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
                     }
                 };
 

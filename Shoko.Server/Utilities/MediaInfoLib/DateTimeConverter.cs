@@ -12,17 +12,18 @@ namespace Shoko.Server.Utilities.MediaInfoLib
         
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            if (!(existingValue is string existingString)) return null;
+            if (!(reader.Value is string existingString)) return existingValue;
             try
             {
+                existingString = existingString.Replace("UTC", "");
                 existingString = existingString.Replace("T", " ");
                 existingString = existingString.Replace("Z", "");
                 string[] strings = existingString.Split(new[] {" / "}, StringSplitOptions.RemoveEmptyEntries);
                 if (strings.Length == 1)
                 {
                     return string.IsNullOrEmpty(DateTimeFormat)
-                        ? DateTime.Parse(strings[0], Culture, DateTimeStyles)
-                        : DateTime.ParseExact(strings[0], DateTimeFormat, Culture, DateTimeStyles);
+                        ? DateTime.Parse(strings[0].Trim(), Culture, DateTimeStyles)
+                        : DateTime.ParseExact(strings[0].Trim(), DateTimeFormat, Culture, DateTimeStyles);
                 }
 
                 if (strings.Length > 1)
@@ -31,7 +32,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     if(string.IsNullOrEmpty(DateTimeFormat))
                     {
                         DateTime result = strings.Max(a =>
-                            DateTime.TryParse(a, Culture, DateTimeStyles, out DateTime date)
+                            DateTime.TryParse(a.Trim(), Culture, DateTimeStyles, out DateTime date)
                                 ? date
                                 : DateTime.MinValue);
 
@@ -41,7 +42,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     else
                     {
                         DateTime result = strings.Max(a =>
-                            DateTime.TryParseExact(a, DateTimeFormat, Culture, DateTimeStyles, out DateTime date)
+                            DateTime.TryParseExact(a.Trim(), DateTimeFormat, Culture, DateTimeStyles, out DateTime date)
                                 ? date
                                 : DateTime.MinValue);
 
@@ -57,5 +58,9 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
             return null;
         }
+
+        public override bool CanRead => true;
+
+        public override bool CanWrite => false;
     }
 }
