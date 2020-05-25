@@ -113,7 +113,7 @@ namespace Shoko.Models.PlexAndKodi
             Chaptered = m.MenuStreams.Any();
             if (m.GeneralStream != null)
             {
-                Duration = (long) m.GeneralStream.Duration;
+                Duration = (long) m.GeneralStream.Duration * 1000;
                 Bitrate = m.GeneralStream.OverallBitRate;
                 Container = LegacyMediaUtils.TranslateContainer(m.GeneralStream.Format);
                 OptimizedForStreaming = (byte) (m.GeneralStream.IsStreamable ? 1 : 0);

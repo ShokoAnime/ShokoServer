@@ -26,25 +26,25 @@ namespace Shoko.Models.MediaInfo
 
         [JsonIgnore]
         public GeneralStream GeneralStream =>
-            _general ?? (_general = media?.track.FirstOrDefault(a => a.type == StreamType.General) as GeneralStream);
+            _general ?? (_general = media?.track?.FirstOrDefault(a => a?.type == StreamType.General) as GeneralStream);
 
         [JsonIgnore]
         public VideoStream VideoStream =>
-            _video ?? (_video = media?.track.FirstOrDefault(a => a.type == StreamType.Video) as VideoStream);
+            _video ?? (_video = media?.track?.FirstOrDefault(a => a?.type == StreamType.Video) as VideoStream);
 
         [JsonIgnore]
         public List<AudioStream> AudioStreams => _audios ?? (_audios =
-            media?.track.Where(a => a.type == StreamType.Audio)
+            media?.track?.Where(a => a?.type == StreamType.Audio)
                 .Select(a => a as AudioStream).ToList());
 
         [JsonIgnore]
         public List<TextStream> TextStreams => _texts ?? (_texts =
-            media?.track.Where(a => a.type == StreamType.Text)
+            media?.track?.Where(a => a?.type == StreamType.Text)
                 .Select(a => a as TextStream).ToList());
 
         [JsonIgnore]
         public List<MenuStream> MenuStreams => _menus ?? (_menus =
-            media?.track.Where(a => a.type == StreamType.Menu)
+            media?.track?.Where(a => a?.type == StreamType.Menu)
                 .Select(a => a as MenuStream).ToList());
     }
 
