@@ -11,6 +11,7 @@ namespace Shoko.Server.FileHelper.Subtitles
     {
         public List<TextStream> GetStreams(SVR_VideoLocal_Place vplace)
         {
+            // TODO Scan the folder for filename.lang.sub files
             string dirname = Path.GetDirectoryName(vplace.FullServerPath);
             string fname = Path.GetFileNameWithoutExtension(vplace.FilePath);
             if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
@@ -27,7 +28,10 @@ namespace Shoko.Server.FileHelper.Subtitles
                 MediaContainer m = MediaInfo.GetMediaInfo(newname);
                 List<TextStream> tStreams = m?.TextStreams;
                 if (tStreams != null && tStreams.Count > 0)
+                {
+                    tStreams.ForEach(a => a.Filename = newname);
                     streams.AddRange(tStreams);
+                }
             }
             return streams;
         }

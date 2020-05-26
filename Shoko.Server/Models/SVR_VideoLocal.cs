@@ -41,7 +41,10 @@ namespace Shoko.Server.Models
 
         public bool IsManualLink => GetAniDBFile() == null;
 
-        public long Duration => (long) (Media?.GeneralStream?.Duration ?? 0);
+        /// <summary>
+        /// Duration in ms. (MediaInfo model has it in seconds
+        /// </summary>
+        public long Duration => (long) (Media?.GeneralStream?.Duration * 1000 ?? 0);
 
         public string VideoResolution => Media?.VideoStream == null ? "0x0" : $"{Media.VideoStream.Width}x{Media.VideoStream.Height}";
 
