@@ -18,10 +18,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 if (reader.TokenType == JsonToken.Null)
                     return null;
 
-                if (existingValue == null) return null;
-
-                string value = existingValue as string;
-                if (value == null) return existingValue;
+                if (!(reader.Value is string value)) return existingValue;
 
                 if (bool.TryParse(value, out bool result)) return result;
 
@@ -31,7 +28,9 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 return existingValue;
             }
 
-            public override bool CanWrite { get { return false; } }
+            public override bool CanWrite => false;
+
+            public override bool CanRead => true;
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {

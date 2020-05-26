@@ -31,6 +31,8 @@ namespace Shoko.Server.Settings
 
         public int AggressiveFileLockWaitTimeSeconds { get; set; } = 8;
 
+        public string MediaInfoPath { get; set; }
+
         public int MediaInfoTimeoutMinutes { get; set; } = 5;
     }
 }
