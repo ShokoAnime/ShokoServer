@@ -142,10 +142,22 @@ namespace Shoko.Server.Utilities.MediaInfoLib
         {
             if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
-            string appPath = Path.Combine(Assembly.GetExecutingAssembly().Location, "MediaInfo", "MediaInfo.exe");
-            if (File.Exists(appPath)) return appPath;
+            if (ServerSettings.Instance.Import.MediaInfoPath != null &&
+                File.Exists(ServerSettings.Instance.Import.MediaInfoPath))
+                return ServerSettings.Instance.Import.MediaInfoPath;
 
-            return null;
+            string exePath = Assembly.GetEntryAssembly()?.Location;
+            string exeDir = Path.GetDirectoryName(exePath);
+            if (exeDir == null) return null;
+            string appPath = Path.Combine(exeDir, "MediaInfo", "MediaInfo.exe");
+            if (!File.Exists(appPath)) return null;
+            if (ServerSettings.Instance.Import.MediaInfoPath == null)
+            {
+                ServerSettings.Instance.Import.MediaInfoPath = appPath;
+                ServerSettings.Instance.SaveSettings();
+            }
+            return appPath;
+
         }
         
         private static Tuple<string, string> GetFilenameAndArgsForOS(string file)
