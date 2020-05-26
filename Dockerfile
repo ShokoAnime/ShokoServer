@@ -1,17 +1,6 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
-ENV PUID=1000 \
-    PGID=100  \
-    TargetFrameworkDirectory=/usr/lib/mono/
-
-RUN apt-get install apt
-RUN apt-get update && apt-get install -y gnupg curl wget ca-certificates apt-transport-https software-properties-common
-
-RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
-RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
-
-RUN apt-get update && apt-get install -y apt-utils librhash0 jq unzip libunwind-dev mediainfo gosu
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
@@ -22,6 +11,7 @@ RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1
 ENV PUID=1000 \
     PGID=100 \
+    AVDUMP_MONO=false \
     LANG=C.UTF-8 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
@@ -31,7 +21,7 @@ RUN apt-get update && apt-get install -y gnupg
 RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://mediaarea.net/repo/deb/debian/ buster main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils gosu jq unzip libmediainfo0v5 mediainfo librhash-dev libunwind-dev librhash0 gosu 
+RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev 
 
 WORKDIR /usr/src/app/build
 COPY --from=0 /usr/src/app/build .
