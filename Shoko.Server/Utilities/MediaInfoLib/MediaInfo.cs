@@ -140,11 +140,11 @@ namespace Shoko.Server.Utilities.MediaInfoLib
 
         private static string GetMediaInfoPathForOS()
         {
-            if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
-
             if (ServerSettings.Instance.Import.MediaInfoPath != null &&
                 File.Exists(ServerSettings.Instance.Import.MediaInfoPath))
                 return ServerSettings.Instance.Import.MediaInfoPath;
+
+            if (Utils.IsRunningOnLinuxOrMac()) return "mediainfo";
 
             string exePath = Assembly.GetEntryAssembly()?.Location;
             string exeDir = Path.GetDirectoryName(exePath);
