@@ -45,7 +45,7 @@ namespace Shoko.Server.API.v3
             });
 
             decimal hours = Math.Round((decimal) watchedEpisodes.Select(a => a.GetVideoLocals().FirstOrDefault())
-                .Where(a => a != null).Sum(a => a.Duration) / 3600000, 1, MidpointRounding.AwayFromZero); // Duration in ms => 60m*60s*1000ms = 3600000
+                .Where(a => a != null).Sum(a => a.Media?.GeneralStream?.Duration ?? 0) / 3600, 1, MidpointRounding.AwayFromZero); // Duration in s => 60m*60s = 3600
 
             List<SVR_VideoLocal_Place> places = files.SelectMany(a => a.Places).ToList();
             int duplicate = places.Where(a => a.VideoLocal.IsVariation == 0).SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
