@@ -283,6 +283,11 @@ namespace Shoko.Models.MediaInfo
         /// Not From MediaInfo. Is this an external sub file
         /// </summary>
         public bool External { get; set; }
+
+        /// <summary>
+        /// Not from MediaInfo, this is the name of the external sub file
+        /// </summary>
+        public string Filename { get; set; }
     }
 
     public class MenuStream : Stream
