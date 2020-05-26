@@ -295,6 +295,25 @@ namespace Shoko.Models.MediaInfo
             {"sgn", Tuple.Create("sgn", "Signs")},
         };
 
+        public static readonly ILookup<string, Tuple<string, string>> LanguageMapping_1_2_Name =
+            LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item1, a => Tuple.Create(a.Key, a.Value.Item2));
+        
+        public static readonly ILookup<string, Tuple<string, string>> LanguageMapping_Name_2_1 =
+            LanguageMapping_2_1_Name.ToLookup(a => a.Value.Item2.ToLowerInvariant(), a => Tuple.Create(a.Key, a.Value.Item1));
+
+        public static string GetLanguageFromCode(string code)
+        {
+            if (LanguageMapping_1_2_Name.Contains(code)) return LanguageMapping_1_2_Name[code].FirstOrDefault()?.Item1;
+            return null;
+        }
+        
+        public static string GetLanguageFromName(string code)
+        {
+            code = code.ToLowerInvariant();
+            if (LanguageMapping_Name_2_1.Contains(code)) return LanguageMapping_Name_2_1[code].FirstOrDefault()?.Item1;
+            return null;
+        }
+
         public static string GetLanguageCode(string language)
         {
             if (LanguageMapping_2_1_Name.ContainsKey(language)) return LanguageMapping_2_1_Name[language].Item1;
