@@ -11,6 +11,7 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
 using NLog;
+using NutzCode.CloudFileSystem;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -19,6 +20,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
@@ -41,6 +43,7 @@ namespace Shoko.Server
         private IPEndPoint remoteIpEndPoint;
         private Socket soUdp;
         private string curSessionID = string.Empty;
+        private string curImageServerUrl;
 
         private string userName = string.Empty;
         private string password = string.Empty;
@@ -55,6 +58,29 @@ namespace Shoko.Server
 
         public DateTime? HttpBanTime { get; set; }
         public DateTime? UdpBanTime { get; set; }
+
+        public string ImageServerUrl {
+            get {
+                if (string.IsNullOrWhiteSpace(curImageServerUrl))
+                {
+                    if (!Login())
+                    {
+                        //Don't keep trying after a failed login set to constant
+                        curImageServerUrl = Constants.URLS.AniDB_Images_Domain;
+                    } 
+                    else
+                    {                        
+                        if (string.IsNullOrWhiteSpace(curImageServerUrl))
+                        {
+                            //The API call did not return anything useful, don't try again.
+                            curImageServerUrl = Constants.URLS.AniDB_Images_Domain;
+                        }
+                    }
+                }
+                var url = string.Format(Constants.URLS.AniDB_Images, curImageServerUrl);
+                return url;
+            }
+        }
 
         private bool _isHttpBanned;
         private bool _isUdpBanned;
@@ -394,6 +420,7 @@ namespace Shoko.Server
                     break;
                 case AniDBUDPResponseCode.LoggedIn:
                     curSessionID = login.SessionID;
+                    curImageServerUrl = login.ImageServerUrl;
                     isLoggedOn = true;
                     IsInvalidSession = false;
                     return true;

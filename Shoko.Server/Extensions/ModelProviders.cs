@@ -651,14 +651,14 @@ namespace Shoko.Server.Extensions
                 CharKanjiName = character.CharKanjiName,
                 CharDescription = character.CharDescription,
                 CharType = charRel.CharType,
-                CharImageURL = string.Format(Constants.URLS.AniDB_Images, character.PicName)
+                CharImageURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, character.PicName)
             };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
                 contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
-                contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
+                contract.SeiyuuImageURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, seiyuu.PicName);
             }
 
             return contract;

@@ -15,6 +15,7 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -403,15 +404,15 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
-                    return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName);
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName);
 
                 default:
                     return string.Empty;

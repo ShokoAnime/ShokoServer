@@ -17,6 +17,7 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -89,7 +90,7 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
-                            downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, anime.Picname));
+                            downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -109,7 +110,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var chr in chrs)
                             {
-                                downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, chr.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -134,7 +135,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var creator in creators)
                             {
-                                downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, creator.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 

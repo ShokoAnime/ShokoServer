@@ -157,7 +157,10 @@ namespace Shoko.Server
             public static readonly string AniDB_ReleaseGroup =
                 @"https://anidb.net/perl-bin/animedb.pl?show=group&gid={0}";
 
-            public static readonly string AniDB_Images = @"https://img7.anidb.net/pics/anime/{0}";
+            public static readonly string AniDB_Images = @"https://{0}/images/main/{{0}}";
+
+            // This is the fallback if the API response does not work.
+            public static readonly string AniDB_Images_Domain = @"cdn.anidb.net";
 
             public static readonly string TvDB_Series = @"https://thetvdb.com/?tab=series&id={0}";
 
