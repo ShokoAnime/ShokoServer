@@ -28,6 +28,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ReSharper disable CheckNamespace
 // ReSharper disable InconsistentNaming
 
+using System;
+using System.Diagnostics;
+
 namespace LZ4ps
 {
 #if !UNSAFE

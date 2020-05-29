@@ -1824,7 +1824,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             contract.Detail.EpisodeCountSpecial = EpisodeCountSpecial;
             contract.Detail.FanartURL = GetDefaultFanartOnlineURL();
             contract.Detail.OverallRating = this.GetAniDBRating();
-            contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
+            contract.Detail.PosterURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, Picname);
             contract.Detail.TotalVotes = this.GetAniDBTotalVotes();
 
 

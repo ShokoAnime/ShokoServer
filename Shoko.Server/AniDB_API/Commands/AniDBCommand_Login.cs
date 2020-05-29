@@ -8,6 +8,8 @@ namespace AniDBAPI.Commands
     {
         public string SessionID = string.Empty;
 
+        public string ImageServerUrl;
+
         public virtual AniDBUDPResponseCode GetStartEventType()
         {
             return AniDBUDPResponseCode.LoggingIn;
@@ -36,7 +38,7 @@ namespace AniDBAPI.Commands
             string sMsgType = socketResponse.Substring(0, 3);
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_Login.Process: Response: {0}", socketResponse);
 
-            // 200 {str session_key} LOGIN ACCEPTED
+            // 200 {str session_key} LOGIN ACCEPTED\n{imgserver url}
             // 203 LOGGED OUT
             // 500 LOGIN FAILED
             if (sMsgType.Equals("500"))
@@ -50,7 +52,7 @@ namespace AniDBAPI.Commands
             SessionID = sMessage.Trim();
             int i = sMessage.IndexOf("LOGIN");
             SessionID = sMessage.Substring(0, i - 1).Trim();
-
+            ImageServerUrl = sMessage.Substring(sMessage.IndexOf('\n')).Trim();
             return AniDBUDPResponseCode.LoggedIn;
         }
 
@@ -67,7 +69,7 @@ namespace AniDBAPI.Commands
             commandText += "&protover=3";
             commandText += "&client=ommserver";
             //commandText += "&client=vmcanidb";
-            commandText += "&clientver=2&comp=1";
+            commandText += "&clientver=2&comp=1&imgserver=1";
             //BaseConfig.MyAnimeLog.Write("commandText: {0}", commandText);
         }
     }
