@@ -335,10 +335,10 @@ namespace Shoko.Models.MediaInfo
 
     public static class LegacyMediaUtils
     {
-        public static string TranslateCodec(string codec)
+        public static string TranslateCodec(Stream stream)
         {
-            if (codec == null) return null;
-            codec = codec.ToLowerInvariant();
+            if (stream?.Codec == null && stream?.CodecID == null) return null;
+            string codec = stream.Codec?.ToLowerInvariant() ?? stream.CodecID?.ToLowerInvariant();
             return CodecIDs.ContainsKey(codec) ? CodecIDs[codec] : codec;
         }
 
@@ -434,7 +434,7 @@ namespace Shoko.Models.MediaInfo
             PlexAndKodi.Stream s = new PlexAndKodi.Stream
             {
                 Id = m.ID,
-                Codec = TranslateCodec(m.Codec ?? m.CodecID),
+                Codec = TranslateCodec(m),
                 CodecID = m.CodecID,
                 StreamType = 1,
                 Width = m.Width,
@@ -509,7 +509,7 @@ namespace Shoko.Models.MediaInfo
                 {
                     Id = m.ID,
                     CodecID = m.CodecID,
-                    Codec = TranslateCodec(m.Codec ?? m.CodecID),
+                    Codec = TranslateCodec(m),
                     Title = m.Title,
                     StreamType = 2,
                     LanguageCode = m.LanguageCode,
