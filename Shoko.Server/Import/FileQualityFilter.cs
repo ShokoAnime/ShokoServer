@@ -7,6 +7,7 @@ using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server
 {
@@ -49,7 +50,7 @@ namespace Shoko.Server
         reference said enum through a CompareByType
 
         */
-        public static FileQualityPreferences Settings = new FileQualityPreferences();
+        public static FileQualityPreferences Settings => ServerSettings.Instance.FileQualityFilterPreferences;
 
         #region Checks
 

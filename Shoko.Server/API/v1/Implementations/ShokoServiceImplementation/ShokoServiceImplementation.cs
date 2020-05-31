@@ -5,6 +5,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using NLog;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
@@ -572,7 +573,9 @@ namespace Shoko.Server
                 ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
                 ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-                    ServerSettings.Instance.FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                    ServerSettings.Instance.FileQualityFilterPreferences =
+                        JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences,
+                            new StringEnumConverter());
                 ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
                 ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
                 ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;

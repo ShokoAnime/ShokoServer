@@ -161,154 +161,157 @@ namespace Shoko.Server.Settings
 
         private static ServerSettings LoadLegacySettings()
         {
-            Legacy.LoadSettings();
+            var legacy = Legacy.LoadSettingsFromFile();
             var settings = new ServerSettings
             {
-                ImagesPath = Legacy.ImagesPath,
-                AnimeXmlDirectory = Legacy.AnimeXmlDirectory,
-                MyListDirectory = Legacy.MyListDirectory,
-                ServerPort = (ushort)Legacy.JMMServerPort,
-                PluginAutoWatchThreshold = double.Parse(Legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
-                Culture = Legacy.Culture,
-                WebUI_Settings = Legacy.WebUI_Settings,
-                FirstRun = Legacy.FirstRun,
-                LogRotator = new LogRotatorSettings
-                {
-                    Enabled = Legacy.RotateLogs,
-                    Zip = Legacy.RotateLogs_Zip,
-                    Delete = Legacy.RotateLogs_Delete,
-                    Delete_Days = Legacy.RotateLogs_Delete_Days
-                },
+                ImagesPath = legacy.ImagesPath,
+                AnimeXmlDirectory = legacy.AnimeXmlDirectory,
+                MyListDirectory = legacy.MyListDirectory,
+                ServerPort = (ushort) legacy.JMMServerPort,
+                PluginAutoWatchThreshold = double.Parse(legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
+                Culture = legacy.Culture,
+                WebUI_Settings = legacy.WebUI_Settings,
+                FirstRun = legacy.FirstRun,
+                LogRotator =
+                    new LogRotatorSettings
+                    {
+                        Enabled = legacy.RotateLogs,
+                        Zip = legacy.RotateLogs_Zip,
+                        Delete = legacy.RotateLogs_Delete,
+                        Delete_Days = legacy.RotateLogs_Delete_Days
+                    },
                 AniDb = new AniDbSettings
                 {
-                    Username = Legacy.AniDB_Username,
-                    Password = Legacy.AniDB_Password,
-                    ServerAddress = Legacy.AniDB_ServerAddress,
-                    ServerPort = ushort.Parse(Legacy.AniDB_ServerPort),
-                    ClientPort = ushort.Parse(Legacy.AniDB_ClientPort),
-                    AVDumpKey = Legacy.AniDB_AVDumpKey,
-                    AVDumpClientPort = ushort.Parse(Legacy.AniDB_AVDumpClientPort),
-                    DownloadRelatedAnime = Legacy.AniDB_DownloadRelatedAnime,
-                    DownloadSimilarAnime = Legacy.AniDB_DownloadSimilarAnime,
-                    DownloadReviews = Legacy.AniDB_DownloadReviews,
-                    DownloadReleaseGroups = Legacy.AniDB_DownloadReleaseGroups,
-                    MyList_AddFiles = Legacy.AniDB_MyList_AddFiles,
-                    MyList_StorageState = Legacy.AniDB_MyList_StorageState,
-                    MyList_DeleteType = Legacy.AniDB_MyList_DeleteType,
-                    MyList_ReadUnwatched = Legacy.AniDB_MyList_ReadUnwatched,
-                    MyList_ReadWatched = Legacy.AniDB_MyList_ReadWatched,
-                    MyList_SetWatched = Legacy.AniDB_MyList_SetWatched,
-                    MyList_SetUnwatched = Legacy.AniDB_MyList_SetUnwatched,
-                    MyList_UpdateFrequency = Legacy.AniDB_MyList_UpdateFrequency,
-                    Calendar_UpdateFrequency = Legacy.AniDB_Calendar_UpdateFrequency,
-                    Anime_UpdateFrequency = Legacy.AniDB_Anime_UpdateFrequency,
-                    MyListStats_UpdateFrequency = Legacy.AniDB_MyListStats_UpdateFrequency,
-                    File_UpdateFrequency = Legacy.AniDB_File_UpdateFrequency,
-                    DownloadCharacters = Legacy.AniDB_DownloadCharacters,
-                    DownloadCreators = Legacy.AniDB_DownloadCreators,
-                    MaxRelationDepth = Legacy.AniDB_MaxRelationDepth
+                    Username = legacy.AniDB_Username,
+                    Password = legacy.AniDB_Password,
+                    ServerAddress = legacy.AniDB_ServerAddress,
+                    ServerPort = ushort.Parse(legacy.AniDB_ServerPort),
+                    ClientPort = ushort.Parse(legacy.AniDB_ClientPort),
+                    AVDumpKey = legacy.AniDB_AVDumpKey,
+                    AVDumpClientPort = ushort.Parse(legacy.AniDB_AVDumpClientPort),
+                    DownloadRelatedAnime = legacy.AniDB_DownloadRelatedAnime,
+                    DownloadSimilarAnime = legacy.AniDB_DownloadSimilarAnime,
+                    DownloadReviews = legacy.AniDB_DownloadReviews,
+                    DownloadReleaseGroups = legacy.AniDB_DownloadReleaseGroups,
+                    MyList_AddFiles = legacy.AniDB_MyList_AddFiles,
+                    MyList_StorageState = legacy.AniDB_MyList_StorageState,
+                    MyList_DeleteType = legacy.AniDB_MyList_DeleteType,
+                    MyList_ReadUnwatched = legacy.AniDB_MyList_ReadUnwatched,
+                    MyList_ReadWatched = legacy.AniDB_MyList_ReadWatched,
+                    MyList_SetWatched = legacy.AniDB_MyList_SetWatched,
+                    MyList_SetUnwatched = legacy.AniDB_MyList_SetUnwatched,
+                    MyList_UpdateFrequency = legacy.AniDB_MyList_UpdateFrequency,
+                    Calendar_UpdateFrequency = legacy.AniDB_Calendar_UpdateFrequency,
+                    Anime_UpdateFrequency = legacy.AniDB_Anime_UpdateFrequency,
+                    MyListStats_UpdateFrequency = legacy.AniDB_MyListStats_UpdateFrequency,
+                    File_UpdateFrequency = legacy.AniDB_File_UpdateFrequency,
+                    DownloadCharacters = legacy.AniDB_DownloadCharacters,
+                    DownloadCreators = legacy.AniDB_DownloadCreators,
+                    MaxRelationDepth = legacy.AniDB_MaxRelationDepth
                 },
                 WebCache = new WebCacheSettings
                 {
-                    Address = Legacy.WebCache_Address,
-                    XRefFileEpisode_Get = Legacy.WebCache_XRefFileEpisode_Get,
-                    XRefFileEpisode_Send = Legacy.WebCache_XRefFileEpisode_Send,
-                    TvDB_Get = Legacy.WebCache_TvDB_Get,
-                    TvDB_Send = Legacy.WebCache_TvDB_Send,
-                    Trakt_Get = Legacy.WebCache_Trakt_Get,
-                    Trakt_Send = Legacy.WebCache_Trakt_Send,
+                    Address = legacy.WebCache_Address,
+                    XRefFileEpisode_Get = legacy.WebCache_XRefFileEpisode_Get,
+                    XRefFileEpisode_Send = legacy.WebCache_XRefFileEpisode_Send,
+                    TvDB_Get = legacy.WebCache_TvDB_Get,
+                    TvDB_Send = legacy.WebCache_TvDB_Send,
+                    Trakt_Get = legacy.WebCache_Trakt_Get,
+                    Trakt_Send = legacy.WebCache_Trakt_Send,
                 },
-                TvDB = new TvDBSettings
-                {
-                    AutoLink = Legacy.TvDB_AutoLink,
-                    AutoFanart = Legacy.TvDB_AutoFanart,
-                    AutoFanartAmount = Legacy.TvDB_AutoFanartAmount,
-                    AutoWideBanners = Legacy.TvDB_AutoWideBanners,
-                    AutoWideBannersAmount = Legacy.TvDB_AutoWideBannersAmount,
-                    AutoPosters = Legacy.TvDB_AutoPosters,
-                    AutoPostersAmount = Legacy.TvDB_AutoPostersAmount,
-                    UpdateFrequency = Legacy.TvDB_UpdateFrequency,
-                    Language = Legacy.TvDB_Language
-                },
-                MovieDb = new MovieDbSettings
-                {
-                    AutoFanart = Legacy.MovieDB_AutoFanart,
-                    AutoFanartAmount = Legacy.MovieDB_AutoFanartAmount,
-                    AutoPosters = Legacy.MovieDB_AutoPosters,
-                    AutoPostersAmount = Legacy.MovieDB_AutoPostersAmount
-                },
-                Import = new ImportSettings
-                {
-                    VideoExtensions = Legacy.VideoExtensions.Split(','),
-                    DefaultSeriesLanguage = Legacy.DefaultSeriesLanguage,
-                    DefaultEpisodeLanguage = Legacy.DefaultEpisodeLanguage,
-                    RunOnStart = Legacy.RunImportOnStart,
-                    ScanDropFoldersOnStart = Legacy.ScanDropFoldersOnStart,
-                    Hash_CRC32 = Legacy.Hash_CRC32,
-                    Hash_MD5 = Legacy.Hash_MD5,
-                    Hash_SHA1 = Legacy.Hash_SHA1,
-                    UseExistingFileWatchedStatus = Legacy.Import_UseExistingFileWatchedStatus
-                },
-                Plex = new PlexSettings
-                {
-                    ThumbnailAspects = Legacy.PlexThumbnailAspects,
-                    Libraries = Legacy.Plex_Libraries,
-                    Token = Legacy.Plex_Token,
-                    Server = Legacy.Plex_Server
-                },
-                AutoGroupSeries = Legacy.AutoGroupSeries,
-                AutoGroupSeriesRelationExclusions = Legacy.AutoGroupSeriesRelationExclusions,
-                AutoGroupSeriesUseScoreAlgorithm = Legacy.AutoGroupSeriesUseScoreAlgorithm,
-                FileQualityFilterEnabled = Legacy.FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(Legacy.FileQualityFilterPreferences),
-                LanguagePreference = Legacy.LanguagePreference.Split(','),
-                EpisodeLanguagePreference = Legacy.EpisodeLanguagePreference,
-                LanguageUseSynonyms = Legacy.LanguageUseSynonyms,
-                CloudWatcherTime = Legacy.CloudWatcherTime,
-                EpisodeTitleSource = Legacy.EpisodeTitleSource,
-                SeriesDescriptionSource = Legacy.SeriesDescriptionSource,
-                SeriesNameSource = Legacy.SeriesNameSource,
-                VLCLocation = Legacy.VLCLocation,
-                MinimizeOnStartup = Legacy.MinimizeOnStartup,
+                TvDB =
+                    new TvDBSettings
+                    {
+                        AutoLink = legacy.TvDB_AutoLink,
+                        AutoFanart = legacy.TvDB_AutoFanart,
+                        AutoFanartAmount = legacy.TvDB_AutoFanartAmount,
+                        AutoWideBanners = legacy.TvDB_AutoWideBanners,
+                        AutoWideBannersAmount = legacy.TvDB_AutoWideBannersAmount,
+                        AutoPosters = legacy.TvDB_AutoPosters,
+                        AutoPostersAmount = legacy.TvDB_AutoPostersAmount,
+                        UpdateFrequency = legacy.TvDB_UpdateFrequency,
+                        Language = legacy.TvDB_Language
+                    },
+                MovieDb =
+                    new MovieDbSettings
+                    {
+                        AutoFanart = legacy.MovieDB_AutoFanart,
+                        AutoFanartAmount = legacy.MovieDB_AutoFanartAmount,
+                        AutoPosters = legacy.MovieDB_AutoPosters,
+                        AutoPostersAmount = legacy.MovieDB_AutoPostersAmount
+                    },
+                Import =
+                    new ImportSettings
+                    {
+                        VideoExtensions = legacy.VideoExtensions.Split(','),
+                        DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
+                        DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
+                        RunOnStart = legacy.RunImportOnStart,
+                        ScanDropFoldersOnStart = legacy.ScanDropFoldersOnStart,
+                        Hash_CRC32 = legacy.Hash_CRC32,
+                        Hash_MD5 = legacy.Hash_MD5,
+                        Hash_SHA1 = legacy.Hash_SHA1,
+                        UseExistingFileWatchedStatus = legacy.Import_UseExistingFileWatchedStatus
+                    },
+                Plex =
+                    new PlexSettings
+                    {
+                        ThumbnailAspects = legacy.PlexThumbnailAspects,
+                        Libraries = legacy.Plex_Libraries,
+                        Token = legacy.Plex_Token,
+                        Server = legacy.Plex_Server
+                    },
+                AutoGroupSeries = legacy.AutoGroupSeries,
+                AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions,
+                AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
+                FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
+                FileQualityFilterPreferences = legacy.FileQualityFilterPreferences,
+                LanguagePreference = legacy.LanguagePreference.Split(','),
+                EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
+                LanguageUseSynonyms = legacy.LanguageUseSynonyms,
+                CloudWatcherTime = legacy.CloudWatcherTime,
+                EpisodeTitleSource = legacy.EpisodeTitleSource,
+                SeriesDescriptionSource = legacy.SeriesDescriptionSource,
+                SeriesNameSource = legacy.SeriesNameSource,
+                VLCLocation = legacy.VLCLocation,
+                MinimizeOnStartup = legacy.MinimizeOnStartup,
                 TraktTv = new TraktSettings
                 {
-                    Enabled = Legacy.Trakt_IsEnabled,
-                    PIN = Legacy.Trakt_PIN,
-                    AuthToken = Legacy.Trakt_AuthToken,
-                    RefreshToken = Legacy.Trakt_RefreshToken,
-                    TokenExpirationDate = Legacy.Trakt_TokenExpirationDate,
-                    UpdateFrequency = Legacy.Trakt_UpdateFrequency,
-                    SyncFrequency = Legacy.Trakt_SyncFrequency
+                    Enabled = legacy.Trakt_IsEnabled,
+                    PIN = legacy.Trakt_PIN,
+                    AuthToken = legacy.Trakt_AuthToken,
+                    RefreshToken = legacy.Trakt_RefreshToken,
+                    TokenExpirationDate = legacy.Trakt_TokenExpirationDate,
+                    UpdateFrequency = legacy.Trakt_UpdateFrequency,
+                    SyncFrequency = legacy.Trakt_SyncFrequency
                 },
-                UpdateChannel = Legacy.UpdateChannel,
+                UpdateChannel = legacy.UpdateChannel,
                 Linux = new LinuxSettings
                 {
-                    UID = Legacy.Linux_UID,
-                    GID = Legacy.Linux_GID,
-                    Permission = Legacy.Linux_Permission
+                    UID = legacy.Linux_UID, GID = legacy.Linux_GID, Permission = legacy.Linux_Permission
                 },
-                TraceLog = Legacy.TraceLog
+                TraceLog = legacy.TraceLog,
+                Database = new DatabaseSettings
+                {
+                    MySqliteDirectory = legacy.MySqliteDirectory,
+                    DatabaseBackupDirectory = legacy.DatabaseBackupDirectory,
+                    Type = legacy.DatabaseType
+                }
             };
 
-            settings.Database = new DatabaseSettings
-            {
-                MySqliteDirectory = Legacy.MySqliteDirectory,
-                DatabaseBackupDirectory = Legacy.DatabaseBackupDirectory
-            };
-            settings.Database.Type = Legacy.DatabaseType;
-            switch (Legacy.DatabaseType)
+            switch (legacy.DatabaseType)
             {
                 case Constants.DatabaseType.MySQL:
-                    settings.Database.Username = Legacy.MySQL_Username;
-                    settings.Database.Password = Legacy.MySQL_Password;
-                    settings.Database.Schema = Legacy.MySQL_SchemaName;
-                    settings.Database.Hostname = Legacy.MySQL_Hostname;
+                    settings.Database.Username = legacy.MySQL_Username;
+                    settings.Database.Password = legacy.MySQL_Password;
+                    settings.Database.Schema = legacy.MySQL_SchemaName;
+                    settings.Database.Hostname = legacy.MySQL_Hostname;
                     break;
                 case Constants.DatabaseType.SqlServer:
-                    settings.Database.Username = Legacy.DatabaseUsername;
-                    settings.Database.Password = Legacy.DatabasePassword;
-                    settings.Database.Schema = Legacy.DatabaseName;
-                    settings.Database.Hostname = Legacy.DatabaseServer;
+                    settings.Database.Username = legacy.DatabaseUsername;
+                    settings.Database.Password = legacy.DatabasePassword;
+                    settings.Database.Schema = legacy.DatabaseName;
+                    settings.Database.Hostname = legacy.DatabaseServer;
                     break;
             }
 
@@ -317,7 +320,7 @@ namespace Shoko.Server.Settings
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
-            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path));
+            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path), new StringEnumConverter());
             var context = new ValidationContext(Instance, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
@@ -346,9 +349,9 @@ namespace Shoko.Server.Settings
             {
                 Formatting = Formatting.Indented,
                 DefaultValueHandling = DefaultValueHandling.Include,
-                MissingMemberHandling = MissingMemberHandling.Ignore
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+                Converters = new List<JsonConverter> {new StringEnumConverter()}
             };
-            serializerSettings.Converters.Add(new StringEnumConverter { AllowIntegerValues = true });
 
             File.WriteAllText(path, JsonConvert.SerializeObject(this, serializerSettings));
         }
@@ -420,7 +423,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = AutoGroupSeriesUseScoreAlgorithm,
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityFilterPreferences),
+                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityFilterPreferences, new StringEnumConverter()),
                 Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
                 RunImportOnStart = Import.RunOnStart,
                 ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,
