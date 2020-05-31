@@ -515,11 +515,11 @@ namespace Shoko.Server.Models
                 cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
             cl.VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString();
             cl.VideoInfo_AudioCodec =
-                LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault()?.Codec);
+                LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault());
             cl.VideoInfo_Duration = Duration;
             cl.VideoInfo_VideoBitrate = (Media?.VideoStream?.BitRate ?? 0).ToString();
             cl.VideoInfo_VideoBitDepth = (Media?.VideoStream?.BitDepth ?? 0).ToString();
-            cl.VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream?.Codec);
+            cl.VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream);
             cl.VideoInfo_VideoFrameRate = Media?.VideoStream?.FrameRate.ToString();
             cl.VideoInfo_VideoResolution = VideoResolution;
 

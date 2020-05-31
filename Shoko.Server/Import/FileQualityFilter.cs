@@ -112,7 +112,7 @@ namespace Shoko.Server
         private static bool CheckAudioCodec(SVR_VideoLocal aniFile)
         {
             string[] codecs =
-                aniFile?.Media?.AudioStreams.Select(a => LegacyMediaUtils.TranslateCodec(a.Codec)).OrderBy(a => a)
+                aniFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec).OrderBy(a => a)
                     .ToArray() ?? new string[] { };
             if (codecs.Length == 0) return false;
 
@@ -261,7 +261,7 @@ namespace Shoko.Server
         {
             string[] codecs =
                 aniFile?.Media?.media.track.Where(a => a.type == StreamType.Video)
-                    .Select(a => LegacyMediaUtils.TranslateCodec(a.Codec))
+                    .Select(LegacyMediaUtils.TranslateCodec)
                     .OrderBy(a => a).ToArray() ?? new string[] { };
 
             if (codecs.Length == 0) return false;
@@ -345,22 +345,10 @@ namespace Shoko.Server
 
         private static int CompareAudioCodecTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            string[] newCodecs = newFile?.Media?.AudioStreams.Select(a =>
-                {
-                    string codec = a.Codec ?? a.CodecID;
-                    var trans = LegacyMediaUtils.TranslateCodec(codec);
-                    if (trans == null) return codec?.ToLowerInvariant();
-                    return trans;
-                }).Where(a => a != null).OrderBy(a => a)
-                .ToArray() ?? new string[] { };
-            string[] oldCodecs = oldFile?.Media?.AudioStreams.Select(a =>
-                {
-                    string codec = a.Codec ?? a.CodecID;
-                    var trans = LegacyMediaUtils.TranslateCodec(codec);
-                    if (trans == null) return codec?.ToLowerInvariant();
-                    return trans;
-                }).Where(a => a != null).OrderBy(a => a)
-                .ToArray() ?? new string[] { };
+            string[] newCodecs = newFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec)
+                .Where(a => a != null).OrderBy(a => a).ToArray() ?? new string[] { };
+            string[] oldCodecs = oldFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec)
+                .Where(a => a != null).OrderBy(a => a).ToArray() ?? new string[] { };
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
             if (newCodecs.Length != oldCodecs.Length) return 0;
 
@@ -471,23 +459,11 @@ namespace Shoko.Server
         {
             string[] newCodecs =
                 newLocal?.Media?.media.track.Where(a => a.type == StreamType.Video)
-                    .Select(a =>
-                    {
-                        string codec = a.Codec ?? a.CodecID;
-                        var trans = LegacyMediaUtils.TranslateCodec(codec);
-                        if (trans == null) return codec?.ToLowerInvariant();
-                        return trans;
-                    }).Where(a => a != null).OrderBy(a => a).ToArray() ??
+                    .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
                 new string[] { };
             string[] oldCodecs =
                 oldLocal?.Media?.media.track.Where(a => a.type == StreamType.Video)
-                    .Select(a =>
-                    {
-                        string codec = a.Codec ?? a.CodecID;
-                        var trans = LegacyMediaUtils.TranslateCodec(codec);
-                        if (trans == null) return codec?.ToLowerInvariant();
-                        return trans;
-                    }).Where(a => a != null).OrderBy(a => a).ToArray() ??
+                    .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
                 new string[] { };
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
             if (newCodecs.Length != oldCodecs.Length) return 0;
