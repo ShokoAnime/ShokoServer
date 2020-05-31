@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
+using Newtonsoft.Json;
 using Shoko.Models.Enums;
 
 namespace Shoko.Models
 {
-    [DataContract]
     public class FileQualityPreferences
     {
-        [IgnoreDataMember]
+        [JsonIgnore]
         public static readonly Dictionary<string, string> SimplifiedSources;
 
         static FileQualityPreferences()
@@ -34,7 +33,7 @@ namespace Shoko.Models
         }
 
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
-        [DataMember(Name = "Types")]
+        [JsonProperty("Types")]
         public FileQualityFilterType[] _types =
         {
             FileQualityFilterType.SOURCE, FileQualityFilterType.RESOLUTION, FileQualityFilterType.AUDIOSTREAMCOUNT,
@@ -43,7 +42,7 @@ namespace Shoko.Models
         };
 
         /// Preferred Audio Codecs, in order.
-        [DataMember(Name = "PreferredAudioCodecs")]
+        [JsonProperty("PreferredAudioCodecs")]
         public string[] _audiocodecs =
         {
             "flac", "dolby digital plus", "dolby truehd", "dts", "he-aac", "aac", "ac3", "mp3 cbr", "mp3 vbr",
@@ -52,21 +51,21 @@ namespace Shoko.Models
         };
 
         /// Preferred Resolutions, in order.
-        [DataMember(Name = "PreferredResolutions")]
+        [JsonProperty("PreferredResolutions")]
         public string[] _resolutions = {"2160p", "1440p", "1080p", "720p", "480p"};
 
         /// Preferred Sources, in order.
-        [DataMember(Name = "PreferredSources")]
+        [JsonProperty("PreferredSources")]
         public string[] _sources = {"bd", "dvd", "tv", "www", "unknown"};
 
         /// Subbing/Release Groups in order of preference.
         /// If a file is not in the list, the compared files are considered comparatively equal.
-        [DataMember(Name = "PreferredSubGroups")]
+        [JsonProperty("PreferredSubGroups")]
         public string[] _subgroups = { "fffpeeps", "doki", "commie", "horriblesubs" };
 
         /// Preferred Video Codecs, in order.
         /// Due to the complexity of Bit Depth, it has its own setting that is used when applicable.
-        [DataMember(Name = "PreferredVideoCodecs")]
+        [JsonProperty("PreferredVideoCodecs")]
         public string[] _videocodecs =
         {
             "hevc", "h264/avc", "divx5/6", "mpeg-4 asp", "mpeg-2", "mpeg-1", "ms mp4x", "divx4", "divx3", "vc-1",
@@ -76,22 +75,22 @@ namespace Shoko.Models
 
         /// Whether or not to prefer Bit Depth. If/when 12bit becomes more prominant, this can be changed to an integer.
         /// This will not apply to codecs that don't support.
-        [DataMember]
-        public bool Prefer8BitVideo;
+        [JsonProperty]
+        public bool Prefer8BitVideo { get; set; }
 
         /// <summary>
         /// Allow deletion of the file being imported.
         /// Main use case is if you set your client to dl everything and let Shoko pick the best
         /// If ServerSettings.FileQualityFilterEnabled is not true, this does nothing
         /// </summary>
-        [DataMember]
-        public bool AllowDeletionOfImportedFiles;
+        [JsonProperty]
+        public bool AllowDeletionOfImportedFiles { get; set; }
 
         /// These are used to determine whether or not a file that isn't found to be the most preferred is kept.
         /// Each Setting must have an operation type, except for Types
         /// All checks must pass to keep a file.
         /// This is a list, in order, of the operations. Accepts no arguments.
-        [DataMember(Name = "RequiredTypes")]
+        [JsonProperty("RequiredTypes")]
         public FileQualityFilterType[] _requiredtypes =
         {
             FileQualityFilterType.SOURCE, FileQualityFilterType.CHAPTER, FileQualityFilterType.VERSION
@@ -99,7 +98,7 @@ namespace Shoko.Models
 
         /// Required Audio Codec. Default must be FLAC, Dolby, or AAC.
         /// Accepts IN, NOTIN
-        [DataMember(Name = "RequiredAudioCodecs")]
+        [JsonProperty("RequiredAudioCodecs")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredaudiocodecs =
             new Tuple<string[], FileQualityFilterOperationType>(
                 new[] {"flac", "dolby digital plus", "dolby truehd", "dts", "aac"},
@@ -107,56 +106,56 @@ namespace Shoko.Models
 
         /// Required Audio Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        [DataMember(Name = "RequiredAudioStreamCount")]
+        [JsonProperty("RequiredAudioStreamCount")]
         public Tuple<int, FileQualityFilterOperationType> _requiredaudiostreamcount =
             new Tuple<int, FileQualityFilterOperationType>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Resolution. Default must be 1080p or greater.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ, IN, NOTIN
-        [DataMember(Name = "RequiredResolutions")]
+        [JsonProperty("RequiredResolutions")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredresolutions =
             new Tuple<string[], FileQualityFilterOperationType>(new[] {"1080p"},
                 FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Source. Default must be BD or DVD release.
         /// Accepts IN, NOTIN
-        [DataMember(Name = "RequiredSources")]
+        [JsonProperty("RequiredSources")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredsources =
             new Tuple<string[], FileQualityFilterOperationType>(new[] {"bd", "dvd"},
                 FileQualityFilterOperationType.IN);
 
         /// The required Subbing/Release Groups and the operator. Defaulting to not HorribleSubs for example.
         /// Accepts IN, NOTIN
-        [DataMember(Name = "RequiredSubGroups")]
+        [JsonProperty("RequiredSubGroups")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredsubgroups =
             new Tuple<string[], FileQualityFilterOperationType>(new[] { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
 
         /// Required Subtitle Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        [DataMember(Name = "RequiredSubStreamCount")]
+        [JsonProperty("RequiredSubStreamCount")]
         public Tuple<int, FileQualityFilterOperationType> _requiredsubstreamcount =
             new Tuple<int, FileQualityFilterOperationType>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Video Codec. Default must be H265/HEVC or H264/AVC.
         /// Accepts IN, NOTIN
-        [DataMember(Name = "RequiredVideoCodecs")]
+        [JsonProperty("RequiredVideoCodecs")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredvideocodecs =
             new Tuple<string[], FileQualityFilterOperationType>(new[] {"hevc", "h264/avc"},
                 FileQualityFilterOperationType.IN);
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.
-        [DataMember]
+        [JsonProperty]
         public bool Require10BitVideo = true;
 
         /// The maximum number of files to keep per episode.
         /// I'll need to think of a way to handle episodes that are multipart, but listed as one episode.
         /// For now, just make sure to mark said files as variations, and it will not be deleted regardless.
-        [DataMember]
+        [JsonProperty]
         public int MaxNumberOfFilesToKeep = 1;
 
         #region public Getters and Setters
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<FileQualityFilterType> TypePreferences
         {
             get => _types.ToList();
@@ -164,7 +163,7 @@ namespace Shoko.Models
         }
 
         /// Preferred Audio Codecs, in order.
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> AudioCodecPreferences
         {
             get => _audiocodecs.ToList();
@@ -172,7 +171,7 @@ namespace Shoko.Models
         }
 
         /// Preferred Resolutions, in order.
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> ResolutionPreferences
         {
             get => _resolutions.ToList();
@@ -180,7 +179,7 @@ namespace Shoko.Models
         }
 
         /// Preferred Sources, in order.
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> SourcePreferences
         {
             get => _sources.ToList();
@@ -193,7 +192,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> SubGroupPreferences
         {
             get => _subgroups.ToList();
@@ -201,7 +200,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> VideoCodecPreferences
         {
             get => _videocodecs.ToList();
@@ -209,7 +208,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<FileQualityFilterType> RequiredTypes
         {
             get => _requiredtypes.ToList();
@@ -217,7 +216,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> RequiredAudioCodecs
         {
             get => _requiredaudiocodecs.Item1.ToList();
@@ -226,7 +225,7 @@ namespace Shoko.Models
                 _requiredaudiocodecs.Item2);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredAudioCodecOperator
         {
             get => _requiredaudiocodecs.Item2;
@@ -234,7 +233,7 @@ namespace Shoko.Models
                 new Tuple<string[], FileQualityFilterOperationType>(_requiredaudiocodecs.Item1, value);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public int RequiredAudioStreamCount
         {
             get => _requiredaudiostreamcount.Item1;
@@ -242,7 +241,7 @@ namespace Shoko.Models
                 new Tuple<int, FileQualityFilterOperationType>(value, _requiredaudiocodecs.Item2);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredAudioStreamCountOperator
         {
             get => _requiredaudiostreamcount.Item2;
@@ -250,7 +249,7 @@ namespace Shoko.Models
                 new Tuple<int, FileQualityFilterOperationType>(_requiredaudiostreamcount.Item1, value);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> RequiredResolutions
         {
             get => _requiredresolutions.Item1.ToList();
@@ -260,7 +259,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredResolutionOperator
         {
             get => _requiredresolutions.Item2;
@@ -269,7 +268,7 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> RequiredSources
         {
             get => _requiredsources.Item1.ToList();
@@ -279,14 +278,14 @@ namespace Shoko.Models
         }
 
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredSourceOperator
         {
             get => _requiredsources.Item2;
             set => _requiredsources = new Tuple<string[], FileQualityFilterOperationType>(_requiredsources.Item1, value);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> RequiredSubGroups
         {
             get => _requiredsubgroups.Item1.ToList();
@@ -295,7 +294,7 @@ namespace Shoko.Models
                 _requiredsubgroups.Item2);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredSubGroupOperator
         {
             get => _requiredsubgroups.Item2;
@@ -303,7 +302,7 @@ namespace Shoko.Models
                 new Tuple<string[], FileQualityFilterOperationType>(_requiredsubgroups.Item1, value);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public int RequiredSubStreamCount
         {
             get => _requiredsubstreamcount.Item1;
@@ -311,7 +310,7 @@ namespace Shoko.Models
                 new Tuple<int, FileQualityFilterOperationType>(value, _requiredsubstreamcount.Item2);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredSubStreamCountOperator
         {
             get => _requiredsubstreamcount.Item2;
@@ -319,7 +318,7 @@ namespace Shoko.Models
                 new Tuple<int, FileQualityFilterOperationType>(_requiredsubstreamcount.Item1, value);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public List<string> RequiredVideoCodecs
         {
             get => _requiredvideocodecs.Item1.ToList();
@@ -328,7 +327,7 @@ namespace Shoko.Models
                 _requiredvideocodecs.Item2);
         }
 
-        [IgnoreDataMember]
+        [JsonIgnore]
         public FileQualityFilterOperationType RequiredVideoCodecOperator
         {
             get => _requiredvideocodecs.Item2;
