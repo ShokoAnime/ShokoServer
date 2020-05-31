@@ -51,6 +51,11 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     {
                         new StreamJsonConverter(), new BooleanConverter(), new StringEnumConverter(),
                         new DateTimeConverter() {DateTimeFormat = "yyyy-MM-dd HH:mm:ss"}, new MultiIntConverter()
+                    },
+                    Error = (s, e) =>
+                    {
+                        logger.Error(e.ErrorContext.Error);
+                        e.ErrorContext.Handled = true;
                     }
                 };
 
@@ -58,17 +63,16 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 MediaContainer m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
                 m.media.track.ForEach(a =>
                 {
-                    if (!string.IsNullOrEmpty(a.Language))
+                    // Stream should never be null, but here we are
+                    if (string.IsNullOrEmpty(a?.Language)) return;
+                    Tuple<string, string> langs = MediaInfoUtils.GetLanguageMapping(a.Language);
+                    if (langs == null)
                     {
-                        var langs = MediaInfoUtils.GetLanguageMapping(a.Language);
-                        if (langs == null)
-                        {
-                            logger.Error($"{filename} had a missing language code: {a.Language}");
-                            return;
-                        }
-                        a.LanguageCode = langs.Item1;
-                        a.LanguageName = langs.Item2;
+                        logger.Error($"{filename} had a missing language code: {a.Language}");
+                        return;
                     }
+                    a.LanguageCode = langs.Item1;
+                    a.LanguageName = langs.Item2;
                 });
                 return m;
             }
