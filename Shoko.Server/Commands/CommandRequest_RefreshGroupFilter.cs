@@ -35,6 +35,11 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
+            if (GroupFilterID == 0)
+            {
+                RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+                return;
+            }
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
             gf.CalculateGroupsAndSeries();

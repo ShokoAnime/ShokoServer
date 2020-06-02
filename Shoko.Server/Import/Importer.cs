@@ -1032,7 +1032,8 @@ namespace Shoko.Server
                 gf.QueueUpdate();
             }
 
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            CommandRequest_RefreshGroupFilter cmd = new CommandRequest_RefreshGroupFilter(0);
+            cmd.Save();
         }
 
 
