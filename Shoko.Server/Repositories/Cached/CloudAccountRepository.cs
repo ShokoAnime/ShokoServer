@@ -4,16 +4,9 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class CloudAccountRepository : BaseCachedRepository<SVR_CloudAccount, int>
     {
-        private CloudAccountRepository()
+        public CloudAccountRepository()
         {
             EndSaveCallback = obj => { obj.NeedSave = false; };
-        }
-
-        public static CloudAccountRepository Create()
-        {
-            var repo = new CloudAccountRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_CloudAccount entity)

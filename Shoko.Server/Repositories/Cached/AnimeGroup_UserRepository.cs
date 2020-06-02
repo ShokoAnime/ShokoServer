@@ -20,7 +20,7 @@ namespace Shoko.Server.Repositories.Cached
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
 
-        private AnimeGroup_UserRepository()
+        public AnimeGroup_UserRepository()
         {
             EndDeleteCallback = cr =>
             {
@@ -32,13 +32,6 @@ namespace Shoko.Server.Repositories.Cached
                     cr.AnimeGroupID);
                 cr.DeleteFromFilters();
             };
-        }
-
-        public static AnimeGroup_UserRepository Create()
-        {
-            var repo = new AnimeGroup_UserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup_User entity)

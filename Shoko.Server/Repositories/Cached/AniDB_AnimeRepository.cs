@@ -21,17 +21,6 @@ namespace Shoko.Server.Repositories
     {
         private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
 
-        private AniDB_AnimeRepository()
-        {
-        }
-
-        public static AniDB_AnimeRepository Create()
-        {
-            var repo = new AniDB_AnimeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(SVR_AniDB_Anime entity)
         {
             return entity.AniDB_AnimeID;

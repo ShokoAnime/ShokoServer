@@ -10,17 +10,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_RecommendationRepository : BaseDirectRepository<AniDB_Recommendation, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        private AniDB_RecommendationRepository()
-        {
-        }
-
-        public static AniDB_RecommendationRepository Create()
-        {
-            return new AniDB_RecommendationRepository();
-        }
-
         public List<AniDB_Recommendation> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

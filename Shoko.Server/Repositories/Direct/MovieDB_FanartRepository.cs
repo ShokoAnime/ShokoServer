@@ -13,15 +13,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class MovieDB_FanartRepository : BaseDirectRepository<MovieDB_Fanart, int>
     {
-        private MovieDB_FanartRepository()
-        {
-        }
-
-        public static MovieDB_FanartRepository Create()
-        {
-            return new MovieDB_FanartRepository();
-        }
-
         public MovieDB_Fanart GetByOnlineID(string url)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

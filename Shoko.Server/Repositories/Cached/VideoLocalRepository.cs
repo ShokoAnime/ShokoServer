@@ -10,6 +10,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
 using Shoko.Models.Server;
+using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -24,7 +25,7 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_VideoLocal, string> MD5;
         private PocoIndex<int, SVR_VideoLocal, int> Ignored;
 
-        private VideoLocalRepository()
+        public VideoLocalRepository()
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
@@ -32,13 +33,6 @@ namespace Shoko.Server.Repositories.Cached
                 RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses,
                     RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
             };
-        }
-
-        public static VideoLocalRepository Create()
-        {
-            var repo = new VideoLocalRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_VideoLocal entity)
@@ -71,7 +65,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void RegenerateDb()
         {
             ServerState.Instance.CurrentSetupStatus = string.Format(
-                Resources.Database_Validating, nameof(VideoLocal), " Generating Media Info");
+                Resources.Database_Validating, nameof(VideoLocal), " Checking Media Info");
             int count = 0;
             int max;
             try
@@ -83,18 +77,12 @@ namespace Shoko.Server.Repositories.Cached
                 list.ForEach(
                     a =>
                     {
-                        //Fix possible paths in filename
-                        if (!string.IsNullOrEmpty(a.FileName))
-                        {
-                            int b = a.FileName.LastIndexOf(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal);
-                            if (b > 0)
-                                a.FileName = a.FileName.Substring(b + 1);
-                        }
-                        Save(a, false);
+                        CommandRequest_ReadMediaInfo cmd = new CommandRequest_ReadMediaInfo(a.VideoLocalID);
+                        cmd.Save();
                         count++;
                         ServerState.Instance.CurrentSetupStatus = string.Format(
                             Resources.Database_Validating, nameof(VideoLocal),
-                            " Generating Media Info - " + count + "/" + max);
+                            " Queuing Media Info Commands - " + count + "/" + max);
                     });
             }
             catch

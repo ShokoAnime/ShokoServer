@@ -20,17 +20,6 @@ namespace Shoko.Server.Repositories
             Names = new PocoIndex<int, AniDB_Tag, string>(Cache, a => a.TagName);
         }
 
-        private AniDB_TagRepository()
-        {
-        }
-
-        public static AniDB_TagRepository Create()
-        {
-            var repo = new AniDB_TagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(AniDB_Tag entity) => entity.AniDB_TagID;
 
         public override void RegenerateDb()

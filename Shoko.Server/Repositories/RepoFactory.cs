@@ -17,126 +17,97 @@ namespace Shoko.Server.Repositories
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static readonly List<ICachedRepository> CachedRepositories = new List<ICachedRepository>();
+
+        // Declare in order of dependency. Direct Repos don't have dependencies, so do them first
+        //Direct Ones
+        public static VersionsRepository Versions { get; } = new VersionsRepository();
+        public static CommandRequestRepository CommandRequest { get; } = new CommandRequestRepository();
+        public static Trakt_ShowRepository Trakt_Show { get; } = new Trakt_ShowRepository();
+        public static Trakt_SeasonRepository Trakt_Season { get; } = new Trakt_SeasonRepository();
+        public static Trakt_FriendRepository Trakt_Friend { get; } = new Trakt_FriendRepository();
+        public static Trakt_EpisodeRepository Trakt_Episode { get; } = new Trakt_EpisodeRepository();
+        public static ScheduledUpdateRepository ScheduledUpdate { get; } = new ScheduledUpdateRepository();
+        public static RenameScriptRepository RenameScript { get; } = new RenameScriptRepository();
+        public static PlaylistRepository Playlist { get; } = new PlaylistRepository();
+        public static MovieDB_PosterRepository MovieDB_Poster { get; } = new MovieDB_PosterRepository();
+        public static MovieDB_FanartRepository MovieDB_Fanart { get; } = new MovieDB_FanartRepository();
+        public static MovieDb_MovieRepository MovieDb_Movie { get; } = new MovieDb_MovieRepository();
+        public static LanguageRepository Language { get; } = new LanguageRepository();
+        public static IgnoreAnimeRepository IgnoreAnime { get; } = new IgnoreAnimeRepository();
+        public static FileNameHashRepository FileNameHash { get; } = new FileNameHashRepository();
+        public static FileFfdshowPresetRepository FileFfdshowPreset { get; } = new FileFfdshowPresetRepository();
+        public static DuplicateFileRepository DuplicateFile { get; } = new DuplicateFileRepository();
+        public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = new AniDB_AnimeUpdateRepository();
+        public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } = new CrossRef_Subtitles_AniDB_FileRepository();
+        public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; } = new CrossRef_Languages_AniDB_FileRepository();
+        public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; } = new CrossRef_AniDB_OtherRepository();
+        public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; } = new CrossRef_AniDB_MALRepository();
+        public static BookmarkedAnimeRepository BookmarkedAnime { get; } = new BookmarkedAnimeRepository();
+        public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; } = new AniDB_SeiyuuRepository();
+        public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; } = new AniDB_ReleaseGroupRepository();
+        public static AniDB_RecommendationRepository AniDB_Recommendation { get; } = new AniDB_RecommendationRepository();
+        public static AniDB_MylistStatsRepository AniDB_MylistStats { get; } = new AniDB_MylistStatsRepository();
+        public static AniDB_GroupStatusRepository AniDB_GroupStatus { get; } = new AniDB_GroupStatusRepository();
+        public static AniDB_CharacterRepository AniDB_Character { get; } = new AniDB_CharacterRepository();
+        public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu { get; } = new AniDB_Character_SeiyuuRepository();
+        public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar { get; } = new AniDB_Anime_SimilarRepository();
+        public static AniDB_Anime_ReviewRepository AniDB_Anime_Review { get; } = new AniDB_Anime_ReviewRepository();
+        public static AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; } = new AniDB_Anime_RelationRepository();
+        public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; } = new AniDB_Anime_DefaultImageRepository();
+        public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; } = new AniDB_Anime_CharacterRepository();
+        public static ScanRepository Scan { get; } = new ScanRepository();
+        public static ScanFileRepository ScanFile { get; } = new ScanFileRepository();
+        public static AdhocRepository Adhoc { get; } = new AdhocRepository();
+        
         //Cached Ones
         // DECLARE THESE IN ORDER OF DEPENDENCY
-        public static JMMUserRepository JMMUser { get; } = JMMUserRepository.Create();
-        public static AuthTokensRepository AuthTokens { get; } = AuthTokensRepository.Create();
-        public static CloudAccountRepository CloudAccount { get; } = CloudAccountRepository.Create();
-        public static ImportFolderRepository ImportFolder { get; } = ImportFolderRepository.Create();
-        public static AniDB_AnimeRepository AniDB_Anime { get; } = AniDB_AnimeRepository.Create();
-        public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; } = AniDB_Episode_TitleRepository.Create();
-        public static AniDB_EpisodeRepository AniDB_Episode { get; } = AniDB_EpisodeRepository.Create();
-        public static AniDB_FileRepository AniDB_File { get; } = AniDB_FileRepository.Create();
-        public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = AniDB_Anime_TitleRepository.Create();
-        public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = AniDB_Anime_TagRepository.Create();
-        public static AniDB_TagRepository AniDB_Tag { get; } = AniDB_TagRepository.Create();
-        public static CustomTagRepository CustomTag { get; } = CustomTagRepository.Create();
-        public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = CrossRef_CustomTagRepository.Create();
-        public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = CrossRef_File_EpisodeRepository.Create();
-        public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = VideoLocal_PlaceRepository.Create();
-        public static VideoLocalRepository VideoLocal { get; } = VideoLocalRepository.Create();
-        public static VideoLocal_UserRepository VideoLocalUser { get; } = VideoLocal_UserRepository.Create();
-        public static AnimeEpisodeRepository AnimeEpisode { get; } = AnimeEpisodeRepository.Create();
-        public static AnimeEpisode_UserRepository AnimeEpisode_User { get; } = AnimeEpisode_UserRepository.Create();
-        public static AnimeSeriesRepository AnimeSeries { get; } = AnimeSeriesRepository.Create();
-        public static AnimeSeries_UserRepository AnimeSeries_User { get; } = AnimeSeries_UserRepository.Create();
-        public static AnimeGroupRepository AnimeGroup { get; } = AnimeGroupRepository.Create();
-        public static AnimeGroup_UserRepository AnimeGroup_User { get; } = AnimeGroup_UserRepository.Create();
-        public static AniDB_VoteRepository AniDB_Vote { get; } = AniDB_VoteRepository.Create();
-        public static TvDB_EpisodeRepository TvDB_Episode { get; } = TvDB_EpisodeRepository.Create();
-        public static TvDB_SeriesRepository TvDB_Series { get; } = TvDB_SeriesRepository.Create();
-        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } = CrossRef_AniDB_TvDBRepository.Create();
-        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = CrossRef_AniDB_TvDB_EpisodeRepository.Create();
-        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; } = CrossRef_AniDB_TvDB_Episode_OverrideRepository.Create();
-        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = TvDB_ImagePosterRepository.Create();
-        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = TvDB_ImageFanartRepository.Create();
-        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = TvDB_ImageWideBannerRepository.Create();
-        public static AnimeCharacterRepository AnimeCharacter { get; } = AnimeCharacterRepository.Create();
-        public static AnimeStaffRepository AnimeStaff { get; } = AnimeStaffRepository.Create();
-        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = CrossRef_Anime_StaffRepository.Create();
-        public static GroupFilterRepository GroupFilter { get; } = GroupFilterRepository.Create();
-
-        //Direct Ones
-
-        public static VersionsRepository Versions { get; } = VersionsRepository.Create();
-
-        public static CommandRequestRepository CommandRequest { get; } = CommandRequestRepository.Create();
-        public static Trakt_ShowRepository Trakt_Show { get; } = Trakt_ShowRepository.Create();
-        public static Trakt_SeasonRepository Trakt_Season { get; } = Trakt_SeasonRepository.Create();
-        public static Trakt_FriendRepository Trakt_Friend { get; } = Trakt_FriendRepository.Create();
-        public static Trakt_EpisodeRepository Trakt_Episode { get; } = Trakt_EpisodeRepository.Create();
-        public static ScheduledUpdateRepository ScheduledUpdate { get; } = ScheduledUpdateRepository.Create();
-        public static RenameScriptRepository RenameScript { get; } = RenameScriptRepository.Create();
-        public static PlaylistRepository Playlist { get; } = PlaylistRepository.Create();
-        public static MovieDB_PosterRepository MovieDB_Poster { get; } = MovieDB_PosterRepository.Create();
-        public static MovieDB_FanartRepository MovieDB_Fanart { get; } = MovieDB_FanartRepository.Create();
-        public static MovieDb_MovieRepository MovieDb_Movie { get; } = MovieDb_MovieRepository.Create();
-        public static LanguageRepository Language { get; } = LanguageRepository.Create();
-        public static IgnoreAnimeRepository IgnoreAnime { get; } = IgnoreAnimeRepository.Create();
-        public static FileNameHashRepository FileNameHash { get; } = FileNameHashRepository.Create();
-        public static FileFfdshowPresetRepository FileFfdshowPreset { get; } = FileFfdshowPresetRepository.Create();
-        public static DuplicateFileRepository DuplicateFile { get; } = DuplicateFileRepository.Create();
-        public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = AniDB_AnimeUpdateRepository.Create();
-
-        public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } =
-            CrossRef_Subtitles_AniDB_FileRepository.Create();
-
-        public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; } =
-            CrossRef_Languages_AniDB_FileRepository.Create();
-
-        public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; } =
-            CrossRef_AniDB_TraktV2Repository.Create();
-
-        public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; } =
-            CrossRef_AniDB_OtherRepository.Create();
-
-        public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; } = CrossRef_AniDB_MALRepository.Create();
-        public static BookmarkedAnimeRepository BookmarkedAnime { get; } = BookmarkedAnimeRepository.Create();
-        public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; } = AniDB_SeiyuuRepository.Create();
-        public static AniDB_ReviewRepository AniDB_Review { get; } = AniDB_ReviewRepository.Create();
-        public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; } = AniDB_ReleaseGroupRepository.Create();
-
-        public static AniDB_RecommendationRepository AniDB_Recommendation { get; } =
-            AniDB_RecommendationRepository.Create();
-
-        public static AniDB_MylistStatsRepository AniDB_MylistStats { get; } = AniDB_MylistStatsRepository.Create();
-        public static AniDB_GroupStatusRepository AniDB_GroupStatus { get; } = AniDB_GroupStatusRepository.Create();
-        public static AniDB_CharacterRepository AniDB_Character { get; } = AniDB_CharacterRepository.Create();
-
-        public static AniDB_Character_SeiyuuRepository AniDB_Character_Seiyuu { get; } =
-            AniDB_Character_SeiyuuRepository.Create();
-
-        public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar { get; } =
-            AniDB_Anime_SimilarRepository.Create();
-
-        public static AniDB_Anime_ReviewRepository AniDB_Anime_Review { get; } = AniDB_Anime_ReviewRepository.Create();
-
-        public static AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; } =
-            AniDB_Anime_RelationRepository.Create();
-
-        public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; } =
-            AniDB_Anime_DefaultImageRepository.Create();
-
-        public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; } =
-            AniDB_Anime_CharacterRepository.Create();
-
-        public static ScanRepository Scan { get; } = ScanRepository.Create();
-        public static ScanFileRepository ScanFile { get; } = ScanFileRepository.Create();
-
-        //AdHoc Repo
-        public static AdhocRepository Adhoc { get; } = AdhocRepository.Create();
+        public static JMMUserRepository JMMUser { get; } = new JMMUserRepository();
+        public static AuthTokensRepository AuthTokens { get; } = new AuthTokensRepository();
+        public static CloudAccountRepository CloudAccount { get; } = new CloudAccountRepository();
+        public static ImportFolderRepository ImportFolder { get; } = new ImportFolderRepository();
+        public static AniDB_AnimeRepository AniDB_Anime { get; } = new AniDB_AnimeRepository();
+        public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; } = new AniDB_Episode_TitleRepository();
+        public static AniDB_EpisodeRepository AniDB_Episode { get; } = new AniDB_EpisodeRepository();
+        public static AniDB_FileRepository AniDB_File { get; } = new AniDB_FileRepository();
+        public static AniDB_Anime_TitleRepository AniDB_Anime_Title { get; } = new AniDB_Anime_TitleRepository();
+        public static AniDB_Anime_TagRepository AniDB_Anime_Tag { get; } = new AniDB_Anime_TagRepository();
+        public static AniDB_TagRepository AniDB_Tag { get; } = new AniDB_TagRepository();
+        public static CustomTagRepository CustomTag { get; } = new CustomTagRepository();
+        public static CrossRef_CustomTagRepository CrossRef_CustomTag { get; } = new CrossRef_CustomTagRepository();
+        public static CrossRef_File_EpisodeRepository CrossRef_File_Episode { get; } = new CrossRef_File_EpisodeRepository();
+        public static VideoLocal_PlaceRepository VideoLocalPlace { get; } = new VideoLocal_PlaceRepository();
+        public static VideoLocalRepository VideoLocal { get; } = new VideoLocalRepository();
+        public static VideoLocal_UserRepository VideoLocalUser { get; } = new VideoLocal_UserRepository();
+        public static AnimeEpisodeRepository AnimeEpisode { get; } = new AnimeEpisodeRepository();
+        public static AnimeEpisode_UserRepository AnimeEpisode_User { get; } = new AnimeEpisode_UserRepository();
+        public static AnimeSeriesRepository AnimeSeries { get; } = new AnimeSeriesRepository();
+        public static AnimeSeries_UserRepository AnimeSeries_User { get; } = new AnimeSeries_UserRepository();
+        public static AnimeGroupRepository AnimeGroup { get; } = new AnimeGroupRepository();
+        public static AnimeGroup_UserRepository AnimeGroup_User { get; } = new AnimeGroup_UserRepository();
+        public static AniDB_VoteRepository AniDB_Vote { get; } = new AniDB_VoteRepository();
+        public static TvDB_EpisodeRepository TvDB_Episode { get; } = new TvDB_EpisodeRepository();
+        public static TvDB_SeriesRepository TvDB_Series { get; } = new TvDB_SeriesRepository();
+        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } = new CrossRef_AniDB_TvDBRepository();
+        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = new CrossRef_AniDB_TvDB_EpisodeRepository();
+        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; } = new CrossRef_AniDB_TvDB_Episode_OverrideRepository();
+        public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = new TvDB_ImagePosterRepository();
+        public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = new TvDB_ImageFanartRepository();
+        public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = new TvDB_ImageWideBannerRepository();
+        public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; } = new CrossRef_AniDB_TraktV2Repository();
+        public static AnimeCharacterRepository AnimeCharacter { get; } = new AnimeCharacterRepository();
+        public static AnimeStaffRepository AnimeStaff { get; } = new AnimeStaffRepository();
+        public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = new CrossRef_Anime_StaffRepository();
+        public static GroupFilterRepository GroupFilter { get; } = new GroupFilterRepository();
 
 
         /************** Might need to be DEPRECATED **************/
-        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; } =
-            CrossRef_AniDB_Trakt_EpisodeRepository.Create();
+        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; } = new CrossRef_AniDB_Trakt_EpisodeRepository();
 
 
         /************** DEPRECATED **************/
         /* We need to delete them at some point */
 
-        public static GroupFilterConditionRepository GroupFilterCondition { get; } =
-            GroupFilterConditionRepository.Create();
+        public static GroupFilterConditionRepository GroupFilterCondition { get; } = new GroupFilterConditionRepository();
 
         public static void PostInit()
         {

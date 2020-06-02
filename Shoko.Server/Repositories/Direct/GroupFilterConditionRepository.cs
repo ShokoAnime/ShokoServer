@@ -9,15 +9,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class GroupFilterConditionRepository : BaseDirectRepository<GroupFilterCondition, int>
     {
-        private GroupFilterConditionRepository()
-        {
-        }
-
-        public static GroupFilterConditionRepository Create()
-        {
-            return new GroupFilterConditionRepository();
-        }
-
         public List<GroupFilterCondition> GetByGroupFilterID(int gfid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

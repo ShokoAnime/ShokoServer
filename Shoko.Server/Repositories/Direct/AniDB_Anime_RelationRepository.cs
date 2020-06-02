@@ -10,15 +10,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
     {
-        private AniDB_Anime_RelationRepository()
-        {
-        }
-
-        public static AniDB_Anime_RelationRepository Create()
-        {
-            return new AniDB_Anime_RelationRepository();
-        }
-
         public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

@@ -19,17 +19,6 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_AnimeEpisode_User, int> Episodes;
         private PocoIndex<int, SVR_AnimeEpisode_User, ulong> UsersSeries;
 
-        private AnimeEpisode_UserRepository()
-        {
-        }
-
-        public static AnimeEpisode_UserRepository Create()
-        {
-            var repo = new AnimeEpisode_UserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(SVR_AnimeEpisode_User entity)
         {
             return entity.AnimeEpisode_UserID;

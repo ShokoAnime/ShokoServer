@@ -16,20 +16,13 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_AnimeEpisode, int> Series;
         private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
 
-        private AnimeEpisodeRepository()
+        public AnimeEpisodeRepository()
         {
             EndDeleteCallback = cr =>
             {
                 RepoFactory.AnimeEpisode_User.Delete(
                     RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
             };
-        }
-
-        public static AnimeEpisodeRepository Create()
-        {
-            var repo = new AnimeEpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeEpisode entity)

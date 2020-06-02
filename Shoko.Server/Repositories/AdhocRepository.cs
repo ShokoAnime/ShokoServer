@@ -17,15 +17,6 @@ namespace Shoko.Server.Repositories
 
     public class AdhocRepository
     {
-        private AdhocRepository()
-        {
-        }
-
-        public static AdhocRepository Create()
-        {
-            return new AdhocRepository();
-        }
-
         #region Video Quality
 
         /// <summary>

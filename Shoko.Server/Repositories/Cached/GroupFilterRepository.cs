@@ -22,8 +22,6 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class GroupFilterRepository : BaseCachedRepository<SVR_GroupFilter, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         private PocoIndex<int, SVR_GroupFilter, int> Parents;
 
         private BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
@@ -32,7 +30,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> PostProcessFilters { get; set; }
 
-        private GroupFilterRepository()
+        public GroupFilterRepository()
         {
             EndSaveCallback = obj =>
             {
@@ -44,13 +42,6 @@ namespace Shoko.Server.Repositories.Cached
                 Types.Remove(obj.GroupFilterID);
                 Changes.Remove(obj.GroupFilterID);
             };
-        }
-
-        public static GroupFilterRepository Create()
-        {
-            var repo = new GroupFilterRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_GroupFilter entity)

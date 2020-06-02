@@ -12,15 +12,12 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class AnimeSeries_UserRepository : BaseCachedRepository<SVR_AnimeSeries_User, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         private PocoIndex<int, SVR_AnimeSeries_User, int> Users;
         private PocoIndex<int, SVR_AnimeSeries_User, int> Series;
         private PocoIndex<int, SVR_AnimeSeries_User, int, int> UsersSeries;
         private Dictionary<int, ChangeTracker<int>> Changes = new Dictionary<int, ChangeTracker<int>>();
 
-
-        private AnimeSeries_UserRepository()
+        public AnimeSeries_UserRepository()
         {
             EndDeleteCallback = cr =>
             {
@@ -30,13 +27,6 @@ namespace Shoko.Server.Repositories.Cached
 
                 cr.DeleteFromFilters();
             };
-        }
-
-        public static AnimeSeries_UserRepository Create()
-        {
-            var repo = new AnimeSeries_UserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeSeries_User entity)

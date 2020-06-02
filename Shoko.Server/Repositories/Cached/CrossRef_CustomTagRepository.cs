@@ -11,10 +11,6 @@ namespace Shoko.Server.Repositories
         private PocoIndex<int, CrossRef_CustomTag, int> Tags;
         private PocoIndex<int, CrossRef_CustomTag, int, int> Refs;
 
-        private CrossRef_CustomTagRepository()
-        {
-        }
-
         protected override int SelectKey(CrossRef_CustomTag entity)
         {
             return entity.CrossRef_CustomTagID;
@@ -28,14 +24,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-        }
-
-
-        public static CrossRef_CustomTagRepository Create()
-        {
-            var repo = new CrossRef_CustomTagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)

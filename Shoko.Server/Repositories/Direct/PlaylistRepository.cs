@@ -8,15 +8,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class PlaylistRepository : BaseDirectRepository<Playlist, int>
     {
-        private PlaylistRepository()
-        {
-        }
-
-        public static PlaylistRepository Create()
-        {
-            return new PlaylistRepository();
-        }
-
         public override IReadOnlyList<Playlist> GetAll()
         {
             return base.GetAll().OrderBy(a => a.PlaylistName).ToList();

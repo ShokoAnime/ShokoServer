@@ -13,19 +13,8 @@ namespace Shoko.Server.Repositories
         private PocoIndex<int, AniDB_Anime_Tag, int> Animes;
         private PocoIndex<int, AniDB_Anime_Tag, int> TagIDs;
 
-        private AniDB_Anime_TagRepository()
-        {
-        }
-
         public override void RegenerateDb()
         {
-        }
-
-        public static AniDB_Anime_TagRepository Create()
-        {
-            var repo = new AniDB_Anime_TagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(AniDB_Anime_Tag entity)

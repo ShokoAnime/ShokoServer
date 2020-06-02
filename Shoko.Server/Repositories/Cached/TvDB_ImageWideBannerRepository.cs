@@ -29,17 +29,6 @@ namespace Shoko.Server.Repositories.Cached
             return entity.TvDB_ImageWideBannerID;
         }
 
-        private TvDB_ImageWideBannerRepository()
-        {
-        }
-
-        public static TvDB_ImageWideBannerRepository Create()
-        {
-            var repo = new TvDB_ImageWideBannerRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public TvDB_ImageWideBanner GetByTvDBID(int id)
         {
             lock (Cache)

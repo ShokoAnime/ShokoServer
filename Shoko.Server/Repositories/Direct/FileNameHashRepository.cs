@@ -7,15 +7,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
     {
-        private FileNameHashRepository()
-        {
-        }
-
-        public static FileNameHashRepository Create()
-        {
-            return new FileNameHashRepository();
-        }
-
         public List<FileNameHash> GetByHash(string hash)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

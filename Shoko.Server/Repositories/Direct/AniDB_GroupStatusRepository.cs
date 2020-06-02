@@ -11,13 +11,7 @@ namespace Shoko.Server.Repositories.Direct
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static AniDB_GroupStatusRepository Create()
-        {
-            return new AniDB_GroupStatusRepository();
-        }
-
-
-        private AniDB_GroupStatusRepository()
+        public AniDB_GroupStatusRepository()
         {
             EndDeleteCallback = obj =>
             {

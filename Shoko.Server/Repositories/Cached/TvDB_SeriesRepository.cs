@@ -16,17 +16,6 @@ namespace Shoko.Server.Repositories.Cached
             TvDBIDs = new PocoIndex<int, TvDB_Series, int>(Cache, a => a.SeriesID);
         }
 
-        private TvDB_SeriesRepository()
-        {
-        }
-
-        public static TvDB_SeriesRepository Create()
-        {
-            var repo = new TvDB_SeriesRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public TvDB_Series GetByTvDBID(int id)
         {
             lock (Cache)

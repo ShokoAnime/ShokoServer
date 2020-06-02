@@ -11,17 +11,6 @@ namespace Shoko.Server.Repositories.Cached
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        private JMMUserRepository()
-        {
-        }
-
-        public static JMMUserRepository Create()
-        {
-            var repo = new JMMUserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(SVR_JMMUser entity) => entity.JMMUserID;
 
         public override void PopulateIndexes()

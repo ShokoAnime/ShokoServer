@@ -19,7 +19,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        private AnimeGroupRepository()
+        public AnimeGroupRepository()
         {
             BeginDeleteCallback = cr =>
             {
@@ -37,13 +37,6 @@ namespace Shoko.Server.Repositories.Cached
                         Save(ngrp, false, true);
                 }
             };
-        }
-
-        public static AnimeGroupRepository Create()
-        {
-            var repo = new AnimeGroupRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup entity)

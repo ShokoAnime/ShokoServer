@@ -20,17 +20,10 @@ namespace Shoko.Server.Repositories.Cached
             AnimeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB, int>(Cache, a => a.AniDBID);
         }
 
-        private CrossRef_AniDB_TvDBRepository()
+        public CrossRef_AniDB_TvDBRepository()
         {
             EndSaveCallback +=
                 db => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(db.AniDBID);
-        }
-
-        public static CrossRef_AniDB_TvDBRepository Create()
-        {
-            var repo = new CrossRef_AniDB_TvDBRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public List<CrossRef_AniDB_TvDB> GetByAnimeID(int id)

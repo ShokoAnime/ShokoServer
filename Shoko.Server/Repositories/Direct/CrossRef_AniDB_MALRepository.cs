@@ -13,15 +13,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class CrossRef_AniDB_MALRepository : BaseDirectRepository<CrossRef_AniDB_MAL, int>
     {
-        private CrossRef_AniDB_MALRepository()
-        {
-        }
-
-        public static CrossRef_AniDB_MALRepository Create()
-        {
-            return new CrossRef_AniDB_MALRepository();
-        }
-
         public List<CrossRef_AniDB_MAL> GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

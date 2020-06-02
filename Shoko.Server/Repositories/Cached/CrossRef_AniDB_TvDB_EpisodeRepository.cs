@@ -19,17 +19,6 @@ namespace Shoko.Server.Repositories.Cached
             EpisodeIDs = new PocoIndex<int, CrossRef_AniDB_TvDB_Episode, int>(Cache, a => a.AniDBEpisodeID);
         }
 
-        private CrossRef_AniDB_TvDB_EpisodeRepository()
-        {
-        }
-
-        public static CrossRef_AniDB_TvDB_EpisodeRepository Create()
-        {
-            var repo = new CrossRef_AniDB_TvDB_EpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public CrossRef_AniDB_TvDB_Episode GetByAniDBAndTvDBEpisodeIDs(int anidbID, int tvdbID)
         {
             lock (Cache)

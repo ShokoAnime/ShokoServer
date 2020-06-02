@@ -7,19 +7,8 @@ namespace Shoko.Server.Repositories
     {
         private PocoIndex<int, AnimeCharacter, int> AniDBIDs;
 
-        private AnimeCharacterRepository()
-        {
-        }
-
         public override void RegenerateDb()
         {
-        }
-
-        public static AnimeCharacterRepository Create()
-        {
-            var repo = new AnimeCharacterRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(AnimeCharacter entity)

@@ -11,17 +11,6 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, AuthTokens, string> Tokens;
         private PocoIndex<int, AuthTokens, int> UserIDs;
 
-        private AuthTokensRepository()
-        {
-        }
-
-        public static AuthTokensRepository Create()
-        {
-            var repo = new AuthTokensRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public AuthTokens GetByToken(string token)
         {
             if (string.IsNullOrEmpty(token)) return null;

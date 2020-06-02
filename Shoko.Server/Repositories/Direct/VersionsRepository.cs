@@ -8,14 +8,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class VersionsRepository : BaseDirectRepository<Versions, int>
     {
-        private VersionsRepository()
-        {
-        }
-
-        public static VersionsRepository Create()
-        {
-            return new VersionsRepository();
-        }
 
         public Dictionary<string, Dictionary<string, Versions>> GetAllByType(string vertype)
         {

@@ -12,18 +12,7 @@ namespace Shoko.Server.Repositories.Cached
 {
     public class CrossRef_AniDB_TraktV2Repository : BaseCachedRepository<CrossRef_AniDB_TraktV2, int>
     {
-        private CrossRef_AniDB_TraktV2Repository()
-        {
-        }
-
         private PocoIndex<int, CrossRef_AniDB_TraktV2, int> AnimeIDs;
-
-        public static CrossRef_AniDB_TraktV2Repository Create()
-        {
-            var repo = new CrossRef_AniDB_TraktV2Repository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
 
         public List<CrossRef_AniDB_TraktV2> GetByAnimeID(int id)
         {

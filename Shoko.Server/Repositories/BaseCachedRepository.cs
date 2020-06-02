@@ -10,7 +10,7 @@ using Shoko.Server.Repositories.NHibernate;
 namespace Shoko.Server.Repositories
 {
     // ReSharper disable once InconsistentNaming
-    public abstract class BaseCachedRepository<T, S> : ICachedRepository, IRepository<T, S> where T : class
+    public abstract class BaseCachedRepository<T, S> : ICachedRepository, IRepository<T, S> where T : class, new()
     {
         internal PocoCache<S, T> Cache;
 
@@ -23,6 +23,11 @@ namespace Shoko.Server.Repositories
         public Action<T> BeginSaveCallback { get; set; }
         public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
         public Action<T> EndSaveCallback { get; set; }
+
+        public BaseCachedRepository()
+        {
+            RepoFactory.CachedRepositories.Add(this);
+        }
 
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {

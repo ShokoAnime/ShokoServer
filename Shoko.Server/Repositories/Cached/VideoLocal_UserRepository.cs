@@ -10,17 +10,6 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, VideoLocal_User, int> Users;
         private PocoIndex<int, VideoLocal_User, int, int> UsersVideoLocals;
 
-        private VideoLocal_UserRepository()
-        {
-        }
-
-        public static VideoLocal_UserRepository Create()
-        {
-            var repo = new VideoLocal_UserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(VideoLocal_User entity)
         {
             return entity.VideoLocal_UserID;

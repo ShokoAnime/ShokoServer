@@ -9,15 +9,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
     {
-        private AniDB_AnimeUpdateRepository()
-        {
-        }
-
-        public static AniDB_AnimeUpdateRepository Create()
-        {
-            return new AniDB_AnimeUpdateRepository();
-        }
-
         public AniDB_AnimeUpdate GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

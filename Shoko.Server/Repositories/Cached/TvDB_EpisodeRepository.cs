@@ -17,20 +17,13 @@ namespace Shoko.Server.Repositories.Cached
             EpisodeIDs = new PocoIndex<int, TvDB_Episode, int>(Cache, a => a.Id);
         }
 
-        private TvDB_EpisodeRepository()
+        public TvDB_EpisodeRepository()
         {
             EndSaveCallback += episode =>
             {
                 var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID);
                 xref.ForEach(a => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(a.AniDBID));
             };
-        }
-
-        public static TvDB_EpisodeRepository Create()
-        {
-            var repo = new TvDB_EpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public TvDB_Episode GetByTvDBID(int id)

@@ -67,10 +67,6 @@ namespace Shoko.Server.Repositories.Direct
             .OfType<CommandRequestType>().Select(a => (int) a).Except(CommandTypesHasher).Except(CommandTypesImages)
             .Except(AniDbUdpCommands).Except(AniDbHttpCommands).ToHashSet();
 
-        private CommandRequestRepository()
-        {
-        }
-
         /// <summary>
         /// Returns a numeric index for which queue to use
         /// </summary>
@@ -88,11 +84,6 @@ namespace Shoko.Server.Repositories.Direct
                 return 1;
 
             return 0;
-        }
-
-        public static CommandRequestRepository Create()
-        {
-            return new CommandRequestRepository();
         }
 
         public CommandRequest GetByCommandID(string cmdid)

@@ -13,17 +13,6 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
         private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
 
-        private VideoLocal_PlaceRepository()
-        {
-        }
-
-        public static VideoLocal_PlaceRepository Create()
-        {
-            var repo = new VideoLocal_PlaceRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(SVR_VideoLocal_Place entity)
         {
             return entity.VideoLocal_Place_ID;

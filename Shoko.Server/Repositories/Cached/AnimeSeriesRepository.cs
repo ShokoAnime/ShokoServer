@@ -22,7 +22,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        private AnimeSeriesRepository()
+        public AnimeSeriesRepository()
         {
             BeginDeleteCallback = cr =>
             {
@@ -32,22 +32,13 @@ namespace Shoko.Server.Repositories.Cached
             EndDeleteCallback = cr =>
             {
                 cr.DeleteFromFilters();
-                if (cr.AnimeGroupID > 0)
-                {
-                    logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
-                        cr.AnimeGroupID);
-                    SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
-                    if (oldGroup != null)
-                        RepoFactory.AnimeGroup.Save(oldGroup, true, true);
-                }
+                if (cr.AnimeGroupID <= 0) return;
+                logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
+                    cr.AnimeGroupID);
+                SVR_AnimeGroup oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
+                if (oldGroup != null)
+                    RepoFactory.AnimeGroup.Save(oldGroup, true, true);
             };
-        }
-
-        public static AnimeSeriesRepository Create()
-        {
-            var repo = new AnimeSeriesRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeSeries entity)

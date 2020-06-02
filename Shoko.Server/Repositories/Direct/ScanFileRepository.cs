@@ -9,15 +9,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
-        private ScanFileRepository()
-        {
-        }
-
-        public static ScanFileRepository Create()
-        {
-            return new ScanFileRepository();
-        }
-
         public List<ScanFile> GetWaiting(int scanid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
