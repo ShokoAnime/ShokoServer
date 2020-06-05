@@ -124,7 +124,7 @@ namespace Shoko.Server.API.v3
             public string RelativePath { get; set; }
             
             /// <summary>
-            /// 
+            /// Can the server access the file right now
             /// </summary>
             [JsonRequired]
             public bool Accessible { get; set; }
@@ -242,6 +242,82 @@ namespace Shoko.Server.API.v3
                 /// AniDB ID
                 /// </summary>
                 public int ID { get; set; }
+            }
+        }
+        /// <summary>
+        /// A more detailed model to prevent too many requests for getting xrefs for many files
+        /// </summary>
+        public class FileDetailed : File
+        {
+            public class FileIDs
+            {
+                /// <summary>
+                /// Any AniDB ID linked to this object
+                /// </summary>
+                public int AniDB { get; set; }
+                /// <summary>
+                /// Any TvDB IDs linked to this object
+                /// </summary>
+                public List<int> TvDB { get; set; }
+                /// <summary>
+                /// The Shoko ID
+                /// </summary>
+                public int ID { get; set; }
+            }
+            public class SeriesXRefs
+            {
+                /// <summary>
+                /// The Series IDs
+                /// </summary>
+                public FileIDs SeriesID { get; set; }
+                /// <summary>
+                /// The Episode IDs
+                /// </summary>
+                public List<FileIDs> EpisodeIDs { get; set; }
+            }
+
+            /// <summary>
+            /// The Cross Reference Models for every episode this file belongs to, created in a reverse tree and
+            /// transformed back into a tree. Series -> Episode such that only episodes that this file is linked to are
+            /// shown. In many cases, this will have arrays of 1 item
+            /// </summary>
+            public List<SeriesXRefs> SeriesIDs { get; set; }
+
+            public FileDetailed() {}
+
+            public FileDetailed(SVR_VideoLocal vl) : base(vl)
+            {
+                var episodes = vl.GetAnimeEpisodes();
+                if (episodes.Count == 0) return;
+                SeriesIDs = new List<SeriesXRefs>();
+                var epIDs = episodes.Select(a => (a.AnimeSeriesID, FileID: new FileIDs
+                {
+                    ID = a.AnimeEpisodeID,
+                    AniDB = a.AniDB_EpisodeID,
+                    TvDB = a.TvDBEpisodes.Select(b => b.Id).ToList()
+                })).GroupBy(a => a.AnimeSeriesID, b => b.FileID).Select(a =>
+                {
+                    var series = RepoFactory.AnimeSeries.GetByID(a.Key);
+                    if (series == null)
+                    {
+                        return new SeriesXRefs
+                        {
+                            EpisodeIDs = a.ToList()
+                        };
+                    }
+
+                    return new SeriesXRefs
+                    {
+                        SeriesID = new FileIDs
+                        {
+                            ID = series.AnimeSeriesID,
+                            AniDB = series.AniDB_ID,
+                            TvDB = series.GetTvDBSeries().Select(b => b.SeriesID).ToList()
+                        },
+                        EpisodeIDs = a.ToList()
+                    };
+                });
+                SeriesIDs.AddRange(epIDs);
             }
         }
     }

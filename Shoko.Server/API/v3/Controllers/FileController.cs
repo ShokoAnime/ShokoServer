@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +28,7 @@ namespace Shoko.Server.API.v3
             if (videoLocal == null) return BadRequest("No File with ID");
             return new File(videoLocal);
         }
-        
+
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
         /// </summary>
@@ -40,7 +43,7 @@ namespace Shoko.Server.API.v3
             if (anidb == null) return BadRequest("AniDB data not found");
             return v3.File.GetAniDBInfo(id);
         }
-        
+
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
         /// </summary>
@@ -53,7 +56,7 @@ namespace Shoko.Server.API.v3
             if (videoLocal == null) return BadRequest("No File with ID");
             return v3.File.GetMedia(id);
         }
-        
+
         /// <summary>
         /// Mark a file as watched or unwatched
         /// </summary>
@@ -65,9 +68,24 @@ namespace Shoko.Server.API.v3
         {
             var file = RepoFactory.VideoLocal.GetByID(id);
             if (file == null) return BadRequest("Could not get the videolocal with ID: " + id);
-            
+
             file.ToggleWatchedStatus(watched, User.JMMUserID);
             return Ok();
+        }
+
+        /// <summary>
+        /// Search for a file by path or name. Internally, it will convert / to the system directory separator and match against the string
+        /// </summary>
+        /// <param name="path">a path to search for. URL Encoded</param>
+        /// <returns></returns>
+        [HttpGet("PathEndsWith/{*path}")]
+        public ActionResult<List<File.FileDetailed>> SearchByFilename(string path)
+        {
+            var query = path.Replace('/', Path.DirectorySeparatorChar);
+            var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+                .Where(a => a.FilePath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
+                .Where(a => a != null).Select(a => new File.FileDetailed(a)).Distinct().ToList();
+            return results;
         }
 
         /// <summary>
