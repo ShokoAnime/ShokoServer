@@ -244,15 +244,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session) => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AnimeID);
 
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetCrossRefMAL(session);
-            }
-        }
-
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL(ISession session) => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(session, AnimeID);
+        public List<CrossRef_AniDB_MAL> GetCrossRefMAL() => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
 
         public TvDB_Series GetTvDBSeries()
         {
@@ -1300,7 +1292,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     {
                         int id = resource.ID;
                         if (id == 0) break;
-                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
+                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id).Any(a => a.AnimeID == AnimeID)) continue;
                         CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
                         {
                             AnimeID = AnimeID,

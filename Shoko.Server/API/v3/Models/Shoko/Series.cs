@@ -118,9 +118,9 @@ namespace Shoko.Server.API.v3
             //    .Distinct().ToList();
             //if (traktids.Any()) ids.TraktTv.AddRange(traktids);
             // MAL
-            //var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
-            //    .ToList();
-            //if (malids.Any()) ids.MAL.AddRange(malids);
+            var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
+                .ToList();
+            if (malids.Any()) ids.MAL.AddRange(malids);
             // TODO AniList later
             return ids;
         }
