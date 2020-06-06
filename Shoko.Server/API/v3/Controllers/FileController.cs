@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v3
@@ -28,7 +29,7 @@ namespace Shoko.Server.API.v3
             if (videoLocal == null) return BadRequest("No File with ID");
             return new File(videoLocal);
         }
-
+        
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
         /// </summary>
@@ -43,7 +44,7 @@ namespace Shoko.Server.API.v3
             if (anidb == null) return BadRequest("AniDB data not found");
             return v3.File.GetAniDBInfo(id);
         }
-
+        
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
         /// </summary>
@@ -56,7 +57,7 @@ namespace Shoko.Server.API.v3
             if (videoLocal == null) return BadRequest("No File with ID");
             return v3.File.GetMedia(id);
         }
-
+        
         /// <summary>
         /// Mark a file as watched or unwatched
         /// </summary>
@@ -68,9 +69,32 @@ namespace Shoko.Server.API.v3
         {
             var file = RepoFactory.VideoLocal.GetByID(id);
             if (file == null) return BadRequest("Could not get the videolocal with ID: " + id);
-
+            
             file.ToggleWatchedStatus(watched, User.JMMUserID);
             return Ok();
+        }
+        
+        /// <summary>
+        /// Run a file through AVDump
+        /// </summary>
+        /// <param name="id">VideoLocal ID</param>
+        /// <returns></returns>
+        [HttpPost("{id}/avdump")]
+        public ActionResult<AVDumpResult> AvDumpFile(int id)
+        {
+            var vl = RepoFactory.VideoLocal.GetByID(id);
+            if (vl == null) return NotFound();
+            
+            var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
+            if (string.IsNullOrEmpty(file)) return this.NoContent();
+            
+            var result = AVDumpHelper.DumpFile(file);
+
+            return new AVDumpResult()
+            {
+                FullOutput = result,
+                E2DkResults = result.Split('\n').Where(s => s.StartsWith("e2dk://"))
+            };
         }
 
         /// <summary>

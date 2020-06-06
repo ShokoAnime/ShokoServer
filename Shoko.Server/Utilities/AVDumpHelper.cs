@@ -128,7 +128,7 @@ namespace Shoko.Server
             while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
                 output.Write(buffer, 0, len);
         }
-
+        
         public static string DumpFile(int vid)
         {
             var vl = RepoFactory.VideoLocal.GetByID(vid);
