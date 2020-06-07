@@ -381,6 +381,70 @@ namespace Shoko.Commons.Utils
             return sb.ToString();
         }
 
+        public static string CompactCharacters(this string s, params char[] chars)
+        {
+            StringBuilder sb = new StringBuilder(s);
+
+            CompactCharacters(sb, chars);
+
+            return sb.ToString();
+        }
+
+        private static void CompactCharacters(StringBuilder sb, params char[] chars)
+        {
+            if (sb.Length == 0)
+                return;
+
+            var charSet = chars.ToHashSet();
+
+            // set [start] to first not-whitespace char or to sb.Length
+
+            int start = 0;
+
+            while (start < sb.Length)
+            {
+                if (charSet.Contains(sb[start]))
+                    start++;
+                else
+                    break;
+            }
+            if (start == sb.Length)
+            {
+                sb.Length = 0;
+                return;
+            }
+            int end = sb.Length - 1;
+
+            while (end >= 0)
+            {
+                if (charSet.Contains(sb[end]))
+                    end--;
+                else
+                    break;
+            }
+            int dest = 0;
+            bool previousIsWhitespace = false;
+
+            for (int i = start; i <= end; i++)
+            {
+                if (charSet.Contains(sb[i]))
+                {
+                    if (previousIsWhitespace) continue;
+                    previousIsWhitespace = true;
+                    sb[dest] = ' ';
+                    dest++;
+                }
+                else
+                {
+                    previousIsWhitespace = false;
+                    sb[dest] = sb[i];
+                    dest++;
+                }
+            }
+
+            sb.Length = dest;
+        }
+
         public static String CompactWhitespaces(this string s)
         {
             StringBuilder sb = new StringBuilder(s);
