@@ -20,6 +20,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Libraries;
+using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 
@@ -74,7 +75,9 @@ namespace Shoko.Server.API.v2.Modules
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
-            ScrobblePlayingType scrobbleType = episode.PlexContract.IsMovie ? ScrobblePlayingType.movie : ScrobblePlayingType.episode;
+            ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int) AnimeType.Movie
+                ? ScrobblePlayingType.movie
+                : ScrobblePlayingType.episode;
 
             TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
         }
@@ -90,7 +93,7 @@ namespace Shoko.Server.API.v2.Modules
                 return;
             }
 
-            logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
+            logger.Trace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
 
             var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
@@ -157,7 +160,7 @@ namespace Shoko.Server.API.v2.Modules
             var animeEps = anime
                     .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
                     .Where(a => a.EpisodeTypeEnum == episodeType)
-                    .Where(a => a.PlexContract.EpisodeNumber == episodeNumber);
+                    .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber);
 
             //if only one possible match
             if (animeEps.Count() == 1) return (animeEps.First(), anime);

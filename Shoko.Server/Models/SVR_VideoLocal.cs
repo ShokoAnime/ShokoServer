@@ -454,25 +454,6 @@ namespace Shoko.Server.Models
             return true;
         }
 
-        private static readonly Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
-            RegexOptions.Compiled);
-
-        private static readonly Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
-
-        public MediaContainer GetOrPopulateMedia(bool populateIfNull = false)
-        {
-            if (Media != null || !populateIfNull) return Media;
-            SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
-            if (pl?.FullServerPath == null) return Media;
-            IFileSystem f = pl.ImportFolder.FileSystem;
-            FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
-            if (src == null || !src.IsOk || !(src.Result is IFile)) return Media;
-            if (pl.RefreshMediaInfo())
-                RepoFactory.VideoLocal.Save(pl.VideoLocal, true);
-
-            return Media;
-        }
-
         public CL_VideoDetailed ToClientDetailed(int userID)
         {
             CL_VideoDetailed cl = new CL_VideoDetailed();

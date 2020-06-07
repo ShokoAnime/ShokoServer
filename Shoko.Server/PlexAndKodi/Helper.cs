@@ -4,8 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using NHibernate;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
@@ -108,7 +110,7 @@ namespace Shoko.Server.PlexAndKodi
             {
                 string key = aspects[x].Trim().ToUpper();
 
-                double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double val);
+                Double.TryParse(aspects[x + 1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out double val);
                 relations.Add(key, val);
             }
 
@@ -149,7 +151,7 @@ namespace Shoko.Server.PlexAndKodi
         public static SVR_JMMUser GetJMMUser(string userid)
         {
             IReadOnlyList<SVR_JMMUser> allusers = RepoFactory.JMMUser.GetAll();
-            int.TryParse(userid, out int id);
+            Int32.TryParse(userid, out int id);
             return allusers.FirstOrDefault(a => a.JMMUserID == id) ??
                    allusers.FirstOrDefault(a => a.IsAdmin == 1) ??
                    allusers.FirstOrDefault(a => a.Username == "Default") ?? allusers.First();
@@ -214,7 +216,7 @@ namespace Shoko.Server.PlexAndKodi
         public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
             KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
-            Video v = e.Key.PlexContract?.Clone<Video>(prov);
+            Video v = GenerateVideoFromAnimeEpisode(e.Key, e.Value.JMMUserID);
             if (v?.Thumb != null)
                 v.Thumb = prov.ReplaceSchemeHost(v.Thumb);
             if (v != null)
@@ -256,7 +258,12 @@ namespace Shoko.Server.PlexAndKodi
             return v;
         }
 
-        public static Video GenerateVideoFromAnimeEpisode(SVR_AnimeEpisode ep)
+        private static readonly Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
+            RegexOptions.Compiled);
+
+        private static readonly Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
+
+        public static Video GenerateVideoFromAnimeEpisode(SVR_AnimeEpisode ep, int userID)
         {
             Video l = new Video();
             List<SVR_VideoLocal> vids = ep.GetVideoLocals();
@@ -275,22 +282,42 @@ namespace Shoko.Server.PlexAndKodi
                 l.Medias = new List<Media>();
                 foreach (SVR_VideoLocal v in vids)
                 {
-                    if (v.Media == null) continue;
+                    if (v?.Media == null) continue;
                     var legacy = new Media(v.VideoLocalID, v.Media);
-                    legacy.Parts.ForEach(a =>
+                    var place = v.GetBestVideoLocalPlace();
+                    legacy.Parts.ForEach(p =>
                         {
-                            if (string.IsNullOrEmpty(a.LocalKey))
-                                a.LocalKey = v?.GetBestVideoLocalPlace()?.FullServerPath ?? null;
+                            if (string.IsNullOrEmpty(p.LocalKey))
+                                p.LocalKey = place.FullServerPath;
+                            string name = UrlSafe.Replace(Path.GetFileName(place.FilePath), " ").CompactWhitespaces()
+                                .Trim();
+                            name = UrlSafe2.Replace(name, string.Empty)
+                                .Trim()
+                                .CompactCharacters('.')
+                                .Replace(" ", "_")
+                                .CompactCharacters('_')
+                                .Replace("_.", ".");
+                            while (name.StartsWith("_"))
+                                name = name.Substring(1);
+                            while (name.StartsWith("."))
+                                name = name.Substring(1);
+                            p.Key = ((IProvider) null).ReplaceSchemeHost(
+                                ((IProvider) null).ConstructVideoLocalStream(userID, v.VideoLocalID, name, false));
+                            if (p.Streams == null) return;
+                            foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == 3).ToList())
+                                s.Key =
+                                    ((IProvider) null).ReplaceSchemeHost(
+                                        ((IProvider) null).ConstructFileStream(userID, s.File, false));
                         });
                     l.Medias.Add(legacy);
                 }
 
                 string title = ep.Title;
-                if (!string.IsNullOrEmpty(title)) l.Title = title;
+                if (!String.IsNullOrEmpty(title)) l.Title = title;
 
                 string romaji = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(ep.AniDB_EpisodeID, "X-JAT")
                     .FirstOrDefault()?.Title;
-                if (!string.IsNullOrEmpty(romaji)) l.OriginalTitle = romaji;
+                if (!String.IsNullOrEmpty(romaji)) l.OriginalTitle = romaji;
 
                 AniDB_Episode aep = ep?.AniDB_Episode;
                 if (aep != null)
@@ -298,7 +325,7 @@ namespace Shoko.Server.PlexAndKodi
                     l.EpisodeNumber = aep.EpisodeNumber;
                     l.Index = aep.EpisodeNumber;
                     l.EpisodeType = aep.EpisodeType;
-                    l.Rating = (int) float.Parse(aep.Rating, CultureInfo.InvariantCulture);
+                    l.Rating = (int) Single.Parse(aep.Rating, CultureInfo.InvariantCulture);
                     AniDB_Vote vote =
                         RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
                     if (vote != null) l.UserRating = (int) (vote.VoteValue / 100D);
@@ -443,7 +470,7 @@ namespace Shoko.Server.PlexAndKodi
                     }
                     break;
             }
-            if (string.IsNullOrEmpty(v.Art))
+            if (String.IsNullOrEmpty(v.Art))
                 v.Art = nv.Art;
             if (!omitExtraData)
             {
@@ -560,7 +587,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         string ch = c?.CharName;
                         AniDB_Seiyuu seiyuu = c?.Seiyuu;
-                        if (string.IsNullOrEmpty(ch)) continue;
+                        if (String.IsNullOrEmpty(ch)) continue;
                         RoleTag t = new RoleTag
                         {
                             Value = seiyuu?.SeiyuuName
@@ -625,7 +652,7 @@ namespace Shoko.Server.PlexAndKodi
             try
             {
                 List<SVR_AnimeEpisode> episodes = ser.GetAnimeEpisodes();
-                Video v2 = episodes[0].PlexContract;
+                Video v2 = GenerateVideoFromAnimeEpisode(episodes[0], userid);
                 if (v2.IsMovie)
                 {
                     AddInformationFromMasterSeries(v2, cserie, serie ?? v1);
@@ -691,9 +718,9 @@ namespace Shoko.Server.PlexAndKodi
         private static string SummaryFromAnimeContract(CL_AnimeSeries_User c)
         {
             string s = c.AniDBAnime.AniDBAnime.Description;
-            if (string.IsNullOrEmpty(s) && c.MovieDB_Movie != null)
+            if (String.IsNullOrEmpty(s) && c.MovieDB_Movie != null)
                 s = c.MovieDB_Movie.Overview;
-            if (string.IsNullOrEmpty(s) && c.TvDB_Series != null && c.TvDB_Series.Count > 0)
+            if (String.IsNullOrEmpty(s) && c.TvDB_Series != null && c.TvDB_Series.Count > 0)
                 s = c.TvDB_Series[0].Overview;
             return s;
         }
@@ -788,7 +815,7 @@ namespace Shoko.Server.PlexAndKodi
                     {
                         string ch = c?.CharName;
                         AniDB_Seiyuu seiyuu = c?.Seiyuu;
-                        if (string.IsNullOrEmpty(ch)) continue;
+                        if (String.IsNullOrEmpty(ch)) continue;
                         RoleTag t = new RoleTag
                         {
                             Value = seiyuu?.SeiyuuName
