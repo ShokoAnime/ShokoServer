@@ -93,7 +93,7 @@ namespace Shoko.Server.API.v3
             return new AVDumpResult()
             {
                 FullOutput = result,
-                E2DkResults = result.Split('\n').Where(s => s.StartsWith("e2dk://"))
+                E2DkResults = result.Split('\n').Where(s => s?.Trim()?.StartsWith("e2dk://") ?? false)
             };
         }
 
