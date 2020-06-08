@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with:
-          submodules: true
+          submodules: recursive
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
