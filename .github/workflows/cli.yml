@@ -26,7 +26,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - run: sudo apt-get update
-      - run: sudo apt-get install libicu63
+      - run: sudo apt-get install libicu60
       - run: dotnet restore Shoko.CLI
       - run: dotnet publish -c Release -r ${{ matrix.rid }} Shoko.CLI
       - uses: actions/upload-artifact@v2
