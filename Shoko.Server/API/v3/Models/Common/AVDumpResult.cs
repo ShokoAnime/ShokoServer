@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3.Models.Common
 {
@@ -8,6 +7,7 @@ namespace Shoko.Server.API.v3.Models.Common
         [Required]
         public string FullOutput { get; set; }
         
-        public IEnumerable<string> E2DkResults { get; set; }
+        [Required]
+        public string Ed2k { get; set; }
     }
 }

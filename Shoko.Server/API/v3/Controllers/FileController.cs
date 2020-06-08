@@ -10,6 +10,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3
 {
@@ -82,18 +83,21 @@ namespace Shoko.Server.API.v3
         [HttpPost("{id}/avdump")]
         public ActionResult<AVDumpResult> AvDumpFile(int id)
         {
+            if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
+                return BadRequest("Missing AVDump API key");
+            
             var vl = RepoFactory.VideoLocal.GetByID(id);
             if (vl == null) return NotFound();
             
             var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return this.NoContent();
             
-            var result = AVDumpHelper.DumpFile(file);
+            var result = AVDumpHelper.DumpFile(file).Replace("\r", "");
 
             return new AVDumpResult()
             {
                 FullOutput = result,
-                E2DkResults = result.Split('\n').Where(s => s?.Trim()?.StartsWith("e2dk://") ?? false)
+                Ed2k = result.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://"))
             };
         }
 

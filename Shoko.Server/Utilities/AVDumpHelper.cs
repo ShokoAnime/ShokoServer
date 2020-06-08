@@ -189,7 +189,7 @@ namespace Shoko.Server
             string fileName = (char)34 + file + (char)34;
 
             var args = $"--Auth={ServerSettings.Instance.AniDb.Username.Trim()}:" +
-                       $"{ServerSettings.Instance.AniDb.AVDumpKey.Trim()}" +
+                       $"{ServerSettings.Instance.AniDb.AVDumpKey?.Trim()}" +
                        $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
             if (Utils.IsRunningOnLinuxOrMac())
