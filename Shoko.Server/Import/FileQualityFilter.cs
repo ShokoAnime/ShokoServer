@@ -368,20 +368,20 @@ namespace Shoko.Server
 
         private static int CompareAudioStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            int newStreamCount = newFile.Media?.AudioStreams.Count ?? 0;
-            int oldStreamCount = oldFile.Media?.AudioStreams.Count ?? 0;
+            int newStreamCount = newFile?.Media?.AudioStreams.Count ?? 0;
+            int oldStreamCount = oldFile?.Media?.AudioStreams.Count ?? 0;
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
         private static int CompareChapterTo(SVR_VideoLocal newFile, AniDB_File newAniFile, SVR_VideoLocal oldFile,
             AniDB_File oldAniFile)
         {
-            if ((newAniFile?.IsChaptered == 1 || newFile.Media.MenuStreams.Any()) &&
-                !(oldAniFile?.IsChaptered == 1 || oldFile.Media.MenuStreams.Any())) return -1;
-            if (!(newAniFile?.IsChaptered == 1 || newFile.Media.MenuStreams.Any()) &&
-                (oldAniFile?.IsChaptered == 1 || oldFile.Media.MenuStreams.Any())) return 1;
-            return (oldAniFile?.IsChaptered == 1 || oldFile.Media.MenuStreams.Any()).CompareTo(
-                newAniFile?.IsChaptered == 1 || newFile.Media.MenuStreams.Any());
+            if ((newAniFile?.IsChaptered == 1 || (newFile?.Media?.MenuStreams.Any() ?? false)) &&
+                !(oldAniFile?.IsChaptered == 1 || (oldFile?.Media?.MenuStreams.Any() ?? false))) return -1;
+            if (!(newAniFile?.IsChaptered == 1 || (newFile?.Media?.MenuStreams.Any() ?? false)) &&
+                (oldAniFile?.IsChaptered == 1 || (oldFile?.Media?.MenuStreams.Any() ?? false))) return 1;
+            return (oldAniFile?.IsChaptered == 1 || (oldFile?.Media?.MenuStreams.Any() ?? false)).CompareTo(
+                newAniFile?.IsChaptered == 1 || (newFile?.Media?.MenuStreams.Any() ?? false));
         }
 
         private static int CompareResolutionTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile,
