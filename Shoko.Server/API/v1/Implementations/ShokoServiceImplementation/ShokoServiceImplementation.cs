@@ -573,7 +573,7 @@ namespace Shoko.Server
                 ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
                 ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-                    ServerSettings.Instance.FileQualityFilterPreferences =
+                    ServerSettings.Instance.FileQualityPreferences =
                         JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences,
                             new StringEnumConverter());
                 ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;

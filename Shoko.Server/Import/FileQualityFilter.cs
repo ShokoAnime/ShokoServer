@@ -50,7 +50,7 @@ namespace Shoko.Server
         reference said enum through a CompareByType
 
         */
-        public static FileQualityPreferences Settings => ServerSettings.Instance.FileQualityFilterPreferences;
+        public static FileQualityPreferences Settings => ServerSettings.Instance.FileQualityPreferences;
 
         #region Checks
 
@@ -66,7 +66,7 @@ namespace Shoko.Server
                 if (aniFile.File_VideoResolution.Equals("0x0")) return true;
             }
 
-            foreach (var type in Settings._requiredtypes)
+            foreach (var type in Settings.RequiredTypes)
             {
                 if (!result) break;
                 switch (type)
@@ -116,13 +116,13 @@ namespace Shoko.Server
                     .ToArray() ?? new string[] { };
             if (codecs.Length == 0) return false;
 
-            FileQualityFilterOperationType operationType = Settings.RequiredAudioCodecOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredAudioCodecs.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.IN:
-                    return codecs.FindInEnumerable(Settings._requiredaudiocodecs.Item1);
+                    return codecs.FindInEnumerable(Settings.RequiredAudioCodecs.Value);
                 case FileQualityFilterOperationType.NOTIN:
-                    return !codecs.FindInEnumerable(Settings._requiredaudiocodecs.Item1);
+                    return !codecs.FindInEnumerable(Settings.RequiredAudioCodecs.Value);
             }
 
             return true;
@@ -133,15 +133,15 @@ namespace Shoko.Server
             int streamCount = aniFile?.Media?.AudioStreams.Count ?? -1;
             if (streamCount == -1) return true;
 
-            FileQualityFilterOperationType operationType = Settings.RequiredAudioStreamCountOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredAudioStreamCount.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.EQUALS:
-                    return streamCount == Settings.RequiredAudioStreamCount;
+                    return streamCount == Settings.RequiredAudioStreamCount.Value;
                 case FileQualityFilterOperationType.GREATER_EQ:
-                    return streamCount >= Settings.RequiredAudioStreamCount;
+                    return streamCount >= Settings.RequiredAudioStreamCount.Value;
                 case FileQualityFilterOperationType.LESS_EQ:
-                    return streamCount <= Settings.RequiredAudioStreamCount;
+                    return streamCount <= Settings.RequiredAudioStreamCount.Value;
             }
 
             return true;
@@ -165,11 +165,11 @@ namespace Shoko.Server
 
             int resArea = resTuple.Item1 * resTuple.Item2;
 
-            FileQualityFilterOperationType operationType = Settings.RequiredResolutionOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredResolutions.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.EQUALS:
-                    return res.Equals(Settings.RequiredResolutions.FirstOrDefault());
+                    return res.Equals(Settings.RequiredResolutions.Value.FirstOrDefault());
                 case FileQualityFilterOperationType.GREATER_EQ:
                     List<int> keysGT = MediaInfoUtils.ResolutionArea.Keys.Where(a => resArea >= a).ToList();
                     keysGT.AddRange(MediaInfoUtils.ResolutionArea43.Keys.Where(a => resArea >= a));
@@ -180,7 +180,7 @@ namespace Shoko.Server
                         if (MediaInfoUtils.ResolutionArea43.ContainsKey(key)) valuesGT.Add(MediaInfoUtils.ResolutionArea43[key]);
                     }
 
-                    if (valuesGT.FindInEnumerable(Settings.RequiredResolutions)) return true;
+                    if (valuesGT.FindInEnumerable(Settings.RequiredResolutions.Value)) return true;
                     break;
                 case FileQualityFilterOperationType.LESS_EQ:
                     List<int> keysLT = MediaInfoUtils.ResolutionArea.Keys.Where(a => resArea <= a).ToList();
@@ -192,12 +192,12 @@ namespace Shoko.Server
                         if (MediaInfoUtils.ResolutionArea43.ContainsKey(key)) valuesLT.Add(MediaInfoUtils.ResolutionArea43[key]);
                     }
 
-                    if (valuesLT.FindInEnumerable(Settings.RequiredResolutions)) return true;
+                    if (valuesLT.FindInEnumerable(Settings.RequiredResolutions.Value)) return true;
                     break;
                 case FileQualityFilterOperationType.IN:
-                    return Settings.RequiredResolutions.Contains(res);
+                    return Settings.RequiredResolutions.Value.Contains(res);
                 case FileQualityFilterOperationType.NOTIN:
-                    return !Settings.RequiredResolutions.Contains(res);
+                    return !Settings.RequiredResolutions.Value.Contains(res);
             }
 
             return false;
@@ -206,16 +206,16 @@ namespace Shoko.Server
         private static bool CheckSource(AniDB_File aniFile)
         {
             if (IsNullOrUnknown(aniFile)) return false;
-            FileQualityFilterOperationType operationType = Settings.RequiredSourceOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredSources.Operator;
             var source = aniFile.File_Source.ToLowerInvariant();
             if (FileQualityPreferences.SimplifiedSources.ContainsKey(source))
                 source = FileQualityPreferences.SimplifiedSources[source];
             switch (operationType)
             {
                 case FileQualityFilterOperationType.IN:
-                    return Settings._requiredsources.Item1.Contains(source);
+                    return Settings.RequiredSources.Value.Contains(source);
                 case FileQualityFilterOperationType.NOTIN:
-                    return !Settings._requiredsources.Item1.Contains(source);
+                    return !Settings.RequiredSources.Value.Contains(source);
             }
 
             return true;
@@ -224,15 +224,15 @@ namespace Shoko.Server
         private static bool CheckSubGroup(AniDB_File aniFile)
         {
             if (IsNullOrUnknown(aniFile)) return false;
-            FileQualityFilterOperationType operationType = Settings.RequiredSubGroupOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredSubGroups.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.IN:
-                    return Settings._requiredsubgroups.Item1.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) ||
-                           Settings._requiredsubgroups.Item1.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant());
+                    return Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) ||
+                           Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant());
                 case FileQualityFilterOperationType.NOTIN:
-                    return !Settings._requiredsubgroups.Item1.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) &&
-                           !Settings._requiredsubgroups.Item1.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant());
+                    return !Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) &&
+                           !Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant());
             }
 
             return true;
@@ -243,15 +243,15 @@ namespace Shoko.Server
             int streamCount = file?.Media?.TextStreams.Count ?? -1;
             if (streamCount == -1) return true;
 
-            FileQualityFilterOperationType operationType = Settings.RequiredSubStreamCountOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredSubStreamCount.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.EQUALS:
-                    return streamCount == Settings.RequiredSubStreamCount;
+                    return streamCount == Settings.RequiredSubStreamCount.Value;
                 case FileQualityFilterOperationType.GREATER_EQ:
-                    return streamCount >= Settings.RequiredSubStreamCount;
+                    return streamCount >= Settings.RequiredSubStreamCount.Value;
                 case FileQualityFilterOperationType.LESS_EQ:
-                    return streamCount <= Settings.RequiredSubStreamCount;
+                    return streamCount <= Settings.RequiredSubStreamCount.Value;
             }
 
             return true;
@@ -265,13 +265,13 @@ namespace Shoko.Server
                     .OrderBy(a => a).ToArray() ?? new string[] { };
 
             if (codecs.Length == 0) return false;
-            FileQualityFilterOperationType operationType = Settings.RequiredVideoCodecOperator;
+            FileQualityFilterOperationType operationType = Settings.RequiredVideoCodecs.Operator;
             switch (operationType)
             {
                 case FileQualityFilterOperationType.IN:
-                    return Settings._requiredvideocodecs.Item1.FindInEnumerable(codecs);
+                    return Settings.RequiredVideoCodecs.Value.FindInEnumerable(codecs);
                 case FileQualityFilterOperationType.NOTIN:
-                    return !Settings._requiredvideocodecs.Item1.FindInEnumerable(codecs);
+                    return !Settings.RequiredVideoCodecs.Value.FindInEnumerable(codecs);
             }
 
             return true;
@@ -288,7 +288,7 @@ namespace Shoko.Server
             var newEp = newFile?.GetAniDBFile();
             int result = 0;
 
-            foreach (FileQualityFilterType type in Settings._types)
+            foreach (FileQualityFilterType type in Settings.PreferredTypes)
             {
                 switch (type)
                 {
@@ -356,8 +356,8 @@ namespace Shoko.Server
             {
                 string newCodec = newCodecs[i];
                 string oldCodec = oldCodecs[i];
-                int newIndex = Array.IndexOf(Settings._audiocodecs, newCodec);
-                int oldIndex = Array.IndexOf(Settings._audiocodecs, oldCodec);
+                int newIndex = Settings.PreferredAudioCodecs.IndexOf(newCodec);
+                int oldIndex = Settings.PreferredAudioCodecs.IndexOf(oldCodec);
                 if (newIndex < 0 || oldIndex < 0) continue;
                 int result = newIndex.CompareTo(oldIndex);
                 if (result != 0) return result;
@@ -394,7 +394,7 @@ namespace Shoko.Server
             if (newRes == null) return 1;
             if (oldRes == null) return -1;
 
-            string[] res = Settings._resolutions.ToArray();
+            string[] res = Settings.PreferredResolutions.ToArray();
             if (!res.Contains(newRes) && !res.Contains(oldRes)) return 0;
             if (!res.Contains(newRes)) return 1;
             if (!res.Contains(oldRes)) return -1;
@@ -412,26 +412,26 @@ namespace Shoko.Server
             var oldSource = oldFile.File_Source.ToLowerInvariant();
             if (FileQualityPreferences.SimplifiedSources.ContainsKey(oldSource))
                 oldSource = FileQualityPreferences.SimplifiedSources[oldSource];
-            int newIndex = Array.IndexOf(Settings._sources, newSource);
-            int oldIndex = Array.IndexOf(Settings._sources, oldSource);
+            int newIndex = Settings.PreferredSources.IndexOf(newSource);
+            int oldIndex = Settings.PreferredSources.IndexOf(oldSource);
             return newIndex.CompareTo(oldIndex);
         }
 
         private static int CompareSubGroupTo(AniDB_File newFile, AniDB_File oldFile)
         {
             if (newFile == null || oldFile == null) return 0;
-            if (!Settings._subgroups.Contains(newFile.Anime_GroupName.ToLowerInvariant()) &&
-                !Settings._subgroups.Contains(newFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
-            if (!Settings._subgroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant()) &&
-                !Settings._subgroups.Contains(oldFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
+            if (!Settings.PreferredSubGroups.Contains(newFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings.PreferredSubGroups.Contains(newFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
+            if (!Settings.PreferredSubGroups.Contains(oldFile.Anime_GroupName.ToLowerInvariant()) &&
+                !Settings.PreferredSubGroups.Contains(oldFile.Anime_GroupNameShort.ToLowerInvariant())) return 0;
             // The above ensures that _subgroups contains both, so no need to check for -1 in this case
-            int newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupName.ToLowerInvariant());
+            int newIndex = Settings.PreferredSubGroups.IndexOf(newFile.Anime_GroupName.ToLowerInvariant());
             if (newIndex == -1)
-                newIndex = Array.IndexOf(Settings._subgroups, newFile.Anime_GroupNameShort.ToLowerInvariant());
+                newIndex = Settings.PreferredSubGroups.IndexOf(newFile.Anime_GroupNameShort.ToLowerInvariant());
 
-            int oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupName.ToLowerInvariant());
+            int oldIndex = Settings.PreferredSubGroups.IndexOf(oldFile.Anime_GroupName.ToLowerInvariant());
             if (oldIndex == -1)
-                oldIndex = Array.IndexOf(Settings._subgroups, oldFile.Anime_GroupNameShort.ToLowerInvariant());
+                oldIndex = Settings.PreferredSubGroups.IndexOf(oldFile.Anime_GroupNameShort.ToLowerInvariant());
 
             return newIndex.CompareTo(oldIndex);
         }
@@ -472,8 +472,8 @@ namespace Shoko.Server
             {
                 string newCodec = newCodecs[i];
                 string oldCodec = oldCodecs[i];
-                int newIndex = Array.IndexOf(Settings._videocodecs, newCodec);
-                int oldIndex = Array.IndexOf(Settings._videocodecs, oldCodec);
+                int newIndex = Settings.PreferredVideoCodecs.IndexOf(newCodec);
+                int oldIndex = Settings.PreferredVideoCodecs.IndexOf(oldCodec);
                 if (newIndex < 0 || oldIndex < 0) continue;
                 int result = newIndex.CompareTo(oldIndex);
                 if (result != 0) return result;

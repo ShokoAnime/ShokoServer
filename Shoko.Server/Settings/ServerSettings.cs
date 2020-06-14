@@ -86,7 +86,7 @@ namespace Shoko.Server.Settings
 
         public bool FileQualityFilterEnabled { get; set; }
 
-        public FileQualityPreferences FileQualityFilterPreferences { get; set; } = new FileQualityPreferences();
+        public FileQualityPreferences FileQualityPreferences { get; set; } = new FileQualityPreferences();
 
         public string[] LanguagePreference { get; set; } = { "x-jat", "en" };
 
@@ -265,7 +265,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions,
                 AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
                 FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
-                FileQualityFilterPreferences = legacy.FileQualityFilterPreferences,
+                FileQualityPreferences = legacy.FileQualityFilterPreferences,
                 LanguagePreference = legacy.LanguagePreference.Split(','),
                 EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
                 LanguageUseSynonyms = legacy.LanguageUseSynonyms,
@@ -320,7 +320,12 @@ namespace Shoko.Server.Settings
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
-            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path), new StringEnumConverter());
+            var serializerSettings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter>{new StringEnumConverter()},
+                Error = (sender, args) => { args.ErrorContext.Handled = true; }
+            };
+            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path), serializerSettings);
             var context = new ValidationContext(Instance, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
@@ -423,7 +428,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = AutoGroupSeriesUseScoreAlgorithm,
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityFilterPreferences, new StringEnumConverter()),
+                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityPreferences, new StringEnumConverter()),
                 Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
                 RunImportOnStart = Import.RunOnStart,
                 ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,
