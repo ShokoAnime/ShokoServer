@@ -45,9 +45,7 @@ namespace Shoko.Models
         [JsonProperty("PreferredAudioCodecs")]
         public string[] _audiocodecs =
         {
-            "flac", "dolby digital plus", "dolby truehd", "dts", "he-aac", "aac", "ac3", "mp3 cbr", "mp3 vbr",
-            "vorbis (ogg vorbis)", "wma (also divx audio)", "realaudio g2/8 (cook)", "alac", "msaudio", "opus", "mp2",
-            "pcm", "unknown", "none"
+            "flac", "dca", "aac", "ac3", "wmav2", "wmapro", "adpcm_ms", "mp3", "mp2", "vp6f"
         };
 
         /// Preferred Resolutions, in order.
@@ -68,9 +66,7 @@ namespace Shoko.Models
         [JsonProperty("PreferredVideoCodecs")]
         public string[] _videocodecs =
         {
-            "hevc", "h264/avc", "divx5/6", "mpeg-4 asp", "mpeg-2", "mpeg-1", "ms mp4x", "divx4", "divx3", "vc-1",
-            "xvid", "realvideo 9/10", "other (divx)", "other (mpeg-4 sp)", "other (realvideo)", "vp8", "vp6",
-            "other (vpx)", "other (wmv3/wmv/9)", "unknown", "none"
+            "hevc", "h264", "mpeg4", "vc1", "flv", "mpeg2", "mpeg1", "vp6f"
         };
 
         /// Whether or not to prefer Bit Depth. If/when 12bit becomes more prominant, this can be changed to an integer.
@@ -101,7 +97,7 @@ namespace Shoko.Models
         [JsonProperty("RequiredAudioCodecs")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredaudiocodecs =
             new Tuple<string[], FileQualityFilterOperationType>(
-                new[] {"flac", "dolby digital plus", "dolby truehd", "dts", "aac"},
+                new[] {"flac", "dca", "aac"},
                 FileQualityFilterOperationType.IN);
 
         /// Required Audio Stream Count. Default is >= 1.
@@ -140,7 +136,7 @@ namespace Shoko.Models
         /// Accepts IN, NOTIN
         [JsonProperty("RequiredVideoCodecs")]
         public Tuple<string[], FileQualityFilterOperationType> _requiredvideocodecs =
-            new Tuple<string[], FileQualityFilterOperationType>(new[] {"hevc", "h264/avc"},
+            new Tuple<string[], FileQualityFilterOperationType>(new[] {"hevc", "h264"},
                 FileQualityFilterOperationType.IN);
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.

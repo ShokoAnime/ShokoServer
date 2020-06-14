@@ -625,7 +625,7 @@ namespace Shoko.Models.MediaInfo
             {"matroska", "mkv"},
         };
 
-        private static readonly Dictionary<string, string> CodecIDs = new Dictionary<string, string>
+        public static readonly Dictionary<string, string> CodecIDs = new Dictionary<string, string>
         {
             {"161", "wmav2"},
             {"162", "wmapro"},
@@ -640,27 +640,28 @@ namespace Shoko.Models.MediaInfo
             {"aac lc-sbr-ps", "aac"},
             {"avc", "h264"},
             {"avc1", "h264"},
-            {"div3", "msmpeg4"},
+            {"div3", "mpeg4"},
             {"divx", "mpeg4"},
             {"dts", "dca"},
             {"dts-hd", "dca"},
             {"dx50", "mpeg4"},
             {"flv1", "flv"},
-            {"mp42", "msmpeg4v2"},
-            {"mp43", "msmpeg4"},
+            {"mp42", "mpeg4"},
+            {"mp43", "mpeg4"},
             {"mpa1l2", "mp2"},
             {"mpa1l3", "mp3"},
             {"mpa2.5l3", "mp3"},
             {"mpa2l3", "mp3"},
-            {"mpeg-1v", "mpeg1video"},
-            {"mpeg-2v", "mpeg2video"},
+            {"mpeg-1v", "mpeg1"},
+            {"mpeg-2v", "mpeg2"},
             {"mpeg-4v", "mpeg4"},
-            {"mpg4", "msmpeg4v1"},
+            {"mpg4", "mpeg4"},
             {"on2 vp6", "vp6f"},
             {"sorenson h263", "flv"},
             {"v_mpeg2", "mpeg2"},
             {"v_mpeg4/iso/asp", "mpeg4"},
             {"v_mpeg4/iso/avc", "h264"},
+            {"v_mpegh/iso/hevc", "hevc"},
             {"vc-1", "vc1"},
             {"xvid", "mpeg4"}
         };
