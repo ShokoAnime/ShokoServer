@@ -6,7 +6,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Text;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
@@ -713,86 +712,6 @@ namespace Shoko.Commons.Utils
             if (result.ExactMatch) return true;
             if (text.Length <= 5 && result.Distance > 0.5D) return false;
             return result.Distance < 0.8D;
-        }
-
-        //Lazy Load this because it throws an error on cctor.
-        private static readonly Lazy<SecurityIdentifier> _everyone = new Lazy<SecurityIdentifier>(() => new SecurityIdentifier(WellKnownSidType.WorldSid, null));
-        public static List<string> RecursiveGetDirectoriesWithoutEveryonePermission(string path)
-        {
-            List<string> dirs=new List<string>();
-            if (!Directory.Exists(path))
-                return dirs;
-            DirectoryInfo info=new DirectoryInfo(path);
-            AuthorizationRuleCollection coll = info.GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier));
-            bool found = false;
-            foreach (AuthorizationRule ar in coll)
-            {
-                if (ar.IdentityReference.Value == _everyone.Value.Value)
-                {
-                    FileSystemAccessRule facr = (FileSystemAccessRule)ar;
-                    if (facr.AccessControlType == AccessControlType.Allow && 
-                        facr.FileSystemRights.HasFlag(FileSystemRights.FullControl))
-                    {
-                        found = true;
-                        break;
-                    }                
-                }
-            }
-            if (!found)
-                dirs.Add(path);
-            foreach (string s in Directory.GetDirectories(path))
-            {
-                dirs.AddRange(RecursiveGetDirectoriesWithoutEveryonePermission(s));
-            }
-            return dirs;
-        }
-
-        public static bool RecursiveSetDirectoriesToEveryoneFullControlPermission(List<string> paths)
-        {
-            //C# version do not work, do not inherit permissions to childs.
-            string BatchFile = Path.Combine(Path.GetTempPath(), "GrantAccess.bat");
-            int exitCode;
-            Process proc = new Process();
-
-            proc.StartInfo.FileName = "cmd.exe";
-            proc.StartInfo.Arguments = $@"/c {BatchFile}";
-            proc.StartInfo.Verb = "runas";
-            proc.StartInfo.CreateNoWindow = true;
-            proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            proc.StartInfo.UseShellExecute = true;
-
-            try
-            {
-                StreamWriter BatchFileStream = new StreamWriter(BatchFile);
-
-                //Cleanup previous
-                try
-                {
-                    foreach(string fullPath in paths)
-                        BatchFileStream.WriteLine($"icacls \"{fullPath}\" /grant *S-1-1-0:(OI)(CI)F /T");
-                }
-                finally
-                {
-                    BatchFileStream.Close();
-                }
-
-                proc.Start();
-
-                proc.WaitForExit();
-
-                exitCode = proc.ExitCode;
-                proc.Close();
-
-                File.Delete(BatchFile);
-
-                if (exitCode == 0)
-                    return true;
-            }
-            catch (Exception ex)
-            {
-                //Ignored
-            }
-            return false;
         }
 
         public static bool IsImageValid(string path)
