@@ -111,6 +111,7 @@ namespace Shoko.Server.Models
             // actually rename the file
             string path = Path.GetDirectoryName(fullFileName);
             string newFullName = (path == null ? null : Path.Combine(path, renamed));
+            var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
             try
             {
@@ -138,6 +139,25 @@ namespace Shoko.Server.Models
                         $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {r?.Error ?? "Result is null"}");
                     ShokoServer.StartWatchingFiles(false);
                     return (false, renamed, "Error: Failed to rename file");
+                }
+                
+                // Rename external subs!
+                var oldBasename = Path.GetFileNameWithoutExtension(fullFileName);
+                var newBasename = Path.GetFileNameWithoutExtension(renamed);
+                foreach (TextStream sub in textStreams)
+                {
+                    if (string.IsNullOrEmpty(sub.Filename)) continue;
+                    var oldSubPath = Path.Combine(path, sub.Filename);
+                    var srcSub = filesys.Resolve(oldSubPath);
+                    if (srcSub == null || !srcSub.IsOk)
+                    {
+                        logger.Error($"Unable to rename external subtitle {sub.Filename}. Cannot access the file");
+                        continue;
+                    }
+                    var newSub = sub.Filename.Replace(oldBasename, newBasename);
+                    var subResult = srcSub.Result.Rename(newSub);
+                    if (subResult == null || !subResult.IsOk)
+                        logger.Error($"Unable to rename external subtitle {sub.Filename} to {newSub}. {subResult?.Error ?? "Result is null"}");
                 }
 
                 logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
@@ -1015,7 +1035,9 @@ namespace Shoko.Server.Models
                             return false;
                         }
 
+                        // Save for later. Scan for subtitles while the vlplace is still set for the source location
                         string originalFileName = FullServerPath;
+                        var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
                         // Handle Duplicate Files
                         var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
@@ -1049,12 +1071,15 @@ namespace Shoko.Server.Models
                         try
                         {
                             // move any subtitle files
-                            foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+                            foreach (TextStream subtitleFile in textStreams)
                             {
-                                FileSystemResult<IObject> src = f.Resolve(subtitleFile);
+                                if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
+                                var newParent = Path.GetDirectoryName(newFullServerPath);
+                                var srcParent = Path.GetDirectoryName(originalFileName);
+                                if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent)) continue;
+                                FileSystemResult<IObject> src = f.Resolve(Path.Combine(srcParent, subtitleFile.Filename));
                                 if (src == null || !src.IsOk || !(src.Result is IFile)) continue;
-                                string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
-                                    ((IFile) src.Result).Name);
+                                string newSubPath = Path.Combine(newParent, ((IFile) src.Result).Name);
                                 dst = f.Resolve(newSubPath);
                                 if (dst != null && dst.IsOk && dst.Result is IFile)
                                 {
