@@ -130,17 +130,14 @@ namespace AniDBAPI
                 if (!Utils.IsDirectoryWritable(filePath))
                 {
                     logger.Trace($"Unable to access {fileNameWithPath}. Insufficient permissions. Attemping to grant.");
-                    Utils.GrantAccess(filePath);
+                    return;
                 }
 
                 // Check again and only if write-able we create it
-                if (Utils.IsDirectoryWritable(filePath))
+                logger.Trace($"Can write to {filePath}. Writing xml file {fileNameWithPath}");
+                using (var sw = File.CreateText(fileNameWithPath))
                 {
-                    logger.Trace($"Can write to {filePath}. Writing xml file {fileNameWithPath}");
-                    using (var sw = File.CreateText(fileNameWithPath))
-                    {
-                        sw.Write(xml);
-                    }
+                    sw.Write(xml);
                 }
             }
             catch (Exception ex)

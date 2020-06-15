@@ -35,41 +35,6 @@ namespace Shoko.Server
 
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static bool GrantAccess(string path)
-        {
-            if (IsLinux) return true; //TODO: Implement properly, but as linux uses $HOME for the path, we should be fine.
-
-            if (Directory.Exists(path))
-            {
-                List<string> perms = Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
-                if (perms.Count > 0)
-                {
-                    bool result = Misc.RecursiveSetDirectoriesToEveryoneFullControlPermission(perms);
-                    if (result)
-                    {
-                        perms = Misc.RecursiveGetDirectoriesWithoutEveryonePermission(path);
-                        if (perms.Count > 0)
-                            result = false;
-                    }
-                    if (!result)
-                    {
-                        if (!IsAdministrator())
-                        {
-                            logger.Info("Needed to set '" + path + "' permissions and failed, restarting as admin.");
-                            RestartAsAdmin();
-                        }
-                        else
-                        {
-                            logger.Error("Unable to set Everyone permissions to '" + path + "' directory, or subdirectories, please chkdsk or set everyone permissions at hand.");
-                            return false;
-                        }
-                    }
-
-                }
-            }
-            return true;
-        }
-  
         public static string CalculateSHA1(string text, Encoding enc)
         {
             byte[] buffer = enc.GetBytes(text);

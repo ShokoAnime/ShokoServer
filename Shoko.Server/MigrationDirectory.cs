@@ -47,8 +47,6 @@
                 if (ShouldMigrate)
                 {
                     bool result = Migrate();
-                    if (result)
-                        Utils.GrantAccess(To);
                     return result;
                 }
                 return true;
