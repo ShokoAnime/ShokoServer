@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Shoko.Commons.Extensions;
+using System.Linq;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Models;
 // ReSharper disable StringLiteralTypo
@@ -12,29 +12,52 @@ namespace Shoko.Server.FileHelper.Subtitles
 {
     public static class SubtitleHelper
     {
+        private static List<ISubtitles> SubtitleImplementations;
+
         public static List<TextStream> GetSubtitleStreams(SVR_VideoLocal_Place vplace)
         {
-            List<TextStream> ls = new VobSubSubtitles().GetStreams(vplace);
-            ls.AddRange(new TextSubtitles().GetStreams(vplace));
-            ls.ForEach(a =>
+            if (SubtitleImplementations == null) SubtitleImplementations = InitImplementations();
+
+            var path = vplace.FullServerPath;
+            if (string.IsNullOrEmpty(path)) return new List<TextStream>();
+            string directoryName = Path.GetDirectoryName(path);
+            if (string.IsNullOrEmpty(directoryName)) return new List<TextStream>();
+            if (!Directory.Exists(directoryName)) return new List<TextStream>();
+            DirectoryInfo directory = new DirectoryInfo(directoryName);
+
+            var streams = new List<TextStream>();
+            foreach (FileInfo file in directory.EnumerateFiles())
             {
-                a.External = true;
-                string lang = GetLanguageFromFilename(vplace.FilePath);
-                if (lang == null) return;
-                a.Language = lang;
-                Tuple<string,string> mapping = MediaInfoUtils.GetLanguageMapping(lang);
-                if (mapping == null) return;
-                a.LanguageCode = mapping.Item1;
-                a.LanguageName = mapping.Item2;
-            });
-            return ls;
+                foreach (var implementation in SubtitleImplementations)
+                {
+                    if (!implementation.IsSubtitleFile(file.Extension)) continue;
+                    var ls = implementation.GetStreams(file);
+                    streams.AddRange(ls);
+                }
+            }
+
+            return streams;
+        }
+
+        private static List<ISubtitles> InitImplementations()
+        {
+            try
+            {
+                return AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
+                    .Where(x => typeof(ISubtitles).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
+                    .Select(type => (ISubtitles) Activator.CreateInstance(type)).ToList();
+            }
+            catch (Exception e)
+            {
+                return new List<ISubtitles>();
+            }
         }
 
         public static string GetLanguageFromFilename(string path)
         {
             // sub format of filename.eng.srt
-            int lastSeparator = path.Trim(new [] {Path.PathSeparator, Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}).LastIndexOfAny(new[]
-                {Path.PathSeparator, Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar});
+            int lastSeparator = path.Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).LastIndexOfAny(new[]
+                {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar});
             string filename = path.Substring(lastSeparator + 1);
             string[] parts = filename.Split('.');
             // if there aren't 3 parts, then it's not in the format for this to work
@@ -52,23 +75,5 @@ namespace Shoko.Server.FileHelper.Subtitles
                     return MediaInfoUtils.GetLanguageFromName(lang) ?? lang;
             }
         }
-
-        public static readonly Dictionary<string, string> Extensions = new Dictionary<string, string>
-        {
-            {"utf", "text/plain"},
-            {"utf8", "text/plain"},
-            {"utf-8", "text/plain"},
-            {"srt", "text/plain"},
-            {"smi", "text/plain"},
-            {"rt", "text/plain"},
-            {"ssa", "text/plain"},
-            {"aqt", "text/plain"},
-            {"jss", "text/plain"},
-            {"ass", "text/plain"},
-            {"idx", "application/octet-stream"},
-            {"sub", "application/octet-stream"},
-            {"txt", "text/plain"},
-            {"psb", "text/plain"}
-        };
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using NutzCode.CloudFileSystem;
 using Shoko.Models.MediaInfo;
@@ -9,31 +10,49 @@ namespace Shoko.Server.FileHelper.Subtitles
 {
     public class TextSubtitles : ISubtitles
     {
-        public List<TextStream> GetStreams(SVR_VideoLocal_Place vplace)
+        public List<TextStream> GetStreams(FileInfo file)
         {
-            // TODO Scan the folder for filename.lang.sub files
-            string dirname = Path.GetDirectoryName(vplace.FullServerPath);
-            string fname = Path.GetFileNameWithoutExtension(vplace.FilePath);
-            if (string.IsNullOrEmpty(dirname) || string.IsNullOrEmpty(fname))
-                return new List<TextStream>();
-            string basename = Path.Combine(dirname, fname);
-            HashSet<string> extensions = new HashSet<string>(SubtitleHelper.Extensions.Keys);
-            extensions.Remove("idx");
             List<TextStream> streams = new List<TextStream>();
-            foreach (string n in extensions)
+            var language = SubtitleHelper.GetLanguageFromFilename(file.Name);
+
+            MediaContainer m = MediaInfo.GetMediaInfo(file.FullName);
+            List<TextStream> tStreams = m?.TextStreams;
+            if (tStreams == null || tStreams.Count <= 0) return streams;
+            tStreams.ForEach(a =>
             {
-                string newname = $"{basename}.{n}";
-                FileSystemResult<IObject> r = vplace.ImportFolder.FileSystem.Resolve(newname);
-                if (r == null || !r.IsOk || !(r.Result is IFile)) continue;
-                MediaContainer m = MediaInfo.GetMediaInfo(newname);
-                List<TextStream> tStreams = m?.TextStreams;
-                if (tStreams != null && tStreams.Count > 0)
-                {
-                    tStreams.ForEach(a => a.Filename = newname);
-                    streams.AddRange(tStreams);
-                }
-            }
+                a.External = true;
+                a.Filename = file.Name;
+                if (language == null) return;
+                a.Language = language;
+                Tuple<string,string> mapping = MediaInfoUtils.GetLanguageMapping(language);
+                if (mapping == null) return;
+                a.LanguageCode = mapping.Item1;
+                a.LanguageName = mapping.Item2;
+            });
+            streams.AddRange(tStreams);
             return streams;
+        }
+        
+        public static readonly List<string> Extensions = new List<string>
+        {
+            "utf",
+            "utf8",
+            "utf-8",
+            "srt",
+            "smi",
+            "rt",
+            "ssa",
+            "aqt",
+            "jss",
+            "ass",
+            "txt",
+            "psb"
+        };
+
+        public bool IsSubtitleFile(string path)
+        {
+            string ext = Path.GetExtension(path).ToLower();
+            return Extensions.Contains(ext);
         }
     }
 }
