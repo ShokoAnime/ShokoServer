@@ -735,7 +735,9 @@ namespace Shoko.Server.Models
                 return (newFullServerPath, "ERROR: " + (fr?.Error ?? "Error moving file, but no error string"));
             }
 
+            // Save for later. Scan for subtitles while the vlplace is still set for the source location
             string originalFileName = FullServerPath;
+            var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
             // Handle Duplicate Files
             var dups = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID).ToList();
@@ -769,12 +771,15 @@ namespace Shoko.Server.Models
             try
             {
                 // move any subtitle files
-                foreach (string subtitleFile in Utils.GetPossibleSubtitleFiles(originalFileName))
+                foreach (TextStream subtitleFile in textStreams)
                 {
-                    FileSystemResult<IObject> src = f.Resolve(subtitleFile);
+                    if (string.IsNullOrEmpty(subtitleFile.Filename)) continue;
+                    var newParent = Path.GetDirectoryName(newFullServerPath);
+                    var srcParent = Path.GetDirectoryName(originalFileName);
+                    if (string.IsNullOrEmpty(newParent) || string.IsNullOrEmpty(srcParent)) continue;
+                    FileSystemResult<IObject> src = f.Resolve(Path.Combine(srcParent, subtitleFile.Filename));
                     if (src == null || !src.IsOk || !(src.Result is IFile)) continue;
-                    string newSubPath = Path.Combine(Path.GetDirectoryName(newFullServerPath),
-                        ((IFile) src.Result).Name);
+                    string newSubPath = Path.Combine(newParent, ((IFile) src.Result).Name);
                     dst = f.Resolve(newSubPath);
                     if (dst != null && dst.IsOk && dst.Result is IFile)
                     {

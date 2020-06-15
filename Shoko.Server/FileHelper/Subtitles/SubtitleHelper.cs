@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Models;
 // ReSharper disable StringLiteralTypo
@@ -25,15 +26,16 @@ namespace Shoko.Server.FileHelper.Subtitles
             if (!Directory.Exists(directoryName)) return new List<TextStream>();
             DirectoryInfo directory = new DirectoryInfo(directoryName);
 
+            var basename = Path.GetFileNameWithoutExtension(path);
+
             var streams = new List<TextStream>();
             foreach (FileInfo file in directory.EnumerateFiles())
             {
-                foreach (var implementation in SubtitleImplementations)
-                {
-                    if (!implementation.IsSubtitleFile(file.Extension)) continue;
-                    var ls = implementation.GetStreams(file);
-                    streams.AddRange(ls);
-                }
+                // Make sure it's actually the subtitle for this video file
+                if (!file.Name.StartsWith(basename)) continue;
+                // Get streams for each implementation
+                SubtitleImplementations.Where(implementation => implementation.IsSubtitleFile(file.Extension))
+                    .SelectMany(implementation => implementation.GetStreams(file)).ForEach(streams.Add);
             }
 
             return streams;
