@@ -576,7 +576,8 @@ namespace Shoko.Models.MediaInfo
                     Format = t.subFormat,
                     Codec = t.subFormat,
                     Default = (byte) (t.m.Default ? 1 : 0),
-                    Forced = (byte) (t.m.Forced ? 1 : 0)
+                    Forced = (byte) (t.m.Forced ? 1 : 0),
+                    File = t.m.External ? t.m.Filename : null
                 }).ToList();
         }
 
