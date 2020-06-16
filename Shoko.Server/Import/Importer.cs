@@ -780,7 +780,7 @@ namespace Shoko.Server
             }
         }
 
-        public static void RemoveRecordsWithoutPhysicalFiles()
+        public static void RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
         {
             logger.Info("Remove Missing Files: Start");
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
@@ -897,9 +897,14 @@ namespace Shoko.Server
                     logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+
+                    if (removeMyList)
+                    {
+                        CommandRequest_DeleteFileFromMyList cmdDel =
+                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                        cmdDel.Save();
+                    }
+
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);

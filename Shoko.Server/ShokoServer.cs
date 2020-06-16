@@ -1384,12 +1384,12 @@ namespace Shoko.Server
                 workerImport.RunWorkerAsync();
         }
 
-        public static void RemoveMissingFiles()
+        public static void RemoveMissingFiles(bool removeMyList = true)
         {
             Analytics.PostEvent("Importer", "RemoveMissing");
 
             if (!workerRemoveMissing.IsBusy)
-                workerRemoveMissing.RunWorkerAsync();
+                workerRemoveMissing.RunWorkerAsync(removeMyList);
         }
 
         public static void SyncMyList()
@@ -1407,7 +1407,7 @@ namespace Shoko.Server
         {
             try
             {
-                Importer.RemoveRecordsWithoutPhysicalFiles();
+                Importer.RemoveRecordsWithoutPhysicalFiles((e.Argument as bool?) ?? true);
             }
             catch (Exception ex)
             {
