@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
+using NLog;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Repositories;
 
@@ -10,6 +12,8 @@ namespace Shoko.Server.API.v2.Modules
     [ApiVersionNeutral]
     public class Auth : BaseController
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        
         /// <summary>
         /// Get an authentication token for the user.
         /// </summary>
@@ -29,6 +33,29 @@ namespace Shoko.Server.API.v2.Modules
             if (!string.IsNullOrEmpty(apiKey)) return Ok(new { apikey = apiKey });
 
             return Unauthorized();
+        }
+
+        /// <summary>
+        /// Change the password. Invalidates the current user's apikeys. Reauth after using this!
+        /// </summary>
+        /// <param name="newPassword"></param>
+        /// <returns></returns>
+        [HttpPost("ChangePassword")]
+        public ActionResult ChangePassword([FromBody] string newPassword)
+        {
+            try
+            {
+                User.Password = Digest.Hash(newPassword.Trim());
+                RepoFactory.JMMUser.Save(User, false);
+                RepoFactory.AuthTokens.DeleteAllWithUserID(User.JMMUserID);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+
+            return InternalError();
         }
 
         ///<summary>

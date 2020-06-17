@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v3
         }
         
         /// <summary>
-        /// Get the AniDB details for episode with Shoko ID
+        /// Get the AniDB details for file with Shoko ID
         /// </summary>
         /// <param name="id">Shoko ID</param>
         /// <returns></returns>
@@ -48,7 +48,7 @@ namespace Shoko.Server.API.v3
         }
         
         /// <summary>
-        /// Get the AniDB details for episode with Shoko ID
+        /// Get the MediaInfo model for file with VideoLocal ID
         /// </summary>
         /// <param name="id">Shoko ID</param>
         /// <returns></returns>
