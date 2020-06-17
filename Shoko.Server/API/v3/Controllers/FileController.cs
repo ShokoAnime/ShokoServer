@@ -9,6 +9,7 @@ using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -114,6 +115,20 @@ namespace Shoko.Server.API.v3
                 .Where(a => a.FilePath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
                 .Where(a => a != null).Select(a => new File.FileDetailed(a)).Distinct().ToList();
             return results;
+        }
+        
+        /// <summary>
+        /// Get Recently Added Files
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Recent/{limit:int?}")]
+        public List<File.FileDetailed> GetRecentFiles(int limit = 100)
+        {
+            // default 50 as that's reasonable
+            if (limit == 0) limit = 50;
+
+            return RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID)
+                .Select(file => new File.FileDetailed(file)).ToList();
         }
 
         /// <summary>

@@ -883,7 +883,6 @@ namespace Shoko.Server.API.v2.Modules
             List<RawFile.RecentFile> list = new List<RawFile.RecentFile>();
             foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID))
             {
-                if (file.GetAnimeEpisodes().Any(a => !User.AllowedSeries(a?.GetAnimeSeries()))) continue;
                 list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
                 {
                     ep_id = file.GetAnimeEpisodes().FirstOrDefault()?.AnimeEpisodeID ?? 0,
