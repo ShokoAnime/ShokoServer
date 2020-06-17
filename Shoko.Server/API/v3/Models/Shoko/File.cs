@@ -37,6 +37,12 @@ namespace Shoko.Server.API.v3
         /// Try to fit this file's resolution to something like 1080p, 480p, etc
         /// </summary>
         public string RoundedStandardResolution { get; set; }
+        
+        /// <summary>
+        /// The file creation date of this file
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime Created { get; set; }
 
         public File() {}
         
@@ -58,6 +64,7 @@ namespace Shoko.Server.API.v3
                 RelativePath = a.FilePath,
                 Accessible = a.GetFile() != null
             }).ToList();
+            Created = vl.DateTimeCreated;
         }
 
         public static MediaContainer GetMedia(int id)
