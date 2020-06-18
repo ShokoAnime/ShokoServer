@@ -92,7 +92,7 @@ namespace Shoko.Server.API.v3
                 case ImageEntityType.Staff:
                     return "Staff";
                 case ImageEntityType.Static:
-                    return "Static";
+                    return "Shoko";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
