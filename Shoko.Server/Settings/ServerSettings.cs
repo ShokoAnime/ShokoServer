@@ -323,7 +323,8 @@ namespace Shoko.Server.Settings
             var serializerSettings = new JsonSerializerSettings
             {
                 Converters = new List<JsonConverter>{new StringEnumConverter()},
-                Error = (sender, args) => { args.ErrorContext.Handled = true; }
+                Error = (sender, args) => { args.ErrorContext.Handled = true; },
+                ObjectCreationHandling = ObjectCreationHandling.Replace
             };
             Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path), serializerSettings);
             var context = new ValidationContext(Instance, serviceProvider: null, items: null);
