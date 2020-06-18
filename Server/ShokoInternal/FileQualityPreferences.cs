@@ -48,9 +48,6 @@ namespace Shoko.Models
         /// Preferred Resolutions, in order.
         public List<string> PreferredResolutions { get; set; } = new List<string> {"2160p", "1440p", "1080p", "720p", "480p"};
 
-        /// Preferred Sources, in order.
-        [JsonIgnore] public List<string> _sources = new List<string> {"bd", "dvd", "tv", "www", "unknown"};
-
         /// Subbing/Release Groups in order of preference.
         /// If a file is not in the list, the compared files are considered comparatively equal.
         public List<string> PreferredSubGroups { get; set; } = new List<string> { "fffpeeps", "doki", "commie", "horriblesubs" };
@@ -84,36 +81,36 @@ namespace Shoko.Models
 
         /// Required Audio Codec. Default must be FLAC, Dolby, or AAC.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredAudioCodecs =
+        public FileQualityTypeListPair<List<string>> RequiredAudioCodecs { get; set; } =
             new FileQualityTypeListPair<List<string>>(
                 new List<string> {"flac", "dca", "aac"},
                 FileQualityFilterOperationType.IN);
 
         /// Required Audio Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        public FileQualityTypeListPair<int> RequiredAudioStreamCount =
+        public FileQualityTypeListPair<int> RequiredAudioStreamCount { get; set; } =
             new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Resolution. Default must be 1080p or greater.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ, IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredResolutions =
+        public FileQualityTypeListPair<List<string>> RequiredResolutions { get; set; } =
             new FileQualityTypeListPair<List<string>>(new List<string> {"1080p"},
                 FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Source. Default must be BD or DVD release.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredSources =
+        public FileQualityTypeListPair<List<string>> RequiredSources { get; set; } =
             new FileQualityTypeListPair<List<string>>(new List<string> {"bd", "dvd"},
                 FileQualityFilterOperationType.IN);
 
         /// The required Subbing/Release Groups and the operator. Defaulting to not HorribleSubs for example.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredSubGroups =
+        public FileQualityTypeListPair<List<string>> RequiredSubGroups { get; set; } =
             new FileQualityTypeListPair<List<string>>(new List<string> { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
 
         /// Required Subtitle Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        public FileQualityTypeListPair<int> RequiredSubStreamCount =
+        public FileQualityTypeListPair<int> RequiredSubStreamCount { get; set; } =
             new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
 
         /// Required Video Codec. Default must be H265/HEVC or H264/AVC.
@@ -131,6 +128,7 @@ namespace Shoko.Models
         public int MaxNumberOfFilesToKeep = 1;
 
         /// Preferred Sources, in order.
+        [JsonIgnore] public List<string> _sources = new List<string> {"bd", "dvd", "tv", "www", "unknown"};
         public List<string> PreferredSources
         {
             get => _sources;
