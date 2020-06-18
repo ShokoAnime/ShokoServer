@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3
@@ -41,8 +42,7 @@ namespace Shoko.Server.API.v3
         [HttpGet("SyncVotes")]
         public ActionResult SyncVotes()
         {
-            CommandRequest_SyncMyVotes cmdVotes = new CommandRequest_SyncMyVotes();
-            cmdVotes.Save();
+            new CommandRequest_SyncMyVotes().Save();
             return Ok();
         }
 
@@ -55,8 +55,7 @@ namespace Shoko.Server.API.v3
         {
             if (!ServerSettings.Instance.TraktTv.Enabled ||
                 string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return BadRequest();
-            CommandRequest_TraktSyncCollection cmd = new CommandRequest_TraktSyncCollection(true);
-            cmd.Save();
+            new CommandRequest_TraktSyncCollection(true).Save();
 
             return Ok();
         }
@@ -104,6 +103,30 @@ namespace Shoko.Server.API.v3
             Importer.RunImport_UpdateTvDB(false);
             return Ok();
         }
+
+        /// <summary>
+        /// Updates and Downloads Missing Images
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("UpdateAllImages")]
+        public ActionResult UpdateAllImages()
+        {
+            ShokoServer.Instance.DownloadAllImages();
+            return Ok();
+        }
+
+        /// <summary>
+        /// Update all Trakt info. Right now, that's not much.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("UpdateAllTraktInfo")]
+        public ActionResult UpdateTraktInfo()
+        {
+            if (!ServerSettings.Instance.TraktTv.Enabled ||
+                string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken)) return BadRequest();
+            TraktTVHelper.UpdateAllInfo();
+            return Ok();
+        }
         
         /// <summary>
         /// Queues commands to Update All Series Stats and Force a Recalculation of All Group Filters
@@ -113,6 +136,12 @@ namespace Shoko.Server.API.v3
         public ActionResult UpdateSeriesStats()
         {
             Importer.UpdateAllStats();
+            return Ok();
+        }
+
+        public ActionResult ValidateAllImages()
+        {
+            new CommandRequest_ValidateAllImages().Save();
             return Ok();
         }
     }
