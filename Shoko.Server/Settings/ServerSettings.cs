@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -318,7 +319,7 @@ namespace Shoko.Server.Settings
             return settings;
         }
 
-        public static void LoadSettingsFromFile(string path, bool delete = false)
+        public static T Deserialize<T>(string json) where T : class
         {
             var serializerSettings = new JsonSerializerSettings
             {
@@ -326,15 +327,30 @@ namespace Shoko.Server.Settings
                 Error = (sender, args) => { args.ErrorContext.Handled = true; },
                 ObjectCreationHandling = ObjectCreationHandling.Replace
             };
-            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path), serializerSettings);
-            var context = new ValidationContext(Instance, serviceProvider: null, items: null);
+            T result = JsonConvert.DeserializeObject<T>(json, serializerSettings);
+            if (result == null) return null;
+            var context = new ValidationContext(result, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
-            if (!Validator.TryValidateObject(Instance, context, results))
+            if (!Validator.TryValidateObject(result, context, results))
             {
-                results.ForEach(s => Logger.Error(s.ErrorMessage));
-                throw new ValidationException();
+                throw new ValidationException(string.Join("\n", results.Select(a => a.ErrorMessage)));
             }
+
+            return result;
+        }
+
+        public static void LoadSettingsFromFile(string path, bool delete = false)
+        {
+            try
+            {
+                Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+            }
+
             if (delete) File.Delete(path);
         }
 

@@ -574,8 +574,7 @@ namespace Shoko.Server
                 ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
                     ServerSettings.Instance.FileQualityPreferences =
-                        JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences,
-                            new StringEnumConverter());
+                        ServerSettings.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
                 ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
                 ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
                 ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
