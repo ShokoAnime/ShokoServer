@@ -139,6 +139,11 @@ namespace Shoko.Server.API.v3
             return Ok();
         }
 
+        /// <summary>
+        /// Validates invalid images and redownloads them
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ValidateAllImages")]
         public ActionResult ValidateAllImages()
         {
             new CommandRequest_ValidateAllImages().Save();

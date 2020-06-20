@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using NLog;
+using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;

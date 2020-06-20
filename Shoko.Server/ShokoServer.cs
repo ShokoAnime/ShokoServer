@@ -337,7 +337,7 @@ namespace Shoko.Server
                 return false;
             }
 
-            SetupNetHosts();
+            if (!SetupNetHosts()) return false;
 
             Analytics.PostEvent("Server", "StartupFinished");
             return true;
@@ -755,7 +755,7 @@ namespace Shoko.Server
             }
         }
 
-        public void SetupNetHosts()
+        public bool SetupNetHosts()
         {
             logger.Info("Initializing Web Hosts...");
             ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
@@ -764,8 +764,10 @@ namespace Shoko.Server
             if (!started)
             {
                 StopHost();
-                throw new Exception("Failed to start all of the network hosts");
+                return false;
             }
+
+            return true;
         }
         
         public void RestartAniDBSocket()
@@ -1640,14 +1642,14 @@ namespace Shoko.Server
                 }
 
                 TaskDefinition td = TaskService.Instance.NewTask();
-                td.RegistrationInfo.Description = "Auto start task for JMM Server";
+                td.RegistrationInfo.Description = "Auto start task for Shoko Server";
 
                 td.Principal.RunLevel = TaskRunLevel.Highest;
 
                 td.Triggers.Add(new BootTrigger());
                 td.Triggers.Add(new LogonTrigger());
 
-                td.Actions.Add("\"" + Assembly.GetEntryAssembly().Location + "\"");
+                td.Actions.Add(new ExecAction($"\"{Assembly.GetEntryAssembly().Location}\""));
 
                 TaskService.Instance.RootFolder.RegisterTaskDefinition(state.autostartTaskName, td);
                 state.LoadSettings();

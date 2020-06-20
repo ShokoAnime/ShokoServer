@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using JetBrains.Annotations;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
@@ -14,10 +13,9 @@ namespace Shoko.Server.Commands
 {
     public class CommandAttribute : Attribute
     {
-        [NotNull]
         public CommandRequestType RequestType { get; }
 
-        public CommandAttribute([NotNull] CommandRequestType requestType) => RequestType = requestType;
+        public CommandAttribute(CommandRequestType requestType) => RequestType = requestType;
     }
 
     public abstract class CommandRequestImplementation : ICommandRequest

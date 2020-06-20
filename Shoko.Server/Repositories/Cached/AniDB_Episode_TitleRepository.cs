@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
@@ -30,7 +29,7 @@ namespace Shoko.Server.Repositories
 
 
 
-        public ILookup<int, AniDB_Episode_Title> GetByEpisodeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Episode_Title> GetByEpisodeIDs(ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));

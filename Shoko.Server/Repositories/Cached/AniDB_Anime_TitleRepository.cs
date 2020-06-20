@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
@@ -46,7 +45,7 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
