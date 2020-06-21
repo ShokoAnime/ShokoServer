@@ -216,7 +216,7 @@ namespace Shoko.Server
         }
 
 
-        public static void RunImport_ScanFolder(int importFolderID)
+        public static void RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
         {
             // get a complete list of files
             List<string> fileList = new List<string>();
@@ -277,8 +277,7 @@ namespace Shoko.Server
 
                     videosFound++;
 
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
-                    cr_hashfile.Save();
+                    new CommandRequest_HashFile(fileName, false, skipMyList).Save();
                 }
                 logger.Debug("Found {0} new files", filesFound);
                 logger.Debug("Found {0} videos", videosFound);
@@ -315,7 +314,8 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+                // ignore recycling bins
+                if (fileName.Contains("$RECYCLE.BIN") || fileName.StartsWith(".Trash-")) continue;
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -382,7 +382,7 @@ namespace Shoko.Server
             List<string> fileListNew = new List<string>();
             foreach (string fileName in fileList)
             {
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+                if (fileName.Contains("$RECYCLE.BIN") || fileName.StartsWith(".Trash-")) continue;
                 if (!dictFilesExisting.ContainsKey(fileName))
                     fileListNew.Add(fileName);
             }

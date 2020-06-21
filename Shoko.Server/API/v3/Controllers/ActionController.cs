@@ -13,6 +13,17 @@ namespace Shoko.Server.API.v3
     {
 
         /// <summary>
+        /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tvdb, trakt, moviedb, etc), and downloads missing images.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("RunImport")]
+        public ActionResult RunImport()
+        {
+            ShokoServer.RunImport();
+            return Ok();
+        }
+        
+        /// <summary>
         /// This was for web cache hash syncing, and will be for perceptual hashing maybe eventually.
         /// </summary>
         /// <returns></returns>

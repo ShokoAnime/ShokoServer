@@ -25,6 +25,8 @@ namespace Shoko.Server.Commands
     {
         public int VideoLocalID { get; set; }
         public bool ForceAniDB { get; set; }
+        
+        public bool SkipMyList { get; set; }
 
         private SVR_VideoLocal vlocal;
 
@@ -52,11 +54,12 @@ namespace Shoko.Server.Commands
         {
         }
 
-        public CommandRequest_ProcessFile(int vidLocalID, bool forceAniDB)
+        public CommandRequest_ProcessFile(int vidLocalID, bool forceAniDB, bool skipMyList = false)
         {
             VideoLocalID = vidLocalID;
             ForceAniDB = forceAniDB;
             Priority = (int) DefaultPriority;
+            SkipMyList = skipMyList;
 
             GenerateCommandID();
         }
@@ -389,10 +392,9 @@ namespace Shoko.Server.Commands
                 vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 // Add this file to the users list
-                if (ServerSettings.Instance.AniDb.MyList_AddFiles)
+                if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
                 {
-                    CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vidLocal.ED2KHash);
-                    cmd.Save();
+                    new CommandRequest_AddFileToMyList(vidLocal.ED2KHash).Save();
                 }
             }
         }
@@ -423,6 +425,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
                 ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
+                SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList"));
                 vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
             }
 

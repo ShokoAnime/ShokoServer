@@ -24,6 +24,8 @@ namespace Shoko.Server.Commands
     {
         public string FileName { get; set; }
         public bool ForceHash { get; set; }
+        
+        public bool SkipMyList { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority4;
 
@@ -43,11 +45,12 @@ namespace Shoko.Server.Commands
         {
         }
 
-        public CommandRequest_HashFile(string filename, bool force)
+        public CommandRequest_HashFile(string filename, bool force, bool skipMyList = false)
         {
             FileName = filename;
             ForceHash = force;
             Priority = (int) DefaultPriority;
+            SkipMyList = skipMyList;
 
             GenerateCommandID();
         }
@@ -520,7 +523,7 @@ namespace Shoko.Server.Commands
                     RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
             }
             // now add a command to process the file
-            CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false);
+            CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false, SkipMyList);
             cr_procfile.Save();
         }
 
@@ -749,6 +752,7 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
                 ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
+                SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
             }
 
             if (FileName.Trim().Length > 0)
