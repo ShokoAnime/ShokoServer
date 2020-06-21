@@ -15,7 +15,7 @@ jobs:
       with:
         submodules: recursive
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag 
+      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_REPO }}:daily
     - name: Log into docker hub
       run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
     - name: Push daily to Docker Hub
