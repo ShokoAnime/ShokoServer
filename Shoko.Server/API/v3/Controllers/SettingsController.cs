@@ -7,7 +7,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
-    [Authorize]
+    [Authorize(Roles = "admin,init")]
     public class SettingsController : BaseController
     {
         // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.

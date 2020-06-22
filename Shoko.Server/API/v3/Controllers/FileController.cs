@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
