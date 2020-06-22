@@ -201,6 +201,36 @@ namespace Shoko.Server.Providers.MovieDB
             return results;
         }
 
+        public static void UpdateAllMovieInfo(bool saveImages)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var all = RepoFactory.MovieDb_Movie.GetAll();
+                int max = all.Count;
+                int i = 0;
+                foreach (var batch in all.Batch(50))
+                {
+                    using (var trans = session.BeginTransaction())
+                    {
+                        foreach (MovieDB_Movie movie in batch)
+                        {
+                            try
+                            {
+                                i++;
+                                logger.Info($"Updating MovieDB Movie {i}/{max}");
+                                UpdateMovieInfo(session, movie.MovieId, saveImages);
+                            }
+                            catch (Exception e)
+                            {
+                                logger.Error($"Failed to Update MovieDB Movie ID: {movie.MovieId} Error: {e}");
+                            }
+                        }
+                        trans.Commit();
+                    }
+                }
+            }
+        }
+
         public static void UpdateMovieInfo(int movieID, bool saveImages)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
