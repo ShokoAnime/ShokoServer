@@ -218,33 +218,6 @@ namespace Shoko.Server.API.v3
         }
 
         /// <summary>
-        /// Set AniDB account credentials with a Credentials object
-        /// </summary>
-        /// <returns></returns>
-        [Authorize("init")]
-        [HttpPost("anidb")]
-        public ActionResult SetAniDB(Credentials.AniDBCredentials cred)
-        {
-            var details = new List<(string, string)>();
-            if (string.IsNullOrEmpty(cred.Username))
-                details.Add(("login", "Username missing"));
-            if (string.IsNullOrEmpty(cred.Password))
-                details.Add(("password", "Password missing"));
-            if (details.Count > 0) return BadRequest("Username or Password missing");
-
-            ServerSettings.Instance.AniDb.Username = cred.Username;
-            ServerSettings.Instance.AniDb.Password = cred.Password;
-            if (cred.ClientPort != 0)
-                ServerSettings.Instance.AniDb.ClientPort = (ushort) cred.ClientPort;
-            if (!string.IsNullOrEmpty(cred.AVDumpAPIKey))
-                ServerSettings.Instance.AniDb.AVDumpKey = cred.AVDumpAPIKey;
-            if (cred.AVDumpClientPort != 0)
-                ServerSettings.Instance.AniDb.AVDumpClientPort = (ushort) cred.AVDumpClientPort;
-
-            return Ok();
-        }
-
-        /// <summary>
         /// Test AniDB Creditentials
         /// </summary>
         /// <returns></returns>
@@ -265,30 +238,6 @@ namespace Shoko.Server.API.v3
             ShokoService.AnidbProcessor.ForceLogout();
 
             return Ok();
-        }
-
-        /// <summary>
-        /// Return existing login and ports for AniDB
-        /// </summary>
-        /// <returns></returns>
-        [Authorize("init")]
-        [HttpGet("anidb")]
-        public ActionResult<Credentials.AniDBCredentials> GetAniDB()
-        {
-            try
-            {
-                return new Credentials.AniDBCredentials()
-                {
-                    Username = ServerSettings.Instance.AniDb.Username,
-                    ClientPort = ServerSettings.Instance.AniDb.ClientPort,
-                    AVDumpClientPort = ServerSettings.Instance.AniDb.AVDumpClientPort
-                };
-            }
-            catch
-            {
-                return InternalError(
-                    "The ports are not set as integers. Set them and try again.\n\rThe default values are:\n\rAniDB Client Port: 4556\n\rAniDB AVDump Client Port: 4557");
-            }
         }
 
         /// <summary>
