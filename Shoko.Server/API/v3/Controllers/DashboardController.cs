@@ -51,7 +51,7 @@ namespace Shoko.Server.API.v3
             int duplicate = places.Where(a => a.VideoLocal.IsVariation == 0).SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.VideoLocal.Hash))
                 .GroupBy(a => a.EpisodeID).Count(a => a.Count() > 1);
 
-            decimal percentDupe =
+            decimal percentDupe = places.Count == 0 ? 0 : 
                 Math.Round((decimal) duplicate * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
 
             int missing = series.Sum(a => a.MissingEpisodeCount);
