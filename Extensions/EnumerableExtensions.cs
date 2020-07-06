@@ -234,7 +234,7 @@ namespace Shoko.Commons.Extensions
             }
         }
 
-        /// <summary>
+/*        /// <summary>
         /// Converts the specified sequence into a <see cref="HashSet{T}"/>
         /// </summary>
         /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
@@ -248,7 +248,7 @@ namespace Shoko.Commons.Extensions
 
             return new HashSet<TSource>(source, comparer);
         }
-
+*/
         /// <summary>
         /// Casts/converts the specified <see cref="IEnumerable{T}"/> to a <see cref="IReadOnlyCollection{T}"/>.
         /// </summary>

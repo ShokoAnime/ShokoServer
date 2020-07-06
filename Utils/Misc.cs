@@ -361,7 +361,7 @@ namespace Shoko.Commons.Utils
         
         // A char array of the allowed characters. This should be infinitely faster
         private static readonly HashSet<char> AllowedSearchCharacters =
-            (" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.?*&").ToHashSet();
+            new HashSet<char>(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.?*&".ToCharArray());
 
         public static string FilterCharacters(this string value, IEnumerable<char> allowed, bool blacklist = false)
         {
@@ -394,7 +394,7 @@ namespace Shoko.Commons.Utils
             if (sb.Length == 0)
                 return;
 
-            var charSet = chars.ToHashSet();
+            var charSet = chars.ToList();
 
             // set [start] to first not-whitespace char or to sb.Length
 
