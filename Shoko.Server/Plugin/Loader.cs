@@ -29,13 +29,16 @@ namespace Shoko.Server.Plugin
             {
                 try
                 {
+                    logger.Debug($"Trying to load {dll}");
                     assemblies.Add(Assembly.LoadFile(dll));
                 }
                 catch (FileLoadException)
                 {
+                    logger.Debug("BadImageFormatException");
                 }
                 catch (BadImageFormatException)
                 {
+                    logger.Debug("BadImageFormatException");
                 }
             }
 
@@ -50,8 +53,9 @@ namespace Shoko.Server.Plugin
                 {
                     return a.GetTypes();
                 }
-                catch
+                catch (Exception e)
                 {
+                    logger.Debug(e);
                     return new Type[0];
                 }
             }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
