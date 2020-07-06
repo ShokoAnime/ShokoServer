@@ -450,11 +450,6 @@ namespace NutzCode.InMemoryIndex
 
     public static class Extensions
     {
-        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> d)
-        {
-            return new HashSet<T>(d);
-        }
-
         public static bool HasItems<T>(this List<T> org)
         {
             return (org != null && org.Count > 0);

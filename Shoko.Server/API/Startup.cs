@@ -20,6 +20,7 @@ using NLog;
 using Sentry;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
+using Shoko.Server.Plugin;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -80,6 +81,14 @@ namespace Shoko.Server.API
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                     if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
 
+                    foreach (Type type in Loader.Plugins.Keys)
+                    {
+                        var assembly = type.Assembly;
+                        var location = assembly.Location;
+                        var xml = Path.Combine(Path.GetDirectoryName(location), $"{Path.GetFileNameWithoutExtension(location)}.xml");
+                        if (File.Exists(xml)) options.IncludeXmlComments(xml); //Include the XML comments if it exists.
+                    }
+
                     options.CustomSchemaIds(x => x.FullName);
                 });
 
@@ -105,7 +114,7 @@ namespace Shoko.Server.API
             });
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
-            services.AddMvc(options =>
+            var mvc = services.AddMvc(options =>
                 {
                     options.EnableEndpointRouting = true;
                     options.AllowEmptyInputInBodyModelBinding = true;
@@ -127,6 +136,14 @@ namespace Shoko.Server.API
                     json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
                     json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
                 });
+
+            foreach (Type type in Loader.Plugins.Keys)
+            {
+                var assembly = type.Assembly;
+                if (assembly == Assembly.GetCallingAssembly()) continue; //Skip the current assembly, this is implicitly added by ASP.
+                mvc.AddApplicationPart(assembly).AddControllersAsServices();
+            }
+
 
             services.AddApiVersioning(o =>
             {

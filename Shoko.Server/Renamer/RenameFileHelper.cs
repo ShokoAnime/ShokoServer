@@ -54,29 +54,19 @@ namespace Shoko.Server
                 return (IRenamer)Activator.CreateInstance(ScriptImplementations[script.RenamerType]);
             }
         }
-
-        public static void InitialiseRenamers()
+        
+        internal static void FindRenamers(IList<Assembly> assemblies)
         {
-            List<Assembly> asse = new List<Assembly>();
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
-            string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
-            asse.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
-            foreach (string dll in Directory.GetFiles(dirname, "Renamer.*.dll", SearchOption.AllDirectories))
-            {
+            var implementations = assemblies.SelectMany(a => {
                 try
                 {
-                    asse.Add(Assembly.LoadFile(dll));
-                }
-                catch (FileLoadException)
+                    return a.GetTypes();
+                } 
+                catch
                 {
+                    return new Type[0];
                 }
-                catch (BadImageFormatException)
-                {
-                }
-            }
-
-            var implementations = asse.SelectMany(a => a.GetTypes())
+            })
                 .Where(a => a.GetInterfaces().Contains(typeof(IRenamer)));
 
             foreach (var implementation in implementations)
@@ -87,14 +77,17 @@ namespace Shoko.Server
                     if (key == null) continue;
                     if (ScriptImplementations.ContainsKey(key))
                     {
-                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {ScriptImplementations[key]}@{ScriptImplementations[key].Assembly.Location}");
+                        logger.Warn(
+                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {ScriptImplementations[key]}@{ScriptImplementations[key].Assembly.Location}");
                         continue;
                     }
+
                     ScriptImplementations.Add(key, implementation);
                     ScriptDescriptions.Add(key, desc);
                 }
             }
         }
+
         public static string GetNewFileName(SVR_VideoLocal_Place vid)
         {
             try

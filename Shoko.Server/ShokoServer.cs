@@ -12,12 +12,16 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using LeanWork.IO.FileSystem;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using NHibernate;
 using NLog;
+using NLog.Extensions.Logging;
 using NLog.Targets;
 using NLog.Web;
 using NutzCode.CloudFileSystem;
@@ -96,8 +100,23 @@ namespace Shoko.Server
 
         public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
         
+        public static IServiceProvider ServiceContainer { get; private set; }
+        
         private Mutex mutex;
 
+        private static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSingleton<ServerSettings>(_ => ServerSettings.Instance);
+            services.AddLogging(loggingBuilder => //add NLog based logging.
+            {
+                //NLog;
+                loggingBuilder.ClearProviders();
+                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                loggingBuilder.AddNLog(new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
+            });
+        }
+        
         public string[] GetSupportedDatabases()
         {
             return new[]
@@ -229,7 +248,12 @@ namespace Shoko.Server
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
             ServerSettings.Instance.DebugSettingsToLog();
-            RenameFileHelper.InitialiseRenamers();
+            // RenameFileHelper.InitialiseRenamers();
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            Plugin.Loader.Load(services);
+            ServiceContainer = services.BuildServiceProvider();
+            Plugin.Loader.InitPlugins(ServiceContainer);
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;
