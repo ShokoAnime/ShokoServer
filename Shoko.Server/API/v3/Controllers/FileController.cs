@@ -122,11 +122,23 @@ namespace Shoko.Server.API.v3
         [HttpGet("Recent/{limit:int?}")]
         public List<File.FileDetailed> GetRecentFiles(int limit = 100)
         {
-            // default 50 as that's reasonable
-            if (limit == 0) limit = 50;
-
+            if (limit <= 0) limit = -1;
             return RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID)
                 .Select(file => new File.FileDetailed(file)).ToList();
+        }
+
+        /// <summary>
+        /// Get Unrecognized Files. <see cref="File.FileDetailed"/> is not relevant here, as there will be no links.
+        /// Use pageSize and page (index 0) in the query to enable pagination.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Unrecognized")]
+        public List<File> GetUnrecognizedFiles(int pageSize = 100, int page = 0)
+        {
+            if (pageSize <= 0)
+                return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(a => new File(a)).ToList();
+            return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Skip(pageSize * page).Take(pageSize)
+                .Select(a => new File(a)).ToList();
         }
 
         /// <summary>
