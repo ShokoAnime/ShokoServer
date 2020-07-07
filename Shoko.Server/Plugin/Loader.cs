@@ -30,7 +30,7 @@ namespace Shoko.Server.Plugin
                 try
                 {
                     logger.Debug($"Trying to load {dll}");
-                    assemblies.Add(Assembly.LoadFile(dll));
+                    assemblies.Add(Assembly.LoadFrom(dll));
                 }
                 catch (FileLoadException)
                 {
