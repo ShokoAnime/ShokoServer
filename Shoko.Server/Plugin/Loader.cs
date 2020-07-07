@@ -25,7 +25,7 @@ namespace Shoko.Server.Plugin
             var dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
             // if (dirname == null) return;
             assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
-            foreach (var dll in Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories))
+            foreach (var dll in Directory.GetFiles(dirname, "*.dll", SearchOption.AllDirectories))
             {
                 try
                 {
