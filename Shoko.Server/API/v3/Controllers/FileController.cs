@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
@@ -109,9 +110,16 @@ namespace Shoko.Server.API.v3
         public ActionResult<List<File.FileDetailed>> SearchByFilename(string path)
         {
             var query = path.Replace('/', Path.DirectorySeparatorChar);
+            if (query.Contains("%")) query = WebUtility.UrlDecode(query);
+            if (query.Contains("%")) query = WebUtility.UrlDecode(query);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => a.FilePath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
-                .Where(a => a != null).Select(a => new File.FileDetailed(a)).Distinct().ToList();
+                .Distinct()
+                .Where(a =>
+                {
+                    var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                    return ser == null || User.AllowedSeries(ser);
+                }).Select(a => new File.FileDetailed(a)).ToList();
             return results;
         }
         
