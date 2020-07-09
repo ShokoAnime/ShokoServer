@@ -110,7 +110,7 @@ namespace Shoko.Server.API.v3
         public ActionResult<List<File.FileDetailed>> SearchByFilename(string path)
         {
             var query = path;
-            if (query.Contains("%")) query = WebUtility.UrlDecode(query);
+            if (query.Contains("%") || query.Contains("+")) query = WebUtility.UrlDecode(query);
             if (query.Contains("%")) query = WebUtility.UrlDecode(query);
             query = query.Replace('/', Path.DirectorySeparatorChar);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
