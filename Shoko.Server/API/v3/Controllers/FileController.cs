@@ -109,11 +109,12 @@ namespace Shoko.Server.API.v3
         [HttpGet("PathEndsWith/{*path}")]
         public ActionResult<List<File.FileDetailed>> SearchByFilename(string path)
         {
-            var query = path.Replace('/', Path.DirectorySeparatorChar);
+            var query = path;
             if (query.Contains("%")) query = WebUtility.UrlDecode(query);
             if (query.Contains("%")) query = WebUtility.UrlDecode(query);
+            query = path.Replace('/', Path.DirectorySeparatorChar);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-                .Where(a => a.FilePath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
+                .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
                 .Distinct()
                 .Where(a =>
                 {
