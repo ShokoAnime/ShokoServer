@@ -21,6 +21,7 @@ using Sentry;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.Plugin;
+using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -179,13 +180,15 @@ namespace Shoko.Server.API
 #if DEBUG
             app.UseDeveloperExceptionPage();
 #endif
+            var dir = new DirectoryInfo(Path.Combine(ServerSettings.ApplicationPath, "webui"));
+            if (!dir.Exists)
+            {
+                dir.Create();
 
-            string codeBase = Assembly.GetExecutingAssembly().CodeBase;
-            UriBuilder uri = new UriBuilder(codeBase);
-            string path = Uri.UnescapeDataString(uri.Path);
-
-            var dir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(path), "webui"));
-            if (!dir.Exists) dir.Create();
+                var backup = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+                    "webui"));
+                if (backup.Exists) CopyFilesRecursively(backup, dir);
+            }
 
             app.UseStaticFiles(new StaticFileOptions
             {
@@ -217,6 +220,13 @@ namespace Shoko.Server.API
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
             app.UseMvc();
+        }
+
+        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target) {
+            foreach (DirectoryInfo dir in source.GetDirectories())
+                CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+            foreach (FileInfo file in source.GetFiles())
+                file.CopyTo(Path.Combine(target.FullName, file.Name));
         }
 
         static Info CreateInfoForApiVersion(ApiVersionDescription description)

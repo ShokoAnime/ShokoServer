@@ -27,7 +27,7 @@ namespace Shoko.Server.AniDB_API.Titles
 
         private static AniDB_TitleHelper instance;
 
-        public static AniDB_TitleHelper Instance => instance ?? (instance = new AniDB_TitleHelper());
+        public static AniDB_TitleHelper Instance => instance ??= new AniDB_TitleHelper();
 
         public List<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
         {
