@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -9,13 +8,15 @@ using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     /// <summary>
     /// Series object, stores all of the series info

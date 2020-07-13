@@ -3,13 +3,14 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     /// <summary>
     /// A Group Filter. This is how Shoko serves and organizes Series/Groups. They can be used to keep track of what

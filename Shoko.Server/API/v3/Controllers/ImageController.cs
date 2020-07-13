@@ -4,10 +4,11 @@ using System.Resources;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Properties;
 using Mime = MimeMapping.MimeUtility;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     public class ImageController : BaseController

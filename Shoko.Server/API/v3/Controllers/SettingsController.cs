@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize(Roles = "admin,init")]

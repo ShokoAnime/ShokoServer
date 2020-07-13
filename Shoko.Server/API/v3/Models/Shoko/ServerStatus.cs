@@ -1,4 +1,4 @@
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     public class ServerStatus
     {

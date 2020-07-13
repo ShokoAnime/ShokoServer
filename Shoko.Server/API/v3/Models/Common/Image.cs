@@ -8,7 +8,7 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     /// <summary>
     /// Image container

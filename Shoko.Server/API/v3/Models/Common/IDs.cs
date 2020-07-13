@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     /// <summary>
     /// A collection of the IDs that are relevant to an object. Each one Extends this if needed.

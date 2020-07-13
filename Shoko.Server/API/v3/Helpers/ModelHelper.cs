@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Models.Enums;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Helpers
 {
     public static class ModelHelper
     {

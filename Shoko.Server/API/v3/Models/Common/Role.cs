@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     /// <summary>
     /// This is for cast/staff

@@ -4,7 +4,7 @@ using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Helpers
 {
     public static class APIGroupFilterSortingHelper
     {

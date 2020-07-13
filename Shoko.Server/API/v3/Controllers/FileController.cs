@@ -5,14 +5,15 @@ using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
@@ -43,7 +44,7 @@ namespace Shoko.Server.API.v3
             if (videoLocal == null) return BadRequest("No File with ID");
             var anidb = videoLocal.GetAniDBFile();
             if (anidb == null) return BadRequest("AniDB data not found");
-            return v3.File.GetAniDBInfo(id);
+            return Models.Shoko.File.GetAniDBInfo(id);
         }
         
         /// <summary>
@@ -56,7 +57,7 @@ namespace Shoko.Server.API.v3
         {
             var videoLocal = RepoFactory.VideoLocal.GetByID(id);
             if (videoLocal == null) return BadRequest("No File with ID");
-            return v3.File.GetMedia(id);
+            return Models.Shoko.File.GetMedia(id);
         }
         
         /// <summary>

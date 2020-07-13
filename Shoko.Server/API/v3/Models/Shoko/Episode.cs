@@ -7,10 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     public class Episode : BaseModel
     {

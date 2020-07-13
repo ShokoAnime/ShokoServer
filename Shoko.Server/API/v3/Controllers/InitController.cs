@@ -13,10 +13,12 @@ using NLog;
 using Shoko.Commons;
 using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
 using Shoko.Server.Settings;
+using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     // ReSharper disable once UnusedMember.Global
     /// <summary>

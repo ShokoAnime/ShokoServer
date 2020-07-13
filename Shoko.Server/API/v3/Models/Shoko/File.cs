@@ -8,7 +8,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     public class File
     {

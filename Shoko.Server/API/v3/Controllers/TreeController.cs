@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     /// <summary>
     /// This Controller is intended to provide the tree. An example would be "api/v3/filter/4/group/12/series".

@@ -1,10 +1,11 @@
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     public class ImportFolder : BaseModel
     {
@@ -61,9 +62,9 @@ namespace Shoko.Server.API.v3
             FileSize = size;
         }
 
-        public Shoko.Models.Server.ImportFolder GetServerModel()
+        public global::Shoko.Models.Server.ImportFolder GetServerModel()
         {
-            return new Shoko.Models.Server.ImportFolder
+            return new global::Shoko.Models.Server.ImportFolder
             {
                 ImportFolderID = ID,
                 ImportFolderName = Name,

@@ -3,11 +3,12 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Tasks;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
