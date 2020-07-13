@@ -16,8 +16,7 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("drives")]
         public ActionResult<IEnumerable<Folder>> GetDrives()
         {
-            var drives = DriveInfo.GetDrives();
-            return drives.Select(d =>
+            return  DriveInfo.GetDrives().Where(d => d.IsReady).Select(d =>
             {
                 ChildItems childItems = null;
                 try
