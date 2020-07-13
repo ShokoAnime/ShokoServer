@@ -14,28 +14,30 @@ namespace Shoko.Server.API.v3.Controllers
     public class FolderController : Controller
     {
         [HttpGet("drives")]
-        public ActionResult<IEnumerable<Folder>> GetDrives()
+        public ActionResult<IEnumerable<Drive>> GetDrives()
         {
-            return  DriveInfo.GetDrives().Where(d => d.IsReady).Select(d =>
+            return  DriveInfo.GetDrives().Select(d =>
             {
                 ChildItems childItems = null;
                 try
                 {
-                    childItems = new ChildItems()
+                    
+                    childItems = d.IsReady ? new ChildItems()
                     {
                         Files = d.RootDirectory.GetFiles()?.Length ?? 0,
                         Folders = d.RootDirectory.GetDirectories()?.Length ?? 0
-                    };
+                    } : null;
                 }
                 catch (UnauthorizedAccessException)
                 {
                 }
 
-                return new Folder()
+                return new Drive()
                 {
                     Path = d.RootDirectory.FullName,
                     CanAccess = childItems != null,
-                    Sizes = childItems
+                    Sizes = childItems,
+                    DriveType = d.DriveType
                 };
             }).ToList();
         }
