@@ -18,5 +18,6 @@ namespace Shoko.Server.Databases
         void PopulateInitialData();
         int GetDatabaseVersion();
         void Init();
+        bool TestConnection();
     }
 }

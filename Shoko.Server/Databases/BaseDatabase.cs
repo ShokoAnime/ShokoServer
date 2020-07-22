@@ -49,7 +49,7 @@ namespace Shoko.Server.Databases
 
         public virtual bool TestConnection()
         {
-            // For SQLite, we assume conection succeeds
+            // For SQLite, we assume connection succeeds
             return true;
         }
 

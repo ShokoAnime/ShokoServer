@@ -67,6 +67,24 @@ namespace Shoko.Server.Databases
             try
             {
                 _instance = null;
+                for (int i = 0; i < 60; i++)
+                {
+                    if (Instance.TestConnection())
+                    {
+                        logger.Info("Database Connection OK!");
+                        break;
+                    }
+
+                    if (i == 59)
+                    {
+                        logger.Error(errorMessage = "Unable to connect to database!");
+                        return false;
+                    }
+
+                    logger.Info("Waiting for database connection...");
+                    Thread.Sleep(1000);
+                }
+                
                 if (!Instance.DatabaseAlreadyExists())
                 {
                     Instance.CreateDatabase();
