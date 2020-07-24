@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using NLog;
 using Shoko.Server.Commands;
 
@@ -139,6 +141,27 @@ namespace Shoko.Server
         public static AniDBHelper AnidbProcessor
         {
             get { return anidbProcessor; }
+        }
+
+        public static void CancelAndWaitForQueues()
+        {
+            CmdProcessorGeneral.Stop();
+            CmdProcessorHasher.Stop();
+            CmdProcessorImages.Stop();
+            var queues = new[] { WaitForQueue(CmdProcessorGeneral), WaitForQueue(CmdProcessorHasher), WaitForQueue(CmdProcessorImages) };
+            var done = Task.WhenAll(queues);
+            done.Wait();
+        }
+
+        private static Task WaitForQueue(CommandProcessor queue)
+        {
+            return Task.Run(() =>
+            {
+                while (queue.IsWorkerBusy)
+                {
+                    Thread.Sleep(250);
+                }
+            });
         }
     }
 }
