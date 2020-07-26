@@ -345,6 +345,17 @@ namespace Shoko.Server.Settings
             try
             {
                 Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+                Instance.AniDb ??= new AniDbSettings();
+                Instance.Database ??= new DatabaseSettings();
+                Instance.FileQualityPreferences ??= new FileQualityPreferences();
+                Instance.Import ??= new ImportSettings();
+                Instance.Linux ??= new LinuxSettings();
+                Instance.LanguagePreference ??= new string[0];
+                Instance.MovieDb ??= new MovieDbSettings();
+                Instance.Plex ??= new PlexSettings();
+                Instance.TraktTv ??= new TraktSettings();
+                Instance.TvDB ??= new TvDBSettings();
+                Instance.WebCache ??= new WebCacheSettings();
             }
             catch (Exception e)
             {
@@ -370,7 +381,7 @@ namespace Shoko.Server.Settings
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented,
-                DefaultValueHandling = DefaultValueHandling.Include,
+                DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
                 Converters = new List<JsonConverter> {new StringEnumConverter()}
             };
