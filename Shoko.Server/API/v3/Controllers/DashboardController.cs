@@ -37,7 +37,7 @@ namespace Shoko.Server.API.v3.Controllers
             int fileCount = files.Count;
             long size = files.Sum(a => a.FileSize);
 
-            List<SVR_AnimeEpisode> watchedEpisodes = episodes.Where(a => a?.GetUserContract(User.JMMUserID)?.WatchedDate != null).ToList();
+            List<SVR_AnimeEpisode> watchedEpisodes = episodes.Where(a => a?.GetUserRecord(User.JMMUserID)?.WatchedDate != null).ToList();
 
             int watchedSeries = RepoFactory.AnimeSeries.GetAll().Count(a =>
             {
