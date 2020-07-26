@@ -1,64 +1,89 @@
 ﻿using System;
-using System.Threading;
-using NLog;
-using Shoko.Server;
-using Shoko.Server.Settings;
+using System.IO;
+using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NLog.Web;
 
 namespace Shoko.CLI
 {
-    class Program
+    public class Program
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-        private static bool _running;
-
-        static Program()
+        public static void Main(string[] args)
         {
-            _running = true;
+            var host = CreateHostBuilder(args).Build();
+            // here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
+            host.Run();
         }
 
-        static void Main(string[] args)
+        public static IHostBuilder CreateHostBuilder(string[] args)
         {
+            string instance = null;
             for (int x = 0; x < args.Length; x++)
             {
                 if (!args[x].Equals("instance", StringComparison.InvariantCultureIgnoreCase)) continue;
-                if (x + 1 < args.Length)
-                {
-                    ServerSettings.DefaultInstance = args[x + 1];
-                }
+                if (x + 1 >= args.Length) continue;
+                instance = args[x + 1];
+                break;
             }
 
-            ShokoServer.Instance.InitLogger();
-            
-            ServerSettings.LoadSettings();
-            ServerState.Instance.LoadSettings();
-            if (!ShokoServer.Instance.StartUpServer()) return;
-
-            // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
-            ShokoServer.Instance.RestartAniDBSocket();
-            if (!ServerSettings.Instance.FirstRun)
-                ShokoServer.RunWorkSetupDB();
-            else logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
-
-            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => _running = false;
-            Utils.YesNoRequired += (sender, e) =>
-            {
-                e.Cancel = true;
-            };
-
-            ServerState.Instance.PropertyChanged += (sender, e) =>
-            {
-                if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+            var arguments = new ProgramArguments {Instance = instance};
+            return CreateBuilder(args)
+                .ConfigureServices((hostContext, services) =>
                 {
-                    Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
-                }
-            };
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+                    services.AddSingleton(arguments);
+                    services.AddHostedService<Worker>();
+                });
+        }
 
-            while (_running)
+        private static IHostBuilder CreateBuilder(string[] args)
+        {
+            var builder = new HostBuilder();
+
+            builder.UseContentRoot(Directory.GetCurrentDirectory());
+            builder.ConfigureHostConfiguration(config =>
             {
-                Thread.Sleep(TimeSpan.FromSeconds(60));
-            }
+                config.AddEnvironmentVariables(prefix: "DOTNET_");
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            });
+
+            builder.ConfigureAppConfiguration((hostingContext, config) =>
+            {
+                var env = hostingContext.HostingEnvironment;
+                
+                var reloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", defaultValue: true);
+
+                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: reloadOnChange)
+                      .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: reloadOnChange);
+
+                if (env.IsDevelopment() && !string.IsNullOrEmpty(env.ApplicationName))
+                {
+                    var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
+                    if (appAssembly != null)
+                    {
+                        config.AddUserSecrets(appAssembly, optional: true);
+                    }
+                }
+
+                config.AddEnvironmentVariables();
+
+                if (args != null)
+                {
+                    config.AddCommandLine(args);
+                }
+            })
+            .UseDefaultServiceProvider((context, options) =>
+            {
+                var isDevelopment = context.HostingEnvironment.IsDevelopment();
+                options.ValidateScopes = isDevelopment;
+                options.ValidateOnBuild = isDevelopment;
+            }).UseNLog();
+
+            return builder;
         }
     }
 }

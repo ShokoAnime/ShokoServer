@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
-    <OutputType>Exe</OutputType>
+    <RuntimeIdentifiers>win10-x64;win;linux-x64;linux-x86</RuntimeIdentifiers>
+    <Platforms>x64;x86</Platforms>
+    <Deterministic>false</Deterministic>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
@@ -13,22 +14,24 @@
     <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.6.20305.6" />
     <PackageReference Include="NLog" Version="4.6.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\Shoko.Server\db.ico">
+      <Link>db.ico</Link>
+    </Resource>
   </ItemGroup>
 </Project>
