@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <RuntimeIdentifiers>win10-x64;win;linux-x64;linux-x86</RuntimeIdentifiers>
+        <Platforms>x64;AnyCPU</Platforms>
+        <Deterministic>false</Deterministic>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <AssemblyName>ShokoServer</AssemblyName>
+        <LangVersion>latest</LangVersion>
+        <UseWPF>true</UseWPF>
+        <Configurations>Debug;Release</Configurations>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="..\SharedAssemblyInfo.cs">
+            <Link>Properties\SharedAssemblyInfo.cs</Link>
+        </Compile>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Hardcodet.NotifyIcon.Wpf.NetCore" Version="1.0.13" />
+        <PackageReference Include="NLog" Version="4.6.2" />
+    </ItemGroup>
+    <ItemGroup>
+        <Resource Include="..\Shoko.Server\db.ico">
+            <Link>db.ico</Link>
+        </Resource>
+    </ItemGroup>
+</Project>
