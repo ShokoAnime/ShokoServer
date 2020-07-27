@@ -1,0 +1,35 @@
+name: Build Tray Service
+
+on:
+  push:
+    branches: [ master ]
+#   pull_request:
+#     branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rid: ['win-x64']
+        dotnet: [ '3.1.x' ]
+
+    name: ${{ matrix.rid }} Shoko Tray Service build
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - run: sudo apt-get update
+      - run: sudo apt-get install libicu60
+      - run: dotnet restore Shoko.TrayService
+      - run: dotnet publish -c Release -f netcoreapp3.1 --self-contained true -r ${{ matrix.rid }} Shoko.TrayService
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.rid }}
+          path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
