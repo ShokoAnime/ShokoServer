@@ -9,6 +9,7 @@
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
+        <PublishTrimmed>true</PublishTrimmed>
         <Configurations>Debug;Release</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     </PropertyGroup>
