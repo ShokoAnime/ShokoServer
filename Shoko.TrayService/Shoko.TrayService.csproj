@@ -10,6 +10,7 @@
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
         <Configurations>Debug;Release</Configurations>
+        <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
