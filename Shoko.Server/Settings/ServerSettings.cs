@@ -381,7 +381,7 @@ namespace Shoko.Server.Settings
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented,
-                DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate,
+                DefaultValueHandling = DefaultValueHandling.Include,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
                 Converters = new List<JsonConverter> {new StringEnumConverter()}
             };
