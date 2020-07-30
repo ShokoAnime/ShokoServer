@@ -35,6 +35,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             if (settings == null) return BadRequest("The settings object is invalid.");
             settings.ApplyTo(ServerSettings.Instance, ModelState);
+            TryValidateModel(ServerSettings.Instance);
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);

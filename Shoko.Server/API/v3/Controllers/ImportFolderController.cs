@@ -62,6 +62,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (existing == null) return BadRequest("No Import Folder with ID");
             var patchModel = new ImportFolder(existing);
             folder.ApplyTo(patchModel, ModelState);
+            TryValidateModel(patchModel);
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
