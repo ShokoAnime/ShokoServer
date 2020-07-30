@@ -382,4 +382,19 @@ namespace Shoko.Models.Enums
         AniDBMustSee = 3,
         AniDBForFans = 4,
     }
+
+    /// <summary>
+    /// Forward thinking. These cover all that are well known and used.
+    /// </summary>
+    public enum CommunitySites
+    {
+        None = 0,
+        AniDB = 1,
+        Trakt = 2,
+        Plex = 3,
+        MAL = 4,
+        AniList = 5,
+        Animeshon = 6,
+        Kitsu = 7,
+    }
 }
