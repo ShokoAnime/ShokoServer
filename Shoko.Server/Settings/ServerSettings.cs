@@ -325,7 +325,8 @@ namespace Shoko.Server.Settings
             {
                 Converters = new List<JsonConverter>{new StringEnumConverter()},
                 Error = (sender, args) => { args.ErrorContext.Handled = true; },
-                ObjectCreationHandling = ObjectCreationHandling.Replace
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
+                DefaultValueHandling = DefaultValueHandling.Populate
             };
             T result = JsonConvert.DeserializeObject<T>(json, serializerSettings);
             if (result == null) return null;
