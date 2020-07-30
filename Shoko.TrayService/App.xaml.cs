@@ -23,6 +23,11 @@ namespace Shoko.TrayService
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private void OnStartup(object a, StartupEventArgs e)
         {
+            Console.CancelKeyPress += (sender, args) => Dispatcher.Invoke(() =>
+            {
+                args.Cancel = true;
+                Shutdown();
+            });
             Icon = new TaskbarIcon();
             using (var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))
                 ?.Stream)
@@ -52,10 +57,7 @@ namespace Shoko.TrayService
             menu.Items.Add(webui);
             webui = new MenuItem();
             webui.Header = "Exit";
-            webui.Click += (sender, args) =>
-            {
-                Shutdown();
-            };
+            webui.Click += (sender, args) => Dispatcher.Invoke(Shutdown);
             menu.Items.Add(webui);
             Icon.ContextMenu = menu;
             Icon.MenuActivation = PopupActivationMode.All;
