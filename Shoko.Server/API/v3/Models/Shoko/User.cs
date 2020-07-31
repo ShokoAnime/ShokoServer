@@ -1,5 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.API.v3.Models.Shoko
 {
@@ -31,14 +34,65 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public List<string> TagBlacklist { get; set; }
 
-        public class FullUser
+        public class FullUser : User
         {
             /// <summary>
             /// The password...Shoko is NOT secure, so don't assume this password is safe or even necessary to access the account
             /// </summary>
             public string Password { get; set; }
+
+            public SVR_JMMUser GetServerModel()
+            {
+                var user = new SVR_JMMUser
+                {
+                    Username = Username,
+                    JMMUserID = ID,
+                    Password = Password,
+                    HideCategories = string.Join(',', TagBlacklist),
+                    IsAdmin = IsAdmin ? 1 : 0,
+                    IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
+                    CanEditServerSettings = IsAdmin ? 1 : 0,
+                    IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0,
+                };
+                return user;
+            }
+        }
+
+        public User()
+        {
+            
+        }
+
+        public User(SVR_JMMUser user)
+        {
+            ID = user.JMMUserID;
+            Username = user.Username;
+            IsAdmin = user.IsAdmin == 1;
+            CommunitySites = new List<CommunitySites>();
+            if (user.IsAniDBUser == 1) CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.AniDB);
+            if (user.IsTraktUser == 1) CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Trakt);
+            if (!string.IsNullOrEmpty(user.PlexToken)) CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Plex);
+            TagBlacklist = user.GetHideCategories().ToList();
         }
         
+        public SVR_JMMUser MergeServerModel(SVR_JMMUser existing)
+        {
+            var user = new SVR_JMMUser
+            {
+                Username = Username,
+                JMMUserID = ID,
+                HideCategories = string.Join(',', TagBlacklist),
+                IsAdmin = IsAdmin ? 1 : 0,
+                IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0,
+                CanEditServerSettings = IsAdmin ? 1 : 0,
+                IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0,
+                Password = existing?.Password ?? string.Empty,
+                PlexToken = existing?.PlexToken,
+                PlexUsers = existing?.PlexUsers ?? string.Empty
+            };
+            return user;
+        }
+
         /// <summary>
         /// The Plex User Settings...
         /// </summary>

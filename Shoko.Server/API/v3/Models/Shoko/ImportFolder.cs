@@ -62,9 +62,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
             FileSize = size;
         }
 
-        public global::Shoko.Models.Server.ImportFolder GetServerModel()
+        public SVR_ImportFolder GetServerModel()
         {
-            return new global::Shoko.Models.Server.ImportFolder
+            return new SVR_ImportFolder
             {
                 ImportFolderID = ID,
                 ImportFolderName = Name,

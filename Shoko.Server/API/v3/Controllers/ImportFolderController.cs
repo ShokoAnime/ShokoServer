@@ -36,7 +36,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest("The Folder path must not be Empty");
             try
             {
-                Shoko.Models.Server.ImportFolder import = folder.GetServerModel();
+                var import = folder.GetServerModel();
 
                 var newFolder = RepoFactory.ImportFolder.SaveImportFolder(import);
 
