@@ -111,8 +111,8 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult<List<File.FileDetailed>> SearchByFilename(string path)
         {
             var query = path;
-            if (query.Contains("%") || query.Contains("+")) query = WebUtility.UrlDecode(query);
-            if (query.Contains("%")) query = WebUtility.UrlDecode(query);
+            if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+            if (query.Contains("%")) query = Uri.UnescapeDataString(query);
             query = query.Replace('/', Path.DirectorySeparatorChar);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
