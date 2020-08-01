@@ -111,6 +111,38 @@ namespace Shoko.Server.API.v3.Controllers
                 return InternalError(e.Message);
             }
         }
+        
+        /// <summary>
+        /// Change the Password to the new password. Can only be called by admins or the user the password belongs to
+        /// </summary>
+        /// <param name="userID"></param>
+        /// <param name="password"></param>
+        /// <param name="revokeAPIKeys"></param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost("ChangePassword/{userID}")]
+        public ActionResult ChangePassword(int userID, [FromBody] string password, bool revokeAPIKeys = true)
+        {
+            try
+            {
+                SVR_JMMUser jmmUser = RepoFactory.JMMUser.GetByID(userID);
+                if (jmmUser == null) return BadRequest("User not found");
+                if (jmmUser.JMMUserID != User.JMMUserID && !User.IsAdminUser()) return Unauthorized();
+
+                jmmUser.Password = Digest.Hash(password);
+                RepoFactory.JMMUser.Save(jmmUser, false);
+                if (revokeAPIKeys)
+                {
+                    RepoFactory.AuthTokens.DeleteAllWithUserID(jmmUser.JMMUserID);
+                }
+            }
+            catch (Exception ex)
+            {
+                return InternalError(ex.ToString());
+            }
+
+            return Ok();
+        }
 
         /// <summary>
         /// Delete a User. This updates group filters and wipes internal watched states, so be careful.
