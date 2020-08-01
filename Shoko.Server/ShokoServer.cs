@@ -21,8 +21,11 @@ using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using NHibernate;
 using NLog;
+using NLog.Config;
 using NLog.Extensions.Logging;
+using NLog.SignalR;
 using NLog.Targets;
+using NLog.Targets.Wrappers;
 using NLog.Web;
 using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
@@ -140,11 +143,10 @@ namespace Shoko.Server
 
         public void InitLogger()
         {
-            var target = (FileTarget) LogManager.Configuration?.FindTargetByName("file");
+            var target = (FileTarget) LogManager.Configuration.FindTargetByName("file");
             if (target != null)
             {
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
-                LogManager.ReconfigExistingLoggers();
             }
 
             LogManager.Configuration
@@ -167,6 +169,12 @@ namespace Shoko.Server
                     o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
                     o.AttachStacktrace = true;
                 });
+            var signalrTarget =
+                new AsyncTargetWrapper(
+                    new SignalRTarget {Name = "signalr", Uri = "http://localhost:8111/signalr/logging"}, 50,
+                    AsyncTargetWrapperOverflowAction.Discard);
+            LogManager.Configuration.AddTarget("signalr", signalrTarget);
+            LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));
             LogManager.ReconfigExistingLoggers();
         }
 
