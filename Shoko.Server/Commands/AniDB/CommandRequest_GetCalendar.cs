@@ -66,7 +66,7 @@ namespace Shoko.Server.Commands
                 RepoFactory.ScheduledUpdate.Save(sched);
 
                 CalendarCollection colCalendars = ShokoService.AnidbProcessor.GetCalendarUDP();
-                if (colCalendars == null || colCalendars.Calendars == null)
+                if (colCalendars?.Calendars == null)
                 {
                     logger.Error("Could not get calendar from AniDB");
                     return;

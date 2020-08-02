@@ -168,6 +168,17 @@ namespace Shoko.Server
                     // All Sentry Options are accessible here.
                     o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
                     o.AttachStacktrace = true;
+                    o.BeforeSend += delegate(SentryEvent e)
+                    {
+                        // Filter out some things. With Custom Exception Types, we can do this more gracefully, but meh
+                        if (e.Message.Contains("AniDB ban or No Such Anime returned")) return null;
+                        if (e.Message.Contains("AddFileToMyList")) return null;
+                        if (e.Message.Contains("Login Failed")) return null;
+                        if (e.Message.Contains("MyList xml is empty or invalid")) return null;
+                        if (e.Exception is UnauthorizedAccessException) return null;
+                        if (e.Exception is SocketException) return null;
+                        return e;
+                    };
                 });
             var signalrTarget =
                 new AsyncTargetWrapper(

@@ -79,13 +79,13 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns>the AnimeEpisode given the file information</returns>
         public SVR_AnimeEpisode GetByFilename(string name)
         {
+            if (string.IsNullOrEmpty(name)) return null;
             return RepoFactory.VideoLocalPlace.GetAll()
-                .Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+                .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
-                .Where(a => a.VideoLocal != null)
-                .Select(a => a.VideoLocal.GetAnimeEpisodes())
-                .FirstOrDefault()
-                ?.FirstOrDefault();
+                .Where(a => a?.VideoLocal != null)
+                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes())
+                .FirstOrDefault();
         }
 
 

@@ -394,6 +394,9 @@ namespace Shoko.Server
 
             if (!ValidAniDBCredentials()) return false;
 
+            if (remoteIpEndPoint == null) return false;
+            if (soUdp == null) return false;
+
             AniDBCommand_Login login = new AniDBCommand_Login();
             login.Init(userName, password);
 
