@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using LeanWork.IO.FileSystem;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,6 @@ using NHibernate;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
-using NLog.SignalR;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using NLog.Web;
@@ -34,6 +32,7 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API;
+using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
@@ -182,7 +181,7 @@ namespace Shoko.Server
                 });
             var signalrTarget =
                 new AsyncTargetWrapper(
-                    new SignalRTarget {Name = "signalr", Uri = "http://localhost:8111/signalr/logging"}, 50,
+                    new SignalRTarget {Name = "signalr"}, 50,
                     AsyncTargetWrapperOverflowAction.Discard);
             LogManager.Configuration.AddTarget("signalr", signalrTarget);
             LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));

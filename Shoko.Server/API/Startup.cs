@@ -215,6 +215,7 @@ namespace Shoko.Server.API
             app.UseSignalR(conf =>
             {
                 conf.MapHub<EventsHub>("/signalr/events");
+                conf.MapHub<LoggingHub>("/signalr/logging");
             });
 
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
