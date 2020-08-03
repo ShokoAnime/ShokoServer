@@ -99,6 +99,7 @@ namespace Shoko.Server.API
             });
 
             services.AddSingleton<EventEmitter>();
+            services.AddSingleton<LoggingEmitter>();
 
             // allow CORS calls from other both local and non-local hosts
             services.AddCors(options =>
