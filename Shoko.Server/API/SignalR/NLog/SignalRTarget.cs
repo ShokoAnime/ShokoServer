@@ -27,7 +27,7 @@ using NLog.Targets;
         /// <summary>
         /// A list of the previous Log messages, up to <see cref="MaxLogsCount"/>. This is sent to the client on connection
         /// </summary>
-        public IList<string> Logs { get; set; }
+        public IList<LogEvent> Logs { get; set; }
 
         public delegate void OnLog(LogEvent e);
 
@@ -38,7 +38,7 @@ using NLog.Targets;
             LogMethodName = "Log";
             ConnectMethodName = "GetBacklog";
             MaxLogsCount = 10;
-            Logs = new List<string>(MaxLogsCount);
+            Logs = new List<LogEvent>(MaxLogsCount);
             OptimizeBufferReuse = true;
         }
 
@@ -47,14 +47,14 @@ using NLog.Targets;
             var renderedMessage = RenderLogEvent(Layout, logEvent);
 
             // Memory Target. Used for a bit of backlog to send on connection
+            var item = new LogEvent(logEvent, renderedMessage);
             if (MaxLogsCount > 0)
             {
                 if (Logs.Count >= MaxLogsCount)
                     Logs.RemoveAt(0);
-                Logs.Add(renderedMessage);
+                Logs.Add(item);
             }
 
-            var item = new LogEvent(logEvent, renderedMessage);
             LogEventHandler?.Invoke(item);
         }
     }

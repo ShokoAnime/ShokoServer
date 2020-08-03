@@ -181,7 +181,7 @@ namespace Shoko.Server
                 });
             var signalrTarget =
                 new AsyncTargetWrapper(
-                    new SignalRTarget {Name = "signalr"}, 50,
+                    new SignalRTarget {Name = "signalr", MaxLogsCount = 1000}, 50,
                     AsyncTargetWrapperOverflowAction.Discard);
             LogManager.Configuration.AddTarget("signalr", signalrTarget);
             LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
