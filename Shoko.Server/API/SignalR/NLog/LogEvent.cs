@@ -3,7 +3,7 @@ using NLog;
 
 namespace Shoko.Server.API.SignalR.NLog
 {
-    public class LogEvent
+    public class LogEvent : EventArgs
     {
         public string Level { get; set; }
         public DateTime TimeStamp { get; set; }

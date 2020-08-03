@@ -1,43 +1,69 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.Commands;
 
 namespace Shoko.Server.API.SignalR
 {
-    public class EventEmitter
+    public class EventEmitter : IDisposable
     {
+        private IHubContext<EventsHub> Hub { get; set; }
+
+        private readonly Dictionary<string, string> _lastState = new Dictionary<string, string>();
+        private readonly Dictionary<string, int> _lastCount = new Dictionary<string, int>();
+
         public EventEmitter(IHubContext<EventsHub> hub)
         {
             Hub = hub;
-            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += e => OnQueueCountChangedEvent("images", e);
+            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent += OnHasherQueueCountChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += OnImageQueueCountChangedEvent;
 
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("general", e);
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("hasher", e);
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += e => OnQueueStateChangedEvent("images", e);
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
         }
 
-        private IHubContext<EventsHub> Hub
+        public void Dispose()
         {
-            get;
-            set;
+            ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent -= OnGeneralQueueCountChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueCountChangedEvent -= OnHasherQueueCountChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= OnImageQueueCountChangedEvent;
+
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
         }
 
-        private readonly Dictionary<string, string> _lastState =
-            new Dictionary<string, string>();
-        private readonly Dictionary<string, int> _lastCount =
-            new Dictionary<string, int>();
-
-        private async void OnQueueStateChangedEvent(string queue, QueueStateEventArgs e)
+        private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await QueueStateChangedAsync(queue, e);
+            await QueueStateChangedAsync("general", e);
         }
 
-        private async void OnQueueCountChangedEvent(string queue, QueueCountEventArgs ev)
+        private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await QueueCountChanged(queue, ev);
+            await QueueStateChangedAsync("hasher", e);
+        }
+
+        private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
+        {
+            await QueueStateChangedAsync("images", e);
+        }
+
+        private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
+        {
+            await QueueCountChanged("general", ev);
+        }
+        
+        private async void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
+        {
+            await QueueCountChanged("hasher", ev);
+        }
+        
+        private async void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
+        {
+            await QueueCountChanged("images", ev);
         }
 
         public async Task QueueStateChangedAsync(string queue, QueueStateEventArgs e)
