@@ -184,7 +184,7 @@ namespace Shoko.Server
                     new SignalRTarget {Name = "signalr"}, 50,
                     AsyncTargetWrapperOverflowAction.Discard);
             LogManager.Configuration.AddTarget("signalr", signalrTarget);
-            LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, signalrTarget));
+            LogManager.Configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, signalrTarget));
             LogManager.ReconfigExistingLoggers();
         }
 
