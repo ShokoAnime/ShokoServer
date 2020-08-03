@@ -11,7 +11,11 @@ using NLog.Targets;
     {
         [RequiredParameter]
         [DefaultValue("Log")]
-        public string MethodName { get; set; }
+        public string LogMethodName { get; set; }
+
+        [RequiredParameter]
+        [DefaultValue("GetBacklogs")]
+        public string ConnectMethodName { get; set; }
 
         /// <summary>
         /// Gets or sets the max number of items to have in memory. If set to 0, then no backlog will be kept.
@@ -31,7 +35,8 @@ using NLog.Targets;
 
         public SignalRTarget()
         {
-            MethodName = "Log";
+            LogMethodName = "Log";
+            ConnectMethodName = "GetBacklog";
             MaxLogsCount = 10;
             Logs = new List<string>(MaxLogsCount);
             OptimizeBufferReuse = true;

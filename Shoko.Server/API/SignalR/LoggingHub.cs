@@ -15,7 +15,7 @@ namespace Shoko.Server.API.SignalR
         public override async Task OnConnectedAsync()
         {
             if ((_loggingEmitter.Target?.MaxLogsCount ?? 0) <= 0) return;
-            await Clients.Caller.SendAsync("GetBacklog", _loggingEmitter.Target.Logs.ToArray());
+            await Clients.Caller.SendAsync(_loggingEmitter.Target.ConnectMethodName, _loggingEmitter.Target.Logs.ToArray());
         }
     }
 }

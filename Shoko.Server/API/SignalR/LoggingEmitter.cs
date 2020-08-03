@@ -30,7 +30,7 @@ namespace Shoko.Server.API.SignalR
         
         public async void OnLog(LogEvent e)
         {
-            await Hub.Clients.All.SendAsync(Target.MethodName, e);
+            await Hub.Clients.All.SendAsync(Target.LogMethodName, e);
         }
     }
 }
