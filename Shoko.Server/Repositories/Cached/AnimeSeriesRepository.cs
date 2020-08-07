@@ -300,9 +300,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
         {
+            var user = RepoFactory.JMMUser.GetByID(userID);
             lock (Cache)
             {
-                return Cache.Values.Where(a => userID == 0 || RepoFactory.JMMUser.GetByID(userID).AllowedSeries(a))
+                if (user == null)
+                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
+                return Cache.Values.Where(a => user.AllowedSeries(a))
                     .OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
             }
         }

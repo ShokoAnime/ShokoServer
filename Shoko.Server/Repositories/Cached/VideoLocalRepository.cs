@@ -295,19 +295,16 @@ namespace Shoko.Server.Repositories.Cached
                     return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
                 }
             }
+
             if (maxResults == -1)
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Where(a =>
-                {
-                    var series = a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
-                        .DistinctBy(b => b.AniDB_ID);
-                    return series.All(user.AllowedSeries);
-                }).ToList();
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Where(a =>
-            {
-                var series = a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
-                    .DistinctBy(b => b.AniDB_ID);
-                return series.All(user.AllowedSeries);
-            }).Take(maxResults).ToList();
+                return Cache.Values
+                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                        .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
+                    .ToList();
+            return Cache.Values
+                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
+                .Take(maxResults).ToList();
         }
 
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
