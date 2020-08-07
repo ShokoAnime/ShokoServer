@@ -129,7 +129,7 @@ namespace Shoko.Server.API
                                 MediaTypeHeaderValue.Parse("text/plain"));
                     }
 
-                    options.Filters.AddService<DatabaseBlockedFilter>();
+                    options.Filters.Add(typeof(DatabaseBlockedFilter));
                 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {

@@ -150,6 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
                 State = state,
                 StartupMessage = message,
                 Uptime = uptimemsg,
+                DatabaseBlocked = ServerState.Instance.DatabaseBlocked
             };
             return status;
         }

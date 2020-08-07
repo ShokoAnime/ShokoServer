@@ -15,6 +15,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -242,6 +243,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [DatabaseBlockedExempt]
         [HttpGet("Server")]
         public CL_ServerStatus GetServerStatus()
         {
