@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -21,6 +22,14 @@ namespace Shoko.Commons.Notification
             }
 
         }
+
+        public static object GetPropertyValue(this PropertyChangedEventArgs eventArgs, object sender)
+        {
+            var property = sender.GetType().GetProperty(eventArgs.PropertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (property == null || !property.CanRead) return null;
+            return property.GetValue(sender);
+        }
+
         /*
         public static T SetField<T>(this INotifyPropertyChangedExt cls, T field, T value, params Expression<Func<object>>[] props)
         {
