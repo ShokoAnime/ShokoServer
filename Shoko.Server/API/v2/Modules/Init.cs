@@ -16,6 +16,7 @@ using NLog;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Databases;
 using Shoko.Server.Settings;
@@ -31,6 +32,7 @@ namespace Shoko.Server.API.v2.Modules
     [Route("/api/init")]
     [ApiController]
     [ApiVersion("2.0")]
+    [DatabaseBlockedExempt]
     public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();

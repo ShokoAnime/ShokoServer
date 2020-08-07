@@ -36,5 +36,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             Waiting = 4
         }
+        
+        /// <summary>
+        /// This is true in situations where there can be absolutely no write operations.
+        /// This is for polling. Ideally, a client will use the Events SignalR Hub.
+        /// </summary>
+        public bool DatabaseBlocked { get; set; }
+        
+        /// <summary>
+        /// This contains the current status of the blocking operation.
+        /// This is for polling. Ideally, a client will use the Events SignalR Hub.
+        /// </summary>
+        public string DatabaseBlockedStatus { get; set; }
     }
 }

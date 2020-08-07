@@ -25,6 +25,7 @@ namespace Shoko.Server.API.v3.Controllers
     /// The init controller. Use this for first time setup. Settings will also allow full control to the init user.
     /// </summary>
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
+    [DatabaseBlockedExempt]
     public class InitController : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();

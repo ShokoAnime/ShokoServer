@@ -255,6 +255,14 @@ namespace Shoko.Server
             set => this.SetField(() => startupFailedMessage, value);
         }
 
+        private DatabaseBlockedInfo databaseBlocked = new DatabaseBlockedInfo();
+
+        public DatabaseBlockedInfo DatabaseBlocked
+        {
+            get => databaseBlocked;
+            set => this.SetField(() => databaseBlocked, value);
+        }
+
         private bool apiInUse = false;
 
         public bool ApiInUse
@@ -317,6 +325,24 @@ namespace Shoko.Server
                 }
                 IsAutostartDisabled = !isAutostartEnabled;
             }
+        }
+
+        public class DatabaseBlockedInfo
+        {
+            /// <summary>
+            /// Out of 100, the progress percentage, if available
+            /// </summary>
+            public double? Progress { get; set; }
+
+            /// <summary>
+            /// Whether the system is blocked or not
+            /// </summary>
+            public bool Blocked { get; set; }
+
+            /// <summary>
+            /// A message about the blocked state
+            /// </summary>
+            public string Status { get; set; }
         }
     }
 }

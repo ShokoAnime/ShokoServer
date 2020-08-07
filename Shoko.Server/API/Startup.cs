@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -18,6 +19,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
 using Sentry;
+using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.Plugin;
@@ -126,6 +128,8 @@ namespace Shoko.Server.API
                             ((JsonInputFormatter)formatter).SupportedMediaTypes.Add(
                                 MediaTypeHeaderValue.Parse("text/plain"));
                     }
+
+                    options.Filters.AddService<DatabaseBlockedFilter>();
                 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {

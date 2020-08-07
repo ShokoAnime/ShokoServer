@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Commons.Notification;
 using Shoko.Server.Commands;
 
 namespace Shoko.Server.API.SignalR
@@ -10,8 +12,7 @@ namespace Shoko.Server.API.SignalR
     {
         private IHubContext<EventsHub> Hub { get; set; }
 
-        private readonly Dictionary<string, string> _lastState = new Dictionary<string, string>();
-        private readonly Dictionary<string, int> _lastCount = new Dictionary<string, int>();
+        private readonly Dictionary<string, object> _lastState = new Dictionary<string, object>();
 
         public EventEmitter(IHubContext<EventsHub> hub)
         {
@@ -23,6 +24,7 @@ namespace Shoko.Server.API.SignalR
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
             ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
+            ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
         }
 
         public void Dispose()
@@ -34,64 +36,62 @@ namespace Shoko.Server.API.SignalR
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
             ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
+            ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
+        }
+
+        private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            // Currently, only the DatabaseBlocked property, but we could use this for more.
+            switch (e.PropertyName)
+            {
+                case "DatabaseBlocked":
+                {
+                    await StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
+                    break;
+                }
+            }
         }
 
         private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await QueueStateChangedAsync("general", e);
+            await StateChangedAsync("QueueStateChanged", "GeneralQueueState", e.QueueState.formatMessage());
         }
 
         private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await QueueStateChangedAsync("hasher", e);
+            await StateChangedAsync("QueueStateChanged", "HasherQueueState", e.QueueState.formatMessage());
         }
 
         private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await QueueStateChangedAsync("images", e);
+            await StateChangedAsync("QueueStateChanged", "ImageQueueState", e.QueueState.formatMessage());
         }
 
         private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
         {
-            await QueueCountChanged("general", ev);
+            await StateChangedAsync("QueueCountChanged", "GeneralQueueCount", ev.QueueCount);
         }
         
         private async void OnHasherQueueCountChangedEvent(QueueCountEventArgs ev)
         {
-            await QueueCountChanged("hasher", ev);
+            await StateChangedAsync("QueueCountChanged", "HasherQueueCount", ev.QueueCount);
         }
         
         private async void OnImageQueueCountChangedEvent(QueueCountEventArgs ev)
         {
-            await QueueCountChanged("images", ev);
+            await StateChangedAsync("QueueCountChanged", "ImageQueueCount", ev.QueueCount);
         }
 
-        public async Task QueueStateChangedAsync(string queue, QueueStateEventArgs e)
+        public async Task StateChangedAsync(string method, string property, object currentState)
         {
-            var currentState = e.QueueState.formatMessage();
-
-            if (_lastState.ContainsKey(queue) && _lastState.TryGetValue(queue, out var previousState) &&
+            if (_lastState.ContainsKey(property) && _lastState.TryGetValue(property, out var previousState) &&
                 previousState == currentState)
             {
                 return;
             }
 
-            _lastState[queue] = currentState;
-            await Hub.Clients.All.SendAsync("QueueStateChanged", queue, currentState);
-        }
-
-        public async Task QueueCountChanged(string queue, QueueCountEventArgs e)
-        {
-            var currentCount = e.QueueCount;
-
-            if (_lastCount.ContainsKey(queue) && _lastCount.TryGetValue(queue, out var previousCount) &&
-                previousCount == currentCount)
-            {
-                return;
-            }
-
-            _lastCount[queue] = currentCount;
-            await Hub.Clients.All.SendAsync("QueueCountChanged", queue, currentCount);
+            _lastState[property] = currentState;
+            await Hub.Clients.All.SendAsync(method, property, currentState);
         }
     }
 }
