@@ -98,16 +98,26 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Delete an Import Folder. This removes records and send deleted commands to AniDB, so don't use it frivolously
+        /// Delete an Import Folder
         /// </summary>
         /// <param name="id">Import Folder ID</param>
+        /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>
+        /// <param name="updateMyList">Pretty self explanatory. If this is true, and <paramref name="removeRecords"/> is true, then it will update the list status</param>
         /// <returns></returns>
         [HttpDelete("{id}")]
-        public ActionResult DeleteFolder(int id)
+        public ActionResult DeleteFolder(int id, bool removeRecords = true, bool updateMyList = true)
         {
             if (id == 0) return BadRequest("ID missing");
-            
-            string res = Importer.DeleteImportFolder(id);
+
+            if (!removeRecords)
+            {
+                // These are annoying to clean up later, so do it now. We can easily recreate them.
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(id));
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(id));
+                RepoFactory.ImportFolder.Delete(id);
+                return Ok();
+            }
+            string res = Importer.DeleteImportFolder(id, updateMyList);
             return res == string.Empty ? Ok() : InternalError(res);
         }
 
