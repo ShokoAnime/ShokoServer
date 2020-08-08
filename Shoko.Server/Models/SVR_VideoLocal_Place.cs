@@ -270,13 +270,13 @@ namespace Shoko.Server.Models
         }
 
 
-        public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeSeries> seriesToUpdate, bool updateMyListStatus = true)
+        public void RemoveRecordWithOpenTransaction(ISession session, ICollection<SVR_AnimeSeries> seriesToUpdate, bool updateMyListStatus = true, bool removeDuplicateFileEntries = true)
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
             SVR_VideoLocal v = VideoLocal;
 
             List<DuplicateFile> dupFiles = null;
-            if (!string.IsNullOrEmpty(FilePath))
+            if (!string.IsNullOrEmpty(FilePath) && removeDuplicateFileEntries)
                 dupFiles = RepoFactory.DuplicateFile.GetByFilePathAndImportFolder(FilePath, ImportFolderID);
 
             if (v?.Places?.Count <= 1)

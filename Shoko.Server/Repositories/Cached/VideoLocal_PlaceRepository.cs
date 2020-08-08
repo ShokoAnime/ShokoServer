@@ -53,6 +53,11 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
+        public void DeleteWithoutChecking(SVR_VideoLocal_Place obj)
+        {
+            base.Delete(obj);
+        }
+
         public override void Delete(SVR_VideoLocal_Place obj)
         {
             // Remove associated duplicate file records
@@ -60,10 +65,6 @@ namespace Shoko.Server.Repositories.Cached
             if (dups != null && dups.Count > 0) dups.ForEach(RepoFactory.DuplicateFile.Delete);
 
             base.Delete(obj);
-            foreach (SVR_AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
-            {
-                RepoFactory.AnimeEpisode.Save(ep);
-            }
         }
 
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)

@@ -951,43 +951,19 @@ namespace Shoko.Server
             return string.Empty;
         }
 
-        public static string DeleteImportFolder(int importFolderID)
+        public static string DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
         {
             try
             {
                 SVR_ImportFolder ns = RepoFactory.ImportFolder.GetByID(importFolderID);
-
                 if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
 
-                // first delete all the files attached  to this import folder
-                Dictionary<int, SVR_AnimeSeries> affectedSeries = new Dictionary<int, SVR_AnimeSeries>();
-
-                foreach (SVR_VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
-                {
-                    //Thread.Sleep(5000);
-                    logger.Info("Deleting video local record: {0}", vid.FullServerPath);
-
-                    List<SVR_AnimeEpisode> animeEpisodes = vid.VideoLocal?.GetAnimeEpisodes();
-                    if (animeEpisodes?.Count > 0)
-                    {
-                        var ser = animeEpisodes[0].GetAnimeSeries();
-                        if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
-                            affectedSeries.Add(ser.AnimeSeriesID, ser);
-                    }
-                    SVR_VideoLocal v = vid.VideoLocal;
-                    // delete video local record
-                    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
-                    if (v?.Places.Count == 1)
-                    {
-                        RepoFactory.VideoLocalPlace.Delete(vid);
-                        RepoFactory.VideoLocal.Delete(v);
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                        cmdDel.Save();
-                    }
-                    else
-                        RepoFactory.VideoLocalPlace.Delete(vid);
-                }
+                HashSet<SVR_AnimeSeries> affectedSeries = new HashSet<SVR_AnimeSeries>();
+                var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
+                logger.Info($"Deleting {vids.Count} video local records");
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                vids.ForEach(vid =>
+                    vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
 
                 // delete any duplicate file records which reference this folder
                 RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
@@ -996,21 +972,7 @@ namespace Shoko.Server
                 // delete the import folder
                 RepoFactory.ImportFolder.Delete(importFolderID);
 
-                //TODO APIv2: Delete this hack after migration to headless
-                //hack until gui id dead
-                try
-                {
-                    Utils.MainThreadDispatch(() =>
-                    {
-                        ServerInfo.Instance.RefreshImportFolders();
-                    });
-                }
-                catch
-                {
-                    //dont do this at home :-)
-                }
-
-                foreach (SVR_AnimeSeries ser in affectedSeries.Values)
+                foreach (SVR_AnimeSeries ser in affectedSeries)
                 {
                     ser.QueueUpdateStats();
                 }
