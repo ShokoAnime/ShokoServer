@@ -149,17 +149,59 @@ namespace Shoko.Commons.Extensions
         /// <typeparam name="TSource">The type of items in <paramref name="source"/>.</typeparam>
         /// <param name="source">The sequence of items to iterate.</param>
         /// <param name="action">The <see cref="Action{T}"/> to call for each item.</param>
+        /// <param name="finalizer">The <see cref="Action{T}"/> to call for the last item.</param>
+        /// <param name="appendFinalizer">If the <paramref name="finalizer" /> is not null, also execute the <paramref name="action"/></param>
         /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="action"/> is <c>null</c>.</exception>
-        public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> action)
+        public static void ForEach<TSource>(this IEnumerable<TSource> source, Action<TSource> action, Action<TSource> finalizer = null, bool appendFinalizer = false)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            foreach (TSource item in source)
+            if (finalizer == null)
             {
-                action(item);
+                foreach (TSource item in source)
+                {
+                    action(item);
+                }
+            }
+            else if (source.GetType().IsAssignableFrom(typeof(IList<TSource>)))
+            {
+                // It's to be tested, but I'm fairly certain that this is faster for Lists, and we use Lists a lot
+                IList<TSource> lSource = (IList<TSource>) source; 
+                for (int i = 0; i < lSource.Count; i++)
+                {
+                    var item = lSource[i];
+                    if (i == lSource.Count - 1)
+                    {
+                        finalizer(item);
+                        if (!appendFinalizer) return;
+                    }
+
+                    action(item);
+                }
+            }
+            else
+            {
+                // I honestly forgot this existed. It's basically the only way to foreach in Java
+                using (var iterator = source.GetEnumerator())
+                {
+                    while (true)
+                    {
+                        var item = iterator.Current;
+                        var hasNext = iterator.MoveNext();
+                        if (!hasNext)
+                        {
+                            finalizer(item);
+                            if (!appendFinalizer) return;
+                            action(item);
+                            return;
+                        }
+
+                        action(item);
+                    }
+                }
             }
         }
 
