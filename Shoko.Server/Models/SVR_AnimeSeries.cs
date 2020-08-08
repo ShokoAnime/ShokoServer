@@ -1279,5 +1279,38 @@ namespace Shoko.Server.Models
             }
             return results;
         }
+
+        public void DeleteSeries(bool deleteFiles, bool updateGroups)
+        {
+            GetAnimeEpisodes().ForEach(ep =>
+            {
+                ep.RemoveVideoLocals(deleteFiles);
+                RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
+            });
+            RepoFactory.AnimeSeries.Delete(this);
+
+            if (!updateGroups) return;
+            // finally update stats
+            SVR_AnimeGroup grp = AnimeGroup;
+            if (grp != null)
+            {
+                if (!grp.GetAllSeries().Any())
+                {
+                    // Find the topmost group without series
+                    var parent = grp;
+                    while (true)
+                    {
+                        var next = parent.Parent;
+                        if (next == null || next.GetAllSeries().Any()) break;
+                        parent = next;
+                    }
+                    parent.DeleteGroup();
+                }
+                else
+                {
+                    grp.UpdateStatsFromTopLevel(true, true, true);
+                }
+            }
+        }
     }
 }

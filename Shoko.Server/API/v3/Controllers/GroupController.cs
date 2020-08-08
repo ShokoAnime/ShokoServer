@@ -73,7 +73,32 @@ namespace Shoko.Server.API.v3.Controllers
             groupCreator.RecalculateStatsContractsForGroup(grp);
             return Ok();
         }
-        
-        
+
+        /// <summary>
+        /// Delete a group recursively.
+        /// </summary>
+        /// <param name="groupID">The ID of the group to delete</param>
+        /// <param name="deleteSeries">Whether to delete the series in the group. It will error if this is false and the group is not empty.</param>
+        /// <param name="deleteFiles">Whether to delete the all of the files in the group from the disk.</param>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpDelete("{groupID}")]
+        public ActionResult DeleteGroup(int groupID, bool deleteSeries = false, bool deleteFiles = false)
+        {
+            var grp = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (grp == null) return BadRequest("No Group with ID");
+            if (!deleteSeries && grp.GetAllSeries().Any())
+                return BadRequest(
+                    $"{nameof(deleteSeries)} is not true, and the group contains series. Move them, or set {nameof(deleteSeries)} to true");
+
+            foreach (var series in grp.GetAllSeries())
+            {
+                series.DeleteSeries(deleteFiles, false);
+            }
+
+            grp.DeleteGroup();
+
+            return Ok();
+        }
     }
 }

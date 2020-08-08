@@ -161,7 +161,7 @@ namespace Shoko.Server
                 files.ForEach(file =>
                 {
                     SVR_VideoLocal_Place place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
-                    place.RemoveAndDeleteFileWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                    place.RemoveAndDeleteFileWithOpenTransaction(session, seriesToUpdate);
                 });
                 // update everything we modified
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)

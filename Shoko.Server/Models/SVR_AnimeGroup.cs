@@ -54,6 +54,10 @@ namespace Shoko.Server.Models
             }
         }
 
+        public SVR_AnimeGroup Parent => AnimeGroupParentID.HasValue
+            ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value)
+            : null;
+
         public void CollectContractMemory()
         {
             _contract = null;
@@ -1083,15 +1087,56 @@ namespace Shoko.Server.Models
                 GetAnimeSeriesRecursive(childGroup.AnimeGroupID, ref seriesList);
         }
 
+        public void DeleteGroup(bool updateParent = true)
+        {
+            // delete all sub groups
+            foreach (SVR_AnimeGroup subGroup in GetAllChildGroups())
+            {
+                subGroup.DeleteGroup(false);
+            }
+            List<SVR_GroupFilter> gfs =
+                RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>
+                {
+                    GroupFilterConditionType.AnimeGroup
+                });
+            foreach (SVR_GroupFilter gf in gfs)
+            {
+                var c = gf.Conditions.RemoveAll(a =>
+                {
+                    if (a.ConditionType != (int) GroupFilterConditionType.AnimeGroup) return false;
+                    if (!int.TryParse(a.ConditionParameter, out int thisGrpID)) return false;
+                    if (thisGrpID != AnimeGroupID) return false;
+                    return true;
+                });
+                if (gf.Conditions.Count <= 0)
+                {
+                    RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
+                }
+                else
+                {
+                    gf.CalculateGroupsAndSeries();
+                    RepoFactory.GroupFilter.Save(gf);
+                }
+            }
+
+            RepoFactory.AnimeGroup.Delete(this);
+
+            // finally update stats
+            if (updateParent) Parent?.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
+        }
+
         public SVR_AnimeGroup TopLevelAnimeGroup
         {
             get
             {
-                if (!AnimeGroupParentID.HasValue) return this;
-                SVR_AnimeGroup parentGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value);
-                while (parentGroup?.AnimeGroupParentID != null)
-                    parentGroup = RepoFactory.AnimeGroup.GetByID(parentGroup.AnimeGroupParentID.Value);
-                return parentGroup;
+                var parent = Parent;
+                if (parent == null) return this;
+                while (true)
+                {
+                    var next = parent.Parent;
+                    if (next == null) return parent;
+                    parent = next;
+                }
             }
         }
     }

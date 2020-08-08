@@ -1905,53 +1905,8 @@ namespace Shoko.Server
                 {
                     DeleteAnimeGroup(subGroup.AnimeGroupID, deleteFiles);
                 }
-                List<SVR_GroupFilter> gfs =
-                    RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>
-                    {
-                        GroupFilterConditionType.AnimeGroup
-                    });
-                foreach (SVR_GroupFilter gf in gfs)
-                {
-                    bool change = false;
-                    List<GroupFilterCondition> c =
-                        gf.Conditions.Where(a => a.ConditionType == (int) GroupFilterConditionType.AnimeGroup).ToList();
-                    foreach (GroupFilterCondition gfc in c)
-                    {
-                        int.TryParse(gfc.ConditionParameter, out int thisGrpID);
-                        if (thisGrpID == animeGroupID)
-                        {
-                            change = true;
-                            gf.Conditions.Remove(gfc);
-                        }
-                    }
 
-                    if (change)
-                    {
-                        if (gf.Conditions.Count == 0)
-                            RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
-                        else
-                        {
-                            gf.CalculateGroupsAndSeries();
-                            RepoFactory.GroupFilter.Save(gf);
-                        }
-                    }
-                }
-
-
-                RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
-
-                // finally update stats
-
-                if (parentGroupID.HasValue)
-                {
-                    SVR_AnimeGroup grpParent = RepoFactory.AnimeGroup.GetByID(parentGroupID.Value);
-
-                    if (grpParent != null)
-                    {
-                        grpParent.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                        //StatsCache.Instance.UpdateUsingGroup(grpParent.TopLevelAnimeGroup.AnimeGroupID);
-                    }
-                }
+                grp.DeleteGroup();
 
                 return string.Empty;
             }

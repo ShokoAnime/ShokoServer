@@ -224,7 +224,6 @@ namespace Shoko.Server.Models
         public void RemoveRecord(bool updateMyListStatus = true)
         {
             logger.Info("Removing VideoLocal_Place record for: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
-            List<SVR_AnimeEpisode> episodesToUpdate = new List<SVR_AnimeEpisode>();
             List<SVR_AnimeSeries> seriesToUpdate = new List<SVR_AnimeSeries>();
             SVR_VideoLocal v = VideoLocal;
             List<DuplicateFile> dupFiles = null;
@@ -246,7 +245,6 @@ namespace Shoko.Server.Models
                     {
                         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, this);
 
-                        episodesToUpdate.AddRange(v.GetAnimeEpisodes());
                         seriesToUpdate.AddRange(v.GetAnimeEpisodes().DistinctBy(a => a.AnimeSeriesID)
                             .Select(a => a.GetAnimeSeries()));
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
@@ -263,18 +261,6 @@ namespace Shoko.Server.Models
                         dupFiles?.ForEach(a => RepoFactory.DuplicateFile.DeleteWithOpenTransaction(session, a));
                         transaction.Commit();
                     }
-                }
-            }
-            episodesToUpdate = episodesToUpdate.DistinctBy(a => a.AnimeEpisodeID).ToList();
-            foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-            {
-                try
-                {
-                    RepoFactory.AnimeEpisode.Save(ep);
-                }
-                catch (Exception ex)
-                {
-                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
             }
             foreach (SVR_AnimeSeries ser in seriesToUpdate)
@@ -497,13 +483,13 @@ namespace Shoko.Server.Models
             catch (Exception ex)
             {
                 logger.Error($"Unable to delete file '{FullServerPath}': {ex}");
-                throw ex;
+                throw;
             }
             if (deleteFolder) RecursiveDeleteEmptyDirectories(ImportFolder?.ImportFolderLocation, true);
             RemoveRecord();
         }
 
-        public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeEpisode> episodesToUpdate, HashSet<SVR_AnimeSeries> seriesToUpdate)
+        public void RemoveAndDeleteFileWithOpenTransaction(ISession session, HashSet<SVR_AnimeSeries> seriesToUpdate)
         {
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try

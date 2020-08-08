@@ -155,6 +155,24 @@ namespace Shoko.Server.API.v3.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Delete a Series
+        /// </summary>
+        /// <param name="seriesID">The ID of the Series</param>
+        /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpDelete("{seriesID")]
+        public ActionResult DeleteSeries(int seriesID, bool deleteFiles = false)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null) return BadRequest("No Series with ID");
+
+            series.DeleteSeries(deleteFiles, true);
+
+            return Ok();
+        }
+
         #region internal function
 
         /// <summary>

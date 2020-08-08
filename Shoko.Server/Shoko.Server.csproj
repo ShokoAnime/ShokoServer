@@ -209,9 +209,6 @@
     <Resource Include="Images\db.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="API\Views\" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Images\24_cloud.png" />
   </ItemGroup>
   <ItemGroup>

@@ -40,19 +40,6 @@ namespace Shoko.Server.Repositories.Cached
         {
         }
 
-        public override void Save(SVR_AnimeEpisode obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisodeID == 0)
-                {
-                    base.Save(obj);
-                }
-                base.Save(obj);
-            }
-        }
-
-
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
             lock (Cache)
