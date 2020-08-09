@@ -349,6 +349,7 @@ namespace Shoko.Server.Settings
                 Instance.AniDb ??= new AniDbSettings();
                 Instance.Database ??= new DatabaseSettings();
                 Instance.FileQualityPreferences ??= new FileQualityPreferences();
+                if (Instance.FileQualityPreferences.RequiredTypes == null) Instance.FileQualityPreferences = new FileQualityPreferences();
                 Instance.Import ??= new ImportSettings();
                 Instance.Linux ??= new LinuxSettings();
                 Instance.LanguagePreference ??= new string[0];
