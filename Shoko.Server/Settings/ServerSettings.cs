@@ -9,10 +9,12 @@ using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
+using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
+using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
 
 namespace Shoko.Server.Settings
@@ -323,9 +325,11 @@ namespace Shoko.Server.Settings
         {
             var serializerSettings = new JsonSerializerSettings
             {
+                ContractResolver = new NullToEmptyListResolver(),
                 Converters = new List<JsonConverter>{new StringEnumConverter()},
                 Error = (sender, args) => { args.ErrorContext.Handled = true; },
                 ObjectCreationHandling = ObjectCreationHandling.Replace,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
                 DefaultValueHandling = DefaultValueHandling.Populate
             };
             T result = JsonConvert.DeserializeObject<T>(json, serializerSettings);
@@ -346,18 +350,6 @@ namespace Shoko.Server.Settings
             try
             {
                 Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
-                Instance.AniDb ??= new AniDbSettings();
-                Instance.Database ??= new DatabaseSettings();
-                Instance.FileQualityPreferences ??= new FileQualityPreferences();
-                if (Instance.FileQualityPreferences.RequiredTypes == null) Instance.FileQualityPreferences = new FileQualityPreferences();
-                Instance.Import ??= new ImportSettings();
-                Instance.Linux ??= new LinuxSettings();
-                Instance.LanguagePreference ??= new string[0];
-                Instance.MovieDb ??= new MovieDbSettings();
-                Instance.Plex ??= new PlexSettings();
-                Instance.TraktTv ??= new TraktSettings();
-                Instance.TvDB ??= new TvDBSettings();
-                Instance.WebCache ??= new WebCacheSettings();
             }
             catch (Exception e)
             {
