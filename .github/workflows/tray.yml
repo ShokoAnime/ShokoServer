@@ -26,7 +26,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - run: dotnet restore Shoko.TrayService
-      - run: dotnet publish -c Release -f netcoreapp3.1 --self-contained true -r ${{ matrix.rid }} Shoko.TrayService
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -p:PublishTrimmed=false Shoko.TrayService
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService-${{ matrix.rid }}
