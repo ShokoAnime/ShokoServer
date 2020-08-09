@@ -379,14 +379,14 @@ namespace Shoko.Server.Settings
                 results.ForEach(s => Logger.Error(s.ErrorMessage));
                 throw new ValidationException();
             }
-            File.WriteAllText(path, Serialize(this));
+            File.WriteAllText(path, Serialize(this, true));
         }
 
-        private static string Serialize(object obj)
+        private static string Serialize(object obj, bool indent = false)
         {
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {
-                Formatting = Formatting.Indented,
+                Formatting = indent ? Formatting.Indented : Formatting.None,
                 DefaultValueHandling = DefaultValueHandling.Ignore,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
                 Converters = new List<JsonConverter> {new StringEnumConverter()}
@@ -503,7 +503,12 @@ namespace Shoko.Server.Settings
         {
             foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (prop.PropertyType.FullName.StartsWith("Shoko.Server") || prop.PropertyType.FullName.StartsWith("Shoko.Models")) DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                if (prop.PropertyType.FullName.StartsWith("Shoko.Server") ||
+                    prop.PropertyType.FullName.StartsWith("Shoko.Models"))
+                {
+                    DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                    continue;
+                }
                 var value = prop.GetValue(obj);
 
                 if (!IsPrimitive(prop.PropertyType)) value = Serialize(value);
