@@ -1,0 +1,32 @@
+name: Build Tray Service - Framework Dependent
+
+on:
+  push:
+    branches: [ master ]
+#   pull_request:
+#     branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '3.1.x' ]
+
+    name: Shoko Tray Service Framework Dependent build
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - run: dotnet restore Shoko.TrayService
+      - run: dotnet publish -c Release -p:PublishTrimmed=false --no-self-contained Shoko.TrayService
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService-Framework-Dependent
+          path: Shoko.Server/bin/Release/netcoreapp3.1/publish/
