@@ -379,16 +379,19 @@ namespace Shoko.Server.Settings
                 results.ForEach(s => Logger.Error(s.ErrorMessage));
                 throw new ValidationException();
             }
+            File.WriteAllText(path, Serialize(this));
+        }
 
+        private static string Serialize(object obj)
+        {
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented,
-                DefaultValueHandling = DefaultValueHandling.Include,
+                DefaultValueHandling = DefaultValueHandling.Ignore,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
                 Converters = new List<JsonConverter> {new StringEnumConverter()}
             };
-
-            File.WriteAllText(path, JsonConvert.SerializeObject(this, serializerSettings));
+            return JsonConvert.SerializeObject(obj, serializerSettings);
         }
 
         public CL_ServerSettings ToContract()
@@ -458,7 +461,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = AutoGroupSeriesUseScoreAlgorithm,
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityPreferences, new StringEnumConverter()),
+                FileQualityFilterPreferences = Serialize(FileQualityPreferences),
                 Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
                 RunImportOnStart = Import.RunOnStart,
                 ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,
@@ -500,14 +503,21 @@ namespace Shoko.Server.Settings
         {
             foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (prop.PropertyType.FullName.StartsWith("Shoko.Server")) DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                if (prop.PropertyType.FullName.StartsWith("Shoko.Server") || prop.PropertyType.FullName.StartsWith("Shoko.Models")) DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
                 var value = prop.GetValue(obj);
 
-                if (prop.PropertyType.IsArray) value = string.Join(", ", ToEnum((Array) value));
+                if (!IsPrimitive(prop.PropertyType)) value = Serialize(value);
                 if (prop.Name.ToLower().EndsWith("password")) value = "***HIDDEN***";
 
                 Logger.Info($"{path}.{prop.Name}: {value}");
             }
+        }
+
+        private static bool IsPrimitive(Type type)
+        {
+            if (type.IsPrimitive) return true;
+            if (type.IsValueType) return true;
+            return false;
         }
 
         static IEnumerable<object> ToEnum(Array a)
