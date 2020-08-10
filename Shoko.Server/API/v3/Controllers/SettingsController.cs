@@ -32,6 +32,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// JsonPatch the settings
         /// </summary>
         /// <param name="settings">JsonPatch operations</param>
+        /// <param name="skipValidation">Skip Model Validation. Use with caution</param>
         /// <returns></returns>
         [HttpPatch]
         public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings, bool skipValidation = false)
