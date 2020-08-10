@@ -1,7 +1,9 @@
+using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers
@@ -46,6 +48,32 @@ namespace Shoko.Server.API.v3.Controllers
             }
 
             ServerSettings.Instance.SaveSettings();
+            return Ok();
+        }
+
+        /// <summary>
+        /// Tests a Login with the given Credentials. This does not save the credentials.
+        /// </summary>
+        /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
+        /// <returns></returns>
+        [HttpPost("AniDB/TestLogin")]
+        public ActionResult TestAniDB([FromBody] Credentials credentials)
+        {
+            if (string.IsNullOrWhiteSpace(credentials.Username) || string.IsNullOrWhiteSpace(credentials.Password))
+                return BadRequest("AniDB needs both a username and a password");
+
+            ShokoService.AnidbProcessor.ForceLogout();
+            ShokoService.AnidbProcessor.CloseConnections();
+
+            Thread.Sleep(1000);
+
+            ShokoService.AnidbProcessor.Init(credentials.Username, credentials.Password,
+                ServerSettings.Instance.AniDb.ServerAddress,
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+
+            if (!ShokoService.AnidbProcessor.Login()) return BadRequest("Failed to log in");
+            ShokoService.AnidbProcessor.ForceLogout();
+
             return Ok();
         }
     }

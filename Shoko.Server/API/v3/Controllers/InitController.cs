@@ -223,29 +223,6 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Test AniDB Creditentials
-        /// </summary>
-        /// <returns></returns>
-        [Authorize("init")]
-        [HttpGet("anidb/test")]
-        public ActionResult TestAniDB()
-        {
-            ShokoService.AnidbProcessor.ForceLogout();
-            ShokoService.AnidbProcessor.CloseConnections();
-
-            Thread.Sleep(1000);
-
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-                ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
-
-            if (!ShokoService.AnidbProcessor.Login()) return BadRequest("Failed to log in");
-            ShokoService.AnidbProcessor.ForceLogout();
-
-            return Ok();
-        }
-
-        /// <summary>
         /// Test Database Connection with Current Settings
         /// </summary>
         /// <returns>200 if connection successful, 400 otherwise</returns>
