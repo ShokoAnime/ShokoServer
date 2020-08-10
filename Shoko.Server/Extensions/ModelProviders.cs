@@ -17,6 +17,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using TvDbSharper.Dto;
 
 namespace Shoko.Server.Extensions

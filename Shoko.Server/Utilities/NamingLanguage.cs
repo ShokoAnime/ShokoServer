@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server
+﻿namespace Shoko.Server.Utilities
 {
     public class NamingLanguage
     {

@@ -13,9 +13,10 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using NLog;
 using Sentry;
+using Shoko.Server.Utilities;
 using Encoder = System.Drawing.Imaging.Encoder;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public sealed class UnhandledExceptionManager
     {

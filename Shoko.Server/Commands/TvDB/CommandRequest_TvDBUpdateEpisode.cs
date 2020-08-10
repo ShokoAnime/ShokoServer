@@ -7,6 +7,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TvDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {

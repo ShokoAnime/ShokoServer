@@ -18,6 +18,7 @@ using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

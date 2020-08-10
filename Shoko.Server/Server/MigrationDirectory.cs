@@ -1,8 +1,9 @@
 ﻿ using System;
  using System.IO;
  using System.Linq;
+ using Shoko.Server.Utilities;
 
- namespace Shoko.Server
+ namespace Shoko.Server.Server
 {
     public class MigrationDirectory
     {

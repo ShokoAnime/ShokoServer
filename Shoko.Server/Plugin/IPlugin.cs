@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.Extensions.Logging;
 using NLog;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Plugin
 {

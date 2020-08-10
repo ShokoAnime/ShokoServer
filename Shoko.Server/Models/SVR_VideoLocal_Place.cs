@@ -20,6 +20,7 @@ using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
@@ -27,6 +28,7 @@ using Directory = System.IO.Directory;
 using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 using Stream = Shoko.Models.PlexAndKodi.Stream;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Models
 {

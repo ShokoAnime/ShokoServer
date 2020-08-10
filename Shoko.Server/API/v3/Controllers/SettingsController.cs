@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers

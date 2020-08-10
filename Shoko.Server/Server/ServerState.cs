@@ -8,8 +8,9 @@ using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public class ServerState : INotifyPropertyChangedExt
     {

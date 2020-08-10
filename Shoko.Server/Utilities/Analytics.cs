@@ -7,7 +7,7 @@ using Sentry;
 using Shoko.Server.Extensions;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     internal static class Analytics
     {

@@ -23,6 +23,8 @@ using Shoko.Server.Plex.Libraries;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {

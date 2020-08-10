@@ -5,7 +5,9 @@ using NHibernate;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases
 {

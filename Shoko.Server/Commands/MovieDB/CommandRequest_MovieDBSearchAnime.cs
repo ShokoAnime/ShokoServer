@@ -13,6 +13,7 @@ using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands

@@ -17,6 +17,8 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
+using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Repositories.Cached
 {

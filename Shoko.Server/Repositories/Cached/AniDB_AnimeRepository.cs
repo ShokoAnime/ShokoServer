@@ -14,6 +14,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories
 {

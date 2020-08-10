@@ -6,7 +6,7 @@ using NLog;
 using NLog.Targets;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public class LogRotator
     {

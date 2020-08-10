@@ -4,6 +4,7 @@ using NutzCode.InMemoryIndex;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {

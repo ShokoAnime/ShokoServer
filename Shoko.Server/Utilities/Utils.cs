@@ -16,7 +16,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public static class Utils
     {

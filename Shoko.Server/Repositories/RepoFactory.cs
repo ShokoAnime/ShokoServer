@@ -7,6 +7,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Server;
 
 // ReSharper disable InconsistentNaming
 

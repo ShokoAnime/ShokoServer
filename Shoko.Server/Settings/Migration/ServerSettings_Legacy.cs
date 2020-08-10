@@ -20,6 +20,7 @@ using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
+using Shoko.Server.Utilities;
 using Formatting = Newtonsoft.Json.Formatting;
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedAutoPropertyAccessor.Global

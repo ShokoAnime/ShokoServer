@@ -17,6 +17,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Media = Shoko.Models.PlexAndKodi.Media;

@@ -45,12 +45,13 @@ using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.UI;
+using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public class ShokoServer
     {

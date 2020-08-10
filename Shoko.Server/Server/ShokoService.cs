@@ -2,9 +2,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
+using Shoko.Server.AniDB_API;
 using Shoko.Server.Commands;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public class ShokoService
     {

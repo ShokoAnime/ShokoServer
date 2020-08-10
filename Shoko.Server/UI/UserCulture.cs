@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Shoko.Server
+namespace Shoko.Server.UI
 {
     public class UserCulture
     {

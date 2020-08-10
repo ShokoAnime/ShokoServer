@@ -23,10 +23,12 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Timer = System.Timers.Timer;
 
-namespace Shoko.Server
+namespace Shoko.Server.AniDB_API
 {
     public class AniDBHelper
     {

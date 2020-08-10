@@ -2,6 +2,7 @@
 using System.Xml;
 using NLog;
 using Shoko.Commons.Utils;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.JMMAutoUpdates
 {

@@ -17,8 +17,9 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public class Scanner : INotifyPropertyChangedExt
     {

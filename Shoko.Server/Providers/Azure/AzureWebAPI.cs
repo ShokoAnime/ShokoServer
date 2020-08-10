@@ -15,8 +15,10 @@
  using Shoko.Server.Extensions;
  using Shoko.Server.Models;
  using Shoko.Server.Repositories;
+ using Shoko.Server.Server;
  using Shoko.Server.Settings;
  using Stream = System.IO.Stream;
+ using Utils = Shoko.Server.Utilities.Utils;
 
  namespace Shoko.Server.Providers.Azure
 {

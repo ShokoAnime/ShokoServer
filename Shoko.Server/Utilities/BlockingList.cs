@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Shoko.Server
+namespace Shoko.Server.Utilities
 {
     public class BlockingList<T> : IEnumerable<T> where T : class
     {

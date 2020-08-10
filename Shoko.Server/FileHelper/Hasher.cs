@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using NLog;
 using Shoko.Models.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.FileHelper
 {

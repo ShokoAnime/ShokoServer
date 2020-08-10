@@ -7,6 +7,7 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct
 {

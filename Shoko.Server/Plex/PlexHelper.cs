@@ -17,7 +17,9 @@ using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
 

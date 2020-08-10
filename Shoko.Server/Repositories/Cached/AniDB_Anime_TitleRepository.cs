@@ -7,6 +7,7 @@ using Shoko.Commons.Collections;
 using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories
 {

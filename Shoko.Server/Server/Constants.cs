@@ -1,7 +1,7 @@
 ﻿using System;
 using Shoko.Commons.Properties;
 
-namespace Shoko.Server
+namespace Shoko.Server.Server
 {
     public static class Constants
     {

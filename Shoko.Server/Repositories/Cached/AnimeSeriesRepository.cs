@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {

@@ -205,15 +205,15 @@ namespace AniDBAPI
             else
             {
                 AniDBFileFlags eFlags = (AniDBFileFlags) state;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV2)) FileVersion = 2;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV3)) FileVersion = 3;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV4)) FileVersion = 4;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV5)) FileVersion = 5;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV2)) FileVersion = 2;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV3)) FileVersion = 3;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV4)) FileVersion = 4;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV5)) FileVersion = 5;
 
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CEN))
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_CEN))
                     IsCensored = 1;
 
-                IsChaptered = BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
+                IsChaptered = eFlags.HasFlag(AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
             }
 
             if (int.TryParse(sDetails[6].Trim(), out int isdep))

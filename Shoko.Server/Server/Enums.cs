@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server
+﻿namespace Shoko.Server.Server
 {
     public enum CommandRequestType
     {
@@ -103,7 +103,6 @@
         MetaData = 2
     }
 
-
     public enum ScheduledUpdateType
     {
         AniDBCalendar = 1,
@@ -122,13 +121,11 @@
         DayFiltersUpdate = 14
     }
 
-
     public enum TvDBImageNodeType
     {
         Series = 1,
         Season = 2
     }
-
 
     public enum TraktSyncAction
     {
@@ -141,7 +138,6 @@
         Long = 1,
         Short = 2
     }
-
 
     public enum FileHashType
     {

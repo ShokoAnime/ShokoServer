@@ -5,6 +5,8 @@ using System.Linq;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached
 {

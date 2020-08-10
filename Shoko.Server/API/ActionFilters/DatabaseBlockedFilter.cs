@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.ActionFilters
 {

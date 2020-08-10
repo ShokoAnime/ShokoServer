@@ -9,6 +9,7 @@ using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI

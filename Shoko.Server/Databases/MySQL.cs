@@ -9,6 +9,7 @@ using NHibernate;
 using Shoko.Commons.Properties;
 using NHibernate.Cfg;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming

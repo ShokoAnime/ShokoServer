@@ -8,6 +8,7 @@ using NLog;
 using Shoko.Server;
 using Shoko.Server.AniDB_API;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace AniDBAPI
 {

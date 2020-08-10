@@ -10,7 +10,9 @@ using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using NLog;
 using Shoko.Server;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.TrayService
 {

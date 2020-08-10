@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Commons.Notification;
 using Shoko.Server.Commands;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR
 {

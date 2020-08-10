@@ -15,7 +15,9 @@ using NHibernate.Cfg;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 

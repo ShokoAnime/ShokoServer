@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Security.Cryptography;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.FileHelper
 {
