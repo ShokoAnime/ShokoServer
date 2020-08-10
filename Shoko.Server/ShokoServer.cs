@@ -832,8 +832,6 @@ namespace Shoko.Server
 
                 StopWatchingFiles();
 
-                RestartAniDBSocket();
-
                 ShokoService.CmdProcessorGeneral.Stop();
                 ShokoService.CmdProcessorHasher.Stop();
                 ShokoService.CmdProcessorImages.Stop();
