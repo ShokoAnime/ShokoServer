@@ -14,6 +14,12 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
   </PropertyGroup>
+  <Target Name="MoveDLLs" AfterTargets="Publish">
+    <ItemGroup>
+      <DLLFiles Include="$(PublishDir)\Microsoft*.dll" />
+    </ItemGroup>
+    <Move SourceFiles="@(DLLFiles)" DestinationFolder="$(PublishDir)\lib" />
+  </Target>
   <ItemGroup>
     <Content Include="..\Dependencies\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -39,7 +45,9 @@
     <Content Include="nlog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="**\*.md" />
+    <Content Include="plugins\*.md" >
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Resource Remove="bin\**\*" />
     <Resource Remove="obj\**\*" />
     <Content Remove="bin\**\*" />
