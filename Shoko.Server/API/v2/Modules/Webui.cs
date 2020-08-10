@@ -7,6 +7,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Settings;
 
@@ -16,6 +17,8 @@ namespace Shoko.Server.API.v2.Modules
     [ApiController]
     [Route("/api/webui")]
     [ApiVersion("2.0")]
+    [InitFriendly]
+    [DatabaseBlockedExempt]
     public class Webui : BaseController
     {
         /// <summary>
