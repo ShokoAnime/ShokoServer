@@ -299,9 +299,8 @@ namespace Shoko.Server.Commands
 
         private SVR_AniDB_File TryGetAniDBFileFromAniDB(SVR_VideoLocal vidLocal, List<int> animeIDs)
         {
-            SVR_AniDB_File aniFile;
             // check if we already have a record
-            aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
+            SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
             if (aniFile == null) ForceAniDB = true;
 
@@ -325,21 +324,19 @@ namespace Shoko.Server.Commands
                 }
             }
 
-            if (aniFile != null)
-            {
-                //overwrite with local file name
-                string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
-                localFileName = !string.IsNullOrEmpty(localFileName)
-                    ? Path.GetFileName(localFileName)
-                    : vidLocal.FileName;
-                aniFile.FileName = localFileName;
+            if (aniFile == null) return null;
+            //overwrite with local file name
+            string localFileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
+            localFileName = !string.IsNullOrEmpty(localFileName)
+                ? Path.GetFileName(localFileName)
+                : vidLocal.FileName;
+            aniFile.FileName = localFileName;
 
-                RepoFactory.AniDB_File.Save(aniFile, false);
-                aniFile.CreateLanguages();
-                aniFile.CreateCrossEpisodes(localFileName);
+            RepoFactory.AniDB_File.Save(aniFile, false);
+            aniFile.CreateLanguages();
+            aniFile.CreateCrossEpisodes(localFileName);
 
-                animeIDs.AddRange(aniFile.Episodes.Select(a => a.AnimeID).Distinct());
-            }
+            animeIDs.AddRange(aniFile.Episodes.Select(a => a.AnimeID).Distinct());
 
             return aniFile;
         }
@@ -412,17 +409,15 @@ namespace Shoko.Server.Commands
             DateTimeUpdated = cq.DateTimeUpdated;
 
             // read xml to get parameters
-            if (CommandDetails.Trim().Length > 0)
-            {
-                XmlDocument docCreator = new XmlDocument();
-                docCreator.LoadXml(CommandDetails);
+            if (CommandDetails.Trim().Length <= 0) return true;
+            XmlDocument docCreator = new XmlDocument();
+            docCreator.LoadXml(CommandDetails);
 
-                // populate the fields
-                VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
-                ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
-                SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList"));
-                vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
-            }
+            // populate the fields
+            VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
+            ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
+            SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList"));
+            vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
             return true;
         }
