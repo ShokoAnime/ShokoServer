@@ -720,7 +720,7 @@ EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
                 bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
+                    ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 bool update = (ExecuteScalar(myConn,
@@ -734,7 +734,7 @@ EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Resources.Database_ApplySchema;
+                ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });

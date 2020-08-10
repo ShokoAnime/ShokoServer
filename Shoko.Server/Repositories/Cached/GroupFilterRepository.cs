@@ -76,7 +76,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PostProcess()
         {
             const string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -89,7 +89,7 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_GroupFilter gf in PostProcessFilters)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, t,
                     Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
                     gf.GroupFilterName);
@@ -101,7 +101,7 @@ namespace Shoko.Server.Repositories.Cached
             }
 
             // Clean up. This will populate empty conditions and remove duplicate filters
-            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 t,
                 " " + Resources.GroupFilter_Cleanup);
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
@@ -134,7 +134,7 @@ namespace Shoko.Server.Repositories.Cached
 
             List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = string.Format(
+            ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, t,
                 " " + Resources.Filter_CreateContinueWatching);
 
@@ -286,7 +286,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, t,
                             Resources.Filter_CreatingTag + " " +
                             Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
@@ -354,7 +354,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, t,
                             Resources.Filter_CreatingYear + " " +
                             Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
@@ -417,7 +417,7 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, t,
                             Resources.Filter_CreatingSeason + " " +
                             Resources.Filter_Filter + " " + cnt + "/" + max + " - " + season);

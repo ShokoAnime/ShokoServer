@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Shoko.Server.API.SignalR
@@ -30,31 +31,32 @@ namespace Shoko.Server.API.SignalR
 
         public override async Task OnConnectedAsync()
         {
-            await Clients.Caller.SendAsync("CommandProcessingStatus", new {
-                General = new
-                {
-                    State = ShokoService.CmdProcessorGeneral.QueueState.formatMessage(),
-                    Count = ShokoService.CmdProcessorGeneral.QueueCount,
-                    ShokoService.CmdProcessorGeneral.ProcessingCommands,
-                    ShokoService.CmdProcessorGeneral.Paused
-                },
+            if (ServerState.Instance.DatabaseAvailable)
+                await Clients.Caller.SendAsync("CommandProcessingStatus", new {
+                    General = new
+                    {
+                        State = ShokoService.CmdProcessorGeneral.QueueState.formatMessage(),
+                        Count = ShokoService.CmdProcessorGeneral.QueueCount,
+                        ShokoService.CmdProcessorGeneral.ProcessingCommands,
+                        ShokoService.CmdProcessorGeneral.Paused
+                    },
 
-                Hasher = new
-                {
-                    State = ShokoService.CmdProcessorHasher.QueueState.formatMessage(),
-                    Count = ShokoService.CmdProcessorHasher.QueueCount,
-                    ShokoService.CmdProcessorHasher.ProcessingCommands,
-                    ShokoService.CmdProcessorHasher.Paused
-                },
+                    Hasher = new
+                    {
+                        State = ShokoService.CmdProcessorHasher.QueueState.formatMessage(),
+                        Count = ShokoService.CmdProcessorHasher.QueueCount,
+                        ShokoService.CmdProcessorHasher.ProcessingCommands,
+                        ShokoService.CmdProcessorHasher.Paused
+                    },
 
-                Images = new
-                {
-                    State = ShokoService.CmdProcessorImages.QueueState.formatMessage(),
-                    Count = ShokoService.CmdProcessorImages.QueueCount,
-                    ShokoService.CmdProcessorImages.ProcessingCommands,
-                    ShokoService.CmdProcessorImages.Paused
-                },
-            });
+                    Images = new
+                    {
+                        State = ShokoService.CmdProcessorImages.QueueState.formatMessage(),
+                        Count = ShokoService.CmdProcessorImages.QueueCount,
+                        ShokoService.CmdProcessorImages.ProcessingCommands,
+                        ShokoService.CmdProcessorImages.Paused
+                    },
+                });
         }
     }
 }

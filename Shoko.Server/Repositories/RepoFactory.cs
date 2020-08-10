@@ -117,7 +117,7 @@ namespace Shoko.Server.Repositories
                 logger.Info("Starting Server: RepoFactory.PostInit()");
                 CachedRepositories.ForEach(repo =>
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, repo.GetType().Name.Replace("Repository", ""), " DbRegen");
                     repo.RegenerateDb();
                 });

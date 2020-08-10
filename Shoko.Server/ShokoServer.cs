@@ -726,7 +726,7 @@ namespace Shoko.Server
             logger.Info("Starting Server: Complete!");
             ServerInfo.Instance.RefreshImportFolders();
             ServerInfo.Instance.RefreshCloudAccounts();
-            ServerState.Instance.CurrentSetupStatus = Resources.Server_Complete;
+            ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
             ServerSettings.Instance.FirstRun = false;
             ServerSettings.Instance.SaveSettings();
@@ -800,7 +800,7 @@ namespace Shoko.Server
         public bool SetupNetHosts()
         {
             logger.Info("Initializing Web Hosts...");
-            ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingHosts;
+            ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingHosts;
             bool started = true;
             started &= NetPermissionWrapper(StartWebHost);
             if (!started)
@@ -828,7 +828,7 @@ namespace Shoko.Server
                 ServerState.Instance.ServerStarting = true;
                 ServerState.Instance.StartupFailed = false;
                 ServerState.Instance.StartupFailedMessage = string.Empty;
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_Cleaning;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_Cleaning;
 
                 StopWatchingFiles();
 
@@ -854,10 +854,10 @@ namespace Shoko.Server
 
                 DatabaseFactory.CloseSessionFactory();
 
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_Initializing;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_Initializing;
                 Thread.Sleep(1000);
 
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseSetup;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseSetup;
 
                 logger.Info("Setting up database...");
                 if (!DatabaseFactory.InitDB(out string errorMessage))
@@ -865,7 +865,7 @@ namespace Shoko.Server
                     ServerState.Instance.DatabaseAvailable = false;
 
                     if (string.IsNullOrEmpty(ServerSettings.Instance.Database.Type))
-                        ServerState.Instance.CurrentSetupStatus =
+                        ServerState.Instance.ServerStartingStatus =
                             Resources.Server_DatabaseConfig;
                     e.Result = false;
                     ServerState.Instance.StartupFailed = true;
@@ -873,11 +873,9 @@ namespace Shoko.Server
                     return;
                 }
 
-                ServerState.Instance.DatabaseAvailable = true;
-
                 logger.Info("Initializing Session Factory...");
                 //init session factory
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingSession;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingSession;
                 ISessionFactory _ = DatabaseFactory.SessionFactory;
 
                 // We need too much of the database initialized to do this anywhere else.
@@ -886,10 +884,12 @@ namespace Shoko.Server
 
                 Scanner.Instance.Init();
 
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingQueue;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingQueue;
                 ShokoService.CmdProcessorGeneral.Init();
                 ShokoService.CmdProcessorHasher.Init();
                 ShokoService.CmdProcessorImages.Init();
+
+                ServerState.Instance.DatabaseAvailable = true;
 
 
                 // timer for automatic updates
@@ -910,7 +910,7 @@ namespace Shoko.Server
                 autoUpdateTimerShort.Elapsed += AutoUpdateTimerShort_Elapsed;
                 autoUpdateTimerShort.Start();
 
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_InitializingFile;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_InitializingFile;
 
                 StartFileWorker();
 
@@ -933,7 +933,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                ServerState.Instance.CurrentSetupStatus = ex.Message;
+                ServerState.Instance.ServerStartingStatus = ex.Message;
                 ServerState.Instance.StartupFailed = true;
                 ServerState.Instance.StartupFailedMessage = $"Startup Failed: {ex}";
                 e.Result = false;

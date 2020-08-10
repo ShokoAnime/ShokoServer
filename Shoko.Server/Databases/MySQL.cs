@@ -927,7 +927,7 @@ namespace Shoko.Server.Databases
                 }
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
+                    ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 count = ExecuteScalar(myConn,
@@ -942,7 +942,7 @@ namespace Shoko.Server.Databases
                     ExecuteWithException(myConn, createTables);
                 if (fixtablesforlinux)
                     ExecuteWithException(myConn, linuxTableFixes);
-                ServerState.Instance.CurrentSetupStatus = Resources.Database_ApplySchema;
+                ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });

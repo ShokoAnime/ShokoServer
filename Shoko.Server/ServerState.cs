@@ -55,18 +55,18 @@ namespace Shoko.Server
             set => this.SetField(() => serverStarting, value);
         }
 
-        private string currentSetupStatus = string.Empty;
+        private string _serverStartingStatus = string.Empty;
 
-        public string CurrentSetupStatus
+        public string ServerStartingStatus
         {
-            get => currentSetupStatus;
+            get => _serverStartingStatus;
             set
             {
-                if (!value.Equals(currentSetupStatus))
+                if (!value.Equals(_serverStartingStatus))
                 {
                     logger.Trace($"Starting Server: {value}");
                 }
-                this.SetField(() => currentSetupStatus, value);
+                this.SetField(() => _serverStartingStatus, value);
             }
         }
 

@@ -849,7 +849,7 @@ namespace Shoko.Server.Databases
                     "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Resources.Database_CreateSchema;
+                    ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
 
@@ -861,7 +861,7 @@ namespace Shoko.Server.Databases
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Resources.Database_ApplySchema;
+                ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
                 ExecuteWithException(myConn, patchCommands);
             });
         }

@@ -42,7 +42,7 @@ namespace Shoko.Server.Repositories.Cached
                 Save(animeStaff);
                 i++;
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
                         $" DbRegen - {i}/{list.Count}");
             }

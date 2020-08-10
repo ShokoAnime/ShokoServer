@@ -33,6 +33,7 @@ namespace Shoko.Server.API.v2.Modules
     [ApiController]
     [ApiVersion("2.0")]
     [DatabaseBlockedExempt]
+    [InitFriendly]
     public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -153,7 +154,7 @@ namespace Shoko.Server.API.v2.Modules
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
-                startup_state = ServerState.Instance.CurrentSetupStatus,
+                startup_state = ServerState.Instance.ServerStartingStatus,
                 server_uptime = uptimemsg,
                 first_run = ServerSettings.Instance.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,

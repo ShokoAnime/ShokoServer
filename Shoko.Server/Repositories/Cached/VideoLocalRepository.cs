@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
-            ServerState.Instance.CurrentSetupStatus = string.Format(
+            ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, nameof(VideoLocal), " Checking Media Info");
             int count = 0;
             int max;
@@ -80,7 +80,7 @@ namespace Shoko.Server.Repositories.Cached
                         CommandRequest_ReadMediaInfo cmd = new CommandRequest_ReadMediaInfo(a.VideoLocalID);
                         cmd.Save();
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, nameof(VideoLocal),
                             " Queuing Media Info Commands - " + count + "/" + max);
                     });
@@ -96,7 +96,7 @@ namespace Shoko.Server.Repositories.Cached
                     .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
                     .ToDictionary(g => g.Key, g => g.ToList());
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Empty Records");
                 using (var transaction = session.BeginTransaction())
@@ -108,7 +108,7 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Empty Records - " + count + "/" + max);
                     }
@@ -117,7 +117,7 @@ namespace Shoko.Server.Repositories.Cached
                 var toRemove = new List<SVR_VideoLocal>();
                 var comparer = new VideoLocalComparer();
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, nameof(VideoLocal),
                     " Checking for Duplicate Records");
 
@@ -153,7 +153,7 @@ namespace Shoko.Server.Repositories.Cached
                         foreach (SVR_VideoLocal remove in batch)
                         {
                             count++;
-                            ServerState.Instance.CurrentSetupStatus = string.Format(
+                            ServerState.Instance.ServerStartingStatus = string.Format(
                                 Resources.Database_Validating, nameof(VideoLocal),
                                 " Cleaning Duplicate Records - " + count + "/" + max);
                             DeleteWithOpenTransaction(session, remove);
@@ -162,7 +162,7 @@ namespace Shoko.Server.Repositories.Cached
                     }
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Fragmented Records");
                 using (var transaction = session.BeginTransaction())
@@ -177,7 +177,7 @@ namespace Shoko.Server.Repositories.Cached
                         // We don't need to update anything since they don't exist
                         RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Fragmented Records - " + count + "/" + max);
                     }

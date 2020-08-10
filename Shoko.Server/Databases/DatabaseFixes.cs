@@ -282,7 +282,7 @@ namespace Shoko.Server.Databases
                     Interlocked.Increment(ref count);
                     if (count % 50 == 0)
                     {
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, "Generating TvDB Episode Matchings",
                             $" {count}/{list.Count}");
                     }
@@ -307,7 +307,7 @@ namespace Shoko.Server.Databases
                 Interlocked.Increment(ref count);
                 if (count % 50 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, "Generating TvDB Episode Matchings",
                         $" {count}/{list.Count}");
                 }
@@ -337,7 +337,7 @@ namespace Shoko.Server.Databases
                         continue;
                     }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating,
                         $"Generating Episode Info for {anime.MainTitle}",
                         $" {count}/{animeIDs.Count}");
@@ -486,7 +486,7 @@ namespace Shoko.Server.Databases
                 count++;
                 if (count % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
                         $" {count}/{list.Count}");
                 }
@@ -515,7 +515,7 @@ namespace Shoko.Server.Databases
             foreach (var animeID in list)
             {
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, "Populating AniDB Info from Cache",
                         $" {i}/{list.Count}");
                 i++;
@@ -605,7 +605,7 @@ namespace Shoko.Server.Databases
             foreach (var anime in animes)
             {
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, "Populating Resource Links from Cache",
                         $" {i}/{animes.Count}");
                 i++;
@@ -631,7 +631,7 @@ namespace Shoko.Server.Databases
                 foreach (var animeBatch in batches)
                 {
                     i++;
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
+                    ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                         "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
                     try
                     {

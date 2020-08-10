@@ -42,13 +42,9 @@ namespace Shoko.Server.API.SignalR
         private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             // Currently, only the DatabaseBlocked property, but we could use this for more.
-            switch (e.PropertyName)
+            if (e.PropertyName == "DatabaseBlocked" || e.PropertyName.StartsWith("Server"))
             {
-                case "DatabaseBlocked":
-                {
-                    await StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
-                    break;
-                }
+                await StateChangedAsync("ServerStateChanged", e.PropertyName, e.GetPropertyValue(sender));
             }
         }
 

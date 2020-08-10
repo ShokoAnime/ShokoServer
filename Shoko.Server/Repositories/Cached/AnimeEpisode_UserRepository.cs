@@ -41,7 +41,7 @@ namespace Shoko.Server.Repositories.Cached
                                         a.AnimeEpisode_UserID == 0)
                     .ToList();
             int max = sers.Count;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name, " DbRegen");
             if (max <= 0) return;
             foreach (SVR_AnimeEpisode_User g in sers)
@@ -49,11 +49,11 @@ namespace Shoko.Server.Repositories.Cached
                 Save(g);
                 cnt++;
                 if (cnt % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, typeof(AnimeEpisode_User).Name,
                         " DbRegen - " + cnt + "/" + max);
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeEpisode_User).Name,
                 " DbRegen - " + max + "/" + max);
         }

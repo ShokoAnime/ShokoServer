@@ -26,6 +26,7 @@ namespace Shoko.Server.API.v3.Controllers
     /// </summary>
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [DatabaseBlockedExempt]
+    [InitFriendly]
     public class InitController : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
@@ -137,7 +138,7 @@ namespace Shoko.Server.API.v3.Controllers
             }
             else if (ServerState.Instance.ServerStarting)
             {
-                message = ServerState.Instance.CurrentSetupStatus;
+                message = ServerState.Instance.ServerStartingStatus;
                 if (message.Equals("Complete!")) message = null;
                 state = ServerStatus.StartupState.Starting;
             }

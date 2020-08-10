@@ -141,11 +141,11 @@ namespace Shoko.Server.Databases
                     string message = cmd.CommandName;
                     if (message.Length > 42)
                         message = message.Substring(0, 42) + "...";
-                    message = ServerState.Instance.CurrentSetupStatus =
+                    message = ServerState.Instance.ServerStartingStatus =
                         Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
                         " - " + message;
                     Logger.Info($"Starting Server: {message}");
-                    ServerState.Instance.CurrentSetupStatus = message;
+                    ServerState.Instance.ServerStartingStatus = message;
 
                     cmd.DatabaseFix();
                     AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
@@ -174,10 +174,10 @@ namespace Shoko.Server.Databases
             string message = cmd.CommandName;
             if (message.Length > 42)
                 message = message.Substring(0, 42) + "...";
-            message = ServerState.Instance.CurrentSetupStatus =
+            message = ServerState.Instance.ServerStartingStatus =
                 Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
                 " - " + message;
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
 
             switch (cmd.Type)
             {
@@ -212,27 +212,27 @@ namespace Shoko.Server.Databases
             string message = Resources.Database_Users;
 
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialUsers();
 
             message = Resources.Database_Filters;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialGroupFilters();
 
             message = Resources.Database_LockFilters;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateOrVerifyLockedFilters();
 
             message = Resources.Database_RenameScripts;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialRenameScript();
 
             message = Resources.Database_CustomTags;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialCustomTags();
         }
 

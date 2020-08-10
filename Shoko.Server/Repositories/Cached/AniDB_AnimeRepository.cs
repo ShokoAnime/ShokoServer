@@ -43,7 +43,7 @@ namespace Shoko.Server.Repositories
                 int max = animeToUpdate.Count;
                 int count = 0;
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
@@ -66,12 +66,12 @@ namespace Shoko.Server.Repositories
                         trans.Commit();
                     }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
+                    ServerState.Instance.ServerStartingStatus = string.Format(
                         Resources.Database_Validating, typeof(AniDB_Anime).Name,
                         " DbRegen - " + count + "/" + max);
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AniDB_Anime).Name,
                     " DbRegen - " + max + "/" + max);
             }

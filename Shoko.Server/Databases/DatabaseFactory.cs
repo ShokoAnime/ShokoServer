@@ -96,7 +96,7 @@ namespace Shoko.Server.Databases
 
                 string message = Resources.Database_Initializing;
                 logger.Info($"Starting Server: {message}");
-                ServerState.Instance.CurrentSetupStatus = message;
+                ServerState.Instance.ServerStartingStatus = message;
 
                 Instance.Init();
                 int version = Instance.GetDatabaseVersion();
@@ -104,7 +104,7 @@ namespace Shoko.Server.Databases
                 {
                     message = Resources.Database_NotSupportedVersion;
                     logger.Info($"Starting Server: {message}");
-                    ServerState.Instance.CurrentSetupStatus = message;
+                    ServerState.Instance.ServerStartingStatus = message;
                     errorMessage = Resources.Database_NotSupportedVersion;
                     return false;
                 }
@@ -112,7 +112,7 @@ namespace Shoko.Server.Databases
                 {
                     message = Resources.Database_Backup;
                     logger.Info($"Starting Server: {message}");
-                    ServerState.Instance.CurrentSetupStatus = message;
+                    ServerState.Instance.ServerStartingStatus = message;
                     Instance.BackupDatabase(Instance.GetDatabaseBackupName(version));
                 }
 
@@ -133,7 +133,7 @@ namespace Shoko.Server.Databases
                     Utils.ShowErrorMessage("Database Error :\n\r " + ex +
                                            "\n\rNotify developers about this error, it will be logged in your logs",
                         "Database Error");
-                    ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
+                    ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
                     errorMessage = "Database Error :\n\r " + ex +
                                    "\n\rNotify developers about this error, it will be logged in your logs";
                     return false;
@@ -141,7 +141,7 @@ namespace Shoko.Server.Databases
                 catch (TimeoutException ex)
                 {
                     logger.Error(ex, $"Database Timeout: {ex}");
-                    ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseTimeOut;
+                    ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseTimeOut;
                     errorMessage = Resources.Server_DatabaseTimeOut + "\n\r" + ex;
                     return false;
                 }
@@ -153,7 +153,7 @@ namespace Shoko.Server.Databases
             {
                 errorMessage = $"Could not init database: {ex}";
                 logger.Error(ex, errorMessage);
-                ServerState.Instance.CurrentSetupStatus = Resources.Server_DatabaseFail;
+                ServerState.Instance.ServerStartingStatus = Resources.Server_DatabaseFail;
                 return false;
             }
         }

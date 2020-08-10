@@ -64,7 +64,7 @@ namespace Shoko.Server.Repositories.Cached
                                  a.Contract?.AniDBAnime?.AniDBAnime == null)
                         .ToList();
                 int max = sers.Count;
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AnimeSeries).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AnimeSeries s in sers)
@@ -80,12 +80,12 @@ namespace Shoko.Server.Repositories.Cached
                     cnt++;
                     if (cnt % 10 == 0)
                     {
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
+                        ServerState.Instance.ServerStartingStatus = string.Format(
                             Resources.Database_Validating, typeof(AnimeSeries).Name,
                             " DbRegen - " + cnt + "/" + max);
                     }
                 }
-                ServerState.Instance.CurrentSetupStatus = string.Format(
+                ServerState.Instance.ServerStartingStatus = string.Format(
                     Resources.Database_Validating, typeof(AnimeSeries).Name,
                     " DbRegen - " + max + "/" + max);
             }

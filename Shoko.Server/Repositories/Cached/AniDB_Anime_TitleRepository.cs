@@ -26,7 +26,7 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            ServerState.Instance.CurrentSetupStatus = string.Format(
+            ServerState.Instance.ServerStartingStatus = string.Format(
                 Resources.Database_Validating, typeof(AniDB_Anime_Title).Name, " DbRegen");
             List<AniDB_Anime_Title> titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
             foreach (AniDB_Anime_Title title in titles)

@@ -130,6 +130,7 @@ namespace Shoko.Server.API
                     }
 
                     options.Filters.Add(typeof(DatabaseBlockedFilter));
+                    options.Filters.Add(typeof(ServerNotRunningFilter));
                 }).SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
                 .AddJsonOptions(json =>
                 {
