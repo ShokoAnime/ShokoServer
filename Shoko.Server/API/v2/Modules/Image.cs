@@ -11,6 +11,7 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
@@ -91,6 +92,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="name">image file name</param>
         /// <returns></returns>
         [HttpGet("support/{name}")]
+        [InitFriendly]
+        [DatabaseBlockedExempt]
         public ActionResult GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -107,6 +110,8 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         [HttpGet("support/{name}/{ratio}")]
+        [InitFriendly]
+        [DatabaseBlockedExempt]
         public ActionResult GetSupportImage(string name, string ratio)
         {
             if (string.IsNullOrEmpty(name))
