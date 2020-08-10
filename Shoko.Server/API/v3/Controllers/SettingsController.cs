@@ -8,6 +8,7 @@ namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize(Roles = "admin,init")]
+    [InitFriendly]
     public class SettingsController : BaseController
     {
         // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
@@ -31,15 +32,19 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="settings">JsonPatch operations</param>
         /// <returns></returns>
         [HttpPatch]
-        public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings)
+        public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings, bool skipValidation = false)
         {
             if (settings == null) return BadRequest("The settings object is invalid.");
             settings.ApplyTo(ServerSettings.Instance, ModelState);
-            TryValidateModel(ServerSettings.Instance);
-            if (!ModelState.IsValid)
+            if (!skipValidation)
             {
-                return BadRequest(ModelState);
+                TryValidateModel(ServerSettings.Instance);
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
             }
+
             ServerSettings.Instance.SaveSettings();
             return Ok();
         }
