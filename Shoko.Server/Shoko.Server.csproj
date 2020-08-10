@@ -12,59 +12,38 @@
     <Configurations>Debug;Release</Configurations>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-  </PropertyGroup>
-  <PropertyGroup>
     <ApplicationIcon>db.ico</ApplicationIcon>
-  </PropertyGroup>
-  <PropertyGroup>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\Dependencies\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
-    </Compile>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Utilities\LeanWork\IO\FileSystem\BufferingFileSystemWatcher.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="Utilities\LeanWork\IO\FileSystem\RecoveringFileSystemWatcher.cs">
-      <SubType>Component</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <None Include="ApplicationInsights.config" />
-    <None Update="testing.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <AppDesigner Include="Properties\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_sync.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="db.ico" />
+    <Resource Include="Images\**\*.png" />
+    <Resource Include="Images\**\*.gif" />
+    <Resource Include="Images\db.ico" />
+    <Resource Include="**\*.txt" />
+    <Content Include="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="**\*.md" />
+    <Resource Remove="bin\**\*" />
+    <Resource Remove="obj\**\*" />
+    <Content Remove="bin\**\*" />
+    <Content Remove="obj\**\*" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
@@ -75,159 +54,7 @@
     <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-  
-    <!-- <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" /> -->
   </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_new.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="PostBuild1.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_tick.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ToDo.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_mail.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\ar.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Flags\au_australia.gif" />
-    <Resource Include="Images\Flags\bd.gif" />
-    <Resource Include="Images\Flags\bg.gif" />
-    <Resource Include="Images\Flags\br.gif" />
-    <Resource Include="Images\Flags\ca.gif" />
-    <Resource Include="Images\Flags\cn.gif" />
-    <Resource Include="Images\Flags\cz.gif" />
-    <Resource Include="Images\Flags\de_germany.gif" />
-    <Resource Include="Images\Flags\dk.gif" />
-    <Resource Include="Images\Flags\es.gif" />
-    <Resource Include="Images\Flags\et.gif" />
-    <Resource Include="Images\Flags\fi.gif" />
-    <Resource Include="Images\Flags\fr.gif" />
-    <Resource Include="Images\Flags\gl.gif" />
-    <Resource Include="Images\Flags\gr.gif" />
-    <Resource Include="Images\Flags\hu.gif" />
-    <Resource Include="Images\Flags\il.gif" />
-    <Resource Include="Images\Flags\it.gif" />
-    <Resource Include="Images\Flags\jp.gif" />
-    <Resource Include="Images\Flags\ko.gif" />
-    <Resource Include="Images\Flags\lt.gif" />
-    <Resource Include="Images\Flags\mn.gif" />
-    <Resource Include="Images\Flags\my.gif" />
-    <Resource Include="Images\Flags\nl.gif" />
-    <Resource Include="Images\Flags\no.gif" />
-    <Resource Include="Images\Flags\pl.gif" />
-    <Resource Include="Images\Flags\pt.gif" />
-    <Resource Include="Images\Flags\ro.gif" />
-    <Resource Include="Images\Flags\ru.gif" />
-    <Resource Include="Images\Flags\se.gif" />
-    <Resource Include="Images\Flags\sk.gif" />
-    <Resource Include="Images\Flags\sl.gif" />
-    <Resource Include="Images\Flags\sr.gif" />
-    <Resource Include="Images\Flags\sv.gif" />
-    <Resource Include="Images\Flags\th.gif" />
-    <Resource Include="Images\Flags\tr.gif" />
-    <Resource Include="Images\Flags\ua.gif" />
-    <Resource Include="Images\Flags\uk_unitedkingdom.gif" />
-    <Resource Include="Images\Flags\us.gif" />
-    <Resource Include="Images\Flags\vi.gif" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_green_button.png" />
-    <Resource Include="Images\16_red_button.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_logs.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_add.png" />
-    <Resource Include="Images\16_delete.png" />
-    <Resource Include="Images\16_folder_video.png" />
-    <Resource Include="Images\16_image.png" />
-    <Resource Include="Images\16_pause.png" />
-    <Resource Include="Images\16_update_data.png" />
-    <Resource Include="Images\24_folder_down.png" />
-    <Resource Include="Images\24_folder_up.png" />
-    <Resource Include="Images\32_task.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_link.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder_find.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_cancel.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_save.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_folder.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_resume.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\anidb.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_server_connect.png" />
-    <Resource Include="Images\16_server_hash.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_refresh.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_warning.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_info.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\32_key.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\db.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\24_cloud.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_connect.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\16_folder.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="API\readme.txt" />
-    <Content Include="API\v3\README.md" />
-    <Content Include="Providers\AniDB\Readme.md" />
-    <Content Include="Providers\AniDB\UDP\Responses\Readme.md" />
-    <Content Include="Providers\AniDB\UDP\MyList\Readme.md" />
-    <Content Include="nlog.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="webui\index.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="plugins\README.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <!-- <ItemGroup>
-    <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
-    <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
-  </ItemGroup> -->
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.2" />
     <PackageReference Include="F23.StringSimilarity" Version="3.1.0" />
@@ -274,17 +101,4 @@
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.1" />
     <PackageReference Include="TvDbSharper" Version="3.2.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="App.cs" />
-    <Compile Remove="Commands\AniDB\CommandRequest_GetCharacter.cs" />
-    <Compile Remove="Commands\AniDB\CommandRequest_GetCharactersCreators.cs" />
-    <Compile Remove="Commands\AniDB\CommandRequest_GetCreator.cs" />
-    <Compile Remove="Commands\Trakt\CommandRequest_TraktShowEpisodeUnseen.cs" />
-    <Compile Remove="ShokoBaseEvents.cs" />
-    <Compile Remove="UPnPServerBrowserDialog.cs" />
-  </ItemGroup>
-  <PropertyGroup />
-  <PropertyGroup>
-    <LangVersion>8.0</LangVersion>
-  </PropertyGroup>
 </Project>
