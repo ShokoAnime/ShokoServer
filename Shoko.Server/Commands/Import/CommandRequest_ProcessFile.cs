@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Xml;
 using AniDBAPI;
+using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -103,11 +104,9 @@ namespace Shoko.Server.Commands
                 List<CrossRef_File_Episode> crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
                 if (crossRefs == null || crossRefs.Count == 0) aniFile = null;
 
-                List<int> animeIDs = new List<int>();
+                Dictionary<int, bool> animeIDs = new Dictionary<int, bool>();
 
                 if (aniFile == null) aniFile = TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
-
-                bool missingEpisodes = false;
 
                 // if we still haven't got the AniDB_File Info we try the web cache or local records
                 if (aniFile == null)
@@ -123,10 +122,9 @@ namespace Shoko.Server.Commands
                     // we assume that all episodes belong to the same anime
                     foreach (CrossRef_File_Episode xref in crossRefs)
                     {
-                        if (!animeIDs.Contains(xref.AnimeID)) animeIDs.Add(xref.AnimeID);
-
                         AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null) missingEpisodes = true;
+                        if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = ep == null;
+                        else animeIDs.Add(xref.AnimeID, ep == null);
                     }
                 }
                 else
@@ -135,26 +133,28 @@ namespace Shoko.Server.Commands
                     // if we don't, we will need to re-download the anime info (which also has episode info)
                     if (aniFile.EpisodeCrossRefs.Count == 0)
                     {
-                        animeIDs.AddRange(aniFile.Episodes.Select(a => a.AnimeID).Distinct());
+                        aniFile.Episodes.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+                        {
+                            if (animeIDs.ContainsKey(animeID)) animeIDs[animeID] = true;
+                            else animeIDs.Add(animeID, true);
+                        });
 
                         // if we have the AniDB file, but no cross refs it means something has been broken
                         logger.Debug($"Could not find any cross ref records for: {vidLocal.ED2KHash}");
-                        missingEpisodes = true;
                     }
                     else
                     {
                         foreach (CrossRef_File_Episode xref in aniFile.EpisodeCrossRefs)
                         {
                             AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                            if (ep == null)
-                                missingEpisodes = true;
 
-                            if (!animeIDs.Contains(xref.AnimeID)) animeIDs.Add(xref.AnimeID);
+                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = ep == null;
+                            else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
                 }
 
-                PopulateAnimeForFile(vidLocal, animeIDs, missingEpisodes);
+                PopulateAnimeForFile(vidLocal, animeIDs);
 
                 // We do this inside, as the info will not be available as needed otherwise
                 List<SVR_VideoLocal> videoLocals =
@@ -188,7 +188,7 @@ namespace Shoko.Server.Commands
                     }
 
                     // update stats for groups and series. The series are not saved until here, so it's absolutely necessary!!
-                    animeIDs.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
+                    animeIDs.Keys.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
 
                     if (ServerSettings.Instance.FileQualityFilterEnabled)
                     {
@@ -215,10 +215,12 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private static void PopulateAnimeForFile(SVR_VideoLocal vidLocal, List<int> animeIDs, bool missingEpisodes)
+        private static void PopulateAnimeForFile(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
-            foreach (int animeID in animeIDs)
+            foreach (KeyValuePair<int, bool> kV in animeIDs)
             {
+                int animeID = kV.Key;
+                bool missingEpisodes = kV.Value;
                 // get from DB
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
                 var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
@@ -297,7 +299,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private SVR_AniDB_File TryGetAniDBFileFromAniDB(SVR_VideoLocal vidLocal, List<int> animeIDs)
+        private SVR_AniDB_File TryGetAniDBFileFromAniDB(SVR_VideoLocal vidLocal, Dictionary<int, bool> animeIDs)
         {
             // check if we already have a record
             SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
@@ -336,7 +338,11 @@ namespace Shoko.Server.Commands
             aniFile.CreateLanguages();
             aniFile.CreateCrossEpisodes(localFileName);
 
-            animeIDs.AddRange(aniFile.Episodes.Select(a => a.AnimeID).Distinct());
+            aniFile.Episodes.Select(a => a.AnimeID).Distinct().ForEach(animeID =>
+            {
+                if (animeIDs.ContainsKey(animeID)) animeIDs[animeID] = false;
+                else animeIDs.Add(animeID, false);
+            });
 
             return aniFile;
         }
