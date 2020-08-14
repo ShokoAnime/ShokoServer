@@ -23,7 +23,7 @@
         <!-- beauty into sub-directory, default is libs, quote with "" if contains space  -->
         <BeautyLibsDir>libraries</BeautyLibsDir>
         <!-- dlls that you don't want to be moved or can not be moved -->
-        <BeautyExcludes>Shoko*.dll</BeautyExcludes>
+        <!-- <BeautyExcludes>Shoko*.dll</BeautyExcludes>-->
         <!-- set to True if you want to disable -->
         <DisableBeauty>False</DisableBeauty>
         <ForceBeauty>False</ForceBeauty>
@@ -47,7 +47,7 @@
     <ItemGroup>
         <PackageReference Include="Hardcodet.NotifyIcon.Wpf.NetCore" Version="1.0.13" />
         <PackageReference Include="NLog" Version="4.6.2" />
-        <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.8" />
+        <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.9" />
     </ItemGroup>
     <ItemGroup>
         <Resource Include="..\Shoko.Server\db.ico">

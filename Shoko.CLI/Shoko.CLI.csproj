@@ -20,7 +20,7 @@
     <!-- beauty into sub-directory, default is libs, quote with "" if contains space  -->
     <BeautyLibsDir>libraries</BeautyLibsDir>
     <!-- dlls that you don't want to be moved or can not be moved -->
-    <BeautyExcludes>Shoko*.dll</BeautyExcludes>
+    <!-- <BeautyExcludes>Shoko*.dll</BeautyExcludes>-->
     <!-- set to True if you want to disable -->
     <DisableBeauty>False</DisableBeauty>
     <ForceBeauty>False</ForceBeauty>
@@ -48,7 +48,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.6.20305.6" />
     <PackageReference Include="NLog" Version="4.6.2" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
-    <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.8" />
+    <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.9" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\Shoko.Server\db.ico">
