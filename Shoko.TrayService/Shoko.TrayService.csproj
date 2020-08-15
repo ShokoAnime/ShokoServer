@@ -9,7 +9,7 @@
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
-        <PublishTrimmed>true</PublishTrimmed>
+        <PublishTrimmed>false</PublishTrimmed>
         <Configurations>Debug;Release</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     </PropertyGroup>
@@ -23,7 +23,7 @@
         <!-- beauty into sub-directory, default is libs, quote with "" if contains space  -->
         <BeautyLibsDir>libraries</BeautyLibsDir>
         <!-- dlls that you don't want to be moved or can not be moved -->
-        <!-- <BeautyExcludes>Shoko*.dll</BeautyExcludes>-->
+        <BeautyExcludes>Shoko*</BeautyExcludes>
         <!-- set to True if you want to disable -->
         <DisableBeauty>False</DisableBeauty>
         <ForceBeauty>False</ForceBeauty>
@@ -31,7 +31,7 @@
         <!-- set to True if you want to disable -->
         <DisablePatch>False</DisablePatch>
         <!-- valid values: Error|Detail|Info -->
-        <BeautyLogLevel>Error</BeautyLogLevel>
+        <BeautyLogLevel>Info</BeautyLogLevel>
         <!-- set to a repo mirror if you have troble in connecting github -->
         <!-- <GitCDN>https://gitee.com/liesauer/HostFXRPatcher</GitCDN> -->
         <!-- <GitTree>master</GitTree> -->
