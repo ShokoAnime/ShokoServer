@@ -42,6 +42,7 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Shoko.CLI\Shoko.CLI.csproj" />
         <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
