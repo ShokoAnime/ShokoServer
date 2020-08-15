@@ -161,6 +161,7 @@ namespace Shoko.Server.Settings
                 return;
             }
             LoadSettingsFromFile(path);
+            Instance.SaveSettings();
 
             ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
@@ -373,7 +374,10 @@ namespace Shoko.Server.Settings
                 results.ForEach(s => Logger.Error(s.ErrorMessage));
                 throw new ValidationException();
             }
-            File.WriteAllText(path, Serialize(this, true));
+
+            string onDisk = File.ReadAllText(path);
+            string inCode = Serialize(this, true);
+            if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
         }
 
         private static string Serialize(object obj, bool indent = false)
