@@ -1,38 +1,36 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Serialization;
 
 namespace Shoko.Commons.Utils
 {
-    public class NullToEmptyListResolver : DefaultContractResolver
+    public class NullToDefaultValueResolver : DefaultContractResolver
     {
         protected override IValueProvider CreateMemberValueProvider(MemberInfo member)
         {
             IValueProvider provider = base.CreateMemberValueProvider(member);
 
-            if (member.MemberType == MemberTypes.Property)
-            {
-                Type propType = ((PropertyInfo)member).PropertyType;
-                if (propType.IsGenericType && 
-                    propType.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    return new EmptyListValueProvider(provider, propType);
-                }
-            }
-
-            return provider;
+            if (member.MemberType != MemberTypes.Property) return provider;
+            Type propType = ((PropertyInfo)member).PropertyType;
+            // If it can't be activated
+            return new ExistingOrDefaultValueProvider(provider, propType);
         }
 
-        class EmptyListValueProvider : IValueProvider
+        private class ExistingOrDefaultValueProvider : IValueProvider
         {
             private IValueProvider innerProvider;
             private object defaultValue;
 
-            public EmptyListValueProvider(IValueProvider innerProvider, Type listType)
+            public ExistingOrDefaultValueProvider(IValueProvider innerProvider, Type propType)
             {
                 this.innerProvider = innerProvider;
-                defaultValue = Activator.CreateInstance(listType);
+                defaultValue = propType.GetConstructor(Type.EmptyTypes) != null || propType
+                    .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+                    .Any(x => x.GetParameters().All(p => p.IsOptional))
+                    ? Activator.CreateInstance(propType)
+                    : default;
             }
 
             public void SetValue(object target, object value)
