@@ -328,12 +328,11 @@ namespace Shoko.Server.Settings
         {
             var serializerSettings = new JsonSerializerSettings
             {
-                ContractResolver = new NullToEmptyListResolver(),
+                ContractResolver = new NullToDefaultValueResolver(),
                 Converters = new List<JsonConverter>{new StringEnumConverter()},
                 Error = (sender, args) => { args.ErrorContext.Handled = true; },
                 ObjectCreationHandling = ObjectCreationHandling.Replace,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
-                DefaultValueHandling = DefaultValueHandling.Populate
             };
             T result = JsonConvert.DeserializeObject<T>(json, serializerSettings);
             if (result == null) return null;
@@ -382,7 +381,7 @@ namespace Shoko.Server.Settings
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {
                 Formatting = indent ? Formatting.Indented : Formatting.None,
-                DefaultValueHandling = DefaultValueHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Include,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
                 Converters = new List<JsonConverter> {new StringEnumConverter()}
             };
