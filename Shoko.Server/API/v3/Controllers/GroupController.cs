@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
@@ -99,6 +100,14 @@ namespace Shoko.Server.API.v3.Controllers
             grp.DeleteGroup();
 
             return Ok();
+        }
+
+        [Authorize("admin")]
+        [HttpGet("RecreateAllGroups")]
+        public ActionResult RecreateAllGroups()
+        {
+            Task.Run(() => new AnimeGroupCreator().RecreateAllGroups());
+            return Ok("Check the server status via init/status or SignalR's Events hub");
         }
     }
 }
