@@ -41,19 +41,19 @@ namespace Shoko.Server
             {
                 contract.HashQueueCount = ShokoService.CmdProcessorHasher.QueueCount;
                 contract.HashQueueState =
-                    ShokoService.CmdProcessorHasher.QueueState.Format(); //Deprecated since 3.6.0.0
+                    ShokoService.CmdProcessorHasher.QueueState.formatMessage(); //Deprecated since 3.6.0.0
                 contract.HashQueueStateId = (int) ShokoService.CmdProcessorHasher.QueueState.queueState;
                 contract.HashQueueStateParams = ShokoService.CmdProcessorHasher.QueueState.extraParams;
 
                 contract.GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount;
                 contract.GeneralQueueState =
-                    ShokoService.CmdProcessorGeneral.QueueState.Format(); //Deprecated since 3.6.0.0
+                    ShokoService.CmdProcessorGeneral.QueueState.formatMessage(); //Deprecated since 3.6.0.0
                 contract.GeneralQueueStateId = (int) ShokoService.CmdProcessorGeneral.QueueState.queueState;
                 contract.GeneralQueueStateParams = ShokoService.CmdProcessorGeneral.QueueState.extraParams;
 
                 contract.ImagesQueueCount = ShokoService.CmdProcessorImages.QueueCount;
                 contract.ImagesQueueState =
-                    ShokoService.CmdProcessorImages.QueueState.Format(); //Deprecated since 3.6.0.0
+                    ShokoService.CmdProcessorImages.QueueState.formatMessage(); //Deprecated since 3.6.0.0
                 contract.ImagesQueueStateId = (int) ShokoService.CmdProcessorImages.QueueState.queueState;
                 contract.ImagesQueueStateParams = ShokoService.CmdProcessorImages.QueueState.extraParams;
 

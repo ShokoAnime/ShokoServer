@@ -40,19 +40,19 @@ namespace Shoko.Server.API.SignalR
                         new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorGeneral.QueueState.Format()
+                            Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()
                         },
                     HasherQueueState =
                         new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorHasher.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorHasher.QueueState.Format()
+                            Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()
                         },
                     ImageQueueState =
                         new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorImages.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorImages.QueueState.Format()
+                            Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()
                         },
                     GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount,
                     HasherQueueCount = ShokoService.CmdProcessorHasher.QueueCount,

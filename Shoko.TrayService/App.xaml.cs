@@ -103,7 +103,7 @@ namespace Shoko.TrayService
                 }
             };
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.Format()}");
+                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
         }
 
         protected override void OnExit(ExitEventArgs e)

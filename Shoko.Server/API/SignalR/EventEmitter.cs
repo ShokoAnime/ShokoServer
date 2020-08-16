@@ -54,19 +54,19 @@ namespace Shoko.Server.API.SignalR
         {
             await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
                 new QueueStateSignalRModel
-                    {State = e.QueueState.queueState, Description = e.QueueState.Format()});
+                    {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
         }
 
         private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
         {
             await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
-                {State = e.QueueState.queueState, Description = e.QueueState.Format()});
+                {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
         }
 
         private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
         {
             await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
-                {State = e.QueueState.queueState, Description = e.QueueState.Format()});
+                {State = e.QueueState.queueState, Description = e.QueueState.formatMessage()});
         }
 
         private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)

@@ -58,7 +58,7 @@ namespace Shoko.CLI
                 }
             };
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
-                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.Format()}");
+                ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
