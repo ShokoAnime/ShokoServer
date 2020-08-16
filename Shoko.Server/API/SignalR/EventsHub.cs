@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Server.API.SignalR.Models;
@@ -34,29 +35,32 @@ namespace Shoko.Server.API.SignalR
         public override async Task OnConnectedAsync()
         {
             if (ServerState.Instance.DatabaseAvailable)
-                await Clients.Caller.SendAsync("CommandProcessingStatus", new
+                await Clients.Caller.SendAsync("CommandProcessingStatus", new Dictionary<string, object>
                 {
-                    GeneralQueueState =
-                        new QueueStateSignalRModel
+                    {
+                        "GeneralQueueState", new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
                             Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()
-                        },
-                    HasherQueueState =
-                        new QueueStateSignalRModel
+                        }
+                    },
+                    {
+                        "HasherQueueState", new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorHasher.QueueState.queueState,
                             Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()
-                        },
-                    ImageQueueState =
-                        new QueueStateSignalRModel
+                        }
+                    },
+                    {
+                        "ImageQueueState", new QueueStateSignalRModel
                         {
                             State = ShokoService.CmdProcessorImages.QueueState.queueState,
                             Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()
-                        },
-                    GeneralQueueCount = ShokoService.CmdProcessorGeneral.QueueCount,
-                    HasherQueueCount = ShokoService.CmdProcessorHasher.QueueCount,
-                    ImageQueueCount = ShokoService.CmdProcessorImages.QueueCount,
+                        }
+                    },
+                    {"GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount},
+                    {"HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount},
+                    {"ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount},
                 });
         }
     }
