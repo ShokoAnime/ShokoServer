@@ -7,7 +7,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefaultItemExcludes>$(DefaultItemExcludes);Shoko.Models\**\*</DefaultItemExcludes>
     <Deterministic>false</Deterministic>
-    <LangVersion>7.1</LangVersion>
+    <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
   <ItemGroup>

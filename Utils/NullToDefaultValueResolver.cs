@@ -12,35 +12,53 @@ namespace Shoko.Commons.Utils
         {
             IValueProvider provider = base.CreateMemberValueProvider(member);
 
-            if (member.MemberType != MemberTypes.Property) return provider;
-            Type propType = ((PropertyInfo)member).PropertyType;
-            // If it can't be activated
-            return new ExistingOrDefaultValueProvider(provider, propType);
+            switch (member.MemberType)
+            {
+                case MemberTypes.Field:
+                {
+                    Type propType = ((FieldInfo)member).FieldType;
+                    return new ExistingOrDefaultValueProvider(provider, propType, member.Name);
+                }
+                case MemberTypes.Property:
+                {
+                    Type propType = ((PropertyInfo)member).PropertyType;
+                    return new ExistingOrDefaultValueProvider(provider, propType, member.Name);
+                }
+                default:
+                    return base.CreateMemberValueProvider(member);
+            }
         }
 
         private class ExistingOrDefaultValueProvider : IValueProvider
         {
-            private IValueProvider innerProvider;
-            private object defaultValue;
+            private readonly IValueProvider _innerProvider;
+            private readonly object _defaultValue;
+            private readonly string Name;
 
-            public ExistingOrDefaultValueProvider(IValueProvider innerProvider, Type propType)
+            public ExistingOrDefaultValueProvider(IValueProvider innerProvider, Type propType, string name)
             {
-                this.innerProvider = innerProvider;
-                defaultValue = propType.GetConstructor(Type.EmptyTypes) != null || propType
+                _innerProvider = innerProvider;
+                _defaultValue = propType.GetConstructor(Type.EmptyTypes) != null || propType
                     .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
                     .Any(x => x.GetParameters().All(p => p.IsOptional))
                     ? Activator.CreateInstance(propType)
                     : default;
+                Name = name;
             }
 
             public void SetValue(object target, object value)
             {
-                innerProvider.SetValue(target, value ?? innerProvider.GetValue(target) ?? defaultValue);
+                // Could be handled as "(value ?? _innerProvider.GetValue(target)) ?? _defaultValue"
+                // I think this shows more explicit definition of the order of fallback
+                object result = value;
+                result ??= _innerProvider.GetValue(target);
+                result ??= _defaultValue;
+                _innerProvider.SetValue(target, result);
             }
 
             public object GetValue(object target)
             {
-                return innerProvider.GetValue(target) ?? defaultValue;
+                return _innerProvider.GetValue(target) ?? _defaultValue;
             }
         }
     }
