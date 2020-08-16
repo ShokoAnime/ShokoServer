@@ -62,7 +62,7 @@ namespace Shoko.Server.Settings
         public string WebUI_Settings { get; set; } = "";
 
         /// <summary>
-        /// FirstRun idicates if DB was configured or not, as it needed as backend for user authentication
+        /// FirstRun indicates if DB was configured or not, as it needed as backend for user authentication
         /// </summary>
         public bool FirstRun { get; set; } = true;
 
@@ -118,10 +118,6 @@ namespace Shoko.Server.Settings
                 ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
             }
         }
-
-        public string VLCLocation { get; set; } = string.Empty;
-
-        public bool MinimizeOnStartup { get; set; }
 
         public TraktSettings TraktTv { get; set; } = new TraktSettings();
 
@@ -280,8 +276,6 @@ namespace Shoko.Server.Settings
                 EpisodeTitleSource = legacy.EpisodeTitleSource,
                 SeriesDescriptionSource = legacy.SeriesDescriptionSource,
                 SeriesNameSource = legacy.SeriesNameSource,
-                VLCLocation = legacy.VLCLocation,
-                MinimizeOnStartup = legacy.MinimizeOnStartup,
                 TraktTv = new TraktSettings
                 {
                     Enabled = legacy.Trakt_IsEnabled,
@@ -350,6 +344,7 @@ namespace Shoko.Server.Settings
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
+            FixNonEmittedDefaults(path);
             try
             {
                 Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
@@ -360,6 +355,27 @@ namespace Shoko.Server.Settings
             }
 
             if (delete) File.Delete(path);
+        }
+
+        /// <summary>
+        /// Fix the behavior of missing members in pre-4.0
+        /// </summary>
+        /// <param name="path"></param>
+        private static void FixNonEmittedDefaults(string path)
+        {
+            var json = File.ReadAllText(path);
+            if (json.Contains("\"FirstRun\":")) return;
+            var serializerSettings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter>{new StringEnumConverter()},
+                Error = (sender, args) => { args.ErrorContext.Handled = true; },
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Populate
+            };
+            var result = JsonConvert.DeserializeObject<ServerSettings>(json, serializerSettings);
+            string inCode = Serialize(result, true);
+            File.WriteAllText(path, inCode);
         }
 
         public void SaveSettings()

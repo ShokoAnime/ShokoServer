@@ -27,18 +27,5 @@ namespace Shoko.Server.API
             if (message == null) return StatusCode(StatusCodes.Status500InternalServerError);
             return StatusCode(StatusCodes.Status500InternalServerError, message);
         }
-
-        protected static bool CanDeserialize<T>(string jsonObject) where T : class
-        {
-            try
-            {
-                T _ = JsonConvert.DeserializeObject<T>(jsonObject);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
     }
 }

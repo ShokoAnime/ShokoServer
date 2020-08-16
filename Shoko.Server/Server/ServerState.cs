@@ -199,31 +199,6 @@ namespace Shoko.Server.Server
             set => this.SetField(() => aniDB_TestStatus, value);
         }
 
-        private bool minOnStartup = false;
-
-        public bool MinOnStartup
-        {
-            get => minOnStartup;
-            set => this.SetField(() => minOnStartup, value);
-        }
-
-        private bool maxOnStartup = true;
-
-        public bool MaxOnStartup
-        {
-            get => maxOnStartup;
-            set => this.SetField(() => maxOnStartup, value);
-        }
-
-
-        private string vLCLocation = string.Empty;
-
-        public string VLCLocation
-        {
-            get => vLCLocation;
-            set => this.SetField(() => vLCLocation, value);
-        }
-
         private bool isAutostartEnabled = false;
 
         public bool IsAutostartEnabled
@@ -292,12 +267,6 @@ namespace Shoko.Server.Server
             AniDB_ServerAddress = ServerSettings.Instance.AniDb.ServerAddress;
             AniDB_ServerPort = ServerSettings.Instance.AniDb.ServerPort.ToString();
             AniDB_ClientPort = ServerSettings.Instance.AniDb.ClientPort.ToString();
-
-            MinOnStartup = ServerSettings.Instance.MinimizeOnStartup;
-            MaxOnStartup = !ServerSettings.Instance.MinimizeOnStartup;
-
-
-            VLCLocation = ServerSettings.Instance.VLCLocation;
 
             if (Utils.IsRunningOnLinuxOrMac()) return;
             
