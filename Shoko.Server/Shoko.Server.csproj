@@ -24,7 +24,7 @@
     <Resource Include="Images\db.ico" />
     <Resource Include="**\*.txt" />
     <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="plugins\*.md" CopyToOutputDirectory="Always"/>
+    <Content Include="plugins\*.md" CopyToOutputDirectory="Always" />
     <Content Include="webui\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Resource Remove="bin\**\*" />
     <Resource Remove="obj\**\*" />

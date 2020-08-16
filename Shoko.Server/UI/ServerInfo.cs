@@ -180,7 +180,7 @@ namespace Shoko.Server
 
         void CmdProcessorImages_OnQueueStateChangedEvent(QueueStateEventArgs ev)
         {
-            ImagesQueueState = ev.QueueState.formatMessage();
+            ImagesQueueState = ev.QueueState.Format();
         }
 
         void CmdProcessorImages_OnQueueCountChangedEvent(QueueCountEventArgs ev)
@@ -190,7 +190,7 @@ namespace Shoko.Server
 
         void CmdProcessorHasher_OnQueueStateChangedEvent(QueueStateEventArgs ev)
         {
-            HasherQueueState = ev.QueueState.formatMessage();
+            HasherQueueState = ev.QueueState.Format();
         }
 
         void CmdProcessorHasher_OnQueueCountChangedEvent(QueueCountEventArgs ev)
@@ -200,7 +200,7 @@ namespace Shoko.Server
 
         void CmdProcessorGeneral_OnQueueStateChangedEvent(QueueStateEventArgs ev)
         {
-            GeneralQueueState = ev.QueueState.formatMessage();
+            GeneralQueueState = ev.QueueState.Format();
         }
 
         void CmdProcessorGeneral_OnQueueCountChangedEvent(QueueCountEventArgs ev)

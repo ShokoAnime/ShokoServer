@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Commons.Notification;
+using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Commands;
 using Shoko.Server.Server;
 
@@ -51,17 +52,21 @@ namespace Shoko.Server.API.SignalR
 
         private async void OnGeneralQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await StateChangedAsync("QueueStateChanged", "GeneralQueueState", e.QueueState.formatMessage());
+            await StateChangedAsync("QueueStateChanged", "GeneralQueueState",
+                new QueueStateSignalRModel
+                    {State = e.QueueState.queueState, Description = e.QueueState.Format()});
         }
 
         private async void OnHasherQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await StateChangedAsync("QueueStateChanged", "HasherQueueState", e.QueueState.formatMessage());
+            await StateChangedAsync("QueueStateChanged", "HasherQueueState", new QueueStateSignalRModel
+                {State = e.QueueState.queueState, Description = e.QueueState.Format()});
         }
 
         private async void OnImageQueueStateChangedEvent(QueueStateEventArgs e)
         {
-            await StateChangedAsync("QueueStateChanged", "ImageQueueState", e.QueueState.formatMessage());
+            await StateChangedAsync("QueueStateChanged", "ImageQueueState", new QueueStateSignalRModel
+                {State = e.QueueState.queueState, Description = e.QueueState.Format()});
         }
 
         private async void OnGeneralQueueCountChangedEvent(QueueCountEventArgs ev)
