@@ -14,7 +14,7 @@ namespace Shoko.Commons.Queue
         public string[] extraParams;
 
         [Pure]
-        public string Format()
+        public string formatMessage()
         {
             string formatString = getFormatString(queueState);
             // ReSharper disable once CoVariantArrayConversion
