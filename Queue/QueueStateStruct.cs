@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using Shoko.Commons.Properties;
 using Shoko.Models.Queue;
 
@@ -11,12 +12,16 @@ namespace Shoko.Commons.Queue
     {
         public QueueStateEnum queueState;
         public string[] extraParams;
-        public string formatMessage()
+
+        [Pure]
+        public string Format()
         {
             string formatString = getFormatString(queueState);
             // ReSharper disable once CoVariantArrayConversion
             return string.Format(formatString, extraParams);
         }
+
+        [Pure]
         private string getFormatString(QueueStateEnum id)
         {
             switch (id)
