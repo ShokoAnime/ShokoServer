@@ -23,7 +23,7 @@
         <!-- beauty into sub-directory, default is libs, quote with "" if contains space  -->
         <BeautyLibsDir>libraries</BeautyLibsDir>
         <!-- dlls that you don't want to be moved or can not be moved -->
-        <BeautyExcludes>Shoko*</BeautyExcludes>
+        <BeautyExcludes>Shoko*;NutzCode*</BeautyExcludes>
         <!-- set to True if you want to disable -->
         <DisableBeauty>False</DisableBeauty>
         <ForceBeauty>False</ForceBeauty>
