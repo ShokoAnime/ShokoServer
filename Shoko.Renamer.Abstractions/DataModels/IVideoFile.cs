@@ -18,6 +18,11 @@ namespace Shoko.Renamer.Abstractions.DataModels
         IAniDBFile AniDBFileInfo { get; }
 
         /// <summary>
+        /// The Relevant Hashes for a file. CRC should be the only thing used here, but clever uses of the API could use the others.
+        /// </summary>
+        IHashes Hashes { get; }
+
+        /// <summary>
         /// The MediaInfo data for the file. This can be null, but it shouldn't be.
         /// </summary>
         IMediaContainer MediaInfo { get; }

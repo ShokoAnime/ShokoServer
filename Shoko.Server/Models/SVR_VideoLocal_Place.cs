@@ -7,17 +7,14 @@ using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Azure;
 using Shoko.Models.MediaInfo;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Renamer.Abstractions.DataModels;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper.Subtitles;
-using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
@@ -25,9 +22,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Directory = System.IO.Directory;
-using Media = Shoko.Models.PlexAndKodi.Media;
 using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Models
@@ -39,7 +34,7 @@ namespace Shoko.Server.Models
         THIRD = 5000
     }
 
-    public class SVR_VideoLocal_Place : VideoLocal_Place
+    public class SVR_VideoLocal_Place : VideoLocal_Place, IVideoFile
     {
         internal SVR_ImportFolder ImportFolder => RepoFactory.ImportFolder.GetByID(ImportFolderID);
 
@@ -1244,6 +1239,25 @@ namespace Shoko.Server.Models
             {
                 return false;
             }
+        }
+
+        string IVideoFile.Filename => Path.GetFileName(FilePath);
+        string IVideoFile.FilePath => FullServerPath;
+        IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.GetAniDBFile();
+
+        IHashes IVideoFile.Hashes => VideoLocal == null
+            ? null
+            : new VideoHashes
+                {CRC = VideoLocal.CRC32, MD5 = VideoLocal.MD5, ED2K = VideoLocal.Hash, SHA1 = VideoLocal.SHA1};
+
+        IMediaContainer IVideoFile.MediaInfo => VideoLocal?.Media;
+
+        private class VideoHashes : IHashes
+        {
+            public string CRC { get; set; }
+            public string MD5 { get; set; }
+            public string ED2K { get; set; }
+            public string SHA1 { get; set; }
         }
     }
 }
