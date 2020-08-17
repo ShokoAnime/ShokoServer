@@ -552,41 +552,39 @@ namespace Shoko.Server.Models
 
         public void RenameAndMoveAsRequired()
         {
+            bool invert = ServerSettings.Instance.Import.RenameThenMove;
             // Move first so that we don't bother the filesystem watcher
-            bool succeeded = MoveFileIfRequired();
+            bool succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
             if (!succeeded)
             {
                 Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                succeeded = MoveFileIfRequired();
+                succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
                 if (!succeeded)
                 {
                     Thread.Sleep((int) DELAY_IN_USE.SECOND);
-                    succeeded = MoveFileIfRequired();
+                    succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
                     if (!succeeded)
                     {
                         Thread.Sleep((int) DELAY_IN_USE.THIRD);
-                        succeeded = MoveFileIfRequired();
+                        succeeded = invert ? RenameIfRequired() : MoveFileIfRequired();
                         if (!succeeded) return; // Don't bother renaming if we couldn't move. It'll need user interaction
                     }
                 }
             }
-            succeeded = RenameIfRequired();
+            succeeded = invert ? MoveFileIfRequired() : RenameIfRequired();
             if (!succeeded)
             {
                 Thread.Sleep((int)DELAY_IN_USE.FIRST);
-                succeeded = RenameIfRequired();
+                succeeded = invert ? MoveFileIfRequired() : RenameIfRequired();
                 if (!succeeded)
                 {
                     Thread.Sleep((int) DELAY_IN_USE.SECOND);
-                    succeeded = RenameIfRequired();
+                    succeeded = invert ? MoveFileIfRequired() : RenameIfRequired();
                     if (!succeeded)
                     {
                         Thread.Sleep((int) DELAY_IN_USE.THIRD);
-                        succeeded = RenameIfRequired();
-                        if (!succeeded)
-                        {
-                            return;
-                        }
+                        succeeded = invert ? MoveFileIfRequired() : RenameIfRequired();
+                        if (!succeeded) return;
                     }
                 }
             }
