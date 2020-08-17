@@ -8,13 +8,14 @@ using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Renamer.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AniDB_File : AniDB_File
+    public class SVR_AniDB_File : AniDB_File, IAniDBFile
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -475,5 +476,16 @@ namespace Shoko.Server.Models
 
             return sb.ToString();
         }
+
+        public int AniDBFileID => FileID;
+
+        public IReleaseGroup ReleaseGroup => new AniDB_ReleaseGroup
+            {GroupName = Anime_GroupName, GroupNameShort = Anime_GroupNameShort};
+
+        public string Source => File_Source;
+        public string Description => File_Description;
+        public DateTime? ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
+        public int Version => FileVersion;
+        public bool Censored => IsCensored == 1;
     }
 }
