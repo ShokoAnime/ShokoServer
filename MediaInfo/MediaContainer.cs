@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using Shoko.Renamer.Abstractions.DataModels;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
@@ -13,7 +14,7 @@ namespace Shoko.Models.MediaInfo
     /// Because of this, they can be looked up on https://mediaarea.net/en/MediaInfo/Support/Tags, then converted as needed by specific clients.
     /// If the client is open source, then usually, they already have mappings, as most clients use MediaInfo, anyway.
     /// </summary>
-    public class MediaContainer
+    public class MediaContainer : IMediaContainer
     {
         public Media media { get; set; }
 
@@ -46,6 +47,12 @@ namespace Shoko.Models.MediaInfo
         public List<MenuStream> MenuStreams => _menus ?? (_menus =
             media?.track?.Where(a => a?.type == StreamType.Menu)
                 .Select(a => a as MenuStream).ToList());
+
+        public IGeneralStream General => GeneralStream;
+        public IVideoStream Video => VideoStream;
+        public IList<IAudioStream> Audio => AudioStreams.Cast<IAudioStream>().ToList();
+        public IList<ITextStream> Subs => TextStreams.Cast<ITextStream>().ToList();
+        public bool Chaptered => MenuStreams.Any();
     }
 
     public class Media
@@ -121,7 +128,7 @@ namespace Shoko.Models.MediaInfo
         public bool Forced { get; set; }
     }
 
-    public class GeneralStream : Stream
+    public class GeneralStream : Stream, IGeneralStream
     {
         public override StreamType type => StreamType.General;
         
@@ -140,7 +147,7 @@ namespace Shoko.Models.MediaInfo
         public DateTime? Encoded_Date { get; set; }
     }
 
-    public class VideoStream : Stream
+    public class VideoStream : Stream, IVideoStream
     {
         public override StreamType type => StreamType.Video;
 
@@ -203,7 +210,7 @@ namespace Shoko.Models.MediaInfo
         public string MaxFALL { get; set; }
     }
 
-    public class AudioStream : Stream
+    public class AudioStream : Stream, IAudioStream
     {
         public override StreamType type => StreamType.Audio;
 
@@ -270,7 +277,7 @@ namespace Shoko.Models.MediaInfo
         public int dynrng_Count { get; set; }
     }
 
-    public class TextStream : Stream
+    public class TextStream : Stream, ITextStream
     {
         public override StreamType type => StreamType.Text;
         
