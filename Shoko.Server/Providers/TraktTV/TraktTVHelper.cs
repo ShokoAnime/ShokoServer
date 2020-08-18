@@ -160,15 +160,13 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 WebResponse response = (HttpWebResponse) request.GetResponse();
+                var httpResponse = (HttpWebResponse)response;
+                traktCode = (int)httpResponse.StatusCode;
                 Stream stream = response.GetResponseStream();
                 if (stream == null) return null;
 
                 StreamReader reader = new StreamReader(stream);
                 string strResponse = reader.ReadToEnd();
-
-                // get the response
-                var httpResponse = (HttpWebResponse) request.GetResponse();
-                traktCode = (int) httpResponse.StatusCode;
 
                 stream.Close();
                 reader.Close();
