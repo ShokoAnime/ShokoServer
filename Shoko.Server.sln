@@ -95,6 +95,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.TrayService", "Shoko.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.Abstractions", "Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj", "{D97A5B87-0109-4018-AF06-65A141A568B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.SampleRenamer", "Shoko.Plugin.SampleRenamer\Shoko.Plugin.SampleRenamer.csproj", "{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -199,6 +201,14 @@ Global
 		{D97A5B87-0109-4018-AF06-65A141A568B8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D97A5B87-0109-4018-AF06-65A141A568B8}.Release|x64.ActiveCfg = Release|Any CPU
 		{D97A5B87-0109-4018-AF06-65A141A568B8}.Release|x64.Build.0 = Release|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Debug|x64.Build.0 = Debug|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Release|x64.ActiveCfg = Release|Any CPU
+		{6BA11496-B097-40A8-81DA-8FD3BFD86C7F}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

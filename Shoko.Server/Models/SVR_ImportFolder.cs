@@ -9,12 +9,13 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt
+    public class SVR_ImportFolder : ImportFolder, INotifyPropertyChangedExt, IImportFolder
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -180,6 +181,19 @@ namespace Shoko.Server.Models
         public void NotifyPropertyChanged(string propname)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
+        }
+
+        string IImportFolder.Location => ImportFolderLocation;
+
+        DropFolderType IImportFolder.DropFolderType
+        {
+            get
+            {
+                if (IsDropSource != 1 && IsDropDestination != 1) return DropFolderType.Excluded;
+                if (IsDropDestination == 1) return DropFolderType.Destination;
+                if (IsDropSource == 1) return DropFolderType.Source;
+                return DropFolderType.Destination | DropFolderType.Source;
+            }
         }
     }
 }

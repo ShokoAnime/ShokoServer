@@ -41,6 +41,8 @@ namespace Shoko.Server.Plugin
                     assemblies.Add(Assembly.LoadFrom(dll));
                     // TryAdd, because if it made it this far, then it's missing or true.
                     ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
+                    if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
+                        ServerSettings.Instance.Plugins.Priority.Add(name);
                 }
                 catch (FileLoadException)
                 {
@@ -84,8 +86,8 @@ namespace Shoko.Server.Plugin
         {
             (string name, Type t) = type.Assembly.GetTypes()
                 .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .DistinctBy(a => a.Assembly.GetName().Name)
-                .Select(a => (a.Assembly.GetName().Name + ".json", a)).FirstOrDefault();
+                .DistinctBy(a => a.GetAssemblyName())
+                .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
             
             try
             {
@@ -127,7 +129,7 @@ namespace Shoko.Server.Plugin
         {
             string name = settings.GetType().Assembly.GetTypes()
                 .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .Select(a => a.Assembly.GetName().Name + ".json").Distinct().FirstOrDefault();
+                .Select(a => a.GetAssemblyName() + ".json").Distinct().FirstOrDefault();
 
             try
             {
