@@ -41,6 +41,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.MyAnime2Helper;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -109,7 +110,8 @@ namespace Shoko.Server.Server
 
         private static void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<ServerSettings>(_ => ServerSettings.Instance);
+            services.AddSingleton(ServerSettings.Instance);
+            services.AddSingleton(Loader.Instance);
             services.AddLogging(loggingBuilder => //add NLog based logging.
             {
                 //NLog;
