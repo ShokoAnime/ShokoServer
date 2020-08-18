@@ -13,6 +13,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Shoko.Renamer.Abstractions\Shoko.Renamer.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
   </ItemGroup>
 </Project>

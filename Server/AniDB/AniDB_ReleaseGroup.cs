@@ -1,4 +1,4 @@
-﻿using Shoko.Renamer.Abstractions.DataModels;
+﻿using Shoko.Plugin.Abstractions.DataModels;
 
 namespace Shoko.Models.Server
 {

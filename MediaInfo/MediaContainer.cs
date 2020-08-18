@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Shoko.Renamer.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
