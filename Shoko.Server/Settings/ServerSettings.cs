@@ -524,15 +524,18 @@ namespace Shoko.Server.Settings
         {
             foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (prop.PropertyType.FullName.StartsWith("Shoko.Server") ||
-                    prop.PropertyType.FullName.StartsWith("Shoko.Models"))
+                var type = prop.PropertyType;
+                if (type.FullName.StartsWith("Shoko.Server") ||
+                    type.FullName.StartsWith("Shoko.Models") ||
+                    type.FullName.StartsWith("Shoko.Plugin"))
                 {
                     DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
                     continue;
                 }
+
                 var value = prop.GetValue(obj);
 
-                if (!IsPrimitive(prop.PropertyType)) value = Serialize(value);
+                if (!IsPrimitive(type)) value = Serialize(value);
                 if (prop.Name.ToLower().EndsWith("password")) value = "***HIDDEN***";
 
                 Logger.Info($"{path}.{prop.Name}: {value}");
