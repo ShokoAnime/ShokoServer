@@ -13,6 +13,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Renamer.Abstractions.DataModels;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -24,10 +25,11 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
+using AnimeType = Shoko.Renamer.Abstractions.DataModels.AnimeType;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AniDB_Anime : AniDB_Anime
+    public class SVR_AniDB_Anime : AniDB_Anime, IAnime
     {
         #region DB columns
 
@@ -1905,5 +1907,17 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
             return update?.UpdatedAt ?? DateTime.MinValue;
         }
+
+        AnimeType IAnime.Type => (AnimeType) AnimeType;
+
+        IList<AnimeTitle> IAnime.Titles =>
+            GetTitles().Select(a =>
+            {
+                var title = new AnimeTitle {Language = a.Language, Title = a.Title};
+                if (!Enum.TryParse(a.TitleType, out TitleType type)) return null;
+                title.Type = type;
+                return title;
+            }).Where(a => a != null && a.Type != TitleType.None).ToList();
+        double IAnime.Rating => Rating / 100D;
     }
 }

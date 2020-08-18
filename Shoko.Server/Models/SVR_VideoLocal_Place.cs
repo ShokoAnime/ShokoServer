@@ -1241,6 +1241,7 @@ namespace Shoko.Server.Models
 
         string IVideoFile.Filename => Path.GetFileName(FilePath);
         string IVideoFile.FilePath => FullServerPath;
+        long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
         IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.GetAniDBFile();
 
         IHashes IVideoFile.Hashes => VideoLocal == null

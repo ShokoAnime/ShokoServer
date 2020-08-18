@@ -11,6 +11,11 @@ namespace Shoko.Renamer.Abstractions.DataModels
         /// The Absolute Path of the file being moved or renamed.
         /// </summary>
         string FilePath { get; }
+        
+        /// <summary>
+        /// The size, in bytes, of the file.
+        /// </summary>
+        long FileSize { get; }
 
         /// <summary>
         /// The AniDB File Info. This will be null for manual links, which can reliably be used to tell if it was manually linked.

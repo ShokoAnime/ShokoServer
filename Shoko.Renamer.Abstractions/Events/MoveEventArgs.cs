@@ -16,6 +16,16 @@ namespace Shoko.Renamer.Abstractions
         public List<IImportFolder> AvailableFolders { get; set; }
         
         /// <summary>
+        /// Information about the file itself, such as MediaInfo
+        /// </summary>
+        public IVideoFile FileInfo { get; set; }
+
+        /// <summary>
+        /// Information about the Anime, such as titles
+        /// </summary>
+        public IAnime AnimeInfo { get; set; }
+        
+        /// <summary>
         /// The base import folder that the file will go in. This must be valid if the file is to be moved.
         /// </summary>
         public IImportFolder DestinationImportFolder { get; set; }
