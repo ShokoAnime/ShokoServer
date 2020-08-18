@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using Shoko.Plugin.Abstractions.DataModels;
 
@@ -18,6 +19,11 @@ namespace Shoko.Plugin.Abstractions
         /// <summary>
         /// Information about the Anime, such as titles
         /// </summary>
-        public IAnime AnimeInfo { get; set; }
+        public IList<IAnime> AnimeInfo { get; set; }
+
+        /// <summary>
+        /// Information about the episode, such as titles
+        /// </summary>
+        public IList<IEpisode> EpisodeInfo { get; set; }
     }
 }

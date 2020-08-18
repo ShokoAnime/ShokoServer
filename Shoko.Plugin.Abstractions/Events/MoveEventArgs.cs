@@ -23,8 +23,13 @@ namespace Shoko.Plugin.Abstractions
         /// <summary>
         /// Information about the Anime, such as titles
         /// </summary>
-        public IAnime AnimeInfo { get; set; }
-        
+        public IList<IAnime> AnimeInfo { get; set; }
+
+        /// <summary>
+        /// Information about the episode, such as titles
+        /// </summary>
+        public IList<IEpisode> EpisodeInfo { get; set; }
+
         /// <summary>
         /// The base import folder that the file will go in. This must be valid if the file is to be moved.
         /// </summary>

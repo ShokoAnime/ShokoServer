@@ -26,6 +26,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {

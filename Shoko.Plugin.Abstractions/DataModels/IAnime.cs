@@ -5,20 +5,25 @@ namespace Shoko.Plugin.Abstractions.DataModels
 {
     public interface IAnime
     {
+        /// <summary>
+        /// The AniDB Anime ID
+        /// </summary>
         int AnimeID { get; }
         int EpisodeCount { get; }
         DateTime? AirDate { get; }
         DateTime? EndDate { get; }
+        /// <summary>
+        /// The Type, such as Movie
+        /// </summary>
         AnimeType Type { get; }
+        /// <summary>
+        /// Titles, in all languages and types
+        /// </summary>
         IList<AnimeTitle> Titles { get; }
+        /// <summary>
+        /// Rating out of 10
+        /// </summary>
         double Rating { get; }
-    }
-
-    public class AnimeTitle
-    {
-        public string Language { get; set; }
-        public string Title { get; set; }
-        public TitleType Type { get; set; }
     }
 
     public enum AnimeType
@@ -29,14 +34,5 @@ namespace Shoko.Plugin.Abstractions.DataModels
         TVSpecial = 3,
         Web = 4,
         Other = 5
-    }
-
-    public enum TitleType
-    {
-        None = 0,
-        Main = 1,
-        Official = 2,
-        Short = 3,
-        Synonym = 4
     }
 }

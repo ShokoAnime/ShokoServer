@@ -6,14 +6,17 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Utilities;
+using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AnimeEpisode : AnimeEpisode
+    public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     {
         public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
@@ -199,5 +202,15 @@ namespace Shoko.Server.Models
                     ?.Title;
             }
         }
+
+        IList<AnimeTitle> IEpisode.Titles => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
+            .Select(a => new AnimeTitle {Language = a.Language, Title = a.Title}).ToList();
+        int IEpisode.EpisodeID => AniDB_EpisodeID;
+        int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
+        int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
+        int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 0;
+        Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
+            (Shoko.Plugin.Abstractions.DataModels.EpisodeType) (AniDB_Episode?.EpisodeType ?? 0);
+        DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
     }
 }
