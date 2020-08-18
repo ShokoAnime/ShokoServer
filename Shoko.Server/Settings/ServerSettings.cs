@@ -84,7 +84,7 @@ namespace Shoko.Server.Settings
 
         public PlexSettings Plex { get; set; } = new PlexSettings();
         
-        public PluginSettings Plugins { get; set; }
+        public PluginSettings Plugins { get; set; } = new PluginSettings();
 
         public bool AutoGroupSeries { get; set; }
 
@@ -522,6 +522,11 @@ namespace Shoko.Server.Settings
 
         private static void DumpSettings(object obj, string path = "")
         {
+            if (obj == null)
+            {
+                Logger.Info($"{path}: null");
+                return;
+            }
             foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 var type = prop.PropertyType;

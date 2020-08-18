@@ -134,6 +134,7 @@ namespace Shoko.Server.Plugin
             try
             {
                 string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
+                Directory.CreateDirectory(Path.Combine(ServerSettings.ApplicationPath, "Plugins"));
                 string json = ServerSettings.Serialize(settings);
                 File.WriteAllText(settingsPath, json);
             }
