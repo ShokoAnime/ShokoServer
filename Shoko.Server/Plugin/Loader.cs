@@ -7,20 +7,18 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
-using Shoko.Server.Renamer;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Plugin
 {
-    public class Loader
+    public class Loader : ISettingsProvider
     {
-        public static IDictionary<Type, IPlugin> Plugins { get; set; } = new Dictionary<Type, IPlugin>();
-        private static IList<Type> _pluginTypes = new List<Type>();
-        private static ILogger logger = LogManager.GetCurrentClassLogger();
+        public static Loader Instance { get; } = new Loader();
+        public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
+        private readonly IList<Type> _pluginTypes = new List<Type>();
+        private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         
-        internal static void Load(IServiceCollection serviceCollection)
+        internal void Load(IServiceCollection serviceCollection)
         {
             var assemblies = new List<Assembly>();
             var assembly = Assembly.GetExecutingAssembly();
@@ -32,16 +30,25 @@ namespace Shoko.Server.Plugin
             {
                 try
                 {
-                    logger.Debug($"Trying to load {dll}");
+                    string name = Path.GetFileNameWithoutExtension(dll);
+                    if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
+                        !ServerSettings.Instance.Plugins.EnabledPlugins[name])
+                    {
+                        Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                        continue;
+                    }
+                    Logger.Debug($"Trying to load {dll}");
                     assemblies.Add(Assembly.LoadFrom(dll));
+                    // TryAdd, because if it made it this far, then it's missing or true.
+                    ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
                 }
                 catch (FileLoadException)
                 {
-                    logger.Debug("BadImageFormatException");
+                    Logger.Debug("BadImageFormatException");
                 }
                 catch (BadImageFormatException)
                 {
-                    logger.Debug("BadImageFormatException");
+                    Logger.Debug("BadImageFormatException");
                 }
             }
 
@@ -49,7 +56,7 @@ namespace Shoko.Server.Plugin
             LoadPlugins(assemblies, serviceCollection);
         }
 
-        private static void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
+        private void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
         {
             var implementations = assemblies.SelectMany(a => {
                 try
@@ -58,7 +65,7 @@ namespace Shoko.Server.Plugin
                 }
                 catch (Exception e)
                 {
-                    logger.Debug(e);
+                    Logger.Debug(e);
                     return new Type[0];
                 }
             }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
@@ -70,17 +77,15 @@ namespace Shoko.Server.Plugin
                     mtd.Invoke(null, new object[]{serviceCollection});
 
                 _pluginTypes.Add(implementation);
-                
-                
             }
         }
 
-        private static void LoadSettings(Type type, IPlugin plugin)
+        private void LoadSettings(Type type, IPlugin plugin)
         {
             (string name, Type t) = type.Assembly.GetTypes()
                 .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .DistinctBy(t => t.Assembly.GetName().Name)
-                .Select(t => (t.Assembly.GetName().Name + ".json", t)).FirstOrDefault();
+                .DistinctBy(a => a.Assembly.GetName().Name)
+                .Select(a => (a.Assembly.GetName().Name + ".json", a)).FirstOrDefault();
             
             try
             {
@@ -93,28 +98,46 @@ namespace Shoko.Server.Plugin
                 // Plugins.Settings will be empty, since it's ignored by the serializer
                 var settings = (IPluginSettings) obj;
                 ServerSettings.Instance.Plugins.Settings.Add(settings);
-                // TryAdd, because if it made it this far, then it's missing or true.
-                ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
 
                 plugin.OnSettingsLoaded(settings);
             }
             catch (Exception e)
             {
-                logger.Error(e, $"Unable to initialize Settings for {name}");
+                Logger.Error(e, $"Unable to initialize Settings for {name}");
             }
         }
 
-        internal static void InitPlugins(IServiceProvider provider)
+        internal void InitPlugins(IServiceProvider provider)
         {
-            logger.Info("Loading {0} plugins", _pluginTypes.Count);
+            Logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
             foreach (var pluginType in _pluginTypes)
             {
                 var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
                 Plugins.Add(pluginType, plugin);
                 LoadSettings(pluginType, plugin);
-                logger.Info($"Loaded: {plugin.Name}");
+                Logger.Info($"Loaded: {plugin.Name}");
                 plugin.Load();
+            }
+            // When we initialized the plugins, we made entries for the Enabled State of Plugins
+            ServerSettings.Instance.SaveSettings();
+        }
+
+        public void SaveSettings(IPluginSettings settings)
+        {
+            string name = settings.GetType().Assembly.GetTypes()
+                .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
+                .Select(a => a.Assembly.GetName().Name + ".json").Distinct().FirstOrDefault();
+
+            try
+            {
+                string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
+                string json = ServerSettings.Serialize(settings);
+                File.WriteAllText(settingsPath, json);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, $"Unable to Save Settings for {name}");
             }
         }
     }

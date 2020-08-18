@@ -84,7 +84,7 @@ namespace Shoko.Server.API
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                     if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
 
-                    foreach (Type type in Loader.Plugins.Keys)
+                    foreach (Type type in Loader.Instance.Plugins.Keys)
                     {
                         var assembly = type.Assembly;
                         var location = assembly.Location;
@@ -144,7 +144,7 @@ namespace Shoko.Server.API
                     json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
                 });
 
-            foreach (Type type in Loader.Plugins.Keys)
+            foreach (Type type in Loader.Instance.Plugins.Keys)
             {
                 var assembly = type.Assembly;
                 if (assembly == Assembly.GetCallingAssembly()) continue; //Skip the current assembly, this is implicitly added by ASP.

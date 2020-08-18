@@ -403,7 +403,7 @@ namespace Shoko.Server.Settings
             if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
         }
 
-        private static string Serialize(object obj, bool indent = false)
+        public static string Serialize(object obj, bool indent = false)
         {
             JsonSerializerSettings serializerSettings = new JsonSerializerSettings
             {

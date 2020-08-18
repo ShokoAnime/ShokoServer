@@ -270,9 +270,9 @@ namespace Shoko.Server.Server
             // RenameFileHelper.InitialiseRenamers();
             var services = new ServiceCollection();
             ConfigureServices(services);
-            Plugin.Loader.Load(services);
+            Plugin.Loader.Instance.Load(services);
             ServiceContainer = services.BuildServiceProvider();
-            Plugin.Loader.InitPlugins(ServiceContainer);
+            Plugin.Loader.Instance.InitPlugins(ServiceContainer);
 
             ServerSettings.Instance.DebugSettingsToLog();
 
