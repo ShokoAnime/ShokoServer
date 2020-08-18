@@ -321,5 +321,7 @@ namespace Shoko.Commons.Extensions
                 .SelectMany(t => list.Where(e => !t.Contains(e)),
                     (t1, t2) => t1.Concat(new[] { t2 }));
         }
+
+        public static string GetAssemblyName(this Type type) => type.Assembly.GetName().Name;
     }
 }
