@@ -9,7 +9,7 @@ using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
-using Shoko.Renamer.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;

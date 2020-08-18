@@ -13,7 +13,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Renamer.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -25,7 +25,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
-using AnimeType = Shoko.Renamer.Abstractions.DataModels.AnimeType;
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 
 namespace Shoko.Server.Models
 {

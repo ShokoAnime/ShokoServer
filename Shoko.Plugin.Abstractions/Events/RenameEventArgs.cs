@@ -1,7 +1,7 @@
 using System.ComponentModel;
-using Shoko.Renamer.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Renamer.Abstractions
+namespace Shoko.Plugin.Abstractions
 {
     public class RenameEventArgs : CancelEventArgs
     {

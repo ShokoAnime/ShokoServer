@@ -83,6 +83,8 @@ namespace Shoko.Server.Settings
         public ImportSettings Import { get; set; } = new ImportSettings();
 
         public PlexSettings Plex { get; set; } = new PlexSettings();
+        
+        public PluginSettings Plugins { get; set; }
 
         public bool AutoGroupSeries { get; set; }
 
@@ -321,6 +323,11 @@ namespace Shoko.Server.Settings
 
         public static T Deserialize<T>(string json) where T : class
         {
+            return Deserialize(typeof(T), json) as T;
+        }
+
+        public static object Deserialize(Type t, string json)
+        {
             var serializerSettings = new JsonSerializerSettings
             {
                 ContractResolver = new NullToDefaultValueResolver(),
@@ -329,7 +336,7 @@ namespace Shoko.Server.Settings
                 ObjectCreationHandling = ObjectCreationHandling.Replace,
                 MissingMemberHandling = MissingMemberHandling.Ignore,
             };
-            T result = JsonConvert.DeserializeObject<T>(json, serializerSettings);
+            var result = JsonConvert.DeserializeObject(json, t, serializerSettings);
             if (result == null) return null;
             var context = new ValidationContext(result, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();

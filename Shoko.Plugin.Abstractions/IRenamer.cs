@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace Shoko.Renamer.Abstractions
+namespace Shoko.Plugin.Abstractions
 {
     /// <summary>
     /// A renamer must implement this to be called
     /// </summary>
-    public interface IRenamer
+    public interface IRenamer : IPlugin
     {
         void GetFilename(RenameEventArgs args);
 

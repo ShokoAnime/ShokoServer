@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Renamer.Abstractions.DataModels
+namespace Shoko.Plugin.Abstractions.DataModels
 {
     /// <summary>
     /// The rules that this Import Folder should adhere to. A folder that is both a Source and Destination cares not how files are moved in or out of it.

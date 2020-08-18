@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Shoko.Renamer.Abstractions.DataModels
+namespace Shoko.Plugin.Abstractions.DataModels
 {
     public interface IMediaContainer
     {

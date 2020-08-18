@@ -35,9 +35,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{00DED27E-E274-4202-9527-4E7D07E384FC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{00DED27E-E274-4202-9527-4E7D07E38414}"
-    ProjectSection(SolutionItems) = preProject
-        .github\ISSUE_TEMPLATE.md = .github\ISSUE_TEMPLATE.md
-    EndProjectSection
+				ProjectSection(SolutionItems) = preProject
+								.github\ISSUE_TEMPLATE.md = .github\ISSUE_TEMPLATE.md
+				EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 ProjectSection(SolutionItems) = preProject
@@ -93,7 +93,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Custom", "Custom", "{EF5380
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.TrayService", "Shoko.TrayService\Shoko.TrayService.csproj", "{DD1C4411-5E3D-4025-B8A6-3B60B85504D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Renamer.Abstractions", "Shoko.Renamer.Abstractions\Shoko.Renamer.Abstractions.csproj", "{D97A5B87-0109-4018-AF06-65A141A568B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.Abstractions", "Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj", "{D97A5B87-0109-4018-AF06-65A141A568B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

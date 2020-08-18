@@ -266,13 +266,15 @@ namespace Shoko.Server.Server
                 Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
-            ServerSettings.Instance.DebugSettingsToLog();
+
             // RenameFileHelper.InitialiseRenamers();
             var services = new ServiceCollection();
             ConfigureServices(services);
             Plugin.Loader.Load(services);
             ServiceContainer = services.BuildServiceProvider();
             Plugin.Loader.InitPlugins(ServiceContainer);
+
+            ServerSettings.Instance.DebugSettingsToLog();
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;

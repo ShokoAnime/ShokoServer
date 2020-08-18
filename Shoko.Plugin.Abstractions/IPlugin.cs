@@ -1,9 +1,5 @@
 ﻿
-using Microsoft.Extensions.Logging;
-using NLog;
-using Shoko.Server.Server;
-
-namespace Shoko.Server.Plugin
+namespace Shoko.Plugin.Abstractions
 {
     /// <summary>
     /// This can specify the static method
@@ -15,17 +11,14 @@ namespace Shoko.Server.Plugin
     {
         string Name { get; }
         void Load();
+        
+        /// <summary>
+        /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
+        /// You can cast to your desired type and set the settings within it.
+        /// </summary>
+        /// <param name="settings"></param>
+        void OnSettingsLoaded(IPluginSettings settings);
 
         // static void ConfigureServices(IServiceCollection serviceCollection);
-    }
-    
-    public class BasePlugin : IPlugin
-    {
-        public string Name => "Shoko Base";
-        
-        
-        public void Load()
-        {
-        }
     }
 } 

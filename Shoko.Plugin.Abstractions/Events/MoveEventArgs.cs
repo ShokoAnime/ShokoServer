@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
-using Shoko.Renamer.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Renamer.Abstractions
+namespace Shoko.Plugin.Abstractions
 {
     /// <summary>
     /// The event arguments for a Move event. It can be cancelled by setting Cancel to true or skipped by not setting the result parameters.

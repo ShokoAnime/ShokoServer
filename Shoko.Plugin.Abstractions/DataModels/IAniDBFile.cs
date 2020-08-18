@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Renamer.Abstractions.DataModels
+namespace Shoko.Plugin.Abstractions.DataModels
 {
     public interface IAniDBFile
     {

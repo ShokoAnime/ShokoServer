@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Shoko.Server.Plugin
+namespace Shoko.Plugin.Abstractions
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class PluginAttribute : Attribute
