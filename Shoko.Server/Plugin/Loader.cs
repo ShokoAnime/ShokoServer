@@ -92,6 +92,7 @@ namespace Shoko.Server.Plugin
                     : ServerSettings.Deserialize(t, File.ReadAllText(settingsPath));
                 // Plugins.Settings will be empty, since it's ignored by the serializer
                 var settings = (IPluginSettings) obj;
+                ServerSettings.Instance.Plugins.Settings.Add(settings);
                 // TryAdd, because if it made it this far, then it's missing or true.
                 ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
 
