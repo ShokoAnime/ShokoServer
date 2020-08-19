@@ -591,18 +591,17 @@ namespace Shoko.Server.Settings
 
             try
             {
-                string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
+                string mediaInfoVersion = "**** MediaInfo Not found *****";
 
                 string mediaInfoPath = Assembly.GetEntryAssembly().Location;
                 FileInfo fi = new FileInfo(mediaInfoPath);
-                mediaInfoPath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "MediaInfo.dll");
+                mediaInfoPath = Path.Combine(fi.Directory.FullName, "MediaInfo", "MediaInfo.exe");
 
                 if (File.Exists(mediaInfoPath))
                 {
                     FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
                     mediaInfoVersion =
-                        $"MediaInfo DLL {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
+                        $"MediaInfo {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
                 }
                 Logger.Info(mediaInfoVersion);
 
@@ -611,10 +610,14 @@ namespace Shoko.Server.Settings
                 string fullHasherexepath = Assembly.GetEntryAssembly().Location;
                 fi = new FileInfo(fullHasherexepath);
                 fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "hasher.dll");
+                    "librhash.dll");
 
                 if (File.Exists(fullHasherexepath))
-                    hasherInfoVersion = $"Hasher DLL found at {fullHasherexepath}";
+                {
+                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
+                    hasherInfoVersion =
+                        $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
+                }
                 Logger.Info(hasherInfoVersion);
             }
             catch (Exception ex)

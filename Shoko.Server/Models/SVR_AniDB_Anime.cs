@@ -1914,7 +1914,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             GetTitles().Select(a =>
             {
                 var title = new AnimeTitle {Language = a.Language, Title = a.Title};
-                if (!Enum.TryParse(a.TitleType, out TitleType type)) return null;
+                if (!Enum.TryParse(a.TitleType, true, out TitleType type)) return null;
                 title.Type = type;
                 return title;
             }).Where(a => a != null && a.Type != TitleType.None).ToList();

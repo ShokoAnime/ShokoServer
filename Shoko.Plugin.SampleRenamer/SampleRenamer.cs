@@ -15,6 +15,7 @@ namespace Shoko.Plugin.SampleRenamer
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private static SampleSettings Settings { get; set; }
+
         // Gets the current filename of the DLL (simplified)
         // Resolves to "Shoko.Plugin.SampleRenamer"
         public string Name => Assembly.GetExecutingAssembly().GetName().Name;
@@ -38,6 +39,10 @@ namespace Shoko.Plugin.SampleRenamer
 
                 // Technically, there can be more than one episode, series, and group (https://anidb.net/episode/129141).
                 // essentially always, there will be only one.
+                
+                // get the release group
+                string release = args.FileInfo.AniDBFileInfo.ReleaseGroup.Name;
+                Logger.Info($"Release Group: {release}");
 
                 // get the anime info
                 IAnime animeInfo = args.AnimeInfo.FirstOrDefault();
@@ -46,23 +51,33 @@ namespace Shoko.Plugin.SampleRenamer
                 string animeName = animeInfo?.Titles
                     .FirstOrDefault(a => a.Language == "x-jat" && a.Type == TitleType.Main)?.Title;
 
-                // Filenames must be consistent (because OCD), so return if we can't make a consistent filename style
-                if (string.IsNullOrEmpty(animeName)) return;
+                string titles = string.Join(" | ",
+                    animeInfo?.Titles.Select(a => $"Type: {a.Type} Language: {a.Language} Title: {a.Title}"));
+                Logger.Info(titles);
+
+                // Filenames must be consistent (because OCD), so cancel and return if we can't make a consistent filename style
+                if (string.IsNullOrEmpty(animeName))
+                {
+                    args.Cancel = true;
+                    return;
+                }
+                Logger.Info($"AnimeName: {animeName}");
 
                 // Get the episode info
                 IEpisode episodeInfo = args.EpisodeInfo.First();
 
                 string paddedEpisodeNumber = episodeInfo.Number.PadZeroes(animeInfo.EpisodeCount);
+                Logger.Info($"Padded Episode Number: {paddedEpisodeNumber}");
 
                 // get the info about the video stream from the MediaInfo
                 IVideoStream videoInfo = args.FileInfo.MediaInfo.Video;
 
-                // Get the extension of the original filename
+                // Get the extension of the original filename, it includes the .
                 string ext = Path.GetExtension(args.FileInfo.Filename);
 
                 // The $ allows building a string with the squiggle brackets
                 // build a string like "Boku no Hero Academia - 04 [720p HEVC].mkv"
-                string result = $"{animeName} - {paddedEpisodeNumber} [{videoInfo.Height}p {videoInfo.CodecID}].{ext}";
+                string result = $"[{release}] {animeName} - {paddedEpisodeNumber} [{videoInfo.Height}p {videoInfo.Codec}]{ext}";
 
                 // Use the Setting ApplyPrefix and Prefix to determine if we should apply a prefix
                 if (Settings.ApplyPrefix && !string.IsNullOrEmpty(Settings.Prefix)) result = Settings.Prefix + result;
@@ -89,10 +104,12 @@ namespace Shoko.Plugin.SampleRenamer
 
                 // Get a group name.
                 string groupName = args.GroupInfo.First().Name.ReplaceInvalidPathCharacters();
+                Logger.Info($"SeriesName: {groupName}");
 
                 // There are very few cases where no x-jat main (romaji) title is available, but it happens.
                 string seriesNameWithFallback = (args.AnimeInfo.First().Titles.FirstOrDefault(a => a.Language == "x-jat" && a.Type == TitleType.Main)
                     ?.Title ?? args.AnimeInfo.First().Titles.First().Title).ReplaceInvalidPathCharacters();
+                Logger.Info($"SeriesName: {seriesNameWithFallback}");
 
                 // Use Path.Combine to form subdirectories with the slashes and whatnot handled for you.
                 args.DestinationPath = Path.Combine(groupName, seriesNameWithFallback);

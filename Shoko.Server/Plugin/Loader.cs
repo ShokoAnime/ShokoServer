@@ -88,6 +88,7 @@ namespace Shoko.Server.Plugin
                 .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
                 .DistinctBy(a => a.GetAssemblyName())
                 .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
+            if (string.IsNullOrEmpty(name) || name == ".json") return;
             
             try
             {
@@ -130,6 +131,7 @@ namespace Shoko.Server.Plugin
             string name = settings.GetType().Assembly.GetTypes()
                 .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
                 .Select(a => a.GetAssemblyName() + ".json").Distinct().FirstOrDefault();
+            if (string.IsNullOrEmpty(name) || name == ".json") return;
 
             try
             {

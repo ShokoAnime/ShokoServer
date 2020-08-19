@@ -68,7 +68,7 @@ namespace Shoko.Server
                 renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
                 if (string.IsNullOrEmpty(args.DestinationPath) || args.DestinationImportFolder == null) continue;
-                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(args.DestinationPath);
+                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(args.DestinationImportFolder.Location);
                 if (importFolder != null) return (importFolder, args.DestinationPath);
                 logger.Error(
                     $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was {renamer.GetType().GetAssemblyName()}");
@@ -154,8 +154,7 @@ namespace Shoko.Server
 
         public static List<Shoko.Plugin.Abstractions.IRenamer> GetPluginRenamersSorted()
         {
-            return Loader.Instance.Plugins.Values.Where(a =>
-                a.GetType().IsAssignableFrom(typeof(Shoko.Plugin.Abstractions.IRenamer))).OrderBy(a =>
+            return Loader.Instance.Plugins.Values.Where(a => a is Shoko.Plugin.Abstractions.IRenamer).OrderBy(a =>
             {
                 var index = ServerSettings.Instance.Plugins.Priority.IndexOf(a.GetType().GetAssemblyName());
                 if (index == -1) index = int.MaxValue;
