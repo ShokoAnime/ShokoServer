@@ -24,8 +24,8 @@ namespace Shoko.Server.API.SignalR
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += OnImageQueueCountChangedEvent;
 
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += OnGeneralQueueStateChangedEvent;
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent += OnHasherQueueStateChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += OnImageQueueStateChangedEvent;
             ServerState.Instance.PropertyChanged += ServerStatePropertyChanged;
         }
 
@@ -36,8 +36,8 @@ namespace Shoko.Server.API.SignalR
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent -= OnImageQueueCountChangedEvent;
 
             ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent -= OnGeneralQueueStateChangedEvent;
-            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
-            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
+            ShokoService.CmdProcessorHasher.OnQueueStateChangedEvent -= OnHasherQueueStateChangedEvent;
+            ShokoService.CmdProcessorImages.OnQueueStateChangedEvent -= OnImageQueueStateChangedEvent;
             ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
         }
 
