@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Shoko.Models.Enums;
 
 namespace Shoko.Server.Settings
@@ -5,7 +6,7 @@ namespace Shoko.Server.Settings
     public class ImportSettings
     {
         
-        public string[] VideoExtensions { get; set; } = { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
+        public List<string> VideoExtensions { get; set; } = new List<string> { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
 
         public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
 

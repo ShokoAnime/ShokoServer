@@ -248,7 +248,7 @@ namespace Shoko.Server.Settings
                 Import =
                     new ImportSettings
                     {
-                        VideoExtensions = legacy.VideoExtensions.Split(','),
+                        VideoExtensions = legacy.VideoExtensions.Split(',').ToList(),
                         DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
                         DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
                         RunOnStart = legacy.RunImportOnStart,

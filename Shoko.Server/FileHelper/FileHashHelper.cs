@@ -42,9 +42,9 @@ namespace Shoko.Server.FileHelper
 
             try
             {
-                string[] exts = ServerSettings.Instance.Import.VideoExtensions;
+                var exts = ServerSettings.Instance.Import.VideoExtensions;
 
-                if (exts == null || exts.Length == 0)
+                if (exts == null || exts.Count == 0)
                 {
                     logger.Error("Could not find VideoExtensions app setting in config file");
                     return extList;
