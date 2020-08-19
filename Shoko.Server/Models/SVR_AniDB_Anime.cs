@@ -1910,7 +1910,6 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         AnimeType IAnime.Type => (AnimeType) AnimeType;
-
         IList<AnimeTitle> IAnime.Titles =>
             GetTitles().Select(a =>
             {
@@ -1920,5 +1919,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 return title;
             }).Where(a => a != null && a.Type != TitleType.None).ToList();
         double IAnime.Rating => Rating / 100D;
+        int IAnime.EpisodeCount => EpisodeCountNormal;
+        int IAnime.SpecialsCount => EpisodeCountSpecial;
     }
 }

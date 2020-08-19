@@ -9,8 +9,18 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// The AniDB Anime ID
         /// </summary>
         int AnimeID { get; }
+        /// <summary>
+        /// The number of total episodes in the series, not including specials
+        /// </summary>
         int EpisodeCount { get; }
+        /// <summary>
+        /// The number of specials in the series
+        /// </summary>
+        int SpecialsCount { get; }
         DateTime? AirDate { get; }
+        /// <summary>
+        /// The end date of the series. Null means that it's still airing.
+        /// </summary>
         DateTime? EndDate { get; }
         /// <summary>
         /// The Type, such as Movie

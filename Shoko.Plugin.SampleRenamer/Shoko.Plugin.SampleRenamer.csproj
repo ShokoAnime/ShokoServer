@@ -8,4 +8,8 @@
       <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="NLog" Version="4.6.2" />
+    </ItemGroup>
+
 </Project>

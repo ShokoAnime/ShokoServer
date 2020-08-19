@@ -4,7 +4,7 @@ namespace Shoko.Plugin.Abstractions
 {
     public static class PluginUtilities
     {
-        public static string RemoveInvalidPathCharacters(string path)
+        public static string RemoveInvalidPathCharacters(this string path)
         {
             string ret = path.Replace(@"*", string.Empty);
             ret = ret.Replace(@"|", string.Empty);
@@ -20,7 +20,7 @@ namespace Shoko.Plugin.Abstractions
             return ret.Trim();
         }
 
-        public static string ReplaceInvalidPathCharacters(string path)
+        public static string ReplaceInvalidPathCharacters(this string path)
         {
             string ret = path.Replace(@"*", "\u2605"); // ★ (BLACK STAR)
             ret = ret.Replace(@"|", "\u00a6"); // ¦ (BROKEN BAR)
@@ -36,6 +36,12 @@ namespace Shoko.Plugin.Abstractions
             if (ret.EndsWith(".", StringComparison.Ordinal)) // U+002E
                 ret = ret.Substring(0, ret.Length - 1) + "․"; // U+2024
             return ret.Trim();
+        }
+
+        public static string PadZeroes(this int num, int total)
+        {
+            int zeroPadding = total.ToString().Length;
+            return num.ToString().PadLeft(zeroPadding, '0');
         }
     }
 }
