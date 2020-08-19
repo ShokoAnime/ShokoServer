@@ -96,7 +96,7 @@ namespace Shoko.Server.Settings
 
         public FileQualityPreferences FileQualityPreferences { get; set; } = new FileQualityPreferences();
 
-        public string[] LanguagePreference { get; set; } = { "x-jat", "en" };
+        public List<string> LanguagePreference { get; set; } = new List<string> { "x-jat", "en" };
 
         public string EpisodeLanguagePreference { get; set; } = string.Empty;
 
@@ -271,7 +271,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
                 FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
                 FileQualityPreferences = legacy.FileQualityFilterPreferences,
-                LanguagePreference = legacy.LanguagePreference.Split(','),
+                LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
                 EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
                 LanguageUseSynonyms = legacy.LanguageUseSynonyms,
                 CloudWatcherTime = legacy.CloudWatcherTime,

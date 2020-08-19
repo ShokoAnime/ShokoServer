@@ -251,7 +251,7 @@ namespace Shoko.Server.Utilities
             {
                 List<NamingLanguage> lans = new List<NamingLanguage>();
 
-                string[] slans = ServerSettings.Instance.LanguagePreference ?? new string[] {};
+                List<string> slans = ServerSettings.Instance.LanguagePreference ?? new List<string>();
 
                 foreach (string lan in slans)
                 {

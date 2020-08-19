@@ -26,6 +26,11 @@ namespace Shoko.Plugin.Abstractions
         public IList<IAnime> AnimeInfo { get; set; }
 
         /// <summary>
+        /// Information about the group
+        /// </summary>
+        public IList<IGroup> GroupInfo { get; set; }
+
+        /// <summary>
         /// Information about the episode, such as titles
         /// </summary>
         public IList<IEpisode> EpisodeInfo { get; set; }

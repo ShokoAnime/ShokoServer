@@ -585,7 +585,7 @@ namespace Shoko.Server
                 ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
 
                 // Language
-                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',');
+                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
                 ServerSettings.Instance.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
                 ServerSettings.Instance.EpisodeTitleSource = (DataSourceType) contractIn.EpisodeTitleSource;
                 ServerSettings.Instance.SeriesDescriptionSource = (DataSourceType) contractIn.SeriesDescriptionSource;
