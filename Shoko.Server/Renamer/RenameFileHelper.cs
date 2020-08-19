@@ -33,6 +33,8 @@ namespace Shoko.Server
                 {
                     AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
                         .Where(a => a != null).Cast<IAnime>().ToList(),
+                    GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                        .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place
                 };
@@ -56,6 +58,8 @@ namespace Shoko.Server
                 {
                     AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
                         .Where(a => a != null).Cast<IAnime>().ToList(),
+                    GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                        .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place,
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()

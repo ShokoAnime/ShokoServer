@@ -9,6 +9,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
@@ -16,10 +17,12 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using AnimeType = Shoko.Models.Enums.AnimeType;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AnimeGroup : AnimeGroup
+    public class SVR_AnimeGroup : AnimeGroup, IGroup
     {
         #region DB Columns
 
@@ -1139,6 +1142,13 @@ namespace Shoko.Server.Models
                 }
             }
         }
+
+        string IGroup.Name => GroupName;
+        public IAnime MainSeries => GetAllSeries().Select(a => a.GetAnime())
+            .FirstOrDefault(a => a != null && a.GetAllTitles().Contains(GroupName));
+        IList<IAnime> IGroup.Series => GetAllSeries().Select(a => a.GetAnime()).Where(a => a != null)
+            .OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ThenBy(a => a.MainTitle)
+            .Cast<IAnime>().ToList();
     }
 
     public class GroupVotes
