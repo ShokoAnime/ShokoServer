@@ -42,6 +42,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 ProjectSection(SolutionItems) = preProject
 	.github\workflows\cli.yml = .github\workflows\cli.yml
+	.github\workflows\plugin-nuget.yml = .github\workflows\plugin-nuget.yml
 	.github\workflows\docker-daily.yml = .github\workflows\docker-daily.yml
 	.github\workflows\tray.yml = .github\workflows\tray.yml
 	.github\workflows\cli-framework-dependent.yml = .github\workflows\cli-framework-dependent.yml

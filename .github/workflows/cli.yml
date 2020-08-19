@@ -33,8 +33,3 @@ jobs:
         with:
           name: ${{ matrix.rid }}
           path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
-      - name: Publish Shoko.Plugin.Abstractions Nuget
-        uses: brandedoutcast/publish-nuget@v2.5.2
-        with:
-          PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
