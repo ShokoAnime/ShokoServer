@@ -398,7 +398,7 @@ namespace Shoko.Server.Settings
                 throw new ValidationException();
             }
 
-            string onDisk = File.ReadAllText(path);
+            string onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
             string inCode = Serialize(this, true);
             if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
         }
