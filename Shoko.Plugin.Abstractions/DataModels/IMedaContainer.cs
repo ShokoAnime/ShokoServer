@@ -65,6 +65,9 @@ namespace Shoko.Plugin.Abstractions.DataModels
         string FrameRate_Mode { get; set; }
 
         int BitDepth { get; set; }
+
+        string StandardizedResolution { get; }
+        string SimplifiedCodec { get; }
     }
 
     public interface IAudioStream : IStream
@@ -80,6 +83,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
         string BitRate_Mode { get; set; }
 
         int BitDepth { get; set; }
+
+        string SimplifiedCodec { get; }
     }
 
     public interface ITextStream : IStream
@@ -93,5 +98,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// Not from MediaInfo, this is the name of the external sub file
         /// </summary>
         string Filename { get; set; }
+
+        string SimplifiedCodec { get; }
     }
 }

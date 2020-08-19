@@ -30,6 +30,14 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// Rating out of 10
         /// </summary>
         double Rating { get; }
+        /// <summary>
+        /// Is it R18+
+        /// </summary>
+        bool Restricted { get; }
+        /// <summary>
+        /// The preferred title, according to Shoko's settings, Series Overrides, etc
+        /// </summary>
+        string PreferredTitle { get; }
     }
 
     public class EpisodeCounts

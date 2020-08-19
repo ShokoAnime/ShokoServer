@@ -77,7 +77,7 @@ namespace Shoko.Server.Models
             else
             {
                 if (ServerSettings.Instance.SeriesNameSource == DataSourceType.AniDB)
-                    seriesName = GetAnime().GetFormattedTitle();
+                    seriesName = GetAnime().PreferredTitle;
                 else
                 {
                     List<TvDB_Series> tvdbs = GetTvDBSeries();
@@ -86,7 +86,7 @@ namespace Shoko.Server.Models
                         !tvdbs[0].SeriesName.ToUpper().Contains("**DUPLICATE"))
                         seriesName = tvdbs[0].SeriesName;
                     else
-                        seriesName = GetAnime().GetFormattedTitle();
+                        seriesName = GetAnime().PreferredTitle;
                 }
             }
 

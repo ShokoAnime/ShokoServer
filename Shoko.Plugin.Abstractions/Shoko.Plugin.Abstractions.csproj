@@ -3,6 +3,16 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>Interfaces for Shoko Plugins</Title>
+        <Authors>Shoko Team</Authors>
+        <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+        <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+        <PackageIconUrl>https://shokoanime.com/icon.png</PackageIconUrl>
+        <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
+        <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
+        <PackageReleaseNotes>Initial Release</PackageReleaseNotes>
+        <PackageVersion>1.0.2</PackageVersion>
     </PropertyGroup>
 
 </Project>

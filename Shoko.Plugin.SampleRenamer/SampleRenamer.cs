@@ -99,7 +99,8 @@ namespace Shoko.Plugin.SampleRenamer
 
                 // The $ allows building a string with the squiggle brackets
                 // build a string like "Boku no Hero Academia - 04 [720p HEVC].mkv"
-                string result = $"[{release}] {animeName} - {paddedEpisodeNumber} [{videoInfo.Height}p {videoInfo.CodecID.Split('/').LastOrDefault()}]{ext}";
+                string result =
+                    $"[{release}] {animeName} - {paddedEpisodeNumber} [{videoInfo.StandardizedResolution} {videoInfo.SimplifiedCodec}]{ext}";
 
                 // Use the Setting ApplyPrefix and Prefix to determine if we should apply a prefix
                 if (Settings.ApplyPrefix && !string.IsNullOrEmpty(Settings.Prefix)) result = Settings.Prefix + result;

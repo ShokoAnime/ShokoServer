@@ -1929,5 +1929,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             Specials = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Special),
             Trailers = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Trailer)
         };
+
+        string IAnime.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
+        bool IAnime.Restricted => Restricted == 1;
     }
 }
