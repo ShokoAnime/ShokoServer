@@ -10,13 +10,9 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// </summary>
         int AnimeID { get; }
         /// <summary>
-        /// The number of total episodes in the series, not including specials
+        /// The number of total episodes in the series
         /// </summary>
-        int EpisodeCount { get; }
-        /// <summary>
-        /// The number of specials in the series
-        /// </summary>
-        int SpecialsCount { get; }
+        EpisodeCounts EpisodeCounts { get; }
         DateTime? AirDate { get; }
         /// <summary>
         /// The end date of the series. Null means that it's still airing.
@@ -34,6 +30,16 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// Rating out of 10
         /// </summary>
         double Rating { get; }
+    }
+
+    public class EpisodeCounts
+    {
+        public int Episodes { get; set; }
+        public int Specials { get; set; }
+        public int Credits { get; set; }
+        public int Trailers { get; set; }
+        public int Others { get; set; }
+        public int Parodies { get; set; }
     }
 
     public enum AnimeType

@@ -82,6 +82,22 @@ namespace Shoko.Server.Plugin
             }
         }
 
+        internal void InitPlugins(IServiceProvider provider)
+        {
+            Logger.Info("Loading {0} plugins", _pluginTypes.Count);
+
+            foreach (var pluginType in _pluginTypes)
+            {
+                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
+                Plugins.Add(pluginType, plugin);
+                LoadSettings(pluginType, plugin);
+                Logger.Info($"Loaded: {plugin.Name}");
+                plugin.Load();
+            }
+            // When we initialized the plugins, we made entries for the Enabled State of Plugins
+            ServerSettings.Instance.SaveSettings();
+        }
+
         private void LoadSettings(Type type, IPlugin plugin)
         {
             (string name, Type t) = type.Assembly.GetTypes()
@@ -110,27 +126,9 @@ namespace Shoko.Server.Plugin
             }
         }
 
-        internal void InitPlugins(IServiceProvider provider)
-        {
-            Logger.Info("Loading {0} plugins", _pluginTypes.Count);
-
-            foreach (var pluginType in _pluginTypes)
-            {
-                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
-                Plugins.Add(pluginType, plugin);
-                LoadSettings(pluginType, plugin);
-                Logger.Info($"Loaded: {plugin.Name}");
-                plugin.Load();
-            }
-            // When we initialized the plugins, we made entries for the Enabled State of Plugins
-            ServerSettings.Instance.SaveSettings();
-        }
-
         public void SaveSettings(IPluginSettings settings)
         {
-            string name = settings.GetType().Assembly.GetTypes()
-                .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .Select(a => a.GetAssemblyName() + ".json").Distinct().FirstOrDefault();
+            string name = settings.GetType().GetAssemblyName() + ".json";
             if (string.IsNullOrEmpty(name) || name == ".json") return;
 
             try

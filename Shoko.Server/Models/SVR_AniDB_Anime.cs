@@ -1919,7 +1919,15 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 return title;
             }).Where(a => a != null && a.Type != TitleType.None).ToList();
         double IAnime.Rating => Rating / 100D;
-        int IAnime.EpisodeCount => EpisodeCountNormal;
-        int IAnime.SpecialsCount => EpisodeCountSpecial;
+
+        EpisodeCounts IAnime.EpisodeCounts => new EpisodeCounts
+        {
+            Episodes = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Episode),
+            Credits = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Credits),
+            Others = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Other),
+            Parodies = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Parody),
+            Specials = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Special),
+            Trailers = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Trailer)
+        };
     }
 }

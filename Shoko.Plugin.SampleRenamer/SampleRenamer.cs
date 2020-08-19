@@ -66,7 +66,29 @@ namespace Shoko.Plugin.SampleRenamer
                 // Get the episode info
                 IEpisode episodeInfo = args.EpisodeInfo.First();
 
-                string paddedEpisodeNumber = episodeInfo.Number.PadZeroes(animeInfo.EpisodeCount);
+                string paddedEpisodeNumber = null;
+                switch (episodeInfo.Type)
+                {
+                    case EpisodeType.Episode:
+                        paddedEpisodeNumber = episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Episodes);
+                        break;
+                    case EpisodeType.Credits:
+                        paddedEpisodeNumber = "C" + episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Credits);
+                        break;
+                    case EpisodeType.Special:
+                        paddedEpisodeNumber = "S" + episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Specials);
+                        break;
+                    case EpisodeType.Trailer:
+                        paddedEpisodeNumber = "T" + episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Trailers);
+                        break;
+                    case EpisodeType.Parody:
+                        paddedEpisodeNumber = "P" + episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Parodies);
+                        break;
+                    case EpisodeType.Other:
+                        paddedEpisodeNumber = "O" + episodeInfo.Number.PadZeroes(animeInfo.EpisodeCounts.Others);
+                        break;
+                }
+                
                 Logger.Info($"Padded Episode Number: {paddedEpisodeNumber}");
 
                 // get the info about the video stream from the MediaInfo
@@ -77,7 +99,7 @@ namespace Shoko.Plugin.SampleRenamer
 
                 // The $ allows building a string with the squiggle brackets
                 // build a string like "Boku no Hero Academia - 04 [720p HEVC].mkv"
-                string result = $"[{release}] {animeName} - {paddedEpisodeNumber} [{videoInfo.Height}p {videoInfo.Codec}]{ext}";
+                string result = $"[{release}] {animeName} - {paddedEpisodeNumber} [{videoInfo.Height}p {videoInfo.CodecID.Split('/').LastOrDefault()}]{ext}";
 
                 // Use the Setting ApplyPrefix and Prefix to determine if we should apply a prefix
                 if (Settings.ApplyPrefix && !string.IsNullOrEmpty(Settings.Prefix)) result = Settings.Prefix + result;
