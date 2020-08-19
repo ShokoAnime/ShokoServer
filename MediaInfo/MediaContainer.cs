@@ -180,6 +180,8 @@ namespace Shoko.Models.MediaInfo
         public string ChromaSubsampling { get; set; }
 
         public int BitDepth { get; set; }
+        string IVideoStream.StandardizedResolution => MediaInfoUtils.GetStandardResolution(Tuple.Create(Width, Height));
+        string IVideoStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
 
         public string ScanType { get; set; }
 
@@ -231,7 +233,7 @@ namespace Shoko.Models.MediaInfo
         public int BitDepth { get; set; }
 
         public AudioExtra extra { get; set; }
-
+        string IAudioStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
     }
 
     public class AudioExtra
@@ -295,6 +297,7 @@ namespace Shoko.Models.MediaInfo
         /// Not from MediaInfo, this is the name of the external sub file
         /// </summary>
         public string Filename { get; set; }
+        string ITextStream.SimplifiedCodec => LegacyMediaUtils.TranslateCodec(this);
     }
 
     public class MenuStream : Stream

@@ -338,8 +338,11 @@ namespace Shoko.Models.MediaInfo
         public static string TranslateCodec(Stream stream)
         {
             if (stream?.Codec == null && stream?.CodecID == null) return null;
-            string codec = stream.Codec?.ToLowerInvariant() ?? stream.CodecID?.ToLowerInvariant();
-            return CodecIDs.ContainsKey(codec) ? CodecIDs[codec] : codec;
+            string codec = stream.Codec?.ToLower();
+            if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
+            codec = stream.CodecID?.ToLower();
+            if (codec != null && CodecIDs.ContainsKey(codec)) return CodecIDs[codec].ToUpper();
+            return stream.CodecID?.ToUpper();
         }
 
         public static string TranslateFrameRate(MediaContainer m)
@@ -585,11 +588,8 @@ namespace Shoko.Models.MediaInfo
         {
             if (!string.IsNullOrEmpty(codecID))
             {
-                codecID = codecID.ToUpper();
-                foreach (string k in SubFormats.Keys.Where(k => codecID.Contains(k.ToUpper())))
-                {
-                    return SubFormats[k];
-                }
+                var codec = codecID.ToLower();
+                if (SubFormats.ContainsKey(codec)) return SubFormats[codec].ToUpper();
             }
 
             codecID = format;
