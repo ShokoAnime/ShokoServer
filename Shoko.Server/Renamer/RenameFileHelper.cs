@@ -23,48 +23,46 @@ namespace Shoko.Server
         private static IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
         public static IDictionary<string, string> LegacyScriptDescriptions { get; } = new Dictionary<string, string>();
 
-        public static string GetFilename(SVR_VideoLocal_Place place)
+        public static string GetFilename(SVR_VideoLocal_Place place, string fallbackScript = null)
         {
             string result = Path.GetFileName(place.FilePath);
 
             foreach (var renamer in GetPluginRenamersSorted())
             {
-                var args = new RenameEventArgs
-                {
-                    AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                        .Where(a => a != null).Cast<IAnime>().ToList(),
-                    GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
-                        .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
-                    EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
-                    FileInfo = place
-                };
+                RenameEventArgs args = GetRenameEventArgs(place);
                 renamer.GetFilename(args);
                 if (args.Cancel) return null;
                 if (string.IsNullOrEmpty(args.Result)) continue;
                 return args.Result;
             }
 
-            string attempt = GetRenamerWithFallback()?.GetFileName(place);
+            string attempt = fallbackScript == null
+                ? GetRenamerWithFallback()?.GetFileName(place)
+                : GetRenamer(fallbackScript)?.GetFileName(place);
             if (attempt != null) result = attempt;
 
             return result;
         }
-        
+
+        private static RenameEventArgs GetRenameEventArgs(SVR_VideoLocal_Place place)
+        {
+            var args = new RenameEventArgs
+            {
+                AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
+                    .Where(a => a != null).Cast<IAnime>().ToList(),
+                GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                    .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
+                EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
+                FileInfo = place
+            };
+            return args;
+        }
+
         public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place)
         {
             foreach (var renamer in GetPluginRenamersSorted())
             {
-                var args = new MoveEventArgs
-                {
-                    AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
-                        .Where(a => a != null).Cast<IAnime>().ToList(),
-                    GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
-                        .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
-                    EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
-                    FileInfo = place,
-                    AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
-                        .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList()
-                };
+                MoveEventArgs args = GetMoveEventArgs(place);
                 renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
                 if (string.IsNullOrEmpty(args.DestinationPath) || args.DestinationImportFolder == null) continue;
@@ -79,7 +77,23 @@ namespace Shoko.Server
 
             return (null, null);
         }
-        
+
+        private static MoveEventArgs GetMoveEventArgs(SVR_VideoLocal_Place place)
+        {
+            var args = new MoveEventArgs
+            {
+                AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
+                    .Where(a => a != null).Cast<IAnime>().ToList(),
+                GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                    .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
+                EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
+                FileInfo = place,
+                AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
+                    .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList()
+            };
+            return args;
+        }
+
         public static IRenamer GetRenamer()
         {
             var script = RepoFactory.RenameScript.GetDefaultScript();
