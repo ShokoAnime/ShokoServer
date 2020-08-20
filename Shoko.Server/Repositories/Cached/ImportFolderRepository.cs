@@ -85,35 +85,6 @@ namespace Shoko.Server.Repositories.Cached
                     throw new Exception("Another entry already exists for the specified Import Folder location");
             }
 
-            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                throw new Exception("A folder cannot be a drop source and a drop destination at the same time");
-
-            // check to make sure we don't have multiple drop folders
-            IReadOnlyList<SVR_ImportFolder> allFolders = GetAll();
-
-            if (folder.IsDropDestination == 1)
-            {
-                foreach (SVR_ImportFolder imf in allFolders)
-                {
-                    if (folder.CloudID == imf.CloudID && imf.IsDropDestination == 1 &&
-                        (folder.ImportFolderID == 0 || folder.ImportFolderID != imf.ImportFolderID))
-                    {
-                        imf.IsDropDestination = 0;
-                        Save(imf);
-                    }
-                    else if (imf.CloudID != folder.CloudID)
-                    {
-                        if (folder.IsDropSource == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
-                            throw new Exception("A drop folders cannot have different file systems");
-
-                        if (folder.IsDropDestination == 1 && (imf.FolderIsDropDestination || imf.FolderIsDropSource))
-                        {
-                            throw new Exception("A drop folders cannot have different file systems");
-                        }
-                    }
-                }
-            }
-
             ns.ImportFolderName = folder.ImportFolderName;
             ns.ImportFolderLocation = folder.ImportFolderLocation;
             ns.IsDropDestination = folder.IsDropDestination;
