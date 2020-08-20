@@ -32,5 +32,9 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// This is mostly for hentai, and it's often wrong.
         /// </summary>
         bool Censored { get; }
+        /// <summary>
+        /// AniDB's user input data for streams
+        /// </summary>
+        AniDBMediaData MediaInfo { get; }
     }
 }

@@ -5,7 +5,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
 {
     public interface IEpisode
     {
-        IList<AnimeTitle> Titles { get; }
+        IReadOnlyList<AnimeTitle> Titles { get; }
         /// <summary>
         /// The AniDB Episode ID
         /// </summary>

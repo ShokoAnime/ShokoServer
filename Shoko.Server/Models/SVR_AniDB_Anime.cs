@@ -1910,7 +1910,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         AnimeType IAnime.Type => (AnimeType) AnimeType;
-        IList<AnimeTitle> IAnime.Titles =>
+        IReadOnlyList<AnimeTitle> IAnime.Titles =>
             GetTitles().Select(a =>
             {
                 var title = new AnimeTitle
@@ -1942,7 +1942,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 case "X-JAT":
                     return TitleLanguage.Romaji;
                 case "JA":
-                    return TitleLanguage.Kanji;
+                    return TitleLanguage.Japanese;
                 case "AR":
                     return TitleLanguage.Arabic;
                 case "BD":

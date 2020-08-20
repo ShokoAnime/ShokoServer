@@ -13,7 +13,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Unknown = 0,
         English = 1,
         Romaji,
-        Kanji,
+        Japanese,
+        Afrikaans,
         Arabic,
         Bangladeshi,
         Bulgarian,
@@ -51,7 +52,12 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Vietnamese,
         Chinese,
         ChineseSimplified,
-        ChineseTraditional
+        ChineseTraditional,
+        Latin,
+        Albanian,
+        Basque,
+        Bengali,
+        Bosnian
     }
 
     public enum TitleType

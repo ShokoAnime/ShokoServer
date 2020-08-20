@@ -15,6 +15,6 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// <summary>
         /// The series in a group, ordered by AirDate
         /// </summary>
-        IList<IAnime> Series { get; }
+        IReadOnlyList<IAnime> Series { get; }
     }
 }

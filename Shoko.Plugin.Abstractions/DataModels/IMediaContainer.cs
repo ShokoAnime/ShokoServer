@@ -6,8 +6,8 @@ namespace Shoko.Plugin.Abstractions.DataModels
     {
         IGeneralStream General { get; }
         IVideoStream Video { get; }
-        IList<IAudioStream> Audio { get; }
-        IList<ITextStream> Subs { get; }
+        IReadOnlyList<IAudioStream> Audio { get; }
+        IReadOnlyList<ITextStream> Subs { get; }
         bool Chaptered { get; }
     }
 

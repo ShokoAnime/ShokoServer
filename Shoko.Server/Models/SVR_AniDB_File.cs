@@ -477,15 +477,110 @@ namespace Shoko.Server.Models
             return sb.ToString();
         }
 
-        public int AniDBFileID => FileID;
+        public static TitleLanguage GetLanguage(string language)
+        {
+            switch (language)
+            {
+                case "afrikaans": return TitleLanguage.Afrikaans;
+                case "albanian": return TitleLanguage.Albanian;
+                case "arabic": return TitleLanguage.Arabic;
+                case "basque": return TitleLanguage.Basque;
+                case "bengali": return TitleLanguage.Bengali;
+                case "bosnian": return TitleLanguage.Bosnian;
+                case "bulgarian": return TitleLanguage.Bulgarian;
+                case "czech": return TitleLanguage.Czech;
+                case "danish": return TitleLanguage.Danish;
+                case "dutch": return TitleLanguage.Dutch;
+                case "english": return TitleLanguage.English;
+                case "estonian": return TitleLanguage.Estonian;
+                case "finnish": return TitleLanguage.Finnish;
+                case "french": return TitleLanguage.French;
+                case "german": return TitleLanguage.German;
+                case "greek (ancient)":
+                case "greek": 
+                    return TitleLanguage.Greek;
+                case "hebrew": return TitleLanguage.Hebrew;
+                case "hungarian": return TitleLanguage.Hungarian;
+                case "javanese":
+                case "malay":
+                case "indonesian":
+                    return TitleLanguage.Malaysian;
+                case "latin": return TitleLanguage.Latin;
+                case "italian": return TitleLanguage.Italian;
+                case "korean": return TitleLanguage.Korean;
+                case "icelandic": 
+                case "norwegian": return TitleLanguage.Norwegian;
+                case "polish": return TitleLanguage.Polish;
+                case "portuguese": return TitleLanguage.Portuguese;
+                case "portuguese (brazilian)": return TitleLanguage.BrazilianPortuguese;
+                case "romanian": return TitleLanguage.Romanian;
+                case "russian": return TitleLanguage.Russian;
+                case "slovenian": return TitleLanguage.Slovenian;
+                case "ukrainian": return TitleLanguage.Ukrainian;
+                case "swedish": return TitleLanguage.Swedish;
+                case "thai (transcription)":
+                case "thai":
+                    return TitleLanguage.Thai;
+                case "turkish": return TitleLanguage.Turkish;
+                case "vietnamese": return TitleLanguage.Vietnamese;
+                case "chinese (simplified)": return TitleLanguage.ChineseSimplified;
+                case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
+                case "chinese (cantonese)":
+                case "chinese (mandarin)":
+                case "chinese (transcription)":
+                case "chinese (unspecified)":
+                case "taiwanese":
+                    return TitleLanguage.Chinese;
+                case "japanese": return TitleLanguage.Japanese;
+                case "japanese (transcription)": return TitleLanguage.Romaji;
+                case "catalan":
+                case "spanish":
+                case "spanish (latin american)":
+                    return TitleLanguage.Spanish;
+                default:
+                    return TitleLanguage.Unknown;
+                // TODO these, a proper language class, idk I'm bored an this is tedious
+                /*
+                 croatian	hr	both	20	0
+                esperanto	eo	both	24	0
+                filipino	tl	both	26	0
+                filipino (tagalog)	tl	both	27	0
+                galician	gl	both	30	0
+                georgian	ka	both	31	0
+                haitian creole	ht	both	35	0
+                hindi	hi	both	37	0
+                icelandic	is	both	39	0
+                17	korean	ko	both	44	0
+                87	korean (transcription)	x-kot	written	45	0
+                69	latin	la	both	46	0
+                67	latvian	lv	both	47	0
+                35	lithuanian	lt	both	48	0
+                94	mongolian	mn	both	50	0
+                91	persian	fa	both	53	0
+                serbian	sr	both	59	0
+                slovak	sk	both	61	0
+                telugu	te	both	69	0
+                urdu	ur	written	74	0
+                */
+            }
+        }
 
-        public IReleaseGroup ReleaseGroup => new AniDB_ReleaseGroup
+        int IAniDBFile.AniDBFileID => FileID;
+
+        IReleaseGroup IAniDBFile.ReleaseGroup => new AniDB_ReleaseGroup
             {GroupName = Anime_GroupName, GroupNameShort = Anime_GroupNameShort};
 
-        public string Source => File_Source;
-        public string Description => File_Description;
-        public DateTime? ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
-        public int Version => FileVersion;
-        public bool Censored => IsCensored == 1;
+        string IAniDBFile.Source => File_Source;
+        string IAniDBFile.Description => File_Description;
+        DateTime? IAniDBFile.ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
+        int IAniDBFile.Version => FileVersion;
+        bool IAniDBFile.Censored => IsCensored == 1;
+        AniDBMediaData IAniDBFile.MediaInfo => new AniDBMediaData
+        {
+            VideoCodec = File_VideoCodec,
+            AudioCodecs = File_AudioCodec.Split("'", StringSplitOptions.RemoveEmptyEntries),
+            AudioLanguages = Languages.Select(a => GetLanguage(a.LanguageName)).ToList(),
+            SubLanguages = Subtitles.Select(a => GetLanguage(a.LanguageName)).ToList()
+        };
     }
 }

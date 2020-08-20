@@ -25,7 +25,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// <summary>
         /// Titles, in all languages and types
         /// </summary>
-        IList<AnimeTitle> Titles { get; }
+        IReadOnlyList<AnimeTitle> Titles { get; }
         /// <summary>
         /// Rating out of 10
         /// </summary>

@@ -203,7 +203,7 @@ namespace Shoko.Server.Models
             }
         }
 
-        IList<AnimeTitle> IEpisode.Titles => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
+        IReadOnlyList<AnimeTitle> IEpisode.Titles => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
             .Select(a => new AnimeTitle
                 {LanguageCode = a.Language, Language = SVR_AniDB_Anime.GetLanguage(a.Language), Title = a.Title})
             .ToList();
