@@ -72,8 +72,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 ImportFolderType = (int) ImportFolderType.HDD,
                 ImportFolderLocation = Path,
                 IsWatched = WatchForNewFiles ? 1 : 0,
-                IsDropDestination = DropFolderType == DropFolderType.Destination ? 1 : 0,
-                IsDropSource = DropFolderType == DropFolderType.Source ? 1 : 0
+                IsDropDestination = DropFolderType.HasFlag(DropFolderType.Destination) ? 1  : 0,
+                IsDropSource = DropFolderType.HasFlag(DropFolderType.Source) ? 1 : 0
             };
         }
     }
