@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
@@ -76,10 +77,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
             };
         }
     }
+    
+    [Flags]
     public enum DropFolderType
     {
         None = 0,
         Source = 1,
-        Destination = 2
+        Destination = 2,
+        Both = Source | Destination
     }
 }
