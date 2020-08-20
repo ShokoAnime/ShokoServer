@@ -1913,7 +1913,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         IList<AnimeTitle> IAnime.Titles =>
             GetTitles().Select(a =>
             {
-                var title = new AnimeTitle {Language = a.Language, Title = a.Title};
+                var title = new AnimeTitle
+                    {LanguageCode = a.Language, Language = GetLanguage(a.Language), Title = a.Title};
                 if (!Enum.TryParse(a.TitleType, true, out TitleType type)) return null;
                 title.Type = type;
                 return title;
@@ -1932,5 +1933,109 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         string IAnime.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
         bool IAnime.Restricted => Restricted == 1;
+        public static TitleLanguage GetLanguage(string lang)
+        {
+            switch (lang.ToUpper())
+            {
+                case "EN":
+                    return TitleLanguage.English;
+                case "X-JAT":
+                    return TitleLanguage.Romaji;
+                case "JA":
+                    return TitleLanguage.Kanji;
+                case "AR":
+                    return TitleLanguage.Arabic;
+                case "BD":
+                    return TitleLanguage.Bangladeshi;
+                case "BG":
+                    return TitleLanguage.Bulgarian;
+                case "CA":
+                    return TitleLanguage.FrenchCanadian;
+                case "CS":
+                    return TitleLanguage.Czech;
+                case "CZ":
+                    return TitleLanguage.Czech;
+                case "DA":
+                    return TitleLanguage.Danish;
+                case "DK":
+                    return TitleLanguage.Danish;
+                case "DE":
+                    return TitleLanguage.German;
+                case "EL":
+                    return TitleLanguage.Greek;
+                case "ES":
+                    return TitleLanguage.Spanish;
+                case "ET":
+                    return TitleLanguage.Estonian;
+                case "FI":
+                    return TitleLanguage.Finnish;
+                case "FR":
+                    return TitleLanguage.French;
+                case "GL":
+                    return TitleLanguage.Galician;
+                case "GR":
+                    return TitleLanguage.Greek;
+                case "HE":
+                    return TitleLanguage.Hebrew;
+                case "HU":
+                    return TitleLanguage.Hungarian;
+                case "IL":
+                    return TitleLanguage.Hebrew;
+                case "IT":
+                    return TitleLanguage.Italian;
+                case "KO":
+                    return TitleLanguage.Korean;
+                case "LT":
+                    return TitleLanguage.Lithuania;
+                case "MN":
+                    return TitleLanguage.Mongolian;
+                case "MS":
+                    return TitleLanguage.Malaysian;
+                case "MY":
+                    return TitleLanguage.Malaysian;
+                case "NL":
+                    return TitleLanguage.Dutch;
+                case "NO":
+                    return TitleLanguage.Norwegian;
+                case "PL":
+                    return TitleLanguage.Polish;
+                case "PT":
+                    return TitleLanguage.Portuguese;
+                case "PT-BR":
+                    return TitleLanguage.BrazilianPortuguese;
+                case "RO":
+                    return TitleLanguage.Romanian;
+                case "RU":
+                    return TitleLanguage.Russian;
+                case "SK":
+                    return TitleLanguage.Slovak;
+                case "SL":
+                    return TitleLanguage.Slovenian;
+                case "SR":
+                    return TitleLanguage.Serbian;
+                case "SV":
+                    return TitleLanguage.Swedish;
+                case "SE":
+                    return TitleLanguage.Swedish; // Common country vs language code mixup
+                case "TH":
+                    return TitleLanguage.Thai;
+                case "TR":
+                    return TitleLanguage.Turkish;
+                case "UK":
+                    return TitleLanguage.Ukrainian; // Modern ISO code
+                case "UA":
+                    return TitleLanguage.Ukrainian; // Deprecated ISO code
+                case "VI":
+                    return TitleLanguage.Vietnamese;
+                case "ZH":
+                    return TitleLanguage.Chinese;
+                case "ZH-HANS":
+                    return TitleLanguage.ChineseSimplified;
+                case "ZH-HANT":
+                    return TitleLanguage.ChineseTraditional;
+            }
+
+            return TitleLanguage.Unknown;
+        }
     }
 }
