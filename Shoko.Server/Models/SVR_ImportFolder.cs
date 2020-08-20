@@ -189,10 +189,10 @@ namespace Shoko.Server.Models
         {
             get
             {
+                if (IsDropSource == 1 && IsDropDestination == 1) return DropFolderType.Destination | DropFolderType.Source;
                 if (IsDropSource != 1 && IsDropDestination != 1) return DropFolderType.Excluded;
                 if (IsDropDestination == 1) return DropFolderType.Destination;
-                if (IsDropSource == 1) return DropFolderType.Source;
-                return DropFolderType.Destination | DropFolderType.Source;
+                return DropFolderType.Source;
             }
         }
     }
