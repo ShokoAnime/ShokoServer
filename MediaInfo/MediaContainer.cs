@@ -50,8 +50,8 @@ namespace Shoko.Models.MediaInfo
 
         public IGeneralStream General => GeneralStream;
         public IVideoStream Video => VideoStream;
-        public IList<IAudioStream> Audio => AudioStreams.Cast<IAudioStream>().ToList();
-        public IList<ITextStream> Subs => TextStreams.Cast<ITextStream>().ToList();
+        public IReadOnlyList<IAudioStream> Audio => AudioStreams.Cast<IAudioStream>().ToList();
+        public IReadOnlyList<ITextStream> Subs => TextStreams.Cast<ITextStream>().ToList();
         public bool Chaptered => MenuStreams.Any();
     }
 
