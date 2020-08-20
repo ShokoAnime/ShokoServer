@@ -50,7 +50,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 .Sum(b => b.FileSize);
 
             DropFolderType type;
-            if (folder.FolderIsDropDestination) type = DropFolderType.Destination;
+            if (folder.FolderIsDropDestination && folder.FolderIsDropSource) type = DropFolderType.Both;
+            else if (folder.FolderIsDropDestination) type = DropFolderType.Destination;
             else if (folder.FolderIsDropSource) type = DropFolderType.Source;
             else type = DropFolderType.None;
 
