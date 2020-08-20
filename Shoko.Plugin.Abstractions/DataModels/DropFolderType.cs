@@ -10,6 +10,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
     {
         Excluded = 0,
         Source = 1,
-        Destination = 2
+        Destination = 2,
+        Both = Source | Destination
     }
 }
