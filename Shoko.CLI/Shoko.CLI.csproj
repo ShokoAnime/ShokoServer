@@ -22,11 +22,11 @@
     <!-- dlls that you don't want to be moved or can not be moved -->
     <BeautyExcludes>Shoko*;NutzCode*</BeautyExcludes>
     <!-- set to True if you want to disable -->
-    <DisableBeauty>False</DisableBeauty>
+    <DisableBeauty>True</DisableBeauty>
     <ForceBeauty>False</ForceBeauty>
     <!-- <BeautyAfterTasks></BeautyAfterTasks> -->
     <!-- set to True if you want to disable -->
-    <DisablePatch>False</DisablePatch>
+    <DisablePatch>True</DisablePatch>
     <!-- valid values: Error|Detail|Info -->
     <BeautyLogLevel>Info</BeautyLogLevel>
     <!-- set to a repo mirror if you have troble in connecting github -->
