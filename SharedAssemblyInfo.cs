@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-[assembly: AssemblyVersion("3.10.0")]
+[assembly: AssemblyVersion("4.0.0")]
 [assembly: AssemblyProduct("Shoko Server")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]

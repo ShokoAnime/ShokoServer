@@ -10,7 +10,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{0BA2D22B-A0B7-48F8-8AA1-BAAEFC2034CB}
 AppName=Shoko Server
-AppVersion=3.10.0.0
+AppVersion=4.0.0.0
 AppVerName=Shoko Server
 AppPublisher=Shoko Team
 AppPublisherURL=https://shokoanime.com/
@@ -49,7 +49,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""S
 Filename: "{app}\FixPermissions.bat";
 Filename: "{app}\ShokoServer.exe"; Flags: nowait postinstall skipifsilent shellexec; Description: "{cm:LaunchProgram,Shoko Server}"
 Filename: "https://docs.shokoanime.com/server/install_windows"; Flags: shellexec runasoriginaluser postinstall; Description: "Shoko Server Install Guide"
-Filename: "https://shokoanime.com/shoko-version-3-9-10-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 3.9.10 Release Notes"
+Filename: "https://shokoanime.com/shoko-version-4-0-0-released/"; Flags: shellexec runasoriginaluser postinstall; Description: "View 4.0.0 Release Notes"
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Shoko Server - Client Port"" protocol=TCP localport=8111"; Flags: runhidden; StatusMsg: "Closing exception on firewall..."; Tasks: Firewall
@@ -71,6 +71,7 @@ Name: "{app}"; Permissions: users-full
 Name: "C:\ProgramData\ShokoServer"; Permissions: users-full
 
 [Files]
+Source: "..\..\ShokoServer\Installer\FixPermissions.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Shoko.Server\bin\Release\netcoreapp3.1\win10-x64\publish\*"; DestDir: "{app}"; Flags:  ignoreversion recursesubdirs createallsubdirs
 
 [Code]
