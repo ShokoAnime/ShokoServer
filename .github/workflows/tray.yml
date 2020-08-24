@@ -31,12 +31,12 @@ jobs:
         with:
           name: Shoko.TrayService-${{ matrix.rid }}
           path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
-      - uses: montudor/action-zip@v0.1.0
-        with:
-          args: zip -qq -r ./ShokoServer.zip ./Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish
-      - uses: actions/checkout@v1
-        with:
-          fetch-depth: 2
+      - name: Archive Release
+          uses: thedoctor0/zip-release@master
+          with:
+            filename: 'ShokoServer.zip'
+            exclusions: '*.git* /*node_modules/* .editorconfig'
+            path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish
       - name: FTP-Deploy-Action
         uses: SamKirkland/FTP-Deploy-Action@3.1.0
         with:
