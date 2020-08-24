@@ -36,4 +36,8 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\netcoreapp3.1\\${{matrix.rid}}\\publish .\\ShokoServer.zip
       - name: Upload Daily to shokoanime.com
         shell: powershell
-        run : client = New-Object System.Net.WebClient; client.Credentials = New-Object System.Net.NetworkCredential("${{ secrets.FTP_USERNAME }}", "${{ secrets.FTP_PASSWORD }}"); client.UploadFile("${{ secrets.FTP_SERVER }}/files/shoko-server/daily/ShokoServer.zip", ".\\ShokoServer.zip");
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run : .\\.github\\workflows\\UploadArchive.ps1
