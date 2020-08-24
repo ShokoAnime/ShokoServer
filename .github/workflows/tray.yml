@@ -34,11 +34,6 @@ jobs:
       - name: Archive Release
         shell: powershell
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\netcoreapp3.1\\${{matrix.rid}}\\publish .\\ShokoServer.zip
-      - name: FTP-Deploy-Action
-        uses: SamKirkland/FTP-Deploy-Action@3.1.0
-        with:
-          ftp-server: ${{ secrets.FTP_SERVER }}
-          ftp-username: ${{ secrets.FTP_USERNAME }}
-          ftp-password: ${{ secrets.FTP_PASSWORD }}
-          git-ftp-args: --remote-root files/shoko-server/daily/
-
+      - name: Upload Daily to shokoanime.com
+        shell: powershell
+        run : client = New-Object System.Net.WebClient; client.Credentials = New-Object System.Net.NetworkCredential("${{ secrets.FTP_USERNAME }}", "${{ secrets.FTP_PASSWORD }}"); client.UploadFile("${{ secrets.FTP_SERVER }}/files/shoko-server/daily/ShokoServer.zip", ".\\ShokoServer.zip");
