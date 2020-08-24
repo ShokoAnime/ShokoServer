@@ -17,6 +17,10 @@ namespace Shoko.Plugin.Abstractions.DataModels
         /// </summary>
         string Source { get; }
         /// <summary>
+        /// The Filename as released, according to AniDB. It's usually correct.
+        /// </summary>
+        string OriginalFilename { get; }
+        /// <summary>
         /// Description of the file on AniDB. This will often be blank, and it's generally not useful
         /// </summary>
         string Description { get; }

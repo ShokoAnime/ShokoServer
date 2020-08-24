@@ -572,6 +572,7 @@ namespace Shoko.Server.Models
 
         string IAniDBFile.Source => File_Source;
         string IAniDBFile.Description => File_Description;
+        string IAniDBFile.OriginalFilename => FileName;
         DateTime? IAniDBFile.ReleaseDate => DateTime.UnixEpoch.AddSeconds(File_ReleaseDate);
         int IAniDBFile.Version => FileVersion;
         bool IAniDBFile.Censored => IsCensored == 1;

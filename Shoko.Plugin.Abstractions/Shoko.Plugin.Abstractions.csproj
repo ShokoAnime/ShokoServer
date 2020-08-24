@@ -11,8 +11,8 @@
         <PackageIconUrl>https://shokoanime.com/icon.png</PackageIconUrl>
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
-        <PackageReleaseNotes>Initial Release</PackageReleaseNotes>
-        <Version>1.0.4</Version>
+        <PackageReleaseNotes>Add OriginalFilename to IAniDBFile</PackageReleaseNotes>
+        <Version>1.0.5</Version>
     </PropertyGroup>
 
 </Project>
