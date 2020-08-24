@@ -31,11 +31,9 @@ jobs:
         with:
           name: Shoko.TrayService-${{ matrix.rid }}
           path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
-
-  FTP-Deploy-Action:
-    name: FTP-Deploy-Action
-    runs-on: ubuntu-latest
-    steps:
+      - uses: montudor/action-zip@v0.1.0
+        with:
+          args: zip -qq -r ./ShokoServer.zip ./Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish
       - uses: actions/checkout@v1
         with:
           fetch-depth: 2
