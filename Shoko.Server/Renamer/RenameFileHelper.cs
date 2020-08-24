@@ -94,16 +94,9 @@ namespace Shoko.Server
             return args;
         }
 
-        public static IRenamer GetRenamer()
-        {
-            var script = RepoFactory.RenameScript.GetDefaultScript();
-            if (script == null) return null;
-            return GetRenamerFor(script);
-        }
-
         public static IRenamer GetRenamerWithFallback()
         {
-            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetDefaultEnabledScript();
             if (script == null) return null;
 
             return GetRenamerFor(script);
