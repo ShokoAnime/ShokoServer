@@ -195,5 +195,7 @@ namespace Shoko.Server.Models
                 return DropFolderType.Source;
             }
         }
+
+        string IImportFolder.Name => ImportFolderName;
     }
 }
