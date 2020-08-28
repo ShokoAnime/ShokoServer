@@ -226,7 +226,7 @@ namespace Shoko.Server.API.v3.Models.Common
 
                 // 6
                 case ImageEntityType.TvDB_Episode:
-                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByID(id);
+                    TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(id);
                     if (ep == null)
                         return null;
                     path = ep.GetFullImagePath();
