@@ -121,22 +121,6 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetCast(HttpContext, ser.AniDB_ID);
         }
-        
-        /// <summary>
-        /// Get the group for a series ID
-        /// </summary>
-        /// <param name="seriesID">Shoko ID</param>
-        /// <returns></returns>
-        [HttpGet("{seriesID}/Group")]
-        public ActionResult<Group> GetGroup(int seriesID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(series)) return BadRequest("Series not allowed for current user");
-            var grp = series.AnimeGroup;
-            if (grp == null) return BadRequest("No Group for Series");
-            return new Group(HttpContext, grp);
-        }
 
         /// <summary>
         /// Move the series to a new group, and update accordingly
