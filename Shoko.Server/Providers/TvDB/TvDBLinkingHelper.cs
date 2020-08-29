@@ -294,12 +294,18 @@ namespace Shoko.Server
             // It's one to one, possibly spanning multiple seasons
             if (one2one)
             {
-                TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
-
                 if (!hasNumberedTitles)
                 {
-                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches);
+                    // Sometimes, the dates are wrong and titles are exact
+                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches, false);
+                    TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
+                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches, true);
                     CorrectMatchRatings(ref matches);
+                }
+                else
+                {
+                    // We have numbered titles. There are exceptions to every rule, but numbered eps are assumed missing data, so it can't be "correct"
+                    TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
                 }
 
                 FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
@@ -326,7 +332,7 @@ namespace Shoko.Server
         {
             // Specials are almost never going to be one to one. We'll assume they are and let the user fix them
             // Air Dates are less accurate for specials (BD/DVD release makes them all the same). Try Titles first
-            TryToMatchEpisodes1To1ByTitle(ref aniepsSpecial, ref tvepsSpecial, ref matches);
+            TryToMatchEpisodes1To1ByTitle(ref aniepsSpecial, ref tvepsSpecial, ref matches, true);
             TryToMatchEpisodes1To1ByAirDate(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             FillUnmatchedEpisodes1To1(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             CorrectMatchRatings(ref matches);
@@ -638,7 +644,7 @@ namespace Shoko.Server
 
         private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -651,9 +657,16 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(tvtitle)) continue;
 
                     // fuzzy match
-                    if (!anititle.FuzzyMatches(tvtitle)) continue;
+                    if (fuzzy)
+                    {
+                        if (!anititle.FuzzyMatches(tvtitle)) continue;
+                    }
+                    else
+                    {
+                        if (!anititle.Equals(tvtitle, StringComparison.InvariantCultureIgnoreCase)) continue;
+                    }
                     // Add them to the matches and remove them from the lists to process
-                    matches.Add((aniep, tvep, MatchRating.Bad));
+                    matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
                     tvepsNormal.Remove(tvep);
                     aniepsNormal.Remove(aniep);
                     break;

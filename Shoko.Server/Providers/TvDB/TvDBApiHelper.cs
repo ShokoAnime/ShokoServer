@@ -623,33 +623,6 @@ namespace Shoko.Server.Providers.TvDB
                 }
         }
 
-        public static void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
-        {
-            // find out how many images we already have locally
-            int imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
-                !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
-
-            foreach (TvDB_ImageWideBanner img in images)
-                if (ServerSettings.Instance.TvDB.AutoWideBanners && imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount &&
-                    !string.IsNullOrEmpty(img.GetFullImagePath()))
-                {
-                    bool fileExists = File.Exists(img.GetFullImagePath());
-                    if (fileExists && !forceDownload) continue;
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
-                        ImageEntityType.TvDB_Banner, forceDownload);
-                    cmd.Save();
-                    imageCount++;
-                }
-                else
-                {
-                    //The TvDB_AutoFanartAmount point to download less images than its available
-                    // we should clean those image that we didn't download because those dont exists in local repo
-                    // first we check if file was downloaded
-                    if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageWideBanner.Delete(img);
-                }
-        }
-
         public static List<EpisodeRecord> GetEpisodesOnline(int seriesID)
         {
             return Task.Run(async () => await GetEpisodesOnlineAsync(seriesID)).Result;
@@ -708,102 +681,6 @@ namespace Shoko.Server.Providers.TvDB
             return apiEpisodes;
         }
 
-        public static TvDB_Episode UpdateEpisode(int episodeID, bool downloadImages, bool forceRefresh)
-        {
-            return QueueEpisodeImageDownloadAsync(episodeID, downloadImages, forceRefresh).Result;
-        }
-
-        static async Task<EpisodeRecord> GetEpisodeDetailsAsync(int episodeID)
-        {
-            try
-            {
-                await CheckAuthorizationAsync();
-
-                TvDBRateLimiter.Instance.EnsureRate();
-                var response = await client.Episodes.GetAsync(episodeID);
-                return response.Data;
-            }
-            catch (TvDbServerException exception)
-            {
-                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    client.Authentication.Token = null;
-                    await CheckAuthorizationAsync();
-                    if (!string.IsNullOrEmpty(client.Authentication.Token))
-                        return await GetEpisodeDetailsAsync(episodeID);
-                    // suppress 404 and move on
-                }
-                else if (exception.StatusCode == (int) HttpStatusCode.NotFound)
-                {
-                    Analytics.PostEvent("TvDB", "404: GetEpisodeDetails", $"{episodeID}");
-                    return null;
-                }
-                logger.Error(exception,
-                    $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
-                Analytics.PostException(exception);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, $"Error in TvDBApiHelper.GetEpisodeDetailsAsync: {ex}");
-                Analytics.PostException(ex);
-            }
-
-            return null;
-        }
-
-        public static async Task<TvDB_Episode> QueueEpisodeImageDownloadAsync(int tvDBEpisodeID, bool downloadImages, bool forceRefresh)
-        {
-            try
-            {
-                TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(tvDBEpisodeID);
-                if (ep == null || forceRefresh)
-                {
-                    EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
-                    if (episode == null)
-                        return null;
-
-                    if (ep == null) ep = new TvDB_Episode();
-                    ep.Populate(episode);
-                    RepoFactory.TvDB_Episode.Save(ep);
-                }
-
-                if (downloadImages)
-                    if (!string.IsNullOrEmpty(ep.Filename))
-                    {
-                        bool fileExists = File.Exists(ep.GetFullImagePath());
-                        if (!fileExists || forceRefresh)
-                        {
-                            CommandRequest_DownloadImage cmd =
-                                new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
-                                    ImageEntityType.TvDB_Episode, forceRefresh);
-                            cmd.Save();
-                        }
-                    }
-                return ep;
-            }
-            catch (TvDbServerException exception)
-            {
-                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    client.Authentication.Token = null;
-                    await CheckAuthorizationAsync();
-                    if (!string.IsNullOrEmpty(client.Authentication.Token))
-                    {
-                        return await QueueEpisodeImageDownloadAsync(tvDBEpisodeID, downloadImages, forceRefresh);
-                    }
-                    // suppress 404 and move on
-                }
-                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
-                logger.Error(exception,
-                    $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, $"Error in TVDBHelper.GetEpisodes: {ex}");
-            }
-            return null;
-        }
-
         public static void UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
         {
             try
@@ -824,10 +701,22 @@ namespace Shoko.Server.Providers.TvDB
                     if (!existingEpIds.Contains(item.Id))
                         existingEpIds.Add(item.Id);
 
-                    string infoString = $"{tvSeries.SeriesName} - Episode {item.AbsoluteNumber?.ToString() ?? "X"}";
-                    CommandRequest_TvDBUpdateEpisode epcmd =
-                        new CommandRequest_TvDBUpdateEpisode(item.Id, infoString, downloadImages, forceRefresh);
-                    epcmd.Save();
+                    var ep = RepoFactory.TvDB_Episode.GetByTvDBID(item.Id) ?? new TvDB_Episode();
+                    ep.Populate(item);
+                    RepoFactory.TvDB_Episode.Save(ep);
+                    
+                    if (downloadImages)
+                        if (!string.IsNullOrEmpty(ep.Filename))
+                        {
+                            bool fileExists = File.Exists(ep.GetFullImagePath());
+                            if (!fileExists || forceRefresh)
+                            {
+                                CommandRequest_DownloadImage cmd =
+                                    new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
+                                        ImageEntityType.TvDB_Episode, forceRefresh);
+                                cmd.Save();
+                            }
+                        }
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
