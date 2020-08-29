@@ -319,8 +319,13 @@ namespace Shoko.Server
                     firstgroupingcount)) return;
 
                 // the rest won't be pretty
+                // Try to match exact titles. This may get really messy, but hopefully the exact matching will prevent issues
+                TryToMatchEpisodesManyTo1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches);
                 // try to match air dates. Don't remove eps from the list of possible matches
                 TryToMatchEpisodesManyTo1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
+
+                // Correct Matches
+                CorrectMatchRatings(ref matches);
 
                 // Fill in the rest and pray to Molag Bal for vengence on thy enemies
                 FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
@@ -808,6 +813,31 @@ namespace Shoko.Server
             return true;
 
         }
+        
+        private static void TryToMatchEpisodesManyTo1ByTitle(ref List<AniDB_Episode> aniepsNormal,
+            ref List<TvDB_Episode> tvepsNormal,
+            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        {
+            foreach (var aniep in aniepsNormal.ToList())
+            {
+                string anititle = aniep.GetEnglishTitle();
+                if (string.IsNullOrEmpty(anititle)) continue;
+
+                foreach (var tvep in tvepsNormal)
+                {
+                    string tvtitle = tvep.EpisodeName;
+                    if (string.IsNullOrEmpty(tvtitle)) continue;
+                    
+                        if (!anititle.RemoveDiacritics().FilterCharacters(Letters).Equals(
+                            tvtitle.RemoveDiacritics().FilterCharacters(Letters),
+                            StringComparison.InvariantCultureIgnoreCase)) continue;
+                        // Add them to the matches and remove them from the lists to process
+                    matches.Add((aniep, tvep, MatchRating.Mkay));
+                    aniepsNormal.Remove(aniep);
+                    break;
+                }
+            }
+        }
 
         private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
@@ -824,7 +854,7 @@ namespace Shoko.Server
                     // check if the dates are within reason
                     if (!aniair.Value.IsWithinErrorMargin(tvair.Value, TimeSpan.FromDays(1.5))) continue;
                     // Add them to the matches and remove them from the lists to process
-                    matches.Add((aniep, tvep, MatchRating.Good));
+                    matches.Add((aniep, tvep, MatchRating.Mkay));
                     aniepsNormal.Remove(aniep);
                     break;
                 }
