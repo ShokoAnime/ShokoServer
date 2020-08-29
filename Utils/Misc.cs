@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -712,6 +713,14 @@ namespace Shoko.Commons.Utils
             if (result.ExactMatch) return true;
             if (text.Length <= 5 && result.Distance > 0.5D) return false;
             return result.Distance < 0.8D;
+        }
+
+        public static string RemoveDiacritics(this string text) 
+        {
+            return new string((from c in text.Normalize(NormalizationForm.FormD)
+                let unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c)
+                where unicodeCategory != UnicodeCategory.NonSpacingMark
+                select c).ToArray()).Normalize(NormalizationForm.FormC);
         }
 
         public static bool IsImageValid(string path)
