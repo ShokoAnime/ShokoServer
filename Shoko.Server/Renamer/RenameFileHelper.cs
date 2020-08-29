@@ -19,8 +19,8 @@ namespace Shoko.Server
 {
     public class RenameFileHelper
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
         public static IDictionary<string, string> LegacyScriptDescriptions { get; } = new Dictionary<string, string>();
 
         public static string GetFilename(SVR_VideoLocal_Place place, string fallbackScript = null)
@@ -68,7 +68,7 @@ namespace Shoko.Server
                 if (string.IsNullOrEmpty(args.DestinationPath) || args.DestinationImportFolder == null) continue;
                 var importFolder = RepoFactory.ImportFolder.GetByImportLocation(args.DestinationImportFolder.Location);
                 if (importFolder != null) return (importFolder, args.DestinationPath);
-                logger.Error(
+                Logger.Error(
                     $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was {renamer.GetType().GetAssemblyName()}");
             }
 
@@ -156,7 +156,7 @@ namespace Shoko.Server
                     if (key == null) continue;
                     if (LegacyScriptImplementations.ContainsKey(key))
                     {
-                        logger.Warn(
+                        Logger.Warn(
                             $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {LegacyScriptImplementations[key]}@{LegacyScriptImplementations[key].Assembly.Location}");
                         continue;
                     }

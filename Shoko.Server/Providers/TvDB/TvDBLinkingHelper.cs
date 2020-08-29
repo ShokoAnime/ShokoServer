@@ -642,6 +642,8 @@ namespace Shoko.Server
             }
         }
 
+        private static readonly char[] Letters = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToArray();
+
         private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal,
             ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
@@ -663,7 +665,9 @@ namespace Shoko.Server
                     }
                     else
                     {
-                        if (!anititle.Equals(tvtitle, StringComparison.InvariantCultureIgnoreCase)) continue;
+                        if (!anititle.RemoveDiacritics().FilterCharacters(Letters).Equals(
+                            tvtitle.RemoveDiacritics().FilterCharacters(Letters),
+                            StringComparison.InvariantCultureIgnoreCase)) continue;
                     }
                     // Add them to the matches and remove them from the lists to process
                     matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
