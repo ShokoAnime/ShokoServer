@@ -17,15 +17,6 @@ namespace Shoko.Server.Repositories.Cached
             EpisodeIDs = new PocoIndex<int, TvDB_Episode, int>(Cache, a => a.Id);
         }
 
-        public TvDB_EpisodeRepository()
-        {
-            EndSaveCallback += episode =>
-            {
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID);
-                xref.ForEach(a => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(a.AniDBID));
-            };
-        }
-
         public TvDB_Episode GetByTvDBID(int id)
         {
             lock (Cache)

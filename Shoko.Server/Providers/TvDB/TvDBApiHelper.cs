@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
@@ -724,7 +725,10 @@ namespace Shoko.Server.Providers.TvDB
                 foreach (TvDB_Episode oldEp in allEps)
                     if (!existingEpIds.Contains(oldEp.Id))
                         RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
-                // Not updating stats as it will happen with the episodes
+                
+                // Updating stats as it will not happen with the episodes
+                RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(seriesID).Select(a => a.AniDBID).Distinct()
+                    .ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
             }
             catch (Exception ex)
             {
