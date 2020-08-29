@@ -26,6 +26,7 @@ namespace Shoko.Server.Settings
     {
         private const string SettingsFilename = "settings-server.json";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly object SettingsLock = new object();
 
         //in this way, we could host two ShokoServers int the same machine
         [JsonIgnore]
@@ -398,9 +399,12 @@ namespace Shoko.Server.Settings
                 throw new ValidationException();
             }
 
-            string onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
-            string inCode = Serialize(this, true);
-            if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
+            lock (SettingsLock)
+            {
+                string onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
+                string inCode = Serialize(this, true);
+                if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
+            }
         }
 
         public static string Serialize(object obj, bool indent = false)
