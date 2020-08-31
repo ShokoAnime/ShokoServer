@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.MediaInfo;
@@ -116,6 +117,31 @@ namespace Shoko.Server.API.v3.Controllers
             query = query.Replace('/', Path.DirectorySeparatorChar);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
+                .Distinct()
+                .Where(a =>
+                {
+                    var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
+                    return ser == null || User.AllowedSeries(ser);
+                }).Select(a => new File.FileDetailed(a)).ToList();
+            return results;
+        }
+        
+        /// <summary>
+        /// Search for a file by path or name via regex. Internally, it will convert \/ to the system directory separator and match against the string
+        /// </summary>
+        /// <param name="path">a path to search for. URL Encoded</param>
+        /// <returns></returns>
+        [HttpGet("PathRegex/{*path}")]
+        public ActionResult<List<File.FileDetailed>> RegexSearchByFilename(string path)
+        {
+            var query = path;
+            if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+            if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+            if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
+            var regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+            var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+                .Where(a => regex.IsMatch(a.FullServerPath)).Select(a => a.VideoLocal)
                 .Distinct()
                 .Where(a =>
                 {
