@@ -15,8 +15,7 @@ namespace Shoko.Server
 {
     public static class TvDBLinkingHelper
     {
-        #region TvDB Matching
-         static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
@@ -207,6 +206,8 @@ namespace Shoko.Server
             return matches;
         }
 
+        #region internal processing
+
         private static void TryToMatchNormalEpisodesToTvDB(List<AniDB_Episode> aniepsNormal,
             List<TvDB_Episode> tvepsNormal, bool isAiring, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
         {
@@ -261,6 +262,7 @@ namespace Shoko.Server
                         bool weekly1to1 = isregular && firstgroupingcount == 1;
                         if (isregular && firstgroupingcount != 1)
                         {
+                            // one2one can only be false here, but we're saying it for clarity
                             one2one = false;
                             // skip the next step, since we are pretty confident in the season matching here
                             // since we are skipping ahead, set tvepsNormal
@@ -647,8 +649,6 @@ namespace Shoko.Server
             }
         }
 
-        private static readonly char[] Letters = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".ToArray();
-
         private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal,
             ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
@@ -670,9 +670,9 @@ namespace Shoko.Server
                     }
                     else
                     {
-                        if (!anititle.RemoveDiacritics().FilterCharacters(Letters).Equals(
-                            tvtitle.RemoveDiacritics().FilterCharacters(Letters),
-                            StringComparison.InvariantCultureIgnoreCase)) continue;
+                        if (!anititle.RemoveDiacritics().FilterLetters().Equals(
+                            tvtitle.RemoveDiacritics().FilterLetters(), StringComparison.InvariantCultureIgnoreCase))
+                            continue;
                     }
                     // Add them to the matches and remove them from the lists to process
                     matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
@@ -709,7 +709,9 @@ namespace Shoko.Server
                 // this method returns false if either is null
                 bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
 
-                if (!titlesMatch) matches[index] = (match.Item1, match.Item2, MatchRating.Mkay);
+                matches[index] = titlesMatch
+                    ? (match.Item1, match.Item2, MatchRating.Good)
+                    : (match.Item1, match.Item2, MatchRating.Mkay);
             }
         }
 
@@ -827,10 +829,9 @@ namespace Shoko.Server
                 {
                     string tvtitle = tvep.EpisodeName;
                     if (string.IsNullOrEmpty(tvtitle)) continue;
-                    
-                        if (!anititle.RemoveDiacritics().FilterCharacters(Letters).Equals(
-                            tvtitle.RemoveDiacritics().FilterCharacters(Letters),
-                            StringComparison.InvariantCultureIgnoreCase)) continue;
+
+                    if (!anititle.RemoveDiacritics().FilterLetters().Equals(tvtitle.RemoveDiacritics().FilterLetters(),
+                        StringComparison.InvariantCultureIgnoreCase)) continue;
                         // Add them to the matches and remove them from the lists to process
                     matches.Add((aniep, tvep, MatchRating.Mkay));
                     aniepsNormal.Remove(aniep);
@@ -1043,8 +1044,6 @@ namespace Shoko.Server
             return default;
         }
 
-        #endregion
-
         private static int ToIso8601WeekNumber(this DateTime date)
         {
             var thursday = date.AddDays(3 - date.DayOfWeek.DayOffset());
@@ -1055,5 +1054,7 @@ namespace Shoko.Server
         {
             return ((int)weekDay + 6) % 7;
         }
+
+        #endregion
     }
 }
