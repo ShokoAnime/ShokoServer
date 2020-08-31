@@ -358,26 +358,56 @@ namespace Shoko.Commons.Utils
             }
         }
 
-        private static readonly IStringDistance DiceSearch = new SorensenDice(); 
-        
-        // A char array of the allowed characters. This should be infinitely faster
-        private static readonly HashSet<char> AllowedSearchCharacters =
-            new HashSet<char>(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.?*&".ToCharArray());
+        private static readonly IStringDistance DiceSearch = new SorensenDice();
+
+        private static bool IsAllowedSearchCharacter(this char a)
+        {
+            if (a == 32) return true;
+            if (a == '!') return true;
+            if (a == '.') return true;
+            if (a == '?') return true;
+            if (a == '*') return true;
+            if (a == '&') return true;
+            if (a > 47 && a < 58) return true;
+            if (a > 64 && a < 91) return true;
+            return a > 96 && a < 123;
+        }
 
         public static string FilterCharacters(this string value, IEnumerable<char> allowed, bool blacklist = false)
         {
-            StringBuilder sb = new StringBuilder(value);
-            int dest = 0;
-            for (int i = 0; i <= sb.Length - 1; i++)
+            if (!(allowed is HashSet<char> newSet)) newSet = new HashSet<char>(allowed);
+            StringBuilder sb = new StringBuilder(value.Length);
+            foreach (char a in value)
             {
-                if (blacklist ^ allowed.Contains(sb[i]))
-                {
-                    sb[dest] = sb[i];
-                    dest++;
-                }
+                if (!(blacklist ^ newSet.Contains(a))) continue;
+                sb.Append(a);
+            }
+            return sb.ToString();
+        }
+
+        public static string FilterSearchCharacters(this string value)
+        {
+            StringBuilder sb = new StringBuilder(value.Length);
+            foreach (char a in value)
+            {
+                if (!a.IsAllowedSearchCharacter()) continue;
+                sb.Append(a);
+            }
+            return sb.ToString();
+        }
+
+        public static string FilterLetters(this string value)
+        {
+            StringBuilder sb = new StringBuilder(value.Length);
+            foreach (char a in value)
+            {
+                if (a < 48 && a != 32) continue;
+                if (a > 122) continue;
+                if (a > 90 && a < 97) continue;
+                if (a > 57 && a < 65) continue;
+                sb.Append(a);
             }
 
-            sb.Length = dest;
             return sb.ToString();
         }
 
@@ -668,8 +698,8 @@ namespace Shoko.Commons.Utils
                 return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
             // This forces ASCII, because it's faster to stop caring if ss and ß are the same
             // No it's not perfect, but it works better for those who just want to do lazy searching
-            string inputString = text.FilterCharacters(AllowedSearchCharacters);
-            string query = pattern.FilterCharacters(AllowedSearchCharacters);
+            string inputString = text.FilterSearchCharacters();
+            string query = pattern.FilterSearchCharacters();
             inputString = inputString.Replace('_', ' ').Replace('-', ' ');
             query = query.Replace('_', ' ').Replace('-', ' ');
             query = query.CompactWhitespaces();
@@ -717,10 +747,15 @@ namespace Shoko.Commons.Utils
 
         public static string RemoveDiacritics(this string text) 
         {
-            return new string((from c in text.Normalize(NormalizationForm.FormD)
-                let unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c)
-                where unicodeCategory != UnicodeCategory.NonSpacingMark
-                select c).ToArray()).Normalize(NormalizationForm.FormC);
+            string s = text.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder(s.Length);
+            foreach (char c in s)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark) sb.Append(c);
+            }
+
+            return sb.ToString().Normalize(NormalizationForm.FormC);
         }
 
         public static bool IsImageValid(string path)
