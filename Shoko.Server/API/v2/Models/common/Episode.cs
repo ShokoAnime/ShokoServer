@@ -111,7 +111,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             index = 0,
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                                tvep.TvDB_EpisodeID)
+                                tvep.Id)
                         });
                     var fanarts = aep.GetAnimeSeries()?.GetAnime()?.Contract?.AniDBAnime?.Fanarts;
                     if (fanarts != null && fanarts.Count > 0)
@@ -131,7 +131,7 @@ namespace Shoko.Server.API.v2.Models.common
                         {
                             index = 0,
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Episode,
-                                tvep.TvDB_EpisodeID)
+                                tvep.Id)
                         });
                     }
                 }
