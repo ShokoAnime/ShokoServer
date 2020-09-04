@@ -658,7 +658,11 @@ namespace Shoko.Server.Server
 
                                 foreach (string file in files)
                                 {
-                                    if (FileHashHelper.IsVideo(file))
+                                    if (ServerSettings.Instance.Import.Exclude.Any(s => file.Contains(s)))
+                                    {
+                                        logger.Info("Import exclusion, skipping file {0}", file);
+                                    }
+                                    else if (FileHashHelper.IsVideo(file))
                                     {
                                         logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
@@ -671,7 +675,11 @@ namespace Shoko.Server.Server
                             {
                                 logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                if (ServerSettings.Instance.Import.Exclude.Any(s => evt.FullPath.Contains(s)))
+                                {
+                                    logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
+                                }
+                                else if (FileHashHelper.IsVideo(evt.FullPath))
                                 {
                                     logger.Info("Found file {0}", evt.FullPath);
 
