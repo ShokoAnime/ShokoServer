@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
 using NLog;
 using NutzCode.CloudFileSystem;
@@ -272,7 +273,7 @@ namespace Shoko.Server
                             dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
 
-                    if (ServerSettings.Instance.Import.Exclude.Any(s => fileName.Contains(s)))
+                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
                     {
                         logger.Trace("Import exclusion, skipping --- {0}", fileName);
                         continue;
@@ -323,7 +324,7 @@ namespace Shoko.Server
             {
                 i++;
 
-                if (ServerSettings.Instance.Import.Exclude.Any(s => fileName.Contains(s)))
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
                 {
                     logger.Trace("Import exclusion, skipping --- {0}", fileName);
                     continue;
@@ -394,7 +395,7 @@ namespace Shoko.Server
             List<string> fileListNew = new List<string>();
             foreach (string fileName in fileList)
             {
-                if (ServerSettings.Instance.Import.Exclude.Any(s => fileName.Contains(s)))
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
                 {
                     logger.Trace("Import exclusion, skipping --- {0}", fileName);
                     continue;
@@ -445,7 +446,7 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                if (ServerSettings.Instance.Import.Exclude.Any(s => fileName.Contains(s)))
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
                 {
                     logger.Trace("Import exclusion, skipping --- {0}", fileName);
                     continue;

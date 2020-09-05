@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
+using System.Text.RegularExpressions;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -658,7 +659,7 @@ namespace Shoko.Server.Server
 
                                 foreach (string file in files)
                                 {
-                                    if (ServerSettings.Instance.Import.Exclude.Any(s => file.Contains(s)))
+                                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file,s)))
                                     {
                                         logger.Info("Import exclusion, skipping file {0}", file);
                                     }
@@ -675,7 +676,7 @@ namespace Shoko.Server.Server
                             {
                                 logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                if (ServerSettings.Instance.Import.Exclude.Any(s => evt.FullPath.Contains(s)))
+                                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath,s)))
                                 {
                                     logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
                                 }
@@ -706,6 +707,10 @@ namespace Shoko.Server.Server
                     logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
+
+                    //This is needed to prevent infinite looping of an event/file that causes an exception, 
+                    //otherwise evt will not be cleared and the same event/file that caused the error will be looped over again.
+                    evt = queueFileEvents.GetNextItem(); 
                 }
             }
         }
