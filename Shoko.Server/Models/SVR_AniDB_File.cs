@@ -527,10 +527,10 @@ namespace Shoko.Server.Models
                 case "chinese (traditional)": return TitleLanguage.ChineseTraditional;
                 case "chinese (cantonese)":
                 case "chinese (mandarin)":
-                case "chinese (transcription)":
                 case "chinese (unspecified)":
                 case "taiwanese":
                     return TitleLanguage.Chinese;
+                case "chinese (transcription)": return TitleLanguage.Pinyin;
                 case "japanese": return TitleLanguage.Japanese;
                 case "japanese (transcription)": return TitleLanguage.Romaji;
                 case "catalan":

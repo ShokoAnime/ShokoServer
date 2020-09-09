@@ -2029,6 +2029,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     return TitleLanguage.Vietnamese;
                 case "ZH":
                     return TitleLanguage.Chinese;
+                case "X-ZHT":
+                    return TitleLanguage.Pinyin;
                 case "ZH-HANS":
                     return TitleLanguage.ChineseSimplified;
                 case "ZH-HANT":
