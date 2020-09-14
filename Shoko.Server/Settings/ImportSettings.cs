@@ -8,7 +8,7 @@ namespace Shoko.Server.Settings
         
         public List<string> VideoExtensions { get; set; } = new List<string> { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
 
-        public List<string> Exclude { get; set; } = new List<string> { "$RECYCLE.BIN", ".Recycle.Bin", ".Trash-" };
+        public List<string> Exclude { get; set; } = new List<string> { @"(\\|\/)\$RECYCLE\.BIN(\\|\/)", @"(\\|\/)\.Recycle\.Bin(\\|\/)" };
 
         public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
 
