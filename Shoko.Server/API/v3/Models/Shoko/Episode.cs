@@ -56,8 +56,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Size = ep.GetVideoLocals().Count;
         }
 
-        internal static string[] TitleLanguages = new string[] { "EN", "X-JAT", "X-ZHT", "X-OTHER" };
-
         public static AniDB GetAniDBInfo(AniDB_Episode ep)
         {
             decimal rating = 0;
