@@ -51,24 +51,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             var uid = ctx.GetUser()?.JMMUserID ?? 0;
             Watched = ep.GetUserRecord(uid)?.WatchedDate;
-            Name = GetEpisodeName(anidb);
+            Name = ep.Title;
 
             Size = ep.GetVideoLocals().Count;
         }
 
         internal static string[] TitleLanguages = new string[] { "EN", "X-JAT", "X-ZHT", "X-OTHER" };
-
-        public static string GetEpisodeName(AniDB_Episode a)
-        {
-            if (a == null) return "Episode 0";
-            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID);
-            if (titles != null) foreach (string lang in TitleLanguages)
-            {
-                string title = titles.FirstOrDefault(s => s.Language == lang)?.Title;
-                if (title != null) return title;
-            }
-            return $"Episode {a.EpisodeNumber}";
-        }
 
         public static AniDB GetAniDBInfo(AniDB_Episode ep)
         {
