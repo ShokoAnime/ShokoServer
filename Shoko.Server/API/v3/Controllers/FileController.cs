@@ -77,6 +77,13 @@ namespace Shoko.Server.API.v3.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Update either watch status, resume position, or both.
+        /// </summary>
+        /// <param name="id">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
+        /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
+        /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
+        /// <returns></returns>
         [HttpPatch("{id}/Scrobble")]
         public ActionResult ScrobbleStatusOnFile(int id, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
         {
