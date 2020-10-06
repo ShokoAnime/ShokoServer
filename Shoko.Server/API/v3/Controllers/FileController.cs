@@ -90,15 +90,26 @@ namespace Shoko.Server.API.v3.Controllers
             var file = RepoFactory.VideoLocal.GetByID(id);
             if (file == null) return BadRequest("Could not get videolocal with ID: " + id);
 
+            if (!(watched ?? false) && resumePosition != null)
+            {
+                var safeRP = resumePosition ?? 0;
+                if (safeRP < 0) safeRP = 0;
+
+                if (safeRP >= file.Duration)
+                    watched = true;
+                else
+                    file.SetResumePosition(safeRP, User.JMMUserID);
+            }
+
             if (watched != null)
             {
-                file.ToggleWatchedStatus(watched ?? false, User.JMMUserID);
-                file.SetResumePosition(0, User.JMMUserID);
-            } 
-            else if (resumePosition != null)
-            {
-                file.SetResumePosition(resumePosition ?? 0, User.JMMUserID);
+                var safeWatched = watched ?? false;
+                file.ToggleWatchedStatus(safeWatched, User.JMMUserID);
+                if (safeWatched)
+                    file.SetResumePosition(0, User.JMMUserID);
+
             }
+
             return Ok();
         }
         
