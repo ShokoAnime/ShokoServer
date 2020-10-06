@@ -86,6 +86,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (watched != null)
             {
                 file.ToggleWatchedStatus(watched ?? false, User.JMMUserID);
+                file.SetResumePosition(0, User.JMMUserID);
             } 
             else if (resumePosition != null)
             {
