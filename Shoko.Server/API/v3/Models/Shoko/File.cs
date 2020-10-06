@@ -35,13 +35,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public List<Location> Locations { get; set; }
 
         /// <summary>
-        /// 
+        /// The last watched date for the current user. Is null if unwatched
         /// </summary>
         /// <value></value>
         public DateTime? Watched { get; set; }
 
         /// <summary>
-        /// 
+        /// Number of ticks into the video to resume from
         /// </summary>
         public long? ResumePosition { get; set; }
         
