@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var videoLocal = RepoFactory.VideoLocal.GetByID(id);
             if (videoLocal == null) return BadRequest("No File with ID");
-            return new File(videoLocal);
+            return new File(HttpContext, videoLocal);
         }
         
         /// <summary>
@@ -74,6 +74,42 @@ namespace Shoko.Server.API.v3.Controllers
             if (file == null) return BadRequest("Could not get the videolocal with ID: " + id);
             
             file.ToggleWatchedStatus(watched, User.JMMUserID);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Update either watch status, resume position, or both.
+        /// </summary>
+        /// <param name="id">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
+        /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
+        /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
+        /// <returns></returns>
+        [HttpPatch("{id}/Scrobble")]
+        public ActionResult ScrobbleStatusOnFile(int id, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+        {
+            var file = RepoFactory.VideoLocal.GetByID(id);
+            if (file == null) return BadRequest("Could not get videolocal with ID: " + id);
+
+            if (!(watched ?? false) && resumePosition != null)
+            {
+                var safeRP = resumePosition ?? 0;
+                if (safeRP < 0) safeRP = 0;
+
+                if (safeRP >= file.Duration)
+                    watched = true;
+                else
+                    file.SetResumePosition(safeRP, User.JMMUserID);
+            }
+
+            if (watched != null)
+            {
+                var safeWatched = watched ?? false;
+                file.ToggleWatchedStatus(safeWatched, User.JMMUserID);
+                if (safeWatched)
+                    file.SetResumePosition(0, User.JMMUserID);
+
+            }
+
             return Ok();
         }
         
@@ -122,7 +158,7 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
                     return ser == null || User.AllowedSeries(ser);
-                }).Select(a => new File.FileDetailed(a)).ToList();
+                }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
             return results;
         }
         
@@ -147,7 +183,7 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     var ser = a?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
                     return ser == null || User.AllowedSeries(ser);
-                }).Select(a => new File.FileDetailed(a)).ToList();
+                }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
             return results;
         }
         
@@ -160,7 +196,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             if (limit <= 0) limit = -1;
             return RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID)
-                .Select(file => new File.FileDetailed(file)).ToList();
+                .Select(file => new File.FileDetailed(HttpContext, file)).ToList();
         }
 
         /// <summary>
@@ -172,9 +208,9 @@ namespace Shoko.Server.API.v3.Controllers
         public List<File> GetUnrecognizedFiles(int pageSize = 100, int page = 0)
         {
             if (pageSize <= 0)
-                return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(a => new File(a)).ToList();
+                return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(a => new File(HttpContext, a)).ToList();
             return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Skip(pageSize * page).Take(pageSize)
-                .Select(a => new File(a)).ToList();
+                .Select(a => new File(HttpContext, a)).ToList();
         }
 
         /// <summary>

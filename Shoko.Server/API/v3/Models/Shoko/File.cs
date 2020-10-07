@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.MediaInfo;
@@ -32,6 +33,17 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// All of the Locations that this file exists in
         /// </summary>
         public List<Location> Locations { get; set; }
+
+        /// <summary>
+        /// The last watched date for the current user. Is null if unwatched
+        /// </summary>
+        /// <value></value>
+        public DateTime? Watched { get; set; }
+
+        /// <summary>
+        /// Number of ticks into the video to resume from
+        /// </summary>
+        public long? ResumePosition { get; set; }
         
         /// <summary>
         /// Try to fit this file's resolution to something like 1080p, 480p, etc
@@ -45,8 +57,10 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public DateTime Created { get; set; }
 
         public File() {}
+
+        public File(SVR_VideoLocal vl) : this(null, vl) {}
         
-        public File(SVR_VideoLocal vl)
+        public File(HttpContext ctx, SVR_VideoLocal vl)
         {
             ID = vl.VideoLocalID;
             Size = vl.FileSize;
@@ -65,6 +79,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Accessible = a.GetFile() != null
             }).ToList();
             Created = vl.DateTimeCreated;
+            var ur = vl.GetUserRecord(ctx?.GetUser()?.JMMUserID ?? 0);
+            ResumePosition = ur?.ResumePosition ?? 0;
+            Watched = ur?.WatchedDate;
         }
 
         public static MediaContainer GetMedia(int id)
@@ -292,7 +309,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             public FileDetailed() {}
 
-            public FileDetailed(SVR_VideoLocal vl) : base(vl)
+            public FileDetailed(SVR_VideoLocal vl) : this(null, vl) {}
+
+            public FileDetailed(HttpContext ctx, SVR_VideoLocal vl) : base(ctx, vl)
             {
                 var episodes = vl.GetAnimeEpisodes();
                 if (episodes.Count == 0) return;
