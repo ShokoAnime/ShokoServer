@@ -316,7 +316,7 @@ namespace Shoko.Server.Commands
                     Raw_AniDB_File fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vidLocal);
                     if (fileInfo != null)
                     {
-                        aniFile??= new SVR_AniDB_File();
+                        aniFile ??= new SVR_AniDB_File();
                         SVR_AniDB_File.Populate(aniFile, fileInfo);
                     }
                 }
