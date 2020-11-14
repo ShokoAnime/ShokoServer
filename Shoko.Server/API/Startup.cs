@@ -119,7 +119,10 @@ namespace Shoko.Server.API
             });
 
             // this caused issues with auth. https://stackoverflow.com/questions/43574552
-            var mvc = services.AddMvc(options =>
+
+
+
+            var controllers = services.AddControllers(options =>
                 {
                     options.EnableEndpointRouting = true;
                     options.AllowEmptyInputInBodyModelBinding = true;
@@ -149,7 +152,7 @@ namespace Shoko.Server.API
             {
                 var assembly = type.Assembly;
                 if (assembly == Assembly.GetCallingAssembly()) continue; //Skip the current assembly, this is implicitly added by ASP.
-                mvc.AddApplicationPart(assembly).AddControllersAsServices();
+                controllers.AddApplicationPart(assembly).AddControllersAsServices();
             }
 
 
@@ -168,7 +171,7 @@ namespace Shoko.Server.API
             services.AddResponseCaching();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
             app.Use(async (context, next) =>
             {
@@ -218,15 +221,14 @@ namespace Shoko.Server.API
                 });
             // Important for first run at least
             app.UseAuthentication();
+            app.UseRouting();
+            app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseEndpoints(conf =>
             {
                 conf.MapHub<EventsHub>("/signalr/events");
                 conf.MapHub<LoggingHub>("/signalr/logging");
+                conf.MapControllers();
             });
-
-            app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-            app.UseRouting();
-            app.UseMvc();
         }
 
         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target) {
