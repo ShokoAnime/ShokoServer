@@ -67,7 +67,7 @@ namespace Shoko.Server.Databases
             {
                 AllVersions = RepoFactory.Versions.GetAllByType(Constants.DatabaseTypeKey);
             }
-            catch //First Time
+            catch (Exception e) //First Time
             {
                 AllVersions = new Dictionary<string, Dictionary<string, Versions>>();
             }
