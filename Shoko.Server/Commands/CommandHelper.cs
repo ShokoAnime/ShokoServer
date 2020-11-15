@@ -11,7 +11,7 @@ namespace Shoko.Server.Commands
 {
     public static class CommandHelper
     {
-        private static Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>> CommandRequestImpls;
+        private static Dictionary<CommandRequestType, Func<CommandRequestImplementation>> CommandRequestImpls;
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         // List of priorities for commands
@@ -108,9 +108,12 @@ namespace Shoko.Server.Commands
         // Pri 11
         //------
 
+
         public static void LoadCommands()
         {
-            CommandRequestImpls = new Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>>();
+
+
+            CommandRequestImpls = new Dictionary<CommandRequestType, Func<CommandRequestImplementation>>();
 
             IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => { try { return a.GetTypes(); } catch { return new Type[]{}; }}).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
             foreach (var commandType in types)
@@ -122,8 +125,8 @@ namespace Shoko.Server.Commands
                     continue;
                 }
 
-                var ctor = ReflectionUtils.GetActivator<CommandRequestImplementation>(commandType.GetConstructor(Type.EmptyTypes));
-                CommandRequestImpls.Add(attr, ctor);
+                CommandRequestImpls.Add(attr, ()=> (CommandRequestImplementation)Activator.CreateInstance(commandType));
+
             }
         }
 
@@ -134,7 +137,7 @@ namespace Shoko.Server.Commands
                 return null;
 
             if (!CommandRequestImpls.TryGetValue((CommandRequestType)crdb.CommandType,
-                out ReflectionUtils.ObjectActivator<CommandRequestImplementation> ctor)) return null;
+                out Func<CommandRequestImplementation> ctor)) return null;
 
             try
             {

@@ -423,7 +423,10 @@ namespace Shoko.Server.Commands
             // populate the fields
             VideoLocalID = int.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "VideoLocalID"));
             ForceAniDB = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "ForceAniDB"));
-            SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList"));
+            SkipMyList = false;
+            string n = TryGetProperty(docCreator, "CommandRequest_ProcessFile", "SkipMyList");
+            if (!string.IsNullOrEmpty(n))
+                SkipMyList = bool.Parse(n);
             vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
 
             return true;

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -21,6 +22,22 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                 string[] strings = existingString.Split(new[] {" / "}, StringSplitOptions.RemoveEmptyEntries);
                 if (strings.Length == 1)
                 {
+                    if (DateTime.TryParseExact(existingString,"yyyy-dd-MM hh:mm:ss.tt",
+                           CultureInfo.InvariantCulture,
+                           DateTimeStyles.None,
+                           out DateTime dt))
+                        return dt;
+                    if (DateTime.TryParseExact(existingString, "yyyy-dd-MM hh:mm:ss",
+                           CultureInfo.InvariantCulture,
+                           DateTimeStyles.None,
+                           out DateTime dt2))
+                        return dt2;
+                    if (DateTime.TryParseExact(existingString, "yyyy-dd-MM hh:mm tt",
+                           CultureInfo.InvariantCulture,
+                           DateTimeStyles.None,
+                           out DateTime dt3))
+                        return dt3;
+
                     return string.IsNullOrEmpty(DateTimeFormat)
                         ? DateTime.Parse(strings[0].Trim(), Culture, DateTimeStyles)
                         : DateTime.ParseExact(strings[0].Trim(), DateTimeFormat, Culture, DateTimeStyles);

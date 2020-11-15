@@ -72,7 +72,7 @@ namespace Shoko.Server.Commands
         }
 
         //Added size return, since symbolic links return 0, we use this function also to return the size of the file.
-        private static long CanAccessFile(string fileName, bool writeAccess, ref Exception e)
+        private static long CanAccessFile(string fileName, bool writeAccess, ref Exception e, bool recursion=true)
         {
             var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
             try
@@ -90,6 +90,7 @@ namespace Shoko.Server.Commands
             catch (Exception ex)
             {
                 // This shouldn't cause a recursion, as it'll throw if failing
+                //mpiva: NOTICE, it generate recursion in some files.
                 logger.Trace($"File {fileName} is Read-Only, unmarking");
                 try
                 {
@@ -98,8 +99,8 @@ namespace Shoko.Server.Commands
                     {
                         info.IsReadOnly = false;
                     }
-
-                    return CanAccessFile(fileName, writeAccess, ref e);
+                    if (recursion)
+                        return CanAccessFile(fileName, writeAccess, ref e,false);
                 }
                 catch
                 {
@@ -218,7 +219,7 @@ namespace Shoko.Server.Commands
                             ServerSettings.Instance.SaveSettings();
                         }
 
-                        Thread.Sleep(waitTime);
+                        //Thread.Sleep(waitTime);
                         numAttempts = 0;
 
                         //For systems with no locking
@@ -754,7 +755,10 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 FileName = TryGetProperty(docCreator, "CommandRequest_HashFile", "FileName");
                 ForceHash = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "ForceHash"));
-                SkipMyList = bool.Parse(TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList"));
+                SkipMyList = false;
+                string n = TryGetProperty(docCreator, "CommandRequest_HashFile", "SkipMyList");
+                if (!string.IsNullOrEmpty(n))
+                    SkipMyList = bool.Parse(n);
             }
 
             if (FileName.Trim().Length > 0)

@@ -74,7 +74,15 @@ namespace Shoko.Server.Repositories.Cached
                 var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null)
                     .ToList();
                 max = list.Count;
+                Dictionary<string, SVR_VideoLocal> commands = list.ToDictionary(a => new CommandRequest_ReadMediaInfo(a.VideoLocalID).CommandID,a=>a);
+                List<CommandRequest> reqs=RepoFactory.CommandRequest.GetAllCommandRequestHasher();
+                foreach (CommandRequest req in reqs)
+                {
+                    if (commands.ContainsKey(req.CommandID))
+                        commands.Remove(req.CommandID);
+                }
 
+                list = commands.Select(a => a.Value).ToList();
                 list.ForEach(
                     a =>
                     {

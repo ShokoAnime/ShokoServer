@@ -220,8 +220,9 @@ namespace Shoko.Server.API
                     }
                 });
             // Important for first run at least
-            app.UseAuthentication();
             app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseEndpoints(conf =>
             {
