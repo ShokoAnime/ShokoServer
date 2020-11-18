@@ -33,6 +33,9 @@ namespace Shoko.Cli
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
+    /// <summary>
+    ///     The command line interface for shoko server.
+    /// </summary>
     [PublicAPI]
     public class Program
     {
@@ -54,7 +57,7 @@ namespace Shoko.Cli
             return builder;
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args)
+        private static IHostBuilder CreateHostBuilder(string[] args)
         {
             string? instance = null;
             for (var x = 0; x < args.Length - 1; x++)
@@ -78,13 +81,13 @@ namespace Shoko.Cli
         }
 
         /// <summary>
-        /// Entry Point for the command line interface.
+        ///     Entry Point for the command line interface.
         /// </summary>
         /// <param name="args">
-        /// Arguments given at startup.
+        ///     Arguments given at startup.
         /// </param>
         /// <remarks>
-        /// Arguments can be used define the instance or to override environment variables
+        ///     Arguments can be used define the instance or to override environment variables
         /// </remarks>
         public static async Task Main([NotNull] string[] args)
         {

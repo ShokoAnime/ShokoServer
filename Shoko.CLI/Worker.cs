@@ -37,27 +37,42 @@ namespace Shoko.Cli
     using Server.Settings;
     using Server.Utilities;
 
+    /// <summary>
+    ///     This is a background service worker used to handle a shoko server instance.
+    /// </summary>
     public sealed class Worker : BackgroundService
     {
+        private readonly IHostApplicationLifetime _appLifetime;
+        private readonly ProgramArguments _args;
         private readonly ILogger<Worker> _logger;
 
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="Worker" /> class.
+        /// </summary>
+        /// <param name="args">
+        ///     A <see cref="ProgramArguments" /> that holds specific settings for the worker.
+        /// </param>
+        /// <param name="lifetime">
+        ///     A <see cref="IHostApplicationLifetime" /> that allows consumers to be notified of application lifetime events.
+        /// </param>
+        /// <param name="logger">
+        ///     A <see cref="ILogger{Worker}" /> instance for logging purposes.
+        /// </param>
         public Worker(ProgramArguments args, IHostApplicationLifetime lifetime, ILogger<Worker> logger)
         {
             // Make sure everything is set.
-            Args = args ?? throw new ArgumentNullException(nameof(args));
-            AppLifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
+            _args = args ?? throw new ArgumentNullException(nameof(args));
+            _appLifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private IHostApplicationLifetime AppLifetime { get; }
-        private ProgramArguments Args { get; }
-
         //async without await is useless. We return Task instead.
+        /// <inheritdoc />
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!string.IsNullOrEmpty(Args.Instance))
+            if (!string.IsNullOrEmpty(_args.Instance))
             {
-                ServerSettings.DefaultInstance = Args.Instance;
+                ServerSettings.DefaultInstance = _args.Instance;
             }
 
             ShokoServer.Instance.InitLogger();
@@ -82,7 +97,7 @@ namespace Shoko.Cli
                 _logger.LogWarning(Resources.Worker_ExecuteAsync_ServerNotStarted_LogMessage);
             }
 
-            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => AppLifetime.StopApplication();
+            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => _appLifetime.StopApplication();
             Utils.YesNoRequired += (sender, e) => e.Cancel = true;
 
             ServerState.Instance.PropertyChanged += (sender, e) =>
@@ -96,12 +111,14 @@ namespace Shoko.Cli
                                                     };
             // Changed from Console to logger output.
             // Console output can configured in the logger if a console is present.
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += ev => _logger.LogInformation(Resources.Worker_ExecuteAsync_GeneralQueueStateChange_LogMessage, ev.QueueState.formatMessage());
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent +=
+                ev => _logger.LogInformation(Resources.Worker_ExecuteAsync_GeneralQueueStateChange_LogMessage, ev.QueueState.formatMessage());
 
             //Everything is fine so we return a completed task.
             return Task.CompletedTask;
         }
 
+        /// <inheritdoc />
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
             ShokoService.CancelAndWaitForQueues();
