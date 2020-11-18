@@ -30,11 +30,13 @@ namespace Shoko.Cli
 	using System;
 	using System.IO;
 	using System.Reflection;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Hosting;
 	using NLog.Web;
 
+	[PublicAPI]
 	public class Program
 	{
 		private static IHostBuilder CreateBuilder(string[] args)
