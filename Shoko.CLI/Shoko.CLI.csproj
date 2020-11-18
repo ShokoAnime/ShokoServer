@@ -11,23 +11,12 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
+    <DocumentationFile>..\Shoko.Server\bin\Debug\Shoko.Cli.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>..\Shoko.Server\bin\Release\</OutputPath>
   </PropertyGroup>
   <PropertyGroup>
-    <!-- beauty into sub-directory, default is libs, quote with "" if contains space  -->
-    <BeautyLibsDir>libraries</BeautyLibsDir>
-    <!-- dlls that you don't want to be moved or can not be moved -->
-    <BeautyExcludes>Shoko*;NutzCode*</BeautyExcludes>
-    <!-- set to True if you want to disable -->
-    <DisableBeauty>True</DisableBeauty>
-    <ForceBeauty>False</ForceBeauty>
-    <!-- <BeautyAfterTasks></BeautyAfterTasks> -->
-    <!-- set to True if you want to disable -->
-    <DisablePatch>True</DisablePatch>
-    <!-- valid values: Error|Detail|Info -->
-    <BeautyLogLevel>Info</BeautyLogLevel>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
     <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     <SignAssembly>true</SignAssembly>
@@ -50,6 +39,18 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
-    <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

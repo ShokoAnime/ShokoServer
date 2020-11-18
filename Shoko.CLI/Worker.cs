@@ -32,6 +32,7 @@ namespace Shoko.Cli
     using System.Threading.Tasks;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Properties;
     using Server.Server;
     using Server.Settings;
     using Server.Utilities;
@@ -67,6 +68,7 @@ namespace Shoko.Cli
             {
                 return Task.CompletedTask;
                 //TODO: Maybe it is more fitting to return an Task With Exception that represents the case that the instance in not started.
+                //return Task.FromException()
             }
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
@@ -77,7 +79,7 @@ namespace Shoko.Cli
             }
             else
             {
-                _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via WebUI or the settings.json");
+                _logger.LogWarning(Resources.Worker_ExecuteAsync_ServerNotStarted_LogMessage);
             }
 
             ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => AppLifetime.StopApplication();
@@ -89,12 +91,12 @@ namespace Shoko.Cli
                                                         {
                                                             // Changed from Console to logger output.
                                                             // Console output can configured in the logger if a console is present.
-                                                            _logger.LogError("Startup failed! Error message: {Message}", ServerState.Instance.StartupFailedMessage);
+                                                            _logger.LogError(Resources.Worker_ExecuteAsync_StartupFailed_LogMessage, ServerState.Instance.StartupFailedMessage);
                                                         }
                                                     };
             // Changed from Console to logger output.
             // Console output can configured in the logger if a console is present.
-            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += ev => _logger.LogInformation("General Queue state change: {QueueState}", ev.QueueState.formatMessage());
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += ev => _logger.LogInformation(Resources.Worker_ExecuteAsync_GeneralQueueStateChange_LogMessage, ev.QueueState.formatMessage());
 
             //Everything is fine so we return a completed task.
             return Task.CompletedTask;
