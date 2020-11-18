@@ -27,8 +27,8 @@
 
 namespace Shoko.Cli
 {
-	public class ProgramArguments
-	{
-		public string Instance { get; set; }
-	}
+    public sealed class ProgramArguments
+    {
+        public string? Instance { get; set; }
+    }
 }

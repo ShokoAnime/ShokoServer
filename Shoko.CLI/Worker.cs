@@ -27,75 +27,75 @@
 
 namespace Shoko.Cli
 {
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using Microsoft.Extensions.Hosting;
-	using NLog;
-	using Server.Server;
-	using Server.Settings;
-	using Server.Utilities;
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Hosting;
+    using NLog;
+    using Server.Server;
+    using Server.Settings;
+    using Server.Utilities;
 
-	public class Worker : BackgroundService
-	{
-		private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    public class Worker : BackgroundService
+    {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-		public Worker() => Args = null;
+        public Worker() => Args = null;
 
-		public Worker(ProgramArguments args, IHostApplicationLifetime lifetime)
-		{
-			Args = args;
-			AppLifetime = lifetime;
-		}
+        public Worker(ProgramArguments args, IHostApplicationLifetime lifetime)
+        {
+            Args = args;
+            AppLifetime = lifetime;
+        }
 
-		private IHostApplicationLifetime AppLifetime { get; }
+        private IHostApplicationLifetime AppLifetime { get; }
 
-		public ProgramArguments Args { get; set; }
+        public ProgramArguments Args { get; set; }
 
-		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			if (!string.IsNullOrEmpty(Args?.Instance))
-			{
-				ServerSettings.DefaultInstance = Args.Instance;
-			}
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            if (!string.IsNullOrEmpty(Args?.Instance))
+            {
+                ServerSettings.DefaultInstance = Args.Instance;
+            }
 
-			ShokoServer.Instance.InitLogger();
+            ShokoServer.Instance.InitLogger();
 
-			ServerSettings.LoadSettings();
-			ServerState.Instance.LoadSettings();
-			if (!ShokoServer.Instance.StartUpServer())
-			{
-				return;
-			}
+            ServerSettings.LoadSettings();
+            ServerState.Instance.LoadSettings();
+            if (!ShokoServer.Instance.StartUpServer())
+            {
+                return;
+            }
 
-			// Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
-			ShokoServer.Instance.RestartAniDBSocket();
-			if (!ServerSettings.Instance.FirstRun)
-			{
-				ShokoServer.RunWorkSetupDB();
-			}
-			else
-			{
-				Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
-			}
+            // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
+            ShokoServer.Instance.RestartAniDBSocket();
+            if (!ServerSettings.Instance.FirstRun)
+            {
+                ShokoServer.RunWorkSetupDB();
+            }
+            else
+            {
+                Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
+            }
 
-			ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => AppLifetime.StopApplication();
-			Utils.YesNoRequired += (sender, e) => { e.Cancel = true; };
+            ShokoServer.Instance.ServerShutdown += (sender, eventArgs) => AppLifetime.StopApplication();
+            Utils.YesNoRequired += (sender, e) => { e.Cancel = true; };
 
-			ServerState.Instance.PropertyChanged += (sender, e) =>
-			                                        {
-				                                        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-				                                        {
-					                                        Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
-				                                        }
-			                                        };
-			ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
-		}
+            ServerState.Instance.PropertyChanged += (sender, e) =>
+                                                    {
+                                                        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
+                                                        {
+                                                            Console.WriteLine("Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+                                                        }
+                                                    };
+            ShokoService.CmdProcessorGeneral.OnQueueStateChangedEvent += ev => Console.WriteLine($"General Queue state change: {ev.QueueState.formatMessage()}");
+        }
 
-		public override async Task StopAsync(CancellationToken cancellationToken)
-		{
-			ShokoService.CancelAndWaitForQueues();
-			await base.StopAsync(cancellationToken);
-		}
-	}
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            ShokoService.CancelAndWaitForQueues();
+            await base.StopAsync(cancellationToken);
+        }
+    }
 }
