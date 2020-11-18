@@ -28,63 +28,28 @@
 namespace Shoko.Cli
 {
 	using System;
-	using System.IO;
-	using System.Reflection;
+	using System.Threading.Tasks;
 	using JetBrains.Annotations;
-	using Microsoft.Extensions.Configuration;
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Hosting;
-	using NLog.Web;
 
 	[PublicAPI]
 	public class Program
 	{
 		private static IHostBuilder CreateBuilder(string[] args)
 		{
-			var builder = new HostBuilder();
-
-			builder.UseContentRoot(Directory.GetCurrentDirectory());
-			builder.ConfigureHostConfiguration(config =>
-			                                   {
-				                                   config.AddEnvironmentVariables("DOTNET_");
-				                                   if (args != null)
-				                                   {
-					                                   config.AddCommandLine(args);
-				                                   }
-			                                   });
-
-			builder.ConfigureAppConfiguration((hostingContext, config) =>
-			                                  {
-				                                  IHostEnvironment env = hostingContext.HostingEnvironment;
-
-				                                  bool reloadOnChange = hostingContext.Configuration.GetValue("hostBuilder:reloadConfigOnChange", true);
-
-				                                  config.AddJsonFile("appsettings.json", true, reloadOnChange)
-				                                        .AddJsonFile($"appsettings.{env.EnvironmentName}.json", true, reloadOnChange);
-
-				                                  if (env.IsDevelopment() && !string.IsNullOrEmpty(env.ApplicationName))
-				                                  {
-					                                  Assembly appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
-					                                  if (appAssembly != null)
-					                                  {
-						                                  config.AddUserSecrets(appAssembly, true);
-					                                  }
-				                                  }
-
-				                                  config.AddEnvironmentVariables();
-
-				                                  if (args != null)
-				                                  {
-					                                  config.AddCommandLine(args);
-				                                  }
-			                                  })
-			       .UseDefaultServiceProvider((context, options) =>
-			                                  {
-				                                  bool isDevelopment = context.HostingEnvironment.IsDevelopment();
-				                                  options.ValidateScopes = isDevelopment;
-				                                  options.ValidateOnBuild = isDevelopment;
-			                                  })
-			       .UseNLog();
+			//Set up the default host builder with args.
+			//This already includes
+			//*) set the ContentRootPath to the result of GetCurrentDirectory()
+			//*) load host IConfiguration from "DOTNET_" prefixed environment variables
+			//*) load host IConfiguration from supplied command line args
+			//*) load app IConfiguration from 'appsettings.json' and 'appsettings.[EnvironmentName].json'
+			//*) load app IConfiguration from User Secrets when EnvironmentName is 'Development' using the entry assembly
+			//*) load app IConfiguration from environment variables
+			//*) load app IConfiguration from supplied command line args
+			//*) configure the ILoggerFactory to log to the console, debug, and event source output
+			//*) enables scope validation on the dependency injection container when EnvironmentName is 'Development'
+			IHostBuilder builder = Host.CreateDefaultBuilder(args);
 
 			return builder;
 		}
@@ -117,11 +82,14 @@ namespace Shoko.Cli
 				                   });
 		}
 
-		public static void Main(string[] args)
+		/// <summary>
+		/// </summary>
+		/// <param name="args"></param>
+		public static async Task Main(string[] args)
 		{
 			IHost host = CreateHostBuilder(args).Build();
 			// here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
-			host.Run();
+			await host.RunAsync();
 		}
 	}
 }

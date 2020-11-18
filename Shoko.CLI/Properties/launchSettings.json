@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Shoko.Cli": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "EnvironmenName": "Development"
+      }
+    }
+  }
+}
