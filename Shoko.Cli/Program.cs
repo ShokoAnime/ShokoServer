@@ -35,6 +35,7 @@ namespace Shoko.Cli
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using NLog.Extensions.Logging;
+    using Properties;
 
     /// <summary>
     ///     The command line interface for shoko server.
@@ -107,17 +108,17 @@ namespace Shoko.Cli
             {
                 using IHost host = CreateHostBuilder(args).Build();
                 logger = host.Services.GetRequiredService<ILogger<Program>>();
-                logger.LogInformation("Host created.");
+                logger.LogInformation(Resources.Program_Main_HostCreated_LogMessage);
                 // here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
                 await host.RunAsync();
             }
             catch (ShokoServerNotRunningException e)
             {
-                logger?.LogError(e, "Unable to start Shoko Server, the application will be closed.");
+                logger?.LogError(e, Resources.Program_Main_ShokoServerNotRunning_LogMessage);
             }
             catch (Exception e)
             {
-                logger?.LogCritical(e, "An unexpected error occurred, the application will be closed.");
+                logger?.LogCritical(e, Resources.Program_Main_UnexpectedError_LogMessage);
             }
             finally
             {
