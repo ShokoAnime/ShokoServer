@@ -30,7 +30,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Cli", "Shoko.CLI\Shoko.Cli.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shoko.Cli", "Shoko.Cli\Shoko.Cli.csproj", "{3A8E0177-9701-4A59-A6CD-16C6908839EA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{00DED27E-E274-4202-9527-4E7D07E384FC}"
 EndProject
