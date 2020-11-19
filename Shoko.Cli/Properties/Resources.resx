@@ -131,4 +131,13 @@
   <data name="Exceptions_ShokoServerNotRunning_Message" xml:space="preserve">
     <value>Shoko Server is not running.</value>
   </data>
+  <data name="Program_Main_HostCreated_LogMessage" xml:space="preserve">
+    <value>Host created.</value>
+  </data>
+  <data name="Program_Main_ShokoServerNotRunning_LogMessage" xml:space="preserve">
+    <value>Unable to start Shoko Server, the application will be closed.</value>
+  </data>
+  <data name="Program_Main_UnexpectedError_LogMessage" xml:space="preserve">
+	  <value>An unexpected error occurred, the application will be closed.</value>
+  </data>
 </root>

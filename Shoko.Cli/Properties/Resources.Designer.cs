@@ -70,6 +70,33 @@ namespace Shoko.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Host created..
+        /// </summary>
+        internal static string Program_Main_HostCreated_LogMessage {
+            get {
+                return ResourceManager.GetString("Program_Main_HostCreated_LogMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to start Shoko Server, the application will be closed..
+        /// </summary>
+        internal static string Program_Main_ShokoServerNotRunning_LogMessage {
+            get {
+                return ResourceManager.GetString("Program_Main_ShokoServerNotRunning_LogMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An unexpected error occurred, the application will be closed..
+        /// </summary>
+        internal static string Program_Main_UnexpectedError_LogMessage {
+            get {
+                return ResourceManager.GetString("Program_Main_UnexpectedError_LogMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to General queue state change: {QueueState}..
         /// </summary>
         internal static string Worker_ExecuteAsync_GeneralQueueStateChange_LogMessage {
