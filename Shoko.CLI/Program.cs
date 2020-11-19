@@ -98,13 +98,14 @@ namespace Shoko.Cli
         /// </remarks>
         public static async Task Main([NotNull] string[] args)
         {
-            //For logging with NLog to work in Main it is essential that ShutdownOnDispose is turned off.
+            //For logging with NLog to work inside of Main it is essential that ShutdownOnDispose is turned off.
             //Otherwise the catch Messages will not show up in the Log.
-            // The downside is that Shutdown of NLog has to be called explicitly generating a hard link with NLog.
+            //The downside is that Shutdown() of NLog has to be called explicitly if we use the AsyncWrapper for logging.
+            //There is no harm in calling it anyway so it is done every time.
             ILogger? logger = null;
             try
             {
-                IHost host = CreateHostBuilder(args).Build();
+                using IHost host = CreateHostBuilder(args).Build();
                 logger = host.Services.GetRequiredService<ILogger<Program>>();
                 logger.LogInformation("Host created.");
                 // here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
