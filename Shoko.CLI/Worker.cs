@@ -30,6 +30,7 @@ namespace Shoko.Cli
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Exceptions;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Properties;
@@ -81,9 +82,7 @@ namespace Shoko.Cli
             ServerState.Instance.LoadSettings();
             if (!ShokoServer.Instance.StartUpServer())
             {
-                return Task.CompletedTask;
-                //TODO: Maybe it is more fitting to return an Task With Exception that represents the case that the instance in not started.
-                //return Task.FromException()
+                return Task.FromException(new ShokoServerNotRunningException());
             }
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.

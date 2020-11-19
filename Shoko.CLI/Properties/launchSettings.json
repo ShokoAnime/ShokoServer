@@ -2,9 +2,9 @@
   "profiles": {
     "Shoko.Cli": {
       "commandName": "Project",
-      "environmentVariables": {
-        "EnvironmentName": "Development"
-      }
+        "environmentVariables": {
+	        "DOTNET_ENVIRONMENT": "Development"
+        }
     }
   }
 }

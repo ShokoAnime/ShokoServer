@@ -27,8 +27,17 @@
 
 namespace Shoko.Cli
 {
-    internal sealed class ProgramArguments
+    using JetBrains.Annotations;
+
+    /// <summary>
+    /// This class holds all possible arguments for shoko server, that are not set using environment variables.
+    /// </summary>
+    [PublicAPI]
+    public sealed class ProgramArguments
     {
-        internal string? Instance { get; set; }
+        /// <summary>
+        /// The assembly instance name of shoko server. Default: Name of shoko server executable.
+        /// </summary>
+        public string? Instance { get; set; }
     }
 }

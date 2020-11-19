@@ -29,9 +29,12 @@ namespace Shoko.Cli
 {
     using System;
     using System.Threading.Tasks;
+    using Exceptions;
     using JetBrains.Annotations;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
+    using NLog.Extensions.Logging;
 
     /// <summary>
     ///     The command line interface for shoko server.
@@ -52,8 +55,12 @@ namespace Shoko.Cli
             //*) load app IConfiguration from supplied command line args
             //*) configure the ILoggerFactory to log to the console, debug, and event source output
             //*) enables scope validation on the dependency injection container when EnvironmentName is 'Development'
-            IHostBuilder builder = Host.CreateDefaultBuilder(args);
-
+            IHostBuilder builder = Host.CreateDefaultBuilder(args).ConfigureLogging((context, loggingBuilder) =>
+                                                                                    {
+                                                                                        //Use NLog instead of default logger.
+                                                                                        loggingBuilder.ClearProviders();
+                                                                                        loggingBuilder.AddNLog(new NLogLoggingConfiguration(context.Configuration.GetSection("NLog")));
+                                                                                    });
             return builder;
         }
 
@@ -91,9 +98,31 @@ namespace Shoko.Cli
         /// </remarks>
         public static async Task Main([NotNull] string[] args)
         {
-            IHost host = CreateHostBuilder(args).Build();
-            // here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
-            await host.RunAsync();
+            //For logging with NLog to work in Main it is essential that ShutdownOnDispose is turned off.
+            //Otherwise the catch Messages will not show up in the Log.
+            // The downside is that Shutdown of NLog has to be called explicitly generating a hard link with NLog.
+            ILogger? logger = null;
+            try
+            {
+                IHost host = CreateHostBuilder(args).Build();
+                logger = host.Services.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("Host created.");
+                // here we would do things that need to happen after init, but before shutdown, while blocking the main thread.
+                await host.RunAsync();
+            }
+            catch (ShokoServerNotRunningException e)
+            {
+                logger?.LogError(e, "Unable to start Shoko Server, the application will be closed.");
+            }
+            catch (Exception e)
+            {
+                logger?.LogCritical(e, "An unexpected error occurred, the application will be closed.");
+            }
+            finally
+            {
+                //Explicit call to NLog to ensure every log is written in case of async logging.
+                NLog.LogManager.Shutdown();
+            }
         }
     }
 }

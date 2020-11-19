@@ -128,4 +128,7 @@
     <value>General queue state change: {QueueState}.</value>
     <comment>QueueState: The formated queue state change message.</comment>
   </data>
+  <data name="Exceptions_ShokoServerNotRunning_Message" xml:space="preserve">
+    <value>Shoko Server is not running.</value>
+  </data>
 </root>

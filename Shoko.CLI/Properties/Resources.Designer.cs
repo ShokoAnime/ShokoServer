@@ -61,6 +61,15 @@ namespace Shoko.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Shoko Server is not running..
+        /// </summary>
+        internal static string Exceptions_ShokoServerNotRunning_Message {
+            get {
+                return ResourceManager.GetString("Exceptions_ShokoServerNotRunning_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to General queue state change: {QueueState}..
         /// </summary>
         internal static string Worker_ExecuteAsync_GeneralQueueStateChange_LogMessage {
