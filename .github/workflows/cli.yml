@@ -1,4 +1,4 @@
-name: Build CLI
+name: Build Shoko.Cli
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
         dotnet: ['5.0']
     name: Shoko CLI build
     steps:
-      - uses: actions/checkout@net5
+      - uses: actions/checkout@v2
         with:
           submodules: recursive
       - name: Setup dotnet
