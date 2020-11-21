@@ -14,7 +14,7 @@ env:
 
 jobs:
   build_shoko_cli:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         dotnet: ['5.0']
