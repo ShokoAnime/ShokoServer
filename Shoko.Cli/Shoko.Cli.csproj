@@ -31,7 +31,7 @@
     <Version Condition="'$(SHOKO_MAJOR)' != ''">$(SHOKO_MAJOR).$(SHOKO_MINOR).$(SHOKO_PATCH).$(SHOKO_BUILD)</Version>
     <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Shoko.Server.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\Shoko.Suite.snk</AssemblyOriginatorKeyFile>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

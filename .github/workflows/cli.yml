@@ -14,7 +14,7 @@ env:
 
 jobs:
   build_shoko_cli:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
         dotnet: ['5.0']
@@ -29,7 +29,7 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 #      - run: sudo apt-get update
 #      - run: sudo apt-get install libicu60
-      - run: dotnet restore Shoko.Cli
+#      - run: dotnet restore Shoko.Cli
       - run: dotnet publish -c Release Shoko.Cli
       - uses: actions/upload-artifact@v2
         with:
