@@ -41,12 +41,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{00DE
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\cli-framework-dependent.yml = .github\workflows\cli-framework-dependent.yml
+		.github\workflows\cli-framework-dependent.yml.off = .github\workflows\cli-framework-dependent.yml.off
 		.github\workflows\cli.yml = .github\workflows\cli.yml
-		.github\workflows\docker-daily.yml = .github\workflows\docker-daily.yml
-		.github\workflows\plugin-nuget.yml = .github\workflows\plugin-nuget.yml
-		.github\workflows\tray-framework-dependent.yml = .github\workflows\tray-framework-dependent.yml
-		.github\workflows\tray.yml = .github\workflows\tray.yml
+		.github\workflows\docker-daily.yml.off = .github\workflows\docker-daily.yml.off
+		.github\workflows\plugin-nuget.yml.off = .github\workflows\plugin-nuget.yml.off
+		.github\workflows\tray-framework-dependent.yml.off = .github\workflows\tray-framework-dependent.yml.off
+		.github\workflows\tray.yml.off = .github\workflows\tray.yml.off
 		.github\workflows\UploadArchive.ps1 = .github\workflows\UploadArchive.ps1
 	EndProjectSection
 EndProject
