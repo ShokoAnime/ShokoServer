@@ -10,7 +10,6 @@
     <Nullable>enable</Nullable>
     <Platforms>AnyCPU</Platforms>
     <LangVersion>latest</LangVersion>
-    <PublishTrimmed>true</PublishTrimmed>
     <Configurations>Debug;Release</Configurations>
     <AssemblyName>Shoko.Cli</AssemblyName>
     <Authors>Shoko Team</Authors>
