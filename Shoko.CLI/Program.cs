@@ -1,10 +1,10 @@
 ﻿// ******************************* Module Header *******************************
 // Module Name:   Program.cs
-// Project:       Shoko.Cli
+// Project:       Shoko.CLI
 // 
 // MIT License
 // 
-// Copyright © 2020 Shoko
+// Copyright © 2020 Shoko Suite
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +25,20 @@
 // SOFTWARE.
 // *****************************************************************************
 
-namespace Shoko.Cli
-{
-    using System;
-    using System.Threading.Tasks;
-    using Exceptions;
-    using JetBrains.Annotations;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
-    using Microsoft.Extensions.Logging;
-    using NLog.Extensions.Logging;
-    using Properties;
+using System;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NLog;
+using NLog.Extensions.Logging;
+using Shoko.CLI.Exceptions;
+using Shoko.CLI.Properties;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
+namespace Shoko.CLI
+{
     /// <summary>
     ///     The command line interface for shoko server.
     /// </summary>
@@ -56,12 +58,13 @@ namespace Shoko.Cli
             //*) load app IConfiguration from supplied command line args
             //*) configure the ILoggerFactory to log to the console, debug, and event source output
             //*) enables scope validation on the dependency injection container when EnvironmentName is 'Development'
-            IHostBuilder builder = Host.CreateDefaultBuilder(args).ConfigureLogging((context, loggingBuilder) =>
-                                                                                    {
-                                                                                        //Use NLog instead of default logger.
-                                                                                        loggingBuilder.ClearProviders();
-                                                                                        loggingBuilder.AddNLog(new NLogLoggingConfiguration(context.Configuration.GetSection("NLog")));
-                                                                                    });
+            IHostBuilder builder = Host.CreateDefaultBuilder(args)
+                                       .ConfigureLogging((context, loggingBuilder) =>
+                                                         {
+                                                             //Use NLog instead of default logger.
+                                                             loggingBuilder.ClearProviders();
+                                                             loggingBuilder.AddNLog(new NLogLoggingConfiguration(context.Configuration.GetSection("NLog")));
+                                                         });
             return builder;
         }
 
@@ -123,7 +126,7 @@ namespace Shoko.Cli
             finally
             {
                 //Explicit call to NLog to ensure every log is written in case of async logging.
-                NLog.LogManager.Shutdown();
+                LogManager.Shutdown();
             }
         }
     }

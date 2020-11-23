@@ -1,10 +1,10 @@
 // ******************************* Module Header *******************************
 // Module Name:   ProgramArguments.cs
-// Project:       Shoko.Cli
+// Project:       Shoko.CLI
 // 
 // MIT License
 // 
-// Copyright © 2020 Shoko
+// Copyright © 2020 Shoko Suite
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +25,18 @@
 // SOFTWARE.
 // *****************************************************************************
 
-namespace Shoko.Cli
-{
-    using JetBrains.Annotations;
+using JetBrains.Annotations;
 
+namespace Shoko.CLI
+{
     /// <summary>
-    /// This class holds all possible arguments for shoko server, that are not set using environment variables.
+    ///     This class holds all possible arguments for shoko server, that are not set using environment variables.
     /// </summary>
     [PublicAPI]
     public sealed class ProgramArguments
     {
         /// <summary>
-        /// The assembly instance name of shoko server. Default: Name of shoko server executable.
+        ///     The assembly instance name of shoko server. Default: Name of shoko server executable.
         /// </summary>
         public string? Instance { get; set; }
     }

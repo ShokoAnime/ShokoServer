@@ -1,4 +1,4 @@
-name: Build Shoko.Cli
+name: Build Shoko.CLI
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
         - net5
 
 env:
-  SHOKO_MAJOR: 1
-  SHOKO_MINOR: 2
-  SHOKO_PATCH: 3
+  SHOKO_MAJOR: 4
+  SHOKO_MINOR: 0
+  SHOKO_PATCH: 1
   SHOKO_BUILD: ${{ github.run_number }}
 
 
@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         dotnet: ['5.0']
-    name: Shoko.Cli build
+    name: Shoko.CLI build
     steps:
       - uses: actions/checkout@v2
         with:
@@ -33,9 +33,9 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 #      - run: sudo apt-get update
 #      - run: sudo apt-get install libicu60
-#      - run: dotnet restore Shoko.Cli
-      - run: dotnet publish -c Release Shoko.Cli
+#      - run: dotnet restore Shoko.CLI
+      - run: dotnet publish -c Release Shoko.CLI
       - uses: actions/upload-artifact@v2
         with:
-          name: Shoko.Cli
-          path: Shoko.Suite/Publish/Cli
+          name: Shoko.CLI
+          path: Shoko.Suite/Publish/CLI

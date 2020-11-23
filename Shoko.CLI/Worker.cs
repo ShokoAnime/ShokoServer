@@ -1,10 +1,10 @@
 // ******************************* Module Header *******************************
 // Module Name:   Worker.cs
-// Project:       Shoko.Cli
+// Project:       Shoko.CLI
 // 
 // MIT License
 // 
-// Copyright © 2020 Shoko
+// Copyright © 2020 Shoko Suite
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,19 +25,19 @@
 // SOFTWARE.
 // *****************************************************************************
 
-namespace Shoko.Cli
-{
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Exceptions;
-    using Microsoft.Extensions.Hosting;
-    using Microsoft.Extensions.Logging;
-    using Properties;
-    using Server.Server;
-    using Server.Settings;
-    using Server.Utilities;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Shoko.CLI.Exceptions;
+using Shoko.CLI.Properties;
+using Shoko.Server.Server;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
+namespace Shoko.CLI
+{
     /// <summary>
     ///     This is a background service worker used to handle a shoko server instance.
     /// </summary>
