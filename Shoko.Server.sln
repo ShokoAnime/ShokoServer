@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		dockerentry.sh = dockerentry.sh
 		Dockerfile = Dockerfile
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
+		Shoko.Suite.Local.snk = Shoko.Suite.Local.snk
 		Shoko.Suite.snk = Shoko.Suite.snk
 	EndProjectSection
 EndProject
