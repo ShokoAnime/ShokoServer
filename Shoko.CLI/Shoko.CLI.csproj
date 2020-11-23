@@ -33,8 +33,6 @@
 		<AssemblyOriginatorKeyFile Condition="'$(GITHUB_SERVER_URL)' == ''">..\Shoko.Suite.Local.snk</AssemblyOriginatorKeyFile>
 		<AssemblyOriginatorKeyFile Condition="'$(GITHUB_SERVER_URL)' != ''">..\Shoko.Suite.snk</AssemblyOriginatorKeyFile>
 		<AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
-		<SignAssembly>true</SignAssembly>
-		<AssemblyOriginatorKeyFile>LocalSigning.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
