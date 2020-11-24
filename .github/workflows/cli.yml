@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         dotnet: ['5.0']
-    name: Shoko.CLI build $SHOKO_MAJOR
+    name: Shoko.CLI build ${{SHOKO_MAJOR}}
     steps:
-      - run: echo "Build Shoko.CLI v$SHOKO_MAJOR
+      - run: echo "Build Shoko.CLI v$SHOKO_MAJOR"
       - uses: actions/checkout@v2
         with:
           submodules: recursive
