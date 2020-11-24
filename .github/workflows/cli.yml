@@ -1,4 +1,4 @@
-name: Shoko.CLI portable ${{ SHOKO_MAJOR }}
+name: Shoko.CLI portable ${{ env.SHOKO_MAJOR }}
 
 on:
   push:
