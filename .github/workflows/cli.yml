@@ -38,4 +38,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.CLI
-          path: Shoko.Suite/Publish/CLI
+          path: Shoko.Server/bin/Release/${{matrix.dotnet}}/publish/
