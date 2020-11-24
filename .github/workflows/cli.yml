@@ -6,11 +6,10 @@ on:
         - net5
 
 env:
-  SHOKO_MAJOR: 4
-  SHOKO_MINOR: 0
-  SHOKO_PATCH: 1
+  SHOKO_MAJOR: ${{ ssecrets.SHOKO_MAJOR }}
+  SHOKO_MINOR: ${{ ssecrets.SHOKO_MINOR }}
+  SHOKO_PATCH: ${{ ssecrets.SHOKO_PATCH }}
   SHOKO_BUILD: ${{ github.run_number }}
-
 
 jobs:
   build_shoko_cli:
@@ -18,7 +17,7 @@ jobs:
     strategy:
       matrix:
         dotnet: ['5.0']
-    name: Shoko.CLI build v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
+    name: Shoko.CLI build v${{ secrets.SHOKO_MAJOR }}.${{ secrets.SHOKO_MINOR }}.${{ secrets.SHOKO_PATCH }}.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v2
         with:
