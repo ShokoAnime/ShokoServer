@@ -1,0 +1,11 @@
+name: Set Environment Variables
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@net5
+    - name: Set envrionment
+      run: echo "SHOKO_MAJOR=4" >> $GITHUB_ENV
+    - name Test environment
+      run: echo $SHOKO_MAJOR
