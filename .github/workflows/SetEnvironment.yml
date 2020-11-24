@@ -7,5 +7,5 @@ jobs:
     - uses: actions/checkout@net5
     - name: Set envrionment
       run: echo "SHOKO_MAJOR=4" >> $GITHUB_ENV
-    - name Test environment
+    - name: Test environment
       run: echo $SHOKO_MAJOR
