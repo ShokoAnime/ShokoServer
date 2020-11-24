@@ -1,5 +1,10 @@
 name: Set Environment Variables
-on: push
+on:
+  push:
+    paths: 
+      - ".github/workflows/SetEnvironment.yml"
+    branches:
+        - net5
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,6 +15,6 @@ jobs:
     - name: Set Shoko Minor Number
       run: echo "SHOKO_MINOR=0" >> $GITHUB_ENV
     - name: Set Shoko Patch Number
-      run: echo "SHOKO_PATCH=0" >> $GITHUB_ENV
+      run: echo "SHOKO_PATCH=1" >> $GITHUB_ENV
     - name: Test environment
       run: echo "Version $SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.x"
