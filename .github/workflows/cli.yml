@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         dotnet: ['5.0']
-    name: Shoko.CLI build v${{ secrets.SHOKO_MAJOR }}.${{ secrets.SHOKO_MINOR }}.${{ secrets.SHOKO_PATCH }}.${{ github.run_number }}
+    name: Shoko.CLI build v${{ env.SHOKO_MAJOR }}.${{ secrets.SHOKO_MINOR }}.${{ secrets.SHOKO_PATCH }}.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v2
         with:
