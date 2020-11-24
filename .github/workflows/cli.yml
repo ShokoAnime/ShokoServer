@@ -27,7 +27,7 @@ jobs:
         dotnet: ['5.0']
     name: Shoko.CLI build
     steps:
-      - run: echo Build Shoko.CLI
+      - run: echo Build Shoko.CLI v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
       - uses: actions/checkout@v2
         with:
           submodules: recursive
