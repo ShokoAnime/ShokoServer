@@ -2,6 +2,9 @@ name: Shoko.CLI portable
 
 on:
   push:
+    paths-ignore: 
+      - ".github/*"
+      - "README.md"
     branches:
         - net5
 
