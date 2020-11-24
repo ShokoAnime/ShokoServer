@@ -38,7 +38,7 @@ jobs:
 #      - run: sudo apt-get install libicu60
 #      - run: dotnet restore Shoko.CLI
       - run: dotnet publish -c Release Shoko.CLI
-        name: Build v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
+        name: Build v${{ env.SHOKO_MAJOR }}
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.CLI
