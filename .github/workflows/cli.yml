@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         dotnet: ['5.0']
-    name: "Shoko.CLI build $SHOKO_MAJOR"
+    name: Shoko.CLI build $SHOKO_MAJOR
     steps:
       - run: echo "Build Shoko.CLI v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD"
       - uses: actions/checkout@v2
@@ -38,6 +38,7 @@ jobs:
 #      - run: sudo apt-get install libicu60
 #      - run: dotnet restore Shoko.CLI
       - run: dotnet publish -c Release Shoko.CLI
+        name: Build v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.CLI
