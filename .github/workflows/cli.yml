@@ -20,7 +20,7 @@ jobs:
         with:
           env-file: ".github/workflows/variables.env"
   build_shoko_cli:
-    needs: [load_version_number]
+    needs: [load_global_environment_variables]
     runs-on: ubuntu-latest
     strategy:
       matrix:
