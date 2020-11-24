@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: c-py/action-dotenv-to-setenv@v2
         with:
-          env-file: .env
+          env-file: .github/workflows/variables.env
   build_shoko_cli:
     needs: [load_version_number]
     runs-on: ubuntu-latest
