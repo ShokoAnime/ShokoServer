@@ -15,7 +15,14 @@ env:
   SHOKO_BUILD: ${{ github.run_number }}
 
 jobs:
+  load_version_number:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: c-py/action-dotenv-to-setenv@v2
+        with:
+          env-file: .env
   build_shoko_cli:
+    needs: [load_version_number]
     runs-on: ubuntu-latest
     strategy:
       matrix:
