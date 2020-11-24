@@ -9,9 +9,6 @@ on:
         - net5
 
 env:
-  SHOKO_MAJOR: 4
-  SHOKO_MINOR: 0
-  SHOKO_PATCH: 1
   SHOKO_BUILD: ${{ github.run_number }}
 
 jobs:
