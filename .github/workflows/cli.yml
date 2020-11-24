@@ -12,25 +12,20 @@ env:
   SHOKO_BUILD: ${{ github.run_number }}
 
 jobs:
-  load_global_environment_variables:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: c-py/action-dotenv-to-setenv@v2
-        with:
-          env-file: ".github/workflows/variables.env"
   build_shoko_cli:
-    needs: [load_global_environment_variables]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         dotnet: ['5.0']
     name: Shoko.CLI build
     steps:
-      - run: echo Build Shoko.CLI v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
       - uses: actions/checkout@v2
         with:
           submodules: recursive
+      - uses: c-py/action-dotenv-to-setenv@v2
+        with:
+          env-file: ".github/workflows/variables.env"
+      - run: echo Build Shoko.CLI v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD
       - name: Unlock secrets
         uses: sliteteam/github-action-git-crypt-unlock@1.1.0
         env:
