@@ -6,9 +6,9 @@ on:
         - net5
 
 env:
-  SHOKO_MAJOR: ${{ ssecrets.SHOKO_MAJOR }}
-  SHOKO_MINOR: ${{ ssecrets.SHOKO_MINOR }}
-  SHOKO_PATCH: ${{ ssecrets.SHOKO_PATCH }}
+  SHOKO_MAJOR: ${{ secrets.SHOKO_MAJOR }}
+  SHOKO_MINOR: ${{ secrets.SHOKO_MINOR }}
+  SHOKO_PATCH: ${{ secrets.SHOKO_PATCH }}
   SHOKO_BUILD: ${{ github.run_number }}
 
 jobs:
