@@ -22,7 +22,7 @@ jobs:
         dotnet: ['5.0']
     name: Shoko.CLI build
     steps:
-      - run: echo "Build Shoko.CLI v$SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.$SHOKO_BUILD"
+      - run: echo Build Shoko.CLI
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -38,4 +38,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.CLI
-          path: Shoko.Server/bin/Release/${{matrix.dotnet}}/publish/
+          path: Shoko.Server/bin/Release/net${{matrix.dotnet}}/publish/
