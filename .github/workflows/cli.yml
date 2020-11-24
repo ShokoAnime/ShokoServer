@@ -12,7 +12,7 @@ env:
   SHOKO_BUILD: ${{ github.run_number }}
 
 jobs:
-  load_version_number:
+  load_global_environment_variables:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
