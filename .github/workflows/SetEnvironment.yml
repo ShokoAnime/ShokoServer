@@ -5,7 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set envrionment
+    - name: Set Shoko Major Number
       run: echo "SHOKO_MAJOR=4" >> $GITHUB_ENV
+    - name: Set Shoko Minor Number
+      run: echo "SHOKO_MINOR=0" >> $GITHUB_ENV
+    - name: Set Shoko Patch Number
+      run: echo "SHOKO_PATCH=0" >> $GITHUB_ENV
     - name: Test environment
-      run: echo $SHOKO_MAJOR
+      run: echo "Version: $SHOKO_MAJOR.$SHOKO_MINOR.$SHOKO_PATCH.x"
