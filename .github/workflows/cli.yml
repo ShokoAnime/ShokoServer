@@ -1,4 +1,4 @@
-name: Build Shoko.CLI
+name: Shoko.CLI portable
 
 on:
   push:
