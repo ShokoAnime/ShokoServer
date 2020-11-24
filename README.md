@@ -1,8 +1,13 @@
 default ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5)
+
 check_run ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=check_run)
+
 deployment_status ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=deployment_status)
+
 release ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=release)
+
 workflow_run ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=workflow_run)
+
 
 # Shoko Server
 Shoko server is the core component of the Shoko suite and with it's client-server architecture which allows any program or plugin to access Shoko. You'll have access to your entire collection locally and over the internet with no additional work outside the initial configuration required.
