@@ -1,4 +1,4 @@
-![Shoko.CLI](https://github.com/swtrse/ShokoServer/workflows/Build%20Shoko.CLI/badge.svg)
+![Shoko.CLI](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg)
 
 # Shoko Server
 Shoko server is the core component of the Shoko suite and with it's client-server architecture which allows any program or plugin to access Shoko. You'll have access to your entire collection locally and over the internet with no additional work outside the initial configuration required.
