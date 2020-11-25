@@ -1,4 +1,4 @@
-|CI Buildstatus portable|CI Buildstatus Linux x64|CI Buildstatus Windows x64|CI Buildstatus OSX x64|
+|CI portable|CI Linux x64|CI Windows x64|CI OSX x64|
 |--|--|--|--|
 |![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5)|![Shoko.CLI linux](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20linux/badge.svg?branch=net5)|![Shoko.CLI win](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20win/badge.svg?branch=net5)|![Shoko.CLI osx](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20osx/badge.svg?branch=net5)|
 
