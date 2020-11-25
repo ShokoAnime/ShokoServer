@@ -1,4 +1,4 @@
-name: Shoko.CLI linux-x64
+name: Shoko.CLI linux
 
 on:
   push:
