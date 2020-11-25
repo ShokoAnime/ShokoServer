@@ -1,12 +1,9 @@
-default ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5)
-
-check_run ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=check_run)
-
-deployment_status ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=deployment_status)
-
-release ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=release)
-
-workflow_run ![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5&event=workflow_run)
+|Buildstatus|
+|--|
+|![Shoko.CLI portable](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20portable/badge.svg?branch=net5)|
+|![Shoko.CLI linux](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20linux/badge.svg?branch=net5) |
+|![Shoko.CLI win](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20win/badge.svg?branch=net5) |
+|![Shoko.CLI osx](https://github.com/swtrse/ShokoServer/workflows/Shoko.CLI%20osx/badge.svg?branch=net5) |
 
 
 # Shoko Server
