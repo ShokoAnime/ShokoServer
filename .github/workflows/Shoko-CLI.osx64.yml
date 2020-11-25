@@ -1,4 +1,4 @@
-name: Shoko.CLI osx-x64
+name: Shoko.CLI osx
 
 on:
   push:
