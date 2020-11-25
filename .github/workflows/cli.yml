@@ -37,5 +37,5 @@ jobs:
       - run: dotnet publish -c Release Shoko.CLI
       - uses: actions/upload-artifact@v2
         with:
-          name: Shoko.CLI
+          name: Shoko.CLI portable
           path: Shoko.Server/bin/Release/net${{matrix.dotnet}}/publish/
