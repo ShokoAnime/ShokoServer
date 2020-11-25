@@ -25,7 +25,7 @@
 		<FileVersion Condition="'$(SHOKO_MAJOR)' == ''">0.0.0.1</FileVersion>
 		<FileVersion Condition="'$(SHOKO_MAJOR)' != ''">$(SHOKO_MAJOR).$(SHOKO_MINOR).$(SHOKO_PATCH).$(SHOKO_BUILD)</FileVersion>
 		<AssemblyVersion Condition="'$(SHOKO_MAJOR)' == ''">0.0.0.1</AssemblyVersion>
-		<AssemblyVersion Condition="'$(SHOKO_MAJOR)' != ''">$(SHOKO_MAJOR).$(SHOKO_MINOR).$(SHOKO_PATCH).0</AssemblyVersion>
+		<AssemblyVersion Condition="'$(SHOKO_MAJOR)' != ''">$(SHOKO_MAJOR).$(SHOKO_MINOR).0.0</AssemblyVersion>
 		<Version Condition="'$(SHOKO_MAJOR)' == ''">0.0.0.1-local</Version>
 		<Version Condition="'$(SHOKO_MAJOR)' != ''">$(SHOKO_MAJOR).$(SHOKO_MINOR).$(SHOKO_PATCH).$(SHOKO_BUILD)</Version>
 		<ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
