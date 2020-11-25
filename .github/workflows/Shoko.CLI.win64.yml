@@ -1,4 +1,4 @@
-name: Shoko.CLI win-x64
+name: Shoko.CLI windows
 
 on:
   push:
