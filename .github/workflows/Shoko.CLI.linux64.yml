@@ -3,7 +3,7 @@ name: Shoko.CLI linux
 on:
   push:
     paths-ignore: 
-      #- ".github/**"
+      - ".github/**"
       - "README.md"
     branches:
         - net5
@@ -37,5 +37,5 @@ jobs:
       - run: dotnet publish Shoko.CLI -c Release -r linux-x64 -p:PublishTrimmed=true -p:TrimMode=Link --self-contained true
       - uses: actions/upload-artifact@v2
         with:
-          name: Shoko.CLI portable
+          name: Shoko.CLI linux
           path: Shoko.Server/bin/Release/net${{matrix.dotnet}}/linux-x64/publish/
