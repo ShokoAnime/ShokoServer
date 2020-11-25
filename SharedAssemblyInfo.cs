@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 [assembly: AssemblyVersion("4.0.1")]
 [assembly: AssemblyProduct("Shoko Server")]
