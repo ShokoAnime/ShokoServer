@@ -37,7 +37,7 @@ namespace Shoko.Server
             }
 
             string attempt = fallbackScript == null
-                ? GetEnabledLegacyRenamer()?.GetFileName(place)
+                ? GetRenamerWithFallback()?.GetFileName(place)
                 : GetRenamer(fallbackScript)?.GetFileName(place);
             if (attempt != null) result = attempt;
 
@@ -94,17 +94,9 @@ namespace Shoko.Server
             return args;
         }
 
-        public static IRenamer GetEnabledLegacyRenamer()
-        {
-            var script = RepoFactory.RenameScript.GetDefaultEnabledScript();
-            if (script == null) return null;
-
-            return GetRenamerFor(script);
-        }
-
         public static IRenamer GetRenamerWithFallback()
         {
-            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetDefaultEnabledScript();
             if (script == null) return null;
 
             return GetRenamerFor(script);
