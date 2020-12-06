@@ -670,9 +670,7 @@ namespace Shoko.Server
                     }
                     else
                     {
-                        if (!anititle.RemoveDiacritics().FilterLetters().Equals(
-                            tvtitle.RemoveDiacritics().FilterLetters(), StringComparison.InvariantCultureIgnoreCase))
-                            continue;
+                        if (!anititle.Equals(tvtitle, StringComparison.InvariantCultureIgnoreCase)) continue;
                     }
                     // Add them to the matches and remove them from the lists to process
                     matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
