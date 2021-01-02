@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
