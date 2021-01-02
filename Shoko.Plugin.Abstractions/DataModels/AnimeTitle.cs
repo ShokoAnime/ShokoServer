@@ -53,6 +53,7 @@ namespace Shoko.Plugin.Abstractions.DataModels
         Chinese,
         ChineseSimplified,
         ChineseTraditional,
+        Pinyin,
         Latin,
         Albanian,
         Basque,

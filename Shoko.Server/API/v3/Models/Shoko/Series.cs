@@ -329,6 +329,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID).ToList();
             var fanarts = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
             var banners = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+            var posters = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImagePoster.GetBySeriesID(a.TvDBID)).ToList();
             images.Fanarts.AddRange(fanarts.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
             {
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
@@ -343,6 +344,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     (int) ImageEntityType.TvDB_Banner);
                 bool preferred = defaultImage != null;
                 return new Image(a.TvDB_ImageWideBannerID, ImageEntityType.TvDB_Banner, preferred, a.Enabled == 0);
+            }));
+
+            images.Posters.AddRange(posters.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
+            {
+                var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
+                    (int) ImageEntityType.TvDB_Cover);
+                bool preferred = defaultImage != null;
+                return new Image(a.TvDB_ImagePosterID, ImageEntityType.TvDB_Cover, preferred, a.Enabled == 0);
             }));
         }
 

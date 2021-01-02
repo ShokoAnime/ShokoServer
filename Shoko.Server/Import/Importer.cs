@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
 using NLog;
 using NutzCode.CloudFileSystem;
@@ -271,7 +272,12 @@ namespace Shoko.Server
                         if (fldr.IsDropSource == 1)
                             dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
-                    if (fileName.Contains("$RECYCLE.BIN")) continue;
+
+                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                    {
+                        logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                        continue;
+                    }
 
                     filesFound++;
                     logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
@@ -317,8 +323,12 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                // ignore recycling bins
-                if (fileName.Contains("$RECYCLE.BIN") || fileName.StartsWith(".Trash-")) continue;
+
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                }
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -385,7 +395,11 @@ namespace Shoko.Server
             List<string> fileListNew = new List<string>();
             foreach (string fileName in fileList)
             {
-                if (fileName.Contains("$RECYCLE.BIN") || fileName.StartsWith(".Trash-")) continue;
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                }
                 if (!dictFilesExisting.ContainsKey(fileName))
                     fileListNew.Add(fileName);
             }
@@ -432,7 +446,12 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                } 
+
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 

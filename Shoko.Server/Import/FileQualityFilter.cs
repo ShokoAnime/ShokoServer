@@ -345,9 +345,9 @@ namespace Shoko.Server
 
         private static int CompareAudioCodecTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            string[] newCodecs = newFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec)
+            string[] newCodecs = newFile?.Media?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
                 .Where(a => a != null).OrderBy(a => a).ToArray() ?? new string[] { };
-            string[] oldCodecs = oldFile?.Media?.AudioStreams.Select(LegacyMediaUtils.TranslateCodec)
+            string[] oldCodecs = oldFile?.Media?.AudioStreams?.Select(LegacyMediaUtils.TranslateCodec)
                 .Where(a => a != null).OrderBy(a => a).ToArray() ?? new string[] { };
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks
             if (newCodecs.Length != oldCodecs.Length) return 0;
@@ -438,8 +438,8 @@ namespace Shoko.Server
 
         private static int CompareSubStreamCountTo(SVR_VideoLocal newFile, SVR_VideoLocal oldFile)
         {
-            int newStreamCount = newFile?.Media?.TextStreams.Count ?? 0;
-            int oldStreamCount = oldFile?.Media?.TextStreams.Count ?? 0;
+            int newStreamCount = newFile?.Media?.TextStreams?.Count ?? 0;
+            int oldStreamCount = oldFile?.Media?.TextStreams?.Count ?? 0;
             return oldStreamCount.CompareTo(newStreamCount);
         }
 
@@ -458,11 +458,11 @@ namespace Shoko.Server
         private static int CompareVideoCodecTo(SVR_VideoLocal newLocal, SVR_VideoLocal oldLocal)
         {
             string[] newCodecs =
-                newLocal?.Media?.media.track.Where(a => a.type == StreamType.Video)
+                newLocal?.Media?.media?.track?.Where(a => a?.type == StreamType.Video)
                     .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
                 new string[] { };
             string[] oldCodecs =
-                oldLocal?.Media?.media.track.Where(a => a.type == StreamType.Video)
+                oldLocal?.Media?.media?.track?.Where(a => a?.type == StreamType.Video)
                     .Select(LegacyMediaUtils.TranslateCodec).Where(a => a != null).OrderBy(a => a).ToArray() ??
                 new string[] { };
             // compare side by side, average codec quality would be vague and annoying, defer to number of audio tracks

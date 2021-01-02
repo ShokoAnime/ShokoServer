@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
@@ -14,6 +15,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -44,6 +46,26 @@ namespace Shoko.Server.API.v3.Controllers
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
+        }
+        
+        /// <summary>
+        /// Get the series that reside in the path that ends with <param name="path"></param>
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("PathEndsWith/{*path}")]
+        public ActionResult<List<Series>> GetSeries(string path)
+        {
+            var query = path;
+            if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+            if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+            query = query.Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
+            // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
+            return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+                .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
+                    .EndsWith(query, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
+                .Distinct()
+                .Where(ser => ser == null || User.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
         }
 
         /// <summary>

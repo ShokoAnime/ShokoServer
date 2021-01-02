@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
+using System.Text.RegularExpressions;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -658,7 +659,11 @@ namespace Shoko.Server.Server
 
                                 foreach (string file in files)
                                 {
-                                    if (FileHashHelper.IsVideo(file))
+                                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file,s)))
+                                    {
+                                        logger.Info("Import exclusion, skipping file {0}", file);
+                                    }
+                                    else if (FileHashHelper.IsVideo(file))
                                     {
                                         logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
@@ -671,7 +676,11 @@ namespace Shoko.Server.Server
                             {
                                 logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                                if (FileHashHelper.IsVideo(evt.FullPath))
+                                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath,s)))
+                                {
+                                    logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
+                                }
+                                else if (FileHashHelper.IsVideo(evt.FullPath))
                                 {
                                     logger.Info("Found file {0}", evt.FullPath);
 
@@ -698,6 +707,10 @@ namespace Shoko.Server.Server
                     logger.Error(ex, "FSEvents_DoWork file: {0}\n{1}", evt.Name, ex);
                     queueFileEvents.Remove(evt);
                     Thread.Sleep(1000);
+
+                    //This is needed to prevent infinite looping of an event/file that causes an exception, 
+                    //otherwise evt will not be cleared and the same event/file that caused the error will be looped over again.
+                    evt = queueFileEvents.GetNextItem(); 
                 }
             }
         }
