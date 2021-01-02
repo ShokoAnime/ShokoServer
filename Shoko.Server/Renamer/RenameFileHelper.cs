@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
@@ -12,8 +15,11 @@ using Shoko.Server.Models;
 using Shoko.Server.Plugin;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using IRenamer = Shoko.Server.Renamer.IRenamer;
+using IPluginRenamer = Shoko.Plugin.Abstractions.IRenamer;
+using Shoko.Plugin.Abstractions.Attributes;
 
 namespace Shoko.Server
 {
@@ -22,6 +28,7 @@ namespace Shoko.Server
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         private static IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
         public static IDictionary<string, string> LegacyScriptDescriptions { get; } = new Dictionary<string, string>();
+        public static IDictionary<string, (Type type, string description)> PluginRenamers { get; } = new Dictionary<string, (Type type, string description)>(); 
 
         public static string GetFilename(SVR_VideoLocal_Place place)
         {
@@ -120,7 +127,7 @@ namespace Shoko.Server
         
         internal static void FindRenamers(IList<Assembly> assemblies)
         {
-            var implementations = assemblies.SelectMany(a => 
+            var allTypes = assemblies.SelectMany(a => 
                 {
                     try
                     {
@@ -130,10 +137,9 @@ namespace Shoko.Server
                     {
                         return new Type[0];
                     }
-                })
-                .Where(a => a.GetInterfaces().Contains(typeof(IRenamer)));
+                });
 
-            foreach (var implementation in implementations)
+            foreach (var implementation in allTypes.Where(a => a.GetInterfaces().Contains(typeof(IRenamer))))
             {
                 IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
                 foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
@@ -150,16 +156,34 @@ namespace Shoko.Server
                     LegacyScriptDescriptions.Add(key, desc);
                 }
             }
+
+
+            foreach (var implementation in allTypes.Where(a => a.GetInterfaces().Contains(typeof(IPluginRenamer))))
+            {
+                IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
+                foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
+                {
+                    if (key == null) continue;
+                    if (PluginRenamers.ContainsKey(key))
+                    {
+                        logger.Warn(
+                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {PluginRenamers[key]}@{PluginRenamers[key].type.Assembly.Location}");
+                        continue;
+                    }
+
+                    PluginRenamers.Add(key, (implementation, desc));
+                }
+            }
         }
 
-        public static List<Shoko.Plugin.Abstractions.IRenamer> GetPluginRenamersSorted()
-        {
-            return Loader.Instance.Plugins.Values.Where(a => a is Shoko.Plugin.Abstractions.IRenamer).OrderBy(a =>
-            {
-                var index = ServerSettings.Instance.Plugins.Priority.IndexOf(a.GetType().GetAssemblyName());
-                if (index == -1) index = int.MaxValue;
-                return index;
-            }).ThenBy(a => a.Name).Cast<Shoko.Plugin.Abstractions.IRenamer>().ToList();
-        }
+        public static IList<IPluginRenamer> GetPluginRenamersSorted() => 
+            PluginRenamers.OrderBy(a =>
+                {
+                    var index = ServerSettings.Instance.Plugins.Priority.IndexOf(a.Key);
+                    if (index == -1) index = int.MaxValue;
+                    return index;
+                })
+                .ThenBy(a => a.Key)
+                .Select(a => (IPluginRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type)).ToList();
     }
 }

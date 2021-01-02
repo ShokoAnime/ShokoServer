@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Shoko.Server.Renamer
+namespace Shoko.Plugin.Abstractions.Attributes
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class RenamerAttribute : Attribute
