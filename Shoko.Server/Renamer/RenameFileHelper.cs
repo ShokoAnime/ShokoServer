@@ -86,7 +86,8 @@ namespace Shoko.Server
 
             return (null, null);
         }
-        
+
+        [Obsolete]
         public static IRenamer GetRenamer()
         {
             var script = RepoFactory.RenameScript.GetDefaultScript();
@@ -94,6 +95,7 @@ namespace Shoko.Server
             return GetRenamerFor(script);
         }
 
+        [Obsolete]
         public static IRenamer GetRenamerWithFallback()
         {
             var script = RepoFactory.RenameScript.GetDefaultOrFirst();
@@ -102,6 +104,7 @@ namespace Shoko.Server
             return GetRenamerFor(script);
         }
 
+        [Obsolete]
         public static IRenamer GetRenamer(string scriptName)
         {
             var script = RepoFactory.RenameScript.GetByName(scriptName);
@@ -110,6 +113,7 @@ namespace Shoko.Server
             return GetRenamerFor(script);
         }
 
+        [Obsolete]
         private static IRenamer GetRenamerFor(RenameScript script)
         {
             if (!LegacyScriptImplementations.ContainsKey(script.RenamerType))
