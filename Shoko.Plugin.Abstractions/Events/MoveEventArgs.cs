@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -14,7 +15,7 @@ namespace Shoko.Plugin.Abstractions
         /// If a Folder has <see cref="DropFolderType.Excluded"/> set, then it won't be in this list.
         /// </summary>
         public List<IImportFolder> AvailableFolders { get; set; }
-        
+
         /// <summary>
         /// Information about the file itself, such as MediaInfo
         /// </summary>
@@ -34,15 +35,5 @@ namespace Shoko.Plugin.Abstractions
         /// Information about the episode, such as titles
         /// </summary>
         public IList<IEpisode> EpisodeInfo { get; set; }
-
-        /// <summary>
-        /// The base import folder that the file will go in. This must be valid if the file is to be moved.
-        /// </summary>
-        public IImportFolder DestinationImportFolder { get; set; }
-        
-        /// <summary>
-        /// The "Result", or the relative location from the <see cref="DestinationImportFolder"/> that the file will go. It is highly recommended to use Path.Combine() when dealing with subdirectories.
-        /// </summary>
-        public string DestinationPath { get; set; }
     }
 }

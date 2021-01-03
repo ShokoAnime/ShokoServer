@@ -45,10 +45,10 @@ namespace Shoko.Server
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place
                 };
-                renamer.GetFilename(args);
+                var res = renamer.GetFilename(args);
                 if (args.Cancel) return null;
-                if (string.IsNullOrEmpty(args.Result)) continue;
-                return args.Result;
+                if (string.IsNullOrEmpty(res)) continue;
+                return res;
             }
 
             string attempt = GetRenamerWithFallback()?.GetFileName(place);
@@ -72,13 +72,13 @@ namespace Shoko.Server
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
                         .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList()
                 };
-                renamer.GetDestination(args);
+                (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
-                if (string.IsNullOrEmpty(args.DestinationPath) || args.DestinationImportFolder == null) continue;
-                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(args.DestinationImportFolder.Location);
-                if (importFolder != null) return (importFolder, args.DestinationPath);
+                if (string.IsNullOrEmpty(destPath) || destFolder == null) continue;
+                var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
+                if (importFolder != null) return (importFolder, destPath);
                 logger.Error(
-                    $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was {renamer.GetType().GetAssemblyName()}");
+                    $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was {renamer.GetType().GetAssemblyName()} renamer was {renamer.GetType().Name}");
             }
 
             (ImportFolder dest, string folder) = GetRenamerWithFallback().GetDestinationFolder(place);

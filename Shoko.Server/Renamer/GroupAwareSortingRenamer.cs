@@ -1,25 +1,23 @@
 using System.IO;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+using INewRenamer = Shoko.Plugin.Abstractions.IRenamer;
 
 namespace Shoko.Server.Renamer
 {
     // TODO make this support renaming, but only if enabled
     [Renamer("GroupAwareRenamer", Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
-    public class GroupAwareRenamer : IRenamer
+    public class GroupAwareRenamer : INewRenamer
     {
-        public string GetFileName(SVR_VideoLocal_Place video) => Path.GetFileName(video.FilePath);
+        public string GetFilename(RenameEventArgs args) => args.FileInfo.Filename;
 
-        public string GetFileName(SVR_VideoLocal video)
-        {
-            return Path.GetFileName(video.GetBestVideoLocalPlace().FilePath);
-        }
-
-        public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
+        public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
             try
             {
@@ -30,16 +28,16 @@ namespace Shoko.Server.Renamer
                 if (string.IsNullOrEmpty(name)) return (null, "Unable to get series name");
 
                 var anime = series.GetAnime();
-                ImportFolder destFolder = RepoFactory.ImportFolder.GetAll()
-                    .FirstOrDefault(a => a.ImportFolderLocation.Contains("Anime"));
+                IImportFolder destFolder = args.AvailableFolders
+                    .FirstOrDefault(a => a.Location.Contains("Anime"));
                 if (anime.Restricted == 1)
                 {
-                    destFolder = RepoFactory.ImportFolder.GetAll()
-                        .FirstOrDefault(a => a.ImportFolderLocation.Contains("Hentai"));
+                    destFolder = args.AvailableFolders
+                        .FirstOrDefault(a => a.Location.Contains("Hentai"));
                 }
 
                 if (destFolder == null)
-                    destFolder = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => a.FolderIsDropDestination) ??
+                    destFolder = args.AvailableFolders.FirstOrDefault(a => a.DropFolderType.HasFlag(DropFolderType.Destination)) ??
                                  RepoFactory.ImportFolder.GetAll().FirstOrDefault();
 
                 string path;
@@ -59,7 +57,7 @@ namespace Shoko.Server.Renamer
             }
             catch
             {
-                return (null, "ERROR");
+                throw;
             }
         }
     }

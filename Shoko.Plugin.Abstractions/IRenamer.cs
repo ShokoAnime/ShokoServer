@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Shoko.Plugin.Abstractions.DataModels;
+using System;
 
 namespace Shoko.Plugin.Abstractions
 {
     /// <summary>
     /// A renamer must implement this to be called
     /// </summary>
-    public interface IRenamer : IPlugin
+    public interface IRenamer
     {
-        void GetFilename(RenameEventArgs args);
+        string GetFilename(RenameEventArgs args);
 
-        void GetDestination(MoveEventArgs args);
+        (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args);
     }
 }
