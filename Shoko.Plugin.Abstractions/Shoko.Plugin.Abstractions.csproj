@@ -14,5 +14,4 @@
         <PackageReleaseNotes>Pinyin support. Name for IImportFolder</PackageReleaseNotes>
         <Version>1.0.6</Version>
     </PropertyGroup>
-
 </Project>
