@@ -21,6 +21,7 @@ using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -419,7 +420,10 @@ namespace Shoko.Server
                         ret.NewFileName = "ERROR: The file could not be found.";
                         return ret;
                     }
-                    ret.NewFileName = RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
+                    // TODO a way of handling the temp thing from before
+                    // original:
+                    // RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
+                    ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace());
 
                     if (string.IsNullOrEmpty(ret.NewFileName))
                     {
@@ -480,7 +484,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                ret.NewFileName = RenameFileHelper.GetRenamer(scriptName)?.GetFileName(vid);
+                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace());
 
                 if (string.IsNullOrEmpty(ret.NewFileName))
                 {
