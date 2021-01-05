@@ -684,7 +684,7 @@ namespace Shoko.Server
         [HttpGet("RenameScript/Types")]
         public IDictionary<string, string> GetScriptTypes()
         {
-            return RenameFileHelper.PluginRenamers
+            return RenameFileHelper.Renamers
                 .Select(s => new KeyValuePair<string, string>(s.Key, s.Value.description))
                 .ToDictionary(x => x.Key, x => x.Value);
         }

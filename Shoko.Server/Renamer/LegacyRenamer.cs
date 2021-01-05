@@ -2129,39 +2129,5 @@ namespace Shoko.Server.Renamer
 
             return (destFolder, Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName()));
         }
-
-        [Obsolete]
-        public static IRenamer GetRenamerWithFallback()
-        {
-            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
-            if (script == null) return null;
-
-            return GetRenamerFor(script);
-        }
-
-        [Obsolete]
-        public static IRenamer GetRenamer(string scriptName)
-        {
-            var script = RepoFactory.RenameScript.GetByName(scriptName);
-            if (script == null) return null;
-
-            return GetRenamerFor(script);
-        }
-
-        [Obsolete]
-        private static IRenamer GetRenamerFor(RenameScript script)
-        {
-            if (!RenameFileHelper.LegacyScriptImplementations.ContainsKey(script.RenamerType))
-                return null;
-
-            try
-            {
-                return (IRenamer) Activator.CreateInstance(RenameFileHelper.LegacyScriptImplementations[script.RenamerType], script);
-            }
-            catch (MissingMethodException)
-            {
-                return (IRenamer)Activator.CreateInstance(RenameFileHelper.LegacyScriptImplementations[script.RenamerType]);
-            }
-        }
     }
 }
