@@ -14,7 +14,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 
 namespace Shoko.Server
@@ -24,13 +23,25 @@ namespace Shoko.Server
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         public static IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
         public static IDictionary<string, string> LegacyScriptDescriptions { get; } = new Dictionary<string, string>();
-        public static IDictionary<string, (Type type, string description)> PluginRenamers { get; } = new Dictionary<string, (Type type, string description)>(); 
+        public static IDictionary<string, (Type type, string description)> PluginRenamers { get; } = new Dictionary<string, (Type type, string description)>();
 
-        public static string GetFilename(SVR_VideoLocal_Place place)
+        private static IRenameScript _getRenameScript(string name)
+        {
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+
+            return new RenameScriptImpl
+            {
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData
+            };
+        }
+
+        public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
         {
             string result = Path.GetFileName(place.FilePath);
 
-            foreach (var renamer in GetPluginRenamersSorted())
+            foreach (var renamer in GetPluginRenamersSorted(scriptName))
             {
                 // TODO Error handling and possible deference
                 var args = new RenameEventArgs
@@ -40,7 +51,8 @@ namespace Shoko.Server
                     GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
                         .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
-                    FileInfo = place
+                    FileInfo = place,
+                    Script = _getRenameScript(scriptName),
                 };
                 var res = renamer.GetFilename(args);
                 if (args.Cancel) return null;
@@ -51,10 +63,10 @@ namespace Shoko.Server
             return result;
         }
         
-        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place)
+        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
         {
             // TODO Error handling and possible deference
-            foreach (var renamer in GetPluginRenamersSorted())
+            foreach (var renamer in GetPluginRenamersSorted(scriptName))
             {
                 var args = new MoveEventArgs
                 {
@@ -65,7 +77,8 @@ namespace Shoko.Server
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place,
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
-                        .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList()
+                        .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
+                    Script = _getRenameScript(scriptName),
                 };
                 (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
@@ -131,8 +144,9 @@ namespace Shoko.Server
             }
         }
 
-        public static IList<IRenamer> GetPluginRenamersSorted() => 
-            PluginRenamers.OrderBy(a =>
+        public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 
+            PluginRenamers.OrderBy(a => renamerName == a.Key ? int.MaxValue : 0)
+                .ThenBy(a =>
                 {
                     var index = ServerSettings.Instance.Plugins.Priority.IndexOf(a.Key);
                     if (index == -1) index = int.MaxValue;

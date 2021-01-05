@@ -420,10 +420,7 @@ namespace Shoko.Server
                         ret.NewFileName = "ERROR: The file could not be found.";
                         return ret;
                     }
-                    // TODO a way of handling the temp thing from before
-                    // original:
-                    // RenameFileHelper.GetRenamer(Shoko.Models.Constants.Renamer.TempFileName)?.GetFileName(vid.GetBestVideoLocalPlace());
-                    ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace());
+                    ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), Shoko.Models.Constants.Renamer.TempFileName);
 
                     if (string.IsNullOrEmpty(ret.NewFileName))
                     {
@@ -484,7 +481,7 @@ namespace Shoko.Server
                     return ret;
                 }
 
-                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace());
+                ret.NewFileName = RenameFileHelper.GetFilename(vid?.GetBestVideoLocalPlace(), scriptName);
 
                 if (string.IsNullOrEmpty(ret.NewFileName))
                 {

@@ -25,5 +25,10 @@ namespace Shoko.Plugin.Abstractions
         /// Information about the episode, such as titles
         /// </summary>
         public IList<IEpisode> EpisodeInfo { get; set; }
+
+        /// <summary>
+        /// The contents of the renamer scrpipt
+        /// </summary>
+        public IRenameScript Script { get; set; }
     }
 }
