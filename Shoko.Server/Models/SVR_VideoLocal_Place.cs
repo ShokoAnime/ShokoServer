@@ -73,7 +73,7 @@ namespace Shoko.Server.Models
                 return (true, string.Empty, "Error: Could not find the file");
             }
 
-            string renamed = RenameFileHelper.GetFilename(this);
+            string renamed = RenameFileHelper.GetFilename(this, scriptName);
             if (string.IsNullOrEmpty(renamed))
             {
                 logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
@@ -641,7 +641,7 @@ namespace Shoko.Server.Models
             }
 
             // There is a possibility of weird logic based on source of the file. Some handling should be made for it....later
-            (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this);
+            (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, scriptName);
 
             if (!(destImpl is SVR_ImportFolder destFolder))
             {
@@ -860,7 +860,7 @@ namespace Shoko.Server.Models
                 }
 
                 // find the default destination
-                (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this);
+                (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, null);
 
                 if (!(destImpl is SVR_ImportFolder destFolder))
                 {

@@ -22,26 +22,20 @@ namespace Shoko.Server.Renamer
     [Renamer("Legacy", Description = "Legacy")]
     public class LegacyRenamer : IRenamer
     {
-        private readonly RenameScript script;
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         
         public string GetFilename(RenameEventArgs args)
         {
-            if (script == null)
+            if (args.Script == null)
                 throw new Exception("*Error: No script available for renamer");
-            return GetNewFileName(args, script.Script);
+            return GetNewFileName(args, args.Script.Script);
         }
 
         public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
-            if (script == null)
+            if (args.Script == null)
                 throw new Exception("*Error: No script available for renamer");
             return GetDestinationFolder(args);
-        }
-
-        public LegacyRenamer(RenameScript script)
-        {
-            this.script = script;
         }
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
