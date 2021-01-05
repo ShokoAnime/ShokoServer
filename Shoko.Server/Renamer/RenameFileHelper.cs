@@ -21,9 +21,7 @@ namespace Shoko.Server
     public class RenameFileHelper
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        public static IDictionary<string, Type> LegacyScriptImplementations = new Dictionary<string, Type>();
-        public static IDictionary<string, string> LegacyScriptDescriptions { get; } = new Dictionary<string, string>();
-        public static IDictionary<string, (Type type, string description)> PluginRenamers { get; } = new Dictionary<string, (Type type, string description)>();
+        public static IDictionary<string, (Type type, string description)> Renamers { get; } = new Dictionary<string, (Type type, string description)>();
 
         private static IRenameScript _getRenameScript(string name)
         {
@@ -116,46 +114,33 @@ namespace Shoko.Server
                 foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
                 {
                     if (key == null) continue;
-                    if (LegacyScriptImplementations.ContainsKey(key))
+                    if (Renamers.ContainsKey(key))
                     {
                         logger.Warn(
-                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {LegacyScriptImplementations[key]}@{LegacyScriptImplementations[key].Assembly.Location}");
+                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {Renamers[key]}@{Renamers[key].type.Assembly.Location}");
                         continue;
                     }
 
-                    LegacyScriptImplementations.Add(key, implementation);
-                    LegacyScriptDescriptions.Add(key, desc);
-                }
-            }
-
-
-            foreach (var implementation in allTypes)
-            {
-                IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
-                foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
-                {
-                    if (key == null) continue;
-                    if (PluginRenamers.ContainsKey(key))
-                    {
-                        logger.Warn(
-                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {PluginRenamers[key]}@{PluginRenamers[key].type.Assembly.Location}");
-                        continue;
-                    }
-
-                    PluginRenamers.Add(key, (implementation, desc));
+                    Renamers.Add(key, (implementation, desc));
                 }
             }
         }
 
         public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 
-            PluginRenamers.OrderBy(a => renamerName == a.Key ? int.MaxValue : 0)
-                .ThenBy(a =>
-                {
-                    var index = ServerSettings.Instance.Plugins.Priority.IndexOf(a.Key);
-                    if (index == -1) index = int.MaxValue;
-                    return index;
-                })
+            _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? int.MaxValue : 0)
+                .ThenBy(a => ServerSettings.Instance.Plugins.Priority.Contains(a.Key) ? ServerSettings.Instance.Plugins.Priority.IndexOf(a.Key) : int.MaxValue)
                 .ThenBy(a => a.Key)
                 .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type)).ToList();
+
+        private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(string renamerName)
+        {
+            foreach(var kvp in Renamers)
+            {
+                if (kvp.Key != renamerName && ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out bool isEnabled) && !isEnabled)
+                    continue;
+
+                yield return kvp;
+            }
+        }
     }
 }
