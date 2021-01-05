@@ -40,8 +40,9 @@ namespace Shoko.Server
         public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
         {
             string result = Path.GetFileName(place.FilePath);
+            var script = _getRenameScript(scriptName);
 
-            foreach (var renamer in GetPluginRenamersSorted(scriptName))
+            foreach (var renamer in GetPluginRenamersSorted(script.Type))
             {
                 // TODO Error handling and possible deference
                 var args = new RenameEventArgs
@@ -52,7 +53,7 @@ namespace Shoko.Server
                         .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place,
-                    Script = _getRenameScript(scriptName),
+                    Script = script,
                 };
                 var res = renamer.GetFilename(args);
                 if (args.Cancel) return null;
@@ -65,8 +66,10 @@ namespace Shoko.Server
         
         public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
         {
+            var script = _getRenameScript(scriptName);
+
             // TODO Error handling and possible deference
-            foreach (var renamer in GetPluginRenamersSorted(scriptName))
+            foreach (var renamer in GetPluginRenamersSorted(script.Type))
             {
                 var args = new MoveEventArgs
                 {
@@ -78,7 +81,7 @@ namespace Shoko.Server
                     FileInfo = place,
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
                         .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
-                    Script = _getRenameScript(scriptName),
+                    Script = script,
                 };
                 (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
