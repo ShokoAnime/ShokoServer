@@ -687,7 +687,9 @@ namespace Shoko.Server
         [HttpGet("RenameScript/Types")]
         public IDictionary<string, string> GetScriptTypes()
         {
-            return RenameFileHelper.LegacyScriptDescriptions;
+            return RenameFileHelper.PluginRenamers
+                .Select(s => new KeyValuePair<string, string>(s.Key, s.Value.description))
+                .ToDictionary(x => x.Key, x => x.Value);
         }
 
         [HttpGet("AniDB/Recommendation/{animeID}")]
