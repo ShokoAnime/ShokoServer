@@ -95,7 +95,6 @@ namespace Shoko.Server
         
         internal static void FindRenamers(IList<Assembly> assemblies)
         {
-            // TODO Move Legacy Rename Script handling to the legacy renamer
             var allTypes = assemblies.SelectMany(a => 
                 {
                     try
