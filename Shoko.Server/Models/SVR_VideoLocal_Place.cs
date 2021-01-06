@@ -824,7 +824,7 @@ namespace Shoko.Server.Models
         // returns false if we should retry
         private bool MoveFileIfRequired(bool deleteEmpty = true)
         {
-            if (!ServerSettings.Instance.Import.RenameOnImport)
+            if (!ServerSettings.Instance.Import.MoveOnImport)
             {
                 logger.Trace($"Skipping move of \"{this.FilePath}\"as rename on import is disabled");
                 return true;
