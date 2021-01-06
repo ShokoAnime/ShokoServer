@@ -106,5 +106,7 @@
 
         public string Plex_ServerHost { get; set; }
         public string Plex_Sections { get; set; }
+        public bool Import_MoveOnImport { get; set; }
+        public bool Import_RenameOnImport { get; set; }
     }
 }
