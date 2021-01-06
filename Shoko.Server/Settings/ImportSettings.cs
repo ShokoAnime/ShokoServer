@@ -36,7 +36,7 @@ namespace Shoko.Server.Settings
         
         public bool RenameThenMove { get; set; }
 
-        public bool RenameOnImport { get; set; } = false;
+        public bool RenameOnImport { get; set; } = true;
         public bool MoveOnImport { get; set; } = true;
 
         public string MediaInfoPath { get; set; }

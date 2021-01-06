@@ -462,8 +462,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         [Authorize("init")]
         [HttpPost("config")]
+        [Obsolete]
         public ActionResult ImportConfig(CL_ServerSettings settings)
         {
+            return BadRequest("The model that this method takes is deprecated and will break the settings file. Use APIv3");
             string raw_settings = settings.ToJSON();
 
             if (raw_settings.Length == new CL_ServerSettings().ToJSON().Length)

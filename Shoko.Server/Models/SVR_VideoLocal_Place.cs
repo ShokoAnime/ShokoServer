@@ -596,7 +596,7 @@ namespace Shoko.Server.Models
         {
             if (!ServerSettings.Instance.Import.RenameOnImport)
             {
-                logger.Trace($"Skipping rename of \"{this.FilePath}\"as rename on import is disabled");
+                logger.Trace($"Skipping rename of \"{this.FullServerPath}\" as rename on import is disabled");
                 return true;
             }
 
@@ -826,7 +826,7 @@ namespace Shoko.Server.Models
         {
             if (!ServerSettings.Instance.Import.MoveOnImport)
             {
-                logger.Trace($"Skipping move of \"{this.FilePath}\"as rename on import is disabled");
+                logger.Trace($"Skipping move of \"{this.FullServerPath}\" as move on import is disabled");
                 return true;
             }
 

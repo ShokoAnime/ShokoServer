@@ -487,6 +487,8 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
                 FileQualityFilterPreferences = Serialize(FileQualityPreferences),
+                Import_MoveOnImport = Import.MoveOnImport,
+                Import_RenameOnImport = Import.RenameOnImport,
                 Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
                 RunImportOnStart = Import.RunOnStart,
                 ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,

@@ -583,6 +583,8 @@ namespace Shoko.Server
                 ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
                 ServerSettings.Instance.Import.Hash_MD5 = contractIn.Hash_MD5;
                 ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
+                ServerSettings.Instance.Import.RenameOnImport = contractIn.Import_RenameOnImport;
+                ServerSettings.Instance.Import.MoveOnImport = contractIn.Import_MoveOnImport;
 
                 // Language
                 ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
