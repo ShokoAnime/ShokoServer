@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
@@ -19,15 +20,18 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Renamer
 {
-    [Renamer("Legacy", Description = "Legacy")]
+    [Renamer(RENAMER_ID, Description = "Legacy")]
     public class LegacyRenamer : IRenamer
     {
+        private const string RENAMER_ID = "Legacy";
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         
         public string GetFilename(RenameEventArgs args)
         {
             if (args.Script == null)
                 throw new Exception("*Error: No script available for renamer");
+            if (args.Script.Type != RENAMER_ID) return null;
+
             return GetNewFileName(args, args.Script.Script);
         }
 
