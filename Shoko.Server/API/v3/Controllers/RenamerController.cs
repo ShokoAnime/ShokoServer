@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -18,12 +19,16 @@ namespace Shoko.Server.API.v3.Controllers
         {
             return RenameFileHelper.Renamers.Select(r =>
             {
+                int? prio = null;
+
+                if (ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(r.Key)) prio = ServerSettings.Instance.Plugins.RenamerPriorities[r.Key];
+
                 return new RenamerInfo
                 {
                     Description = r.Value.description,
                     Id = r.Key,
                     Enabled = ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(r.Key) ? ServerSettings.Instance.Plugins.EnabledRenamers[r.Key] : true, 
-                    Priority = ServerSettings.Instance.Plugins.Priority.Contains(r.Key) ? ServerSettings.Instance.Plugins.Priority.IndexOf(r.Key) : int.MaxValue,
+                    Priority = prio,
                 };
             }).ToList();
         }
@@ -31,6 +36,8 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpDelete("{renamerId}")]
         public ActionResult Disable(string renamerId)
         {
+            if (!RenameFileHelper.Renamers.ContainsKey(renamerId)) return NotFound();
+
             ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = false;
             ServerSettings.Instance.SaveSettings();
             return Ok();
@@ -39,6 +46,8 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpPatch("{renamerId}")]
         public ActionResult SetPriority(string renamerId, [FromBody] int priority)
         {
+            if (!RenameFileHelper.Renamers.ContainsKey(renamerId)) return NotFound();
+
             if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(renamerId, out bool isEnabled) && !isEnabled)
                 ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = true;
 
