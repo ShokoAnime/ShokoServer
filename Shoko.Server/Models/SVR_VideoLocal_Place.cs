@@ -594,6 +594,12 @@ namespace Shoko.Server.Models
         // returns false if we should retry
         private bool RenameIfRequired()
         {
+            if (!ServerSettings.Instance.Import.RenameOnImport)
+            {
+                logger.Trace($"Skipping rename of \"{this.FilePath}\"as rename on import is disabled");
+                return true;
+            }
+
             try
             {
                 return RenameFile().Item1;
@@ -816,8 +822,14 @@ namespace Shoko.Server.Models
         }
 
         // returns false if we should retry
-        private bool MoveFileIfRequired()
+        private bool MoveFileIfRequired(bool deleteEmpty = true)
         {
+            if (!ServerSettings.Instance.Import.RenameOnImport)
+            {
+                logger.Trace($"Skipping move of \"{this.FilePath}\"as rename on import is disabled");
+                return true;
+            }
+
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
@@ -1087,7 +1099,7 @@ namespace Shoko.Server.Models
 
                         // check for any empty folders in drop folder
                         // only for the drop folder
-                        if (dropFolder.IsDropSource == 1)
+                        if (dropFolder.IsDropSource == 1 && deleteEmpty)
                         {
                             RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
                         }
@@ -1174,7 +1186,7 @@ namespace Shoko.Server.Models
 
                     // check for any empty folders in drop folder
                     // only for the drop folder
-                    if (dropFolder.IsDropSource == 1)
+                    if (dropFolder.IsDropSource == 1 && deleteEmpty)
                     {
                         RecursiveDeleteEmptyDirectories(dropFolder?.ImportFolderLocation, true);
                     }
