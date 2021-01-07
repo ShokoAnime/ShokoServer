@@ -49,7 +49,6 @@
     <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-    <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.2" />
@@ -83,6 +82,7 @@
     <PackageReference Include="Sentry.NLog" Version="1.2.0" />
     <PackageReference Include="SharpCompress" Version="0.25.1" />
     <PackageReference Include="SharpZipLib" Version="1.2.0" />
+    <PackageReference Include="Shoko.Plugin.Abstractions" Version="2.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="4.0.1" />
     <!-- This needs to be explicit because of dep BS -->
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
