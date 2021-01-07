@@ -4,12 +4,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Models.Shoko
 {
@@ -56,6 +59,26 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Size = ep.GetVideoLocals().Count;
         }
 
+        private static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
+        {
+            switch (episodeType)
+            {
+                case AniDBEpisodeType.Episode:
+                    return EpisodeType.Normal;
+                case AniDBEpisodeType.Special:
+                    return EpisodeType.Special;
+                case AniDBEpisodeType.Parody:
+                    return EpisodeType.Parody;
+                case AniDBEpisodeType.Credits:
+                    return EpisodeType.ThemeSong;
+                case AniDBEpisodeType.Trailer:
+                    return EpisodeType.Trailer;
+                default:
+                case AniDBEpisodeType.Other:
+                    return EpisodeType.Unknown;
+            }
+        }
+
         public static AniDB GetAniDBInfo(AniDB_Episode ep)
         {
             decimal rating = 0;
@@ -71,7 +94,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return new AniDB
             {
                 ID = ep.EpisodeID,
-                Type = (EpisodeType) ep.EpisodeType,
+                Type = MapAniDBEpisodeType((AniDBEpisodeType)ep.EpisodeType),
                 EpisodeNumber = ep.EpisodeNumber,
                 AirDate = ep.GetAirDateAsDate(),
                 Description = ep.Description,
@@ -86,7 +109,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 {
                     Source = "AniDB",
                     Name = a.Title,
-                    Language = a.Language
+                    Language = a.Language.ToLower()
                 }).ToList()
             };
         }
@@ -139,6 +162,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// Episode Type
             /// </summary>
+            [JsonConverter(typeof(StringEnumConverter))]
             public EpisodeType Type { get; set; }
             
             /// <summary>
@@ -250,5 +274,63 @@ namespace Shoko.Server.API.v3.Models.Shoko
             // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
             #endregion
         }
+    }
+
+    public enum EpisodeType
+    {
+        /// <summary>
+        /// The episode type is unknown.
+        /// </summary>
+        Unknown = 0,
+
+        /// <summary>
+        /// A catch-all type for future extensions when a provider can't use a current episode type, but knows what the future type should be.
+        /// </summary>
+        Other = 1,
+
+        /// <summary>
+        /// A normal episode.
+        /// </summary>
+        Normal = 2,
+
+        /// <summary>
+        /// A special episode.
+        /// </summary>
+        Special = 3,
+
+        /// <summary>
+        /// A trailer.
+        /// </summary>
+        Trailer = 4,
+
+        /// <summary>
+        /// Either an opening-song, or an ending-song.
+        /// </summary>
+        ThemeSong = 5,
+
+        /// <summary>
+        /// Intro, and/or opening-song.
+        /// </summary>
+        OpeningSong = 6,
+
+        /// <summary>
+        /// Outro, end-roll, credits, and/or ending-song.
+        /// </summary>
+        EndingSong = 7,
+
+        /// <summary>
+        /// AniDB parody type. Where else would this be useful?
+        /// </summary>
+        Parody = 8,
+
+        /// <summary>
+        /// A interview tied to the series.
+        /// </summary>
+        Interview = 9,
+
+        /// <summary>
+        /// A DVD or BD extra, e.g. BD-menu or deleted scenes.
+        /// </summary>
+        Extra = 10,
     }
 }
