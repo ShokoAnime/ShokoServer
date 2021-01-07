@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         rid: ['win-x64', 'linux-x64']
-        dotnet: [ '3.1.x' ]
+        dotnet: [ '5.0.x' ]
 
     name: ${{ matrix.rid }} Shoko CLI build
 
