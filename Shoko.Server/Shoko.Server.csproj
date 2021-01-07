@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <RuntimeIdentifiers>win10-x64;win;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
@@ -57,20 +57,21 @@
     <PackageReference Include="Libuv" Version="1.10.0" />
     <PackageReference Include="MessagePack" Version="2.1.143" />
     <PackageReference Include="Microsoft.ApplicationInsights.Agent.Intercept" Version="2.4.0" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.1.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.16.0" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Analyzers" Version="2.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="3.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.0.0">
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.6.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.5" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.SQLServer.SMO" Version="12.0.2000.8" />
     <PackageReference Include="MimeMapping" Version="1.0.1.30" />
     <PackageReference Include="MySqlBackup.NET" Version="2.3.1" />
@@ -78,18 +79,20 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="NLog" Version="4.6.2" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="4.8.1" />
-    <PackageReference Include="Sentry" Version="1.2.0" />
-    <PackageReference Include="Sentry.NLog" Version="1.2.0" />
+    <PackageReference Include="Sentry" Version="2.1.8" />
+    <PackageReference Include="Sentry.NLog" Version="2.1.8" />
     <PackageReference Include="SharpCompress" Version="0.25.1" />
     <PackageReference Include="SharpZipLib" Version="1.2.0" />
     <PackageReference Include="Shoko.Plugin.Abstractions" Version="2.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="4.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="5.6.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="5.6.3" />
     <!-- This needs to be explicit because of dep BS -->
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
     <PackageReference Include="System.Data.Sqlite" Version="1.0.113.1" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="4.7.0" />
-    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="5.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
     <!-- This needs to be explicit because of https://github.com/MySqlBackupNET/MySqlBackup.Net/issues/61 -->
     <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
     <PackageReference Include="TaskScheduler" Version="2.8.19" />

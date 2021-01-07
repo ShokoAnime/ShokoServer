@@ -27,8 +27,9 @@ namespace Shoko.Server
         {
             if (!(ctx.Result is ObjectResult objectResult)) return;
             // It would be nice if we could cache this somehow, but IDK
-            objectResult.Formatters.Add(new JsonOutputFormatter(SerializerSettings,
-                ctx.HttpContext.RequestServices.GetRequiredService<ArrayPool<char>>()));
+            objectResult.Formatters.Add(new NewtonsoftJsonOutputFormatter(SerializerSettings,
+                 ctx.HttpContext.RequestServices.GetRequiredService<ArrayPool<char>>(),
+                 ctx.HttpContext.RequestServices.GetRequiredService<MvcOptions>()));
         }
     }
     

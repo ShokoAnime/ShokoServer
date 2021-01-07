@@ -59,4 +59,4 @@ User gid:    $(id -g $USER)
 "
 
 # Go and run the server 
-exec gosu $USER:$GROUP dotnet /usr/src/app/build/Shoko.CLI.dll
+exec gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI
