@@ -5266,4 +5266,10 @@ Please link to plex via Desktop under settings -&gt;users to use this.!</value>
   <data name="Link_GitHub" xml:space="preserve">
     <value>https://github.com/ShokoAnime/</value>
   </data>
+  <data name="Settings_MoveOnImport" xml:space="preserve">
+    <value>Move on Import</value>
+  </data>
+  <data name="Settings_RenameOnImport" xml:space="preserve">
+    <value>Rename on Import</value>
+  </data>
 </root>
