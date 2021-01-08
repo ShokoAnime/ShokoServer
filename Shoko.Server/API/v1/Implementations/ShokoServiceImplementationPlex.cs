@@ -12,7 +12,6 @@ using Stream = System.IO.Stream;
 
 namespace Shoko.Server.API.v1.Implementations
 {
-    [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/api/Plex"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAccessor
     {
@@ -79,7 +78,7 @@ namespace Shoko.Server.API.v1.Implementations
         public void UseDevice(int userId, MediaDevice server) => _impl.UseDevice(userId, server);
 
         [HttpGet("Linking/Devices/{userId}")]
-        public MediaDevice[] AvailableDevices(int userId) => _impl.AvailableDevices(userId);
+        public MediaDevice[] AvailableDevices(int userId) => _impl.AvailableDevices(userId) ?? new MediaDevice[0];
 
 
         [HttpGet("Metadata/{userId}/{type}/{id}")]

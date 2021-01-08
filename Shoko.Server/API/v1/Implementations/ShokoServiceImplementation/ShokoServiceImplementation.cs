@@ -414,7 +414,7 @@ namespace Shoko.Server
                     }
                     dirr = n.Resolve(path);
                     if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
-                        return null;
+                        return new List<string>();
                     IDirectory dir = dirr.Result as IDirectory;
                     FileSystemResult fr = dir.Populate();
                     if (!fr?.IsOk ?? true)
@@ -1251,13 +1251,13 @@ namespace Shoko.Server
 
                 if (recs.Count == 0) return recs;
 
-                return recs;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return recs;
             }
+            return recs;
+
         }
 
         private double CalculateRecommendationScore(int userVoteValue, double approvalPercentage, decimal animeRating)

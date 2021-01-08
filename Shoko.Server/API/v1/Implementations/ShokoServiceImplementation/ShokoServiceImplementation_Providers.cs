@@ -275,7 +275,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new();
             }
         }
 
@@ -295,7 +295,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new ();
             }
         }
 
@@ -309,7 +309,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return new List<TVDB_Series_Search_Response>();
+                return new ();
             }
         }
 
@@ -694,7 +694,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new();
             }
         }
 
@@ -708,7 +708,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new();
             }
         }
 

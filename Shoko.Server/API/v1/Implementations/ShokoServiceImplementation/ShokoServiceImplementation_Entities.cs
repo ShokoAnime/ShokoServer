@@ -1559,7 +1559,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return null;
+            return new ();
         }
 
         /// <summary>
@@ -1734,7 +1734,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return null;
+            return new();
         }
 
         [HttpGet("Series/ForAnime/{animeID}/{userID}")]
@@ -3201,7 +3201,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new();
             }
         }
 

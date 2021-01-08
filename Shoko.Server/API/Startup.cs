@@ -133,6 +133,8 @@ namespace Shoko.Server.API
 
                     options.Filters.Add(typeof(DatabaseBlockedFilter));
                     options.Filters.Add(typeof(ServerNotRunningFilter));
+
+                    EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
                 })
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
                 .AddNewtonsoftJson(json =>

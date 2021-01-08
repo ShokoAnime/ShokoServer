@@ -24,7 +24,6 @@ using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server
 {
-    [EmitEmptyEnumerableInsteadOfNull]
     [ApiController, Route("/api/Metro"), ApiVersion("1.0", Deprecated = true)]
     public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAccessor
     {
@@ -1126,14 +1125,13 @@ namespace Shoko.Server
 
                     if (retAnime.Count == maxRecords) break;
                 }
-
-                return retAnime;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return retAnime;
             }
+
+            return retAnime;
         }
 
         [HttpGet("Episode/Files/{episodeID}/{userID}")]
