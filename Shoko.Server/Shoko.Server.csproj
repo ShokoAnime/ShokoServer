@@ -17,7 +17,6 @@
   <ItemGroup>
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
-    <None Include="ApplicationInsights.config" />
     <Resource Include="db.ico" />
     <Resource Include="Images\**\*.png" />
     <Resource Include="Images\**\*.gif" />

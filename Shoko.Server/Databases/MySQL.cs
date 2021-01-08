@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 90;
+        public int RequiredVersion { get; } = 91;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -629,7 +629,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(87, 1,"ALTER TABLE `AniDB_File` CHANGE COLUMN `File_AudioCodec` `File_AudioCodec` VARCHAR(500) NOT NULL;"),
             new DatabaseCommand(88, 1,"ALTER TABLE `AnimeSeries` ADD `UpdatedAt` datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(89, 1, DatabaseFixes.MigrateAniDBToNet),
-            new DatabaseCommand(90, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, DROP COLUMN VideoBitrate, DROP COLUMN VideoFrameRate, DROP COLUMN VideoResolution, DROP COLUMN AudioCodec, DROP COLUMN AudioBitrate, DROP COLUMN Duration;")
+            new DatabaseCommand(90, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, DROP COLUMN VideoBitrate, DROP COLUMN VideoFrameRate, DROP COLUMN VideoResolution, DROP COLUMN AudioCodec, DROP COLUMN AudioBitrate, DROP COLUMN Duration;"),
+            new DatabaseCommand(91, 1, DropMALIndex)
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
@@ -740,6 +741,21 @@ namespace Shoko.Server.Databases
                     }
                 }
             }
+        }
+
+        public static void DropMALIndex()
+        {
+            MySQL mysql = new();
+            using MySqlConnection conn = new(mysql.GetConnectionString());
+            conn.Open();
+            string query = @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'CrossRef_AniDB_MAL' AND INDEX_NAME = 'UIX_CrossRef_AniDB_MAL_MALID';";
+            MySqlCommand cmd = new(query, conn);
+            object result = cmd.ExecuteScalar();
+            // not exists
+            if (result == null) return;
+            query = "DROP INDEX `UIX_CrossRef_AniDB_MAL_MALID` ON `CrossRef_AniDB_MAL`;";
+            cmd = new MySqlCommand(query, conn);
+            cmd.ExecuteScalar();
         }
 
         public override bool TestConnection()
