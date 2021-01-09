@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 79;
+        public int RequiredVersion { get; } = 80;
 
 
         public void BackupDatabase(string fullfilename)
@@ -547,6 +547,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(77, 1, DatabaseFixes.MigrateAniDBToNet),
             new DatabaseCommand(78, 1, DropVideoLocal_Media),
             new DatabaseCommand(79, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID;"),
+            new DatabaseCommand(79, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID;"),
+            new (80, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID;"),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)

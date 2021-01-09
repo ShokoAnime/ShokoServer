@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 91;
+        public int RequiredVersion { get; } = 92;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -630,7 +630,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(88, 1,"ALTER TABLE `AnimeSeries` ADD `UpdatedAt` datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(89, 1, DatabaseFixes.MigrateAniDBToNet),
             new DatabaseCommand(90, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, DROP COLUMN VideoBitrate, DROP COLUMN VideoFrameRate, DROP COLUMN VideoResolution, DROP COLUMN AudioCodec, DROP COLUMN AudioBitrate, DROP COLUMN Duration;"),
-            new DatabaseCommand(91, 1, DropMALIndex)
+            new DatabaseCommand(91, 1, DropMALIndex),
+            new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
@@ -754,6 +755,21 @@ namespace Shoko.Server.Databases
             // not exists
             if (result == null) return;
             query = "DROP INDEX `UIX_CrossRef_AniDB_MAL_MALID` ON `CrossRef_AniDB_MAL`;";
+            cmd = new MySqlCommand(query, conn);
+            cmd.ExecuteScalar();
+        }
+
+        public static void DropAniDBUniqueIndex()
+        {
+            MySQL mysql = new();
+            using MySqlConnection conn = new(mysql.GetConnectionString());
+            conn.Open();
+            string query = @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'AniDB_File' AND INDEX_NAME = 'UIX_AniDB_File_FileID';";
+            MySqlCommand cmd = new(query, conn);
+            object result = cmd.ExecuteScalar();
+            // not exists
+            if (result == null) return;
+            query = "DROP INDEX `UIX_AniDB_File_FileID` ON `AniDB_File`;";
             cmd = new MySqlCommand(query, conn);
             cmd.ExecuteScalar();
         }

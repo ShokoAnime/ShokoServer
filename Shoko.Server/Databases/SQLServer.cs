@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 84;
+        public int RequiredVersion { get; } = 85;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -608,7 +608,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
             new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
             new DatabaseCommand(83, 1, DropVideoLocalMediaColumns),
-            new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;")
+            new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;"),
+            new (85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
