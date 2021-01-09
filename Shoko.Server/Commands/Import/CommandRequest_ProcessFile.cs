@@ -107,7 +107,7 @@ namespace Shoko.Server.Commands
 
                 Dictionary<int, bool> animeIDs = new Dictionary<int, bool>();
 
-                if (aniFile == null) aniFile = TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
+                if (aniFile == null || aniFile.FileSize != vlocal.FileSize) aniFile = TryGetAniDBFileFromAniDB(vidLocal, animeIDs);
 
                 // if we still haven't got the AniDB_File Info we try the web cache or local records
                 if (aniFile == null)
@@ -305,7 +305,7 @@ namespace Shoko.Server.Commands
             // check if we already have a record
             SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vidLocal.Hash, vlocal.FileSize);
 
-            if (aniFile == null) ForceAniDB = true;
+            if (aniFile == null || aniFile.FileSize != vlocal.FileSize) ForceAniDB = true;
 
             if (ForceAniDB)
             {

@@ -111,7 +111,8 @@ namespace Shoko.Server.Repositories
         {
             lock (Cache)
             {
-                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
+                var list = Hashes.GetMultiple(hash);
+                return list.Count == 1 ? list.First() : list.FirstOrDefault(a => a.FileSize == fsize);
             }
         }
 
