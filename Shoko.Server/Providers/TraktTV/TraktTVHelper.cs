@@ -327,7 +327,7 @@ namespace Shoko.Server.Providers.TraktTV
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TraktTVHelper.GetTraktDeviceCode: " + ex);
-                throw ex;
+                throw;
             }
         }
 
@@ -391,7 +391,7 @@ namespace Shoko.Server.Providers.TraktTV
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TraktTVHelper.TraktAuthDeviceCodeToken: " + ex);
-                throw ex;
+                throw;
             }
         }
 

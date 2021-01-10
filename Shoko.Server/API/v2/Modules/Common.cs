@@ -19,7 +19,6 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -42,7 +41,7 @@ namespace Shoko.Server.API.v2.Modules
         /// Handle /api/folder/list
         /// List all saved Import Folders
         /// </summary>
-        /// <returns>List<Contract_ImportFolder></returns>
+        /// <returns><see cref="List{ImportFolder}"/></returns>
         [HttpGet("folder/list")]
         public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
 
@@ -286,8 +285,8 @@ namespace Shoko.Server.API.v2.Modules
             if (vl == null) return NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return NotFound("videolocal_place not found");
-            CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-            cr_hashfile.Save();
+            CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+            crHashfile.Save();
 
             return Ok();
         }
@@ -306,8 +305,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                    cr_hashfile.Save();
+                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    crHashfile.Save();
                 }
             }
             catch (Exception ex)
@@ -332,8 +331,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                    cr_hashfile.Save();
+                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    crHashfile.Save();
                 }
             }
             catch (Exception ex)
@@ -369,7 +368,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return newest posts from
         /// </summary>
-        /// <returns>List<WebNews></returns>
+        /// <returns><see cref="List{WebNews}"/></returns>
         [HttpGet("news/get")]
         public List<WebNews> GetNews(int max)
         {
@@ -377,21 +376,21 @@ namespace Shoko.Server.API.v2.Modules
             client.Headers.Add("User-Agent", "jmmserver");
             client.Headers.Add("Accept", "application/json");
             var response = client.DownloadString(new Uri("https://shokoanime.com/feed.json"));
-            dynamic news_feed = JsonConvert.DeserializeObject<dynamic>(response);
+            dynamic newsFeed = JsonConvert.DeserializeObject<dynamic>(response);
             List<WebNews> news = new List<WebNews>();
             int limit = 0;
-            foreach (dynamic post in news_feed.items)
+            foreach (dynamic post in newsFeed.items)
             {
                 limit++;
-                string post_author = "shoko team";
+                string postAuthor = "shoko team";
                 if ((string)post.author != "")
                 {
-                    post_author = (string)post.author;
+                    postAuthor = (string)post.author;
                 }
 
                 WebNews wn = new WebNews
                 {
-                    author = post_author,
+                    author = postAuthor,
                     date = post.date_published,
                     link = post.url,
                     title = HttpUtility.HtmlDecode((string)post.title),
@@ -406,7 +405,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/search
         /// </summary>
-        /// <returns>Filter or APIStatu</returns>
+        /// <returns>Filter or APIStatus</returns>
         [HttpGet("search")]
         public ActionResult<Filter> BigSearch([FromQuery] API_Call_Parameters para)
         {
@@ -420,24 +419,24 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != string.Empty)
             {
-                Filter search_filter = new Filter
+                Filter searchFilter = new Filter
                 {
                     name = "Search",
                     groups = new List<Group>()
                 };
-                Group search_group = new Group
+                Group searchGroup = new Group
                 {
                     name = para.query,
                     series = new List<Serie>()
                 };
-                search_group.series = Search(query, para.limit, para.limit_tag, (int) para.offset,
+                searchGroup.series = Search(query, para.limit, para.limit_tag, (int) para.offset,
                     para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                     para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter).Value.ToList();
-                search_group.size = search_group.series.Count();
-                search_filter.groups.Add(search_group);
-                search_filter.size = search_filter.groups.Count();
+                searchGroup.size = searchGroup.series.Count();
+                searchFilter.groups.Add(searchGroup);
+                searchFilter.size = searchFilter.groups.Count();
 
-                return search_filter;
+                return searchFilter;
             }
             return BadRequest("missing 'query'");
         }
@@ -459,23 +458,23 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != string.Empty)
             {
-                Filter search_filter = new Filter
+                Filter searchFilter = new Filter
                 {
                     name = "Search",
                     groups = new List<Group>()
                 };
-                Group search_group = new Group
+                Group searchGroup = new Group
                 {
                     name = para.query,
                     series = new List<Serie>()
                 };
-                search_group.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
+                searchGroup.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter));
-                search_group.size = search_group.series.Count();
-                search_filter.groups.Add(search_group);
-                search_filter.size = search_filter.groups.Count();
+                searchGroup.size = searchGroup.series.Count();
+                searchFilter.groups.Add(searchGroup);
+                searchFilter.size = searchFilter.groups.Count();
 
-                return search_filter;
+                return searchFilter;
             }
 
             return BadRequest("missing 'query'");
@@ -500,7 +499,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return current information about Queues (hash, general, images)
         /// </summary>
-        /// <returns>Dictionary<string, QueueInfo></returns>
+        /// <returns><see cref="Dictionary{String,QueueInfo}" /></returns>
         [HttpGet("queue/get")]
         public ActionResult<Dictionary<string, QueueInfo>> GetQueue()
         {
@@ -727,7 +726,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file
         /// </summary>
-        /// <returns>List<RawFile> or RawFile or APIStatus</returns>
+        /// <returns><see cref="List{RawFile}"/> or <seealso cref="RawFile"/> or <seealso cref="APIStatus"/></returns>
 
         [HttpGet("file")]
         public object GetFile(int id = 0, int limit = 0, int level = 0)
@@ -742,7 +741,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Gets files whose data does not match AniDB
         /// </summary>
-        /// <returns></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/needsavdumped")]
         public ActionResult<List<RawFile>> GetFilesWithMismatchedInfo(int level)
         {
@@ -751,10 +750,10 @@ namespace Shoko.Server.API.v2.Modules
             var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
-                .Where(_tuple => _tuple.anidb != null)
-                .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
-                .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
+                .Where(tuple => tuple.anidb != null)
+                .Where(tuple => tuple.anidb.IsDeprecated != 1)
+                .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 
         /// <summary>
@@ -770,10 +769,10 @@ namespace Shoko.Server.API.v2.Modules
             Task.Factory.StartNew(() =>
             {
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
-                    .Where(_tuple => _tuple.anidb != null)
-                    .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media?.MenuStreams.Any() != (_tuple.anidb.IsChaptered == 1))
-                    .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
+                    .Where(tuple => tuple.anidb != null)
+                    .Where(tuple => tuple.anidb.IsDeprecated != 1)
+                    .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                    .Select(tuple => tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
                 foreach (var path in list)
@@ -808,7 +807,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("file/multiple")]
-        private object GetMultipleFiles([FromQuery] API_Call_Parameters para)
+        public object GetMultipleFiles([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
@@ -819,34 +818,29 @@ namespace Shoko.Server.API.v2.Modules
                 List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
                 foreach(SVR_AnimeEpisode ep in list)
                 {
-                    Serie serie = null;
                     SVR_AnimeSeries series = ep?.GetAnimeSeries();
                     if (series == null) continue;
+
+                    Serie serie = null;
                     if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
-                    if (serie == null)
-                        serie =
-                            Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
-                                para.notag == 1, 0,
-                                false, para.allpics != 0, para.pic, para.tagfilter);
-                    if (serie.eps == null) serie.eps = new List<Episode>();
+                    serie ??= Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
+                        para.notag == 1, 0, false, para.allpics != 0, para.pic, para.tagfilter);
+                    serie.eps ??= new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(HttpContext, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
-                    if (vls.Count > 0)
+                    if (vls.Count <= 0) continue;
+
+                    episode.files = new List<RawFile>();
+                    vls.Sort(FileQualityFilter.CompareTo);
+                    bool first = true;
+                    episode.files.AddRange(vls.Select(vl =>
                     {
-                        episode.files = new List<RawFile>();
-                        vls.Sort(FileQualityFilter.CompareTo);
-                        bool first = true;
-                        foreach (SVR_VideoLocal vl in vls)
-                        {
-                            RawFile file = new RawFile(HttpContext, vl, 0, userID, ep);
-                            if (first)
-                            {
-                                file.is_preferred = 1;
-                                first = false;
-                            }
-                            episode.files.Add(file);
-                        }
-                    }
+                        RawFile file = new RawFile(HttpContext, vl, 0, userID, ep)
+                            {is_preferred = first ? 1 : 0};
+                        first = false;
+                        return file;
+                    }));
+
                     serie.eps.Add(episode);
                     results[series.AnimeSeriesID] = serie;
                 }
@@ -874,7 +868,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file/recent
         /// </summary>
-        /// <returns>List<RawFile></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/recent")]
         public List<RawFile.RecentFile> GetRecentFiles(int limit = 0, int level = 0)
         {
@@ -897,7 +891,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file/unsort
         /// </summary>
-        /// <returns>List<RawFile></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/unsort")]
         public List<RawFile> GetUnsort(int offset = 0, int level = 0, int limit = 0)
         {
