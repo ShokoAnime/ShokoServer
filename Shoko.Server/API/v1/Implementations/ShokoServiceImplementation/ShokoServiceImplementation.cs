@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
@@ -23,6 +24,7 @@ using Shoko.Server.Plex;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server
 {
@@ -506,109 +508,112 @@ namespace Shoko.Server
 
                 if (contract.ErrorMessage.Length > 0) return contract;
 
-                ServerSettings.Instance.AniDb.ClientPort = newAniDB_ClientPort;
-                ServerSettings.Instance.AniDb.Password = contractIn.AniDB_Password;
-                ServerSettings.Instance.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
-                ServerSettings.Instance.AniDb.ServerPort = newAniDB_ServerPort;
-                ServerSettings.Instance.AniDb.Username = contractIn.AniDB_Username;
-                ServerSettings.Instance.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
-                ServerSettings.Instance.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
-
-                ServerSettings.Instance.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
-                ServerSettings.Instance.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
-                ServerSettings.Instance.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
-                ServerSettings.Instance.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
-
-                ServerSettings.Instance.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
-                ServerSettings.Instance.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
-                ServerSettings.Instance.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
-                ServerSettings.Instance.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
-                ServerSettings.Instance.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-                ServerSettings.Instance.AniDb.MyList_StorageState = (AniDBFile_State) contractIn.AniDB_MyList_StorageState;
-                ServerSettings.Instance.AniDb.MyList_DeleteType = (AniDBFileDeleteType) contractIn.AniDB_MyList_DeleteType;
-                //ServerSettings.Instance.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
-
-                ServerSettings.Instance.AniDb.MyList_UpdateFrequency =
-                    (ScheduledUpdateFrequency) contractIn.AniDB_MyList_UpdateFrequency;
-                ServerSettings.Instance.AniDb.Calendar_UpdateFrequency =
-                    (ScheduledUpdateFrequency) contractIn.AniDB_Calendar_UpdateFrequency;
-                ServerSettings.Instance.AniDb.Anime_UpdateFrequency =
-                    (ScheduledUpdateFrequency) contractIn.AniDB_Anime_UpdateFrequency;
-                ServerSettings.Instance.AniDb.MyListStats_UpdateFrequency =
-                    (ScheduledUpdateFrequency) contractIn.AniDB_MyListStats_UpdateFrequency;
-                ServerSettings.Instance.AniDb.File_UpdateFrequency =
-                    (ScheduledUpdateFrequency) contractIn.AniDB_File_UpdateFrequency;
-
-                ServerSettings.Instance.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
-                ServerSettings.Instance.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
-
-                // Web Cache
-                ServerSettings.Instance.WebCache.Address = contractIn.WebCache_Address;
-                ServerSettings.Instance.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
-                ServerSettings.Instance.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
-                ServerSettings.Instance.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
-                ServerSettings.Instance.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
-                ServerSettings.Instance.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
-                ServerSettings.Instance.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
-
-                // TvDB
-                ServerSettings.Instance.TvDB.AutoLink = contractIn.TvDB_AutoLink;
-                ServerSettings.Instance.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
-                ServerSettings.Instance.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
-                ServerSettings.Instance.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
-                ServerSettings.Instance.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
-                ServerSettings.Instance.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
-                ServerSettings.Instance.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
-                ServerSettings.Instance.TvDB.UpdateFrequency = (ScheduledUpdateFrequency) contractIn.TvDB_UpdateFrequency;
-                ServerSettings.Instance.TvDB.Language = contractIn.TvDB_Language;
-
-                // MovieDB
-                ServerSettings.Instance.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
-                ServerSettings.Instance.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
-                ServerSettings.Instance.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
-                ServerSettings.Instance.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
-
-                // Import settings
-                ServerSettings.Instance.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
-                ServerSettings.Instance.Import.UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
-                ServerSettings.Instance.AutoGroupSeries = contractIn.AutoGroupSeries;
-                ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
-                ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
-                ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
-                if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-                    ServerSettings.Instance.FileQualityPreferences =
-                        ServerSettings.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
-                ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
-                ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-                ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
-                ServerSettings.Instance.Import.Hash_MD5 = contractIn.Hash_MD5;
-                ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
-                ServerSettings.Instance.Import.RenameOnImport = contractIn.Import_RenameOnImport;
-                ServerSettings.Instance.Import.MoveOnImport = contractIn.Import_MoveOnImport;
-
-                // Language
-                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
-                ServerSettings.Instance.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
-                ServerSettings.Instance.EpisodeTitleSource = (DataSourceType) contractIn.EpisodeTitleSource;
-                ServerSettings.Instance.SeriesDescriptionSource = (DataSourceType) contractIn.SeriesDescriptionSource;
-                ServerSettings.Instance.SeriesNameSource = (DataSourceType) contractIn.SeriesNameSource;
-
-                // Trakt
-                ServerSettings.Instance.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
-                ServerSettings.Instance.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
-                ServerSettings.Instance.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
-                ServerSettings.Instance.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
-                ServerSettings.Instance.TraktTv.UpdateFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_UpdateFrequency;
-                ServerSettings.Instance.TraktTv.SyncFrequency = (ScheduledUpdateFrequency) contractIn.Trakt_SyncFrequency;
-
-                //Plex
-                ServerSettings.Instance.Plex.Server = contractIn.Plex_ServerHost;
-                ServerSettings.Instance.Plex.Libraries = contractIn.Plex_Sections.Length > 0
-                    ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
-                    : new int[0];
-
                 // SAVE!
-                ServerSettings.Instance.SaveSettings();
+                ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<ServerSettings>>()
+                    .Update(
+                        settings =>
+                        {
+                            settings.AniDb.ClientPort = newAniDB_ClientPort;
+                            settings.AniDb.Password = contractIn.AniDB_Password;
+                            settings.AniDb.ServerAddress = contractIn.AniDB_ServerAddress;
+                            settings.AniDb.ServerPort = newAniDB_ServerPort;
+                            settings.AniDb.Username = contractIn.AniDB_Username;
+                            settings.AniDb.AVDumpClientPort = newAniDB_AVDumpClientPort;
+                            settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
+
+                            settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
+                            settings.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
+                            settings.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
+                            settings.AniDb.DownloadSimilarAnime = contractIn.AniDB_DownloadSimilarAnime;
+
+                            settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
+                            settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
+                            settings.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
+                            settings.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
+                            settings.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
+                            settings.AniDb.MyList_StorageState = (AniDBFile_State)contractIn.AniDB_MyList_StorageState;
+                            settings.AniDb.MyList_DeleteType = (AniDBFileDeleteType)contractIn.AniDB_MyList_DeleteType;
+                            //settings.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
+
+                            settings.AniDb.MyList_UpdateFrequency =
+                                (ScheduledUpdateFrequency)contractIn.AniDB_MyList_UpdateFrequency;
+                            settings.AniDb.Calendar_UpdateFrequency =
+                                (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;
+                            settings.AniDb.Anime_UpdateFrequency =
+                                (ScheduledUpdateFrequency)contractIn.AniDB_Anime_UpdateFrequency;
+                            settings.AniDb.MyListStats_UpdateFrequency =
+                                (ScheduledUpdateFrequency)contractIn.AniDB_MyListStats_UpdateFrequency;
+                            settings.AniDb.File_UpdateFrequency =
+                                (ScheduledUpdateFrequency)contractIn.AniDB_File_UpdateFrequency;
+
+                            settings.AniDb.DownloadCharacters = contractIn.AniDB_DownloadCharacters;
+                            settings.AniDb.DownloadCreators = contractIn.AniDB_DownloadCreators;
+
+                            // Web Cache
+                            settings.WebCache.Address = contractIn.WebCache_Address;
+                            settings.WebCache.XRefFileEpisode_Get = contractIn.WebCache_XRefFileEpisode_Get;
+                            settings.WebCache.XRefFileEpisode_Send = contractIn.WebCache_XRefFileEpisode_Send;
+                            settings.WebCache.TvDB_Get = contractIn.WebCache_TvDB_Get;
+                            settings.WebCache.TvDB_Send = contractIn.WebCache_TvDB_Send;
+                            settings.WebCache.Trakt_Get = contractIn.WebCache_Trakt_Get;
+                            settings.WebCache.Trakt_Send = contractIn.WebCache_Trakt_Send;
+
+                            // TvDB
+                            settings.TvDB.AutoLink = contractIn.TvDB_AutoLink;
+                            settings.TvDB.AutoFanart = contractIn.TvDB_AutoFanart;
+                            settings.TvDB.AutoFanartAmount = contractIn.TvDB_AutoFanartAmount;
+                            settings.TvDB.AutoPosters = contractIn.TvDB_AutoPosters;
+                            settings.TvDB.AutoPostersAmount = contractIn.TvDB_AutoPostersAmount;
+                            settings.TvDB.AutoWideBanners = contractIn.TvDB_AutoWideBanners;
+                            settings.TvDB.AutoWideBannersAmount = contractIn.TvDB_AutoWideBannersAmount;
+                            settings.TvDB.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.TvDB_UpdateFrequency;
+                            settings.TvDB.Language = contractIn.TvDB_Language;
+
+                            // MovieDB
+                            settings.MovieDb.AutoFanart = contractIn.MovieDB_AutoFanart;
+                            settings.MovieDb.AutoFanartAmount = contractIn.MovieDB_AutoFanartAmount;
+                            settings.MovieDb.AutoPosters = contractIn.MovieDB_AutoPosters;
+                            settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
+
+                            // Import settings
+                            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
+                            settings.Import.UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
+                            settings.AutoGroupSeries = contractIn.AutoGroupSeries;
+                            settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
+                            settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
+                            settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
+                            if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
+                                settings.FileQualityPreferences =
+                                    ServerSettings.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                            settings.Import.RunOnStart = contractIn.RunImportOnStart;
+                            settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
+                            settings.Import.Hash_CRC32 = contractIn.Hash_CRC32;
+                            settings.Import.Hash_MD5 = contractIn.Hash_MD5;
+                            settings.Import.Hash_SHA1 = contractIn.Hash_SHA1;
+                            settings.Import.RenameOnImport = contractIn.Import_RenameOnImport;
+                            settings.Import.MoveOnImport = contractIn.Import_MoveOnImport;
+
+                            // Language
+                            settings.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
+                            settings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
+                            settings.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
+                            settings.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;
+                            settings.SeriesNameSource = (DataSourceType)contractIn.SeriesNameSource;
+
+                            // Trakt
+                            settings.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
+                            settings.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
+                            settings.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
+                            settings.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
+                            settings.TraktTv.UpdateFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
+                            settings.TraktTv.SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
+
+                            //Plex
+                            settings.Plex.Server = contractIn.Plex_ServerHost;
+                            settings.Plex.Libraries = contractIn.Plex_Sections.Length > 0
+                                ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
+                                : new int[0];
+                        });
 
                 if (anidbSettingsChanged)
                 {

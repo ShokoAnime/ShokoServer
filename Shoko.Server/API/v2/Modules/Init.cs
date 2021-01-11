@@ -11,6 +11,8 @@ using System.Text;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.SqlServer.Management.Smo;
 using NLog;
 using Shoko.Commons;
@@ -153,12 +155,15 @@ namespace Shoko.Server.API.v2.Modules
             string uptimemsg = uptime == null
                 ? null
                 : $"{(int) uptime.Value.TotalHours:00}:{uptime.Value.Minutes:00}:{uptime.Value.Seconds:00}";
+
+            var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<ServerSettings>>().Value;
+
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.ServerStartingStatus,
                 server_uptime = uptimemsg,
-                first_run = ServerSettings.Instance.FirstRun,
+                first_run = settings.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage
             };

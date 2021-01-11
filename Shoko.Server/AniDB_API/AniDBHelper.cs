@@ -9,6 +9,8 @@ using System.Threading;
 using System.Timers;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NHibernate;
 using NLog;
 using NutzCode.CloudFileSystem;
@@ -216,9 +218,16 @@ namespace Shoko.Server.AniDB_API
 
         public static event EventHandler LoginFailed;
 
+        private readonly ServerSettings _settings;
+
+        public AniDBHelper()
+        {
+            _settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<ServerSettings>>().Value;
+        }
+
         public void ExtendPause(int secsToPause, string pauseReason)
         {
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
             ExtendPauseSecs = secsToPause;
             ExtendPauseReason = pauseReason;
@@ -315,7 +324,7 @@ namespace Shoko.Server.AniDB_API
                 {
                     if (WaitingOnResponseTime.HasValue)
                     {
-                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+                        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this._settings.Culture);
 
                         TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
                         ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -346,7 +355,7 @@ namespace Shoko.Server.AniDB_API
                     ping.Process(ref soUdp, ref remoteIpEndPoint, curSessionID, new UnicodeEncoding(true, false));
                 }
 
-                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this._settings.Culture);
 
                 string msg = string.Format(Resources.AniDB_LastMessage,
                     tsAniDBUDP.TotalSeconds);
@@ -375,7 +384,7 @@ namespace Shoko.Server.AniDB_API
             WaitingOnResponse = isWaiting;
             ServerInfo.Instance.WaitingOnResponseAniDBUDP = isWaiting;
 
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(this._settings.Culture);
 
             if (isWaiting)
                 ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
@@ -475,7 +484,7 @@ namespace Shoko.Server.AniDB_API
                 {
                     logger.Trace("ProcessResult_GetFileInfo: {0}", getInfoCmd.fileInfo);
 
-                    if (ServerSettings.Instance.AniDb.DownloadReleaseGroups)
+                    if (this._settings.AniDb.DownloadReleaseGroups)
                     {
                         CommandRequest_GetReleaseGroup cmdRelgrp =
                             new CommandRequest_GetReleaseGroup(getInfoCmd.fileInfo.GroupID, false);
@@ -497,7 +506,7 @@ namespace Shoko.Server.AniDB_API
 
         public void GetMyListFileStatus(int aniDBFileID)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_ReadWatched) return;
+            if (!this._settings.AniDb.MyList_ReadWatched) return;
 
             if (!Login()) return;
 
@@ -629,7 +638,7 @@ namespace Shoko.Server.AniDB_API
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
+            if (!this._settings.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -675,7 +684,7 @@ namespace Shoko.Server.AniDB_API
         /// <param name="watched"></param>
         public void UpdateMyListFileStatus(IHash hash, int animeID, int episodeNumber, bool watched, DateTime? watchedDate = null)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
+            if (!this._settings.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -705,7 +714,7 @@ namespace Shoko.Server.AniDB_API
         public (int?, DateTime?) AddFileToMyList(IHash fileDataLocal, DateTime? watchedDate, ref AniDBFile_State? state)
         {
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
+            if (!this._settings.AniDb.MyList_AddFiles) return (null, watchedDate);
 
             if (!Login()) return (null, watchedDate);
 
@@ -715,7 +724,7 @@ namespace Shoko.Server.AniDB_API
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(fileDataLocal, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
+                cmdAddFile.Init(fileDataLocal, this._settings.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -736,7 +745,7 @@ namespace Shoko.Server.AniDB_API
 
         public (int?, DateTime?) AddFileToMyList(int animeID, int episodeNumber, DateTime? watchedDate, ref AniDBFile_State? state)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return (null, watchedDate);
+            if (!this._settings.AniDb.MyList_AddFiles) return (null, watchedDate);
             // It's easier to compare a change if we return the original watch date instead of null, since null means unwatched
             if (!Login()) return (null, watchedDate);
 
@@ -746,7 +755,7 @@ namespace Shoko.Server.AniDB_API
             lock (lockAniDBConnections)
             {
                 cmdAddFile = new AniDBCommand_AddFile();
-                cmdAddFile.Init(animeID, episodeNumber, ServerSettings.Instance.AniDb.MyList_StorageState, watchedDate);
+                cmdAddFile.Init(animeID, episodeNumber, this._settings.AniDb.MyList_StorageState, watchedDate);
                 SetWaitingOnResponse(true);
                 ev = cmdAddFile.Process(ref soUdp, ref remoteIpEndPoint, curSessionID,
                     new UnicodeEncoding(true, false));
@@ -827,7 +836,7 @@ namespace Shoko.Server.AniDB_API
 
         public void DeleteFileFromMyList(string hash, long fileSize)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
+            if (!this._settings.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -844,7 +853,7 @@ namespace Shoko.Server.AniDB_API
 
         public void DeleteFileFromMyList(int fileID)
         {
-            if (!ServerSettings.Instance.AniDb.MyList_AddFiles) return;
+            if (!this._settings.AniDb.MyList_AddFiles) return;
 
             if (!Login()) return;
 
@@ -1029,7 +1038,7 @@ namespace Shoko.Server.AniDB_API
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations || this._settings.AutoGroupSeries, true, getAnimeCmd, relDepth);
             }
 
             logger.Error($"Failed get anime info for {animeID}. Anime was null");

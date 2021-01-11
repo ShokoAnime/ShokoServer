@@ -130,7 +130,7 @@ namespace Shoko.Server.API.v2.Modules
                 try
                 {
                     ServerSettings.LoadSettingsFromFile(path, true);
-                    ServerSettings.Instance.SaveSettings();
+                    //ServerSettings.Instance.SaveSettings();
                     return APIStatus.OK();
                 }
                 catch

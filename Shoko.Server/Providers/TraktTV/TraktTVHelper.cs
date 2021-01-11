@@ -224,9 +224,12 @@ namespace Shoko.Server.Providers.TraktTV
                     string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken) ||
                     string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.RefreshToken))
                 {
-                    ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-                    ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-                    ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+                    ServerSettings.Settings<TraktSettings>().Update(s =>
+                    {
+                        s.AuthToken = string.Empty;
+                        s.RefreshToken = string.Empty;
+                        s.TokenExpirationDate = string.Empty;
+                    });
 
                     return;
                 }
@@ -245,33 +248,41 @@ namespace Shoko.Server.Providers.TraktTV
                     var loginResponse = retData.FromJSON<TraktAuthToken>();
 
                     // save the token to the config file to use for subsequent API calls
-                    ServerSettings.Instance.TraktTv.AuthToken = loginResponse.AccessToken;
-                    ServerSettings.Instance.TraktTv.RefreshToken = loginResponse.RefreshToken;
+                    ServerSettings.Settings<TraktSettings>().Update(s =>
+                    {
+                        s.AuthToken = loginResponse.AccessToken;
+                        s.RefreshToken = loginResponse.RefreshToken;
 
-                    long.TryParse(loginResponse.CreatedAt, out long createdAt);
-                    long.TryParse(loginResponse.ExpiresIn, out long validity);
-                    long expireDate = createdAt + validity;
+                        long.TryParse(loginResponse.CreatedAt, out long createdAt);
+                        long.TryParse(loginResponse.ExpiresIn, out long validity);
+                        long expireDate = createdAt + validity;
 
-                    ServerSettings.Instance.TraktTv.TokenExpirationDate = expireDate.ToString();
+                        s.TokenExpirationDate = expireDate.ToString();
+                    });
 
                     return;
                 }
 
-                ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-                ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-                ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+                // ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
+                // ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
+                // ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+                ServerSettings.Settings<TraktSettings>().Update(s =>
+                {
+                    s.AuthToken = string.Empty;
+                    s.RefreshToken = string.Empty;
+                    s.TokenExpirationDate = string.Empty;
+                });
             }
             catch (Exception ex)
             {
-                ServerSettings.Instance.TraktTv.AuthToken = string.Empty;
-                ServerSettings.Instance.TraktTv.RefreshToken = string.Empty;
-                ServerSettings.Instance.TraktTv.TokenExpirationDate = string.Empty;
+                ServerSettings.Settings<TraktSettings>().Update(s =>
+                {
+                    s.AuthToken = string.Empty;
+                    s.RefreshToken = string.Empty;
+                    s.TokenExpirationDate = string.Empty;
+                });
 
                 logger.Error(ex, "Error in TraktTVHelper.RefreshAuthToken: " + ex);
-            }
-            finally
-            {
-                ServerSettings.Instance.SaveSettings();
             }
         }
 
@@ -366,15 +377,19 @@ namespace Shoko.Server.Providers.TraktTV
                     if (response == TraktStatusCodes.Success)
                     {
                         var tokenResponse = retData.FromJSON<TraktAuthToken>();
-                        ServerSettings.Instance.TraktTv.AuthToken = tokenResponse.AccessToken;
-                        ServerSettings.Instance.TraktTv.RefreshToken = tokenResponse.RefreshToken;
 
-                        long.TryParse(tokenResponse.CreatedAt, out long createdAt);
-                        long.TryParse(tokenResponse.ExpiresIn, out long validity);
-                        long expireDate = createdAt + validity;
+                        ServerSettings.Settings<TraktSettings>().Update(s =>
+                        {
+                            s.AuthToken = tokenResponse.AccessToken;
+                            s.RefreshToken = tokenResponse.RefreshToken;
 
-                        ServerSettings.Instance.TraktTv.TokenExpirationDate = expireDate.ToString();
-                        ServerSettings.Instance.SaveSettings();
+                            long.TryParse(tokenResponse.CreatedAt, out long createdAt);
+                            long.TryParse(tokenResponse.ExpiresIn, out long validity);
+                            long expireDate = createdAt + validity;
+
+                            s.TokenExpirationDate = expireDate.ToString();
+                        });
+
                         break;
                     }
                     if (response == TraktStatusCodes.Rate_Limit_Exceeded)

@@ -97,7 +97,7 @@ namespace Shoko.Server.Plugin
             // When we initialized the plugins, we made entries for the Enabled State of Plugins
             ServerSettings.Instance.SaveSettings();
         }
-
+        
         private void LoadSettings(Type type, IPlugin plugin)
         {
             (string name, Type t) = type.Assembly.GetTypes()

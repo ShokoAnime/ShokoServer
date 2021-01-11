@@ -15,8 +15,11 @@ using System.Text.RegularExpressions;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using NHibernate;
@@ -30,10 +33,12 @@ using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
 using Sentry;
 using Shoko.Commons.Properties;
+using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
@@ -46,6 +51,7 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.Configuration;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
@@ -111,7 +117,7 @@ namespace Shoko.Server.Server
 
         private static void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton(ServerSettings.Instance);
+            // services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
             services.AddLogging(loggingBuilder => //add NLog based logging.
             {
@@ -135,13 +141,23 @@ namespace Shoko.Server.Server
 
         private ShokoServer()
         {
-            
+            InitDi();
         }
 
         ~ShokoServer()
         {
             _sentry.Dispose();
             ShutDown();
+        }
+
+        private void InitDi()
+        {
+            // RenameFileHelper.InitialiseRenamers();
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            ServerSettings.ConfigureDi(services);
+            Loader.Instance.Load(services);
+            ServiceContainer = services.BuildServiceProvider();
         }
 
         public void InitLogger()
@@ -270,14 +286,10 @@ namespace Shoko.Server.Server
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
 
-            // RenameFileHelper.InitialiseRenamers();
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            Plugin.Loader.Instance.Load(services);
-            ServiceContainer = services.BuildServiceProvider();
-            Plugin.Loader.Instance.InitPlugins(ServiceContainer);
+            Loader.Instance.InitPlugins(ServiceContainer);
 
-            ServerSettings.Instance.DebugSettingsToLog();
+            ServiceContainer.GetRequiredService<IOptions<ServerSettings>>()
+                .Value.DebugSettingsToLog();
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;
@@ -746,8 +758,9 @@ namespace Shoko.Server.Server
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
-            ServerSettings.Instance.FirstRun = false;
-            ServerSettings.Instance.SaveSettings();
+            //ServerSettings.Instance.FirstRun = false;
+            ServerSettings.Settings<ServerSettings>().Update(s => s.FirstRun = false);
+
             if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username) ||
                 string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Password))
                 LoginFormNeeded?.Invoke(Instance, null);
@@ -1625,9 +1638,11 @@ namespace Shoko.Server.Server
 
         private static void SetupAniDBProcessor()
         {
-            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
-                ServerSettings.Instance.AniDb.ServerAddress,
-                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
+            var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<AniDbSettings>>().Value;
+
+            ShokoService.AnidbProcessor.Init(settings.Username, settings.Password,
+                settings.ServerAddress,
+                settings.ServerPort, settings.ClientPort);
         }
 
         public static void AniDBDispose()

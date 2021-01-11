@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
@@ -15,7 +9,17 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Server;
+using Shoko.Server.Settings.Configuration;
 using Shoko.Server.Utilities;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using Shoko.Server.Plugin;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
@@ -24,7 +28,7 @@ namespace Shoko.Server.Settings
 {
     public class ServerSettings
     {
-        private const string SettingsFilename = "settings-server.json";
+        internal const string SettingsFilename = "settings-server.json";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private static readonly object SettingsLock = new object();
 
@@ -147,20 +151,21 @@ namespace Shoko.Server.Settings
 
         public bool GA_OptOutPlzDont { get; set; } = false;
 
-        public static ServerSettings Instance { get; private set; } = new ServerSettings();
+        public static ServerSettings Instance => ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<ServerSettings>>().Value;
 
         public static void LoadSettings()
         {
-            if (!Directory.Exists(ApplicationPath)) Directory.CreateDirectory(ApplicationPath);
-            var path = Path.Combine(ApplicationPath, SettingsFilename);
-            if (!File.Exists(path))
-            {
-                Instance = File.Exists(Path.Combine(ApplicationPath, "settings.json")) ? LoadLegacySettings() : new ServerSettings();
-                Instance.SaveSettings();
-                return;
-            }
-            LoadSettingsFromFile(path);
-            Instance.SaveSettings();
+            // if (!Directory.Exists(ApplicationPath)) Directory.CreateDirectory(ApplicationPath);
+            // var path = Path.Combine(ApplicationPath, SettingsFilename);
+            // if (!File.Exists(path))
+            // {
+            //     Instance = File.Exists(Path.Combine(ApplicationPath, "settings.json")) ? LoadLegacySettings() : new ServerSettings();
+            //     Instance.SaveSettings();
+            //     return;
+            // }
+            // LoadSettingsFromFile(path);
+            // Instance.SaveSettings();
+            // Instance.SaveSettings();
 
             ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
@@ -352,17 +357,18 @@ namespace Shoko.Server.Settings
 
         public static void LoadSettingsFromFile(string path, bool delete = false)
         {
-            FixNonEmittedDefaults(path);
-            try
-            {
-                Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e);
-            }
-
-            if (delete) File.Delete(path);
+            return;
+            // FixNonEmittedDefaults(path);
+            // try
+            // {
+            //     Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+            // }
+            // catch (Exception e)
+            // {
+            //     Logger.Error(e);
+            // }
+            //
+            // if (delete) File.Delete(path);
         }
 
         /// <summary>
@@ -386,6 +392,7 @@ namespace Shoko.Server.Settings
             File.WriteAllText(path, inCode);
         }
 
+        [Obsolete("Use IWritableOptions<T>")]
         public void SaveSettings()
         {
             string path = Path.Combine(ApplicationPath, SettingsFilename);
@@ -642,11 +649,43 @@ namespace Shoko.Server.Settings
             Logger.Info("-------------------------------------------------------");
         }
 
+        internal static void ConfigureDi(IServiceCollection services)
+        {
+            var config = new ConfigurationBuilder()
+                .AddJsonFile(Path.Combine(ApplicationPath, SettingsFilename), true, true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            // services.Configure<IConfiguration>(config);
+            services.AddSingleton<IConfiguration>(config);
+
+            services.ConfigureWritable<LogRotatorSettings>(config.GetSection("LogRotator"));
+            services.ConfigureWritable<DatabaseSettings>(config.GetSection("Database"));
+            services.ConfigureWritable<WebCacheSettings>(config.GetSection("WebCache"));
+            services.ConfigureWritable<TvDBSettings>(config.GetSection("TvDB"));
+            services.ConfigureWritable<MovieDbSettings>(config.GetSection("MovieDb"));
+            services.ConfigureWritable<ImportSettings>(config.GetSection("Import"));
+            services.ConfigureWritable<PlexSettings>(config.GetSection("Plex"));
+            services.ConfigureWritable<PluginSettings>(config.GetSection("Plugins"));
+            services.ConfigureWritable<FileQualityPreferences>(config.GetSection("FileQualityPreferences"));
+            services.ConfigureWritable<TraktSettings>(config.GetSection("TraktTv"));
+            services.ConfigureWritable<LinuxSettings>(config.GetSection("Linux"));
+
+
+
+            services.ConfigureWritable<ServerSettings>(config);
+        }
+
         public static event EventHandler<ReasonedEventArgs> ServerShutdown;
         //public static event EventHandler<ReasonedEventArgs> ServerError;
         public static void DoServerShutdown(ReasonedEventArgs args)
         {
             ServerShutdown?.Invoke(null, args);
+        }
+
+        public static IWritableOptions<T> Settings<T>() where T : class, new()
+        {
+            return ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<T>>();
         }
 
         public class ReasonedEventArgs : EventArgs

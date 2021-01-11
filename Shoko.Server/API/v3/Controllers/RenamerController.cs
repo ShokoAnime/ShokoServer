@@ -5,6 +5,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Settings;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -13,6 +14,13 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class RenamerController : BaseController
     {
+        private IWritableOptions<PluginSettings> pluginSettings;
+
+        public RenamerController(IWritableOptions<PluginSettings> pluginSettings)
+        {
+            this.pluginSettings = pluginSettings;
+        }
+
         [HttpGet]
         public ActionResult<List<RenamerInfo>> Index()
         {
@@ -22,8 +30,8 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     Description = r.Value.description,
                     Id = r.Key,
-                    Enabled = ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(r.Key) ? ServerSettings.Instance.Plugins.EnabledRenamers[r.Key] : true, 
-                    Priority = ServerSettings.Instance.Plugins.Priority.Contains(r.Key) ? ServerSettings.Instance.Plugins.Priority.IndexOf(r.Key) : int.MaxValue,
+                    Enabled = !pluginSettings.Value.EnabledRenamers.ContainsKey(r.Key) || pluginSettings.Value.EnabledRenamers[r.Key], 
+                    Priority = pluginSettings.Value.Priority.Contains(r.Key) ? pluginSettings.Value.Priority.IndexOf(r.Key) : int.MaxValue,
                 };
             }).ToList();
         }
@@ -31,19 +39,21 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpDelete("{renamerId}")]
         public ActionResult Disable(string renamerId)
         {
-            ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = false;
-            ServerSettings.Instance.SaveSettings();
+            pluginSettings.Update(s => s.EnabledRenamers[renamerId] = false);
+
             return Ok();
         }
 
         [HttpPatch("{renamerId}")]
         public ActionResult SetPriority(string renamerId, [FromBody] int priority)
         {
-            if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(renamerId, out bool isEnabled) && !isEnabled)
-                ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = true;
+            pluginSettings.Update(settings =>
+            {
+                if (settings.EnabledRenamers.TryGetValue(renamerId, out bool isEnabled) && !isEnabled)
+                    settings.EnabledRenamers[renamerId] = true;
 
-            ServerSettings.Instance.Plugins.RenamerPriorities[renamerId] = priority;
-            ServerSettings.Instance.SaveSettings();
+                settings.RenamerPriorities[renamerId] = priority;
+            });
 
             return Ok();
         }

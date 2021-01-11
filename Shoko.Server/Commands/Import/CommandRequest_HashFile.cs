@@ -178,8 +178,8 @@ namespace Shoko.Server.Commands
                     int waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
                     if (waitTime < 1000)
                     {
-                        waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS = 4000;
-                        ServerSettings.Instance.SaveSettings();
+                        waitTime = 4000;
+                        ServerSettings.Settings<ImportSettings>().Update(s => s.FileLockWaitTimeMS = waitTime);
                     }
 
                     if (!aggressive)
@@ -214,8 +214,8 @@ namespace Shoko.Server.Commands
                         int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds;
                         if (seconds < 0)
                         {
-                            seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds = 8;
-                            ServerSettings.Instance.SaveSettings();
+                            seconds = 8;
+                            ServerSettings.Settings<ImportSettings>().Update(s => s.AggressiveFileLockWaitTimeSeconds = seconds);
                         }
 
                         Thread.Sleep(waitTime);

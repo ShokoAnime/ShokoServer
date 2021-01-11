@@ -157,8 +157,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             if (!File.Exists(appPath)) return null;
             if (ServerSettings.Instance.Import.MediaInfoPath == null)
             {
-                ServerSettings.Instance.Import.MediaInfoPath = appPath;
-                ServerSettings.Instance.SaveSettings();
+                ServerSettings.Settings<ImportSettings>().Update(s => s.MediaInfoPath = appPath);
             }
             return appPath;
 

@@ -1,11 +1,14 @@
+using System;
 using System.Threading;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -14,6 +17,13 @@ namespace Shoko.Server.API.v3.Controllers
     [InitFriendly]
     public class SettingsController : BaseController
     {
+        private IWritableOptions<ServerSettings> _serverSettings;
+
+        public SettingsController(IWritableOptions<ServerSettings> serverSettings)
+        {
+            _serverSettings = serverSettings;
+        }
+
         // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
         // Some may be patched to "", though.
         
@@ -39,17 +49,37 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings, bool skipValidation = false)
         {
             if (settings == null) return BadRequest("The settings object is invalid.");
-            settings.ApplyTo(ServerSettings.Instance, ModelState);
-            if (!skipValidation)
+            // settings.ApplyTo(ServerSettings.Instance, ModelState);
+            // if (!skipValidation)
+            // {
+            //     TryValidateModel(ServerSettings.Instance);
+            //     if (!ModelState.IsValid)
+            //     {
+            //         return BadRequest(ModelState);
+            //     }
+            // }
+
+            try
             {
-                TryValidateModel(ServerSettings.Instance);
-                if (!ModelState.IsValid)
+                this._serverSettings.Update(s =>
                 {
-                    return BadRequest(ModelState);
-                }
+                    settings.ApplyTo(s);
+                    if (!skipValidation)
+                    {
+                        TryValidateModel(ServerSettings.Instance);
+                        if (!ModelState.IsValid)
+                        {
+                            throw new InvalidOperationException();
+                        }
+                    }
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                return BadRequest(ModelState);
             }
 
-            ServerSettings.Instance.SaveSettings();
+            // ServerSettings.Instance.SaveSettings();
             return Ok();
         }
 
