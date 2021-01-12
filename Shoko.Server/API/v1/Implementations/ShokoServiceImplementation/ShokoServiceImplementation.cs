@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
@@ -509,7 +510,7 @@ namespace Shoko.Server
                 if (contract.ErrorMessage.Length > 0) return contract;
 
                 // SAVE!
-                ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<ServerSettings>>()
+                ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<SettingsRoot>>()
                     .Update(
                         settings =>
                         {

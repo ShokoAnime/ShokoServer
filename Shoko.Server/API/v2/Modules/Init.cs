@@ -156,14 +156,12 @@ namespace Shoko.Server.API.v2.Modules
                 ? null
                 : $"{(int) uptime.Value.TotalHours:00}:{uptime.Value.Minutes:00}:{uptime.Value.Seconds:00}";
 
-            var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<ServerSettings>>().Value;
-
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
                 startup_state = ServerState.Instance.ServerStartingStatus,
                 server_uptime = uptimemsg,
-                first_run = settings.FirstRun,
+                first_run = ServerSettings.Instance.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
                 startup_failed_error_message = ServerState.Instance.StartupFailedMessage
             };
@@ -449,7 +447,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns></returns>
         [Authorize("init")]
         [HttpGet("config")]
-        public ActionResult<ServerSettings> ExportConfig()
+        public ActionResult<SettingsRoot> ExportConfig()
         {
             try
             {

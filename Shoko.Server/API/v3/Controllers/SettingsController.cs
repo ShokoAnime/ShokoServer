@@ -34,7 +34,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<ServerSettings> GetSettings()
+        public ActionResult<SettingsRoot> GetSettings()
         {
             return ServerSettings.Instance;
         }

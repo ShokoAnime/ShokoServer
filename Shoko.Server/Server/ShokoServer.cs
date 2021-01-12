@@ -221,6 +221,8 @@ namespace Shoko.Server.Server
 
         public bool StartUpServer()
         {
+            SetTraceLogging(ServerSettings.Instance.TraceLog);
+
             _sentry = SentrySdk.Init(opts =>
             {
                 opts.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
@@ -308,7 +310,7 @@ namespace Shoko.Server.Server
             ServerState.Instance.ServerStarting = false;
             ServerState.Instance.StartupFailed = false;
             ServerState.Instance.StartupFailedMessage = string.Empty;
-            ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+            // ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
@@ -759,7 +761,7 @@ namespace Shoko.Server.Server
             ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
             //ServerSettings.Instance.FirstRun = false;
-            ServerSettings.Settings<ServerSettings>().Update(s => s.FirstRun = false);
+            ServerSettings.Settings<SettingsRoot>().Update(s => s.FirstRun = false);
 
             if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username) ||
                 string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Password))

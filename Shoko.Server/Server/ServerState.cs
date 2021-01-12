@@ -7,6 +7,7 @@ using NLog;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Enums;
+using Shoko.Server.ImageDownload;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -95,13 +96,13 @@ namespace Shoko.Server.Server
             set => this.SetField(() => databaseIsMySQL, value);
         }
 
-        private string baseImagePath = string.Empty;
-
-        public string BaseImagePath
-        {
-            get => baseImagePath;
-            set => this.SetField(() => baseImagePath, value);
-        }
+        // private string baseImagePath = string.Empty;
+ 
+        public string BaseImagePath => ImageUtils.GetBaseImagesPath();
+        // {
+        //     get => baseImagePath;
+        //     set => this.SetField(() => baseImagePath, value);
+        // }
 
         private bool newVersionAvailable = false;
 

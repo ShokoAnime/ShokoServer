@@ -101,7 +101,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns>Server settings</returns>
         [HttpGet("config/export")]
-        public ActionResult<ServerSettings> ExportConfig()
+        public ActionResult<SettingsRoot> ExportConfig()
         {
             try
             {

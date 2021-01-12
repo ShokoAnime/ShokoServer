@@ -218,11 +218,11 @@ namespace Shoko.Server.AniDB_API
 
         public static event EventHandler LoginFailed;
 
-        private readonly ServerSettings _settings;
+        private readonly SettingsRoot _settings;
 
         public AniDBHelper()
         {
-            _settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<ServerSettings>>().Value;
+            _settings = ServerSettings.Instance;
         }
 
         public void ExtendPause(int secsToPause, string pauseReason)

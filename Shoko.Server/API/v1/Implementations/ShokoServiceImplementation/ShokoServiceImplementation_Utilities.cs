@@ -103,13 +103,11 @@ namespace Shoko.Server
         private static double GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
         {
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return 1;
-
-            var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<ServerSettings>>().Value;
-
+            
             double dist = 1;
             SorensenDice dice = new SorensenDice();
             var languages = new HashSet<string> {"en", "x-jat"};
-            languages.UnionWith(settings.LanguagePreference.Select(b => b.ToLower()));
+            languages.UnionWith(ServerSettings.Instance.LanguagePreference.Select(b => b.ToLower()));
             foreach (string title in a.Contract.AniDBAnime.AnimeTitles
                 .Where(b => b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName &&
                             languages.Contains(b.Language.ToLower()))
