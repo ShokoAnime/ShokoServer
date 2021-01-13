@@ -1,6 +1,4 @@
-﻿using System;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +15,8 @@ namespace Shoko.Plugin.Abstractions.Configuration
             {
                 var configuration = (IConfigurationRoot)provider.GetRequiredService<IConfiguration>();
                 var options = provider.GetRequiredService<IOptionsMonitor<T>>();
-                return new WritableOptions<T>(options, configuration, section.Key);
+                var details = provider.GetRequiredService<ShokoApplicationDetails>();
+                return new WritableOptions<T>(options, configuration, details, section.Key);
             });
         }
 
@@ -29,7 +28,8 @@ namespace Shoko.Plugin.Abstractions.Configuration
             services.AddTransient<IWritableOptions<T>>(provider =>
             {
                 var options = provider.GetRequiredService<IOptionsMonitor<T>>();
-                return new WritableOptions<T>(options, section, null);
+                var details = provider.GetRequiredService<ShokoApplicationDetails>();
+                return new WritableOptions<T>(options, section, details, null);
             });
         }
     }

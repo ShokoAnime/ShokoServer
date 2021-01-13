@@ -12,14 +12,17 @@ namespace Shoko.Plugin.Abstractions.Configuration
         private readonly IOptionsMonitor<T> _options;
         private readonly IConfigurationRoot _configuration;
         private readonly string _section;
+        private readonly ShokoApplicationDetails _details;
 
         public WritableOptions(
             IOptionsMonitor<T> options,
             IConfigurationRoot configuration,
+            ShokoApplicationDetails details,
             string section)
         {
             _options = options;
             _configuration = configuration;
+            _details = details;
             _section = section;
         }
 
@@ -28,7 +31,7 @@ namespace Shoko.Plugin.Abstractions.Configuration
 
         public void Update(Action<T> applyChanges)
         {
-            var physicalPath = Path.Combine(ServerSettings.ApplicationPath, ServerSettings.SettingsFilename);
+            var physicalPath = Path.Combine(_details.ApplicationPath, _details.ConfigFileName);
 
             var jObject = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(physicalPath));
             var sectionObject = jObject.TryGetValue(_section, out JToken section) ?
