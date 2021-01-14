@@ -577,7 +577,7 @@ namespace Shoko.Server
                             settings.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
                             // Import settings
-                            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
+                            settings.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToHashSet();
                             settings.Import.UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
                             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
                             settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
