@@ -155,8 +155,8 @@ namespace Shoko.Server.Server
             // RenameFileHelper.InitialiseRenamers();
             var services = new ServiceCollection();
             ConfigureServices(services);
-            ServerSettings.ConfigureDi(services);
-            Loader.Instance.Load(services);
+            var config = ServerSettings.ConfigureDi(services);
+            Loader.Instance.Load(services, config);
             ServiceContainer = services.BuildServiceProvider();
         }
 

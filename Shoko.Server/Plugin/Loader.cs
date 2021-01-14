@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Server.Settings;
+using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server.Plugin
 {
@@ -18,7 +20,7 @@ namespace Shoko.Server.Plugin
         private readonly IList<Type> _pluginTypes = new List<Type>();
         private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
         
-        internal void Load(IServiceCollection serviceCollection)
+        internal void Load(IServiceCollection serviceCollection, IConfiguration config)
         {
             var assemblies = new List<Assembly>();
             var assembly = Assembly.GetExecutingAssembly();
@@ -26,18 +28,19 @@ namespace Shoko.Server.Plugin
             var dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
             // if (dirname == null) return;
             assemblies.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
-            
+            var pluginConfig = config.GetSection("Plugins");
+            var pluginSettings = pluginConfig.Get<PluginSettings>();
+
             //Load plugins from the user config dir too.
             var userPluginDir = Path.Combine(ServerSettings.ApplicationPath, "plugins");
-            var userPlugins = Directory.Exists(userPluginDir) ? Directory.GetFiles(userPluginDir) : new string[0];
+            var userPlugins = Directory.Exists(userPluginDir) ? Directory.GetFiles(userPluginDir, "*.dll") : new string[0];
             
             foreach (var dll in Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories).Concat(userPlugins))
             {
                 try
                 {
                     string name = Path.GetFileNameWithoutExtension(dll);
-                    if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                        !ServerSettings.Instance.Plugins.EnabledPlugins[name])
+                    if (pluginSettings.EnabledPlugins.ContainsKey(name) && pluginSettings.EnabledPlugins[name] == false)
                     {
                         Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                         continue;
@@ -45,9 +48,14 @@ namespace Shoko.Server.Plugin
                     Logger.Debug($"Trying to load {dll}");
                     assemblies.Add(Assembly.LoadFrom(dll));
                     // TryAdd, because if it made it this far, then it's missing or true.
-                    ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
-                    if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
-                        ServerSettings.Instance.Plugins.Priority.Add(name);
+                    if (!pluginSettings.EnabledPlugins.ContainsKey(name))
+                        pluginConfig.GetSection("EnabledPlugins")[name] = "true";
+                    if (!pluginSettings.Priority.Contains(name))
+                    {
+                        pluginSettings.Priority.Add(name);
+                        for (int i = 0; i < pluginSettings.Priority.Count; i++)
+                            pluginConfig.GetSection("Priority")[i.ToString()] = pluginSettings.Priority[i];
+                    }
                 }
                 catch (FileLoadException)
                 {

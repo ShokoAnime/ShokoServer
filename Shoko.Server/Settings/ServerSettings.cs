@@ -421,7 +421,7 @@ namespace Shoko.Server.Settings
             Logger.Info("-------------------------------------------------------");
         }
 
-        internal static void ConfigureDi(IServiceCollection services)
+        internal static IConfiguration ConfigureDi(IServiceCollection services)
         {
             var config = new ConfigurationBuilder()
                 .AddJsonFile(Path.Combine(ApplicationPath, SettingsFilename), true, true)
@@ -444,6 +444,7 @@ namespace Shoko.Server.Settings
             services.ConfigureWritable<LinuxSettings>(config.GetSection("Linux"));
 
             services.ConfigureWritable<SettingsRoot>(config);
+            return config;
         }
 
         public static event EventHandler<ReasonedEventArgs> ServerShutdown;
