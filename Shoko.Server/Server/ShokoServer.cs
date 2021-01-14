@@ -36,6 +36,7 @@ using Shoko.Commons.Properties;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.API.v2.Models.core;
@@ -51,7 +52,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Shoko.Server.Settings.Configuration;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
@@ -130,6 +130,12 @@ namespace Shoko.Server.Server
 
             ServerSettings.ConfigureDi(services);
             Loader.Instance.Load(services);
+            //This is REQUIRED for settings to work
+            services.AddSingleton(provider => new ShokoApplicationDetails
+            {
+                ApplicationPath = ServerSettings.ApplicationPath,
+                ConfigFileName = ServerSettings.SettingsFilename,
+            });
         }
         
         public string[] GetSupportedDatabases()

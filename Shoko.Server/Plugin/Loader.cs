@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Plugin
@@ -36,19 +37,9 @@ namespace Shoko.Server.Plugin
             {
                 try
                 {
-                    string name = Path.GetFileNameWithoutExtension(dll);
-                    if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                        !ServerSettings.Instance.Plugins.EnabledPlugins[name])
-                    {
-                        Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
-                        continue;
-                    }
+                    //Can't use Settings here.
                     Logger.Debug($"Trying to load {dll}");
                     assemblies.Add(Assembly.LoadFrom(dll));
-                    // TryAdd, because if it made it this far, then it's missing or true.
-                    ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
-                    if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
-                        ServerSettings.Instance.Plugins.Priority.Add(name);
                 }
                 catch (FileLoadException)
                 {
@@ -91,12 +82,32 @@ namespace Shoko.Server.Plugin
         internal void InitPlugins(IServiceProvider provider, IConfigurationSection configuration)
         {
             Logger.Info("Loading {0} plugins", _pluginTypes.Count);
+            var settings = provider.GetRequiredService<IWritableOptions<PluginSettings>>();
 
             foreach (var pluginType in _pluginTypes)
             {
+                var name = pluginType.GetAssemblyName();
+
+                // string name = Path.GetFileNameWithoutExtension(dll);
+                if (settings.Value.EnabledPlugins.ContainsKey(name) &&
+                    !settings.Value.EnabledPlugins[name])
+                {
+                    Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
+                    continue;
+                }
+
                 var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
                 Plugins.Add(pluginType, plugin);
                 LoadSettings(plugin);
+
+                settings.Update(s =>
+                {
+                    // TryAdd, because if it made it this far, then it's missing or true.
+                    s.EnabledPlugins.TryAdd(name, true);
+                    if (!s.Priority.Contains(name))
+                        s.Priority.Add(name);
+                });
+
                 Logger.Info($"Loaded: {plugin.Name}");
                 plugin.Load();
             }

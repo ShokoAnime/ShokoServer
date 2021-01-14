@@ -17,6 +17,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
@@ -25,7 +26,6 @@ using Shoko.Server.Plex;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server
 {

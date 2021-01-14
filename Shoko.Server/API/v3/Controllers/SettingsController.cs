@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Settings.Configuration;
 
 namespace Shoko.Server.API.v3.Controllers
 {

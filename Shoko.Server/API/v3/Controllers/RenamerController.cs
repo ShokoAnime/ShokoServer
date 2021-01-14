@@ -5,7 +5,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Settings;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Settings.Configuration;
+using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.API.v3.Controllers
 {
