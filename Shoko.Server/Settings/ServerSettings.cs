@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Shoko.Plugin.Abstractions.Configuration;
+using Shoko.Server.Settings.Source;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
@@ -33,7 +34,14 @@ namespace Shoko.Server.Settings
 
         internal static IConfiguration Configuration =>
             _configuration ??= new ConfigurationBuilder()
-                .AddJsonFile(Path.Combine(ApplicationPath, SettingsFilename), true, true)
+                // .Add(new JsonProvider(new ))
+                .AddNewtonsoftJsonFile(src =>
+                {
+                    src.Path = Path.Combine(ApplicationPath, SettingsFilename);
+                    src.Optional = true;
+                    src.ReloadOnChange = true;
+                    src.ResolveFileProvider();
+                })
                 .AddEnvironmentVariables()
                 .Build();
 
@@ -181,7 +189,7 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
                 FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
                 FileQualityPreferences = legacy.FileQualityFilterPreferences,
-                LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
+                LanguagePreference = legacy.LanguagePreference.Split(',').ToHashSet(),
                 EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
                 LanguageUseSynonyms = legacy.LanguageUseSynonyms,
                 CloudWatcherTime = legacy.CloudWatcherTime,

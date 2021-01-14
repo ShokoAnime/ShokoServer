@@ -31,7 +31,7 @@ namespace Shoko.Server.API.v3.Controllers
                     Description = r.Value.description,
                     Id = r.Key,
                     Enabled = !pluginSettings.Value.EnabledRenamers.ContainsKey(r.Key) || pluginSettings.Value.EnabledRenamers[r.Key], 
-                    Priority = pluginSettings.Value.Priority.Contains(r.Key) ? pluginSettings.Value.Priority.IndexOf(r.Key) : int.MaxValue,
+                    Priority = pluginSettings.Value.Priority.Contains(r.Key) ? pluginSettings.Value.Priority.ToList().IndexOf(r.Key) : int.MaxValue,
                 };
             }).ToList();
         }

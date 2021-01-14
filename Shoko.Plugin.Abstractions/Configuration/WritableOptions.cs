@@ -33,18 +33,18 @@ namespace Shoko.Plugin.Abstractions.Configuration
         {
             var physicalPath = Path.Combine(_details.ApplicationPath, _details.ConfigFileName);
 
-            var jObject = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(physicalPath));
-            var sectionObject = jObject.TryGetValue(_section, out JToken section) ?
-                JsonConvert.DeserializeObject<T>(section.ToString()) : (Value ?? new T());
+            var jObject = JObject.Parse(File.ReadAllText(physicalPath));
+            var sectionObj = Value ?? new();
 
-            applyChanges(sectionObject);
+            applyChanges(sectionObj);
 
             if (string.IsNullOrEmpty(_section))
-                jObject = JObject.Parse(JsonConvert.SerializeObject(sectionObject));
+                jObject = JObject.FromObject(sectionObj);
             else
-                jObject[_section] = JObject.Parse(JsonConvert.SerializeObject(sectionObject));
+                jObject[_section] = JObject.FromObject(sectionObj);
 
-            File.WriteAllText(physicalPath, JsonConvert.SerializeObject(jObject, Formatting.Indented));
+
+            File.WriteAllText(physicalPath, jObject.ToString(Formatting.Indented));
             _configuration.Reload();
         }
     }

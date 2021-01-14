@@ -7,11 +7,11 @@ namespace Shoko.Server.Settings
 {
     public class PluginSettings
     {
-        public Dictionary<string, bool> EnabledPlugins { get; set; } = new Dictionary<string, bool>();
+        public Dictionary<string, bool> EnabledPlugins { get; set; } = new();
         
-        public List<string> Priority { get; set; } = new List<string>();
-        public Dictionary<string, bool> EnabledRenamers { get; set; } = new Dictionary<string, bool>();
-        public Dictionary<string, int> RenamerPriorities { get; set; } = new Dictionary<string, int>();
+        public HashSet<string> Priority { get; set; } = new();
+        public Dictionary<string, bool> EnabledRenamers { get; set; } = new ();
+        public Dictionary<string, int> RenamerPriorities { get; set; } = new();
 
         public Dictionary<string, object> Settings { get; set; } = new ();
     }

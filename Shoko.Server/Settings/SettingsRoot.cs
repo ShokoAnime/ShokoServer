@@ -68,7 +68,7 @@ namespace Shoko.Server.Settings
 
         public FileQualityPreferences FileQualityPreferences { get; set; } = new FileQualityPreferences();
 
-        public List<string> LanguagePreference { get; set; } = new List<string> { "x-jat", "en" };
+        public HashSet<string> LanguagePreference { get; set; } = new() { "x-jat", "en" };
 
         public string EpisodeLanguagePreference { get; set; } = string.Empty;
 

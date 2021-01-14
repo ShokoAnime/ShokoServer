@@ -595,7 +595,7 @@ namespace Shoko.Server
                             settings.Import.MoveOnImport = contractIn.Import_MoveOnImport;
 
                             // Language
-                            settings.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
+                            settings.LanguagePreference = contractIn.LanguagePreference.Split(',').ToHashSet();
                             settings.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
                             settings.EpisodeTitleSource = (DataSourceType)contractIn.EpisodeTitleSource;
                             settings.SeriesDescriptionSource = (DataSourceType)contractIn.SeriesDescriptionSource;

@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using System.Text.RegularExpressions;
+using FluentNHibernate.Utils;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +23,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
+using Newtonsoft.Json.Linq;
 using NHibernate;
+using NHibernate.Mapping.ByCode;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
@@ -37,6 +40,7 @@ using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.API.v2.Models.core;
@@ -233,6 +237,13 @@ namespace Shoko.Server.Server
         public bool StartUpServer()
         {
             ServerState.Instance.LoadSettings();
+
+            var opts = ServiceContainer.GetRequiredService<IWritableOptions<ImportSettings>>();
+            for (int i = 0; i < 100; i++)
+            {
+                logger.Info($"Count: {opts.Value.VideoExtensions.Count()}");
+                opts.Update(_ => { });
+            }
 
             SetTraceLogging(ServerSettings.Instance.TraceLog);
 
