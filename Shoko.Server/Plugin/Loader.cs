@@ -32,7 +32,7 @@ namespace Shoko.Server.Plugin
             var userPluginDir = Path.Combine(ServerSettings.ApplicationPath, "plugins");
             var userPlugins = Directory.Exists(userPluginDir) ? Directory.GetFiles(userPluginDir, "*.dll", SearchOption.AllDirectories) : new string[0];
             
-            foreach (var dll in Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories).Concat(userPlugins))
+            foreach (var dll in userPlugins.Concat(Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories)))
             {
                 try
                 {
