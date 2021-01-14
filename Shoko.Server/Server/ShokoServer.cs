@@ -110,12 +110,12 @@ namespace Shoko.Server.Server
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
         public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
-        
-        public static IServiceProvider ServiceContainer { get; private set; }
-        
+
+        public static IServiceProvider ServiceContainer => webHost.Services;
+
         private Mutex mutex;
 
-        private static void ConfigureServices(IServiceCollection services)
+        internal static void ConfigureServices(IServiceCollection services)
         {
             // services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
@@ -127,6 +127,9 @@ namespace Shoko.Server.Server
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
             });
+
+            ServerSettings.ConfigureDi(services);
+            Loader.Instance.Load(services);
         }
         
         public string[] GetSupportedDatabases()
@@ -141,7 +144,8 @@ namespace Shoko.Server.Server
 
         private ShokoServer()
         {
-            InitDi();
+            InitWebHost();
+            // InitDi();
         }
 
         ~ShokoServer()
@@ -150,15 +154,13 @@ namespace Shoko.Server.Server
             ShutDown();
         }
 
-        private void InitDi()
-        {
-            // RenameFileHelper.InitialiseRenamers();
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            ServerSettings.ConfigureDi(services);
-            Loader.Instance.Load(services);
-            ServiceContainer = services.BuildServiceProvider();
-        }
+        // private void InitDi(IServiceCollection services)
+        // {
+        //     // RenameFileHelper.InitialiseRenamers();
+        //     // var services = new ServiceCollection();
+        //     ConfigureServices(services);
+        //     // ServiceContainer = services.BuildServiceProvider();
+        // }
 
         public void InitLogger()
         {
@@ -185,15 +187,18 @@ namespace Shoko.Server.Server
                     o.AddTag("logger", "${logger}");
 
                     // All Sentry Options are accessible here.
+#if !DEBUG
+                    //Don't attach the DSN If in debug.
                     o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
+#endif
                     o.AttachStacktrace = true;
                     o.BeforeSend += delegate(SentryEvent e)
                     {
                         // Filter out some things. With Custom Exception Types, we can do this more gracefully, but meh
-                        if (e.Message.Contains("AniDB ban or No Such Anime returned")) return null;
-                        if (e.Message.Contains("AddFileToMyList")) return null;
-                        if (e.Message.Contains("Login Failed")) return null;
-                        if (e.Message.Contains("MyList xml is empty or invalid")) return null;
+                        if (e.Message?.Contains("AniDB ban or No Such Anime returned") == true) return null;
+                        if (e.Message?.Contains("AddFileToMyList") == true) return null;
+                        if (e.Message?.Contains("Login Failed") == true) return null;
+                        if (e.Message?.Contains("MyList xml is empty or invalid") == true) return null;
                         if (e.Exception is UnauthorizedAccessException) return null;
                         if (e.Exception is SocketException) return null;
                         return e;
@@ -221,6 +226,8 @@ namespace Shoko.Server.Server
 
         public bool StartUpServer()
         {
+            ServerState.Instance.LoadSettings();
+
             SetTraceLogging(ServerSettings.Instance.TraceLog);
 
             _sentry = SentrySdk.Init(opts =>
@@ -288,7 +295,7 @@ namespace Shoko.Server.Server
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
 
-            Loader.Instance.InitPlugins(ServiceContainer);
+            Loader.Instance.InitPlugins(ServiceContainer, ServerSettings.Configuration.GetSection("Plugins:AllPlugins"));
 
             ServiceContainer.GetRequiredService<IOptions<ServerSettings>>()
                 .Value.DebugSettingsToLog();
@@ -1559,14 +1566,17 @@ namespace Shoko.Server.Server
         }
 
 
-        /// <summary>
-        /// Running Nancy and Validating all require aspects before running it
-        /// </summary>
-        private static void StartWebHost()
+        private static void InitWebHost()
         {
             if (webHost != null)
                 return;
-            webHost = new WebHostBuilder().UseKestrel(options => { options.ListenAnyIP(ServerSettings.Instance.ServerPort); }).UseStartup<Startup>()
+            var config = ServerSettings.Configuration;
+
+            webHost = new WebHostBuilder().UseKestrel(options =>
+                {
+                    options.ListenAnyIP(config.GetValue<int>("ServerPort"));
+                })
+                .UseStartup<Startup>()
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -1578,6 +1588,14 @@ namespace Shoko.Server.Server
                 }).UseNLog()
 
                 .Build();
+        }
+
+        /// <summary>
+        /// Running Nancy and Validating all require aspects before running it
+        /// </summary>
+        private static void StartWebHost()
+        {
+            if (webHost == null) InitWebHost();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 

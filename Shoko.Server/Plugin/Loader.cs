@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -11,7 +12,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Plugin
 {
-    public class Loader : ISettingsProvider
+    public class Loader
     {
         public static Loader Instance { get; } = new Loader();
         public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
@@ -29,7 +30,7 @@ namespace Shoko.Server.Plugin
             
             //Load plugins from the user config dir too.
             var userPluginDir = Path.Combine(ServerSettings.ApplicationPath, "plugins");
-            var userPlugins = Directory.Exists(userPluginDir) ? Directory.GetFiles(userPluginDir) : new string[0];
+            var userPlugins = Directory.Exists(userPluginDir) ? Directory.GetFiles(userPluginDir, "*.dll", SearchOption.AllDirectories) : new string[0];
             
             foreach (var dll in Directory.GetFiles(dirname, "plugins/*.dll", SearchOption.AllDirectories).Concat(userPlugins))
             {
@@ -87,7 +88,7 @@ namespace Shoko.Server.Plugin
             }
         }
 
-        internal void InitPlugins(IServiceProvider provider)
+        internal void InitPlugins(IServiceProvider provider, IConfigurationSection configuration)
         {
             Logger.Info("Loading {0} plugins", _pluginTypes.Count);
 
@@ -95,58 +96,66 @@ namespace Shoko.Server.Plugin
             {
                 var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
                 Plugins.Add(pluginType, plugin);
-                LoadSettings(pluginType, plugin);
+                LoadSettings(plugin);
                 Logger.Info($"Loaded: {plugin.Name}");
                 plugin.Load();
             }
             // When we initialized the plugins, we made entries for the Enabled State of Plugins
-            ServerSettings.Instance.SaveSettings();
+            // ServerSettings.Instance.SaveSettings();
         }
         
-        private void LoadSettings(Type type, IPlugin plugin)
+        private void LoadSettings(IPlugin plugin)
         {
-            (string name, Type t) = type.Assembly.GetTypes()
-                .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .DistinctBy(a => a.GetAssemblyName())
-                .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
-            if (string.IsNullOrEmpty(name) || name == ".json") return;
-            
-            try
-            {
-                if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) && !ServerSettings.Instance.Plugins.EnabledPlugins[name])
-                    return;
-                string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
-                object obj = !File.Exists(settingsPath)
-                    ? Activator.CreateInstance(t)
-                    : ServerSettings.Deserialize(t, File.ReadAllText(settingsPath));
-                // Plugins.Settings will be empty, since it's ignored by the serializer
-                var settings = (IPluginSettings) obj;
-                ServerSettings.Instance.Plugins.Settings.Add(settings);
+            var pluginId = plugin.GetType().GetAssemblyName();
+            if (pluginId == null) return;
 
-                plugin.OnSettingsLoaded(settings);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, $"Unable to initialize Settings for {name}");
-            }
+            if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(pluginId) && !ServerSettings.Instance.Plugins.EnabledPlugins[pluginId])
+                return;
+
+            plugin.LoadSettings(ServerSettings.Configuration.GetSection($"Plugin:Settings:{pluginId}"));
+
+            // (string name, Type t) = type.Assembly.GetTypes()
+            //     .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
+            //     .DistinctBy(a => a.GetAssemblyName())
+            //     .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
+            // if (string.IsNullOrEmpty(name) || name == ".json") return;
+            //
+            // try
+            // {
+            //     if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) && !ServerSettings.Instance.Plugins.EnabledPlugins[name])
+            //         return;
+            //     string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
+            //     object obj = !File.Exists(settingsPath)
+            //         ? Activator.CreateInstance(t)
+            //         : ServerSettings.Deserialize(t, File.ReadAllText(settingsPath));
+            //     // Plugins.Settings will be empty, since it's ignored by the serializer
+            //     var settings = (IPluginSettings) obj;
+            //     ServerSettings.Instance.Plugins.Settings.Add(settings);
+            //
+            //     plugin.OnSettingsLoaded(settings);
+            // }
+            // catch (Exception e)
+            // {
+            //     Logger.Error(e, $"Unable to initialize Settings for {name}");
+            // }
         }
 
-        public void SaveSettings(IPluginSettings settings)
-        {
-            string name = settings.GetType().GetAssemblyName() + ".json";
-            if (string.IsNullOrEmpty(name) || name == ".json") return;
-
-            try
-            {
-                string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
-                Directory.CreateDirectory(Path.Combine(ServerSettings.ApplicationPath, "Plugins"));
-                string json = ServerSettings.Serialize(settings);
-                File.WriteAllText(settingsPath, json);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, $"Unable to Save Settings for {name}");
-            }
-        }
+        // public void SaveSettings(IPluginSettings settings)
+        // {
+        //     string name = settings.GetType().GetAssemblyName() + ".json";
+        //     if (string.IsNullOrEmpty(name) || name == ".json") return;
+        //
+        //     try
+        //     {
+        //         string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
+        //         Directory.CreateDirectory(Path.Combine(ServerSettings.ApplicationPath, "Plugins"));
+        //         string json = ServerSettings.Serialize(settings);
+        //         File.WriteAllText(settingsPath, json);
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         Logger.Error(e, $"Unable to Save Settings for {name}");
+        //     }
+        // }
     }
 }

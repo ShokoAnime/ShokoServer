@@ -5,9 +5,6 @@ using Newtonsoft.Json.Converters;
 using NLog;
 using Shoko.Commons.Utils;
 using Shoko.Models;
-using Shoko.Models.Client;
-using Shoko.Models.Enums;
-using Shoko.Server.ImageDownload;
 using Shoko.Server.Server;
 using Shoko.Server.Settings.Configuration;
 using Shoko.Server.Utilities;
@@ -19,7 +16,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Shoko.Server.Plugin;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
@@ -31,6 +27,15 @@ namespace Shoko.Server.Settings
         internal const string SettingsFilename = "settings-server.json";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         internal static readonly object SettingsLock = new object();
+
+
+        private static IConfigurationRoot _configuration;
+
+        internal static IConfiguration Configuration =>
+            _configuration ??= new ConfigurationBuilder()
+                .AddJsonFile(Path.Combine(ApplicationPath, SettingsFilename), true, true)
+                .AddEnvironmentVariables()
+                .Build();
 
         //in this way, we could host two ShokoServers int the same machine
         [JsonIgnore]
@@ -66,7 +71,7 @@ namespace Shoko.Server.Settings
             // Instance.SaveSettings();
             // Instance.SaveSettings();
 
-            ShokoServer.SetTraceLogging(Instance.TraceLog);
+            // ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
 
         private static SettingsRoot LoadLegacySettings()
@@ -423,11 +428,8 @@ namespace Shoko.Server.Settings
 
         internal static void ConfigureDi(IServiceCollection services)
         {
-            var config = new ConfigurationBuilder()
-                .AddJsonFile(Path.Combine(ApplicationPath, SettingsFilename), true, true)
-                .AddEnvironmentVariables()
-                .Build();
-
+            var config = (IConfigurationRoot) Configuration;
+            
             // services.Configure<IConfiguration>(config);
             services.AddSingleton<IConfiguration>(config);
 

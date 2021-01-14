@@ -13,7 +13,6 @@ namespace Shoko.Server.Settings
         public Dictionary<string, bool> EnabledRenamers { get; set; } = new Dictionary<string, bool>();
         public Dictionary<string, int> RenamerPriorities { get; set; } = new Dictionary<string, int>();
 
-        [JsonIgnore]
-        public List<IPluginSettings> Settings { get; set; } = new List<IPluginSettings>();
+        public Dictionary<string, object> Settings { get; set; } = new ();
     }
 }

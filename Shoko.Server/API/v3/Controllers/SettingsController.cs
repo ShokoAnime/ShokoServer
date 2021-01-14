@@ -17,9 +17,9 @@ namespace Shoko.Server.API.v3.Controllers
     [InitFriendly]
     public class SettingsController : BaseController
     {
-        private IWritableOptions<ServerSettings> _serverSettings;
+        private IWritableOptions<SettingsRoot> _serverSettings;
 
-        public SettingsController(IWritableOptions<ServerSettings> serverSettings)
+        public SettingsController(IWritableOptions<SettingsRoot> serverSettings)
         {
             _serverSettings = serverSettings;
         }
@@ -46,7 +46,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="skipValidation">Skip Model Validation. Use with caution</param>
         /// <returns></returns>
         [HttpPatch]
-        public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings, bool skipValidation = false)
+        public ActionResult SetSettings([FromBody] JsonPatchDocument<SettingsRoot> settings, bool skipValidation = false)
         {
             if (settings == null) return BadRequest("The settings object is invalid.");
             // settings.ApplyTo(ServerSettings.Instance, ModelState);
@@ -61,7 +61,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             try
             {
-                this._serverSettings.Update(s =>
+                _serverSettings.Update(s =>
                 {
                     settings.ApplyTo(s);
                     if (!skipValidation)
