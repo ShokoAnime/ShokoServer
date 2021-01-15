@@ -2,10 +2,11 @@
 using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Models
 {
-    public class FileQualityPreferences
+    public class FileQualityPreferences : IDefaultedConfig
     {
         [JsonIgnore]
         public static readonly Dictionary<string, string> SimplifiedSources;
@@ -32,32 +33,21 @@ namespace Shoko.Models
         }
 
         /// This is a list, in order, of the operations to compare. Accepts no arguments.
-        public List<FileQualityFilterType> PreferredTypes { get; set; } = new List<FileQualityFilterType>
-        {
-            FileQualityFilterType.SOURCE, FileQualityFilterType.RESOLUTION, FileQualityFilterType.AUDIOSTREAMCOUNT,
-            FileQualityFilterType.SUBSTREAMCOUNT, FileQualityFilterType.SUBGROUP, FileQualityFilterType.CHAPTER,
-            FileQualityFilterType.VIDEOCODEC, FileQualityFilterType.AUDIOCODEC, FileQualityFilterType.VERSION
-        };
+        public List<FileQualityFilterType> PreferredTypes { get; set; }
 
         /// Preferred Audio Codecs, in order.
-        public List<string> PreferredAudioCodecs { get; set; } = new List<string>
-        {
-            "flac", "dca", "aac", "ac3", "wmav2", "wmapro", "adpcm_ms", "mp3", "mp2", "vp6f"
-        };
+        public List<string> PreferredAudioCodecs { get; set; }
 
         /// Preferred Resolutions, in order.
-        public List<string> PreferredResolutions { get; set; } = new List<string> {"2160p", "1440p", "1080p", "720p", "480p"};
+        public List<string> PreferredResolutions { get; set; }
 
         /// Subbing/Release Groups in order of preference.
         /// If a file is not in the list, the compared files are considered comparatively equal.
-        public List<string> PreferredSubGroups { get; set; } = new List<string> { "fffpeeps", "doki", "commie", "horriblesubs" };
+        public List<string> PreferredSubGroups { get; set; }
 
         /// Preferred Video Codecs, in order.
         /// Due to the complexity of Bit Depth, it has its own setting that is used when applicable.
-        public List<string> PreferredVideoCodecs { get; set; } = new List<string>
-        {
-            "hevc", "h264", "mpeg4", "vc1", "flv", "mpeg2", "mpeg1", "vp6f"
-        };
+        public List<string> PreferredVideoCodecs { get; set; }
 
         /// Whether or not to prefer Bit Depth. If/when 12bit becomes more prominant, this can be changed to an integer.
         /// This will not apply to codecs that don't support.
@@ -74,50 +64,35 @@ namespace Shoko.Models
         /// Each Setting must have an operation type, except for Types
         /// All checks must pass to keep a file.
         /// This is a list, in order, of the operations. Accepts no arguments.
-        public List<FileQualityFilterType> RequiredTypes { get; set; } = new List<FileQualityFilterType>
-        {
-            FileQualityFilterType.SOURCE, FileQualityFilterType.CHAPTER, FileQualityFilterType.VERSION
-        };
+        public List<FileQualityFilterType> RequiredTypes { get; set; }
 
         /// Required Audio Codec. Default must be FLAC, Dolby, or AAC.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredAudioCodecs { get; set; } =
-            new FileQualityTypeListPair<List<string>>(
-                new List<string> {"flac", "dca", "aac"},
-                FileQualityFilterOperationType.IN);
+        public FileQualityTypeListPair<List<string>> RequiredAudioCodecs { get; set; }
 
         /// Required Audio Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        public FileQualityTypeListPair<int> RequiredAudioStreamCount { get; set; } =
-            new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
+        public FileQualityTypeListPair<int> RequiredAudioStreamCount { get; set; }
 
         /// Required Resolution. Default must be 1080p or greater.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ, IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredResolutions { get; set; } =
-            new FileQualityTypeListPair<List<string>>(new List<string> {"1080p"},
-                FileQualityFilterOperationType.GREATER_EQ);
+        public FileQualityTypeListPair<List<string>> RequiredResolutions { get; set; }
 
         /// Required Source. Default must be BD or DVD release.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredSources { get; set; } =
-            new FileQualityTypeListPair<List<string>>(new List<string> {"bd", "dvd"},
-                FileQualityFilterOperationType.IN);
+        public FileQualityTypeListPair<List<string>> RequiredSources { get; set; }
 
         /// The required Subbing/Release Groups and the operator. Defaulting to not HorribleSubs for example.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredSubGroups { get; set; } =
-            new FileQualityTypeListPair<List<string>>(new List<string> { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
+        public FileQualityTypeListPair<List<string>> RequiredSubGroups { get; set; }
 
         /// Required Subtitle Stream Count. Default is >= 1.
         /// Accepts EQUAL, GREATER_EQ, LESS_EQ
-        public FileQualityTypeListPair<int> RequiredSubStreamCount { get; set; } =
-            new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
+        public FileQualityTypeListPair<int> RequiredSubStreamCount { get; set; } 
 
         /// Required Video Codec. Default must be H265/HEVC or H264/AVC.
         /// Accepts IN, NOTIN
-        public FileQualityTypeListPair<List<string>> RequiredVideoCodecs { get; set; } =
-            new FileQualityTypeListPair<List<string>>(new List<string> {"hevc", "h264"},
-                FileQualityFilterOperationType.IN);
+        public FileQualityTypeListPair<List<string>> RequiredVideoCodecs { get; set; }
 
         /// Require 10bit Video when applicable. This will not apply to codecs that don't support.
         public bool Require10BitVideo = true;
@@ -152,6 +127,38 @@ namespace Shoko.Models
                 Value = value;
                 Operator = type;
             }
+        }
+
+        public void SetDefaults()
+        {
+            PreferredTypes = PreferredTypes ?? new List<FileQualityFilterType>
+            {
+                FileQualityFilterType.SOURCE, FileQualityFilterType.RESOLUTION, FileQualityFilterType.AUDIOSTREAMCOUNT,
+                FileQualityFilterType.SUBSTREAMCOUNT, FileQualityFilterType.SUBGROUP, FileQualityFilterType.CHAPTER,
+                FileQualityFilterType.VIDEOCODEC, FileQualityFilterType.AUDIOCODEC, FileQualityFilterType.VERSION
+            };
+            PreferredAudioCodecs = PreferredAudioCodecs ?? new List<string>
+            {
+                "flac", "dca", "aac", "ac3", "wmav2", "wmapro", "adpcm_ms", "mp3", "mp2", "vp6f"
+            };
+
+            PreferredResolutions = PreferredResolutions ?? new List<string> { "2160p", "1440p", "1080p", "720p", "480p" };
+            PreferredSubGroups = PreferredSubGroups ?? new List<string> { "fffpeeps", "doki", "commie", "horriblesubs" };
+            PreferredVideoCodecs = PreferredVideoCodecs ?? new List<string>
+            {
+                "hevc", "h264", "mpeg4", "vc1", "flv", "mpeg2", "mpeg1", "vp6f"
+            };
+            RequiredTypes = RequiredTypes = new List<FileQualityFilterType> { FileQualityFilterType.SOURCE, FileQualityFilterType.CHAPTER, FileQualityFilterType.VERSION };
+
+            RequiredAudioCodecs = RequiredAudioCodecs ?? new FileQualityTypeListPair<List<string>>(new List<string> { "flac", "dca", "aac" }, FileQualityFilterOperationType.IN);
+
+            RequiredAudioStreamCount = RequiredAudioStreamCount ?? new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
+            RequiredResolutions = RequiredResolutions ?? new FileQualityTypeListPair<List<string>>(new List<string> { "1080p" }, FileQualityFilterOperationType.GREATER_EQ);
+            RequiredSources = RequiredSources ?? new FileQualityTypeListPair<List<string>>(new List<string> { "bd", "dvd" }, FileQualityFilterOperationType.IN);
+            RequiredSubGroups = RequiredSubGroups ?? new FileQualityTypeListPair<List<string>>(new List<string> { "horriblesubs" }, FileQualityFilterOperationType.NOTIN);
+            RequiredSubStreamCount = RequiredSubStreamCount ?? new FileQualityTypeListPair<int>(1, FileQualityFilterOperationType.GREATER_EQ);
+            RequiredVideoCodecs = new FileQualityTypeListPair<List<string>>(new List<string> { "hevc", "h264" }, FileQualityFilterOperationType.IN);
+
         }
     }
 }
