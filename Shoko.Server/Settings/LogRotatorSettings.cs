@@ -1,6 +1,8 @@
+using Shoko.Plugin.Abstractions.Configuration;
+
 namespace Shoko.Server.Settings
 {
-    public class LogRotatorSettings
+    public class LogRotatorSettings : IDefaultedConfig
     {
         public bool Enabled { get; set; } = true;
 
@@ -9,5 +11,9 @@ namespace Shoko.Server.Settings
         public bool Delete { get; set; } = true;
 
         public string Delete_Days { get; set; } = "";
+        public void SetDefaults()
+        {
+            
+        }
     }
 }

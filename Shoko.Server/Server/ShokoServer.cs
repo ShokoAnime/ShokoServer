@@ -238,13 +238,6 @@ namespace Shoko.Server.Server
         {
             ServerState.Instance.LoadSettings();
 
-            var opts = ServiceContainer.GetRequiredService<IWritableOptions<ImportSettings>>();
-            for (int i = 0; i < 100; i++)
-            {
-                logger.Info($"Count: {opts.Value.VideoExtensions.Count()}");
-                opts.Update(_ => { });
-            }
-
             SetTraceLogging(ServerSettings.Instance.TraceLog);
 
             _sentry = SentrySdk.Init(opts =>

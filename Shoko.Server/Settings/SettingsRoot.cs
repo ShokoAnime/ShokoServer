@@ -11,11 +11,12 @@ using Newtonsoft.Json;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings
 {
-    public class SettingsRoot
+    public class SettingsRoot :IDefaultedConfig
     {
         public string AnimeXmlDirectory { get; set; } = Path.Combine(ServerSettings.ApplicationPath, "Anime_HTTP");
 
@@ -247,6 +248,20 @@ namespace Shoko.Server.Settings
                 string inCode = ServerSettings.Serialize(this, true);
                 if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
             }
+        }
+
+        public void SetDefaults()
+        {
+            LogRotator.SetDefaults();
+            Database.SetDefaults();
+            AniDb.SetDefaults();
+            WebCache.SetDefaults();
+            TvDB.SetDefaults();
+            MovieDb.SetDefaults();
+            Import.SetDefaults();
+            Plex.SetDefaults();
+            Plugins.SetDefaults();
+            FileQualityPreferences.SetDefaults();
         }
     }
 }

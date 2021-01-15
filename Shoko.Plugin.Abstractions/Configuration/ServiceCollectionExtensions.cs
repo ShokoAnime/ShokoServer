@@ -8,7 +8,7 @@ namespace Shoko.Plugin.Abstractions.Configuration
     {
         public static void ConfigureWritable<T>(
             this IServiceCollection services,
-            IConfigurationSection section) where T : class, new()
+            IConfigurationSection section) where T : class, IDefaultedConfig, new()
         {
             services.Configure<T>(section);
             services.AddTransient<IWritableOptions<T>>(provider =>
@@ -22,7 +22,7 @@ namespace Shoko.Plugin.Abstractions.Configuration
 
         public static void ConfigureWritable<T>(
             this IServiceCollection services,
-            IConfigurationRoot section) where T : class, new()
+            IConfigurationRoot section) where T : class, IDefaultedConfig, new()
         {
             services.Configure<T>(section);
             services.AddTransient<IWritableOptions<T>>(provider =>

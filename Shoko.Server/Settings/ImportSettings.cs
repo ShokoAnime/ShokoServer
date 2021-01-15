@@ -1,13 +1,15 @@
 using System.Collections.Generic;
+using NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive;
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class ImportSettings
+    public class ImportSettings : IDefaultedConfig
     {
-        public HashSet<string> VideoExtensions { get; set; } = new() { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
+        public HashSet<string> VideoExtensions { get; set; }
 
-        public HashSet<string> Exclude { get; set; } = new() { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" };
+        public HashSet<string> Exclude { get; set; }
 
         public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
 
@@ -41,5 +43,11 @@ namespace Shoko.Server.Settings
         public string MediaInfoPath { get; set; }
 
         public int MediaInfoTimeoutMinutes { get; set; } = 5;
+        public void SetDefaults()
+        {
+            VideoExtensions ??=  new() {"MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V"};
+            VideoExtensions2 ??=  new() {"MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V"};
+            Exclude ??= new() { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" };
+        }
     }
 }

@@ -1,10 +1,11 @@
 using System.IO;
 using Newtonsoft.Json;
+using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings
 {
-    public class DatabaseSettings
+    public class DatabaseSettings : IDefaultedConfig
     {
         public string MySqliteDirectory { get; set; } = Path.Combine(ServerSettings.ApplicationPath, "SQLite");
         public string DatabaseBackupDirectory { get; set; } = Path.Combine(ServerSettings.ApplicationPath, "DatabaseBackup");
@@ -26,5 +27,9 @@ namespace Shoko.Server.Settings
 
 
         public string SQLite_DatabaseFile { get; set; } = "JMMServer.db3";
+        public void SetDefaults()
+        {
+            
+        }
     }
 }

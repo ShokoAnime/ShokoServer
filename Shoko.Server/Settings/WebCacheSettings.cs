@@ -1,8 +1,9 @@
 using System;
+using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class WebCacheSettings
+    public class WebCacheSettings : IDefaultedConfig
     {
         public bool Enabled { get; set; } = false;
         public string Address { get; set; } = "https://localhost:44307";
@@ -22,5 +23,9 @@ namespace Shoko.Server.Settings
         public bool Trakt_Get { get; set; } = true;
 
         public bool Trakt_Send { get; set; } = true;
+        public void SetDefaults()
+        {
+            
+        }
     }
 }

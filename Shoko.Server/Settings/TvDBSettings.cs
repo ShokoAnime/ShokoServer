@@ -1,8 +1,9 @@
 using Shoko.Models.Enums;
+using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class TvDBSettings
+    public class TvDBSettings : IDefaultedConfig
     {
         public bool AutoLink { get; set; } = false;
 
@@ -21,5 +22,8 @@ namespace Shoko.Server.Settings
         public ScheduledUpdateFrequency UpdateFrequency { get; set; } = ScheduledUpdateFrequency.HoursTwelve;
 
         public string Language { get; set; } = "en";
+        public void SetDefaults()
+        {
+        }
     }
 }

@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Shoko.Plugin.Abstractions.Configuration
 {
-    public class WritableOptions<T> : IWritableOptions<T> where T : class, new()
+    public class WritableOptions<T> : IWritableOptions<T> where T : class, IDefaultedConfig, new()
     {
         private readonly IOptionsMonitor<T> _options;
         private readonly IConfigurationRoot _configuration;
@@ -26,7 +26,15 @@ namespace Shoko.Plugin.Abstractions.Configuration
             _section = section;
         }
 
-        public T Value => _options.CurrentValue;
+        public T Value {
+            get
+            {
+                var v = _options.CurrentValue;
+                v.SetDefaults();
+
+                return v;
+            }
+        }
         public T Get(string name) => _options.Get(name);
 
         public void Update(Action<T> applyChanges)
@@ -35,6 +43,7 @@ namespace Shoko.Plugin.Abstractions.Configuration
 
             var jObject = JObject.Parse(File.ReadAllText(physicalPath));
             var sectionObj = Value ?? new();
+            sectionObj.SetDefaults();
 
             applyChanges(sectionObj);
 

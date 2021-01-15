@@ -166,7 +166,7 @@ namespace Shoko.Server.Settings
                 Import =
                     new ImportSettings
                     {
-                        VideoExtensions = legacy.VideoExtensions.Split(',').ToList(),
+                        VideoExtensions = legacy.VideoExtensions.Split(',').ToHashSet(),
                         DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
                         DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
                         RunOnStart = legacy.RunImportOnStart,
@@ -463,7 +463,7 @@ namespace Shoko.Server.Settings
             ServerShutdown?.Invoke(null, args);
         }
 
-        public static IWritableOptions<T> Settings<T>() where T : class, new()
+        public static IWritableOptions<T> Settings<T>() where T : class, IDefaultedConfig, new()
         {
             return ShokoServer.ServiceContainer.GetRequiredService<IWritableOptions<T>>();
         }
