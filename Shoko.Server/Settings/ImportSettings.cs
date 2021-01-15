@@ -46,7 +46,6 @@ namespace Shoko.Server.Settings
         public void SetDefaults()
         {
             VideoExtensions ??=  new() {"MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V"};
-            VideoExtensions2 ??=  new() {"MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V"};
             Exclude ??= new() { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" };
         }
     }
