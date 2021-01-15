@@ -42,7 +42,7 @@ namespace Shoko.Plugin.Abstractions.Configuration
             var physicalPath = Path.Combine(_details.ApplicationPath, _details.ConfigFileName);
 
             var jObject = JObject.Parse(File.ReadAllText(physicalPath));
-            var sectionObj = Value ?? new();
+            var sectionObj = Value ?? new T();
             sectionObj.SetDefaults();
 
             applyChanges(sectionObj);
