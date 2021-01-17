@@ -11,7 +11,7 @@ namespace Shoko.Server.Renamer
     [Renamer(RENAMER_ID, Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
     public class GroupAwareRenamer : IRenamer
     {
-        internal static const string RENAMER_ID = nameof(GroupAwareRenamer);
+        internal const string RENAMER_ID = nameof(GroupAwareRenamer);
         // Defer to whatever else
         public string GetFilename(RenameEventArgs args) => null;
 
