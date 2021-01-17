@@ -1,9 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NLog;
 using Shoko.Server;
 using Shoko.Server.Server;
@@ -42,9 +40,7 @@ namespace Shoko.CLI
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.
             ShokoServer.Instance.RestartAniDBSocket();
-            var settings = ServerSettings.Settings<SettingsRoot>().Value;
-
-            if (!settings.FirstRun)
+            if (!ServerSettings.Instance.FirstRun)
                 ShokoServer.RunWorkSetupDB();
             else Logger.Warn("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
 

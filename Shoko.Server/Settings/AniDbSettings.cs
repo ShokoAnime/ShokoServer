@@ -1,10 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class AniDbSettings : IDefaultedConfig
+    public class AniDbSettings
     {
         [Required(AllowEmptyStrings = false)]
         public string Username { get; set; }
@@ -58,10 +57,7 @@ namespace Shoko.Server.Settings
         public bool DownloadCreators { get; set; } = true;
 
         [Range(0, 5, ErrorMessage = "Max Relation Depth may only be between 0 and 5")]
-        public int MaxRelationDepth { get; set; } = 1;
+        public int MaxRelationDepth { get; set; } = 3;
 
-        public void SetDefaults()
-        {
-        }
     }
 }

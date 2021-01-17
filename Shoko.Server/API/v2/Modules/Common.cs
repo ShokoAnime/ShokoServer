@@ -19,7 +19,6 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;

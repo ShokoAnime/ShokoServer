@@ -2,21 +2,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions;
-using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class PluginSettings : IDefaultedConfig
+    public class PluginSettings
     {
-        public Dictionary<string, bool> EnabledPlugins { get; set; } = new();
+        public Dictionary<string, bool> EnabledPlugins { get; set; } = new Dictionary<string, bool>();
         
-        public HashSet<string> Priority { get; set; } = new();
-        public Dictionary<string, bool> EnabledRenamers { get; set; } = new ();
-        public Dictionary<string, int> RenamerPriorities { get; set; } = new();
+        public List<string> Priority { get; set; } = new List<string>();
+        public Dictionary<string, bool> EnabledRenamers { get; set; } = new Dictionary<string, bool>();
+        public Dictionary<string, int> RenamerPriorities { get; set; } = new Dictionary<string, int>();
 
-        public Dictionary<string, object> Settings { get; set; } = new ();
-        public void SetDefaults()
-        {
-        }
+        [JsonIgnore]
+        public List<IPluginSettings> Settings { get; set; } = new List<IPluginSettings>();
     }
 }

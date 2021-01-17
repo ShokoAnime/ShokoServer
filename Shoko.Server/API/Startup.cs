@@ -24,7 +24,6 @@ using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.Plugin;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -33,11 +32,11 @@ namespace Shoko.Server.API
 {
     public class Startup
     {
-        public IWebHostEnvironment HostingEnvironment { get; }
+        public IHostingEnvironment HostingEnvironment { get; }
         public IConfiguration Configuration { get; }
         private static Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public Startup(IWebHostEnvironment env)
+        public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath);
@@ -48,8 +47,6 @@ namespace Shoko.Server.API
 
         public void ConfigureServices(IServiceCollection services)
         {
-            ShokoServer.ConfigureServices(services);
-
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;

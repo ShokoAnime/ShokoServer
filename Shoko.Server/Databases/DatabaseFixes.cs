@@ -30,7 +30,8 @@ namespace Shoko.Server.Databases
         {
             string anidb = ServerSettings.Instance.AniDb.ServerAddress;
             if (!anidb.EndsWith(".info", StringComparison.InvariantCultureIgnoreCase)) return;
-            ServerSettings.Settings<AniDbSettings>().Update(s => s.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net");
+            ServerSettings.Instance.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
+            ServerSettings.Instance.SaveSettings();
         }
 
         public static void DeleteSerieUsersWithoutSeries()

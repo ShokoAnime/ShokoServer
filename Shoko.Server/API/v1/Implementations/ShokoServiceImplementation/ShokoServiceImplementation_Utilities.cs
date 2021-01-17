@@ -11,8 +11,6 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
@@ -103,7 +101,6 @@ namespace Shoko.Server
         private static double GetLowestLevenshteinDistance(SVR_AnimeSeries a, string query)
         {
             if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return 1;
-            
             double dist = 1;
             SorensenDice dice = new SorensenDice();
             var languages = new HashSet<string> {"en", "x-jat"};
@@ -717,14 +714,12 @@ namespace Shoko.Server
                 // check if it is a title search or an ID search
                 if (int.TryParse(titleQuery, out int aid))
                 {
-
-                    var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<AniDbSettings>>().Value;
                     // user is direct entering the anime id
 
                     // try the local database first
                     // if not download the data from AniDB now
                     SVR_AniDB_Anime anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
-                        settings.DownloadRelatedAnime);
+                        ServerSettings.Instance.AniDb.DownloadRelatedAnime);
                     if (anime != null)
                     {
                         CL_AnimeSearch res = new CL_AnimeSearch
@@ -914,11 +909,8 @@ namespace Shoko.Server
 
             try
             {
-                var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<AniDbSettings>>().Value;
-
-
                 AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
-                cmd.Init(settings.Username, settings.Password);
+                cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
                 AniDBUDPResponseCode ev = cmd.Process();
                 if (ev == AniDBUDPResponseCode.GotMyListHTTP)
                 {

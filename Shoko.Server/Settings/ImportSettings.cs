@@ -1,15 +1,14 @@
 using System.Collections.Generic;
-using NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive;
 using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class ImportSettings : IDefaultedConfig
+    public class ImportSettings
     {
-        public HashSet<string> VideoExtensions { get; set; }
+        
+        public List<string> VideoExtensions { get; set; } = new List<string> { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" };
 
-        public HashSet<string> Exclude { get; set; }
+        public List<string> Exclude { get; set; } = new List<string> { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" };
 
         public RenamingLanguage DefaultSeriesLanguage { get; set; } = RenamingLanguage.Romaji;
 
@@ -43,10 +42,5 @@ namespace Shoko.Server.Settings
         public string MediaInfoPath { get; set; }
 
         public int MediaInfoTimeoutMinutes { get; set; } = 5;
-        public void SetDefaults()
-        {
-            VideoExtensions ??=  new() {"MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V"};
-            Exclude ??= new() { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" };
-        }
     }
 }

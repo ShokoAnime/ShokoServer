@@ -12,20 +12,14 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using System.Text.RegularExpressions;
-using FluentNHibernate.Utils;
 using LeanWork.IO.FileSystem;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
-using Newtonsoft.Json.Linq;
 using NHibernate;
-using NHibernate.Mapping.ByCode;
 using NLog;
 using NLog.Config;
 using NLog.Extensions.Logging;
@@ -36,14 +30,10 @@ using NutzCode.CloudFileSystem;
 using NutzCode.CloudFileSystem.OAuth2;
 using Sentry;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions;
-using Shoko.Plugin.Abstractions.Configuration;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.Plex;
 using Shoko.Server.Databases;
@@ -114,14 +104,14 @@ namespace Shoko.Server.Server
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
         public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
-
-        public static IServiceProvider ServiceContainer => webHost.Services;
-
+        
+        public static IServiceProvider ServiceContainer { get; private set; }
+        
         private Mutex mutex;
 
-        internal static void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services)
         {
-            // services.AddSingleton(ServerSettings.Instance);
+            services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
             services.AddLogging(loggingBuilder => //add NLog based logging.
             {
@@ -130,15 +120,6 @@ namespace Shoko.Server.Server
                 loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
-            });
-
-            ServerSettings.ConfigureDi(services);
-            Loader.Instance.Load(services);
-            //This is REQUIRED for settings to work
-            services.AddSingleton(provider => new ShokoApplicationDetails
-            {
-                ApplicationPath = ServerSettings.ApplicationPath,
-                ConfigFileName = ServerSettings.SettingsFilename,
             });
         }
         
@@ -154,8 +135,7 @@ namespace Shoko.Server.Server
 
         private ShokoServer()
         {
-            InitWebHost();
-            // InitDi();
+            
         }
 
         ~ShokoServer()
@@ -163,14 +143,6 @@ namespace Shoko.Server.Server
             _sentry.Dispose();
             ShutDown();
         }
-
-        // private void InitDi(IServiceCollection services)
-        // {
-        //     // RenameFileHelper.InitialiseRenamers();
-        //     // var services = new ServiceCollection();
-        //     ConfigureServices(services);
-        //     // ServiceContainer = services.BuildServiceProvider();
-        // }
 
         public void InitLogger()
         {
@@ -197,18 +169,15 @@ namespace Shoko.Server.Server
                     o.AddTag("logger", "${logger}");
 
                     // All Sentry Options are accessible here.
-#if !DEBUG
-                    //Don't attach the DSN If in debug.
                     o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
-#endif
                     o.AttachStacktrace = true;
                     o.BeforeSend += delegate(SentryEvent e)
                     {
                         // Filter out some things. With Custom Exception Types, we can do this more gracefully, but meh
-                        if (e.Message?.Contains("AniDB ban or No Such Anime returned") == true) return null;
-                        if (e.Message?.Contains("AddFileToMyList") == true) return null;
-                        if (e.Message?.Contains("Login Failed") == true) return null;
-                        if (e.Message?.Contains("MyList xml is empty or invalid") == true) return null;
+                        if (e.Message.Contains("AniDB ban or No Such Anime returned")) return null;
+                        if (e.Message.Contains("AddFileToMyList")) return null;
+                        if (e.Message.Contains("Login Failed")) return null;
+                        if (e.Message.Contains("MyList xml is empty or invalid")) return null;
                         if (e.Exception is UnauthorizedAccessException) return null;
                         if (e.Exception is SocketException) return null;
                         return e;
@@ -236,10 +205,6 @@ namespace Shoko.Server.Server
 
         public bool StartUpServer()
         {
-            ServerState.Instance.LoadSettings();
-
-            SetTraceLogging(ServerSettings.Instance.TraceLog);
-
             _sentry = SentrySdk.Init(opts =>
             {
                 opts.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
@@ -305,10 +270,14 @@ namespace Shoko.Server.Server
                 mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
             }
 
-            Loader.Instance.InitPlugins(ServiceContainer, ServerSettings.Configuration.GetSection("Plugins:AllPlugins"));
+            // RenameFileHelper.InitialiseRenamers();
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            Plugin.Loader.Instance.Load(services);
+            ServiceContainer = services.BuildServiceProvider();
+            Plugin.Loader.Instance.InitPlugins(ServiceContainer);
 
-            ServiceContainer.GetRequiredService<IOptions<ServerSettings>>()
-                .Value.DebugSettingsToLog();
+            ServerSettings.Instance.DebugSettingsToLog();
 
             workerFileEvents.WorkerReportsProgress = false;
             workerFileEvents.WorkerSupportsCancellation = false;
@@ -327,7 +296,7 @@ namespace Shoko.Server.Server
             ServerState.Instance.ServerStarting = false;
             ServerState.Instance.StartupFailed = false;
             ServerState.Instance.StartupFailedMessage = string.Empty;
-            // ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
+            ServerState.Instance.BaseImagePath = ImageUtils.GetBaseImagesPath();
 
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
@@ -777,9 +746,8 @@ namespace Shoko.Server.Server
             ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
-            //ServerSettings.Instance.FirstRun = false;
-            ServerSettings.Settings<SettingsRoot>().Update(s => s.FirstRun = false);
-
+            ServerSettings.Instance.FirstRun = false;
+            ServerSettings.Instance.SaveSettings();
             if (string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Username) ||
                 string.IsNullOrEmpty(ServerSettings.Instance.AniDb.Password))
                 LoginFormNeeded?.Invoke(Instance, null);
@@ -1576,17 +1544,14 @@ namespace Shoko.Server.Server
         }
 
 
-        private static void InitWebHost()
+        /// <summary>
+        /// Running Nancy and Validating all require aspects before running it
+        /// </summary>
+        private static void StartWebHost()
         {
             if (webHost != null)
                 return;
-            var config = ServerSettings.Configuration;
-
-            webHost = new WebHostBuilder().UseKestrel(options =>
-                {
-                    options.ListenAnyIP(config.GetValue<int>("ServerPort"));
-                })
-                .UseStartup<Startup>()
+            webHost = new WebHostBuilder().UseKestrel(options => { options.ListenAnyIP(ServerSettings.Instance.ServerPort); }).UseStartup<Startup>()
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -1598,14 +1563,6 @@ namespace Shoko.Server.Server
                 }).UseNLog()
 
                 .Build();
-        }
-
-        /// <summary>
-        /// Running Nancy and Validating all require aspects before running it
-        /// </summary>
-        private static void StartWebHost()
-        {
-            if (webHost == null) InitWebHost();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 
@@ -1668,11 +1625,9 @@ namespace Shoko.Server.Server
 
         private static void SetupAniDBProcessor()
         {
-            var settings = ShokoServer.ServiceContainer.GetRequiredService<IOptions<AniDbSettings>>().Value;
-
-            ShokoService.AnidbProcessor.Init(settings.Username, settings.Password,
-                settings.ServerAddress,
-                settings.ServerPort, settings.ClientPort);
+            ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password,
+                ServerSettings.Instance.AniDb.ServerAddress,
+                ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort);
         }
 
         public static void AniDBDispose()

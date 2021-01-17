@@ -1,9 +1,8 @@
 using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Configuration;
 
 namespace Shoko.Server.Settings
 {
-    public class TraktSettings : IDefaultedConfig
+    public class TraktSettings
     {
         public bool Enabled { get; set; } = false;
 
@@ -18,9 +17,5 @@ namespace Shoko.Server.Settings
         public ScheduledUpdateFrequency UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
 
         public ScheduledUpdateFrequency SyncFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-        public void SetDefaults()
-        {
-            
-        }
     }
 }
