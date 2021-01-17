@@ -30,7 +30,7 @@ namespace Shoko.Server.Renamer
         {
             if (args.Script == null)
                 throw new Exception("*Error: No script available for renamer");
-            if (args.Script.Type != RENAMER_ID) return null;
+            if (args.Script.Type != RENAMER_ID && args.Script.Type != GroupAwareRenamer.RENAMER_ID) return null;
 
             return GetNewFileName(args, args.Script.Script);
         }

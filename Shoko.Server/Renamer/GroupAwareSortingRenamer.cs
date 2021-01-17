@@ -5,13 +5,13 @@ using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Utilities;
-using Shoko.Plugin.Abstractions;
 
 namespace Shoko.Server.Renamer
 {
-    [Renamer("GroupAwareRenamer", Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
+    [Renamer(RENAMER_ID, Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
     public class GroupAwareRenamer : IRenamer
     {
+        internal static const string RENAMER_ID = nameof(GroupAwareRenamer);
         // Defer to whatever else
         public string GetFilename(RenameEventArgs args) => null;
 
