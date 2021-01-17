@@ -104,12 +104,12 @@ namespace Shoko.Server.Server
         public static List<UserCulture> userLanguages = new List<UserCulture>();
 
         public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
-        
-        public static IServiceProvider ServiceContainer { get; private set; }
+
+        public static IServiceProvider ServiceContainer => webHost.Services;
         
         private Mutex mutex;
 
-        private static void ConfigureServices(IServiceCollection services)
+        internal static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
@@ -121,6 +121,7 @@ namespace Shoko.Server.Server
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
             });
+            Loader.Instance.Load(services);
         }
         
         public string[] GetSupportedDatabases()
@@ -135,7 +136,7 @@ namespace Shoko.Server.Server
 
         private ShokoServer()
         {
-            
+            InitWebHost();
         }
 
         ~ShokoServer()
@@ -174,10 +175,10 @@ namespace Shoko.Server.Server
                     o.BeforeSend += delegate(SentryEvent e)
                     {
                         // Filter out some things. With Custom Exception Types, we can do this more gracefully, but meh
-                        if (e.Message.Contains("AniDB ban or No Such Anime returned")) return null;
-                        if (e.Message.Contains("AddFileToMyList")) return null;
-                        if (e.Message.Contains("Login Failed")) return null;
-                        if (e.Message.Contains("MyList xml is empty or invalid")) return null;
+                        if (e.Message?.Contains("AniDB ban or No Such Anime returned") == true) return null;
+                        if (e.Message?.Contains("AddFileToMyList") == true) return null;
+                        if (e.Message?.Contains("Login Failed") == true) return null;
+                        if (e.Message?.Contains("MyList xml is empty or invalid") == true) return null;
                         if (e.Exception is UnauthorizedAccessException) return null;
                         if (e.Exception is SocketException) return null;
                         return e;
@@ -271,11 +272,11 @@ namespace Shoko.Server.Server
             }
 
             // RenameFileHelper.InitialiseRenamers();
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            Plugin.Loader.Instance.Load(services);
-            ServiceContainer = services.BuildServiceProvider();
-            Plugin.Loader.Instance.InitPlugins(ServiceContainer);
+            // var services = new ServiceCollection();
+            // ConfigureServices(services);
+            // Plugin.Loader.Instance.Load(services);
+            // ServiceContainer = services.BuildServiceProvider();
+            // Plugin.Loader.Instance.InitPlugins(ServiceContainer);
 
             ServerSettings.Instance.DebugSettingsToLog();
 
@@ -1543,15 +1544,16 @@ namespace Shoko.Server.Server
             }
         }
 
-
-        /// <summary>
-        /// Running Nancy and Validating all require aspects before running it
-        /// </summary>
-        private static void StartWebHost()
+        private static void InitWebHost()
         {
             if (webHost != null)
                 return;
-            webHost = new WebHostBuilder().UseKestrel(options => { options.ListenAnyIP(ServerSettings.Instance.ServerPort); }).UseStartup<Startup>()
+
+            webHost = new WebHostBuilder().UseKestrel(options =>
+                {
+                    options.ListenAnyIP(ServerSettings.Instance.ServerPort);
+                })
+                .UseStartup<Startup>()
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -1563,6 +1565,14 @@ namespace Shoko.Server.Server
                 }).UseNLog()
 
                 .Build();
+        }
+
+        /// <summary>
+        /// Running Nancy and Validating all require aspects before running it
+        /// </summary>
+        private static void StartWebHost()
+        {
+            if (webHost == null) InitWebHost();
 
             //JsonSettings.MaxJsonLength = int.MaxValue;
 
@@ -1576,7 +1586,6 @@ namespace Shoko.Server.Server
                 logger.Error(ex);
             }
         }
-
 
         private static void ReadFiles()
         {
