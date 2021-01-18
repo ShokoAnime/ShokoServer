@@ -195,18 +195,24 @@ namespace Shoko.Server
                 SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
                 if (user == null) return retEps;
 
+                // get the custome continue watching filter
+                SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(1653);
+
                 // find the locked Continue Watching Filter
-                SVR_GroupFilter gf = null;
-                List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
-                if (lockedGFs != null)
+                //SVR_GroupFilter gf = null;
+                if (gf == null)
                 {
-                    // if it already exists we can leave
-                    foreach (SVR_GroupFilter gfTemp in lockedGFs)
+                    List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+                    if (lockedGFs != null)
                     {
-                        if (gfTemp.FilterType == (int) GroupFilterType.ContinueWatching)
+                        // if it already exists we can leave
+                        foreach (SVR_GroupFilter gfTemp in lockedGFs)
                         {
-                            gf = gfTemp;
-                            break;
+                            if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
+                            {
+                                gf = gfTemp;
+                                break;
+                            }
                         }
                     }
                 }
