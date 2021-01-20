@@ -101,9 +101,9 @@ namespace Shoko.Server
                     {
                         return a.GetTypes();
                     } 
-                    catch
+                    catch (ReflectionTypeLoadException e)
                     {
-                        return new Type[0];
+                        return e.Types.Where(t => t != null);
                     }
                 }).Where(a => a.GetInterfaces().Contains(typeof(IRenamer))).ToList();
 
