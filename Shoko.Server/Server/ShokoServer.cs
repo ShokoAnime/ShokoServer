@@ -120,7 +120,7 @@ namespace Shoko.Server.Server
 #if DEBUG
                 logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
 #else
-	        logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
+                logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
 #endif
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
