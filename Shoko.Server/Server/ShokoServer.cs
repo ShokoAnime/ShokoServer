@@ -118,9 +118,9 @@ namespace Shoko.Server.Server
                 //NLog;
                 loggingBuilder.ClearProviders();
 #if DEBUG
-                logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
 #else
-                logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
+                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
 #endif
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
