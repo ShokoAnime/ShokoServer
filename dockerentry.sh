@@ -51,10 +51,16 @@ New directory: /home/shoko/.shoko
     exit 1
 fi
 
+# set umask to specified value if defined
+if [[ ! -z "${UMASK}" ]]; then
+     umask "${UMASK}"
+fi
+
 echo "
 -------------------------------------
 User uid:    $(id -u $USER)
 User gid:    $(id -g $USER)
+UMASK set:    $(umask)
 -------------------------------------
 "
 
