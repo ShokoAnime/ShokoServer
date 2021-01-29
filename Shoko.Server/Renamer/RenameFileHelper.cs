@@ -126,9 +126,9 @@ namespace Shoko.Server
         }
 
         public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 
-            _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? int.MaxValue : 0)
-                .ThenBy(a => ServerSettings.Instance.Plugins.Priority.Contains(a.Key) ? ServerSettings.Instance.Plugins.Priority.IndexOf(a.Key) : int.MaxValue)
-                .ThenBy(a => a.Key)
+            _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
+                .ThenBy(a => ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(a.Key) ? ServerSettings.Instance.Plugins.RenamerPriorities[a.Key] : int.MaxValue)
+                .ThenBy(a => a.Key, StringComparer.InvariantCultureIgnoreCase)
                 .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type)).ToList();
 
         private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(string renamerName)
