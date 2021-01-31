@@ -104,8 +104,8 @@ namespace Shoko.Server.Repositories
                 if (remmax > changes.LastChange)
                     changes.LastChange = remmax;
             }
-            changes.ChangedItems = new HashSet<T>(_changes.Where(a => a.Value.ToLocalTime() > date.ToLocalTime()).Select(a => a.Key));
-            changes.RemovedItems = new HashSet<T>(_removals.Where(a => a.Value.ToLocalTime() > date.ToLocalTime()).Select(a => a.Key));
+            changes.ChangedItems = new HashSet<T>(_changes.Where(a => a.Value.ToUniversalTime() > date.ToUniversalTime()).Select(a => a.Key));
+            changes.RemovedItems = new HashSet<T>(_removals.Where(a => a.Value.ToUniversalTime() > date.ToUniversalTime()).Select(a => a.Key));
             return changes;
         }
 
