@@ -263,7 +263,7 @@ namespace Shoko.Server.Settings
                     new PlexSettings
                     {
                         ThumbnailAspects = legacy.PlexThumbnailAspects,
-                        Libraries = legacy.Plex_Libraries,
+                        Libraries = legacy.Plex_Libraries.ToList(),
                         Token = legacy.Plex_Token,
                         Server = legacy.Plex_Server
                     },

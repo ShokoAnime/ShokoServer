@@ -604,8 +604,8 @@ namespace Shoko.Server
                 //Plex
                 ServerSettings.Instance.Plex.Server = contractIn.Plex_ServerHost;
                 ServerSettings.Instance.Plex.Libraries = contractIn.Plex_Sections.Length > 0
-                    ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
-                    : new int[0];
+                    ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToList()
+                    : new ();
 
                 // SAVE!
                 ServerSettings.Instance.SaveSettings();
