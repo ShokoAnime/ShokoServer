@@ -37,9 +37,7 @@ namespace Shoko.Server.Plugin
                 {
                     string name = Path.GetFileNameWithoutExtension(dll);
                     if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                        !ServerSettings.Instance.Plugins.EnabledPlugins[name] ||
-                        ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(name) &&
-                        !ServerSettings.Instance.Plugins.EnabledRenamers[name])
+                        !ServerSettings.Instance.Plugins.EnabledPlugins[name])
                     {
                         Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                         continue;
