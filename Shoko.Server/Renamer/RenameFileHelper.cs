@@ -121,8 +121,13 @@ namespace Shoko.Server
                     }
 
                     Renamers.Add(key, (implementation, desc));
+                    if (!ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(key))
+                        ServerSettings.Instance.Plugins.EnabledRenamers.Add(key, true);
+                    if (!ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(key))
+                        ServerSettings.Instance.Plugins.RenamerPriorities.Add(key, 0);
                 }
             }
+            ServerSettings.Instance.SaveSettings();
         }
 
         public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 

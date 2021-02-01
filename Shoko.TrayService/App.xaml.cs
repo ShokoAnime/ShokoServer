@@ -77,9 +77,9 @@ namespace Shoko.TrayService
             var arguments = new ProgramArguments {Instance = instance};
             if (!string.IsNullOrEmpty(arguments.Instance)) ServerSettings.DefaultInstance = arguments.Instance;
 
+            ServerSettings.LoadSettings();
             ShokoServer.Instance.InitLogger();
             
-            ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
             if (!ShokoServer.Instance.StartUpServer()) return;
 

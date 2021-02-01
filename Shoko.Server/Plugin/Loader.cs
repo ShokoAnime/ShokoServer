@@ -37,17 +37,15 @@ namespace Shoko.Server.Plugin
                 {
                     string name = Path.GetFileNameWithoutExtension(dll);
                     if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) &&
-                        !ServerSettings.Instance.Plugins.EnabledPlugins[name])
+                        !ServerSettings.Instance.Plugins.EnabledPlugins[name] ||
+                        ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(name) &&
+                        !ServerSettings.Instance.Plugins.EnabledRenamers[name])
                     {
                         Logger.Info($"Found {name}, but it is disabled in the Server Settings. Skipping it.");
                         continue;
                     }
                     Logger.Debug($"Trying to load {dll}");
                     assemblies.Add(Assembly.LoadFrom(dll));
-                    // TryAdd, because if it made it this far, then it's missing or true.
-                    ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
-                    if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
-                        ServerSettings.Instance.Plugins.Priority.Add(name);
                 }
                 catch (FileLoadException)
                 {
@@ -68,14 +66,23 @@ namespace Shoko.Server.Plugin
             var implementations = assemblies.SelectMany(a => {
                 try
                 {
-                    return a.GetTypes();
+                    var types = a.GetTypes().Where(a => a.GetInterfaces().Contains(typeof(IPlugin))).ToArray();
+                    if (a != Assembly.GetExecutingAssembly() && types.Length > 0)
+                    {
+                        var name = Path.GetFileNameWithoutExtension(a.Location);
+                        ServerSettings.Instance.Plugins.EnabledPlugins.TryAdd(name, true);
+                        if (!ServerSettings.Instance.Plugins.Priority.Contains(name))
+                            ServerSettings.Instance.Plugins.Priority.Add(name);
+                    }
+                    return types;
                 }
                 catch (Exception e)
                 {
                     Logger.Debug(e);
-                    return new Type[0];
+                    return Array.Empty<Type>();
                 }
-            }).Where(a => a.GetInterfaces().Contains(typeof(IPlugin)));
+            });
+            ServerSettings.Instance.SaveSettings();
             
             foreach (var implementation in implementations)
             {

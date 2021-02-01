@@ -32,9 +32,9 @@ namespace Shoko.CLI
         {
             if (!string.IsNullOrEmpty(Args?.Instance)) ServerSettings.DefaultInstance = Args.Instance;
 
-            ShokoServer.Instance.InitLogger();
-            
             ServerSettings.LoadSettings();
+            ShokoServer.Instance.InitLogger();
+
             ServerState.Instance.LoadSettings();
             if (!ShokoServer.Instance.StartUpServer()) return;
 
