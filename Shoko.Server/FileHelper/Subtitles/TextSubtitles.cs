@@ -15,7 +15,7 @@ namespace Shoko.Server.FileHelper.Subtitles
             List<TextStream> streams = new List<TextStream>();
             var language = SubtitleHelper.GetLanguageFromFilename(file.Name);
 
-            MediaContainer m = MediaInfo.GetMediaInfo(file.FullName);
+            MediaContainer m = MediaInfo.GetMediaInfo(SubtitleHelper.GetMediaInfoCompatibleFile(file));
             List<TextStream> tStreams = m?.TextStreams;
             if (tStreams == null || tStreams.Count <= 0) return streams;
             tStreams.ForEach(a =>
@@ -51,7 +51,7 @@ namespace Shoko.Server.FileHelper.Subtitles
 
         public bool IsSubtitleFile(string path)
         {
-            string ext = Path.GetExtension(path).ToLower();
+            string ext = Path.GetExtension(path).ToLower().TrimStart('.');
             return Extensions.Contains(ext);
         }
     }

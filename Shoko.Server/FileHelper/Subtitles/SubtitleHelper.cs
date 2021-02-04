@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Shoko.Commons.Extensions;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Models;
@@ -76,6 +77,42 @@ namespace Shoko.Server.FileHelper.Subtitles
                 default:
                     return MediaInfoUtils.GetLanguageFromName(lang) ?? lang;
             }
+        }
+
+        public static string GetMediaInfoCompatibleFile(FileInfo file)
+        {
+            var f = File.OpenRead(file.FullName);
+            byte[] utf16bePre = Encoding.BigEndianUnicode.GetPreamble();
+            byte[] utf8Pre = Encoding.UTF8.GetPreamble();
+            byte[] bytes = new byte[utf8Pre.Length];
+            string tempfilepath = null;
+
+            // Check first two bytes for utf16be preamble
+            f.Read(bytes, 0, utf16bePre.Length);
+            if (bytes[..utf16bePre.Length].SequenceEqual(utf16bePre))
+            {
+                // Convert to utf16le in temp file
+                byte[] tempbytes = new byte[f.Length];
+                bytes.CopyTo(tempbytes, 0);
+                f.Read(tempbytes, utf16bePre.Length, tempbytes.Length - utf16bePre.Length);
+                tempfilepath = Path.GetTempFileName();
+                File.WriteAllBytes(tempfilepath, Encoding.Convert(Encoding.BigEndianUnicode, Encoding.Unicode, tempbytes));
+            }
+            else
+            {
+                // Check first three bytes for utf8 preamble
+                f.Read(bytes, utf16bePre.Length, utf8Pre.Length - utf16bePre.Length);
+                if (bytes.SequenceEqual(utf8Pre))
+                {
+                    // Remove utf8 preamble in temp file
+                    byte[] restOfFile = new byte[f.Length - utf8Pre.Length];
+                    f.Read(restOfFile);
+                    tempfilepath = Path.GetTempFileName();
+                    File.WriteAllBytes(tempfilepath, restOfFile);
+                }
+            }
+            f.Close();
+            return tempfilepath ?? file.FullName;
         }
     }
 }
