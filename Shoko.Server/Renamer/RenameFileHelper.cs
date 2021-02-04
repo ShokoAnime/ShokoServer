@@ -25,7 +25,11 @@ namespace Shoko.Server
 
         private static IRenameScript _getRenameScript(string name)
         {
-            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetByName(name)
+                         ?? RepoFactory.RenameScript.GetAll()
+                         .OrderBy(s => ServerSettings.Instance.Plugins.RenamerPriorities.TryGetValue(s.RenamerType, out int prio) ? prio : int.MaxValue)
+                         .ThenBy(a => a.RenamerType, StringComparer.InvariantCulture)
+                         .FirstOrDefault();
 
             return new RenameScriptImpl
             {
