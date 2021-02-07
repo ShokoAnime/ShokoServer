@@ -458,6 +458,7 @@ namespace Shoko.Server
         [HttpGet("File/Rename/{videoLocalID}/{scriptName}/{move}")]
         public CL_VideoLocal_Renamed RenameAndMoveFile(int videoLocalID, string scriptName, bool move)
         {
+            scriptName = HttpUtility.UrlDecode(scriptName);
             CL_VideoLocal_Renamed ret = new CL_VideoLocal_Renamed
             {
                 VideoLocalID = videoLocalID,
