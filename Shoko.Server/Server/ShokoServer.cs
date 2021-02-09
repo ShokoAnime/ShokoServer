@@ -52,7 +52,6 @@ using Trinet.Core.IO.Ntfs;
 using Action = System.Action;
 using LogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace Shoko.Server.Server
 {
@@ -125,10 +124,6 @@ namespace Shoko.Server.Server
 #endif
                 loggingBuilder.AddNLog(new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
-            });
-	    services.Configure<KestrelServerOptions>(options =>
-            {
-                options.AllowSynchronousIO = true;
             });
             Loader.Instance.Load(services);
         }
