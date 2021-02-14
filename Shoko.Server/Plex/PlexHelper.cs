@@ -336,6 +336,7 @@ namespace Shoko.Server.Plex
         public void InvalidateToken()
         {
             _user.PlexToken = string.Empty;
+            this.isAuthenticated = false;
             new ShokoServiceImplementation().SaveUser(_user);
         }
     }
