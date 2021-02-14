@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
@@ -15,6 +16,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Server;
+using Shoko.Server.Settings.DI;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 using Formatting = Newtonsoft.Json.Formatting;
@@ -656,5 +658,23 @@ namespace Shoko.Server.Settings
             // ReSharper disable once UnusedAutoPropertyAccessor.Global
             public Exception Exception { get; set; }
         }
+
+        public static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSettings(Instance.AniDb)
+                .AddSettings(Instance)
+                .AddSettings(Instance.Database)
+                .AddSettings(Instance.FileQualityPreferences)
+                .AddSettings(Instance.Import)
+                .AddSettings(Instance.Linux)
+                .AddSettings(Instance.LogRotator)
+                .AddSettings(Instance.MovieDb)
+                .AddSettings(Instance.Plex)
+                .AddSettings(Instance.Plugins)
+                .AddSettings(Instance.TraktTv)
+                .AddSettings(Instance.TvDB)
+                .AddSettings(Instance.WebCache);
+        }
     }
 }
+ 

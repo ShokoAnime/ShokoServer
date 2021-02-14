@@ -111,6 +111,7 @@ namespace Shoko.Server.Server
 
         internal static void ConfigureServices(IServiceCollection services)
         {
+            ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
             services.AddLogging(loggingBuilder => //add NLog based logging.
