@@ -51,7 +51,7 @@ namespace Shoko.Server.FileHelper.Subtitles
 
         public bool IsSubtitleFile(string path)
         {
-            string ext = Path.GetExtension(path).ToLower();
+            string ext = Path.GetExtension(path).ToLower().TrimStart('.');
             return Extensions.Contains(ext);
         }
     }
