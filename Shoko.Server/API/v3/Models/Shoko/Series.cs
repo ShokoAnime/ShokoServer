@@ -12,6 +12,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -222,12 +223,34 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return tags;
         }
         
+        private static SeriesType GetAniDBSeriesType(AnimeType animeType)
+        {
+            switch (animeType)
+            {
+                default:
+                case AnimeType.None:
+                    return SeriesType.Unknown;
+                case AnimeType.TVSeries:
+                    return SeriesType.TV;
+                case AnimeType.Movie:
+                    return SeriesType.Movie;
+                case AnimeType.OVA:
+                    return SeriesType.OVA;
+                case AnimeType.TVSpecial:
+                    return SeriesType.TVSpecial;
+                case AnimeType.Web:
+                    return SeriesType.Web;
+                case AnimeType.Other:
+                    return SeriesType.Other;
+            }
+        }
+        
         public static AniDB GetAniDBInfo(HttpContext ctx, SVR_AniDB_Anime anime)
         {
             var aniDB = new AniDB
             {
                 ID = anime.AnimeID,
-                SeriesType = anime.AnimeType.ToString(),
+                Type = GetAniDBSeriesType((AnimeType)anime.AnimeType),
                 Restricted = anime.Restricted == 1,
                 Description = anime.Description,
                 Rating = new Rating
@@ -286,12 +309,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 
                 // Aggregate stuff
                 var firstEp = ael.FirstOrDefault(a =>
-                        a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode &&
+                        a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) AniDBEpisodeType.Episode &&
                                                     a.AniDB_Episode.EpisodeNumber == 1))
                     ?.TvDBEpisode;
 
                 var lastEp = ael
-                    .Where(a => a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode))
+                    .Where(a => a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) AniDBEpisodeType.Episode))
                     .OrderBy(a => a.AniDB_Episode.EpisodeType)
                     .ThenBy(a => a.AniDB_Episode.EpisodeNumber).LastOrDefault()
                     ?.TvDBEpisode;
@@ -401,7 +424,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Series type. Series, OVA, Movie, etc
             /// </summary>
             [Required]
-            public string SeriesType { get; set; }
+            [JsonConverter(typeof(StringEnumConverter))]
+            public SeriesType Type { get; set; }
 
             /// <summary>
             /// Main Title, usually matches x-jat
@@ -592,5 +616,37 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Match = match;
             Distance = dist;
         }
+    }
+
+    public enum SeriesType
+    {
+        /// <summary>
+        /// The series type is unknown.
+        /// </summary>
+        Unknown = 0,
+        /// <summary>
+        /// A catch-all type for future extensions when a provider can't use a current episode type, but knows what the future type should be.
+        /// </summary>
+        Other = 1,
+        /// <summary>
+        /// Standard TV series.
+        /// </summary>
+        TV = 2,
+        /// <summary>
+        /// TV special.
+        /// </summary>
+        TVSpecial = 3,
+        /// <summary>
+        /// Web series.
+        /// </summary>
+        Web = 4,
+        /// <summary>
+        /// All movies, regardless of source (e.g. web or theater)
+        /// </summary>
+        Movie = 5,
+        /// <summary>
+        /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
+        /// </summary>
+        OVA = 6,
     }
 }
