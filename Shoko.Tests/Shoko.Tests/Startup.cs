@@ -14,14 +14,7 @@ namespace Shoko.Tests
     {
         public void ConfigureServices(IServiceCollection services)
         {
-
-            var settingsMock = new Moq.Mock<ServerSettings>();
-            settingsMock.Setup(s => s.SaveSettings()).Callback(() => { });
-            settingsMock.SetupAllProperties();
-
-            services.AddSingleton(settingsMock.Object);
-
-            ServerSettings.ConfigureServices(services);
+            //Dunno what we can do with settings yet.
         }
     }
 }
