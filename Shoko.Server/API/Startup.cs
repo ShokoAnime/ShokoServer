@@ -95,8 +95,8 @@ namespace Shoko.Server.API
                         var xml = Path.Combine(Path.GetDirectoryName(location), $"{Path.GetFileNameWithoutExtension(location)}.xml");
                         if (File.Exists(xml)) options.IncludeXmlComments(xml); //Include the XML comments if it exists.
                     }
-                    options.MapType<v3.Models.Shoko.SeriesType>(() => new Schema { Type = "string" });
-                    options.MapType<v3.Models.Shoko.EpisodeType>(() => new Schema { Type = "string" });
+                    options.MapType<v3.Models.Shoko.SeriesType>(() => new OpenApiSchema { Type = "string" });
+                    options.MapType<v3.Models.Shoko.EpisodeType>(() => new OpenApiSchema { Type = "string" });
 
                     options.CustomSchemaIds(x => x.FullName);
                 });
