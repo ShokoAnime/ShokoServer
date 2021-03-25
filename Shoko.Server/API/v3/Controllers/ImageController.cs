@@ -21,9 +21,9 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="source">AniDB, TvDB, MovieDB, Shoko</param>
         /// <param name="type">Poster, Fanart, Banner, Thumb, Static</param>
         /// <param name="value">Usually the ID, but the resource name in the case of image/Shoko/Static/{value}</param>
-        /// <returns>200 on found, 400 if the type or source are invalid, and 404 if the id is not found</returns>
+        /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
         [HttpGet("{source}/{type}/{value}")]
-        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(400)]
+        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(400), ProducesResponseType(404)]
         public ActionResult GetImage(string source, string type, string value)
         {
             ImageEntityType sourceType;
@@ -45,7 +45,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest("The 'value' must be an integer ID for all types except 'Static'");
 
             string path = Image.GetImagePath(sourceType, id);
-            if (string.IsNullOrEmpty(path)) return BadRequest("The image was not found");
+            if (string.IsNullOrEmpty(path)) return NotFound("The image was not found");
             return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
         
