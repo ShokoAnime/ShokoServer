@@ -26,9 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="..\..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-    <ProjectReference Include="..\..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
     <ProjectReference Include="..\..\Shoko.Server\Shoko.Server.csproj" />
   </ItemGroup>
 

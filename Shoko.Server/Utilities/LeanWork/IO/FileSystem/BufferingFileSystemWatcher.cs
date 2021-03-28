@@ -134,6 +134,8 @@ namespace LeanWork.IO.FileSystem
             get { return _eventQueueSize; }
             set { _eventQueueSize = value; }
         }
+        
+        public bool DisableEvents { get; set; }
 
         #region New BufferingFileSystemWatcher specific events
 
@@ -291,6 +293,7 @@ namespace LeanWork.IO.FileSystem
 
                     foreach (FileSystemEventArgs e in _fileSystemEventBuffer.GetConsumingEnumerable(_cancellationTokenSource.Token))
                     {
+                        if (DisableEvents) continue;
                         if (_onAllChangesHandler != null)
                             InvokeHandler(_onAllChangesHandler, e);
                         else

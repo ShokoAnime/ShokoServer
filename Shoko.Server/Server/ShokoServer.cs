@@ -1379,10 +1379,33 @@ namespace Shoko.Server.Server
             StartCloudWatchTimer();
         }
 
+        public static void PauseWatchingFiles()
+        {
+            if (watcherVids == null || !watcherVids.Any())
+                return;
+            foreach (RecoveringFileSystemWatcher fsw in watcherVids)
+            {
+                fsw.DisableEvents = true;
+            }
+            
+            logger.Info("Paused Filesystem Watching");
+        }
+
+        public static void UnpauseWatchingFiles()
+        {
+            if (watcherVids == null || !watcherVids.Any())
+                return;
+            foreach (RecoveringFileSystemWatcher fsw in watcherVids)
+            {
+                fsw.DisableEvents = false;
+            }
+            
+            logger.Info("Unpaused Filesystem Watching");
+        }
 
         public static void StopWatchingFiles()
         {
-            if (watcherVids == null)
+            if (watcherVids == null || !watcherVids.Any())
                 return;
             foreach (RecoveringFileSystemWatcher fsw in watcherVids)
             {
