@@ -7,6 +7,7 @@ using System.Xml;
 using NLog;
 using Shoko.Server;
 using Shoko.Server.AniDB_API;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

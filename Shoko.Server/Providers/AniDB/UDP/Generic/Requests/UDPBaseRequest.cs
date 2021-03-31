@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Generic.Requests
 {
     public abstract class UDPBaseRequest<T> where T : class
     {

@@ -1,7 +1,8 @@
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
 {
     public class RequestPing : UDPBaseRequest<Void>
     {

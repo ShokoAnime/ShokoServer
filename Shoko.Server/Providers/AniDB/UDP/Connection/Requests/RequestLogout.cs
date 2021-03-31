@@ -1,8 +1,7 @@
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
 
-
-using Shoko.Server.Providers.AniDB.UDP.Responses;
-
-namespace Shoko.Server.Providers.AniDB.UDP.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
 {
     public class RequestLogout : UDPBaseRequest<Void>
     {

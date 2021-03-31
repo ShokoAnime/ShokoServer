@@ -11,9 +11,11 @@ using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Server.AniDB_API;
+using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.AniDB.UDP.Connection.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Connection.Responses;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -26,13 +28,13 @@ namespace Shoko.Server.Providers.AniDB
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private static AniDBConnectionHandler _instance;
 
-        public static AniDBConnectionHandler Instance => _instance ?? (_instance = new AniDBConnectionHandler());
+        public static AniDBConnectionHandler Instance => _instance ??= new AniDBConnectionHandler();
 
-        private static readonly object ConnectionLock = new object();
+        private static readonly object ConnectionLock = new();
 
-        private static readonly int HTTPBanTimerResetLength = 12;
+        private const int HTTPBanTimerResetLength = 12;
 
-        private static readonly int UDPBanTimerResetLength = 12;
+        private const int UDPBanTimerResetLength = 12;
 
         private IPEndPoint _localIpEndPoint;
         private IPEndPoint _remoteIpEndPoint;

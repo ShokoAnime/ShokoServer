@@ -1,22 +1,22 @@
 using System;
 using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
-using Void = Shoko.Server.Providers.AniDB.UDP.Responses.Void;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Responses.Void;
 
-namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
 {
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateFile : UDPBaseRequest<Void>
+    public class RequestUpdateEpisode : UDPBaseRequest<Generic.Responses.Void>
     {
         protected override string BaseCommand
         {
             get
             {
-                string command = $"MYLISTADD lid={MyListID}&state={State}";
+                string command = $"MYLISTADD aid={AnimeID}&epno={EpisodeNumber}&generic=1&state={State}";
                 if (IsWatched)
                 {
                     DateTime date = WatchedDate ?? DateTime.Now;
@@ -24,7 +24,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
                 }
                 else
                 {
-                    command += "&viewed=0";
+                    command += "viewed=0";
                 }
 
                 command += "&edit=1";
@@ -33,7 +33,9 @@ namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
             }
         }
 
-        public int MyListID { get; set; }
+        public int AnimeID { get; set; }
+
+        public int EpisodeNumber { get; set; }
 
         public AniDBFile_State State { get; set; }
 

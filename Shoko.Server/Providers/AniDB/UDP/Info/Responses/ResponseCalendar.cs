@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Responses
+namespace Shoko.Server.Providers.AniDB.UDP.Info.Responses
 {
     public class ResponseCalendar
     {

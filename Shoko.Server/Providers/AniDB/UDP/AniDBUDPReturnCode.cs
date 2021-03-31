@@ -1,4 +1,4 @@
-namespace Shoko.Server.Providers.AniDB
+namespace Shoko.Server.Providers.AniDB.UDP
 {
     public enum AniDBUDPReturnCode
     {

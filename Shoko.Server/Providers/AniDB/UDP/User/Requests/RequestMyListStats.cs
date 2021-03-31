@@ -1,9 +1,9 @@
 using System.Linq;
-using Shoko.Server.Providers.AniDB.UDP.MyList.Responses;
-using Shoko.Server.Providers.AniDB.UDP.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.User.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.MyList.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
 {
     public class RequestMyListStats : UDPBaseRequest<ResponseMyListStats>
     {

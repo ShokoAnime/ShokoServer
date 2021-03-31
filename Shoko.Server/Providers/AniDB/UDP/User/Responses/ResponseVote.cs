@@ -1,7 +1,7 @@
 using System;
-using Shoko.Server.Providers.AniDB.UDP.Requests;
+using Shoko.Server.Providers.AniDB.UDP.User.Requests;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Responses
+namespace Shoko.Server.Providers.AniDB.UDP.User.Responses
 {
     public class ResponseVote
     {

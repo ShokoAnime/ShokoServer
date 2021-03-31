@@ -2,7 +2,7 @@
 using System.Threading;
 using NLog;
 
-namespace Shoko.Server.AniDB_API
+namespace Shoko.Server.Providers.AniDB
 {
     public sealed class AniDBRateLimiter
     {

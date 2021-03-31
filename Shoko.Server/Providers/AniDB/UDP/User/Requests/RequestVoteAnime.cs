@@ -1,8 +1,10 @@
 using System;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.User.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
 {
     public enum VoteType
     {

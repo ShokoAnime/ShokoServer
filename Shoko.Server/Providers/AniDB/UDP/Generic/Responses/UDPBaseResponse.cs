@@ -1,4 +1,4 @@
-namespace Shoko.Server.Providers.AniDB.UDP.Responses
+namespace Shoko.Server.Providers.AniDB.UDP.Generic.Responses
 {
     public class UDPBaseResponse<T> where T : class
     {

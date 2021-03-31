@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Providers.AniDB.UDP.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
+using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Info.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Info.Requests
 {
     public class RequestCalendar : UDPBaseRequest<ResponseCalendar>
     {
