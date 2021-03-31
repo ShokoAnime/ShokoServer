@@ -10,7 +10,6 @@ using ICSharpCode.SharpZipLib.Zip.Compression;
 using NLog;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
-using Shoko.Server.AniDB_API;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Connection.Requests;
 using Shoko.Server.Providers.AniDB.UDP.Connection.Responses;
@@ -39,11 +38,14 @@ namespace Shoko.Server.Providers.AniDB
         private IPEndPoint _localIpEndPoint;
         private IPEndPoint _remoteIpEndPoint;
         private Socket _aniDBSocket;
-        public string SessionID { get; private set; }
+        public string SessionID { get; set; }
 
         private readonly string _serverHost;
         private readonly ushort _serverPort;
         private readonly ushort _clientPort;
+        
+        private string _username { get; init; }
+        private string _password { get; init; }
 
         private Timer _logoutTimer;
 
@@ -224,27 +226,25 @@ namespace Shoko.Server.Providers.AniDB
         public event EventHandler LoginFailed;
         public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
 
-        public AniDBConnectionHandler(string serverHost, ushort serverPort, ushort clientPort)
+        public AniDBConnectionHandler(string serverHost, ushort serverPort, ushort clientPort, string username, string password)
         {
             _serverHost = serverHost;
             _serverPort = serverPort;
             _clientPort = clientPort;
+            _username = username;
+            _password = password;
+            InitInternal();
         }
 
         private AniDBConnectionHandler() : this(ServerSettings.Instance.AniDb.ServerAddress,
-            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort)
+            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort,
+            ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password)
         {
         }
 
         ~AniDBConnectionHandler()
         {
             CloseConnections();
-        }
-
-        public static void Init(string serverName, ushort serverPort, ushort clientPort)
-        {
-            _instance = new AniDBConnectionHandler(serverName, serverPort, clientPort);
-            _instance.InitInternal();
         }
 
         private void InitInternal()
@@ -399,12 +399,12 @@ namespace Shoko.Server.Providers.AniDB
             });
         }
 
-        public bool Login(string userName, string password)
+        public bool Login()
         {
             // check if we are already logged in
             if (_isLoggedOn) return true;
 
-            if (!ValidAniDBCredentials(userName, password))
+            if (!ValidAniDBCredentials())
             {
                 LoginFailed?.Invoke(this, null);
                 return false;
@@ -415,7 +415,7 @@ namespace Shoko.Server.Providers.AniDB
             {
                 RequestLogin login = new RequestLogin
                 {
-                    Username = userName, Password = password, UseUnicode = true
+                    Username = _username, Password = _password, UseUnicode = true
                 };
                 // Never give Execute a null SessionID, except here
                 response = login.Execute(this);
@@ -472,15 +472,15 @@ namespace Shoko.Server.Providers.AniDB
             if (IsInvalidSession) throw new NotLoggedInException();
 
             // Check Login State
-            if (!Login(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password))
+            if (!Login())
                 throw new NotLoggedInException();
 
             // Actually Call AniDB
             return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode, bool disableLogging,
-            bool isPing)
+        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=false, bool disableLogging=false,
+            bool isPing=false, bool returnFullResponse=false)
         {
             // 1. Call AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
@@ -490,7 +490,7 @@ namespace Shoko.Server.Providers.AniDB
             Encoding encoding = Encoding.ASCII;
             if (needsUnicode) encoding = new UnicodeEncoding(true, false);
 
-            AniDBRateLimiter.Instance.EnsureRate();
+            AniDBRateLimiter.UDP.EnsureRate();
             DateTime start = DateTime.Now;
 
             if (!disableLogging)
@@ -501,7 +501,7 @@ namespace Shoko.Server.Providers.AniDB
 
             int received;
             byte[] byReceivedAdd = new byte[1600]; // max length should actually be 1400
-            byte[] sendByteAdd = encoding.GetBytes(command.ToCharArray());
+            byte[] sendByteAdd = Encoding.ASCII.GetBytes(command);
             try
             {
                 StampLastMessage(isPing);
@@ -536,12 +536,10 @@ namespace Shoko.Server.Providers.AniDB
                 received = 0;
             }
 
-            Encoding receivedEncoding = GetEncoding(byReceivedAdd);
-
             // decode
-            string decodedString = receivedEncoding.GetString(byReceivedAdd, 0, received);
-            byte[] bom = GetBOM(receivedEncoding);
-            decodedString = decodedString.Substring(bom.Length);
+            string decodedString = encoding.GetString(byReceivedAdd, 0, received);
+            if (decodedString[0] == 0xFEFF) // remove BOM
+                decodedString = decodedString[1..];
 
             // there should be 2 newline characters in each response
             // the first is after the command .e.g "220 FILE"
@@ -570,7 +568,7 @@ namespace Shoko.Server.Providers.AniDB
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
             }
 
-            string[] firstLineParts = decodedParts[0].Split(' ');
+            string[] firstLineParts = decodedParts[0].Split(' ', 2);
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
@@ -616,6 +614,7 @@ namespace Shoko.Server.Providers.AniDB
                 }
             }
 
+            if (returnFullResponse) return new UDPBaseResponse<string> {Code = status, Response = decodedString};
             return new UDPBaseResponse<string> {Code = status, Response = decodedParts[1].Trim()};
         }
         
@@ -626,14 +625,11 @@ namespace Shoko.Server.Providers.AniDB
                 if (_instance != null)
                 {
                     Logger.Info("Forcing reconnection to AniDB");
-                    string serverHost = _instance._serverHost;
-                    ushort serverPort = _instance._serverPort;
-                    ushort clientPort = _instance._clientPort;
                     _instance.CloseConnections();
                     _instance = null;
-                    AniDBRateLimiter.Instance.EnsureRate();
+                    AniDBRateLimiter.UDP.EnsureRate();
 
-                    Init(serverHost, serverPort, clientPort);
+                    _instance = new();
                 }
             }
             catch (Exception ex)
@@ -686,10 +682,10 @@ namespace Shoko.Server.Providers.AniDB
             _isLoggedOn = false;
         }
 
-        public bool ValidAniDBCredentials(string userName, string password)
+        public bool ValidAniDBCredentials()
         {
-            if (string.IsNullOrEmpty(userName)) return false;
-            if (string.IsNullOrEmpty(password)) return false;
+            if (string.IsNullOrEmpty(_username)) return false;
+            if (string.IsNullOrEmpty(_password)) return false;
             if (string.IsNullOrEmpty(_serverHost)) return false;
             if (_serverPort == 0) return false;
             if (_clientPort == 0) return false;

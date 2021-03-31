@@ -11,10 +11,5 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
         {
             return new UDPBaseResponse<Void> {Code = code};
         }
-
-        protected override void PreExecute(string sessionID)
-        {
-            // Don't attach session
-        }
     }
 }

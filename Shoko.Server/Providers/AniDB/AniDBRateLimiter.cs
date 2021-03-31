@@ -6,8 +6,9 @@ namespace Shoko.Server.Providers.AniDB
 {
     public sealed class AniDBRateLimiter
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static readonly AniDBRateLimiter instance = new AniDBRateLimiter();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static AniDBRateLimiter _udp;
+        private readonly object _lock = new();
 
         // Short Term:
         // A Client MUST NOT send more than 0.5 packets per second(that's one packet every two seconds, not two packets a second!)
@@ -25,29 +26,23 @@ namespace Shoko.Server.Providers.AniDB
         // Switch to shorter delay after 30 minutes of inactivity
         private static long resetPeriod = 30 * 60 * 1000;
 
-        private static Stopwatch _requestWatch = new Stopwatch();
+        private readonly Stopwatch _requestWatch = new();
 
-        private static Stopwatch _activeTimeWatch = new Stopwatch();
+        private readonly Stopwatch _activeTimeWatch = new();
 
-        // Explicit static constructor to tell C# compiler
-        // not to mark type as beforefieldinit
-        static AniDBRateLimiter()
-        {
-            _requestWatch.Start();
-            _activeTimeWatch.Start();
-        }
-
-        public static AniDBRateLimiter Instance => instance;
+        public static AniDBRateLimiter UDP => _udp ??= new();
 
         private AniDBRateLimiter()
         {
+            _requestWatch.Start();
+            _activeTimeWatch.Start();
         }
 
         public void ResetRate()
         {
             long elapsedTime = _activeTimeWatch.ElapsedMilliseconds;
             _activeTimeWatch.Restart();
-            logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
+            Logger.Trace($"Rate is reset. Active time was {elapsedTime} ms.");
         }
 
         public void Reset()
@@ -57,7 +52,7 @@ namespace Shoko.Server.Providers.AniDB
 
         public void EnsureRate()
         {
-            lock (instance)
+            lock (_lock)
             {
                 long delay = _requestWatch.ElapsedMilliseconds;
 
@@ -70,15 +65,17 @@ namespace Shoko.Server.Providers.AniDB
 
                 if (delay > currentDelay)
                 {
-                    logger.Trace($"Time since last request is {delay} ms, not throttling.");
+                    Logger.Trace($"Time since last request is {delay} ms, not throttling.");
                     _requestWatch.Restart();
                     return;
                 }
 
-                logger.Trace($"Time since last request is {delay} ms, throttling for {currentDelay}.");
-                Thread.Sleep(currentDelay);
+                int waitTime = currentDelay - (int) delay + 25;
 
-                logger.Trace("Sending AniDB command.");
+                Logger.Trace($"Time since last request is {delay} ms, throttling for {waitTime}.");
+                Thread.Sleep(waitTime);
+
+                Logger.Trace("Sending AniDB command.");
                 _requestWatch.Restart();
             }
         }

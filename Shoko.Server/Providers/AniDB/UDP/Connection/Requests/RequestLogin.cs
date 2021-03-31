@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shoko.Server.Providers.AniDB.UDP.Connection.Responses;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
@@ -16,8 +17,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
         {
             get
             {
-                string command = $"AUTH user={Username.Trim()}&pass={Password.Trim()}&protover=3&client=ommserver&clientver=2&comp=1";
-                if (UseUnicode) command += "&enc=utf16";
+                string command = $"AUTH user={Username.Trim()}&pass={Password.Trim()}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1";
+                if (UseUnicode) command += "&enc=utf-16";
                 return command;
             }
         }
@@ -26,10 +27,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
         {
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedAniDBResponseException(code, receivedData);
-            string sessionID = receivedData.Substring(0, i - 1).Trim();
+            // after response code, before login message
+            string sessionID = receivedData.Substring(4, i - 1).Trim();
+            string imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
             return new UDPBaseResponse<ResponseLogin>
             {
-                Response = new ResponseLogin {SessionID = sessionID}, Code = code
+                Response = new ResponseLogin {SessionID = sessionID, ImageServer = imageServer}, Code = code
             };
         }
 
@@ -43,7 +46,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, true, true, false);
+            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, UseUnicode, true, false, true);
             var response = ParseResponse(rawResponse.Code, rawResponse.Response);
             PostExecute(handler.SessionID, response);
             return response;
