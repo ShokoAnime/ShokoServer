@@ -11,14 +11,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
     {
         public string Username { get; set; }
         public string Password { get; set; }
-        public bool UseUnicode { get; set; }
 
         protected override string BaseCommand
         {
             get
             {
-                string command = $"AUTH user={Username.Trim()}&pass={Password.Trim()}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1";
-                if (UseUnicode) command += "&enc=utf-16";
+                string command = $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
                 return command;
             }
         }
@@ -28,7 +26,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedAniDBResponseException(code, receivedData);
             // after response code, before login message
-            string sessionID = receivedData.Substring(4, i - 1).Trim();
+            string sessionID = receivedData.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedAniDBResponseException(code, receivedData);
             string imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
             return new UDPBaseResponse<ResponseLogin>
             {
@@ -46,7 +45,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
             Command = BaseCommand;
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
-            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, UseUnicode, true, false, true);
+            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
             var response = ParseResponse(rawResponse.Code, rawResponse.Response);
             PostExecute(handler.SessionID, response);
             return response;

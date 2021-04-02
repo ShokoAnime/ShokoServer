@@ -415,7 +415,7 @@ namespace Shoko.Server.Providers.AniDB
             {
                 RequestLogin login = new RequestLogin
                 {
-                    Username = _username, Password = _password, UseUnicode = true
+                    Username = _username, Password = _password
                 };
                 // Never give Execute a null SessionID, except here
                 response = login.Execute(this);
@@ -456,7 +456,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <param name="disableLogging">Some commands have sensitive data</param>
         /// <param name="isPing">is it a ping command</param>
         /// <returns></returns>
-        public UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode = false,
+        public UDPBaseResponse<string> CallAniDBUDP(string command, bool needsUnicode = true,
             bool disableLogging = false, bool isPing = false)
         {
             // Steps:
@@ -479,7 +479,7 @@ namespace Shoko.Server.Providers.AniDB
             return CallAniDBUDPDirectly(command, needsUnicode, disableLogging, isPing);
         }
 
-        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=false, bool disableLogging=false,
+        public UDPBaseResponse<string> CallAniDBUDPDirectly(string command, bool needsUnicode=true, bool disableLogging=false,
             bool isPing=false, bool returnFullResponse=false)
         {
             // 1. Call AniDB
@@ -501,7 +501,7 @@ namespace Shoko.Server.Providers.AniDB
 
             int received;
             byte[] byReceivedAdd = new byte[1600]; // max length should actually be 1400
-            byte[] sendByteAdd = Encoding.ASCII.GetBytes(command);
+            byte[] sendByteAdd = encoding.GetBytes(command);
             try
             {
                 StampLastMessage(isPing);
@@ -537,7 +537,7 @@ namespace Shoko.Server.Providers.AniDB
             }
 
             // decode
-            string decodedString = encoding.GetString(byReceivedAdd, 0, received);
+            string decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, received);
             if (decodedString[0] == 0xFEFF) // remove BOM
                 decodedString = decodedString[1..];
 
@@ -629,6 +629,10 @@ namespace Shoko.Server.Providers.AniDB
                     _instance = null;
                     AniDBRateLimiter.UDP.EnsureRate();
 
+                    _instance = new();
+                }
+                else
+                {
                     _instance = new();
                 }
             }

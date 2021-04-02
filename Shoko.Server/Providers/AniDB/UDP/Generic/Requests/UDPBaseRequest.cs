@@ -16,6 +16,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic.Requests
 
         private static readonly Regex CommandRegex = new("[A-Za-z0-9]+ .*", RegexOptions.Compiled | RegexOptions.Singleline);
 
+        public UDPBaseResponse<T> Execute() => Execute(AniDBConnectionHandler.Instance);
+
         public virtual UDPBaseResponse<T> Execute(AniDBConnectionHandler handler)
         {
             Command = BaseCommand.Trim();

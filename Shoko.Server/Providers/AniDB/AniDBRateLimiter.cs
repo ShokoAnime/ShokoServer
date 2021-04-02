@@ -7,7 +7,10 @@ namespace Shoko.Server.Providers.AniDB
     public sealed class AniDBRateLimiter
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        // singleton with backing field
         private static AniDBRateLimiter _udp;
+        public static AniDBRateLimiter UDP => _udp ??= new();
+
         private readonly object _lock = new();
 
         // Short Term:
@@ -29,8 +32,6 @@ namespace Shoko.Server.Providers.AniDB
         private readonly Stopwatch _requestWatch = new();
 
         private readonly Stopwatch _activeTimeWatch = new();
-
-        public static AniDBRateLimiter UDP => _udp ??= new();
 
         private AniDBRateLimiter()
         {
