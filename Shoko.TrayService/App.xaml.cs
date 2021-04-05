@@ -9,7 +9,11 @@ using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using NLog;
+using Shoko.Models.Interfaces;
 using Shoko.Server;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -81,6 +85,26 @@ namespace Shoko.TrayService
             
             ServerSettings.LoadSettings();
             ServerState.Instance.LoadSettings();
+
+            try
+            {
+                /*AniDBConnectionHandler.Instance.SessionID = "Z6C71";
+                AniDBConnectionHandler.Instance.IsLoggedOn = true;*/
+
+                IHash dummy = new DummyHash();
+                var getFile = new RequestGetFile() {FileData = dummy};
+                UDPBaseResponse<ResponseGetFile> response = getFile.Execute();
+                if (response == null) Logger.Info("No such file");
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception);
+            }
+            finally
+            {
+                AniDBUDPConnectionHandler.Instance.ForceLogout();
+            }
+            
             if (!ShokoServer.Instance.StartUpServer()) return;
 
             // Ensure that the AniDB socket is initialized. Try to Login, then start the server if successful.

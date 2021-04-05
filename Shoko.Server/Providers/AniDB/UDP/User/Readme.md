@@ -1,7 +1,7 @@
 ### INFO
 [AniDB MyList Spec](https://wiki.anidb.net/w/UDP_API_Definition#MyList_Commands)
 
-This has all files related to handling the AniDB MyList. At the beginning, it will likely have references to it hardcoded throughout the project, but those should be abstracted out with scrobble events (which will go out to things like Trakt, AniList, etc).
+This has all files related to handling the AniDB User data. This includes MyList and Votes. At the beginning, it will likely have references to it hardcoded throughout the project, but those should be abstracted out with scrobble events (which will go out to things like Trakt, AniList, etc).
 
 ### MyList Notes
 #### The "official" way to handle it would follow as such:

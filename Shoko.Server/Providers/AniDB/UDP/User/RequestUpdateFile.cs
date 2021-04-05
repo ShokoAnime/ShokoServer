@@ -1,16 +1,15 @@
 using System;
 using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Responses.Void;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
+using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User
 {
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateFile : UDPBaseRequest<Generic.Responses.Void>
+    public class RequestUpdateFile : UDPBaseRequest<Generic.Void>
     {
         protected override string BaseCommand
         {
@@ -40,12 +39,12 @@ namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<Void> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<Void> ParseResponse(UDPReturnCode code, string receivedData)
         {
             switch (code)
             {
-                case AniDBUDPReturnCode.MYLIST_ENTRY_EDITED:
-                case AniDBUDPReturnCode.NO_SUCH_MYLIST_ENTRY:
+                case UDPReturnCode.MYLIST_ENTRY_EDITED:
+                case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
                     return new UDPBaseResponse<Void> {Code = code};
             }
             throw new UnexpectedAniDBResponseException(code, receivedData);

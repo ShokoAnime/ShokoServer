@@ -5,11 +5,9 @@ using System.Text;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Shoko.Server.Providers.AniDB.UDP.Info.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Info.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
     /// <summary>
     /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
@@ -48,11 +46,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info.Requests
 
         private static string PadByte(byte b) => b.ToString("X").PadLeft(2, '0');
 
-        protected override UDPBaseResponse<ResponseGetFile> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseGetFile> ParseResponse(UDPReturnCode code, string receivedData)
         {
             switch (code)
             {
-                case AniDBUDPReturnCode.FILE:
+                case UDPReturnCode.FILE:
                 {
                     // The spaces here are added for readability. They aren't in the response
                     // fileid|anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
@@ -138,7 +136,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info.Requests
                         }
                     };
                 }
-                case AniDBUDPReturnCode.NO_SUCH_FILE:
+                case UDPReturnCode.NO_SUCH_FILE:
                     return new UDPBaseResponse<ResponseGetFile>() {Code = code, Response = null};
             }
             throw new UnexpectedAniDBResponseException(code, receivedData);

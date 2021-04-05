@@ -1,20 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Shoko.Server.Providers.AniDB.UDP.Info.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Info.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
     public class RequestCalendar : UDPBaseRequest<ResponseCalendar>
     {
 
         protected override string BaseCommand => "CALENDAR";
 
-        protected override UDPBaseResponse<ResponseCalendar> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseCalendar> ParseResponse(UDPReturnCode code, string receivedData)
         {
-            if (code == AniDBUDPReturnCode.CALENDAR_EMPTY)
+            if (code == UDPReturnCode.CALENDAR_EMPTY)
                 return new UDPBaseResponse<ResponseCalendar> {Response = null, Code = code};
 
             var calendar = new ResponseCalendar

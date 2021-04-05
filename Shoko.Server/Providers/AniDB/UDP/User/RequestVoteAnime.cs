@@ -1,21 +1,26 @@
 using System;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Shoko.Server.Providers.AniDB.UDP.User.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User
 {
+    public enum VoteType
+    {
+        AnimePermanent = 1,
+        AnimeTemporary = 2,
+        Group = 3,
+        Episode = 4
+    }
 
     /// <summary>
     /// Vote for an anime
     /// </summary>
-    public class RequestVoteEpisode : UDPBaseRequest<ResponseVote>
+    public class RequestVoteAnime : UDPBaseRequest<ResponseVote>
     {
         /// <summary>
-        /// EpisodeID to vote on
+        /// AnimeID to vote on
         /// </summary>
-        public int EpisodeID { get; set; }
+        public int AnimeID { get; set; }
 
         /// <summary>
         /// Between 0 exclusive and 10 inclusive, will be rounded to nearest tenth
@@ -25,11 +30,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
         private int AniDBValue => (int) (Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
 
         /// <summary>
-        /// https://anidb.net/forum/thread/99114
+        /// Vote Type. If the anime is finished, use Permanent, otherwise Temporary
         /// </summary>
-        protected override string BaseCommand => $"VOTE type=6&id={EpisodeID}&value={AniDBValue}";
+        public VoteType VoteType { get; set; }
 
-        protected override UDPBaseResponse<ResponseVote> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override string BaseCommand => $"VOTE type={(int) VoteType}&aid={AnimeID}&value={AniDBValue}";
+
+        protected override UDPBaseResponse<ResponseVote> ParseResponse(UDPReturnCode code, string receivedData)
         {
             string[] parts = receivedData.Split('|');
             if (parts.Length != 4) throw new UnexpectedAniDBResponseException("Incorrect Number of Parts Returned", code, receivedData);

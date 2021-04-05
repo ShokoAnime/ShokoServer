@@ -1,20 +1,14 @@
 using System;
-using System.Globalization;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Timers;
-using ICSharpCode.SharpZipLib.Zip.Compression;
 using NLog;
-using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.AniDB.UDP.Connection.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Connection.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -22,95 +16,41 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB
 {
-    public class AniDBConnectionHandler
+    public class AniDBUDPConnectionHandler
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static AniDBConnectionHandler _instance;
+        private static AniDBUDPConnectionHandler _instance;
+        public static AniDBUDPConnectionHandler Instance => _instance ??= new AniDBUDPConnectionHandler();
+        private readonly IAniDBSocketHandler _socketHandler;
 
-        public static AniDBConnectionHandler Instance => _instance ??= new AniDBConnectionHandler();
-
-        private static readonly object ConnectionLock = new();
-
-        private const int HTTPBanTimerResetLength = 12;
-
-        private const int UDPBanTimerResetLength = 12;
-
-        private IPEndPoint _localIpEndPoint;
-        private IPEndPoint _remoteIpEndPoint;
-        private Socket _aniDBSocket;
-        public string SessionID { get; set; }
-
-        private readonly string _serverHost;
-        private readonly ushort _serverPort;
-        private readonly ushort _clientPort;
+        public event EventHandler LoginFailed;
+        public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
         
-        private string _username { get; init; }
-        private string _password { get; init; }
-
-        private Timer _logoutTimer;
-
-        private Timer _httpBanResetTimer;
-        private Timer _udpBanResetTimer;
-
-        public DateTime? HttpBanTime { get; set; }
-        public DateTime? UdpBanTime { get; set; }
-
-        private bool _isHttpBanned;
-        private bool _isUdpBanned;
-
-        public bool IsHttpBanned
+        private const int UDPBanTimerResetLength = 12;
+        
+        private AniDBStateUpdate _currentState;
+        public AniDBStateUpdate State
         {
-            get => _isHttpBanned;
+            get => _currentState;
             set
             {
-                _isHttpBanned = value;
-                if (value)
+                if (value != _currentState)
                 {
-                    HttpBanTime = DateTime.Now;
-                    if (_httpBanResetTimer.Enabled)
-                    {
-                        Logger.Warn("HTTP ban timer was already running, ban time extending");
-                        _httpBanResetTimer.Stop(); //re-start implies stop
-                    }
-
-                    _httpBanResetTimer.Start();
-                    AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-                    {
-                        Value = true,
-                        UpdateType = AniDBUpdateType.HTTPBan,
-                        UpdateTime = DateTime.Now,
-                        PauseTimeSecs = TimeSpan.FromHours(HTTPBanTimerResetLength).Seconds
-                    });
-                    Analytics.PostEvent("AniDB", "Http Banned");
-                }
-                else
-                {
-                    if (_httpBanResetTimer.Enabled)
-                    {
-                        _httpBanResetTimer.Stop();
-                        Logger.Info("HTTP ban timer stopped. Resuming queue if not paused.");
-                        // Skip if paused
-                        if (!ShokoService.CmdProcessorGeneral.Paused)
-                        {
-                            // Needs to have something to do first
-                            if (ShokoService.CmdProcessorGeneral.QueueCount > 0)
-                            {
-                                // Not really a new command, but this will start the queue if it's not running,
-                                // with handling for problems
-                                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
-                            }
-                        }
-                    }
-
-                    AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-                    {
-                        Value = false,
-                        UpdateType = AniDBUpdateType.HTTPBan,
-                        UpdateTime = DateTime.Now,
-                    });
+                    _currentState = value;
+                    AniDBStateUpdate?.Invoke(this, _currentState);
                 }
             }
         }
+
+        public string SessionID { get; set; }
+        private string _username { get; init; }
+        private string _password { get; init; }
+
+        private Timer _PulseTimer;
+        
+        private Timer _udpBanResetTimer;
+        public DateTime? UdpBanTime { get; set; }
+        private bool _isUdpBanned;
 
         public bool IsUdpBanned
         {
@@ -167,7 +107,6 @@ namespace Shoko.Server.Providers.AniDB
         }
 
         private bool _isInvalidSession;
-
         public bool IsInvalidSession
         {
             get => _isInvalidSession;
@@ -185,32 +124,11 @@ namespace Shoko.Server.Providers.AniDB
         }
 
         private bool _isLoggedOn;
-
         public bool IsLoggedOn
         {
             get => _isLoggedOn;
             set => _isLoggedOn = value;
         }
-
-        private bool _waitingOnResponse;
-
-        public bool WaitingOnResponse
-        {
-            get => _waitingOnResponse;
-            set
-            {
-                _waitingOnResponse = value;
-                WaitingOnResponseTime = value ? DateTime.Now : (DateTime?) null;
-                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-                {
-                    UpdateType = AniDBUpdateType.WaitingOnResponse,
-                    Value = value,
-                    UpdateTime = DateTime.Now
-                });
-            }
-        }
-
-        public DateTime? WaitingOnResponseTime { get; set; }
 
         public int? ExtendPauseSecs { get; set; }
 
@@ -223,51 +141,36 @@ namespace Shoko.Server.Providers.AniDB
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public event EventHandler LoginFailed;
-        public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
-
-        public AniDBConnectionHandler(string serverHost, ushort serverPort, ushort clientPort, string username, string password)
+        public AniDBUDPConnectionHandler(AniDBSocketHandler socketHandler, string username, string password)
         {
-            _serverHost = serverHost;
-            _serverPort = serverPort;
-            _clientPort = clientPort;
+            _socketHandler = socketHandler;
             _username = username;
             _password = password;
             InitInternal();
         }
 
-        private AniDBConnectionHandler() : this(ServerSettings.Instance.AniDb.ServerAddress,
-            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort,
+        private AniDBUDPConnectionHandler() : this(new AniDBSocketHandler(ServerSettings.Instance.AniDb.ServerAddress,
+            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort),
             ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password)
         {
         }
 
-        ~AniDBConnectionHandler()
+        ~AniDBUDPConnectionHandler()
         {
             CloseConnections();
         }
 
         private void InitInternal()
         {
-            _aniDBSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
             _isLoggedOn = false;
 
-            if (!BindToLocalPort()) IsNetworkAvailable = false;
-            if (!BindToRemotePort()) IsNetworkAvailable = false;
+            IsNetworkAvailable = _socketHandler.TryConnection();
 
-            _logoutTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
-            _logoutTimer.Elapsed += LogoutTimer_Elapsed;
+            _PulseTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
+            _PulseTimer.Elapsed += PulseTimerElapsed;
 
             Logger.Info("starting logout timer...");
-            _logoutTimer.Start();
-
-            _httpBanResetTimer = new Timer
-            {
-                AutoReset = false, Interval = TimeSpan.FromHours(HTTPBanTimerResetLength).TotalMilliseconds
-            };
-            _httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
-
+            _PulseTimer.Start();
 
             _udpBanResetTimer = new Timer
             {
@@ -278,32 +181,14 @@ namespace Shoko.Server.Providers.AniDB
 
         private void CloseConnections()
         {
-            _logoutTimer?.Stop();
-            _logoutTimer = null;
-            if (_aniDBSocket == null) return;
+            _PulseTimer?.Stop();
+            _PulseTimer = null;
+            if (_socketHandler == null) return;
             Logger.Info("Disposing...");
-            try
-            {
-                _aniDBSocket.Shutdown(SocketShutdown.Both);
-                if (_aniDBSocket.Connected)
-                {
-                    _aniDBSocket.Disconnect(false);
-                }
-            }
-            catch (SocketException ex)
-            {
-                Logger.Error($"Failed to Shutdown and Disconnect the connection to AniDB: {ex}");
-            }
-            finally
-            {
-                Logger.Info("Closing AniDB Connection...");
-                _aniDBSocket.Close();
-                Logger.Info("Closed AniDB Connection");
-                _aniDBSocket = null;
-            }
+            _socketHandler.Dispose();
         }
 
-        void LogoutTimer_Elapsed(object sender, ElapsedEventArgs e)
+        void PulseTimerElapsed(object sender, ElapsedEventArgs e)
         {
             TimeSpan tsAniDBUDPTemp = DateTime.Now - LastMessage;
             if (ExtendPauseSecs.HasValue && tsAniDBUDPTemp.TotalSeconds >= ExtendPauseSecs.Value)
@@ -312,59 +197,25 @@ namespace Shoko.Server.Providers.AniDB
             if (!_isLoggedOn) return;
 
             // don't ping when anidb is taking a long time to respond
-            if (WaitingOnResponse)
+            if (_socketHandler.IsLocked) return;
+
+            TimeSpan tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
+            TimeSpan tsPing = DateTime.Now - LastAniDBPing;
+            TimeSpan tsAniDBUDP = DateTime.Now - LastMessage;
+
+            // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
+            if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
+                tsPing.TotalSeconds >= Constants.PingFrequency &&
+                !IsUdpBanned && !ExtendPauseSecs.HasValue)
             {
-                try
-                {
-                    if (WaitingOnResponseTime.HasValue)
-                    {
-                        Thread.CurrentThread.CurrentUICulture =
-                            CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
-
-                        TimeSpan ts = DateTime.Now - WaitingOnResponseTime.Value;
-                        ServerInfo.Instance.WaitingOnResponseAniDBUDPString =
-                            string.Format(Resources.AniDB_ResponseWaitSeconds,
-                                ts.TotalSeconds);
-                    }
-                }
-                catch
-                {
-                    //IGNORE
-                }
-
-                return;
+                RequestPing ping = new RequestPing();
+                ping.Execute(this);
             }
 
-            lock (ConnectionLock)
+            if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
             {
-                TimeSpan tsAniDBNonPing = DateTime.Now - LastAniDBMessageNonPing;
-                TimeSpan tsPing = DateTime.Now - LastAniDBPing;
-                TimeSpan tsAniDBUDP = DateTime.Now - LastMessage;
-
-                // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
-                if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
-                    tsPing.TotalSeconds >= Constants.PingFrequency &&
-                    !IsUdpBanned && !ExtendPauseSecs.HasValue)
-                {
-                    RequestPing ping = new RequestPing();
-                    ping.Execute(this);
-                }
-
-                // TODO Make this update in the UI, rather than here
-                string msg = string.Format(Resources.AniDB_LastMessage,
-                    tsAniDBUDP.TotalSeconds);
-
-                if (tsAniDBNonPing.TotalSeconds > Constants.ForceLogoutPeriod) // after 10 minutes
-                {
-                    ForceLogout();
-                }
+                ForceLogout();
             }
-        }
-
-        private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            Logger.Info($"HTTP ban ({HTTPBanTimerResetLength}h) is over");
-            IsHttpBanned = false;
         }
 
         private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
@@ -428,13 +279,13 @@ namespace Shoko.Server.Providers.AniDB
 
             switch (response.Code)
             {
-                case AniDBUDPReturnCode.LOGIN_FAILED:
+                case UDPReturnCode.LOGIN_FAILED:
                     IsInvalidSession = true;
                     IsLoggedOn = false;
                     Logger.Error("AniDB Login Failed: invalid credentials");
                     LoginFailed?.Invoke(this, null);
                     break;
-                case AniDBUDPReturnCode.LOGIN_ACCEPTED:
+                case UDPReturnCode.LOGIN_ACCEPTED:
                     SessionID = response.Response.SessionID;
                     _isLoggedOn = true;
                     IsInvalidSession = false;
@@ -466,7 +317,7 @@ namespace Shoko.Server.Providers.AniDB
 
             // Check Ban State
             // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-            if (IsUdpBanned) throw new UnexpectedAniDBResponseException {ReturnCode = AniDBUDPReturnCode.BANNED};
+            if (IsUdpBanned) throw new UnexpectedAniDBResponseException {ReturnCode = UDPReturnCode.BANNED};
             // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
             // It wasn't handled before, and it's not caused serious problems
             if (IsInvalidSession) throw new NotLoggedInException();
@@ -486,7 +337,6 @@ namespace Shoko.Server.Providers.AniDB
             // 2. Decode the response, converting Unicode and decompressing, as needed
             // 3. Check for an Error Response
             // 4. Return a pretty response object, with a parsed return code and trimmed string
-            EndPoint remotePoint = _remoteIpEndPoint;
             Encoding encoding = Encoding.ASCII;
             if (needsUnicode) encoding = new UnicodeEncoding(true, false);
 
@@ -499,45 +349,13 @@ namespace Shoko.Server.Providers.AniDB
                 ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
             }
 
-            int received;
-            byte[] byReceivedAdd = new byte[1600]; // max length should actually be 1400
             byte[] sendByteAdd = encoding.GetBytes(command);
-            try
-            {
-                StampLastMessage(isPing);
-                WaitingOnResponse = true;
-                _aniDBSocket.SendTo(sendByteAdd, _remoteIpEndPoint);
-                received = _aniDBSocket.ReceiveFrom(byReceivedAdd, ref remotePoint);
-                WaitingOnResponse = false;
-                StampLastMessage(isPing);
-
-                if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
-                {
-                    //deflate
-                    byte[] buff = new byte[65536];
-                    byte[] input = new byte[received - 2];
-                    Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
-                    Inflater inf = new Inflater(false);
-                    inf.SetInput(input);
-                    inf.Inflate(buff);
-                    byReceivedAdd = buff;
-                    received = (int) inf.TotalOut;
-                }
-            }
-            catch (SocketException sex)
-            {
-                // most likely we have timed out
-                Logger.Error(sex);
-                received = 0;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-                received = 0;
-            }
+            StampLastMessage(isPing);
+            var byReceivedAdd = _socketHandler.Send(sendByteAdd);
+            StampLastMessage(isPing);
 
             // decode
-            string decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, received);
+            string decodedString = GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
             if (decodedString[0] == 0xFEFF) // remove BOM
                 decodedString = decodedString[1..];
 
@@ -578,11 +396,11 @@ namespace Shoko.Server.Providers.AniDB
             if (!int.TryParse(firstLineParts[0], out int code))
                 throw new UnexpectedAniDBResponseException {Response = decodedString};
 
-            AniDBUDPReturnCode status = (AniDBUDPReturnCode) code;
+            UDPReturnCode status = (UDPReturnCode) code;
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
-            IsUdpBanned = status == AniDBUDPReturnCode.BANNED;
+            IsUdpBanned = status == UDPReturnCode.BANNED;
 
             switch (status)
             {
@@ -590,9 +408,9 @@ namespace Shoko.Server.Providers.AniDB
                 // 506 INVALID SESSION
                 // 505 ILLEGAL INPUT OR ACCESS DENIED
                 // reset login status to start again
-                case AniDBUDPReturnCode.INVALID_SESSION:
-                case AniDBUDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
-                case AniDBUDPReturnCode.UNKNOWN_COMMAND:
+                case UDPReturnCode.INVALID_SESSION:
+                case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
+                case UDPReturnCode.UNKNOWN_COMMAND:
                     IsInvalidSession = true;
                     Logger.Trace("FORCING Logout because of invalid session");
                     ForceReconnection();
@@ -601,10 +419,10 @@ namespace Shoko.Server.Providers.AniDB
                 // 601 ANIDB OUT OF SERVICE - TRY AGAIN LATER
                 // 602 SERVER BUSY - TRY AGAIN LATER
                 // 604 TIMEOUT - DELAY AND RESUBMIT
-                case AniDBUDPReturnCode.INTERNAL_SERVER_ERROR:
-                case AniDBUDPReturnCode.ANIDB_OUT_OF_SERVICE:
-                case AniDBUDPReturnCode.SERVER_BUSY:
-                case AniDBUDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
+                case UDPReturnCode.INTERNAL_SERVER_ERROR:
+                case UDPReturnCode.ANIDB_OUT_OF_SERVICE:
+                case UDPReturnCode.SERVER_BUSY:
+                case UDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
                 {
                     var errorMessage = $"{(int) status} {status}";
 
@@ -668,16 +486,6 @@ namespace Shoko.Server.Providers.AniDB
             return Encoding.ASCII;
         }
 
-        public static byte[] GetBOM(Encoding enc)
-        {
-            if (enc.Equals(Encoding.UTF7)) return new byte[] {0x2b, 0x2f, 0x76};
-            if (enc.Equals(Encoding.UTF8)) return new byte[] {0xef, 0xbb, 0xbf};
-            if (enc.Equals(Encoding.Unicode)) return new byte[] {0xff, 0xfe};
-            if (enc.Equals(Encoding.BigEndianUnicode)) return new byte[] {0xfe, 0xff};
-            if (enc.Equals(Encoding.UTF32)) return new byte[] {0x0, 0x0, 0xfe, 0xff};
-            return new byte[0];
-        }
-
         public void ForceLogout()
         {
             if (!_isLoggedOn) return;
@@ -690,58 +498,7 @@ namespace Shoko.Server.Providers.AniDB
         {
             if (string.IsNullOrEmpty(_username)) return false;
             if (string.IsNullOrEmpty(_password)) return false;
-            if (string.IsNullOrEmpty(_serverHost)) return false;
-            if (_serverPort == 0) return false;
-            if (_clientPort == 0) return false;
             return true;
-        }
-
-        private bool BindToLocalPort()
-        {
-            _localIpEndPoint = null;
-
-            // Dont send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
-            ServicePointManager.Expect100Continue = false;
-
-            try
-            {
-                _localIpEndPoint = new IPEndPoint(IPAddress.Any, _clientPort);
-
-                _aniDBSocket.Bind(_localIpEndPoint);
-                _aniDBSocket.ReceiveTimeout = 30000; // 30 seconds
-
-                Logger.Info("BindToLocalPort: Bound to local address: {0} - Port: {1} ({2})", _localIpEndPoint,
-                    _clientPort, _localIpEndPoint.AddressFamily);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Could not bind to local port: {ex}");
-                return false;
-            }
-        }
-
-        private bool BindToRemotePort()
-        {
-            _remoteIpEndPoint = null;
-
-            try
-            {
-                IPHostEntry remoteHostEntry = Dns.GetHostEntry(_serverHost);
-                _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
-
-                Logger.Info("BindToRemotePort: Bound to remote address: " + _remoteIpEndPoint.Address +
-                            " : " +
-                            _remoteIpEndPoint.Port);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Could not bind to remote port: {ex}");
-                return false;
-            }
         }
     }
 }

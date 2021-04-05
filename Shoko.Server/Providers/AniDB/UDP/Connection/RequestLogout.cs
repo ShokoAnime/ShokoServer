@@ -1,13 +1,12 @@
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Connection
 {
     public class RequestLogout : UDPBaseRequest<Void>
     {
         // Normally we would override Execute, but we are always logged in here, and Login() just returns if we are
         protected override string BaseCommand => "LOGOUT";
-        protected override UDPBaseResponse<Void> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<Void> ParseResponse(UDPReturnCode code, string receivedData)
         {
             return new UDPBaseResponse<Void> {Code = code};
         }

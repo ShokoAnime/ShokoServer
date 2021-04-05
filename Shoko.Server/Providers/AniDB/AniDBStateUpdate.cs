@@ -25,5 +25,21 @@ namespace Shoko.Server.Providers.AniDB
         /// If we are pausing the queue, then for how long(er)
         /// </summary>
         public int PauseTimeSecs { get; set; }
+
+        protected bool Equals(AniDBStateUpdate other) => Value == other.Value && Message == other.Message && UpdateType == other.UpdateType && UpdateTime.Equals(other.UpdateTime) && PauseTimeSecs == other.PauseTimeSecs;
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((AniDBStateUpdate) obj);
+        }
+
+        public override int GetHashCode() => HashCode.Combine(Value, Message, (int) UpdateType, UpdateTime, PauseTimeSecs);
+
+        public static bool operator ==(AniDBStateUpdate left, AniDBStateUpdate right) => Equals(left, right);
+
+        public static bool operator !=(AniDBStateUpdate left, AniDBStateUpdate right) => !Equals(left, right);
     }
 }

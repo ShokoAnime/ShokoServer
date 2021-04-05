@@ -1,7 +1,7 @@
 using System;
 using Shoko.Models.Enums;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User.Responses
+namespace Shoko.Server.Providers.AniDB.UDP.User
 {
     public class ResponseAddFile
     {

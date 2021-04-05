@@ -1,11 +1,9 @@
 using System;
 using System.Linq;
-using Shoko.Server.Providers.AniDB.UDP.Connection.Responses;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Connection
 {
     public class RequestLogin : UDPBaseRequest<ResponseLogin>
     {
@@ -21,7 +19,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
             }
         }
 
-        protected override UDPBaseResponse<ResponseLogin> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseLogin> ParseResponse(UDPReturnCode code, string receivedData)
         {
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedAniDBResponseException(code, receivedData);
@@ -40,7 +38,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection.Requests
             // Override to prevent attaching our non-existent sessionID
         }
         
-        public override UDPBaseResponse<ResponseLogin> Execute(AniDBConnectionHandler handler)
+        public override UDPBaseResponse<ResponseLogin> Execute(AniDBUDPConnectionHandler handler)
         {
             Command = BaseCommand;
             PreExecute(handler.SessionID);

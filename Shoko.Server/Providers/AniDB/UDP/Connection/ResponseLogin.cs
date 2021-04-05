@@ -1,4 +1,4 @@
-namespace Shoko.Server.Providers.AniDB.UDP.Connection.Responses
+namespace Shoko.Server.Providers.AniDB.UDP.Connection
 {
     public class ResponseLogin
     {

@@ -1,14 +1,12 @@
 using System.Linq;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Shoko.Server.Providers.AniDB.UDP.User.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User
 {
     public class RequestMyListStats : UDPBaseRequest<ResponseMyListStats>
     {
         protected override string BaseCommand => "MYLISTSTATS";
-        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(UDPReturnCode code, string receivedData)
         {
             var parsedData = receivedData.Split('|').Select(a => !long.TryParse(a.Trim(), out var result) ? 0 : result)
                 .ToArray();

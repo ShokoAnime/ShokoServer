@@ -1,8 +1,7 @@
 using System.Text.RegularExpressions;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
 
-namespace Shoko.Server.Providers.AniDB.UDP.Generic.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.Generic
 {
     public abstract class UDPBaseRequest<T> where T : class
     {
@@ -12,13 +11,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic.Requests
         /// </summary>
         protected abstract string BaseCommand { get; }
 
-        protected abstract UDPBaseResponse<T> ParseResponse(AniDBUDPReturnCode code, string receivedData);
+        protected abstract UDPBaseResponse<T> ParseResponse(UDPReturnCode code, string receivedData);
 
         private static readonly Regex CommandRegex = new("[A-Za-z0-9]+ .*", RegexOptions.Compiled | RegexOptions.Singleline);
 
-        public UDPBaseResponse<T> Execute() => Execute(AniDBConnectionHandler.Instance);
+        public UDPBaseResponse<T> Execute() => Execute(AniDBUDPConnectionHandler.Instance);
 
-        public virtual UDPBaseResponse<T> Execute(AniDBConnectionHandler handler)
+        public virtual UDPBaseResponse<T> Execute(AniDBUDPConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
             if (string.IsNullOrEmpty(handler.SessionID) && !handler.Login()) throw new NotLoggedInException();

@@ -1,11 +1,9 @@
 using System;
 using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Requests;
-using Shoko.Server.Providers.AniDB.UDP.Generic.Responses;
-using Shoko.Server.Providers.AniDB.UDP.User.Responses;
+using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
+namespace Shoko.Server.Providers.AniDB.UDP.User
 {
     public class RequestAddEpisode : UDPBaseRequest<ResponseAddFile>
     {
@@ -37,11 +35,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
 
-        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(AniDBUDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(UDPReturnCode code, string receivedData)
         {
             switch (code)
             {
-                case AniDBUDPReturnCode.MYLIST_ENTRY_ADDED:
+                case UDPReturnCode.MYLIST_ENTRY_ADDED:
                 {
                     // We're adding a generic file, so it won't return a MyListID
                     return new UDPBaseResponse<ResponseAddFile>
@@ -55,7 +53,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User.Requests
                         }
                     };
                 }
-                case AniDBUDPReturnCode.FILE_ALREADY_IN_MYLIST:
+                case UDPReturnCode.FILE_ALREADY_IN_MYLIST:
                 {
                     /* Response Format
                      * {int4 lid}|{int4 fid}|{int4 eid}|{int4 aid}|{int4 gid}|{int4 date}|{int2 state}|{int4 viewdate}|{str storage}|{str source}|{str other}|{int2 filestate}
