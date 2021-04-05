@@ -10,8 +10,8 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
     /// <summary>
-    /// Add a file to MyList. If it doesn't exist, it will return the MyListID for future updates.
-    /// If it exists, it will return the current status on AniDB. 
+    /// Get File Info. Getting the file info will only return any data if the hashes match
+    /// If there is MyList info, it will also return that
     /// </summary>
     public class RequestGetFile : UDPBaseRequest<ResponseGetFile>
     {

@@ -5,7 +5,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 {
     public class ResponseGetFile
     {
-        // fileid|anime|episode|group|MyListID|othereps|deprecated|state|quality|source|audiolang|sublang|filedescription|filename|myliststate|mylistfilestate|viewcount|viewdate
         /// AniDB File ID
         public int FileID { get; set; }
         /// AniDB Anime ID
