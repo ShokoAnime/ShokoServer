@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB.Helpers
 {

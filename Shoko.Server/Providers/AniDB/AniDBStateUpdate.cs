@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB
 {
@@ -16,7 +15,7 @@ namespace Shoko.Server.Providers.AniDB
         /// <summary>
         /// Update type, Ban, Invalid Session, Waiting on Response, etc
         /// </summary>
-        public AniDBUpdateType UpdateType { get; set; }
+        public UpdateType UpdateType { get; set; }
         /// <summary>
         /// When was it updated, usually Now, but may not be
         /// </summary>

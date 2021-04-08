@@ -8,7 +8,6 @@ using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
-using Shoko.Models.Enums;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -94,10 +93,10 @@ namespace Shoko.Server
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
             switch (e.UpdateType)
             {
-                case AniDBUpdateType.None:
+                case UpdateType.None:
                     // We might use this somehow, but currently not fired 
                     break;
-                case AniDBUpdateType.UDPBan:
+                case UpdateType.UDPBan:
                     if (e.Value)
                     {
                         IsUDPBanned = true;
@@ -120,7 +119,7 @@ namespace Shoko.Server
                         }
                     }
                     break;
-                case AniDBUpdateType.HTTPBan:
+                case UpdateType.HTTPBan:
                     if (e.Value)
                     {
                         IsHTTPBanned = true;
@@ -143,10 +142,10 @@ namespace Shoko.Server
                         }
                     }
                     break;
-                case AniDBUpdateType.Invalid_Session:
+                case UpdateType.InvalidSession:
                     IsInvalidSession = isInvalidSession;
                     break;
-                case AniDBUpdateType.WaitingOnResponse:
+                case UpdateType.WaitingOnResponse:
                     WaitingOnResponseAniDBUDP = e.Value;
 
                     if (e.Value)
@@ -160,7 +159,7 @@ namespace Shoko.Server
                         WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
                     }
                     break;
-                case AniDBUpdateType.Overload_Backoff:
+                case UpdateType.OverloadBackoff:
                     if (e.Value)
                     {
                         ExtendedPauseString = string.Format(Resources.AniDB_Paused, e.PauseTimeSecs, e.Message);

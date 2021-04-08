@@ -7,11 +7,11 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR
 {
-    public class EventsHub : Hub
+    public class QueueHub : Hub
     {
-        private readonly EventEmitter _eventEmitter;
+        private readonly QueueEmitter _eventEmitter;
 
-        public EventsHub(EventEmitter eventEmitter)
+        public QueueHub(QueueEmitter eventEmitter)
         {
             _eventEmitter = eventEmitter;
         }

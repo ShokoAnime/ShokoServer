@@ -1,15 +1,17 @@
 using System;
+using System.IO;
+using System.Net;
+using System.Text;
 using System.Timers;
 using NLog;
-using Shoko.Models.Enums;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Providers.AniDB
+namespace Shoko.Server.Providers.AniDB.Http
 {
     public class AniDBHttpConnectionHandler
     {
-        private const int HTTPBanTimerResetLength = 12;
+        public const int BanTimerResetLength = 12;
         
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private static AniDBHttpConnectionHandler _instance;
@@ -33,17 +35,17 @@ namespace Shoko.Server.Providers.AniDB
         
         public int? ExtendPauseSecs { get; set; }
         private Timer _httpBanResetTimer;
-        public DateTime? HttpBanTime { get; set; }
-        private bool _isHttpBanned;
-        public bool IsHttpBanned
+        public DateTime? BanTime { get; set; }
+        private bool _isBanned;
+        public bool IsBanned
         {
-            get => _isHttpBanned;
+            get => _isBanned;
             set
             {
-                _isHttpBanned = value;
+                _isBanned = value;
                 if (value)
                 {
-                    HttpBanTime = DateTime.Now;
+                    BanTime = DateTime.Now;
                     if (_httpBanResetTimer.Enabled)
                     {
                         Logger.Warn("HTTP ban timer was already running, ban time extending");
@@ -54,9 +56,9 @@ namespace Shoko.Server.Providers.AniDB
                     State = new AniDBStateUpdate
                     {
                         Value = true,
-                        UpdateType = AniDBUpdateType.HTTPBan,
+                        UpdateType = UpdateType.HTTPBan,
                         UpdateTime = DateTime.Now,
-                        PauseTimeSecs = TimeSpan.FromHours(HTTPBanTimerResetLength).Seconds
+                        PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
                     };
                     Analytics.PostEvent("AniDB", "Http Banned");
                 }
@@ -82,7 +84,7 @@ namespace Shoko.Server.Providers.AniDB
                     State = new AniDBStateUpdate
                     {
                         Value = false,
-                        UpdateType = AniDBUpdateType.HTTPBan,
+                        UpdateType = UpdateType.HTTPBan,
                         UpdateTime = DateTime.Now,
                     };
                 }
@@ -93,15 +95,15 @@ namespace Shoko.Server.Providers.AniDB
         {
             _httpBanResetTimer = new Timer
             {
-                AutoReset = false, Interval = TimeSpan.FromHours(HTTPBanTimerResetLength).TotalMilliseconds
+                AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
             };
             _httpBanResetTimer.Elapsed += HTTPBanResetTimerElapsed;
         }
         
         private void HTTPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Info($"HTTP ban ({HTTPBanTimerResetLength}h) is over");
-            IsHttpBanned = false;
+            Logger.Info($"HTTP ban ({BanTimerResetLength}h) is over");
+            IsBanned = false;
         }
         
         public void ExtendBanTimer(int secsToPause, string pauseReason)
@@ -110,7 +112,7 @@ namespace Shoko.Server.Providers.AniDB
             ExtendPauseSecs = secsToPause;
             AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
             {
-                UpdateType = AniDBUpdateType.Overload_Backoff,
+                UpdateType = UpdateType.OverloadBackoff,
                 Value = true,
                 UpdateTime = DateTime.Now,
                 PauseTimeSecs = secsToPause,
@@ -124,10 +126,60 @@ namespace Shoko.Server.Providers.AniDB
             ExtendPauseSecs = null;
             AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
             {
-                UpdateType = AniDBUpdateType.Overload_Backoff,
+                UpdateType = UpdateType.OverloadBackoff,
                 Value = false,
                 UpdateTime = DateTime.Now
             });
+        }
+        
+        public HttpBaseResponse<string> GetHttp(string url)
+        {
+            try
+            {
+                AniDBRateLimiter.UDP.EnsureRate();
+
+                HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
+                webReq.Timeout = 20000; // 20 seconds
+                webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+                webReq.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+
+                webReq.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                using HttpWebResponse webResponse = (HttpWebResponse) webReq.GetResponse();
+                if (webResponse.StatusCode == HttpStatusCode.OK && webResponse.ContentLength == 0)
+                    throw new EndOfStreamException("Response Body was expected, but none returned");
+                
+                using Stream responseStream = webResponse.GetResponseStream();
+                if (responseStream == null)
+                    throw new EndOfStreamException("Response Body was expected, but none returned");
+
+                string charset = webResponse.CharacterSet;
+                Encoding encoding = null;
+                if (!string.IsNullOrEmpty(charset))
+                    encoding = Encoding.GetEncoding(charset);
+                if (encoding == null)
+                    encoding = Encoding.UTF8;
+                StreamReader reader = new StreamReader(responseStream, encoding);
+
+                string output = reader.ReadToEnd();
+
+                if (CheckForBan(output)) return null;
+                return new HttpBaseResponse<string> {Response = output, Code = webResponse.StatusCode};
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                return null;
+            }
+        }
+        
+        public bool CheckForBan(string xmlresult)
+        {
+            if (string.IsNullOrEmpty(xmlresult)) return false;
+            var index = xmlresult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
+            if (-1 >= index) return false;
+            Logger.Warn("HTTP Banned!");
+            IsBanned = true;
+            return true;
         }
     }
 }

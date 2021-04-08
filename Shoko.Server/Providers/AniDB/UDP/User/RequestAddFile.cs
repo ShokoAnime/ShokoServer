@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -35,7 +34,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         
         public long Size { get; set; }
 
-        public AniDBFile_State State { get; set; }
+        public GetFile_State State { get; set; }
         
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
@@ -87,7 +86,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                         };
                         
 
-                        AniDBFile_State state = (AniDBFile_State) int.Parse(arrStatus[6]);
+                        GetFile_State state = (GetFile_State) int.Parse(arrStatus[6]);
 
                         int viewdate = int.Parse(arrStatus[7]);
                         bool watched = viewdate > 0;

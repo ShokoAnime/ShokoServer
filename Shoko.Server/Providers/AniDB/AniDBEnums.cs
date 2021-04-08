@@ -1,21 +1,21 @@
 using System;
 
-namespace Shoko.Server.Providers.AniDB.UDP
+namespace Shoko.Server.Providers.AniDB
 {
     // This file will have a lot of repeated enums, but it's more specific, and eventually, the others should be removed
     [Flags]
     public enum GetFile_State
     {
         None = 0,
-        FILE_CRCOK = 1, //file matched official CRC (displayed with green background in AniDB)
-        FILE_CRCERR = 2, // file DID NOT match official CRC (displayed with red background in AniDB)
-        FILE_ISV2 = 4, // file is version 2
-        FILE_ISV3 = 8, // file is version 3
-        FILE_ISV4 = 16, // file is version 4
-        FILE_ISV5 = 32, // file is version 5
-        FILE_UNC = 64, // file is uncensored
-        FILE_CEN = 128, // file is censored
-        FILE_CHAPTERED = 4096 // file is chaptered, 0 means both not set and false
+        CRCMatch = 1, //file matched official CRC (displayed with green background in AniDB)
+        CRCErr = 2, // file DID NOT match official CRC (displayed with red background in AniDB)
+        IsV2 = 4, // file is version 2
+        IsV3 = 8, // file is version 3
+        IsV4 = 16, // file is version 4
+        IsV5 = 32, // file is version 5
+        Uncensored = 64, // file is uncensored
+        Censored = 128, // file is censored
+        Chaptered = 4096, // file is chaptered, 0 means both not set and false
     }
 
     public enum GetFile_Quality
@@ -27,7 +27,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         Low,
         VeryLow,
         Corrupted,
-        EyeCancer
+        EyeCancer,
     }
 
     public enum GetFile_Source
@@ -45,30 +45,40 @@ namespace Shoko.Server.Providers.AniDB.UDP
         Camcorder,
         VCD,
         SVCD,
-        LaserDisc
+        LaserDisc,
+    }
+    
+    public enum UpdateType
+    {
+        None = 0,
+        UDPBan = 1,
+        HTTPBan = 2,
+        InvalidSession = 3,
+        OverloadBackoff = 4,
+        WaitingOnResponse = 5,
     }
     
     public enum MyList_State
     {
-        Unknown,
-        HDD,
-        Disk,
-        Deleted,
-        Remote
+        Unknown = 0,
+        HDD = 1,
+        Disk = 2,
+        Deleted = 3,
+        Remote = 4,
     }
 
     public enum MyList_FileState
     {
         Normal = 0,
         Corrupted = 1,
-        Self_Edited = 2,
-        Self_Ripped = 10,
-        On_DVD = 11,
-        On_VHS = 12,
-        On_TV = 13,
-        In_Theaters = 14,
+        SelfEdited = 2,
+        SelfRipped = 10,
+        OnDVD = 11,
+        OnVHS = 12,
+        OnTV = 13,
+        InTheaters = 14,
         Streamed = 15,
-        Other = 100
+        Other = 100,
     }
     
     public enum UDPReturnCode
@@ -222,6 +232,35 @@ namespace Shoko.Server.Providers.AniDB.UDP
         PUSHACK_CONFIRMED = 701,
         NO_SUCH_PACKET_PENDING = 702,
 
-        VERSION = 998
+        VERSION = 998,
+    }
+    
+    public enum VoteType
+    {
+        AnimePermanent = 1,
+        AnimeTemporary = 2,
+        Group = 3,
+        Episode = 4,
+    }
+
+    public enum EpisodeType
+    {
+        Episode = 1,
+        Credits = 2,
+        Special = 3,
+        Trailer = 4,
+        Parody = 5,
+        Other = 6,
+    }
+
+    public enum AnimeType
+    {
+        None = -1, // Not on AniDB, but for ease of processing
+        Movie = 0,
+        OVA = 1,
+        TVSeries = 2,
+        TVSpecial = 3,
+        Web = 4,
+        Other = 5,
     }
 }

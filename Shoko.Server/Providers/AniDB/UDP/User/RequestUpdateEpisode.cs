@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
@@ -9,7 +8,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     /// <summary>
     /// Update a file in the MyList
     /// </summary>
-    public class RequestUpdateEpisode : UDPBaseRequest<Generic.Void>
+    public class RequestUpdateEpisode : UDPBaseRequest<Void>
     {
         protected override string BaseCommand
         {
@@ -36,7 +35,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
 
         public int EpisodeNumber { get; set; }
 
-        public AniDBFile_State State { get; set; }
+        public GetFile_State State { get; set; }
 
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }

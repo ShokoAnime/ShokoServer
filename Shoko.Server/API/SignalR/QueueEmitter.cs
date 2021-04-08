@@ -10,13 +10,13 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.API.SignalR
 {
-    public class EventEmitter : IDisposable
+    public class QueueEmitter : IDisposable
     {
-        private IHubContext<EventsHub> Hub { get; set; }
+        private IHubContext<QueueHub> Hub { get; set; }
 
         private readonly Dictionary<string, object> _lastState = new Dictionary<string, object>();
 
-        public EventEmitter(IHubContext<EventsHub> hub)
+        public QueueEmitter(IHubContext<QueueHub> hub)
         {
             Hub = hub;
             ShokoService.CmdProcessorGeneral.OnQueueCountChangedEvent += OnGeneralQueueCountChangedEvent;

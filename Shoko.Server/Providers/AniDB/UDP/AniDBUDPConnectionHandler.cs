@@ -3,9 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Timers;
 using NLog;
-using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -14,7 +12,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Timer = System.Timers.Timer;
 
-namespace Shoko.Server.Providers.AniDB
+namespace Shoko.Server.Providers.AniDB.UDP
 {
     public class AniDBUDPConnectionHandler
     {
@@ -26,7 +24,7 @@ namespace Shoko.Server.Providers.AniDB
         public event EventHandler LoginFailed;
         public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
         
-        private const int UDPBanTimerResetLength = 12;
+        public const int BanTimerResetLength = 12;
         
         private AniDBStateUpdate _currentState;
         public AniDBStateUpdate State
@@ -49,24 +47,24 @@ namespace Shoko.Server.Providers.AniDB
         private Timer _PulseTimer;
         
         private Timer _udpBanResetTimer;
-        public DateTime? UdpBanTime { get; set; }
-        private bool _isUdpBanned;
+        public DateTime? BanTime { get; set; }
+        private bool _isBanned;
 
-        public bool IsUdpBanned
+        public bool IsBanned
         {
-            get => _isUdpBanned;
+            get => _isBanned;
             set
             {
-                _isUdpBanned = value;
+                _isBanned = value;
                 if (value)
                 {
-                    UdpBanTime = DateTime.Now;
+                    BanTime = DateTime.Now;
                     AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                     {
                         Value = true,
-                        UpdateType = AniDBUpdateType.UDPBan,
+                        UpdateType = UpdateType.UDPBan,
                         UpdateTime = DateTime.Now,
-                        PauseTimeSecs = TimeSpan.FromHours(UDPBanTimerResetLength).Seconds
+                        PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
                     });
                     if (_udpBanResetTimer.Enabled)
                     {
@@ -99,7 +97,7 @@ namespace Shoko.Server.Providers.AniDB
                     AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                     {
                         Value = false,
-                        UpdateType = AniDBUpdateType.UDPBan,
+                        UpdateType = UpdateType.UDPBan,
                         UpdateTime = DateTime.Now
                     });
                 }
@@ -116,7 +114,7 @@ namespace Shoko.Server.Providers.AniDB
                 _isInvalidSession = value;
                 AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
                 {
-                    UpdateType = AniDBUpdateType.Invalid_Session,
+                    UpdateType = UpdateType.InvalidSession,
                     UpdateTime = DateTime.Now,
                     Value = value
                 });
@@ -174,7 +172,7 @@ namespace Shoko.Server.Providers.AniDB
 
             _udpBanResetTimer = new Timer
             {
-                AutoReset = false, Interval = TimeSpan.FromHours(UDPBanTimerResetLength).TotalMilliseconds
+                AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
             };
             _udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
         }
@@ -206,7 +204,7 @@ namespace Shoko.Server.Providers.AniDB
             // if we haven't sent a command for 45 seconds, send a ping just to keep the connection alive
             if (tsAniDBUDP.TotalSeconds >= Constants.PingFrequency &&
                 tsPing.TotalSeconds >= Constants.PingFrequency &&
-                !IsUdpBanned && !ExtendPauseSecs.HasValue)
+                !IsBanned && !ExtendPauseSecs.HasValue)
             {
                 RequestPing ping = new RequestPing();
                 ping.Execute(this);
@@ -220,8 +218,8 @@ namespace Shoko.Server.Providers.AniDB
 
         private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Info($"UDP ban ({UDPBanTimerResetLength}h) is over");
-            IsUdpBanned = false;
+            Logger.Info($"UDP ban ({BanTimerResetLength}h) is over");
+            IsBanned = false;
         }
 
         public void ExtendBanTimer(int secsToPause, string pauseReason)
@@ -230,7 +228,7 @@ namespace Shoko.Server.Providers.AniDB
             ExtendPauseSecs = secsToPause;
             AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
             {
-                UpdateType = AniDBUpdateType.Overload_Backoff,
+                UpdateType = UpdateType.OverloadBackoff,
                 Value = true,
                 UpdateTime = DateTime.Now,
                 PauseTimeSecs = secsToPause,
@@ -244,7 +242,7 @@ namespace Shoko.Server.Providers.AniDB
             ExtendPauseSecs = null;
             AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
             {
-                UpdateType = AniDBUpdateType.Overload_Backoff,
+                UpdateType = UpdateType.OverloadBackoff,
                 Value = false,
                 UpdateTime = DateTime.Now
             });
@@ -317,7 +315,7 @@ namespace Shoko.Server.Providers.AniDB
 
             // Check Ban State
             // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-            if (IsUdpBanned) throw new UnexpectedAniDBResponseException {ReturnCode = UDPReturnCode.BANNED};
+            if (IsBanned) throw new UnexpectedAniDBResponseException {ReturnCode = UDPReturnCode.BANNED};
             // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
             // It wasn't handled before, and it's not caused serious problems
             if (IsInvalidSession) throw new NotLoggedInException();
@@ -400,7 +398,7 @@ namespace Shoko.Server.Providers.AniDB
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
-            IsUdpBanned = status == UDPReturnCode.BANNED;
+            IsBanned = status == UDPReturnCode.BANNED;
 
             switch (status)
             {

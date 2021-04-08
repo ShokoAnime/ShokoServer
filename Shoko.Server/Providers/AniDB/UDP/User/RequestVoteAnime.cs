@@ -4,14 +4,6 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
 {
-    public enum VoteType
-    {
-        AnimePermanent = 1,
-        AnimeTemporary = 2,
-        Group = 3,
-        Episode = 4
-    }
-
     /// <summary>
     /// Vote for an anime
     /// </summary>
@@ -30,11 +22,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         private int AniDBValue => (int) (Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
 
         /// <summary>
-        /// Vote Type. If the anime is finished, use Permanent, otherwise Temporary
+        /// If the anime is not finished (or you haven't finished it), then it is Temporary
         /// </summary>
-        public VoteType VoteType { get; set; }
+        public bool Temporary { get; set; }
 
-        protected override string BaseCommand => $"VOTE type={(int) VoteType}&aid={AnimeID}&value={AniDBValue}";
+        protected override string BaseCommand => $"VOTE type={(Temporary ? 2 : 1)}&aid={AnimeID}&value={AniDBValue}";
 
         protected override UDPBaseResponse<ResponseVote> ParseResponse(UDPReturnCode code, string receivedData)
         {

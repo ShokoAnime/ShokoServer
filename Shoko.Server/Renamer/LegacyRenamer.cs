@@ -1336,7 +1336,7 @@ namespace Shoko.Server.Renamer
                 List<SVR_AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
                 if (animeEps.Count == 0) throw new Exception("*Error: Unable to get episode for file");
 
-                episodes.Add(animeEps[0].AniDB_Episode);
+                episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a.EpisodeType).ThenBy(a => a.EpisodeNumber));
 
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
                 if (anime == null) throw new Exception("*Error: Unable to get anime for file");

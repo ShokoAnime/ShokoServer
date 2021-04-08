@@ -70,14 +70,14 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     bool deprecated = parts[6].Equals("1");
                     GetFile_State state = Enum.Parse<GetFile_State>(parts[7]);
                     int version = 1;
-                    if (state.HasFlag(GetFile_State.FILE_ISV2)) version = 2;
-                    if (state.HasFlag(GetFile_State.FILE_ISV3)) version = 3;
-                    if (state.HasFlag(GetFile_State.FILE_ISV4)) version = 4;
-                    if (state.HasFlag(GetFile_State.FILE_ISV5)) version = 5;
+                    if (state.HasFlag(GetFile_State.IsV2)) version = 2;
+                    if (state.HasFlag(GetFile_State.IsV3)) version = 3;
+                    if (state.HasFlag(GetFile_State.IsV4)) version = 4;
+                    if (state.HasFlag(GetFile_State.IsV5)) version = 5;
 
-                    bool? censored = state.HasFlag(GetFile_State.FILE_UNC) ? false : state.HasFlag(GetFile_State.FILE_CEN) ? true : null;
-                    bool? crc = state.HasFlag(GetFile_State.FILE_CRCOK) ? true : state.HasFlag(GetFile_State.FILE_CRCERR) ? false : null;
-                    bool chaptered = state.HasFlag(GetFile_State.FILE_CHAPTERED);
+                    bool? censored = state.HasFlag(GetFile_State.Uncensored) ? false : state.HasFlag(GetFile_State.Censored) ? true : null;
+                    bool? crc = state.HasFlag(GetFile_State.CRCMatch) ? true : state.HasFlag(GetFile_State.CRCErr) ? false : null;
+                    bool chaptered = state.HasFlag(GetFile_State.Chaptered);
                     var quality = ParseQuality(parts[8]);
                     var source = ParseSource(parts[9]);
                     var description = parts[12];
