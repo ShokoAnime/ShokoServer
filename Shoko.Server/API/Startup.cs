@@ -108,7 +108,7 @@ namespace Shoko.Server.API
             });
 
             services.AddSingleton<QueueEmitter>();
-            services.AddSingleton<AniDBEmitter>();
+            //services.AddSingleton<AniDBEmitter>();
             services.AddSingleton<LoggingEmitter>();
 
             // allow CORS calls from other both local and non-local hosts
@@ -238,7 +238,7 @@ namespace Shoko.Server.API
             app.UseEndpoints(conf =>
             {
                 conf.MapHub<QueueHub>("/signalr/events");
-                conf.MapHub<AniDBHub>("/signalr/anidb");
+                //conf.MapHub<AniDBHub>("/signalr/anidb");
                 conf.MapHub<LoggingHub>("/signalr/logging");
             });
 
