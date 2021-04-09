@@ -8,10 +8,11 @@ namespace Shoko.Server.Providers.AniDB
 {
     public abstract class ConnectionHandler
     {
-        protected ILogger Logger { get; set; } 
+        protected ILogger<ConnectionHandler> Logger { get; set; } 
         protected CommandProcessor GeneralQueue { get; set; }
         public abstract int BanTimerResetLength { get; }
         public abstract string Type { get; }
+        public abstract UpdateType BanEnum { get; }
         
         public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
         protected AniDBStateUpdate _currentState;
@@ -52,7 +53,7 @@ namespace Shoko.Server.Providers.AniDB
                     State = new AniDBStateUpdate
                     {
                         Value = true,
-                        UpdateType = UpdateType.HTTPBan,
+                        UpdateType = BanEnum,
                         UpdateTime = DateTime.Now,
                         PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
                     };
@@ -80,26 +81,22 @@ namespace Shoko.Server.Providers.AniDB
                     State = new AniDBStateUpdate
                     {
                         Value = false,
-                        UpdateType = UpdateType.HTTPBan,
+                        UpdateType = BanEnum,
                         UpdateTime = DateTime.Now,
                     };
                 }
             }
         }
-        
-        protected ConnectionHandler()
+
+        public ConnectionHandler(ILogger<ConnectionHandler> logger, CommandProcessor queue)
         {
+            Logger = logger;
+            GeneralQueue = queue;
             BanResetTimer = new Timer
             {
                 AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
             };
             BanResetTimer.Elapsed += BanResetTimerElapsed;
-        }
-
-        public ConnectionHandler(ILogger logger, CommandProcessor queue) : this()
-        {
-            Logger = logger;
-            GeneralQueue = queue;
         }
 
         ~ConnectionHandler()

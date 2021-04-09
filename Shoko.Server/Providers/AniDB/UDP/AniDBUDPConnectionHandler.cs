@@ -9,6 +9,7 @@ using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP
@@ -21,10 +22,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
         public override int BanTimerResetLength => 12;
         public override string Type => "UDP";
+        public override UpdateType BanEnum => UpdateType.UDPBan;
 
         public string SessionID { get; set; }
-        private string _username { get; set; }
-        private string _password { get; set; }
+        private ServerSettings Settings { get; set; }
 
         private Timer _PulseTimer;
 
@@ -61,11 +62,10 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(ILogger logger, CommandProcessor queue, AniDBSocketHandler socketHandler, string username, string password) : base(logger, queue)
+        public AniDBUDPConnectionHandler(ILogger<AniDBUDPConnectionHandler> logger, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings) : base(logger, queue)
         {
             _socketHandler = socketHandler;
-            _username = username;
-            _password = password;
+            Settings = settings;
             InitInternal();
         }
 
@@ -142,7 +142,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             {
                 RequestLogin login = new RequestLogin
                 {
-                    Username = _username, Password = _password
+                    Username = Settings.AniDb.Username, Password = Settings.AniDb.Password
                 };
                 // Never give Execute a null SessionID, except here
                 response = login.Execute(this);
@@ -379,15 +379,16 @@ namespace Shoko.Server.Providers.AniDB.UDP
         public bool SetCredentials(string username, string password)
         {
             if (!ValidAniDBCredentials(username, password)) return false;
-            _username = username;
-            _password = password;
+            Settings.AniDb.Username = username;
+            Settings.AniDb.Password = password;
+            Settings.SaveSettings();
             return true;
         }
 
         public bool ValidAniDBCredentials(string user = null, string pass = null)
         {
-            user ??= _username;
-            pass ??= _password;
+            user ??= Settings.AniDb.Username;
+            pass ??= Settings.AniDb.Password;
             if (string.IsNullOrEmpty(user)) return false;
             if (string.IsNullOrEmpty(pass)) return false;
             return true;

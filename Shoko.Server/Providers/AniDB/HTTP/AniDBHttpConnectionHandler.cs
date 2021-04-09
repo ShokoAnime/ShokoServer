@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.Http
@@ -12,6 +13,9 @@ namespace Shoko.Server.Providers.AniDB.Http
         public override int BanTimerResetLength => 12;
 
         public override string Type => "HTTP";
+        public override UpdateType BanEnum => UpdateType.HTTPBan;
+
+        public AniDBHttpConnectionHandler(ILogger<AniDBHttpConnectionHandler> logger, CommandProcessor queue) : base(logger, queue) { }
 
         public HttpBaseResponse<string> GetHttp(string url)
         {
