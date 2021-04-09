@@ -2,107 +2,31 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Timers;
-using NLog;
+using Microsoft.Extensions.Logging;
+using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP
 {
-    public class AniDBUDPConnectionHandler
+    public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static AniDBUDPConnectionHandler _instance;
-        public static AniDBUDPConnectionHandler Instance => _instance ??= new AniDBUDPConnectionHandler();
         private readonly IAniDBSocketHandler _socketHandler;
 
         public event EventHandler LoginFailed;
-        public event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
-        
-        public const int BanTimerResetLength = 12;
-        
-        private AniDBStateUpdate _currentState;
-        public AniDBStateUpdate State
-        {
-            get => _currentState;
-            set
-            {
-                if (value != _currentState)
-                {
-                    _currentState = value;
-                    AniDBStateUpdate?.Invoke(this, _currentState);
-                }
-            }
-        }
+
+        public override int BanTimerResetLength => 12;
+        public override string Type => "UDP";
 
         public string SessionID { get; set; }
-        private string _username { get; init; }
-        private string _password { get; init; }
+        private string _username { get; set; }
+        private string _password { get; set; }
 
         private Timer _PulseTimer;
-        
-        private Timer _udpBanResetTimer;
-        public DateTime? BanTime { get; set; }
-        private bool _isBanned;
-
-        public bool IsBanned
-        {
-            get => _isBanned;
-            set
-            {
-                _isBanned = value;
-                if (value)
-                {
-                    BanTime = DateTime.Now;
-                    AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-                    {
-                        Value = true,
-                        UpdateType = UpdateType.UDPBan,
-                        UpdateTime = DateTime.Now,
-                        PauseTimeSecs = TimeSpan.FromHours(BanTimerResetLength).Seconds
-                    });
-                    if (_udpBanResetTimer.Enabled)
-                    {
-                        Logger.Warn("UDP ban timer was already running, ban time extending");
-                        _udpBanResetTimer.Stop(); // re-start implies stop
-                    }
-
-                    _udpBanResetTimer.Start();
-                    Analytics.PostEvent("AniDB", "Udp Banned");
-                }
-                else
-                {
-                    if (_udpBanResetTimer.Enabled)
-                    {
-                        _udpBanResetTimer.Stop();
-                        Logger.Info("UDP ban timer stopped. Resuming if not Paused");
-                        // Skip if paused
-                        if (!ShokoService.CmdProcessorGeneral.Paused)
-                        {
-                            // Needs to have something to do first
-                            if (ShokoService.CmdProcessorGeneral.QueueCount > 0)
-                            {
-                                // Not really a new command, but this will start the queue if it's not running,
-                                // with handling for problems
-                                ShokoService.CmdProcessorGeneral.NotifyOfNewCommand();
-                            }
-                        }
-                    }
-
-                    AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-                    {
-                        Value = false,
-                        UpdateType = UpdateType.UDPBan,
-                        UpdateTime = DateTime.Now
-                    });
-                }
-            }
-        }
 
         private bool _isInvalidSession;
         public bool IsInvalidSession
@@ -112,7 +36,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             set
             {
                 _isInvalidSession = value;
-                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+                UpdateState(new AniDBStateUpdate
                 {
                     UpdateType = UpdateType.InvalidSession,
                     UpdateTime = DateTime.Now,
@@ -128,8 +52,6 @@ namespace Shoko.Server.Providers.AniDB.UDP
             set => _isLoggedOn = value;
         }
 
-        public int? ExtendPauseSecs { get; set; }
-
         public bool IsNetworkAvailable { private set; get; }
 
         private DateTime LastAniDBPing { get; set; } = DateTime.MinValue;
@@ -139,18 +61,12 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(AniDBSocketHandler socketHandler, string username, string password)
+        public AniDBUDPConnectionHandler(ILogger logger, CommandProcessor queue, AniDBSocketHandler socketHandler, string username, string password) : base(logger, queue)
         {
             _socketHandler = socketHandler;
             _username = username;
             _password = password;
             InitInternal();
-        }
-
-        private AniDBUDPConnectionHandler() : this(new AniDBSocketHandler(ServerSettings.Instance.AniDb.ServerAddress,
-            ServerSettings.Instance.AniDb.ServerPort, ServerSettings.Instance.AniDb.ClientPort),
-            ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password)
-        {
         }
 
         ~AniDBUDPConnectionHandler()
@@ -167,14 +83,8 @@ namespace Shoko.Server.Providers.AniDB.UDP
             _PulseTimer = new Timer {Interval = 5000, Enabled = true, AutoReset = true};
             _PulseTimer.Elapsed += PulseTimerElapsed;
 
-            Logger.Info("starting logout timer...");
+            Logger.LogInformation("starting logout timer...");
             _PulseTimer.Start();
-
-            _udpBanResetTimer = new Timer
-            {
-                AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
-            };
-            _udpBanResetTimer.Elapsed += UDPBanResetTimerElapsed;
         }
 
         private void CloseConnections()
@@ -182,7 +92,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             _PulseTimer?.Stop();
             _PulseTimer = null;
             if (_socketHandler == null) return;
-            Logger.Info("Disposing...");
+            Logger.LogInformation("AniDB UDP Socket Disposing...");
             _socketHandler.Dispose();
         }
 
@@ -216,38 +126,6 @@ namespace Shoko.Server.Providers.AniDB.UDP
             }
         }
 
-        private void UDPBanResetTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            Logger.Info($"UDP ban ({BanTimerResetLength}h) is over");
-            IsBanned = false;
-        }
-
-        public void ExtendBanTimer(int secsToPause, string pauseReason)
-        {
-            // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
-            ExtendPauseSecs = secsToPause;
-            AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-            {
-                UpdateType = UpdateType.OverloadBackoff,
-                Value = true,
-                UpdateTime = DateTime.Now,
-                PauseTimeSecs = secsToPause,
-                Message = pauseReason
-            });
-        }
-
-        public void ResetBanTimer()
-        {
-            // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
-            ExtendPauseSecs = null;
-            AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
-            {
-                UpdateType = UpdateType.OverloadBackoff,
-                Value = false,
-                UpdateTime = DateTime.Now
-            });
-        }
-
         public bool Login()
         {
             // check if we are already logged in
@@ -271,7 +149,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             }
             catch (Exception e)
             {
-                Logger.Error($"Unable to login to AniDB: {e}");
+                Logger.LogError($"Unable to login to AniDB: {e}");
                 response = new UDPBaseResponse<ResponseLogin>();
             }
 
@@ -280,7 +158,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 case UDPReturnCode.LOGIN_FAILED:
                     IsInvalidSession = true;
                     IsLoggedOn = false;
-                    Logger.Error("AniDB Login Failed: invalid credentials");
+                    Logger.LogError("AniDB Login Failed: invalid credentials");
                     LoginFailed?.Invoke(this, null);
                     break;
                 case UDPReturnCode.LOGIN_ACCEPTED:
@@ -410,7 +288,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
                 case UDPReturnCode.UNKNOWN_COMMAND:
                     IsInvalidSession = true;
-                    Logger.Trace("FORCING Logout because of invalid session");
+                    Logger.LogTrace("FORCING Logout because of invalid session");
                     ForceReconnection();
                     break;
                 // 600 INTERNAL SERVER ERROR
@@ -424,7 +302,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
                 {
                     var errorMessage = $"{(int) status} {status}";
 
-                    Logger.Trace("FORCING Logout because of invalid session");
+                    Logger.LogTrace("FORCING Logout because of invalid session");
                     ExtendBanTimer(300, errorMessage);
                     break;
                 }
@@ -434,27 +312,33 @@ namespace Shoko.Server.Providers.AniDB.UDP
             return new UDPBaseResponse<string> {Code = status, Response = decodedParts[1].Trim()};
         }
         
-        public static void ForceReconnection()
+        public void ForceReconnection()
         {
             try
             {
-                if (_instance != null)
-                {
-                    Logger.Info("Forcing reconnection to AniDB");
-                    _instance.CloseConnections();
-                    _instance = null;
-                    AniDBRateLimiter.UDP.EnsureRate();
-
-                    _instance = new();
-                }
-                else
-                {
-                    _instance = new();
-                }
+               ForceLogout(); 
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, ex.ToString());
+                Logger.LogError(ex, ex.ToString());
+            }
+
+            try
+            {
+                CloseConnections();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, ex.ToString());
+            }
+            
+            try
+            {
+                InitInternal();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, ex.ToString());
             }
         }
 
@@ -492,10 +376,20 @@ namespace Shoko.Server.Providers.AniDB.UDP
             _isLoggedOn = false;
         }
 
-        public bool ValidAniDBCredentials()
+        public bool SetCredentials(string username, string password)
         {
-            if (string.IsNullOrEmpty(_username)) return false;
-            if (string.IsNullOrEmpty(_password)) return false;
+            if (!ValidAniDBCredentials(username, password)) return false;
+            _username = username;
+            _password = password;
+            return true;
+        }
+
+        public bool ValidAniDBCredentials(string user = null, string pass = null)
+        {
+            user ??= _username;
+            pass ??= _password;
+            if (string.IsNullOrEmpty(user)) return false;
+            if (string.IsNullOrEmpty(pass)) return false;
             return true;
         }
     }

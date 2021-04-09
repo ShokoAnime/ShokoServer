@@ -13,8 +13,6 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         protected abstract HttpBaseResponse<T> ParseResponse(HttpBaseResponse<string> receivedData);
 
-        public HttpBaseResponse<T> Execute() => Execute(AniDBHttpConnectionHandler.Instance);
-
         public virtual HttpBaseResponse<T> Execute(AniDBHttpConnectionHandler handler)
         {
             Command = BaseCommand.Trim();

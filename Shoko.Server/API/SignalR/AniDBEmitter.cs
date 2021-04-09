@@ -1,33 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Commons.Notification;
-using Shoko.Server.API.SignalR.Models;
-using Shoko.Server.Commands;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Http;
-using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Server;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.API.SignalR
 {
     public class AniDBEmitter : IDisposable
     {
         private IHubContext<AniDBHub> Hub { get; set; }
+        private IUDPConnectionHandler UDPHandler { get; set; }
+        private IHttpConnectionHandler HttpHandler { get; set; }
 
-        public AniDBEmitter(IHubContext<AniDBHub> hub)
+        public AniDBEmitter(IHubContext<AniDBHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http)
         {
             Hub = hub;
-            AniDBUDPConnectionHandler.Instance.AniDBStateUpdate += OnUDPStateUpdate;
-            AniDBHttpConnectionHandler.Instance.AniDBStateUpdate += OnHttpStateUpdate;
+            HttpHandler = http;
+            UDPHandler = udp;
+            UDPHandler.AniDBStateUpdate += OnUDPStateUpdate;
+            HttpHandler.AniDBStateUpdate += OnHttpStateUpdate;
         }
 
         public void Dispose()
         {
-            AniDBUDPConnectionHandler.Instance.AniDBStateUpdate -= OnUDPStateUpdate;
-            AniDBHttpConnectionHandler.Instance.AniDBStateUpdate -= OnHttpStateUpdate;
+            UDPHandler.AniDBStateUpdate -= OnUDPStateUpdate;
+            HttpHandler.AniDBStateUpdate -= OnHttpStateUpdate;
         }
 
         private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)

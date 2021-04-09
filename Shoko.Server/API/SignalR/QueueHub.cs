@@ -9,13 +9,6 @@ namespace Shoko.Server.API.SignalR
 {
     public class QueueHub : Hub
     {
-        private readonly QueueEmitter _eventEmitter;
-
-        public QueueHub(QueueEmitter eventEmitter)
-        {
-            _eventEmitter = eventEmitter;
-        }
-
         public void ChangeQueueProcessingState(string queue, bool paused)
         {
             switch (queue.ToLower())
