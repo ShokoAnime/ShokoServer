@@ -193,7 +193,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             // Check Ban State
             // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-            if (IsBanned) throw new UnexpectedAniDBResponseException {ReturnCode = UDPReturnCode.BANNED};
+            if (IsBanned) throw new UnexpectedUDPResponseException {ReturnCode = UDPReturnCode.BANNED};
             // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
             // It wasn't handled before, and it's not caused serious problems
             if (IsInvalidSession) throw new NotLoggedInException();
@@ -245,7 +245,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // parts[0] => 200 FILE
             // parts[1] => Response
             // parts[2] => empty, since we ended with a newline
-            if (decodedParts.Length < 2) throw new UnexpectedAniDBResponseException {Response = decodedString};
+            if (decodedParts.Length < 2) throw new UnexpectedUDPResponseException {Response = decodedString};
 
             if (truncated)
             {
@@ -266,11 +266,11 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // If we don't have 2 parts of the first line, then it's not in the expected
             // 200 FILE
             // Format
-            if (firstLineParts.Length != 2) throw new UnexpectedAniDBResponseException {Response = decodedString};
+            if (firstLineParts.Length != 2) throw new UnexpectedUDPResponseException {Response = decodedString};
 
             // Can't parse the code
             if (!int.TryParse(firstLineParts[0], out int code))
-                throw new UnexpectedAniDBResponseException {Response = decodedString};
+                throw new UnexpectedUDPResponseException {Response = decodedString};
 
             UDPReturnCode status = (UDPReturnCode) code;
 

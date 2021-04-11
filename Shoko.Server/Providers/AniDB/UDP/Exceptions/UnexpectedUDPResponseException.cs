@@ -3,25 +3,25 @@ using System;
 namespace Shoko.Server.Providers.AniDB.UDP.Exceptions
 {
     [Serializable]
-    public class UnexpectedAniDBResponseException : Exception
+    public class UnexpectedUDPResponseException : Exception
     {
-        public string Message { get; set; }
+        public new string Message { get; set; }
         public string Response { get; set; }
         public UDPReturnCode ReturnCode { get; set; }
 
-        public UnexpectedAniDBResponseException()
+        public UnexpectedUDPResponseException()
         {
             
         }
 
-        public UnexpectedAniDBResponseException(UDPReturnCode code, string response) : base(
+        public UnexpectedUDPResponseException(UDPReturnCode code, string response) : base(
             $"Unexpected AniDB Response: {code} | {response}")
         {
             Response = response;
             ReturnCode = code;
         }
         
-        public UnexpectedAniDBResponseException(string message, UDPReturnCode code, string response) : base(
+        public UnexpectedUDPResponseException(string message, UDPReturnCode code, string response) : base(
             $"Unexpected AniDB Response: {message} -- {code} | {response}")
         {
             Response = response;

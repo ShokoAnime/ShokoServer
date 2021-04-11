@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info

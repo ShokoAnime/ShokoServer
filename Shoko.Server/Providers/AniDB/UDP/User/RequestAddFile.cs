@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -78,7 +79,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     {
                         string[] arrStatus = arrResult[1].Split('|');
                         bool hasMyListID = int.TryParse(arrStatus[0], out int myListID);
-                        if (!hasMyListID) throw new UnexpectedAniDBResponseException
+                        if (!hasMyListID) throw new UnexpectedUDPResponseException
                         {
                             Message = "MyListID was not provided. Use AniDBMyList_RequestAddEpisode for generic files.",
                             Response = receivedData,
@@ -115,7 +116,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     break;
                 }
             }
-            throw new UnexpectedAniDBResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData);
         }
     }
 }

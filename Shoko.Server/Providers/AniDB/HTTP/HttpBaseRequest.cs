@@ -1,6 +1,3 @@
-using System.Text.RegularExpressions;
-using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-
 namespace Shoko.Server.Providers.AniDB.Http
 {
     public abstract class HttpBaseRequest<T> where T : class

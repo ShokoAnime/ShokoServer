@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -94,7 +95,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                     break;
                 }
             }
-            throw new UnexpectedAniDBResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData);
         }
     }
 }

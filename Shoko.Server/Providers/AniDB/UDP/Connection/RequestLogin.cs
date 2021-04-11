@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -22,10 +23,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         protected override UDPBaseResponse<ResponseLogin> ParseResponse(UDPReturnCode code, string receivedData)
         {
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
-            if (i < 0) throw new UnexpectedAniDBResponseException(code, receivedData);
+            if (i < 0) throw new UnexpectedUDPResponseException(code, receivedData);
             // after response code, before login message
             string sessionID = receivedData.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedAniDBResponseException(code, receivedData);
+            if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedUDPResponseException(code, receivedData);
             string imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
             return new UDPBaseResponse<ResponseLogin>
             {

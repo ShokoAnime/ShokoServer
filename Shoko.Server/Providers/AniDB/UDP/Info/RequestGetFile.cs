@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -57,11 +58,11 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     //2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
                     // we don't want to remove empty parts or change the layout here. Some will be empty, but we want consistent indexing
                     string[] parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
-                    if (parts.Length != 18) throw new UnexpectedAniDBResponseException(code, receivedData);
+                    if (parts.Length != 18) throw new UnexpectedUDPResponseException(code, receivedData);
                     // parse out numbers into temp vars
-                    if (!int.TryParse(parts[0], out int fid)) throw new UnexpectedAniDBResponseException(code, receivedData);
-                    if (!int.TryParse(parts[1], out int aid)) throw new UnexpectedAniDBResponseException(code, receivedData);
-                    if (!int.TryParse(parts[2], out int eid)) throw new UnexpectedAniDBResponseException(code, receivedData);
+                    if (!int.TryParse(parts[0], out int fid)) throw new UnexpectedUDPResponseException(code, receivedData);
+                    if (!int.TryParse(parts[1], out int aid)) throw new UnexpectedUDPResponseException(code, receivedData);
+                    if (!int.TryParse(parts[2], out int eid)) throw new UnexpectedUDPResponseException(code, receivedData);
                     bool hasGroup = int.TryParse(parts[3], out int gid);
                     int? groupID = hasGroup ? gid : null;
                     // save mylist and partial episode mapping 'til later
@@ -139,7 +140,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 case UDPReturnCode.NO_SUCH_FILE:
                     return new UDPBaseResponse<ResponseGetFile>() {Code = code, Response = null};
             }
-            throw new UnexpectedAniDBResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData);
         }
 
         private static GetFile_Quality ParseQuality(string qualityString)

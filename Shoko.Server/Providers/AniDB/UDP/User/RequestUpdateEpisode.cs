@@ -48,8 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
                 case UDPReturnCode.NO_SUCH_MYLIST_ENTRY:
                     return new UDPBaseResponse<Void> {Code = code};
             }
-            throw new UnexpectedAniDBResponseException(code, receivedData);
+            throw new UnexpectedUDPResponseException(code, receivedData);
         }
-
     }
 }

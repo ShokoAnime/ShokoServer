@@ -114,11 +114,6 @@ namespace Shoko.Server.Commands
                 {
                     // check if we have any records from previous imports
                     crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
-                    if (crossRefs == null || crossRefs.Count == 0)
-                    {
-                        // lets see if we can find the episode/anime info from the web cache
-                        if (TryGetCrossRefsFromWebCache(vidLocal, ref crossRefs)) return;
-                    }
 
                     // we assume that all episodes belong to the same anime
                     foreach (CrossRef_File_Episode xref in crossRefs)
@@ -346,56 +341,6 @@ namespace Shoko.Server.Commands
             });
 
             return aniFile;
-        }
-
-        private static bool TryGetCrossRefsFromWebCache(SVR_VideoLocal vidLocal, ref List<CrossRef_File_Episode> crossRefs)
-        {
-            if (!ServerSettings.Instance.WebCache.Enabled || !ServerSettings.Instance.WebCache.XRefFileEpisode_Get)
-            {
-                logger.Debug($"Cannot get AniDB_File record so exiting: {vidLocal.ED2KHash}");
-                return true;
-            }
-
-            List<Azure_CrossRef_File_Episode> xrefs = AzureWebAPI.Get_CrossRefFileEpisode(vidLocal);
-
-            crossRefs = new List<CrossRef_File_Episode>();
-            if (xrefs == null || xrefs.Count == 0)
-            {
-                logger.Debug(
-                    $"Cannot find AniDB_File record or get cross ref from web cache record so exiting: {vidLocal.ED2KHash}");
-                return true;
-            }
-
-            string fileName = vidLocal.GetBestVideoLocalPlace()?.FullServerPath;
-            fileName = !string.IsNullOrEmpty(fileName) ? Path.GetFileName(fileName) : vidLocal.FileName;
-            foreach (Azure_CrossRef_File_Episode xref in xrefs)
-            {
-                bool duplicate = crossRefs.Any(a =>
-                    a.AnimeID == xref.AnimeID && a.EpisodeID == xref.EpisodeID && a.Hash == xref.Hash);
-
-                if (duplicate) continue;
-
-                CrossRef_File_Episode xref2 = new CrossRef_File_Episode
-                {
-                    Hash = vidLocal.ED2KHash,
-                    FileName = fileName,
-                    FileSize = vidLocal.FileSize,
-                    CrossRefSource = (int) CrossRefSource.WebCache,
-                    AnimeID = xref.AnimeID,
-                    EpisodeID = xref.EpisodeID,
-                    Percentage = xref.Percentage,
-                    EpisodeOrder = xref.EpisodeOrder
-                };
-                crossRefs.Add(xref2);
-                // in this case we need to save the cross refs manually as AniDB did not provide them
-                // use a session to prevent updating stats
-                using var session = DatabaseFactory.SessionFactory.OpenSession();
-                using var trans = session.BeginTransaction();
-                RepoFactory.CrossRef_File_Episode.SaveWithOpenTransaction(session, xref2);
-                trans.Commit();
-            }
-
-            return false;
         }
 
         /// <summary>
