@@ -8,6 +8,7 @@ using NLog;
 using Shoko.Server;
 using Shoko.Server.AniDB_API;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -23,7 +24,7 @@ namespace AniDBAPI
         {
             try
             {
-                AniDBRateLimiter.UDP.EnsureRate();
+                StaticRateLimiter.HTTP.EnsureRate();
 
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
@@ -63,7 +64,7 @@ namespace AniDBAPI
         {
             try
             {
-                AniDBRateLimiter.UDP.EnsureRate();
+                StaticRateLimiter.HTTP.EnsureRate();
 
                 HttpWebResponse response = null;
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);

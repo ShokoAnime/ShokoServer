@@ -10,6 +10,7 @@ namespace Shoko.Server.Providers.AniDB
     {
         protected ILogger<ConnectionHandler> Logger { get; set; } 
         protected CommandProcessor GeneralQueue { get; set; }
+        protected AniDBRateLimiter RateLimiter { get; set; }
         public abstract int BanTimerResetLength { get; }
         public abstract string Type { get; }
         public abstract UpdateType BanEnum { get; }
@@ -88,10 +89,11 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public ConnectionHandler(ILogger<ConnectionHandler> logger, CommandProcessor queue)
+        public ConnectionHandler(ILogger<ConnectionHandler> logger, CommandProcessor queue, AniDBRateLimiter rateLimiter)
         {
             Logger = logger;
             GeneralQueue = queue;
+            RateLimiter = rateLimiter;
             BanResetTimer = new Timer
             {
                 AutoReset = false, Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds

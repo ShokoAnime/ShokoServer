@@ -62,7 +62,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(ILogger<AniDBUDPConnectionHandler> logger, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings) : base(logger, queue)
+        public AniDBUDPConnectionHandler(ILogger<AniDBUDPConnectionHandler> logger, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(logger, queue, rateLimiter)
         {
             _socketHandler = socketHandler;
             Settings = settings;
@@ -216,7 +216,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
             Encoding encoding = Encoding.ASCII;
             if (needsUnicode) encoding = new UnicodeEncoding(true, false);
 
-            AniDBRateLimiter.UDP.EnsureRate();
+            RateLimiter.EnsureRate();
             DateTime start = DateTime.Now;
 
             if (!disableLogging)

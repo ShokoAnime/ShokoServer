@@ -15,13 +15,13 @@ namespace Shoko.Server.Providers.AniDB.Http
         public override string Type => "HTTP";
         public override UpdateType BanEnum => UpdateType.HTTPBan;
 
-        public AniDBHttpConnectionHandler(ILogger<AniDBHttpConnectionHandler> logger, CommandProcessor queue) : base(logger, queue) { }
+        public AniDBHttpConnectionHandler(ILogger<AniDBHttpConnectionHandler> logger, CommandProcessor queue, HttpRateLimiter rateLimiter) : base(logger, queue, rateLimiter) { }
 
         public HttpBaseResponse<string> GetHttp(string url)
         {
             try
             {
-                AniDBRateLimiter.UDP.EnsureRate();
+                RateLimiter.EnsureRate();
 
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(url);
                 webReq.Timeout = 20000; // 20 seconds
@@ -47,7 +47,7 @@ namespace Shoko.Server.Providers.AniDB.Http
 
                 string output = reader.ReadToEnd();
 
-                if (CheckForBan(output)) return null;
+                if (CheckForBan(output)) throw new UnexpectedHttpResponseException("Banned", webResponse.StatusCode, output);
                 return new HttpBaseResponse<string> {Response = output, Code = webResponse.StatusCode};
             }
             catch (Exception ex)
@@ -61,7 +61,7 @@ namespace Shoko.Server.Providers.AniDB.Http
         {
             if (string.IsNullOrEmpty(xmlresult)) return false;
             var index = xmlresult.IndexOf(@">banned<", StringComparison.InvariantCultureIgnoreCase);
-            if (-1 >= index) return false;
+            if (index <= -1) return false;
             IsBanned = true;
             return true;
         }

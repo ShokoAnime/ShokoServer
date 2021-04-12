@@ -67,7 +67,7 @@ namespace Shoko.Server.Commands
         {
             logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
 
-            AniDBRateLimiter.UDP.EnsureRate();
+            StaticRateLimiter.UDP.EnsureRate();
             try
             {
                 List<ImageEntityType> types = new List<ImageEntityType>
@@ -212,7 +212,7 @@ namespace Shoko.Server.Commands
             {
                 logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} - {1}", AnimeID, ex);
             }
-            AniDBRateLimiter.UDP.Reset();
+            StaticRateLimiter.UDP.Reset();
         }
 
         private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)

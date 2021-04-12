@@ -4,36 +4,33 @@ using NLog;
 
 namespace Shoko.Server.Providers.AniDB
 {
-    public sealed class AniDBRateLimiter
+    public abstract class AniDBRateLimiter
     {
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        // singleton with backing field
-        private static AniDBRateLimiter _udp;
-        public static AniDBRateLimiter UDP => _udp ??= new();
+        protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private readonly object _lock = new();
 
         // Short Term:
         // A Client MUST NOT send more than 0.5 packets per second(that's one packet every two seconds, not two packets a second!)
         // The server will start to enforce the limit after the first 5 packets have been received.
-        private static int ShortDelay = 2500;
+        protected abstract int ShortDelay { get; init; }
 
         // Long Term:
         // A Client MUST NOT send more than one packet every four seconds over an extended amount of time.
         // An extended amount of time is not defined. Use common sense.
-        private static int LongDelay = 4500;
+        protected abstract int LongDelay { get; init; }
 
         // Switch to longer delay after 1 hour
-        private static long shortPeriod = 60 * 60 * 1000;
+        protected abstract long shortPeriod { get; init; }
 
         // Switch to shorter delay after 30 minutes of inactivity
-        private static long resetPeriod = 30 * 60 * 1000;
+        protected abstract long resetPeriod { get; init; }
 
         private readonly Stopwatch _requestWatch = new();
 
         private readonly Stopwatch _activeTimeWatch = new();
 
-        private AniDBRateLimiter()
+        public AniDBRateLimiter()
         {
             _requestWatch.Start();
             _activeTimeWatch.Start();
@@ -71,7 +68,8 @@ namespace Shoko.Server.Providers.AniDB
                     return;
                 }
 
-                int waitTime = currentDelay - (int) delay + 25;
+                // add 50ms for good measure
+                int waitTime = currentDelay - (int) delay + 50;
 
                 Logger.Trace($"Time since last request is {delay} ms, throttling for {waitTime}.");
                 Thread.Sleep(waitTime);
