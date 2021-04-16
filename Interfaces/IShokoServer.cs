@@ -172,7 +172,7 @@ namespace Shoko.Models.Interfaces
         [Rest("Episode/Watch/{animeEpisodeID}/{watchedStatus}/{userID}", Verbs.Post)]
         CL_Response<CL_AnimeEpisode_User> ToggleWatchedStatusOnEpisode(int animeEpisodeID, bool watchedStatus, int userID);
 
-        [Rest("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}", Verbs.Get)]
+        [Rest("Episode/ForMultipleFiles/{userID}/{onlyFinishedSeries}/{ignoreVariations}", Verbs.Get, TimeOutSeconds = 300)]
         List<CL_AnimeEpisode_User> GetAllEpisodesWithMultipleFiles(int userID, bool onlyFinishedSeries, bool ignoreVariations);
 
         [Rest("Episode/NextForSeries/{animeSeriesID}/{userID}", Verbs.Get)]
@@ -322,13 +322,13 @@ namespace Shoko.Models.Interfaces
         [Rest("File/ManuallyLinked/{userID}", Verbs.Get)]
         List<CL_VideoLocal> GetAllManuallyLinkedFiles(int userID);
 
-        [Rest("File/PreviewDeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
+        [Rest("File/PreviewDeleteMultipleFilesWithPreferences/{userID}", Verbs.Get, TimeOutSeconds = 300)]
         List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID);
 
-        [Rest("File/DeleteMultipleFilesWithPreferences/{userID}", Verbs.Get)]
+        [Rest("File/DeleteMultipleFilesWithPreferences/{userID}", Verbs.Get, TimeOutSeconds = 600)]
         bool DeleteMultipleFilesWithPreferences(int userID);
 
-        [Rest("File/GetMultipleFilesForDeletionByPreferences/{userID}", Verbs.Get)]
+        [Rest("File/GetMultipleFilesForDeletionByPreferences/{userID}", Verbs.Get, TimeOutSeconds = 600)]
         List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID);
 
         [Rest("File/Duplicated/Reevaluate", Verbs.Post)]
