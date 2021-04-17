@@ -54,15 +54,15 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 case UDPReturnCode.FILE:
                 {
                     // The spaces here are added for readability. They aren't in the response
-                    // fileid|anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
-                    //2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
+                    // fileid |anime|episode|group|MyListID |other eps|deprecated|state|quality|source|audio lang|sub lang|file description|filename                                                                                                    |mylist state|mylist filestate|viewcount|view date
+                    // 2442444|14360|225455 |8482 |291278112|         |    0     |4097 |  high |  www | japanese | english|                |Magia Record: Mahou Shoujo Madoka Magica Gaiden - 03 - Sorry for Making You My Friend - [Doki](a076b874).mkv|   3        |         0      |     1   |1584060577
                     // we don't want to remove empty parts or change the layout here. Some will be empty, but we want consistent indexing
                     string[] parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
-                    if (parts.Length != 18) throw new UnexpectedUDPResponseException(code, receivedData);
+                    if (parts.Length != 18) throw new UnexpectedUDPResponseException("There were the wrong number of data columns", code, receivedData);
                     // parse out numbers into temp vars
-                    if (!int.TryParse(parts[0], out int fid)) throw new UnexpectedUDPResponseException(code, receivedData);
-                    if (!int.TryParse(parts[1], out int aid)) throw new UnexpectedUDPResponseException(code, receivedData);
-                    if (!int.TryParse(parts[2], out int eid)) throw new UnexpectedUDPResponseException(code, receivedData);
+                    if (!int.TryParse(parts[0], out int fid)) throw new UnexpectedUDPResponseException("File ID was not an int", code, receivedData);
+                    if (!int.TryParse(parts[1], out int aid)) throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData);
+                    // It can be possible that a file is added with an unknown group, though I've never seen it before
                     bool hasGroup = int.TryParse(parts[3], out int gid);
                     int? groupID = hasGroup ? gid : null;
                     // save mylist and partial episode mapping 'til later
@@ -84,23 +84,33 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var description = parts[12];
                     var filename = parts[13];
                     
-                    // other xrefs
-                    List<ResponseGetFile.PartialEpisodeXRef> xrefs;
+                    // episode xrefs
+                    List<ResponseGetFile.EpisodeXRef> xrefs = new List<ResponseGetFile.EpisodeXRef>();
+                    if (int.TryParse(parts[2], out int eid))
+                    {
+                        xrefs.Add(new ResponseGetFile.EpisodeXRef
+                        {
+                            EpisodeID = eid,
+                            Percentage = 100
+                        });
+                    }
                     if (!string.IsNullOrEmpty(parts[5]))
                     {
                         string[] xrefStrings = parts[5].Split('\'');
-                        xrefs = xrefStrings.Batch(2).Select(
+                        var tempXrefs = xrefStrings.Batch(2).Select(
                             a =>
                             {
                                 if (!int.TryParse(a[0], out int epid)) return null;
                                 if (!byte.TryParse(a[1], out byte per)) return null;
-                                return new ResponseGetFile.PartialEpisodeXRef {EpisodeID = epid, Percentage = per};
+                                return new ResponseGetFile.EpisodeXRef {EpisodeID = epid, Percentage = per};
                             }
-                        ).Where(a => a != null).ToList();
+                        ).Where(a => a != null).ToArray();
+                        if (tempXrefs.Length > 0)
+                            xrefs.AddRange(tempXrefs);
                     }
                     else
                     {
-                        xrefs = new List<ResponseGetFile.PartialEpisodeXRef>();
+                        xrefs = new List<ResponseGetFile.EpisodeXRef>();
                     }
                     
                     // audio languages
@@ -119,7 +129,6 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                         {
                             FileID = fid,
                             AnimeID = aid,
-                            EpisodeID = eid,
                             GroupID = groupID,
                             Deprecated = deprecated,
                             Version = version,
@@ -130,7 +139,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                             Filename = filename,
                             Quality = quality,
                             Source = source,
-                            OtherEpisodeIDs = xrefs,
+                            EpisodeIDs = xrefs,
                             AudioLanguages = alangs,
                             SubtitleLanguages = slangs,
                             MyList = myList

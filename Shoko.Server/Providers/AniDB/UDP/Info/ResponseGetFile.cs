@@ -9,12 +9,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         public int FileID { get; set; }
         /// AniDB Anime ID
         public int AnimeID { get; set; }
-        /// AniDB Episode ID
-        public int EpisodeID { get; set; }
         /// AniDB Release Group ID, if available
         public int? GroupID { get; set; }
-        // AniDB Episode IDs for other episodes that this file may link to
-        public List<PartialEpisodeXRef> OtherEpisodeIDs { get; set; }
+        // AniDB Episode IDs for episodes that this file may link to. The eid is listed here as 100%
+        public List<EpisodeXRef> EpisodeIDs { get; set; }
         // Is the file deprecated/replaced
         public bool Deprecated { get; set; }
         // the version, will be higher than 1 if it's replacing a deprecated file
@@ -40,7 +38,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         // MyList Info, if applicable
         public MyListInfo MyList { get; set; }
 
-        public class PartialEpisodeXRef
+        public class EpisodeXRef
         {
             // AniDB Episode ID
             public int EpisodeID { get; set; }

@@ -11,20 +11,13 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         public string Username { get; set; }
         public string Password { get; set; }
 
-        protected override string BaseCommand
-        {
-            get
-            {
-                string command = $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
-                return command;
-            }
-        }
+        protected override string BaseCommand => $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
         protected override UDPBaseResponse<ResponseLogin> ParseResponse(UDPReturnCode code, string receivedData)
         {
             int i = receivedData.IndexOf("LOGIN", StringComparison.Ordinal);
             if (i < 0) throw new UnexpectedUDPResponseException(code, receivedData);
-            // after response code, before login message
+            // after response code, before "LOGIN"
             string sessionID = receivedData.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
             if (string.IsNullOrWhiteSpace(sessionID)) throw new UnexpectedUDPResponseException(code, receivedData);
             string imageServer = receivedData.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();

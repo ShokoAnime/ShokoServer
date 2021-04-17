@@ -13,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
 
         protected abstract UDPBaseResponse<T> ParseResponse(UDPReturnCode code, string receivedData);
 
-        private static readonly Regex CommandRegex = new("[A-Za-z0-9]+ .*", RegexOptions.Compiled | RegexOptions.Singleline);
+        protected static readonly Regex CommandRegex = new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
         public virtual UDPBaseResponse<T> Execute(AniDBUDPConnectionHandler handler)
         {
