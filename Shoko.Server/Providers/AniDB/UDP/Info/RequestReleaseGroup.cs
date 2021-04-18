@@ -48,8 +48,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                     var ircServer = parts[8];
                     var url = parts[9];
                     var pic = parts[10];
-                    // TODO date and relation parsing
-                    
+
                     return new UDPBaseResponse<ResponseReleaseGroup>() {Code = code, Response = new ResponseReleaseGroup
                     {
                         ID = gid,

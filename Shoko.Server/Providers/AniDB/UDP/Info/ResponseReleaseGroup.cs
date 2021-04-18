@@ -16,7 +16,5 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
         public string IrcServer { get; set; }
         public string URL { get; set; }
         public string Picture { get; set; }
-        public DateTime? Founded { get; set; }
-        public DateTime Disbanded { get; set; }
     }
 }
