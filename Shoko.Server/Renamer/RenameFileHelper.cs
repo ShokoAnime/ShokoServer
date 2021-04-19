@@ -52,7 +52,7 @@ namespace Shoko.Server
             string result = Path.GetFileName(place.FilePath);
             var script = _getRenameScript(scriptName);
 
-            foreach (var renamer in GetPluginRenamersSorted(script.Type))
+            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
             {
                 // TODO Error handling and possible deference
                 var args = new RenameEventArgs
