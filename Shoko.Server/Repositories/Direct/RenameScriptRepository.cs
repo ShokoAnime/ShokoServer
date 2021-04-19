@@ -27,6 +27,7 @@ namespace Shoko.Server.Repositories
 
         public RenameScript GetByName(string scriptName)
         {
+            if (string.IsNullOrEmpty(scriptName)) return null;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 IList<RenameScript> cr = session

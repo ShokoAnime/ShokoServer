@@ -25,7 +25,7 @@ namespace Shoko.Server
 
         private static IRenameScript _getRenameScript(string name)
         {
-            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
 
             return new RenameScriptImpl
             {
@@ -67,7 +67,7 @@ namespace Shoko.Server
             var script = _getRenameScript(scriptName);
 
             // TODO Error handling and possible deference
-            foreach (var renamer in GetPluginRenamersSorted(script.Type))
+            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
             {
                 var args = new MoveEventArgs
                 {
@@ -135,8 +135,8 @@ namespace Shoko.Server
         {
             foreach(var kvp in Renamers)
             {
-                if (kvp.Key != renamerName && ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out bool isEnabled) && !isEnabled)
-                    continue;
+                if (!string.IsNullOrEmpty(renamerName) && kvp.Key != renamerName) continue;
+                if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out bool isEnabled) && !isEnabled) continue;
 
                 yield return kvp;
             }
