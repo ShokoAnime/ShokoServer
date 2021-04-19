@@ -35,6 +35,18 @@ namespace Shoko.Server
             };
         }
 
+        private static IRenameScript _getRenameScriptWithFallback(string name)
+        {
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+
+            return new RenameScriptImpl
+            {
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData
+            };
+        }
+
         public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
         {
             string result = Path.GetFileName(place.FilePath);
@@ -64,7 +76,7 @@ namespace Shoko.Server
         
         public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
         {
-            var script = _getRenameScript(scriptName);
+            var script = _getRenameScriptWithFallback(scriptName);
 
             // TODO Error handling and possible deference
             foreach (var renamer in GetPluginRenamersSorted(script?.Type))
