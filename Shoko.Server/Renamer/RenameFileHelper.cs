@@ -26,7 +26,6 @@ namespace Shoko.Server
         private static IRenameScript _getRenameScript(string name)
         {
             var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
-
             if (script == null) return null;
 
             return new RenameScriptImpl
@@ -40,6 +39,7 @@ namespace Shoko.Server
         private static IRenameScript _getRenameScriptWithFallback(string name)
         {
             var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null) return null;
 
             return new RenameScriptImpl
             {
