@@ -27,6 +27,8 @@ namespace Shoko.Server
         {
             var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
 
+            if (script == null) return null;
+
             return new RenameScriptImpl
             {
                 Script = script.Script,
