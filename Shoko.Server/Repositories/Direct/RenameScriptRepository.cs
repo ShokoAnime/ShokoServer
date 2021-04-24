@@ -10,32 +10,35 @@ namespace Shoko.Server.Repositories
     {
         public RenameScript GetDefaultScript()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                RenameScript cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("IsEnabledOnImport", 1))
-                    .UniqueResult<RenameScript>();
-                return cr;
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("IsEnabledOnImport", 1))
+                .UniqueResult<RenameScript>();
+            return cr;
         }
 
         public RenameScript GetDefaultOrFirst()
         {
-            return GetAll().FirstOrDefault();
+            // This should list the enabled one first, falling back if none are
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .AddOrder(Order.Desc("IsEnabledOnImport"))
+                .AddOrder(Order.Asc("RenameScriptID"))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
 
         public RenameScript GetByName(string scriptName)
         {
             if (string.IsNullOrEmpty(scriptName)) return null;
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                IList<RenameScript> cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("ScriptName", scriptName))
-                    .List<RenameScript>();
-                return cr.FirstOrDefault();
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("ScriptName", scriptName))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
     }
 }
