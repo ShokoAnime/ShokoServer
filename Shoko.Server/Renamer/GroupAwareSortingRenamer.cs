@@ -17,6 +17,7 @@ namespace Shoko.Server.Renamer
 
         public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
+            if (args?.EpisodeInfo == null) throw new ArgumentException("File is unrecognized. Not Moving");
             // get the series
             var series = args?.AnimeInfo?.FirstOrDefault();
 
