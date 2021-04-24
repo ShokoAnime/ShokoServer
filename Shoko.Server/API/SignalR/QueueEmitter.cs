@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -41,8 +41,25 @@ namespace Shoko.Server.API.SignalR
             ServerState.Instance.PropertyChanged -= ServerStatePropertyChanged;
         }
 
+        public async Task OnConnectedAsync(IClientProxy caller)
+        {
+            if (ServerState.Instance.DatabaseAvailable)
+                await caller.SendAsync(
+                    "CommandProcessingStatus", new Dictionary<string, object>
+                    {
+                        {"GeneralQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorGeneral.QueueState.queueState, Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()}},
+                        {"HasherQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorHasher.QueueState.queueState, Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()}},
+                        {"ImageQueueState", new QueueStateSignalRModel {State = ShokoService.CmdProcessorImages.QueueState.queueState, Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()}},
+                        {"GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount},
+                        {"HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount},
+                        {"ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount},
+                    }
+                );
+        }
+
         private async void ServerStatePropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == null) return;
             // Currently, only the DatabaseBlocked property, but we could use this for more.
             if (e.PropertyName == "DatabaseBlocked" || e.PropertyName.StartsWith("Server"))
             {

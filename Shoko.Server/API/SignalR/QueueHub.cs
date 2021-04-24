@@ -9,6 +9,13 @@ namespace Shoko.Server.API.SignalR
 {
     public class QueueHub : Hub
     {
+        private readonly QueueEmitter _eventEmitter;
+
+        public QueueHub(QueueEmitter eventEmitter)
+        {
+            _eventEmitter = eventEmitter;
+        }
+
         public void ChangeQueueProcessingState(string queue, bool paused)
         {
             switch (queue.ToLower())
@@ -27,34 +34,7 @@ namespace Shoko.Server.API.SignalR
 
         public override async Task OnConnectedAsync()
         {
-            if (ServerState.Instance.DatabaseAvailable)
-                await Clients.Caller.SendAsync("CommandProcessingStatus", new Dictionary<string, object>
-                {
-                    {
-                        "GeneralQueueState", new QueueStateSignalRModel
-                        {
-                            State = ShokoService.CmdProcessorGeneral.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorGeneral.QueueState.formatMessage()
-                        }
-                    },
-                    {
-                        "HasherQueueState", new QueueStateSignalRModel
-                        {
-                            State = ShokoService.CmdProcessorHasher.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorHasher.QueueState.formatMessage()
-                        }
-                    },
-                    {
-                        "ImageQueueState", new QueueStateSignalRModel
-                        {
-                            State = ShokoService.CmdProcessorImages.QueueState.queueState,
-                            Description = ShokoService.CmdProcessorImages.QueueState.formatMessage()
-                        }
-                    },
-                    {"GeneralQueueCount", ShokoService.CmdProcessorGeneral.QueueCount},
-                    {"HasherQueueCount", ShokoService.CmdProcessorHasher.QueueCount},
-                    {"ImageQueueCount", ShokoService.CmdProcessorImages.QueueCount},
-                });
+            await _eventEmitter.OnConnectedAsync(Clients.Caller);
         }
     }
 }
