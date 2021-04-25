@@ -418,16 +418,8 @@ namespace Shoko.Models.Interfaces
 
         #endregion
 
-        #region CloudAccounts
-
-        [Rest("CloudAccount/Directory/{cloudaccountid}",Verbs.Post)]
-        List<string> DirectoriesFromImportFolderPath(int cloudaccountid, string path);
-
-        [Rest("CloudAccount", Verbs.Get)]
-        List<CL_CloudAccount> GetCloudProviders();
-
-
-        #endregion
+        [Rest("CloudAccount/Directory",Verbs.Post)]
+        List<string> DirectoriesFromImportFolderPath(string path);
 
         #region AniDB Anime
 
