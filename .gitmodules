@@ -1,6 +1,3 @@
 [submodule "Shoko.Commons"]
 	path = Shoko.Commons
 	url = https://github.com/shokoanime/Shoko.Commons
-[submodule "CloudFileSystem"]
-	path = CloudFileSystem
-	url = https://github.com/maxpiva/CloudFileSystem

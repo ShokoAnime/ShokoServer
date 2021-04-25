@@ -40,7 +40,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
   </ItemGroup>
