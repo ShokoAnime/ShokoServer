@@ -6,7 +6,6 @@ using System.Linq.Expressions;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
@@ -81,82 +80,16 @@ namespace Shoko.Server.Models
             }
         }
 
-
-        private IFileSystem _filesystem;
-
         [JsonIgnore]
         [XmlIgnore]
-        public IFileSystem FileSystem
+        public DirectoryInfo BaseDirectory
         {
             get
             {
-                if (_filesystem == null)
-                {
-                    if (CloudID != null)
-                    {
-                        SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(CloudID.Value);
-                        if (cl == null)
-                            throw new Exception("Cloud Account Not Found");
-                        _filesystem = cl.FileSystem;
-                    }
-                    else
-                    {
-                        FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
-                            .FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase("Local File System"))
-                            ?.Init("", null, null);
-                        if (ff == null || !ff.IsOk)
-                            throw new Exception(ff?.Error ?? "Error Opening Local Filesystem");
-                        _filesystem = ff.Result;
-                    }
-                }
-
-                return _filesystem;
+                if (!Directory.Exists(ImportFolderLocation))
+                    throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
+                return new DirectoryInfo(ImportFolderLocation);
             }
-        }
-
-        private byte[] _bitmap;
-
-        [JsonIgnore]
-        [XmlIgnore]
-        public byte[] Bitmap
-        {
-            get
-            {
-                if (_bitmap != null)
-                {
-                    return _bitmap;
-                }
-                _bitmap = CloudID.HasValue
-                    ? CloudAccount.Bitmap
-                    : SVR_CloudAccount.CreateLocalFileSystemAccount().Bitmap;
-
-                return _bitmap;
-            }
-        }
-
-        [JsonIgnore]
-        [XmlIgnore]
-        public IDirectory BaseDirectory
-        {
-            get
-            {
-                FileSystemResult<IObject> fr = FileSystem.Resolve(ImportFolderLocation);
-
-                if (fr != null && fr.IsOk && fr.Result is IDirectory)
-                    return (IDirectory) fr.Result;
-                throw new Exception("Import Folder not found '" + ImportFolderLocation + "'");
-            }
-        }
-
-        public SVR_CloudAccount CloudAccount
-        {
-            get { return CloudID.HasValue ? RepoFactory.CloudAccount.GetByID(CloudID.Value) : null; }
-        }
-
-
-        public string CloudAccountName
-        {
-            get { return CloudID.HasValue ? CloudAccount.Name : "Local FileSystem"; }
         }
 
         [JsonIgnore]

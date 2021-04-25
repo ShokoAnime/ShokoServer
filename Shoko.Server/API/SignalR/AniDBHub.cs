@@ -10,25 +10,19 @@ namespace Shoko.Server.API.SignalR
     {
         private IUDPConnectionHandler UDPHandler { get; set; }
         private IHttpConnectionHandler HttpHandler { get; set; }
+        private AniDBEmitter _aniDBEmitter { get; set; }
 
-        public AniDBHub(IUDPConnectionHandler udp, IHttpConnectionHandler http)
+        public AniDBHub(IUDPConnectionHandler udp, IHttpConnectionHandler http, AniDBEmitter emitter)
         {
             HttpHandler = http;
             UDPHandler = udp;
+            _aniDBEmitter = emitter;
         }
 
         public override async Task OnConnectedAsync()
         {
             if (ServerState.Instance.DatabaseAvailable)
-                await Clients.Caller.SendAsync("AniDBState", new Dictionary<string, object>
-                {
-                    {"UDPBanned", UDPHandler.IsBanned},
-                    {"UDPBanTime", UDPHandler.BanTime},
-                    {"UDPBanWaitPeriod", UDPHandler.BanTimerResetLength},
-                    {"HttpBanned", HttpHandler.IsBanned},
-                    {"HttpBanTime", HttpHandler.BanTime},
-                    {"HttpBanWaitPeriod", HttpHandler.BanTimerResetLength},
-                });
+                await _aniDBEmitter.OnConnectedAsync(Clients.Caller);
         }
     }
 }

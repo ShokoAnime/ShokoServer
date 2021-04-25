@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
@@ -187,7 +186,7 @@ namespace Shoko.Server
                     try
                     {
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace(true);
-                        if (p != null && p.ImportFolder.CloudID == 0)
+                        if (p != null)
                         {
                             ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                             {
@@ -815,14 +814,9 @@ namespace Shoko.Server
                     .ToDictionary(a => a.Key, a => a.ToList());
                 foreach (SVR_ImportFolder folder in filesAll.Keys)
                 {
-                    IFileSystem fs = folder.FileSystem;
-                    if (fs == null) continue;
-
                     foreach (SVR_VideoLocal_Place vl in filesAll[folder])
                     {
-                        FileSystemResult<IObject> obj = null;
-                        if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
-                        if (obj != null && obj.IsOk) continue;
+                        if (File.Exists(vl.FullServerPath)) continue;
                         // delete video local record
                         logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
                         vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
@@ -955,22 +949,6 @@ namespace Shoko.Server
                 }
             }
             logger.Info("Remove Missing Files: Finished");
-        }
-
-        public static string DeleteCloudAccount(int cloudaccountID)
-        {
-            SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountID);
-            if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
-            foreach (SVR_ImportFolder f in RepoFactory.ImportFolder.GetByCloudId(cl.CloudID))
-            {
-                string r = DeleteImportFolder(f.ImportFolderID);
-                if (!string.IsNullOrEmpty(r))
-                    return r;
-            }
-            RepoFactory.CloudAccount.Delete(cloudaccountID);
-            ServerInfo.Instance.RefreshImportFolders();
-            ServerInfo.Instance.RefreshCloudAccounts();
-            return string.Empty;
         }
 
         public static string DeleteImportFolder(int importFolderID, bool removeFromMyList = true)

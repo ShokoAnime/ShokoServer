@@ -4,7 +4,6 @@ using System.ComponentModel;
 using Microsoft.Win32;
 using Microsoft.Win32.TaskScheduler;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Notification;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
@@ -22,7 +21,6 @@ namespace Shoko.Server.Server
 
         public ServerState()
         {
-            ConnectedFileSystems = new Dictionary<string, IFileSystem>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -255,9 +253,6 @@ namespace Shoko.Server.Server
         public readonly string autostartKey = "JMMServer";
 
         public RegistryKey AutostartRegistryKey => Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-
-        public Dictionary<string, IFileSystem> ConnectedFileSystems { get; private set; }
 
 
         public void LoadSettings()

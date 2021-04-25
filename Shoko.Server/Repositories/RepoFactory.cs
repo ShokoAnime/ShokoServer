@@ -64,7 +64,6 @@ namespace Shoko.Server.Repositories
         // DECLARE THESE IN ORDER OF DEPENDENCY
         public static JMMUserRepository JMMUser { get; } = new JMMUserRepository();
         public static AuthTokensRepository AuthTokens { get; } = new AuthTokensRepository();
-        public static CloudAccountRepository CloudAccount { get; } = new CloudAccountRepository();
         public static ImportFolderRepository ImportFolder { get; } = new ImportFolderRepository();
         public static AniDB_AnimeRepository AniDB_Anime { get; } = new AniDB_AnimeRepository();
         public static AniDB_Episode_TitleRepository AniDB_Episode_Title { get; } = new AniDB_Episode_TitleRepository();

@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
@@ -172,36 +170,31 @@ namespace Shoko.Server.Models
             }
         }
 
-        public static IFile ResolveFile(string fullname)
+        public static bool ResolveFile(string fullname)
         {
-            if (string.IsNullOrEmpty(fullname)) return null;
+            if (string.IsNullOrEmpty(fullname)) return false;
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1?.FileSystem;
-            if (fs == null)
-                return null;
+            if (tup.Item1 == null)
+                return false;
             try
             {
-                FileSystemResult<IObject> fobj = fs.Resolve(fullname);
-                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory) return null;
-                return fobj.Result as IFile;
+                return File.Exists(fullname);
             }
             catch (Exception)
             {
                 logger.Warn("File with Exception: " + fullname);
-                return null;
+                return false;
             }
         }
 
-        public IFile GetBestFileLink()
+        public FileInfo GetBestFileLink()
         {
-            IFile file = null;
             foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
-                file = ResolveFile(p.FullServerPath);
-                if (file != null)
-                    break;
+                if (ResolveFile(p.FullServerPath))
+                    return new FileInfo(p.FullServerPath);
             }
-            return file;
+            return null;
         }
 
         public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)

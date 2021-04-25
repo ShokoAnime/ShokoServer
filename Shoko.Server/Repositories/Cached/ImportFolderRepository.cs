@@ -42,14 +42,6 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
-        public List<SVR_ImportFolder> GetByCloudId(int cloudid)
-        {
-            lock (Cache)
-            {
-                return Cache.Values.Where(a => a.CloudID.HasValue && a.CloudID.Value == cloudid).ToList();
-            }
-        }
-        
         public SVR_ImportFolder SaveImportFolder(ImportFolder folder)
         {
             SVR_ImportFolder ns;
@@ -72,9 +64,7 @@ namespace Shoko.Server.Repositories.Cached
             if (string.IsNullOrEmpty(folder.ImportFolderLocation))
                 throw new Exception("Must specify an Import Folder location");
 
-            if (folder.CloudID == 0) folder.CloudID = null;
-
-            if (folder.CloudID == null && !Directory.Exists(folder.ImportFolderLocation))
+            if (!Directory.Exists(folder.ImportFolderLocation))
                 throw new Exception("Cannot find Import Folder location");
 
             if (folder.ImportFolderID == 0)
@@ -91,7 +81,6 @@ namespace Shoko.Server.Repositories.Cached
             ns.IsDropSource = folder.IsDropSource;
             ns.IsWatched = folder.IsWatched;
             ns.ImportFolderType = folder.ImportFolderType;
-            ns.CloudID = folder.CloudID;
 
             Save(ns);
             
