@@ -1,3 +1,3 @@
 [submodule "Shoko.Models"]
 	path = Shoko.Models
-	url = https://github.com/japanesemediamanager/Shoko.Models
+	url = ../Shoko.Models
