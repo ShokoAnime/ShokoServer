@@ -570,7 +570,7 @@ namespace Shoko.Commons.Extensions
 
         public static string GetFileName(this CL_VideoDetailed videodetailed) => videodetailed.VideoLocal_FileName;
 
-        public static string GetFullPath(this CL_VideoDetailed videodetailed) => videodetailed.Places?.FirstOrDefault(a => !a.ImportFolder.CloudID.HasValue && !String.IsNullOrEmpty(a.GetLocalFileSystemFullPath()))?.GetLocalFileSystemFullPath() ?? "";
+        public static string GetFullPath(this CL_VideoDetailed videodetailed) => videodetailed.Places?.FirstOrDefault(a => !String.IsNullOrEmpty(a.GetLocalFileSystemFullPath()))?.GetLocalFileSystemFullPath() ?? "";
 
         public static bool GetFileIsAvailable(this CL_VideoDetailed videodetailed) => String.IsNullOrEmpty(videodetailed.GetFullPath()) || File.Exists(videodetailed.GetFullPath());
      
@@ -1209,9 +1209,6 @@ namespace Shoko.Commons.Extensions
         public static bool IsAniDBUserBool(this JMMUser JMMUser) => JMMUser.IsAniDBUser == 1;
 
         public static bool IsTraktUserBool(this JMMUser JMMUser) => JMMUser.IsTraktUser == 1;
-
-        public static bool IsCloud(this ImportFolder ImportFolder) => ImportFolder.CloudID.HasValue;
-        public static bool IsNotCloud(this ImportFolder ImportFolder) => !ImportFolder.CloudID.HasValue;
 
         public static bool IsFolderDropSource(this ImportFolder ImportFolder) => ImportFolder.IsDropSource == 1;
 
