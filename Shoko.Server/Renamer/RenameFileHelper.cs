@@ -98,6 +98,8 @@ namespace Shoko.Server
                 (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
                 if (string.IsNullOrEmpty(destPath) || destFolder == null) continue;
+                destPath = RemoveFilename(place.FilePath, destPath);
+                
                 var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
                 if (importFolder != null) return (importFolder, destPath);
                 logger.Error(
@@ -105,6 +107,20 @@ namespace Shoko.Server
             }
 
             return (null, null);
+        }
+
+        private static string RemoveFilename(string filePath, string destPath)
+        {
+            string name = Path.DirectorySeparatorChar + Path.GetFileName(filePath);
+            int last = destPath.LastIndexOf(Path.DirectorySeparatorChar);
+                
+            if (last > -1 && last < destPath.Length - 1)
+            {
+                string end = destPath.Substring(last);
+                if (end.Equals(name, StringComparison.Ordinal)) destPath = destPath.Substring(0, last);
+            }
+
+            return destPath;
         }
         
         internal static void FindRenamers(IList<Assembly> assemblies)

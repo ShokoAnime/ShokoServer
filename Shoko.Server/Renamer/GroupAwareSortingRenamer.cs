@@ -1,9 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Renamer
@@ -13,13 +15,18 @@ namespace Shoko.Server.Renamer
     {
         internal const string RENAMER_ID = nameof(GroupAwareRenamer);
         // Defer to whatever else
-        public string GetFilename(RenameEventArgs args) => null;
+        public string GetFilename(RenameEventArgs args)
+        {
+            // Terrible hack to make it forcefully return Legacy Renamer
+            var legacy = (IRenamer) ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, typeof(LegacyRenamer));
+            return legacy.GetFilename(args);
+        }
 
         public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
             if (args?.EpisodeInfo == null) throw new ArgumentException("File is unrecognized. Not Moving");
             // get the series
-            var series = args?.AnimeInfo?.FirstOrDefault();
+            var series = args.AnimeInfo?.FirstOrDefault();
 
             if (series == null) throw new ArgumentException("Series cannot be found for file");
 
@@ -27,10 +34,10 @@ namespace Shoko.Server.Renamer
             string name = series.PreferredTitle.ReplaceInvalidPathCharacters();
             if (string.IsNullOrEmpty(name)) throw new ArgumentException("Series Name is null or empty");
 
-            string path;
-
-            var group = args?.GroupInfo?.FirstOrDefault();
+            var group = args.GroupInfo?.FirstOrDefault();
             if (group == null) throw new ArgumentException("Group could not be found for file");
+            
+            string path;
             if (group.Series.Count == 1)
             {
                 path = name;

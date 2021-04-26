@@ -588,7 +588,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    Directory.CreateDirectory(newFullServerPath);
+                    Directory.CreateDirectory(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
                 }
                 catch (Exception e)
                 {
@@ -773,7 +773,7 @@ namespace Shoko.Server.Models
                 {
                     try
                     {
-                        Directory.CreateDirectory(newFullServerPath);
+                        Directory.CreateDirectory(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
                     }
                     catch (Exception e)
                     {
