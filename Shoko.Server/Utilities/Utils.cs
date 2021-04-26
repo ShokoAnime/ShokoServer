@@ -11,7 +11,6 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Enums;
 using Shoko.Server.Settings;
@@ -887,7 +886,7 @@ namespace Shoko.Server.Utilities
             return int.MaxValue;
         }
 
-        public static void GetFilesForImportFolder(IDirectory sDir, ref List<string> fileList)
+        public static void GetFilesForImportFolder(DirectoryInfo sDir, ref List<string> fileList)
         {
             try
             {
@@ -897,18 +896,17 @@ namespace Shoko.Server.Utilities
                     return;
                 }
                 // get root level files
-
-                FileSystemResult r = sDir.Populate();
-                if (r == null || !r.IsOk)
+                
+                if (!sDir.Exists)
                 {
                     logger.Error($"Unable to retrieve folder {sDir.FullName}");
                     return;
                 }
 
-                fileList.AddRange(sDir.Files.Select(a => a.FullName));
+                fileList.AddRange(sDir.GetFiles().Select(a => a.FullName));
 
                 // search sub folders
-                foreach (IDirectory dir in sDir.Directories)
+                foreach (DirectoryInfo dir in sDir.GetDirectories())
                     GetFilesForImportFolder(dir, ref fileList);
             }
             catch (Exception excpt)

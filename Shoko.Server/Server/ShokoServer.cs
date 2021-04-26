@@ -26,8 +26,6 @@ using NLog.Extensions.Logging;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using NLog.Web;
-using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.OAuth2;
 using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
@@ -41,7 +39,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
-using Shoko.Server.MyAnime2Helper;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
@@ -82,7 +79,6 @@ namespace Shoko.Server.Server
         private static BackgroundWorker workerScanDropFolders = new BackgroundWorker();
         private static BackgroundWorker workerRemoveMissing = new BackgroundWorker();
         private static BackgroundWorker workerDeleteImportFolder = new BackgroundWorker();
-        private static BackgroundWorker workerMyAnime2 = new BackgroundWorker();
         private static BackgroundWorker workerMediaInfo = new BackgroundWorker();
 
         private static BackgroundWorker workerSyncHashes = new BackgroundWorker();
@@ -93,7 +89,6 @@ namespace Shoko.Server.Server
 
         private static Timer autoUpdateTimer;
         private static Timer autoUpdateTimerShort;
-        private static Timer cloudWatchTimer;
         internal static Timer LogRotatorTimer;
 
         DateTime lastAdminMessage = DateTime.Now.Subtract(new TimeSpan(12, 0, 0));
@@ -102,8 +97,6 @@ namespace Shoko.Server.Server
         BackgroundWorker downloadImagesWorker = new BackgroundWorker();
 
         public static List<UserCulture> userLanguages = new List<UserCulture>();
-
-        public IOAuthProvider OAuthProvider { get; set; } = new AuthProvider();
 
         public static IServiceProvider ServiceContainer => webHost.Services;
         
@@ -307,11 +300,6 @@ namespace Shoko.Server.Server
             downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
             downloadImagesWorker.WorkerSupportsCancellation = true;
 
-            workerMyAnime2.DoWork += WorkerMyAnime2_DoWork;
-            workerMyAnime2.RunWorkerCompleted += WorkerMyAnime2_RunWorkerCompleted;
-            workerMyAnime2.ProgressChanged += WorkerMyAnime2_ProgressChanged;
-            workerMyAnime2.WorkerReportsProgress = true;
-
             workerMediaInfo.DoWork += WorkerMediaInfo_DoWork;
 
             workerImport.WorkerReportsProgress = true;
@@ -357,39 +345,6 @@ namespace Shoko.Server.Server
             // run rotator once and set 24h delay
             logrotator.Start();
             StartLogRotatorTimer();
-
-            try
-            {
-                if (!CloudFileSystemPluginFactory.Instance.List.Any())
-                {
-                    logger.Error(
-                        "No Filesystem Handlers were loaded. THIS IS A PROBLEM. The most likely cause is permissions issues in the installation directory.");
-                    return false;
-                }
-
-                var localHandler = CloudFileSystemPluginFactory.Instance.List.FirstOrDefault(handler =>
-                    handler.Name.EqualsInvariantIgnoreCase("Local File System"));
-                if (localHandler == null)
-                {
-                    string handlers = string.Join(", ", CloudFileSystemPluginFactory.Instance.List.Select(a => a.Name));
-                    logger.Warn(
-                        $"The local filesystem handler could not be found. These Filesystem Handlers were loaded: {handlers}");
-                }
-
-                var initResult = localHandler.Init("", null, null);
-                if (initResult == null || !initResult.IsOk || initResult.Result == null)
-                {
-                    logger.Warn("The Local Filesystem handler failed to init. This will likely cause issues.");
-                    if (!string.IsNullOrWhiteSpace(initResult?.Error))
-                        logger.Error($"The error was: {initResult.Error}");
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error("There was an error loading any Filesystem handlers. CloudFileSystem is missing, has bad permissions, or has a fatal error in its loading sequence (not likely).");
-                logger.Error(e);
-                return false;
-            }
 
             if (!SetupNetHosts()) return false;
 
@@ -644,58 +599,50 @@ namespace Shoko.Server.Server
                     }
                     if (evt.ChangeType == WatcherChangeTypes.Created || evt.ChangeType == WatcherChangeTypes.Renamed)
                     {
-                        if (evt.FullPath.StartsWith("|CLOUD|"))
+                        // When the path that was created represents a directory we need to manually get the contained files to add.
+                        // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+                        // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+                        // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+
+                        // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
+                        if (Directory.Exists(evt.FullPath)) // filter out invalid events
                         {
-                            int shareid = int.Parse(evt.Name);
-                            Importer.RunImport_ImportFolderNewFiles(RepoFactory.ImportFolder.GetByID(shareid));
-                        }
-                        else
-                        {
-                            // When the path that was created represents a directory we need to manually get the contained files to add.
-                            // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-                            // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-                            // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+                            logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
 
-                            // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
-                            if (Directory.Exists(evt.FullPath)) // filter out invalid events
+                            string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+                            foreach (string file in files)
                             {
-                                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                                foreach (string file in files)
+                                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file, s)))
                                 {
-                                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file,s)))
-                                    {
-                                        logger.Info("Import exclusion, skipping file {0}", file);
-                                    }
-                                    else if (FileHashHelper.IsVideo(file))
-                                    {
-                                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
-
-                                        CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                        cmd.Save();
-                                    }
+                                    logger.Info("Import exclusion, skipping file {0}", file);
                                 }
-                            }
-                            else if (File.Exists(evt.FullPath))
-                            {
-                                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath,s)))
+                                else if (FileHashHelper.IsVideo(file))
                                 {
-                                    logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
-                                }
-                                else if (FileHashHelper.IsVideo(evt.FullPath))
-                                {
-                                    logger.Info("Found file {0}", evt.FullPath);
+                                    logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
 
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
                                     cmd.Save();
                                 }
                             }
-                            // else it was deleted before we got here
                         }
+                        else if (File.Exists(evt.FullPath))
+                        {
+                            logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath, s)))
+                            {
+                                logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
+                            }
+                            else if (FileHashHelper.IsVideo(evt.FullPath))
+                            {
+                                logger.Info("Found file {0}", evt.FullPath);
+
+                                CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                                cmd.Save();
+                            }
+                        }
+                        // else it was deleted before we got here
                     }
                     queueFileEvents.Remove(evt);
                     try
@@ -749,7 +696,6 @@ namespace Shoko.Server.Server
         {
             logger.Info("Starting Server: Complete!");
             ServerInfo.Instance.RefreshImportFolders();
-            ServerInfo.Instance.RefreshCloudAccounts();
             ServerState.Instance.ServerStartingStatus = Resources.Server_Complete;
             ServerState.Instance.ServerOnline = true;
             ServerSettings.Instance.FirstRun = false;
@@ -768,17 +714,6 @@ namespace Shoko.Server.Server
                 workerFileEvents.RunWorkerAsync();
         }
 
-        public static void StartCloudWatchTimer()
-        {
-            cloudWatchTimer = new Timer
-            {
-                AutoReset = true,
-                Interval = ServerSettings.Instance.CloudWatcherTime * 60 * 1000
-            };
-            cloudWatchTimer.Elapsed += CloudWatchTimer_Elapsed;
-            cloudWatchTimer.Start();
-        }
-
         public static void StartLogRotatorTimer()
         {
             LogRotatorTimer = new Timer
@@ -794,31 +729,6 @@ namespace Shoko.Server.Server
         private static void LogRotatorTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             logrotator.Start();
-        }
-
-        public static void StopCloudWatchTimer()
-        {
-            cloudWatchTimer?.Stop();
-        }
-
-        private static void CloudWatchTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            try
-            {
-                foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll()
-                    .Where(a => a.CloudID.HasValue && a.FolderIsWatched))
-                {
-                    //Little hack in there to reuse the file queue
-                    FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, "|CLOUD|",
-                        share.ImportFolderID.ToString());
-                    queueFileEvents.Add(args);
-                    StartFileWorker();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
         }
 
         public bool SetupNetHosts()
@@ -981,186 +891,6 @@ namespace Shoko.Server.Server
         {
             if (workerMediaInfo.IsBusy) return;
             workerMediaInfo.RunWorkerAsync();
-        }
-
-        #endregion
-
-        #region MyAnime2 Migration
-
-        public event EventHandler<ProgressChangedEventArgs> MyAnime2ProgressChanged;
-
-        void WorkerMyAnime2_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            MyAnime2ProgressChanged?.Invoke(Instance, e);
-        }
-
-        void WorkerMyAnime2_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-        }
-
-        void WorkerMyAnime2_DoWork(object sender, DoWorkEventArgs e)
-        {
-            MA2Progress ma2Progress = new MA2Progress
-            {
-                CurrentFile = 0,
-                ErrorMessage = string.Empty,
-                MigratedFiles = 0,
-                TotalFiles = 0
-            };
-            try
-            {
-                string databasePath = e.Argument as string;
-
-                string connString = string.Format(@"data source={0};useutf16encoding=True", databasePath);
-                SQLiteConnection myConn = new SQLiteConnection(connString);
-                myConn.Open();
-
-                // get a list of unlinked files
-
-
-                List<SVR_VideoLocal> vids = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-                ma2Progress.TotalFiles = vids.Count;
-
-                foreach (SVR_VideoLocal vid in vids.Where(a => !string.IsNullOrEmpty(a.Hash)))
-                {
-                    ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
-                    workerMyAnime2.ReportProgress(0, ma2Progress);
-
-                    // search for this file in the XrossRef table in MA2
-                    string sql =
-                        string.Format(
-                            "SELECT AniDB_EpisodeID from CrossRef_Episode_FileHash WHERE Hash = '{0}' AND FileSize = {1}",
-                            vid.ED2KHash, vid.FileSize);
-                    SQLiteCommand sqCommand = new SQLiteCommand(sql)
-                    {
-                        Connection = myConn
-                    };
-                    SQLiteDataReader myReader = sqCommand.ExecuteReader();
-                    while (myReader.Read())
-                    {
-                        if (!int.TryParse(myReader.GetValue(0).ToString(), out int episodeID)) continue;
-                        if (episodeID <= 0) continue;
-
-                        sql = string.Format("SELECT AnimeID from AniDB_Episode WHERE EpisodeID = {0}", episodeID);
-                        sqCommand = new SQLiteCommand(sql)
-                        {
-                            Connection = myConn
-                        };
-                        SQLiteDataReader myReader2 = sqCommand.ExecuteReader();
-                        while (myReader2.Read())
-                        {
-                            int animeID = myReader2.GetInt32(0);
-
-                            // so now we have all the needed details we can link the file to the episode
-                            // as long as wehave the details in JMM
-                            SVR_AniDB_Anime anime = null;
-                            AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID);
-                            if (ep == null)
-                            {
-                                logger.Debug("Getting Anime record from AniDB....");
-                                anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                                    ServerSettings.Instance.AutoGroupSeries);
-                            }
-                            else
-                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-
-                            // create the group/series/episode records if needed
-                            SVR_AnimeSeries ser = null;
-                            if (anime == null) continue;
-
-                            logger.Debug("Creating groups, series and episodes....");
-                            // check if there is an AnimeSeries Record associated with this AnimeID
-                            ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-                            if (ser == null)
-                            {
-                                // create a new AnimeSeries record
-                                ser = anime.CreateAnimeSeriesAndGroup();
-                            }
-
-
-                            ser.CreateAnimeEpisodes();
-
-                            // check if we have any group status data for this associated anime
-                            // if not we will download it now
-                            if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
-                            {
-                                CommandRequest_GetReleaseGroupStatus cmdStatus =
-                                    new CommandRequest_GetReleaseGroupStatus(anime.AnimeID, false);
-                                cmdStatus.Save();
-                            }
-
-                            // update stats
-                            ser.EpisodeAddedDate = DateTime.Now;
-                            RepoFactory.AnimeSeries.Save(ser, false, false);
-
-                            foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                            {
-                                grp.EpisodeAddedDate = DateTime.Now;
-                                RepoFactory.AnimeGroup.Save(grp, false, false);
-                            }
-
-
-                            SVR_AnimeEpisode epAnime = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID);
-                            CrossRef_File_Episode xref =
-                                new CrossRef_File_Episode();
-
-                            try
-                            {
-                                xref.PopulateManually(vid, epAnime);
-                            }
-                            catch (Exception ex)
-                            {
-                                string msg = string.Format("Error populating XREF: {0} - {1}", vid.ToStringDetailed(),
-                                    ex);
-                                throw;
-                            }
-
-                            RepoFactory.CrossRef_File_Episode.Save(xref);
-                            vid.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
-
-                            // update stats for groups and series
-                            if (ser != null)
-                            {
-                                // update all the groups above this series in the heirarchy
-                                ser.QueueUpdateStats();
-                                //StatsCache.Instance.UpdateUsingSeries(ser.AnimeSeriesID);
-                            }
-
-
-                            // Add this file to the users list
-                            if (ServerSettings.Instance.AniDb.MyList_AddFiles)
-                            {
-                                CommandRequest_AddFileToMyList cmd = new CommandRequest_AddFileToMyList(vid.ED2KHash);
-                                cmd.Save();
-                            }
-
-                            ma2Progress.MigratedFiles = ma2Progress.MigratedFiles + 1;
-                            workerMyAnime2.ReportProgress(0, ma2Progress);
-                        }
-                        myReader2.Close();
-
-
-                        //Console.WriteLine(myReader.GetString(0));
-                    }
-                    myReader.Close();
-                }
-
-
-                myConn.Close();
-
-                ma2Progress.CurrentFile = ma2Progress.CurrentFile + 1;
-                workerMyAnime2.ReportProgress(0, ma2Progress);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                ma2Progress.ErrorMessage = ex.Message;
-                workerMyAnime2.ReportProgress(0, ma2Progress);
-            }
-        }
-
-        private void ImportLinksFromMA2(string databasePath)
-        {
         }
 
         #endregion
@@ -1336,7 +1066,6 @@ namespace Shoko.Server.Server
         public static void StartWatchingFiles(bool log = true)
         {
             StopWatchingFiles();
-            StopCloudWatchTimer();
             watcherVids = new List<RecoveringFileSystemWatcher>();
 
             foreach (SVR_ImportFolder share in RepoFactory.ImportFolder.GetAll())
@@ -1347,7 +1076,7 @@ namespace Shoko.Server.Server
                     {
                         logger.Info($"Watching ImportFolder: {share.ImportFolderName} || {share.ImportFolderLocation}");
                     }
-                    if (share.CloudID == null && Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
+                    if (Directory.Exists(share.ImportFolderLocation) && share.FolderIsWatched)
                     {
                         if (log) logger.Info($"Parsed ImportFolderLocation: {share.ImportFolderLocation}");
                         RecoveringFileSystemWatcher fsw = new RecoveringFileSystemWatcher
@@ -1376,7 +1105,6 @@ namespace Shoko.Server.Server
                     logger.Error(ex, ex.ToString());
                 }
             }
-            StartCloudWatchTimer();
         }
 
         public static void PauseWatchingFiles()
@@ -1816,9 +1544,6 @@ namespace Shoko.Server.Server
             CheckForUpdatesNew(false);
         }
 
-        public static bool IsMyAnime2WorkerBusy() => workerMyAnime2.IsBusy;
-
-        public static void RunMyAnime2Worker(string filename) => workerMyAnime2.RunWorkerAsync(filename);
         public static void RunWorkSetupDB() => workerSetupDB.RunWorkerAsync();
 
         #region Tests

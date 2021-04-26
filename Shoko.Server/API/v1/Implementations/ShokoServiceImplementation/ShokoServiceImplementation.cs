@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using NLog;
-using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models;
 using Shoko.Models.Client;
@@ -378,71 +375,19 @@ namespace Shoko.Server
             return allTagNames;
         }
 
-        [HttpPost("CloudAccount/Directory/{cloudaccountid}")]
-        public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, [FromForm]string path)
+        [HttpPost("CloudAccount/Directory")]
+        public List<string> DirectoriesFromImportFolderPath([FromForm]string path)
         {
-            if (path == null) path = "null";
-            List<string> result = new List<string>();
+            if (path == null) return new List<string>();
             try
             {
-                IFileSystem n = null;
-                if (cloudaccountid == 0)
-                {
-                    FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
-                        .FirstOrDefault(a => a.Name.EqualsInvariantIgnoreCase("Local File System"))
-                        ?.Init("", null, null);
-                    if (ff?.IsOk ?? false)
-                        n = ff.Result;
-                }
-                else
-                {
-                    SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountid);
-                    if (cl != null)
-                        n = cl.FileSystem;
-                }
-                if (n != null)
-                {
-                    FileSystemResult<IObject> dirr;
-                    if ((n as LocalFileSystem) != null && path.Equals("null"))
-                    {
-                        if (n.Directories == null) return result;
-                        return n.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
-                    }
-                    if (path.Equals("null"))
-                    {
-                        path = string.Empty;
-                    }
-                    dirr = n.Resolve(path);
-                    if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
-                        return new List<string>();
-                    IDirectory dir = dirr.Result as IDirectory;
-                    FileSystemResult fr = dir.Populate();
-                    if (!fr?.IsOk ?? true)
-                        return result;
-                    return dir?.Directories?.Select(a => a.FullName).OrderByNatural(a => a).ToList();
-                }
+                return !Directory.Exists(path) ? new List<string>() : new DirectoryInfo(path).EnumerateDirectories().Select(a => a.FullName).OrderByNatural(a => a).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
-            return result;
-        }
-
-        [HttpGet("CloudAccount")]
-        public List<CL_CloudAccount> GetCloudProviders()
-        {
-            List<CL_CloudAccount> ls = new List<CL_CloudAccount>();
-            try
-            {
-                ls.Add(SVR_CloudAccount.CreateLocalFileSystemAccount().ToClient());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => ls.Add(a.ToClient()));
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return ls;
+            return new List<string>();
         }
 
         #region Settings

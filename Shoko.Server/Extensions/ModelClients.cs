@@ -372,17 +372,6 @@ namespace Shoko.Server.Extensions
             return v;
         }
 
-        public static CL_CloudAccount ToClient(this SVR_CloudAccount cloud)
-        {
-            return new CL_CloudAccount
-            {
-                Provider = cloud.Provider,
-                Name = cloud.Name,
-                CloudID = cloud.CloudID,
-                Icon = cloud.Icon
-            };
-        }
-
         public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
             CL_AnimeGroup_User contract = new CL_AnimeGroup_User

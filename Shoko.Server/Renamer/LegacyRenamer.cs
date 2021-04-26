@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
@@ -2030,23 +2028,25 @@ namespace Shoko.Server.Renamer
         {
             
             SVR_ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
-                .Where(a => a != null && a.IsNotCloud()).ToList())
+            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll())
             {
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
-                IFileSystem fs = fldr.FileSystem;
-                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                if (fsresult == null || !fsresult.IsOk) continue;
+                if (!Directory.Exists(fldr.ImportFolderLocation)) continue;
 
                 // Continue if on a separate drive and there's no space
-                if (!fldr.CloudID.HasValue &&
-                    !args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
-                    var fsresultquota = fldr.BaseDirectory.Quota();
-                    // if it's null, then we are likely on network FS, so we can't easily check
-                    if (fsresultquota != null && fsresultquota.IsOk &&
-                        fsresultquota.Result.AvailableSize < args.FileInfo.FileSize) continue;
+                    var available = 0L;
+                    try
+                    {
+                        available = new DriveInfo(fldr.ImportFolderLocation).AvailableFreeSpace;
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
+                    if (available < args.FileInfo.FileSize) continue;
                 }
 
                 destFolder = fldr;
@@ -2088,13 +2088,11 @@ namespace Shoko.Server.Renamer
                 if (crossOver) continue;
 
                 foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
-                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder?.CloudID &&
-                                                  b.ImportFolder.IsDropSource == 0)).ToList())
+                    .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
                 {
                     if (vid.ED2KHash == args.FileInfo.Hashes.ED2K) continue;
 
-                    SVR_VideoLocal_Place place =
-                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder?.CloudID);
+                    SVR_VideoLocal_Place place = vid.Places.FirstOrDefault();
                     string thisFileName = place?.FilePath;
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
@@ -2104,16 +2102,20 @@ namespace Shoko.Server.Renamer
                     // check space
                     if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
                     {
-                        var fsresultquota = dstImportFolder.BaseDirectory.Quota();
-                        // if it's null, then we are likely on network FS, so we can't easily check
-                        if (fsresultquota != null && fsresultquota.IsOk &&
-                            fsresultquota.Result.AvailableSize < args.FileInfo.FileSize) continue;
+                        var available = 0L;
+                        try
+                        {
+                            available = new DriveInfo(dstImportFolder.ImportFolderLocation).AvailableFreeSpace;
+                        }
+                        catch (Exception e)
+                        {
+                            logger.Error(e);
+                        }
+                        if (available < vid.FileSize) continue;
                     }
 
-                    FileSystemResult<IObject> dir = dstImportFolder
-                        .FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
-                            folderName));
-                    if (dir == null || !dir.IsOk) continue;
+                    if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
+
                     // ensure we aren't moving to the current directory
                     if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(
                         Path.GetDirectoryName(args.FileInfo.FilePath), StringComparison.InvariantCultureIgnoreCase))
@@ -2121,8 +2123,6 @@ namespace Shoko.Server.Renamer
                         continue;
                     }
 
-                    // Not a directory
-                    if (!(dir.Result is IDirectory)) continue;
                     destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);

@@ -11,7 +11,6 @@ using AniDBAPI;
 using AniDBAPI.Commands;
 using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
@@ -948,15 +947,10 @@ namespace Shoko.Server
                             if (v == null) break;
                             foreach (SVR_VideoLocal_Place p in v.Places)
                             {
-                                IFileSystem fs = p.ImportFolder.FileSystem;
-                                if (fs != null)
+                                if (System.IO.File.Exists(p.FullServerPath))
                                 {
-                                    FileSystemResult<IObject> res = fs.Resolve(p.FullServerPath);
-                                    if (res != null && res.IsOk)
-                                    {
-                                        fileMissing = false;
-                                        break;
-                                    }
+                                    fileMissing = false;
+                                    break;
                                 }
                             }
                         }
@@ -1326,9 +1320,7 @@ namespace Shoko.Server
                     }
 
                     // check if both files still exist
-                    IFile file1 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath1());
-                    IFile file2 = SVR_VideoLocal.ResolveFile(df.GetFullServerPath2());
-                    if (file1 == null || file2 == null)
+                    if (!System.IO.File.Exists(df.GetFullServerPath1()) || !System.IO.File.Exists(df.GetFullServerPath2()))
                     {
                         string msg =
                             string.Format(

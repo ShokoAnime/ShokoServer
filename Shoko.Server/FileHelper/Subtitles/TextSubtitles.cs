@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using NutzCode.CloudFileSystem;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.Models;
 using Shoko.Server.Utilities.MediaInfoLib;

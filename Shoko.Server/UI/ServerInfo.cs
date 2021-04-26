@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
@@ -49,10 +48,7 @@ namespace Shoko.Server
         private ServerInfo()
         {
             ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
-            CloudAccounts = new AsyncObservableCollection<SVR_CloudAccount>();
             AdminMessages = new AsyncObservableCollection<Azure_AdminMessage>();
-            CloudProviders = new AsyncObservableCollection<CloudProvider>();
-            FolderProviders = new AsyncObservableCollection<SVR_CloudAccount>();
         }
 
         private void Init()
@@ -68,22 +64,6 @@ namespace Shoko.Server
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
-
-            //Populate Cloud Providers
-            foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
-            {
-                if (!plugin.Name.EqualsInvariantIgnoreCase("Local File System"))
-                {
-                    CloudProvider p = new CloudProvider
-                    {
-                        Bitmap = plugin.Icon,
-                        Name = plugin.Name,
-                        Plugin = plugin
-                    };
-                    CloudProviders.Add(p);
-                }
-            }
-            
             // TODO Hook into AniDBConnectionHandler
             //AniDBConnectionHandler.Instance.AniDBStateUpdate += OnAniDBStateUpdate;
         }
@@ -454,53 +434,12 @@ namespace Shoko.Server
 
         public AsyncObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
 
-        public AsyncObservableCollection<SVR_CloudAccount> FolderProviders { get; set; }
-
-        public AsyncObservableCollection<CloudProvider> CloudProviders { get; set; }
-
-        public class CloudProvider
-        {
-            public string Name { get; set; }
-            public byte[] Bitmap { get; set; }
-            public ICloudPlugin Plugin { get; set; }
-        }
-
-
-        public AsyncObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
-
         public void RefreshImportFolders()
         {
             try
             {
                 ImportFolders.Clear();
                 RepoFactory.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        public void RefreshCloudAccounts()
-        {
-            try
-            {
-                CloudAccounts.Clear();
-                RepoFactory.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        public void RefreshFolderProviders()
-        {
-            try
-            {
-                FolderProviders.Clear();
-                FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
             }
             catch (Exception ex)
             {

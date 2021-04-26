@@ -40,12 +40,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.OneDrive\NutzCode.CloudFileSystem.Plugins.OneDrive.csproj" />
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive\NutzCode.CloudFileSystem.Plugins.AmazonCloudDrive.csproj" />
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.GoogleDrive\NutzCode.CloudFileSystem.Plugins.GoogleDrive.csproj" />
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem\NutzCode.CloudFileSystem.Plugins.LocalFileSystem.csproj" />
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.CloudFileSystem\NutzCode.CloudFileSystem.csproj" />
-    <ProjectReference Include="..\CloudFileSystem\NutzCode.Libraries.Web\NutzCode.Libraries.Web.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
     <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
   </ItemGroup>

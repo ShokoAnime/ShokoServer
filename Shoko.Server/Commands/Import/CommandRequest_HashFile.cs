@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Queue;
@@ -150,108 +149,97 @@ namespace Shoko.Server.Commands
             }
             SVR_ImportFolder folder = tup.Item1;
             string filePath = tup.Item2;
-            IFileSystem f = tup.Item1.FileSystem;
-            if (f == null)
-            {
-                logger.Error("Unable to open filesystem for: {0}", FileName);
-                return;
-            }
             long filesize = 0;
             Exception e = null;
-            if (folder.CloudID == null) // Local Access
+
+            if (!File.Exists(FileName))
             {
-                if (!File.Exists(FileName))
+                logger.Error("File does not exist: {0}", FileName);
+                return;
+            }
+
+            if (ServerSettings.Instance.Import.FileLockChecking)
+            {
+                int numAttempts = 0;
+                bool writeAccess = folder.IsDropSource == 1;
+
+                bool aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking;
+
+                // At least 1s between to ensure that size has the chance to change
+                int waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
+                if (waitTime < 1000)
                 {
-                    logger.Error("File does not exist: {0}", FileName);
-                    return;
+                    waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS = 4000;
+                    ServerSettings.Instance.SaveSettings();
                 }
 
-                if (ServerSettings.Instance.Import.FileLockChecking)
+                if (!aggressive)
                 {
-
-                    int numAttempts = 0;
-                    bool writeAccess = folder.IsDropSource == 1;
-
-                    bool aggressive = ServerSettings.Instance.Import.AggressiveFileLockChecking;
-                    
-                    // At least 1s between to ensure that size has the chance to change
-                    int waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS;
-                    if (waitTime < 1000)
+                    // Wait 1 minute before giving up on trying to access the file
+                    while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && (numAttempts < 60))
                     {
-                        waitTime = ServerSettings.Instance.Import.FileLockWaitTimeMS = 4000;
-                        ServerSettings.Instance.SaveSettings();
-                    }
-
-                    if (!aggressive)
-                    {
-                        // Wait 1 minute before giving up on trying to access the file
-                        while ((filesize = CanAccessFile(FileName, writeAccess, ref e)) == 0 && (numAttempts < 60))
-                        {
-                            numAttempts++;
-                            Thread.Sleep(waitTime);
-                            logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
-                        }
-                    }
-                    else
-                    {
-                        // Wait 1 minute before giving up on trying to access the file
-                        // first only do read to not get in something's way
-                        while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && (numAttempts < 60))
-                        {
-                            numAttempts++;
-                            Thread.Sleep(1000);
-                            logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
-                        }
-
-                        // if we failed to access the file, get ouuta here
-                        if (numAttempts >= 60)
-                        {
-                            logger.Error("Could not access file: " + FileName);
-                            logger.Error(e);
-                            return;
-                        }
-
-                        int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds;
-                        if (seconds < 0)
-                        {
-                            seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds = 8;
-                            ServerSettings.Instance.SaveSettings();
-                        }
-
+                        numAttempts++;
                         Thread.Sleep(waitTime);
-                        numAttempts = 0;
-
-                        //For systems with no locking
-                        while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
-                        {
-                            numAttempts++;
-                            Thread.Sleep(waitTime);
-                            // Only show if it's more than 'seconds' past
-                            if (numAttempts != 0 && numAttempts * 2 % seconds == 0)
-                                logger.Warn(
-                                    $@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}");
-                        }
+                        logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
+                    }
+                }
+                else
+                {
+                    // Wait 1 minute before giving up on trying to access the file
+                    // first only do read to not get in something's way
+                    while ((filesize = CanAccessFile(FileName, false, ref e)) == 0 && (numAttempts < 60))
+                    {
+                        numAttempts++;
+                        Thread.Sleep(1000);
+                        logger.Trace($@"Failed to access, (or filesize is 0) Attempt # {numAttempts}, {FileName}");
                     }
 
                     // if we failed to access the file, get ouuta here
-                    if (numAttempts >= 60 || filesize == 0)
+                    if (numAttempts >= 60)
                     {
                         logger.Error("Could not access file: " + FileName);
                         logger.Error(e);
                         return;
                     }
+
+                    int seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds;
+                    if (seconds < 0)
+                    {
+                        seconds = ServerSettings.Instance.Import.AggressiveFileLockWaitTimeSeconds = 8;
+                        ServerSettings.Instance.SaveSettings();
+                    }
+
+                    Thread.Sleep(waitTime);
+                    numAttempts = 0;
+
+                    //For systems with no locking
+                    while (FileModified(FileName, seconds, ref filesize, writeAccess, ref e) && numAttempts < 60)
+                    {
+                        numAttempts++;
+                        Thread.Sleep(waitTime);
+                        // Only show if it's more than 'seconds' past
+                        if (numAttempts != 0 && numAttempts * 2 % seconds == 0)
+                            logger.Warn(
+                                $@"The modified date is too soon. Waiting to ensure that no processes are writing to it. {numAttempts}/60 {FileName}"
+                            );
+                    }
+                }
+
+                // if we failed to access the file, get ouuta here
+                if (numAttempts >= 60 || filesize == 0)
+                {
+                    logger.Error("Could not access file: " + FileName);
+                    logger.Error(e);
+                    return;
                 }
             }
 
-            FileSystemResult<IObject> source = f.Resolve(FileName);
-            if (source == null || !source.IsOk || !(source.Result is IFile))
+            if (!File.Exists(FileName))
             {
                 logger.Error("Could not access file: " + FileName);
                 return;
             }
-            IFile source_file = (IFile) source.Result;
-            if (folder.CloudID.HasValue)
-                filesize = source_file.Size;
+            FileInfo sourceFile = new FileInfo(FileName);
             nshareID = folder.ImportFolderID;
 
 
@@ -290,6 +278,7 @@ namespace Shoko.Server.Commands
 
             if (vlocal == null)
             {
+                // TODO support reading MD5 and SHA1 from files via the standard way
                 logger.Trace("No existing VideoLocal, creating temporary record");
                 vlocal = new SVR_VideoLocal
                 {
@@ -299,8 +288,8 @@ namespace Shoko.Server.Commands
                     FileSize = filesize,
                     Hash = string.Empty,
                     CRC32 = string.Empty,
-                    MD5 = source_file?.MD5?.ToUpperInvariant() ?? string.Empty,
-                    SHA1 = source_file?.SHA1?.ToUpperInvariant() ?? string.Empty,
+                    MD5 = string.Empty,
+                    SHA1 = string.Empty,
                     IsIgnored = 0,
                     IsVariation = 0
                 };
@@ -363,19 +352,6 @@ namespace Shoko.Server.Commands
                 if (string.IsNullOrEmpty(vlocal.Hash))
                     FillVideoHashes(vlocal);
 
-                //Cloud and no hash, Nothing to do, except maybe Get the mediainfo....
-                if (string.IsNullOrEmpty(vlocal.Hash) && folder.CloudID.HasValue)
-                {
-                    logger.Trace("No Hash found for cloud " + filename +
-                                 " putting in videolocal table with empty ED2K");
-                    RepoFactory.VideoLocal.Save(vlocal, false);
-                    vlocalplace.VideoLocalID = vlocal.VideoLocalID;
-                    RepoFactory.VideoLocalPlace.Save(vlocalplace);
-                    if (vlocalplace.RefreshMediaInfo())
-                        RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
-                    return;
-                }
-
                 // hash the file
                 if (string.IsNullOrEmpty(vlocal.Hash) || ForceHash)
                 {
@@ -409,9 +385,7 @@ namespace Shoko.Server.Commands
                     changed = tlocal.MergeInfoFrom(vlocal);
                     vlocal = tlocal;
 
-                    List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(
-                        a => a.ImportFolder.CloudID == folder.CloudID &&
-                             !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
+                    List<SVR_VideoLocal_Place> preps = vlocal.Places.Where(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath)).ToList();
                     foreach (var prep in preps)
                     {
                         if (prep == null) continue;
@@ -422,16 +396,12 @@ namespace Shoko.Server.Commands
                         }
                         else
                         {
-                            FileSystemResult dupFileSystemResult =
-                                prep.ImportFolder?.FileSystem?.Resolve(prep.FullServerPath);
-                            if (dupFileSystemResult == null || !dupFileSystemResult.IsOk)
+                            if (!File.Exists(prep.FullServerPath))
                                 RepoFactory.VideoLocalPlace.Delete(prep);
                         }
                     }
 
-                    var dupPlace = vlocal.Places.FirstOrDefault(
-                        a => a.ImportFolder.CloudID == folder.CloudID &&
-                             !vlocalplace.FullServerPath.Equals(a.FullServerPath));
+                    var dupPlace = vlocal.Places.FirstOrDefault(a => !vlocalplace.FullServerPath.Equals(a.FullServerPath));
 
                     if (dupPlace != null)
                     {
