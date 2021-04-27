@@ -588,7 +588,7 @@ namespace Shoko.Server.Models
             {
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
+                    Directory.CreateDirectory(destFullTree);
                 }
                 catch (Exception e)
                 {
@@ -615,7 +615,7 @@ namespace Shoko.Server.Models
             logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
             try
             {
-                sourceFile.MoveTo(destFullTree);
+                sourceFile.MoveTo(newFullServerPath);
             }
             catch (Exception e)
             {
@@ -773,7 +773,7 @@ namespace Shoko.Server.Models
                 {
                     try
                     {
-                        Directory.CreateDirectory(Path.Combine(destFolder.ImportFolderLocation, newFolderPath));
+                        Directory.CreateDirectory(destFullTree);
                     }
                     catch (Exception e)
                     {
