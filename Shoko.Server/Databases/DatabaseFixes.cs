@@ -6,6 +6,7 @@ using System.Threading;
 using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
+using Newtonsoft.Json;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
@@ -15,6 +16,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
@@ -26,6 +28,36 @@ namespace Shoko.Server.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public static void ConvertLegacyRenamer()
+        {
+            try
+            {
+                var scripts = RepoFactory.RenameScript.GetAll();
+                foreach (var groupings in scripts.GroupBy(a => a.RenamerType))
+                {
+                    var settings = new LegacyRenamerSettings {Scripts = new List<LegacyRenamerSettings.LegacyScript>()};
+                    foreach (var script in groupings)
+                    {
+                        var scriptString = script.Script;
+                        var scriptActive = script.IsEnabledOnImport == 1;
+                        var scriptSettings = new LegacyRenamerSettings.LegacyScript() {Active = scriptActive, Script = scriptString,ScriptName = script.ScriptName};
+                        settings.Scripts.Add(scriptSettings);
+                    }
+
+                    var types = RepoFactory.RenameScript.GetAll().Where(a => a.RenamerType == groupings.Key).OrderBy(a => a.RenameScriptID).ToList();
+                    var type = types.FirstOrDefault();
+                    type.ExtraData = JsonConvert.SerializeObject(settings);
+                    RepoFactory.RenameScript.Save(type);
+                    types = types.Skip(1).ToList();
+                    if (types.Count > 0) RepoFactory.RenameScript.Delete(types);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
+        
         public static void MigrateAniDBToNet()
         {
             string anidb = ServerSettings.Instance.AniDb.ServerAddress;

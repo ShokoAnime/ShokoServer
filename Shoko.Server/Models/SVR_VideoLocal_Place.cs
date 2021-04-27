@@ -51,9 +51,9 @@ namespace Shoko.Server.Models
 
         // returns false if we should try again after the timer
         // TODO Generify this and Move and make a return model instead of tuple
-        public (bool, string, string) RenameFile(bool preview = false, string scriptName = null)
+        public (bool, string, string) RenameFile(bool preview = false, string scriptType = null, string extraData = null)
         {
-            if (scriptName != null && scriptName.Equals(Shoko.Models.Constants.Renamer.TempFileName))
+            if (scriptType != null && scriptType.Equals(Shoko.Models.Constants.Renamer.TempFileName))
                 return (true, string.Empty, "Error: Do not attempt to use a temp file to rename.");
             if (ImportFolder == null)
             {
@@ -62,7 +62,7 @@ namespace Shoko.Server.Models
                 return (true, string.Empty, "Error: Could not find the file");
             }
 
-            string renamed = RenameFileHelper.GetFilename(this, scriptName);
+            string renamed = RenameFileHelper.GetFilename(this, scriptType, extraData);
             if (string.IsNullOrEmpty(renamed))
             {
                 logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
@@ -535,7 +535,7 @@ namespace Shoko.Server.Models
         }
 
         // TODO Merge these, with proper logic depending on the scenario (import, force, etc)
-        public (string, string) MoveWithResultString(string scriptName, bool force = false)
+        public (string, string) MoveWithResultString(string scriptType, string extraData = null, bool force = false)
         {
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             if (FullServerPath == null)
@@ -555,7 +555,7 @@ namespace Shoko.Server.Models
             FileInfo sourceFile = new FileInfo(FullServerPath);
 
             // There is a possibility of weird logic based on source of the file. Some handling should be made for it....later
-            (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, scriptName);
+            (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, scriptType, extraData);
 
             if (!(destImpl is SVR_ImportFolder destFolder))
             {
@@ -746,7 +746,7 @@ namespace Shoko.Server.Models
                 var sourceFile = new FileInfo(FullServerPath);
 
                 // find the default destination
-                (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, null);
+                (var destImpl, string newFolderPath) = RenameFileHelper.GetDestination(this, null, null);
 
                 if (!(destImpl is SVR_ImportFolder destFolder))
                 {

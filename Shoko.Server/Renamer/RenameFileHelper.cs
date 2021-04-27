@@ -23,38 +23,11 @@ namespace Shoko.Server
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         public static IDictionary<string, (Type type, string description)> Renamers { get; } = new Dictionary<string, (Type type, string description)>();
 
-        private static IRenameScript _getRenameScript(string name)
-        {
-            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
-            if (script == null) return null;
-
-            return new RenameScriptImpl
-            {
-                Script = script.Script,
-                Type = script.RenamerType,
-                ExtraData = script.ExtraData
-            };
-        }
-
-        private static IRenameScript _getRenameScriptWithFallback(string name)
-        {
-            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
-            if (script == null) return null;
-
-            return new RenameScriptImpl
-            {
-                Script = script.Script,
-                Type = script.RenamerType,
-                ExtraData = script.ExtraData
-            };
-        }
-
-        public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
+        public static string GetFilename(SVR_VideoLocal_Place place, string scriptType, string extraData)
         {
             string result = Path.GetFileName(place.FilePath);
-            var script = _getRenameScript(scriptName);
 
-            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
+            foreach (var renamer in GetPluginRenamersSorted(scriptType))
             {
                 // TODO Error handling and possible deference
                 var args = new RenameEventArgs
@@ -65,7 +38,7 @@ namespace Shoko.Server
                         .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place,
-                    Script = script,
+                    ExtraData = extraData,
                 };
                 var res = renamer.GetFilename(args);
                 if (args.Cancel) return null;
@@ -76,12 +49,10 @@ namespace Shoko.Server
             return result;
         }
         
-        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
+        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptType, string extraData)
         {
-            var script = _getRenameScriptWithFallback(scriptName);
-
             // TODO Error handling and possible deference
-            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
+            foreach (var renamer in GetPluginRenamersSorted(scriptType))
             {
                 var args = new MoveEventArgs
                 {
@@ -93,7 +64,7 @@ namespace Shoko.Server
                     FileInfo = place,
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
                         .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
-                    Script = script,
+                    ExtraData = extraData,
                 };
                 (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
@@ -150,6 +121,7 @@ namespace Shoko.Server
                         continue;
                     }
 
+                    logger.Info($"Found Renamer: {key}, {implementation}, {desc}");
                     Renamers.Add(key, (implementation, desc));
                 }
             }

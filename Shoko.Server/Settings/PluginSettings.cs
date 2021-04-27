@@ -12,8 +12,5 @@ namespace Shoko.Server.Settings
         public List<string> Priority { get; set; } = new List<string>();
         public Dictionary<string, bool> EnabledRenamers { get; set; } = new Dictionary<string, bool>();
         public Dictionary<string, int> RenamerPriorities { get; set; } = new Dictionary<string, int>();
-
-        [JsonIgnore]
-        public List<IPluginSettings> Settings { get; set; } = new List<IPluginSettings>();
     }
 }

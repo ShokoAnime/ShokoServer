@@ -11,7 +11,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Plugin
 {
-    public class Loader : ISettingsProvider
+    public class Loader
     {
         public static Loader Instance { get; } = new Loader();
         public IDictionary<Type, IPlugin> Plugins { get; } = new Dictionary<Type, IPlugin>();
@@ -63,7 +63,7 @@ namespace Shoko.Server.Plugin
             LoadPlugins(assemblies, serviceCollection);
         }
 
-        private void LoadPlugins(IEnumerable<Assembly> assemblies, IServiceCollection serviceCollection)
+        private void LoadPlugins(IReadOnlyCollection<Assembly> assemblies, IServiceCollection serviceCollection)
         {
             var implementations = assemblies.SelectMany(a => {
                 try
@@ -85,68 +85,38 @@ namespace Shoko.Server.Plugin
 
                 _pluginTypes.Add(implementation);
             }
-        }
-
-        internal void InitPlugins(IServiceProvider provider)
-        {
-            Logger.Info("Loading {0} plugins", _pluginTypes.Count);
-
-            foreach (var pluginType in _pluginTypes)
-            {
-                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, pluginType);
-                Plugins.Add(pluginType, plugin);
-                LoadSettings(pluginType, plugin);
-                Logger.Info($"Loaded: {plugin.Name}");
-                plugin.Load();
-            }
-            // When we initialized the plugins, we made entries for the Enabled State of Plugins
-            ServerSettings.Instance.SaveSettings();
-        }
-
-        private void LoadSettings(Type type, IPlugin plugin)
-        {
-            (string name, Type t) = type.Assembly.GetTypes()
-                .Where(p => p.IsClass && typeof(IPluginSettings).IsAssignableFrom(p))
-                .DistinctBy(a => a.GetAssemblyName())
-                .Select(a => (a.GetAssemblyName() + ".json", a)).FirstOrDefault();
-            if (string.IsNullOrEmpty(name) || name == ".json") return;
-            
-            try
-            {
-                if (ServerSettings.Instance.Plugins.EnabledPlugins.ContainsKey(name) && !ServerSettings.Instance.Plugins.EnabledPlugins[name])
-                    return;
-                string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
-                object obj = !File.Exists(settingsPath)
-                    ? Activator.CreateInstance(t)
-                    : ServerSettings.Deserialize(t, File.ReadAllText(settingsPath));
-                // Plugins.Settings will be empty, since it's ignored by the serializer
-                var settings = (IPluginSettings) obj;
-                ServerSettings.Instance.Plugins.Settings.Add(settings);
-
-                plugin.OnSettingsLoaded(settings);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, $"Unable to initialize Settings for {name}");
-            }
-        }
-
-        public void SaveSettings(IPluginSettings settings)
-        {
-            string name = settings.GetType().GetAssemblyName() + ".json";
-            if (string.IsNullOrEmpty(name) || name == ".json") return;
 
             try
             {
-                string settingsPath = Path.Combine(ServerSettings.ApplicationPath, "Plugins", name);
-                Directory.CreateDirectory(Path.Combine(ServerSettings.ApplicationPath, "Plugins"));
-                string json = ServerSettings.Serialize(settings);
-                File.WriteAllText(settingsPath, json);
+                var types = assemblies.SelectMany(a => a.GetTypes()).Select(GetSettingsTypeFromType).Where(a => a != null).ToList();
+                foreach (var type in types)
+                {
+                    serviceCollection.AddTransient(typeof(ISettingsProvider<>), typeof(PluginSettingsProvider<>).MakeGenericType(type));
+                }
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"Unable to Save Settings for {name}");
+                Logger.Error(e, "Error Adding Settings Provider to Service Collection");
             }
+        }
+
+        public static Type GetSettingsTypeFromType(Type type)
+        {
+            var constructors = type.GetConstructors();
+            foreach (var constructor in constructors)
+            {
+                if (!constructor.IsPublic) continue;
+                var parameters = constructor.GetParameters();
+                foreach (var parameter in parameters)
+                {
+                    if (parameter.ParameterType.IsInterface && parameter.ParameterType.GetGenericTypeDefinition() == typeof(ISettingsProvider<>))
+                    {
+                        return parameter.ParameterType.GetGenericArguments().FirstOrDefault();
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

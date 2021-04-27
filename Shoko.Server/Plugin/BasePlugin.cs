@@ -10,10 +10,5 @@ namespace Shoko.Server.Plugin
         public void Load()
         {
         }
-
-        public void OnSettingsLoaded(IPluginSettings settings)
-        {
-            // No settings!? Maybe make this abstract in the future
-        }
     }
 }

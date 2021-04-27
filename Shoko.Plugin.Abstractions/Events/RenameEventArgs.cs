@@ -27,8 +27,8 @@ namespace Shoko.Plugin.Abstractions
         public IList<IEpisode> EpisodeInfo { get; set; }
 
         /// <summary>
-        /// The contents of the renamer scrpipt
+        /// This is any extra data needed to invoke a test on demand. Normally, this will be serialized and deserialized
         /// </summary>
-        public IRenameScript Script { get; set; }
+        public string ExtraData { get; set; }
     }
 }
