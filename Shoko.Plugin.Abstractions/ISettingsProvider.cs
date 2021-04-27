@@ -4,7 +4,7 @@ namespace Shoko.Plugin.Abstractions
 {
     public interface ISettingsProvider<T> where T : class
     {
-        T Get(Func<T, T> func);
+        TResult Get<TResult>(Func<T, TResult> func);
         void Update(Action<T> func);
     }
 }

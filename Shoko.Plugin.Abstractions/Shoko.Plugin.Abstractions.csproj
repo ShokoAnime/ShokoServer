@@ -12,6 +12,6 @@
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
         <PackageReleaseNotes>Settings Work</PackageReleaseNotes>
-        <Version>2.3.0-alpha1</Version>
+        <Version>2.3.0-alpha2</Version>
     </PropertyGroup>
 </Project>
