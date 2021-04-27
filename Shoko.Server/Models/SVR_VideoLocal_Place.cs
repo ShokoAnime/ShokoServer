@@ -93,7 +93,7 @@ namespace Shoko.Server.Models
 
             // actually rename the file
             string path = Path.GetDirectoryName(fullFileName);
-            string newFullName = (path == null ? null : Path.Combine(path, renamed));
+            string newFullName = Path.Combine(path, renamed);
             var textStreams = SubtitleHelper.GetSubtitleStreams(this);
 
             try
@@ -117,7 +117,7 @@ namespace Shoko.Server.Models
                 try
                 {
                     var file = new FileInfo(fullFileName);
-                    file.MoveTo(renamed);
+                    file.MoveTo(newFullName);
                 }
                 catch (Exception e)
                 {
