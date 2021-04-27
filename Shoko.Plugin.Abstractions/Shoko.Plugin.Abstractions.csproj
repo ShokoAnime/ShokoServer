@@ -11,7 +11,7 @@
         <PackageIconUrl>https://shokoanime.com/icon.png</PackageIconUrl>
         <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
         <PackageTags>plugins, shoko, anime, metadata, tagging</PackageTags>
-        <PackageReleaseNotes>Pinyin support. Name for IImportFolder</PackageReleaseNotes>
-        <Version>2.2.0</Version>
+        <PackageReleaseNotes>Settings Work</PackageReleaseNotes>
+        <Version>2.3.0-alpha1</Version>
     </PropertyGroup>
 </Project>

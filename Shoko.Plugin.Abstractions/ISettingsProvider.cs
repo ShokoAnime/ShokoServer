@@ -1,7 +1,10 @@
+using System;
+
 namespace Shoko.Plugin.Abstractions
 {
-    public interface ISettingsProvider
+    public interface ISettingsProvider<T> where T : class
     {
-        void SaveSettings(IPluginSettings settings);
+        T Get(Func<T, T> func);
+        void Update(Action<T> func);
     }
 }

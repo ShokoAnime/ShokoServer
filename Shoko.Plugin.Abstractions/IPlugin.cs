@@ -11,13 +11,6 @@ namespace Shoko.Plugin.Abstractions
     {
         string Name { get; }
         void Load();
-        
-        /// <summary>
-        /// This will be called with the created settings object if you have an <see cref="IPluginSettings"/> in the Plugin.
-        /// You can cast to your desired type and set the settings within it.
-        /// </summary>
-        /// <param name="settings"></param>
-        void OnSettingsLoaded(IPluginSettings settings);
 
         // static void ConfigureServices(IServiceCollection serviceCollection);
     }
