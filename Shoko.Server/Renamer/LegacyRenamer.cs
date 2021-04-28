@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Extensions.Logging;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
@@ -19,35 +19,30 @@ using EpisodeType = Shoko.Models.Enums.EpisodeType;
 namespace Shoko.Server.Renamer
 {
     [Renamer(RENAMER_ID, Description = "Legacy")]
-    public class LegacyRenamer : IRenamer
+    public class LegacyRenamer : IRenamer, IScriptedRenamer
     {
-        public const string RENAMER_ID = "Legacy";
-        private readonly ILogger<LegacyRenamer> _logger;
-        private readonly ISettingsProvider<LegacyRenamerSettings> _settingsProvider;
+        private const string RENAMER_ID = "Legacy";
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        public IRenameScript Script { get; set; }
 
-        public LegacyRenamer(ILogger<LegacyRenamer> logger, ISettingsProvider<LegacyRenamerSettings> settingsProvider)
+        public LegacyRenamer(IRenameScript script)
         {
-            _logger = logger;
-            _settingsProvider = settingsProvider;
+            Script = script;
         }
         
         public string GetFilename(RenameEventArgs args)
         {
-            var script = GetScript(args.ExtraData);
-            if (script == null)
+            if (Script == null)
                 throw new Exception("*Error: No script available for renamer");
+            if (Script.Type != RENAMER_ID && Script.Type != GroupAwareRenamer.RENAMER_ID) return null;
 
-            return GetNewFileName(args, script.Script);
-        }
-
-        private LegacyRenamerSettings.LegacyScript GetScript(string extraData)
-        {
-            var scripts = _settingsProvider.Get(a => a.Scripts);
-            return scripts.FirstOrDefault(a => extraData == null ? a.Active : extraData == a.ScriptName);
+            return GetNewFileName(args, Script.Script);
         }
 
         public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
+            if (Script == null)
+                throw new Exception("*Error: No script available for renamer");
             return GetDestinationFolder(args);
         }
 
@@ -102,7 +97,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="episodes"></param>
         /// <returns></returns>
-        private bool EvaluateTestA(string test, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestA(string test, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -121,7 +116,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -132,7 +127,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private bool EvaluateTestG(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestG(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -157,7 +152,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -170,7 +165,7 @@ namespace Shoko.Server.Renamer
         /// <param name="aniFile"></param>
         /// <param name="episodes"></param>
         /// <returns></returns>
-        private bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestM(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -191,7 +186,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -204,7 +199,7 @@ namespace Shoko.Server.Renamer
         /// <param name="aniFile"></param>
         /// <param name="episodes"></param>
         /// <returns></returns>
-        private bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestN(string test, SVR_AniDB_File aniFile, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -218,7 +213,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -229,7 +224,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private bool EvaluateTestD(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestD(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -246,7 +241,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -257,7 +252,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private bool EvaluateTestS(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestS(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -286,7 +281,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -297,7 +292,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="aniFile"></param>
         /// <returns></returns>
-        private bool EvaluateTestF(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestF(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -337,7 +332,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -348,7 +343,7 @@ namespace Shoko.Server.Renamer
         /// <param name="test"></param>
         /// <param name="vid"></param>
         /// <returns></returns>
-        private bool EvaluateTestZ(string test, SVR_VideoLocal vid)
+        private static bool EvaluateTestZ(string test, SVR_VideoLocal vid)
         {
             try
             {
@@ -388,12 +383,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestW(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestW(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -441,12 +436,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestU(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestU(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -493,13 +488,13 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
 
-        private bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestR(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -530,12 +525,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestC(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestC(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -567,12 +562,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestJ(string test, SVR_AniDB_File aniFile)
+        private static bool EvaluateTestJ(string test, SVR_AniDB_File aniFile)
         {
             try
             {
@@ -604,12 +599,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestT(string test, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestT(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -638,12 +633,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestY(string test, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestY(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -681,12 +676,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestE(string test, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestE(string test, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -724,12 +719,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        private bool EvaluateTestH(string test, List<AniDB_Episode> episodes)
+        private static bool EvaluateTestH(string test, List<AniDB_Episode> episodes)
         {
             try
             {
@@ -772,7 +767,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -822,7 +817,7 @@ namespace Shoko.Server.Renamer
             test = test.Substring(1, test.Length - 1);
         }
 
-        private bool EvaluateTestX(string test, SVR_AniDB_Anime anime)
+        private static bool EvaluateTestX(string test, SVR_AniDB_Anime anime)
         {
             try
             {
@@ -860,7 +855,7 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
@@ -874,7 +869,7 @@ namespace Shoko.Server.Renamer
         /// <param name="episodes"></param>
         /// <param name="anime"></param>
         /// <returns></returns>
-        private bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+        private static bool EvaluateTestI(string test, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
             List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
@@ -1315,12 +1310,12 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
                 return false;
             }
         }
 
-        public string GetNewFileName(RenameEventArgs args, string script)
+        public static string GetNewFileName(RenameEventArgs args, string script)
         {
             // Cheat and just look it up by location to avoid rewriting this whole file.
             var sourceFolder = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => args.FileInfo.FilePath.StartsWith(a.ImportFolderLocation));
@@ -1407,7 +1402,7 @@ namespace Shoko.Server.Renamer
             return Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}");
         }
 
-        private void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
+        private static void PerformActionOnFileName(ref string newFileName, string action, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
             // find the first test
@@ -1428,7 +1423,7 @@ namespace Shoko.Server.Renamer
                 PerformActionOnFileNameREPLACE(ref newFileName, parameter);
         }
 
-        private void PerformActionOnFileNameREPLACE(ref string newFileName, string action)
+        private static void PerformActionOnFileNameREPLACE(ref string newFileName, string action)
         {
             try
             {
@@ -1454,11 +1449,11 @@ namespace Shoko.Server.Renamer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.ToString());
+                logger.Error(ex, ex.ToString());
             }
         }
 
-        private void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
+        private static void PerformActionOnFileNameADD(ref string newFileName, string action, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile, List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
 
@@ -1914,7 +1909,7 @@ namespace Shoko.Server.Renamer
             return action;
         }
 
-        private bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
+        private static bool EvaluateTest(string line, SVR_VideoLocal vid, SVR_AniDB_File aniFile,
             List<AniDB_Episode> episodes,
             SVR_AniDB_Anime anime)
         {
@@ -1984,7 +1979,7 @@ namespace Shoko.Server.Renamer
             return false;
         }
 
-        private bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
+        private static bool EvaluateTest(char testChar, string testCondition, SVR_VideoLocal vid,
             SVR_AniDB_File aniFile,
             List<AniDB_Episode> episodes, SVR_AniDB_Anime anime)
         {
@@ -2055,7 +2050,7 @@ namespace Shoko.Server.Renamer
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, e.Message);
+                        logger.Error(e);
                     }
                     if (available < args.FileInfo.FileSize) continue;
                 }
@@ -2120,7 +2115,7 @@ namespace Shoko.Server.Renamer
                         }
                         catch (Exception e)
                         {
-                            _logger.LogError(e, e.Message);
+                            logger.Error(e);
                         }
                         if (available < vid.FileSize) continue;
                     }

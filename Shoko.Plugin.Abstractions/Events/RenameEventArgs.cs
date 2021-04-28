@@ -25,10 +25,5 @@ namespace Shoko.Plugin.Abstractions
         /// Information about the episode, such as titles
         /// </summary>
         public IList<IEpisode> EpisodeInfo { get; set; }
-
-        /// <summary>
-        /// This is any extra data needed to invoke a test on demand. Normally, this will be serialized and deserialized
-        /// </summary>
-        public string ExtraData { get; set; }
     }
 }

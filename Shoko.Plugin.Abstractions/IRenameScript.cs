@@ -7,6 +7,10 @@ namespace Shoko.Plugin.Abstractions
     public interface IRenameScript
     {
         /// <summary>
+        /// A unique name for this particular implementation, per Type
+        /// </summary>
+        public string Name { get; }
+        /// <summary>
         /// The script contents
         /// </summary>
         public string Script { get; }

@@ -23,11 +23,42 @@ namespace Shoko.Server
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         public static IDictionary<string, (Type type, string description)> Renamers { get; } = new Dictionary<string, (Type type, string description)>();
 
-        public static string GetFilename(SVR_VideoLocal_Place place, string scriptType, string extraData)
+        private static IRenameScript _getRenameScript(string name)
+        {
+            // TODO cazzar, we need to figure out how to store and get this via a unique name in a universal way
+            // Renamer.Keys should probably store unique instance names, not the hardcoded names
+            // IScriptedRenamers should have multiple "names", while the single use DLLs can be looked up by their type name/hardcoded name
+            // The database or whatever can be used to store the different user created "names" that indicate different script instances
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
+            if (script == null) return null;
+
+            return new RenameScriptImpl
+            {
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData
+            };
+        }
+
+        private static IRenameScript _getRenameScriptWithFallback(string name)
+        {
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null) return null;
+
+            return new RenameScriptImpl
+            {
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData
+            };
+        }
+
+        public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
         {
             string result = Path.GetFileName(place.FilePath);
+            var script = _getRenameScript(scriptName);
 
-            foreach (var renamer in GetPluginRenamersSorted(scriptType))
+            foreach (var renamer in GetPluginRenamersSorted(script))
             {
                 // TODO Error handling and possible deference
                 var args = new RenameEventArgs
@@ -38,7 +69,6 @@ namespace Shoko.Server
                         .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                     EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
                     FileInfo = place,
-                    ExtraData = extraData,
                 };
                 var res = renamer.GetFilename(args);
                 if (args.Cancel) return null;
@@ -49,10 +79,12 @@ namespace Shoko.Server
             return result;
         }
         
-        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptType, string extraData)
+        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
         {
+            var script = _getRenameScriptWithFallback(scriptName);
+
             // TODO Error handling and possible deference
-            foreach (var renamer in GetPluginRenamersSorted(scriptType))
+            foreach (var renamer in GetPluginRenamersSorted(script))
             {
                 var args = new MoveEventArgs
                 {
@@ -64,7 +96,6 @@ namespace Shoko.Server
                     FileInfo = place,
                     AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
                         .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
-                    ExtraData = extraData,
                 };
                 (IImportFolder destFolder, string destPath) = renamer.GetDestination(args);
                 if (args.Cancel) return (null, null);
@@ -121,23 +152,31 @@ namespace Shoko.Server
                         continue;
                     }
 
-                    logger.Info($"Found Renamer: {key}, {implementation}, {desc}");
                     Renamers.Add(key, (implementation, desc));
                 }
             }
         }
 
-        public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 
-            _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
+        public static IList<IRenamer> GetPluginRenamersSorted(IRenameScript renamer) => 
+            _getEnabledRenamers(renamer).OrderBy(a => renamer?.Name == a.Key ? 0 : int.MaxValue)
                 .ThenBy(a => ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(a.Key) ? ServerSettings.Instance.Plugins.RenamerPriorities[a.Key] : int.MaxValue)
                 .ThenBy(a => a.Key, StringComparer.InvariantCulture)
-                .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type)).ToList();
+                .Select(a =>
+                    {
+                        if (a.Value.type.GetInterfaces().Contains(typeof(IScriptedRenamer)))
+                        {
+                            // The script is passed into the IScriptedRenamer, so that the GetFilename and GetDestination doesn't get really complicated
+                            return (IRenamer) ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type, renamer);
+                        }
+                        return (IRenamer) ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type);
+                    }
+                ).ToList();
 
-        private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(string renamerName)
+        private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(IRenameScript renamer)
         {
             foreach(var kvp in Renamers)
             {
-                if (!string.IsNullOrEmpty(renamerName) && kvp.Key != renamerName) continue;
+                if (!string.IsNullOrEmpty(renamer?.Script) && kvp.Key != renamer.Name) continue;
                 if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out bool isEnabled) && !isEnabled) continue;
 
                 yield return kvp;
