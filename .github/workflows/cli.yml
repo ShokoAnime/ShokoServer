@@ -32,4 +32,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.rid }}
-          path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
+          path: Shoko.Server/bin/Release/net5.0/${{matrix.rid}}/publish/

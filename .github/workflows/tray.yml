@@ -30,7 +30,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService-${{ matrix.rid }}
-          path: Shoko.Server/bin/Release/netcoreapp3.1/${{matrix.rid}}/publish/
+          path: Shoko.Server/bin/Release/net5.0-windows/${{matrix.rid}}/publish/
       - name: Archive Release
         shell: powershell
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net5.0-windows\\${{matrix.rid}}\\publish .\\ShokoServer.zip
