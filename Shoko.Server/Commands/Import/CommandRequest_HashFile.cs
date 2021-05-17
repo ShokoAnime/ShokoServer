@@ -98,7 +98,9 @@ namespace Shoko.Server.Commands
                         info.IsReadOnly = false;
                     }
 
-                    return CanAccessFile(fileName, writeAccess, ref e);
+                    // check to see if it stuck. On linux, we can't just winapi hack our way out, so don't recurse in that case, anyway
+                    if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac())
+                        return CanAccessFile(fileName, writeAccess, ref e);
                 }
                 catch
                 {
