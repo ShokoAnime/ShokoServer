@@ -35,7 +35,7 @@ namespace Shoko.Server.API.v3.Controllers
             
             if (pageSize <= 0)
                 return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
-            return allSeries.Skip(pageSize * page).Take(pageSize).Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
+            return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).Skip(pageSize * page).Take(pageSize).ToList();
         }
 
         /// <summary>
