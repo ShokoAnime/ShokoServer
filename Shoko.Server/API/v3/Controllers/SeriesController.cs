@@ -25,13 +25,17 @@ namespace Shoko.Server.API.v3.Controllers
     {
         /// <summary>
         /// Get a list of all series available to the current user
+        /// Use pageSize and page (index 0) in the query to enable pagination.
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<List<Series>> GetAllSeries()
+        public ActionResult<List<Series>> GetAllSeries(int pageSize = 100, int page = 0)
         {
             var allSeries = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a));
-            return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
+            
+            if (pageSize <= 0)
+                return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
+            return allSeries.Skip(pageSize * page).Take(pageSize).Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
         }
 
         /// <summary>
