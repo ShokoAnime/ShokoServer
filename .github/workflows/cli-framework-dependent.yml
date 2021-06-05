@@ -27,7 +27,7 @@ jobs:
 #       - run: sudo apt-get update
 #       - run: sudo apt-get install libicu60
       - run: dotnet restore Shoko.CLI
-      - run: dotnet publish -c Release --no-self-contained -p:PublishTrimmed=false Shoko.CLI
+      - run: dotnet publish -c Release --no-self-contained Shoko.CLI
       - uses: actions/upload-artifact@v2
         with:
           name: CLI-Framework-Dependent
