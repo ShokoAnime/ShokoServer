@@ -30,7 +30,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.6.20305.6" />
     <PackageReference Include="NLog" Version="4.6.2" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.4.0" />
-    <PackageReference Include="nulastudio.NetCoreBeauty" Version="1.2.9" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\Shoko.Server\db.ico">
