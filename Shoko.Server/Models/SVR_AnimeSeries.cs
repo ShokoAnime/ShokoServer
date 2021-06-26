@@ -1176,17 +1176,22 @@ namespace Shoko.Server.Models
                     // does this episode have a file released by the group the user is collecting
                     bool epReleased = false;
                     bool epReleasedGroup = false;
+                    //logger.Info($"XXYY1 Group Status check start");
                     foreach (AniDB_GroupStatus gs in grpStatuses)
                     {
+                        //logger.Info($"XXYY2 Group Status {thisEpNum} - {gs.LastEpisodeNumber} - {gs.GroupName}");
                         if (gs.LastEpisodeNumber >= thisEpNum) epReleased = true;
                         if (userReleaseGroups.Contains(gs.GroupID) && gs.HasGroupReleasedEpisode(thisEpNum))
                             epReleasedGroup = true;
                     }
 
+                    //logger.Info($"XXYY3 Episode Number: {thisEpNum} - Any Eps Available: {epReleased} - Files Count: {vids.Count}");
+
                     try
                     {
                         lock (epReleasedList)
                             epReleasedList.Add(ep, !epReleased || vids.Any());
+
                         lock (epGroupReleasedList)
                             epGroupReleasedList.Add(ep, !epReleasedGroup || vids.Any());
                     }
@@ -1197,9 +1202,15 @@ namespace Shoko.Server.Models
                     }
                 });
 
+
                 foreach (EpisodeList.StatEpisodes eplst in epReleasedList)
+                {
                     if (!eplst.Available)
                         MissingEpisodeCount++;
+
+                    //logger.Info($"XXYY4 MissingEpisodeCount SERIES for {name} = {MissingEpisodeCount}");
+
+                }
                 foreach (EpisodeList.StatEpisodes eplst in epGroupReleasedList)
                     if (!eplst.Available)
                         MissingEpisodeCountGroups++;

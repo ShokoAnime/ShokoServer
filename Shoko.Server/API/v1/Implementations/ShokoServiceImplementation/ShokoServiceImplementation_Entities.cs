@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
@@ -222,6 +223,180 @@ namespace Shoko.Server
                 IEnumerable<CL_AnimeGroup_User> comboGroups = gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null).Select(a => a.GetUserContract(userID));
 
 
+
+
+                // apply sorting
+                comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
+
+                List<int> seriesAdded = new List<int>();
+
+                foreach (CL_AnimeGroup_User grp in comboGroups)
+                {
+                    List<SVR_AnimeSeries> sers = RepoFactory.AnimeSeries.GetByGroupID(grp.AnimeGroupID).OrderBy(a => a.AirDate).ToList();
+                    List<int> seriesWatching = new List<int>();
+
+                    // assume that there is only one series per group
+                    if (grp.UnwatchedEpisodeCount > 0)
+                    {
+                        foreach (SVR_AnimeSeries ser in sers)
+                        {
+                            if (!user.AllowedSeries(ser)) continue;
+                            bool useSeries = true;
+
+                            if (seriesWatching.Count > 0)
+                            {
+                                if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
+                                {
+                                    // make sure this series is not a sequel to an existing series we have already added
+                                    foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                    {
+                                        if (rel.RelationType.ToLower().Trim().Equals("sequel") || rel.RelationType.ToLower().Trim().Equals("prequel"))
+                                            useSeries = false;
+                                    }
+                                }
+                            }
+
+                            if (!useSeries) continue;
+
+
+                            CL_AnimeEpisode_User ep = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
+                            if (ep != null)
+                            {
+                                logger.Info($"LEOTEST - Adding1 {ser.GetSeriesName()} - ({ser.AniDB_ID})");
+
+                                retEps.Add(ep);
+
+                                if (!seriesAdded.Contains(ser.AniDB_ID))
+                                    seriesAdded.Add(ser.AniDB_ID);
+
+                                // Lets only return the specified amount
+                                if (retEps.Count == maxRecords)
+                                    return retEps;
+
+                                if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
+                                    seriesWatching.Add(ser.AniDB_ID);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // if this group/series is fully watched then check for a direct sequel
+                        foreach (SVR_AnimeSeries ser in sers)
+                        {
+                            if (!user.AllowedSeries(ser)) continue;
+                            bool useSeries = false;
+                            SVR_AnimeSeries sequel = null;
+
+                            logger.Info($"LEOTEST - Getting relations for {ser.GetSeriesName()}");
+
+                            if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
+                            {
+                                foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
+                                {
+                                    logger.Info($"LEOTEST - Related AnimeID {rel.RelatedAnimeID}");
+                                    if (rel.RelationType.ToLower().Trim().Equals("sequel"))
+                                    {
+                                        // get the sequel
+                                        logger.Info($"LEOTEST - Found sequel {rel.RelatedAnimeID}");
+                                        if (!seriesAdded.Contains(rel.RelatedAnimeID))
+                                        {
+                                            sequel = RepoFactory.AnimeSeries.GetByAnimeID(rel.RelatedAnimeID);
+
+                                            if (sequel != null)
+                                            {
+                                                useSeries = true;
+
+                                                // double check if the series has been dropped e.g. season 1 was watched, but we dropped season 2
+                                                foreach (var cTag in RepoFactory.CustomTag.GetByAnimeID(sequel.AniDB_ID))
+                                                {
+                                                    if (cTag.TagName.Contains(Resources.CustomTag_Dropped))
+                                                        useSeries = false;
+                                                }
+                                                logger.Info($"LEOTEST - Sequel has local data {sequel.GetSeriesName()}");
+
+                                            }
+                                        }
+                                        
+                                    }
+                                        
+
+                                   
+                                }
+                            }
+
+                            if (!useSeries) continue;
+
+
+                            CL_AnimeEpisode_User ep = GetNextUnwatchedEpisode(sequel.AnimeSeriesID, userID);
+                            if (ep != null)
+                            {
+                                logger.Info($"LEOTEST - Adding2 {sequel.GetSeriesName()} - ({sequel.AniDB_ID})");
+                                logger.Info($"LEOTEST - Sequel has unwatched episodes {sequel.GetSeriesName()}");
+
+                                retEps.Add(ep);
+
+                                if (!seriesAdded.Contains(ser.AniDB_ID))
+                                    seriesAdded.Add(ser.AniDB_ID);
+
+                                // Lets only return the specified amount
+                                if (retEps.Count == maxRecords)
+                                    return retEps;
+
+                                if (sequel.GetAnime().AnimeType == (int)AnimeType.TVSeries)
+                                    seriesWatching.Add(sequel.AniDB_ID);
+                            }
+                            else
+                                logger.Info($"LEOTEST - Sequel has no unwatched episodes {sequel.GetSeriesName()}");
+                        }
+                    }
+                    
+
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, ex.ToString());
+            }
+
+            return retEps;
+        }
+
+        public List<CL_AnimeEpisode_User> GetContinueWatchingFilter_old(int userID, int maxRecords)
+        {
+            List<CL_AnimeEpisode_User> retEps = new List<CL_AnimeEpisode_User>();
+            try
+            {
+                SVR_JMMUser user = RepoFactory.JMMUser.GetByID(userID);
+                if (user == null) return retEps;
+
+                // get the custome continue watching filter
+                SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(1653);
+
+                // find the locked Continue Watching Filter
+                //SVR_GroupFilter gf = null;
+                if (gf == null)
+                {
+                    List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
+                    if (lockedGFs != null)
+                    {
+                        // if it already exists we can leave
+                        foreach (SVR_GroupFilter gfTemp in lockedGFs)
+                        {
+                            if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
+                            {
+                                gf = gfTemp;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (gf == null || !gf.GroupsIds.ContainsKey(userID))
+                    return retEps;
+                IEnumerable<CL_AnimeGroup_User> comboGroups = gf.GroupsIds[userID].Select(a => RepoFactory.AnimeGroup.GetByID(a)).Where(a => a != null).Select(a => a.GetUserContract(userID));
+
+
                 // apply sorting
                 comboGroups = GroupFilterHelper.Sort(comboGroups, gf);
 
@@ -239,7 +414,7 @@ namespace Shoko.Server
 
                         if (seriesWatching.Count > 0)
                         {
-                            if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
+                            if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
                             {
                                 // make sure this series is not a sequel to an existing series we have already added
                                 foreach (AniDB_Anime_Relation rel in ser.GetAnime().GetRelatedAnime())
@@ -262,7 +437,7 @@ namespace Shoko.Server
                             if (retEps.Count == maxRecords)
                                 return retEps;
 
-                            if (ser.GetAnime().AnimeType == (int) AnimeType.TVSeries)
+                            if (ser.GetAnime().AnimeType == (int)AnimeType.TVSeries)
                                 seriesWatching.Add(ser.AniDB_ID);
                         }
                     }
