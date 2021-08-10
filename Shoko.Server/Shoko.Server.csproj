@@ -2,8 +2,11 @@
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Library</OutputType>
+    <TargetFrameworks>net5.0;net5.0-windows</TargetFrameworks>
+    <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
+    <GenerateErrorForMissingTargetingPacks>false</GenerateErrorForMissingTargetingPacks>
     <PublishUrl>publish\</PublishUrl>
     <MapFileExtensions>true</MapFileExtensions>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -11,12 +14,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0-windows7.0'">
-    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' != 'net5.0-windows7.0'">
-    <RuntimeIdentifiers>win10-x64;linux-x64;linux-x86</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
