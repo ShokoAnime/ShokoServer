@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>net5.0;net5.0-windows</TargetFrameworks>
+    <TargetFramework>net5.0</TargetFramework>
     <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
