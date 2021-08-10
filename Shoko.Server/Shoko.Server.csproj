@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
     <OutputType>Library</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
     <PublishUrl>publish\</PublishUrl>
@@ -13,10 +12,10 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0-windows'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0-windows7.0'">
     <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' != 'net5.0-windows'">
+  <PropertyGroup Condition="'$(TargetFramework)' != 'net5.0-windows7.0'">
     <RuntimeIdentifiers>win10-x64;linux-x64;linux-x86</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
