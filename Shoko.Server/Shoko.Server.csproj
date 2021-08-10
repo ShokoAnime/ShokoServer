@@ -3,7 +3,6 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <OutputType>Library</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <RuntimeIdentifiers>win10-x64;linux-x64;linux-x86</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
     <Deterministic>false</Deterministic>
     <PublishUrl>publish\</PublishUrl>
@@ -13,6 +12,12 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0-windows'">
+    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != 'net5.0-windows'">
+    <RuntimeIdentifiers>win10-x64;linux-x64;linux-x86</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
