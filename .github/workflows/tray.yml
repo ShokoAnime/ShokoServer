@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -f net5.0-windows Shoko.TrayService
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net5.0-windows Shoko.TrayService
       - uses: actions/upload-artifact@v2
         with:
           name: Shoko.TrayService
