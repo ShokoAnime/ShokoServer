@@ -24,7 +24,8 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             try
             {
                 string exe = GetMediaInfoPathForOS();
-                string args = $"--OUTPUT=JSON \"{filename}\"";
+                var escapedName = filename.Replace("\"", "\\\"").Replace("`", "\\`").Replace("$", "\\$");
+                string args = $"--OUTPUT=JSON \"{escapedName}\"";
 
                 var pProcess = GetProcess(exe, args);
                 pProcess.Start();
@@ -41,7 +42,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
                     if (string.IsNullOrWhiteSpace(output) || output.EqualsInvariantIgnoreCase("null"))
                         output = "No message";
 
-                    logger.Error($"MediaInfo threw an error on {filename}: {output}");
+                    logger.Error($"MediaInfo threw an error on {filename}, {exe} {args}: {output}");
                     return null;
                 }
 
