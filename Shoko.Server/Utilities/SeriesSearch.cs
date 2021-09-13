@@ -160,9 +160,8 @@ namespace Shoko.Server.Utilities
             ParallelQuery<AniDB_Tag> allTags = RepoFactory.AniDB_Tag.GetAll().AsParallel()
                 .Where(a =>
                 {
-                    List<string> _ = new List<string>();
                     return !user.GetHideCategories().Contains(a.TagName) &&
-                           !TagFilter.IsTagBlackListed(a.TagName, tagFilter, ref _);
+                           !TagFilter.IsTagBlackListed(a.TagName, tagFilter);
                 });
 
             //search by anime id
