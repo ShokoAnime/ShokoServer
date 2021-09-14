@@ -99,22 +99,12 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Get the Top 10 Most Common Tags that are visible to the user
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("TopTags")]
-        public List<Tag> GetTopTags()
-        {
-            return GetTopTags();
-        }
-
-        /// <summary>
         /// Gets the top <para>number</para> of the most common tags visible to the current user.
         /// </summary>
-        /// <param name="number">The max number of results to return</param>
+        /// <param name="number">The max number of results to return. (Defaults to 10)</param>
         /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
         /// <returns></returns>
-        [HttpGet("TopTags/{number}")]
+        [HttpGet("TopTags/{number?}")]
         public List<Tag> GetTopTags(int number = 10, [FromQuery] TagFilter.Filter filter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
         {
             var tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
