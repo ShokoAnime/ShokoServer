@@ -120,14 +120,14 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="filter"></param>
         /// <returns></returns>
         [HttpGet("{id}/Tags/{filter}")]
-        public ActionResult<List<Tag>> GetSeriesTags(int id, TagFilter.Filter filter)
+        public ActionResult<List<Tag>> GetSeriesTags(int id, TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            return Series.GetTags(HttpContext, anime, filter);
+            return Series.GetTags(HttpContext, anime, filter, excludeDescriptions);
         }
         
         /// <summary>
