@@ -125,9 +125,7 @@ namespace Shoko.Server.API.v3.Controllers
                     Description = a.TagDescription,
                     Weight = 0
                 }).ToList();
-            var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
-            tags = TagFilter.ProcessTags(tagfilter, tags, tag => tag.Name).Take(10).ToList();
-            return tags;
+            return TagFilter.ProcessTags(TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source, tags, tag => tag.Name).Take(number).ToList();
         }
 
         /// <summary>
