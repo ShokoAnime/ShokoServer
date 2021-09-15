@@ -96,7 +96,7 @@ namespace Shoko.Server.API.v2.Models.common
                 g.year = anime.BeginYear.ToString();
 
                 if (!notag && ag.Contract.Stat_AllTags != null)
-                    g.tags = TagFilter.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
+                    g.tags = TagFilter.String.ProcessTags(tagfilter, ag.Contract.Stat_AllTags.ToList());
 
                 if (!nocast)
                 {

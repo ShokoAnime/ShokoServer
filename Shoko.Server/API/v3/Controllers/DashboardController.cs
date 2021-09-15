@@ -116,7 +116,7 @@ namespace Shoko.Server.API.v3.Controllers
                     Description = a.TagDescription,
                     Weight = 0
                 }).ToList();
-            return TagFilter.ProcessTags(filter, tags, tag => tag.Name).Take(number).ToList();
+            return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags).Take(number).ToList();
         }
 
         /// <summary>

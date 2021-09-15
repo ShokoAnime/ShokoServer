@@ -71,7 +71,7 @@ namespace Shoko.Server.API.v2.Modules
                     .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
                     .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
-                tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
+                tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
             }
             else
             {
@@ -88,7 +88,7 @@ namespace Shoko.Server.API.v2.Modules
                     .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
                     .Where(a => a != null).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
-                tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
+                tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
             }
 
             return new Dictionary<string, object>
