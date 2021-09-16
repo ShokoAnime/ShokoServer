@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime;
 using System.Threading.Tasks;
@@ -56,6 +56,7 @@ namespace Shoko.Server.Repositories
         public static AniDB_Anime_RelationRepository AniDB_Anime_Relation { get; } = new AniDB_Anime_RelationRepository();
         public static AniDB_Anime_DefaultImageRepository AniDB_Anime_DefaultImage { get; } = new AniDB_Anime_DefaultImageRepository();
         public static AniDB_Anime_CharacterRepository AniDB_Anime_Character { get; } = new AniDB_Anime_CharacterRepository();
+        public static AniDB_Anime_StaffRepository AniDB_Anime_Staff { get; } = new AniDB_Anime_StaffRepository();
         public static ScanRepository Scan { get; } = new ScanRepository();
         public static ScanFileRepository ScanFile { get; } = new ScanFileRepository();
         public static AdhocRepository Adhoc { get; } = new AdhocRepository();

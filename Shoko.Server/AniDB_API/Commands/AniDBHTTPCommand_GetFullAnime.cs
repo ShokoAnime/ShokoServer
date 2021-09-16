@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Xml;
 using NLog;
 
@@ -50,6 +50,14 @@ namespace AniDBAPI.Commands
         {
             get => tags;
             set => tags = value;
+        }
+
+        private List<Raw_AniDB_Staff> staff = new List<Raw_AniDB_Staff>();
+
+        public List<Raw_AniDB_Staff> Staff
+        {
+            get => staff;
+            set => staff = value;
         }
 
         private List<Raw_AniDB_Character> characters = new List<Raw_AniDB_Character>();
@@ -149,6 +157,7 @@ namespace AniDBAPI.Commands
                 episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
                 titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
                 tags = AniDBHTTPHelper.ProcessTags(docAnime, animeID);
+                staff = AniDBHTTPHelper.ProcessStaff(docAnime, animeID);
                 characters = AniDBHTTPHelper.ProcessCharacters(docAnime, animeID);
                 resources = AniDBHTTPHelper.ProcessResources(docAnime, animeID);
 

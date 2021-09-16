@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -363,6 +363,28 @@ namespace AniDBAPI
             }
 
             return tags;
+        }
+
+        public static List<Raw_AniDB_Staff> ProcessStaff(XmlDocument docAnime, int animeID)
+        {
+            var creators = new List<Raw_AniDB_Staff>();
+
+            XmlNodeList charItems = docAnime?["anime"]?["creators"]?.GetElementsByTagName("name");
+            if (charItems == null) return creators;
+            foreach (XmlNode node in charItems)
+            {
+                try
+                {
+                    Raw_AniDB_Staff staff = new Raw_AniDB_Staff();
+                    staff.ProcessFromHTTPResult(node, animeID);
+                    creators.Add(staff);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessCharacters: {ex}");
+                }
+            }
+            return creators;
         }
 
         public static List<Raw_AniDB_Character> ProcessCharacters(XmlDocument docAnime, int animeID)
