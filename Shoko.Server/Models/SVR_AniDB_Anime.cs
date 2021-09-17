@@ -1259,13 +1259,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 logger.Error($"Unable to Remove Staff for {MainTitle}: {ex}");
             }
 
-            List<AniDB_Anime_Staff> xrefsToSave = new List<AniDB_Anime_Staff>();
-
-            Dictionary<int, AniDB_Seiyuu> seiyuuToSave = new Dictionary<int, AniDB_Seiyuu>();
-            List<AniDB_Character_Seiyuu> seiyuuXrefToSave = new List<AniDB_Character_Seiyuu>();
-
-            string charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
-            string creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+            List<AniDB_Anime_Staff> animeStaffToSave = new List<AniDB_Anime_Staff>();
+            List<CrossRef_Anime_Staff> xRefToSave = new List<CrossRef_Anime_Staff>();
             foreach (Raw_AniDB_Staff rawStaff in staffList)
             {
                 try
@@ -1280,7 +1275,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             CreatorID = rawStaff.CreatorID,
                             CreatorType = rawStaff.CreatorType,
                         };
-                        xrefsToSave.Add(stf);
+                        animeStaffToSave.Add(stf);
                     }
 
                     var staff = RepoFactory.AnimeStaff.GetByAniDBID(stf.CreatorID);
@@ -1299,13 +1294,13 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     StaffRoleType roleType = rawStaff.CreatorType switch
                     {
                         "Animation Work" => StaffRoleType.Studio,
-                        "Original Work" => StaffRoleType.OriginalAuthor,
-                        "Music" => StaffRoleType.ThemeMusic,
+                        "Original Work" => StaffRoleType.SourceWork,
+                        "Music" => StaffRoleType.Music,
                         "Character Design" => StaffRoleType.CharacterDesign,
                         "Direction" => StaffRoleType.Director,
-                        "Series Composition" => StaffRoleType.Composer,
+                        "Series Composition" => StaffRoleType.SeriesComposer,
                         "Chief Animation Direction" => StaffRoleType.Producer,
-                        _ => StaffRoleType.Writer,
+                        _ => StaffRoleType.Staff,
                     };
 
                     var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, null,
@@ -1321,7 +1316,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                             RoleID = null,
                             StaffID = staff.StaffID,
                         };
-                        RepoFactory.CrossRef_Anime_Staff.Save(xrefAnimeStaff);
+                        xRefToSave.Add(xrefAnimeStaff);
                     }
                 }
                 catch (Exception ex)
@@ -1331,7 +1326,8 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
             try
             {
-                RepoFactory.AniDB_Anime_Staff.Save(xrefsToSave);
+                RepoFactory.AniDB_Anime_Staff.Save(animeStaffToSave);
+                RepoFactory.CrossRef_Anime_Staff.Save(xRefToSave);
             }
             catch (Exception ex)
             {

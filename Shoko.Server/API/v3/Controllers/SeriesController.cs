@@ -134,14 +134,15 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get the cast listing for series with ID
         /// </summary>
         /// <param name="id">Shoko ID</param>
+        /// <param name="roleType">Filter by role type</param>
         /// <returns></returns>
         [HttpGet("{id}/Cast")]
-        public ActionResult<List<Role>> GetSeriesCast(int id)
+        public ActionResult<List<Role>> GetSeriesCast(int id, [FromQuery] Role.CreatorRoleType? roleType = null)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return Series.GetCast(HttpContext, ser.AniDB_ID);
+            return Series.GetCast(HttpContext, ser.AniDB_ID, roleType);
         }
 
         /// <summary>
