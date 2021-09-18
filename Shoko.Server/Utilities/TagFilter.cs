@@ -452,6 +452,7 @@ namespace Shoko.Server
             {
                 if (TagBlacklistSetting.Contains(tag)) return inverted ^ true;
                 if (tag.EndsWith("period")) return inverted ^ true;
+                if (tag.EndsWith("era")) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Programming))
