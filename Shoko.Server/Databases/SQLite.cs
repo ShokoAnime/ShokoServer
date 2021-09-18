@@ -550,6 +550,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(79, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID;"),
             new DatabaseCommand(80, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID;"),
             new DatabaseCommand(81, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, CreatorType TEXT NOT NULL );"),
+            new DatabaseCommand(81, 2, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)

@@ -633,6 +633,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(91, 1, DropMALIndex),
             new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
             new DatabaseCommand(93, 1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` text character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
+            new DatabaseCommand(93, 2, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
