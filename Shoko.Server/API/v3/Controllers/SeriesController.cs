@@ -83,6 +83,40 @@ namespace Shoko.Server.API.v3.Controllers
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetAniDBInfo(HttpContext, anime);
         }
+
+        /// <summary>
+        /// Queue a refresh of the AniDB Info for series with ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/AniDB/QueueRefresh")]
+        public ActionResult QueueAniDBRefresh(int id)
+        {
+            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
+            var anime = ser.GetAnime();
+            if (anime == null) return BadRequest("No AniDB_Anime for Series");
+            Series.QueueAniDBRefresh(anime.AnimeID);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Forcefully refresh the AniDB Info from XML on disk for series with ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/AniDB/ForceRefreshFromXML")]
+        public ActionResult RefreshAniDBFromXML(int id)
+        {
+            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
+            var anime = ser.GetAnime();
+            if (anime == null) return BadRequest("No AniDB_Anime for Series");
+            Series.RefreshAniDBFromCachedXML(HttpContext, anime);
+            return NoContent();
+        }
         
         /// <summary>
         /// Get TvDB Info for series with ID

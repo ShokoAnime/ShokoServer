@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 92;
+        public int RequiredVersion { get; } = 93;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -632,6 +632,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(90, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, DROP COLUMN VideoBitrate, DROP COLUMN VideoFrameRate, DROP COLUMN VideoResolution, DROP COLUMN AudioCodec, DROP COLUMN AudioBitrate, DROP COLUMN Duration;"),
             new DatabaseCommand(91, 1, DropMALIndex),
             new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
+            new DatabaseCommand(93, 1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` text character set utf8 NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

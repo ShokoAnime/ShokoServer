@@ -10,12 +10,15 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+
+using SSS = Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Shoko
 {
@@ -101,7 +104,18 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 };
             }
         }
-        
+
+        public static void RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
+        {
+            SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
+        }
+
+        public static void QueueAniDBRefresh(int animeID)
+        {
+            CommandRequest_GetAnimeHTTP command = new CommandRequest_GetAnimeHTTP(animeID, false, false, 0);
+            command.Save();
+        }
+
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko

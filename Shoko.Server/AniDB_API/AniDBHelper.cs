@@ -980,6 +980,59 @@ namespace Shoko.Server.AniDB_API
             }
         }
 
+        public void UpdateCachedAnimeInfoHTTP(SVR_AniDB_Anime anime)
+        {
+            if (anime == null)
+            {
+                logger.Trace("");
+                return;
+            }
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var animeID = anime.AnimeID;
+                AniDBHTTPCommand_GetFullAnime getAnimeCmd;
+
+                lock (lockAniDBConnections)
+                {
+                    getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
+                    getAnimeCmd.Init(animeID, false, false, true);
+                    var result = getAnimeCmd.Process();
+                    if (result == AniDBUDPResponseCode.NoSuchAnime)
+                    {
+                        logger.Error($"Failed get cached anime info for {animeID}. AniDB ban or No Such Anime returned");
+                        return;
+                    }
+                }
+
+                if (getAnimeCmd.Anime == null)
+                {
+                    logger.Error($"Failed get cached anime info for {animeID}. Anime was null");
+                    return;
+                }
+
+
+                logger.Trace("cmdResult.Anime: {0}", getAnimeCmd.Anime);
+
+                if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Tags,
+                    getAnimeCmd.Characters, getAnimeCmd.Staff, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
+                    false, 0))
+                {
+                    logger.Error($"Failed populate cached anime info for {animeID}");
+                    return;
+                }
+
+                // create AnimeEpisode records for all episodes in this anime only if we have a series
+                SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+                if (ser != null)
+                {
+                    ser.CreateAnimeEpisodes(session);
+                    RepoFactory.AnimeSeries.Save(ser, true, false);
+                }
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
+            }
+        }
+
+
         public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true, int relDepth = 0)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

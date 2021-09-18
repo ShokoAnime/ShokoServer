@@ -1247,12 +1247,12 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             ISessionWrapper sessionWrapper = session.Wrap();
 
             // delete all the existing cross references just in case one has been removed
-            List<AniDB_Anime_Staff> animeChars =
+            List<AniDB_Anime_Staff> animeStaff =
                 RepoFactory.AniDB_Anime_Staff.GetByAnimeID(sessionWrapper, AnimeID);
 
             try
             {
-                RepoFactory.AniDB_Anime_Staff.Delete(animeChars);
+                RepoFactory.AniDB_Anime_Staff.Delete(animeStaff);
             }
             catch (Exception ex)
             {
