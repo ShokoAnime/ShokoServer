@@ -591,7 +591,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(71, 2, "ALTER TABLE `TvDB_Series` ADD `Rating` INT NULL"),
             new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL"),
             new DatabaseCommand(72, 2, DatabaseFixes.FixCharactersWithGrave),
-            new DatabaseCommand(73, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(73, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(74, 2, Importer.UpdateAllStats),
             new DatabaseCommand(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
@@ -633,7 +633,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(91, 1, DropMALIndex),
             new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
             new DatabaseCommand(93, 1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` varchar(50) NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
-            new DatabaseCommand(93, 2, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(93, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
