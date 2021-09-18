@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
+
 // ReSharper disable StringLiteralTypo
 // ReSharper disable StaticMemberInGenericType
 // ReSharper disable IdentifierTypo
@@ -9,7 +11,7 @@ namespace Shoko.Server
 {
     public static class TagFilter
     {
-        public static readonly TagFilter<string> String = new(s => s, s => s);
+        public static readonly TagFilter<string> String = new(s => s.ToLowerInvariant(), s => s.ToLowerInvariant());
 
         [Flags]
         public enum Filter : long
@@ -95,6 +97,7 @@ namespace Shoko.Server
             "hard science fiction",
             "heroic fantasy",
             "high fantasy",
+            "horror",
             "isekai",
             "kodomo",
             "merchandising show",
@@ -522,23 +525,24 @@ namespace Shoko.Server
         /// T needs to have a T(string name) constructor
         /// </summary>
         /// <param name="flags"></param>
-        /// <param name="tags"></param>
+        /// <param name="input"></param>
         /// <returns></returns>
-        public List<T> ProcessTags(TagFilter.Filter flags, List<T> tags)
+        public List<T> ProcessTags(TagFilter.Filter flags, IEnumerable<T> input)
         {
-            if (tags.Count == 0) return tags;
+            var tags = input.DistinctBy(_nameSelector).ToList();
+            ProcessModifications(flags, tags);
 
-            // We assume the only tag is not "new", so we skip the add/remove logic.
-            if (tags.Count == 1)
-            {
-                if (TagFilter.IsTagBlackListed(_nameSelector(tags[0]), flags)) tags.Clear();
-                return tags;
-            }
+            return tags;
+        }
 
+        private void ProcessModifications(TagFilter.Filter flags, List<T> tags)
+        {
             var toAdd = new HashSet<T>(1);
             var toRemove = new HashSet<T>((int)Math.Ceiling(tags.Count / 2D));
-            var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
-            tags.AsParallel().ForAll(tag => MarkTagsForRemoval(tag, flags, toRemove, toAdd));
+            if (tags.Count > 1)
+                tags.AsParallel().ForAll(tag => MarkTagsForRemoval(tag, flags, toRemove, toAdd));
+            else if (tags.Count == 1)
+                MarkTagsForRemoval(tags[0], flags, toRemove, toAdd);
 
             foreach (var tag in toRemove)
             {
@@ -549,23 +553,16 @@ namespace Shoko.Server
                 tags.Remove(tag);
             }
 
+            tags.AddRange(toAdd.Where(tag => !toRemove.Contains(tag)));
+
             // Add the "original work" tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
+            var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
             if (flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert) && !nameToTagDictionary.Any(tag => TagFilter.TagBlackListSource.Contains(tag.Key)))
             {
+                // cheap way to lookup original work tag
                 if (_tagRenameDictionary.TryGetValue("new", out var existing))
-                    toAdd.Add(existing);
+                    tags.Add(existing);
             }
-
-            foreach (var tag in toAdd)
-            {
-                // Skip if we want to both remove and add the tag
-                if (toRemove.Contains(tag))
-                    continue;
-
-                tags.Add(tag);
-            }
-
-            return tags;
         }
 
         private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, HashSet<T> toRemove, HashSet<T> toAdd)
