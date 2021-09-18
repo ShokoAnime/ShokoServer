@@ -1,4 +1,4 @@
-﻿/* 
+/* 
  
 The MIT License (MIT)
 
@@ -278,6 +278,10 @@ namespace NutzCode.InMemoryIndex
         private Dictionary<T, S> direct = new Dictionary<T, S>();
         private Dictionary<S, HashSet<T>> inverse = new Dictionary<S, HashSet<T>>();
 
+        private readonly bool valueIsNullable = Nullable.GetUnderlyingType(typeof (S)) != null;
+
+        private HashSet<T> inverseNullValueSet;
+
         public BiDictionaryOneToMany()
         {
         }
@@ -298,16 +302,28 @@ namespace NutzCode.InMemoryIndex
                     S oldvalue = direct[key];
                     if (oldvalue.Equals(value))
                         return;
-                    if (inverse.ContainsKey(oldvalue))
-                    {
-                        if (inverse[oldvalue].Contains(key))
+                    if (valueIsNullable && oldvalue == null) {
+                        if (inverseNullValueSet != null && inverseNullValueSet.Contains(key))
+                            inverseNullValueSet.Remove(key);
+                    }
+                    else {
+                        if (inverse.ContainsKey(oldvalue) && inverse[oldvalue].Contains(key))
                             inverse[oldvalue].Remove(key);
                     }
                 }
-                if (!inverse.ContainsKey(value))
-                    inverse[value] = new HashSet<T>();
-                if (!inverse[value].Contains(key))
-                    inverse[value].Add(key);
+                if (valueIsNullable && value == null)
+                {
+                    if (inverseNullValueSet == null)
+                        inverseNullValueSet = new HashSet<T>();
+                    if (!inverseNullValueSet.Contains(key))
+                        inverseNullValueSet.Add(key);
+                }
+                else {
+                    if (!inverse.ContainsKey(value))
+                        inverse[value] = new HashSet<T>();
+                    if (!inverse[value].Contains(key))
+                        inverse[value].Add(key);
+                }
                 direct[key] = value;
             }
         }
@@ -319,13 +335,15 @@ namespace NutzCode.InMemoryIndex
 
         public bool ContainsInverseKey(S key)
         {
-            return inverse.ContainsKey(key);
+            return valueIsNullable && key == null ? inverseNullValueSet != null : inverse.ContainsKey(key);
         }
 
-        public HashSet<T> FindInverse(S k)
+        public HashSet<T> FindInverse(S key)
         {
-            return inverse.ContainsKey(k) 
-                ? inverse[k] 
+            if (valueIsNullable && key == null)
+                return inverseNullValueSet ?? new HashSet<T>();
+            return inverse.ContainsKey(key) 
+                ? inverse[key] 
                 : new HashSet<T>();
         }
 
@@ -334,9 +352,12 @@ namespace NutzCode.InMemoryIndex
             if (direct.ContainsKey(key))
             {
                 S oldvalue = direct[key];
-                if (inverse.ContainsKey(oldvalue))
-                {
-                    if (inverse[oldvalue].Contains(key))
+                if (valueIsNullable && oldvalue == null) {
+                    if (inverseNullValueSet != null && inverseNullValueSet.Contains(key))
+                        inverseNullValueSet.Remove(key);
+                }
+                else {
+                    if (inverse.ContainsKey(oldvalue) && inverse[oldvalue].Contains(key))
                         inverse[oldvalue].Remove(key);
                 }
                 direct.Remove(key);
@@ -347,6 +368,7 @@ namespace NutzCode.InMemoryIndex
         {
             direct.Clear();
             inverse.Clear();
+            inverseNullValueSet = null;
         }
     }
 
