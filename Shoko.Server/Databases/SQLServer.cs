@@ -610,7 +610,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(83, 1, DropVideoLocalMediaColumns),
             new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;"),
             new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
-            new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType nvarchar(50) NOT NULL );"),
+            new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
             new DatabaseCommand(86, 2, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
         };
 
