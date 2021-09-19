@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Shoko.Models.Enums
 {
@@ -349,16 +349,50 @@ namespace Shoko.Models.Enums
 
     public enum StaffRoleType
     {
+        /// <summary>
+        /// Voice actor or voice actress.
+        /// </summary>
         Seiyuu,
+
+        /// <summary>
+        /// This can be anything involved in writing the show.
+        /// </summary>
+        Staff,
+
+        /// <summary>
+        /// The studio responsible for publishing the show.
+        /// </summary>
         Studio,
+
+        /// <summary>
+        /// The main producer(s) for the show.
+        /// </summary>
         Producer,
-        Licensor,
+
+        /// <summary>
+        /// Direction.
+        /// </summary>
         Director,
-        Composer,
-        OriginalAuthor, // original source author
-        Writer, // this can anything involved in writing the show
+
+        /// <summary>
+        /// Series Composition.
+        /// </summary>
+        SeriesComposer,
+
+        /// <summary>
+        /// Character Design.
+        /// </summary>
         CharacterDesign,
-        ThemeMusic
+
+        /// <summary>
+        /// Music composer.
+        /// </summary>
+        Music,
+
+        /// <summary>
+        /// Responsible for the creation of the source work this show is detrived from.
+        /// </summary>
+        SourceWork,
     }
 
     public enum StatCountType
