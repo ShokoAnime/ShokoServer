@@ -221,7 +221,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             var tags = new List<Tag>();
             
             var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
-            var filteredTags = TagFilter.ProcessTags(filter, allTags, tag => tag.TagName);
+            var filteredTags = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName).ProcessTags(filter, allTags);
             foreach (AniDB_Tag tag in filteredTags)
             {
                 var toAPI = new Tag

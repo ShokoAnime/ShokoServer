@@ -140,7 +140,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 var tags = anime.GetAllTags();
                 if (tags != null)
-                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList());
+                    sr.tags = TagFilter.String.ProcessTags(tagfilter, tags.ToList());
             }
 
             return sr;
@@ -180,7 +180,7 @@ namespace Shoko.Server.API.v2.Models.common
             {
                 var tags = ser.Contract.AniDBAnime.AniDBAnime.GetAllTags();
                 if (tags != null)
-                    sr.tags = TagFilter.ProcessTags(tagfilter, tags.ToList());
+                    sr.tags = TagFilter.String.ProcessTags(tagfilter, tags.ToList());
             }
 
             if (level > 0)
