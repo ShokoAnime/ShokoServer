@@ -278,18 +278,30 @@ namespace NutzCode.InMemoryIndex
         private Dictionary<T, S> direct = new Dictionary<T, S>();
         private Dictionary<S, HashSet<T>> inverse = new Dictionary<S, HashSet<T>>();
 
-        private readonly bool valueIsNullable = Nullable.GetUnderlyingType(typeof (S)) != null;
+        private readonly bool valueIsNullable;
 
         private HashSet<T> inverseNullValueSet;
 
         public BiDictionaryOneToMany()
         {
+            valueIsNullable = Nullable.GetUnderlyingType(typeof (S)) != null;
         }
 
         public BiDictionaryOneToMany(Dictionary<T, S> input)
         {
+            valueIsNullable = Nullable.GetUnderlyingType(typeof (S)) != null;
             direct = input;
-            inverse = direct.GroupBy(a => a.Value).ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
+            if (valueIsNullable) 
+            {
+                var hashSet = input.Where(a => a.Value == null).Select(a => a.Key).ToHashSet();
+                // Only set the hash-set if the input contained a null value. See `ContainsInverseKey` at L348 as to why.
+                if (hashSet.Count > 0)
+                    inverseNullValueSet = hashSet;
+                inverse = input.Where(a => a.Value != null).GroupBy(a => a.Value).ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
+            }
+            else {
+                inverse = input.GroupBy(a => a.Value).ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
+            }
         }
 
         public S this[T key]
