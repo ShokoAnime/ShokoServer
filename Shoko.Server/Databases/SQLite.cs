@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.SQLite;
@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases
 
         public string Name { get; } = "SQLite";
 
-        public int RequiredVersion { get; } = 80;
+        public int RequiredVersion { get; } = 81;
 
 
         public void BackupDatabase(string fullfilename)
@@ -499,7 +499,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(61, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
             new DatabaseCommand(62, 1, "ALTER TABLE AniDB_Episode ADD Description TEXT NOT NULL DEFAULT ''"),
             new DatabaseCommand(62, 2, DatabaseFixes.FixCharactersWithGrave),
-            new DatabaseCommand(63, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(63, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(64, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(64, 2, Importer.UpdateAllStats),
             new DatabaseCommand(65, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
@@ -548,7 +548,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(78, 1, DropVideoLocal_Media),
             new DatabaseCommand(79, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID;"),
             new DatabaseCommand(79, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID;"),
-            new (80, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID;"),
+            new DatabaseCommand(80, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID;"),
+            new DatabaseCommand(81, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, CreatorType TEXT NOT NULL );"),
+            new DatabaseCommand(81, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -851,7 +851,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public bool PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
-            List<Raw_AniDB_Anime_Title> titles, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
+            List<Raw_AniDB_Anime_Title> titles, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars, List<Raw_AniDB_Staff> staff,
             List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
@@ -895,6 +895,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateCharacters(session, chars);
             taskTimer.Stop();
             logger.Trace("CreateCharacters in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateStaff(session, staff);
+            taskTimer.Stop();
+            logger.Trace("CreateStaff in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
 
             CreateResources(resources);
@@ -1232,6 +1237,101 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             catch (Exception ex)
             {
                 logger.Error($"Unable to Save Characters and Seiyuus for {MainTitle}: {ex}");
+            }
+        }
+
+        private void CreateStaff(ISession session, List<Raw_AniDB_Staff> staffList)
+        {
+            if (staffList == null) return;
+
+            ISessionWrapper sessionWrapper = session.Wrap();
+
+            // delete all the existing cross references just in case one has been removed
+            List<AniDB_Anime_Staff> animeStaff =
+                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(sessionWrapper, AnimeID);
+
+            try
+            {
+                RepoFactory.AniDB_Anime_Staff.Delete(animeStaff);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Remove Staff for {MainTitle}: {ex}");
+            }
+
+            List<AniDB_Anime_Staff> animeStaffToSave = new List<AniDB_Anime_Staff>();
+            List<CrossRef_Anime_Staff> xRefToSave = new List<CrossRef_Anime_Staff>();
+            foreach (Raw_AniDB_Staff rawStaff in staffList)
+            {
+                try
+                {
+                    // save the link between character and seiyuu
+                    AniDB_Anime_Staff stf = RepoFactory.AniDB_Anime_Staff.GetByAnimeIDAndCreatorID(rawStaff.AnimeID, rawStaff.CreatorID);
+                    if (stf == null)
+                    {
+                        stf = new AniDB_Anime_Staff
+                        {
+                            AnimeID = rawStaff.AnimeID,
+                            CreatorID = rawStaff.CreatorID,
+                            CreatorType = rawStaff.CreatorType,
+                        };
+                        animeStaffToSave.Add(stf);
+                    }
+
+                    var staff = RepoFactory.AnimeStaff.GetByAniDBID(stf.CreatorID);
+                    if (staff == null)
+                    {
+                        staff = new AnimeStaff
+                        {
+                            // Unfortunately, most of the info is not provided
+                            AniDBID = rawStaff.CreatorID,
+                            Name = rawStaff.CreatorName,
+                        };
+                        // we need an ID for xref
+                        RepoFactory.AnimeStaff.Save(staff);
+                    }
+
+                    StaffRoleType roleType = rawStaff.CreatorType switch
+                    {
+                        "Animation Work" => StaffRoleType.Studio,
+                        "Original Work" => StaffRoleType.SourceWork,
+                        "Music" => StaffRoleType.Music,
+                        "Character Design" => StaffRoleType.CharacterDesign,
+                        "Direction" => StaffRoleType.Director,
+                        "Series Composition" => StaffRoleType.SeriesComposer,
+                        "Chief Animation Direction" => StaffRoleType.Producer,
+                        _ => StaffRoleType.Staff,
+                    };
+
+                    var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, null,
+                        staff.StaffID, roleType);
+                    if (xrefAnimeStaff == null)
+                    {
+                        xrefAnimeStaff = new CrossRef_Anime_Staff
+                        {
+                            AniDB_AnimeID = AnimeID,
+                            Language = "Japanese",
+                            RoleType = (int) roleType,
+                            Role = rawStaff.CreatorType,
+                            RoleID = null,
+                            StaffID = staff.StaffID,
+                        };
+                        xRefToSave.Add(xrefAnimeStaff);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Unable to Populate and Save Staff for {MainTitle}: {ex}");
+                }
+            }
+            try
+            {
+                RepoFactory.AniDB_Anime_Staff.Save(animeStaffToSave);
+                RepoFactory.CrossRef_Anime_Staff.Save(xRefToSave);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Save Staff for {MainTitle}: {ex}");
             }
         }
 

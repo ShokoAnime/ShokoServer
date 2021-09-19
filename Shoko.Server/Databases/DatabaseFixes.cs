@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -508,7 +508,7 @@ namespace Shoko.Server.Databases
             }
         }
 
-        public static void PopulateAniDBEpisodeDescriptions()
+        public static void RefreshAniDBInfoFromXML()
         {
             int i = 0;
             var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 85;
+        public int RequiredVersion { get; } = 86;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -570,7 +570,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(65, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
             new DatabaseCommand(66, 1, "ALTER TABLE AniDB_Episode ADD Description nvarchar(max) NOT NULL DEFAULT('')"),
             new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
-            new DatabaseCommand(67, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(67, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(68, 2, Importer.UpdateAllStats),
             new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
@@ -609,7 +609,9 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
             new DatabaseCommand(83, 1, DropVideoLocalMediaColumns),
             new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;"),
-            new (85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
+            new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
+            new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
+            new DatabaseCommand(86, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

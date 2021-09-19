@@ -10,12 +10,15 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+
+using SSS = Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Shoko
 {
@@ -94,12 +97,25 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 string voteType = (AniDBVoteType) vote.VoteType == AniDBVoteType.Anime ? "Permanent" : "Temporary";
                 UserRating = new Rating
                 {
-                    Value = (decimal) Math.Round(vote.VoteValue / 100D, 1), MaxValue = 10, Type = voteType,
+                    Value = ((decimal) Math.Round(vote.VoteValue / 100D, 1)),
+                    MaxValue = 10,
+                    Type = voteType,
                     Source = "User"
                 };
             }
         }
-        
+
+        public static void RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
+        {
+            SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
+        }
+
+        public static void QueueAniDBRefresh(int animeID)
+        {
+            CommandRequest_GetAnimeHTTP command = new CommandRequest_GetAnimeHTTP(animeID, false, false, 0);
+            command.Save();
+        }
+
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko
@@ -163,28 +179,27 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="animeID"></param>
+        /// <param name="roleType"></param>
         /// <returns></returns>
-        public static List<Role> GetCast(HttpContext ctx, int animeID)
+        public static List<Role> GetCast(HttpContext ctx, int animeID, Role.CreatorRoleType? roleType = null)
         {
             List<Role> roles = new List<Role>();
-            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
-                StaffRoleType.Seiyuu);
+            var xrefAnimeStaff = roleType.HasValue ? RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
+                (StaffRoleType) roleType.Value) : RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
             foreach (var xref in xrefAnimeStaff)
             {
-                if (xref.RoleID == null) continue;
-                AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character == null) continue;
+                AnimeCharacter character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
                 AnimeStaff staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
                 if (staff == null) continue;
                 Role role = new Role
                 {
-                    Character = new Role.Person
+                    Character = character != null ? new Role.Person
                     {
                         Name = character.Name,
                         AlternateName = character.AlternateName,
                         Image = new Image(xref.RoleID.Value, ImageEntityType.Character),
                         Description = character.Description
-                    },
+                    } : null,
                     Staff = new Role.Person
                     {
                         Name = staff.Name,
@@ -192,7 +207,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                         Description = staff.Description,
                         Image = new Image(xref.StaffID, ImageEntityType.Staff),
                     },
-                    RoleName = ((StaffRoleType) xref.RoleType).ToString(),
+                    RoleName = (Role.CreatorRoleType) xref.RoleType,
                     RoleDetails = xref.Role
                 };
                 roles.Add(role);
