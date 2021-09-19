@@ -44,6 +44,15 @@ namespace Shoko.Tests
             new object[] {TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source, new[] {"predominantly gay", "adapted into live action", "weekly monster", "needs removed", "to be merged", "to be improved", "to be split and deleted", "to be moved", "to be split"}, new List<string>()},
             new object[] {TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source, new[] {"old animetags", "missing frogs"}, new List<string>()},
             new object[] {TagFilter.Filter.Invert | TagFilter.Filter.Source | TagFilter.Filter.Genre | TagFilter.Filter.Setting, Input, new[] { "comedy", "horror", "18 restricted", "japan", "violence", "manga", "fantasy", "shounen", "alternative past" }.ToList()},
+            new object[] {TagFilter.Filter.AnidbInternal, Array.Empty<string>(), new[] {"original work"}.ToList()},
+            new object[] {TagFilter.Filter.AnidbInternal, new[] {"new"}, new[] {"original work"}.ToList()},
+            new object[] {TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source, new[] {"original work", "new"}, new List<string>()},
+            new object[] {TagFilter.Filter.AnidbInternal, new[] {"action", "manga", "original work"}, new[] {"action", "manga"}.ToList()},
+            new object[] {TagFilter.Filter.Source | TagFilter.Filter.Invert, new[] {"manga", "original work"}, new[] {"manga"}.ToList()},
+            new object[] {TagFilter.Filter.Source | TagFilter.Filter.Invert, new string[] {"action"}, new[] {"original work"}.ToList()},
+            new object[] {TagFilter.Filter.Genre | TagFilter.Filter.Invert, new string[] {"action"}, new[] {"action"}.ToList()},
+            new object[] {TagFilter.Filter.AnidbInternal, new[] {"original work"}, new[] {"original work"}.ToList()},
+            new object[] {TagFilter.Filter.AnidbInternal, new[] {"new", "original work"}, new[] {"original work"}.ToList()},
         };
 
         public static IEnumerable<object[]> InputData => new[] { new object[] { Input } };
