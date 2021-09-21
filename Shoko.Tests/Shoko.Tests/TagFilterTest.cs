@@ -19,13 +19,13 @@ namespace Shoko.Tests
         }
         
         public static string[] Input => new[] { "comedy", "Comedy", "horror", "18 restricted", "large breasts", "japan", "violence",
-            "manga", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past", "past"};
+            "original work", "manga", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past", "past"};
         public static string[] InputNoSource => new[] { "horror", "Horror", "18 restricted", "large breasts", "japan", "violence",
             "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins"};
         public static IEnumerable<object[]> Data => new[]
         {
-            new object[] {TagFilter.Filter.Genre, Input, new[] { "large breasts", "japan", "manga", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past" }.ToList() },
-            new object[] {TagFilter.Filter.Genre, Input.Concat(new[] {"new"}).ToArray(), new[] { "large breasts", "japan", "manga", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past", "original work" }.ToList() },
+            new object[] {TagFilter.Filter.Genre, Input, new[] { "large breasts", "japan", "original work", "manga", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past" }.ToList() },
+            new object[] {TagFilter.Filter.Genre, Input.Concat(new[] {"new"}).ToArray(), new[] { "large breasts", "japan", "original work", "manga", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past" }.ToList() },
             new object[] {TagFilter.Filter.Genre, InputNoSource, new[] { "large breasts", "japan", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "original work" }.ToList() },
             new object[] {TagFilter.Filter.Source, Input, new[] { "comedy", "horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins", "alternative past" }.ToList() },
             new object[] {TagFilter.Filter.Source, InputNoSource, new[] { "horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "earth", "asia", "noitamina", "cgi", "long episodes", "first girl wins" }.ToList() },

@@ -554,16 +554,20 @@ namespace Shoko.Server
                 tags.Remove(tag);
             }
 
-            tags.AddRange(toAdd.Where(tag => !toRemove.Contains(tag)));
+            var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
 
             // Add the "original work" tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
-            var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
             if (flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert) && !nameToTagDictionary.Any(tag => TagFilter.TagBlackListSource.Contains(tag.Key)))
             {
                 // cheap way to lookup original work tag
                 if (_tagRenameDictionary.TryGetValue("new", out var existing))
+                {
+                    nameToTagDictionary.Add(_nameSelector(existing), existing);
                     tags.Add(existing);
+                }
             }
+
+            tags.AddRange(toAdd.Where(tag => !nameToTagDictionary.ContainsValue(tag) && !toRemove.Contains(tag)));
         }
 
         private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, HashSet<T> toRemove, HashSet<T> toAdd)
