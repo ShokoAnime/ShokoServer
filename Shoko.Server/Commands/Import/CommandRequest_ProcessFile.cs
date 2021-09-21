@@ -114,6 +114,9 @@ namespace Shoko.Server.Commands
                 {
                     // check if we have any records from previous imports
                     crossRefs = RepoFactory.CrossRef_File_Episode.GetByHash(vidLocal.Hash);
+                    
+                    // stop processing if xrefs don't exist
+                    if (crossRefs == null || crossRefs.Count == 0) return;
 
                     // we assume that all episodes belong to the same anime
                     foreach (CrossRef_File_Episode xref in crossRefs)
