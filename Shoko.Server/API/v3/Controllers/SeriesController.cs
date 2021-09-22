@@ -85,11 +85,37 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
+        /// Get a Series from the AniDB ID
+        /// </summary>
+        /// <param name="id">AniDB ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{id}")]
+        public ActionResult<Series> GetSeriesByAniDBID(int id)
+        {
+            var ser = RepoFactory.AnimeSeries.GetByAnimeID(id);
+            if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
+            return new Series(HttpContext, ser);
+        }
+
+        /// <summary>
         /// Queue a refresh of the AniDB Info for series with ID
         /// </summary>
         /// <param name="id">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB/QueueRefresh")]
+        [HttpPost("AniDB/{id}/Refresh")]
+        public ActionResult QueueAniDBRefreshFromAniDBID(int id)
+        {
+            Series.QueueAniDBRefresh(id);
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Queue a refresh of the AniDB Info for series with ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpPost("{id}/AniDB/Refresh")]
         public ActionResult QueueAniDBRefresh(int id)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
@@ -214,6 +240,114 @@ namespace Shoko.Server.API.v3.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Search for series with given query in name or tag
+        /// </summary>
+        /// <param name="query">target string</param>
+        /// <param name="fuzzy">whether or not to use fuzzy search</param>
+        /// <param name="limit">number of return items</param>
+        /// <returns>List<see cref="SeriesSearchResult"/></returns>
+        [HttpGet("Search/{query}")]
+        public ActionResult<IEnumerable<SeriesSearchResult>> Search(string query, bool fuzzy = true, int limit = int.MaxValue)
+        {
+            SorensenDice search = new SorensenDice();
+            query = query.ToLowerInvariant();
+            query = query.Replace("+", " ");
+
+            List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(User.GetHideCategories()))
+                .AsParallel();
+
+            HashSet<string> languages = new HashSet<string>{"en", "x-jat"};
+            languages.UnionWith(ServerSettings.Instance.LanguagePreference);
+            var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
+            
+            if (fuzzy)
+                allSeries.ForAll(a => CheckTitlesFuzzy(search, languages, a, query, ref distLevenshtein, limit));
+            else
+                allSeries.ForAll(a => CheckTitles(languages, a, query, ref distLevenshtein, limit));
+
+            var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
+            {
+                var tempSeries = a.ToList();
+                tempSeries.Sort((j, k) =>
+                {
+                    var result1 = distLevenshtein[j];
+                    var result2 = distLevenshtein[k];
+                    var exactMatch = result1.Item1.CompareTo(result2.Item1);
+                    if (exactMatch != 0) return exactMatch;
+
+                    string title1 = j.GetSeriesName();
+                    string title2 = k.GetSeriesName();
+                    if (title1 == null && title2 == null) return 0;
+                    if (title1 == null) return 1;
+                    if (title2 == null) return -1;
+                    return string.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
+                });
+                var result = new SearchGrouping
+                {
+                    Series = a.OrderBy(b => b.AirDate).ToList(),
+                    Distance = distLevenshtein[tempSeries[0]].Item1,
+                    Match = distLevenshtein[tempSeries[0]].Item2
+                };
+                return result;
+            });
+
+            Dictionary<SVR_AnimeSeries, Tuple<double, string>> series = tempListToSort.OrderBy(a => a.Distance)
+                .ThenBy(a => a.Match.Length).SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a]);
+            foreach (KeyValuePair<SVR_AnimeSeries, Tuple<double, string>> ser in series)
+            {
+                seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value.Item2, ser.Value.Item1));
+                if (seriesList.Count >= limit)
+                {
+                    break;
+                }
+            }
+
+            return seriesList;
+        }
+
+        /// <summary>
+        /// Searches for series whose title starts with a string
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        [HttpGet("StartsWith/{query}")]
+        public ActionResult<List<SeriesSearchResult>> StartsWith(string query, int limit = int.MaxValue)
+        {
+            query = query.ToLowerInvariant();
+
+            List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
+            ConcurrentDictionary<SVR_AnimeSeries, string> tempSeries = new ConcurrentDictionary<SVR_AnimeSeries, string>();
+            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
+                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
+                                .FindInEnumerable(User.GetHideCategories()))
+                .AsParallel();
+
+            #region Search_TitlesOnly
+            allSeries.ForAll(a => CheckTitlesStartsWith(a, query, ref tempSeries, limit));
+            Dictionary<SVR_AnimeSeries, string> series =
+                tempSeries.OrderBy(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
+
+            foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
+            {
+                seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0));
+                if (seriesList.Count >= limit)
+                {
+                    break;
+                }
+            }
+
+            #endregion
+
+            return seriesList;
+        }
+
         #region internal function
 
         /// <summary>
@@ -273,76 +407,70 @@ namespace Shoko.Server.API.v3.Controllers
                     });
         }
 
+        /// <summary>
+        /// function used in search
+        /// </summary>
+        /// <param name="languages"></param>
+        /// <param name="a"></param>
+        /// <param name="query"></param>
+        /// <param name="distLevenshtein"></param>
+        /// <param name="limit"></param>
+        [NonAction]
+        private static void CheckTitles(HashSet<string> languages, SVR_AnimeSeries a, string query,
+            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>> distLevenshtein, int limit)
+        {
+            if (distLevenshtein.Count >= limit) return;
+            if (a?.Contract?.AniDBAnime?.AnimeTitles == null) return;
+            var dist = double.MaxValue;
+            string match = string.Empty;
+
+            var seriesTitles = a.Contract.AniDBAnime.AnimeTitles
+                .Where(b => languages.Contains(b.Language.ToLower()) &&
+                            b.TitleType != Shoko.Models.Constants.AnimeTitleType.ShortName).Select(b => b.Title)
+                .ToList();
+            foreach (string title in seriesTitles)
+            {
+                if (string.IsNullOrWhiteSpace(title)) continue;
+                var result = 0.0;
+                // Check for exact match
+                if (!title.Equals(query, StringComparison.Ordinal))
+                {
+                    var index = title.IndexOf(query, StringComparison.InvariantCultureIgnoreCase);
+                    if (index >= 0) result = ((double) title.Length - index) / title.Length * 0.8D; // ensure that 0.8 doesn't skip later
+                }
+                // For Dice, 1 is no reasonable match
+                if (result >= 1) continue;
+                // Don't count an error as liberally when the title is short
+                if (title.Length < 5 && result > 0.8) continue;
+                if (result < dist)
+                {
+                    match = title;
+                    dist = result;
+                } else if (Math.Abs(result - dist) < 0.00001)
+                {
+                    if (title.Length < match.Length) match = title;
+                }
+            }
+            // Keep the lowest distance, then by shortest title
+            if (dist < double.MaxValue)
+                distLevenshtein.AddOrUpdate(a, new Tuple<double, string>(dist, match),
+                    (key, oldValue) =>
+                    {
+                        if (oldValue.Item1 < dist) return oldValue;
+                        if (Math.Abs(oldValue.Item1 - dist) < 0.00001)
+                            return oldValue.Item2.Length < match.Length
+                                ? oldValue
+                                : new Tuple<double, string>(dist, match);
+
+                        return new Tuple<double, string>(dist, match);
+                    });
+        }
+
         class SearchGrouping
         {
             public List<SVR_AnimeSeries> Series { get; set; }
             public double Distance { get; set; }
             public string Match { get; set; }
-        }
-
-        /// <summary>
-        /// Search for series with given query in name or tag
-        /// </summary>
-        /// <param name="query">target string</param>
-        /// <param name="limit">number of return items</param>
-        /// <returns>List<see cref="SeriesSearchResult"/></returns>
-        [HttpGet("Search/{query}")]
-        public ActionResult<IEnumerable<SeriesSearchResult>> Search(string query, int limit = int.MaxValue)
-        {
-            SorensenDice search = new SorensenDice();
-            query = query.ToLowerInvariant();
-            query = query.Replace("+", " ");
-
-            List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(User.GetHideCategories()))
-                .AsParallel();
-
-            HashSet<string> languages = new HashSet<string>{"en", "x-jat"};
-            languages.UnionWith(ServerSettings.Instance.LanguagePreference);
-            var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
-            allSeries.ForAll(a => CheckTitlesFuzzy(search, languages, a, query, ref distLevenshtein, limit));
-
-            var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
-            {
-                var tempSeries = a.ToList();
-                tempSeries.Sort((j, k) =>
-                {
-                    var result1 = distLevenshtein[j];
-                    var result2 = distLevenshtein[k];
-                    var exactMatch = result1.Item1.CompareTo(result2.Item1);
-                    if (exactMatch != 0) return exactMatch;
-
-                    string title1 = j.GetSeriesName();
-                    string title2 = k.GetSeriesName();
-                    if (title1 == null && title2 == null) return 0;
-                    if (title1 == null) return 1;
-                    if (title2 == null) return -1;
-                    return string.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
-                });
-                var result = new SearchGrouping
-                {
-                    Series = a.OrderBy(b => b.AirDate).ToList(),
-                    Distance = distLevenshtein[tempSeries[0]].Item1,
-                    Match = distLevenshtein[tempSeries[0]].Item2
-                };
-                return result;
-            });
-
-            Dictionary<SVR_AnimeSeries, Tuple<double, string>> series = tempListToSort.OrderBy(a => a.Distance)
-                .ThenBy(a => a.Match.Length).SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a]);
-            foreach (KeyValuePair<SVR_AnimeSeries, Tuple<double, string>> ser in series)
-            {
-                seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value.Item2, ser.Value.Item1));
-                if (seriesList.Count >= limit)
-                {
-                    break;
-                }
-            }
-
-            return seriesList;
         }
 
         [NonAction]
@@ -365,44 +493,6 @@ namespace Shoko.Server.API.v3.Controllers
                 series.TryAdd(a, match);
         }
 
-        /// <summary>
-        /// Searches for series whose title starts with a string
-        /// </summary>
-        /// <param name="query"></param>
-        /// <param name="limit"></param>
-        /// <returns></returns>
-        [HttpGet("StartsWith/{query}")]
-        public ActionResult<List<SeriesSearchResult>> StartsWith(string query, int limit = int.MaxValue)
-        {
-            query = query.ToLowerInvariant();
-
-            List<SeriesSearchResult> seriesList = new List<SeriesSearchResult>();
-            ConcurrentDictionary<SVR_AnimeSeries, string> tempSeries = new ConcurrentDictionary<SVR_AnimeSeries, string>();
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(User.GetHideCategories()))
-                .AsParallel();
-
-            #region Search_TitlesOnly
-            allSeries.ForAll(a => CheckTitlesStartsWith(a, query, ref tempSeries, limit));
-            Dictionary<SVR_AnimeSeries, string> series =
-                tempSeries.OrderBy(a => a.Value).ToDictionary(a => a.Key, a => a.Value);
-
-            foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-            {
-                seriesList.Add(new SeriesSearchResult(HttpContext, ser.Key, ser.Value, 0));
-                if (seriesList.Count >= limit)
-                {
-                    break;
-                }
-            }
-
-            #endregion
-
-            return seriesList;
-        }
-
-        #endregion
+#endregion
     }
 }
