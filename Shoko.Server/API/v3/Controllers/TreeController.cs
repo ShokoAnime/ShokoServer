@@ -18,7 +18,6 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class TreeController : BaseController
     {
-        
         /// <summary>
         /// Get All Filters
         /// </summary>
@@ -36,7 +35,7 @@ namespace Shoko.Server.API.v3.Controllers
                 })
                 .Select(a => new Filter(HttpContext, a)).OrderBy(a => a.Name).ToList();
         }
-        
+
         /// <summary>
         /// Get groups for filter with ID
         /// </summary>
@@ -50,10 +49,12 @@ namespace Shoko.Server.API.v3.Controllers
             return f.GroupsIds[User.JMMUserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null).GroupFilterSort(f).Select(a => new Group(HttpContext, a)).ToList();
         }
-        
+
         /// <summary>
-        /// Get series for group with ID. Pass a <see cref="filterID"/> of 0 to apply no filtering
+        /// Get series for group with ID. Pass a filter id of 0 to apply no filtering
         /// </summary>
+        /// <param name="filterID"></param>
+        /// <param name="groupID"></param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
         public ActionResult<List<Series>> GetSeries(int filterID, int groupID)
@@ -78,7 +79,7 @@ namespace Shoko.Server.API.v3.Controllers
                     Series.GetAniDBInfo(HttpContext, RepoFactory.AniDB_Anime.GetByAnimeID(a.IDs.ID)).AirDate)
                 .ToList();
         }
-        
+
         /// <summary>
         /// Get Episodes for Series with seriesID. Filter or group info is irrelevant at this level
         /// </summary>
@@ -93,6 +94,4 @@ namespace Shoko.Server.API.v3.Controllers
                 .Where(a => a.Size > 0 || includeMissing).ToList();
         }
     }
-    
-    
 }
