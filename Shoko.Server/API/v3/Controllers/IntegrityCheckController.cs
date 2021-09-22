@@ -48,7 +48,6 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{id}/Start")]
         public ActionResult StartScan(int id)
         {
-            
             return Ok();
         }
     }
