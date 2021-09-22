@@ -16,9 +16,9 @@ namespace Shoko.Server.API.v3.Controllers
     {
         // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
         // Some may be patched to "", though.
-        
+
         // TODO some way of distinguishing what a normal user vs an admin can set.
-        
+
         /// <summary>
         /// Get all settings
         /// </summary>
