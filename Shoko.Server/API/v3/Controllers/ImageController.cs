@@ -13,7 +13,7 @@ namespace Shoko.Server.API.v3.Controllers
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     public class ImageController : BaseController
     {
-        
+
         /// <summary>
         /// /api/v3/image/tvdb/fanart/12
         /// returns an image
@@ -48,7 +48,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (string.IsNullOrEmpty(path)) return NotFound("The image was not found");
             return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
-        
+
         /// <summary>
         /// Gets a static server resource
         /// </summary>
