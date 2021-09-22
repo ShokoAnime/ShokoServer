@@ -43,7 +43,7 @@ namespace Shoko.Server.API.v3.Controllers
             return RepoFactory.GroupFilter.GetByParentID(id).Select(a => new Filter(HttpContext, a))
                 .OrderBy(a => a.Name).ToList();
         }
-        
+
         /// <summary>
         /// Get Conditions for Filter with id
         /// </summary>
@@ -56,7 +56,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (gf == null) return BadRequest("No filter with id");
             return Filter.GetConditions(gf);
         }
-        
+
         /// <summary>
         /// Get Sorting Criteria for Filter with id
         /// </summary>
@@ -85,7 +85,7 @@ namespace Shoko.Server.API.v3.Controllers
             return gf.GroupsIds[User.JMMUserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null).GroupFilterSort(gf).Select(a => new Group(HttpContext, a)).ToList();
         }
-        
+
         /// <summary>
         /// Create or update a filter
         /// </summary>
