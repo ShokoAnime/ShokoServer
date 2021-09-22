@@ -74,7 +74,7 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Edit Import Folder. This replaces all values. 
+        /// Edit Import Folder. This replaces all values.
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPut]
@@ -122,7 +122,7 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Scan a Specific Import Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves 
+        /// Scan a Specific Import Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves
         /// </summary>
         /// <param name="id">Import Folder ID</param>
         /// <returns></returns>
