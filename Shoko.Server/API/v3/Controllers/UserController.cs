@@ -82,7 +82,7 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Edit User. This replaces all values, except Plex and Password. 
+        /// Edit User. This replaces all values, except Plex and Password.
         /// </summary>
         /// <returns>APIStatus</returns>
         [HttpPut]
@@ -111,7 +111,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return InternalError(e.Message);
             }
         }
-        
+
         /// <summary>
         /// Change the Password to the new password. Can only be called by admins or the user the password belongs to
         /// </summary>
@@ -157,7 +157,7 @@ namespace Shoko.Server.API.v3.Controllers
             var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
             allAdmins.Remove(user);
             if (allAdmins.Count < 1) return BadRequest("There must be at least one admin user");
-            
+
             RepoFactory.JMMUser.RemoveUser(id, true);
             return Ok();
         }
