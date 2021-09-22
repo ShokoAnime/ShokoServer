@@ -22,7 +22,7 @@ namespace Shoko.Server.API.v3.Controllers
                 {
                     Description = r.Value.description,
                     Id = r.Key,
-                    Enabled = ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(r.Key) ? ServerSettings.Instance.Plugins.EnabledRenamers[r.Key] : true, 
+                    Enabled = ServerSettings.Instance.Plugins.EnabledRenamers.ContainsKey(r.Key) ? ServerSettings.Instance.Plugins.EnabledRenamers[r.Key] : true,
                     Priority = ServerSettings.Instance.Plugins.Priority.Contains(r.Key) ? ServerSettings.Instance.Plugins.Priority.IndexOf(r.Key) : int.MaxValue,
                 };
             }).ToList();
