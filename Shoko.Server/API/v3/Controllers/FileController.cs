@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -32,7 +30,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (videoLocal == null) return BadRequest("No File with ID");
             return new File(HttpContext, videoLocal);
         }
-        
+
         /// <summary>
         /// Get the AniDB details for file with Shoko ID
         /// </summary>
@@ -47,7 +45,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null) return BadRequest("AniDB data not found");
             return Models.Shoko.File.GetAniDBInfo(id);
         }
-        
+
         /// <summary>
         /// Get the MediaInfo model for file with VideoLocal ID
         /// </summary>
@@ -60,7 +58,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (videoLocal == null) return BadRequest("No File with ID");
             return Models.Shoko.File.GetMedia(id);
         }
-        
+
         /// <summary>
         /// Mark a file as watched or unwatched
         /// </summary>
@@ -68,11 +66,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="watched">Is it watched?</param>
         /// <returns></returns>
         [HttpPost("{id}/watched/{watched}")]
+        [Obsolete]
         public ActionResult SetWatchedStatusOnFile(int id, bool watched)
         {
             var file = RepoFactory.VideoLocal.GetByID(id);
-            if (file == null) return BadRequest("Could not get the videolocal with ID: " + id);
-            
+            if (file == null) return BadRequest("No File with ID");
+
             file.ToggleWatchedStatus(watched, User.JMMUserID);
             return Ok();
         }
@@ -112,7 +111,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return Ok();
         }
-        
+
         /// <summary>
         /// Run a file through AVDump
         /// </summary>
@@ -123,13 +122,13 @@ namespace Shoko.Server.API.v3.Controllers
         {
             if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
                 return BadRequest("Missing AVDump API key");
-            
+
             var vl = RepoFactory.VideoLocal.GetByID(id);
             if (vl == null) return NotFound();
-            
+
             var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return this.NoContent();
-            
+
             var result = AVDumpHelper.DumpFile(file).Replace("\r", "");
 
             return new AVDumpResult()
@@ -161,7 +160,7 @@ namespace Shoko.Server.API.v3.Controllers
                 }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
             return results;
         }
-        
+
         /// <summary>
         /// Search for a file by path or name via regex. Internally, it will convert \/ to the system directory separator and match against the string
         /// </summary>
@@ -186,7 +185,7 @@ namespace Shoko.Server.API.v3.Controllers
                 }).Select(a => new File.FileDetailed(HttpContext, a)).ToList();
             return results;
         }
-        
+
         /// <summary>
         /// Get Recently Added Files
         /// </summary>
@@ -217,8 +216,8 @@ namespace Shoko.Server.API.v3.Controllers
         /// Delete a file.
         /// </summary>
         /// <param name="id">The VideoLocal_Place ID. This cares about which location we are deleting from.</param>
-        /// <param name="removeFolder">This causes the empty folder removal to skipped if set to false. 
-        /// This significantly speeds up batch deleting if you are deleting many files in the same folder. 
+        /// <param name="removeFolder">This causes the empty folder removal to skipped if set to false.
+        /// This significantly speeds up batch deleting if you are deleting many files in the same folder.
         /// It may be specified in the query.</param>
         /// <returns></returns>
         [Authorize("admin")]
@@ -234,7 +233,7 @@ namespace Shoko.Server.API.v3.Controllers
             }
             catch (Exception e)
             {
-                return new APIMessage(HttpStatusCode.InternalServerError, e.Message);
+                return InternalError(e.Message);
             }
         }
     }
