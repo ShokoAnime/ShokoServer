@@ -168,7 +168,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             return ServerState.Instance.ApiInUse;
         }
-        
+
         /// <summary>
         /// Gets the Default user's credentials. Will only return on first run
         /// </summary>
