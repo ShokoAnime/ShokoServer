@@ -2,7 +2,6 @@ using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Newtonsoft.Json;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.API
@@ -15,7 +14,7 @@ namespace Shoko.Server.API
     {
         // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
         protected new SVR_JMMUser User => HttpContext.GetUser();
-        
+
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             context.HttpContext.Items.Add("Random", new Random());
