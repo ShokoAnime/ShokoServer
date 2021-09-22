@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v3.Controllers
                 ChildItems childItems = null;
                 try
                 {
-                    
+
                     childItems = d.IsReady ? new ChildItems()
                     {
                         Files = d.RootDirectory.GetFiles()?.Length ?? 0,
@@ -41,12 +41,12 @@ namespace Shoko.Server.API.v3.Controllers
                 };
             }).ToList();
         }
-        
+
         [HttpGet("")]
         public ActionResult<IEnumerable<Folder>> GetFolder([FromQuery] string path)
         {
             if (!Directory.Exists(path)) return NotFound("Directory not found");
-            
+
             var root  = new DirectoryInfo(path);
             return root.GetDirectories().Select(dir =>
             {
