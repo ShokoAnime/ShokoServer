@@ -15,7 +15,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -47,7 +46,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
         }
-        
+
         /// <summary>
         /// Get the series that reside in the path that ends with <param name="path"></param>
         /// </summary>
@@ -83,14 +82,25 @@ namespace Shoko.Server.API.v3.Controllers
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetAniDBInfo(HttpContext, anime);
         }
+        /// <summary>
+        /// Queue a refresh of the AniDB Info for series with ID
+        /// </summary>
+        /// <param name="id">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/{id}/Refresh")]
+        public ActionResult QueueAniDBRefresh(int id)
+        {
+            Series.QueueAniDBRefresh(id);
+            return NoContent();
+        }
 
         /// <summary>
         /// Queue a refresh of the AniDB Info for series with ID
         /// </summary>
         /// <param name="id">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB/QueueRefresh")]
-        public ActionResult QueueAniDBRefresh(int id)
+        [HttpGet("{id}/AniDB/Refresh")]
+        public ActionResult QueueAnimeRefresh(int id)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(id);
             if (ser == null) return BadRequest("No Series with ID");
@@ -117,7 +127,7 @@ namespace Shoko.Server.API.v3.Controllers
             Series.RefreshAniDBFromCachedXML(HttpContext, anime);
             return NoContent();
         }
-        
+
         /// <summary>
         /// Get TvDB Info for series with ID
         /// </summary>
@@ -131,7 +141,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetTvDBInfo(HttpContext, ser);
         }
-        
+
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.
         /// </summary>
@@ -146,12 +156,13 @@ namespace Shoko.Server.API.v3.Controllers
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetArt(HttpContext, ser.AniDB_ID, includeDisabled);
         }
-        
+
         /// <summary>
         /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
         /// </summary>
         /// <param name="id">Shoko ID</param>
         /// <param name="filter"></param>
+        /// <param name="excludeDescriptions"></param>
         /// <returns></returns>
         [HttpGet("{id}/Tags/{filter}")]
         public ActionResult<List<Tag>> GetSeriesTags(int id, TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
@@ -163,7 +174,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetTags(HttpContext, anime, filter, excludeDescriptions);
         }
-        
+
         /// <summary>
         /// Get the cast listing for series with ID
         /// </summary>
