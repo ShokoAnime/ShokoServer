@@ -39,7 +39,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (anidb == null) return BadRequest("AniDB data not found");
             return Episode.GetAniDBInfo(anidb);
         }
-        
+
         /// <summary>
         /// Get the TvDB details for episode with Shoko ID
         /// </summary>
@@ -52,7 +52,7 @@ namespace Shoko.Server.API.v3.Controllers
             if (ep == null) return BadRequest("No Episode with ID");
             return Episode.GetTvDBInfo(ep.AniDB_EpisodeID);
         }
-        
+
         /// <summary>
         /// Set the watched status on an episode
         /// </summary>
@@ -64,7 +64,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var ep = RepoFactory.AnimeEpisode.GetByID(id);
             if (ep == null) return BadRequest("Could not get episode with ID: " + id);
-            
+
             ep.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
             return Ok();
         }
