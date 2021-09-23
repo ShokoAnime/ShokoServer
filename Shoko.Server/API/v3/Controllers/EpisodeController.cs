@@ -15,7 +15,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get an Episode by Shoko ID
         /// </summary>
-        /// <param name="episodeID"></param>
+        /// <param name="episodeID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{episodeID}")]
         public ActionResult<Episode> GetEpisode(int episodeID)
