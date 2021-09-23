@@ -23,12 +23,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get File Details
         /// </summary>
-        /// <param name="id">Shoko VideoLocalID</param>
+        /// <param name="fileID">Shoko VideoLocalID</param>
         /// <returns></returns>
-        [HttpGet("{id}")]
-        public ActionResult<File> GetFile(int id)
+        [HttpGet("{fileID}")]
+        public ActionResult<File> GetFile(int fileID)
         {
-            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            var videoLocal = RepoFactory.VideoLocal.GetByID(fileID);
             if (videoLocal == null) return BadRequest("No File with ID");
             return new File(HttpContext, videoLocal);
         }
@@ -36,42 +36,42 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the AniDB details for file with Shoko ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="fileID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB")]
-        public ActionResult<File.AniDB> GetFileAniDBDetails(int id)
+        [HttpGet("{fileID}/AniDB")]
+        public ActionResult<File.AniDB> GetFileAniDBDetails(int fileID)
         {
-            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            var videoLocal = RepoFactory.VideoLocal.GetByID(fileID);
             if (videoLocal == null) return BadRequest("No File with ID");
             var anidb = videoLocal.GetAniDBFile();
             if (anidb == null) return BadRequest("AniDB data not found");
-            return Models.Shoko.File.GetAniDBInfo(id);
+            return Models.Shoko.File.GetAniDBInfo(fileID);
         }
         
         /// <summary>
         /// Get the MediaInfo model for file with VideoLocal ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="fileID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/MediaInfo")]
-        public ActionResult<MediaContainer> GetFileMediaInfo(int id)
+        [HttpGet("{fileID}/MediaInfo")]
+        public ActionResult<MediaContainer> GetFileMediaInfo(int fileID)
         {
-            var videoLocal = RepoFactory.VideoLocal.GetByID(id);
+            var videoLocal = RepoFactory.VideoLocal.GetByID(fileID);
             if (videoLocal == null) return BadRequest("No File with ID");
-            return Models.Shoko.File.GetMedia(id);
+            return Models.Shoko.File.GetMedia(fileID);
         }
         
         /// <summary>
         /// Mark a file as watched or unwatched
         /// </summary>
-        /// <param name="id">VideoLocal ID. Watched Status is kept per file, no matter how many copies or where they are.</param>
+        /// <param name="fileID">VideoLocal ID. Watched Status is kept per file, no matter how many copies or where they are.</param>
         /// <param name="watched">Is it watched?</param>
         /// <returns></returns>
-        [HttpPost("{id}/watched/{watched}")]
-        public ActionResult SetWatchedStatusOnFile(int id, bool watched)
+        [HttpPost("{fileID}/watched/{watched}")]
+        public ActionResult SetWatchedStatusOnFile(int fileID, bool watched)
         {
-            var file = RepoFactory.VideoLocal.GetByID(id);
-            if (file == null) return BadRequest("Could not get the videolocal with ID: " + id);
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null) return BadRequest("Could not get the videolocal with ID: " + fileID);
             
             file.ToggleWatchedStatus(watched, User.JMMUserID);
             return Ok();
@@ -80,15 +80,15 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Update either watch status, resume position, or both.
         /// </summary>
-        /// <param name="id">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
+        /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
         /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
         /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
         /// <returns></returns>
-        [HttpPatch("{id}/Scrobble")]
-        public ActionResult ScrobbleStatusOnFile(int id, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+        [HttpPatch("{fileID}/Scrobble")]
+        public ActionResult ScrobbleStatusOnFile(int fileID, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
         {
-            var file = RepoFactory.VideoLocal.GetByID(id);
-            if (file == null) return BadRequest("Could not get videolocal with ID: " + id);
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null) return BadRequest("Could not get videolocal with ID: " + fileID);
 
             if (!(watched ?? false) && resumePosition != null)
             {
@@ -116,15 +116,15 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Run a file through AVDump
         /// </summary>
-        /// <param name="id">VideoLocal ID</param>
+        /// <param name="fileID">VideoLocal ID</param>
         /// <returns></returns>
-        [HttpPost("{id}/avdump")]
-        public ActionResult<AVDumpResult> AvDumpFile(int id)
+        [HttpPost("{fileID}/avdump")]
+        public ActionResult<AVDumpResult> AvDumpFile(int fileID)
         {
             if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
                 return BadRequest("Missing AVDump API key");
             
-            var vl = RepoFactory.VideoLocal.GetByID(id);
+            var vl = RepoFactory.VideoLocal.GetByID(fileID);
             if (vl == null) return NotFound();
             
             var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
@@ -216,17 +216,17 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Delete a file.
         /// </summary>
-        /// <param name="id">The VideoLocal_Place ID. This cares about which location we are deleting from.</param>
+        /// <param name="fileID">The VideoLocal_Place ID. This cares about which location we are deleting from.</param>
         /// <param name="removeFolder">This causes the empty folder removal to skipped if set to false. 
         /// This significantly speeds up batch deleting if you are deleting many files in the same folder. 
         /// It may be specified in the query.</param>
         /// <returns></returns>
         [Authorize("admin")]
-        [HttpDelete("{id}")]
-        public ActionResult DeleteFile(int id, [FromQuery] bool removeFolder = true)
+        [HttpDelete("{fileID}")]
+        public ActionResult DeleteFile(int fileID, [FromQuery] bool removeFolder = true)
         {
-            var file = RepoFactory.VideoLocalPlace.GetByID(id);
-            if (file == null) return BadRequest("Could not get the VideoLocal_Place with ID: " + id);
+            var file = RepoFactory.VideoLocalPlace.GetByID(fileID);
+            if (file == null) return BadRequest("Could not get the VideoLocal_Place with ID: " + fileID);
             try
             {
                 file.RemoveRecordAndDeletePhysicalFile(removeFolder);

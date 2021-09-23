@@ -51,14 +51,14 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Patch an Import Folder with JSON Patch.
         /// </summary>
-        /// <param name="id">Import Folder ID</param>
+        /// <param name="folderID">Import Folder ID</param>
         /// <param name="folder">JSON Patch document</param>
         /// <returns></returns>
-        [HttpPatch("{id}")]
-        public ActionResult PatchImportFolder(int id, [FromBody] JsonPatchDocument<ImportFolder> folder)
+        [HttpPatch("{folderID}")]
+        public ActionResult PatchImportFolder(int folderID, [FromBody] JsonPatchDocument<ImportFolder> folder)
         {
             if (folder == null) return BadRequest("object is invalid.");
-            var existing = RepoFactory.ImportFolder.GetByID(id);
+            var existing = RepoFactory.ImportFolder.GetByID(folderID);
             if (existing == null) return BadRequest("No Import Folder with ID");
             var patchModel = new ImportFolder(existing);
             folder.ApplyTo(patchModel, ModelState);
@@ -100,38 +100,38 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Delete an Import Folder
         /// </summary>
-        /// <param name="id">Import Folder ID</param>
+        /// <param name="folderID">Import Folder ID</param>
         /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>
         /// <param name="updateMyList">Pretty self explanatory. If this is true, and <paramref name="removeRecords"/> is true, then it will update the list status</param>
         /// <returns></returns>
-        [HttpDelete("{id}")]
-        public ActionResult DeleteFolder(int id, bool removeRecords = true, bool updateMyList = true)
+        [HttpDelete("{folderID}")]
+        public ActionResult DeleteFolder(int folderID, bool removeRecords = true, bool updateMyList = true)
         {
-            if (id == 0) return BadRequest("ID missing");
+            if (folderID == 0) return BadRequest("ID missing");
 
             if (!removeRecords)
             {
                 // These are annoying to clean up later, so do it now. We can easily recreate them.
-                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(id));
-                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(id));
-                RepoFactory.ImportFolder.Delete(id);
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(folderID));
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(folderID));
+                RepoFactory.ImportFolder.Delete(folderID);
                 return Ok();
             }
-            string res = Importer.DeleteImportFolder(id, updateMyList);
+            string res = Importer.DeleteImportFolder(folderID, updateMyList);
             return res == string.Empty ? Ok() : InternalError(res);
         }
 
         /// <summary>
         /// Scan a Specific Import Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves 
         /// </summary>
-        /// <param name="id">Import Folder ID</param>
+        /// <param name="folderID">Import Folder ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/Scan")]
-        public ActionResult ScanImportFolder(int id)
+        [HttpGet("{folderID}/Scan")]
+        public ActionResult ScanImportFolder(int folderID)
         {
-            var folder = RepoFactory.ImportFolder.GetByID(id);
+            var folder = RepoFactory.ImportFolder.GetByID(folderID);
             if (folder == null) return BadRequest("No Import Folder with ID");
-            Importer.RunImport_ScanFolder(id);
+            Importer.RunImport_ScanFolder(folderID);
             return Ok();
         }
     }

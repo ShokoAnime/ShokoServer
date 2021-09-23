@@ -15,12 +15,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get an Episode by Shoko ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="episodeID"></param>
         /// <returns></returns>
-        [HttpGet("{id}")]
-        public ActionResult<Episode> GetEpisode(int id)
+        [HttpGet("{episodeID}")]
+        public ActionResult<Episode> GetEpisode(int episodeID)
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(id);
+            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep == null) return BadRequest("No Episode with ID");
             return new Episode(HttpContext, ep);
         }
@@ -28,12 +28,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the AniDB details for episode with Shoko ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="episodeID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB")]
-        public ActionResult<Episode.AniDB> GetEpisodeAniDBDetails(int id)
+        [HttpGet("{episodeID}/AniDB")]
+        public ActionResult<Episode.AniDB> GetEpisodeAniDBDetails(int episodeID)
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(id);
+            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep == null) return BadRequest("No Episode with ID");
             var anidb = ep.AniDB_Episode;
             if (anidb == null) return BadRequest("AniDB data not found");
@@ -43,12 +43,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the TvDB details for episode with Shoko ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="episodeID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/TvDB")]
-        public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails(int id)
+        [HttpGet("{episodeID}/TvDB")]
+        public ActionResult<List<Episode.TvDB>> GetEpisodeTvDBDetails(int episodeID)
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(id);
+            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep == null) return BadRequest("No Episode with ID");
             return Episode.GetTvDBInfo(ep.AniDB_EpisodeID);
         }
@@ -56,14 +56,14 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Set the watched status on an episode
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="episodeID">Shoko ID</param>
         /// <param name="watched"></param>
         /// <returns></returns>
-        [HttpPost("{id}/watched/{watched}")]
-        public ActionResult SetWatchedStatusOnEpisode(int id, bool watched)
+        [HttpPost("{episodeID}/watched/{watched}")]
+        public ActionResult SetWatchedStatusOnEpisode(int episodeID, bool watched)
         {
-            var ep = RepoFactory.AnimeEpisode.GetByID(id);
-            if (ep == null) return BadRequest("Could not get episode with ID: " + id);
+            var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
+            if (ep == null) return BadRequest("Could not get episode with ID: " + episodeID);
             
             ep.ToggleWatchedStatus(watched, true, DateTime.Now, true, User.JMMUserID, true);
             return Ok();

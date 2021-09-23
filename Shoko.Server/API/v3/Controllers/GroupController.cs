@@ -29,12 +29,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the group with ID
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="groupID"></param>
         /// <returns></returns>
-        [HttpGet("{id}")]
-        public ActionResult<Group> GetGroup(int id)
+        [HttpGet("{groupID}")]
+        public ActionResult<Group> GetGroup(int groupID)
         {
-            var grp = RepoFactory.AnimeGroup.GetByID(id);
+            var grp = RepoFactory.AnimeGroup.GetByID(groupID);
             if (grp == null) return BadRequest("No Group with ID");
             return new Group(HttpContext, grp);
         }

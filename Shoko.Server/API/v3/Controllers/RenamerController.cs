@@ -28,21 +28,21 @@ namespace Shoko.Server.API.v3.Controllers
             }).ToList();
         }
 
-        [HttpDelete("{renamerId}")]
-        public ActionResult Disable(string renamerId)
+        [HttpDelete("{renamerID}")]
+        public ActionResult Disable(string renamerID)
         {
-            ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = false;
+            ServerSettings.Instance.Plugins.EnabledRenamers[renamerID] = false;
             ServerSettings.Instance.SaveSettings();
             return Ok();
         }
 
-        [HttpPatch("{renamerId}")]
-        public ActionResult SetPriority(string renamerId, [FromBody] int priority)
+        [HttpPatch("{renamerID}")]
+        public ActionResult SetPriority(string renamerID, [FromBody] int priority)
         {
-            if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(renamerId, out bool isEnabled) && !isEnabled)
-                ServerSettings.Instance.Plugins.EnabledRenamers[renamerId] = true;
+            if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(renamerID, out bool isEnabled) && !isEnabled)
+                ServerSettings.Instance.Plugins.EnabledRenamers[renamerID] = true;
 
-            ServerSettings.Instance.Plugins.RenamerPriorities[renamerId] = priority;
+            ServerSettings.Instance.Plugins.RenamerPriorities[renamerID] = priority;
             ServerSettings.Instance.SaveSettings();
 
             return Ok();

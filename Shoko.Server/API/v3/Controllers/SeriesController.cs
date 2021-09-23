@@ -37,12 +37,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}")]
-        public ActionResult<Series> GetSeries(int id)
+        [HttpGet("{seriesID}")]
+        public ActionResult<Series> GetSeries(int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
@@ -71,12 +71,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get AniDB Info for series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB")]
-        public ActionResult<Series.AniDB> GetSeriesAniDBDetails(int id)
+        [HttpGet("{seriesID}/AniDB")]
+        public ActionResult<Series.AniDB> GetSeriesAniDBDetails(int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
@@ -87,38 +87,38 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get a Series from the AniDB ID
         /// </summary>
-        /// <param name="id">AniDB ID</param>
+        /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
-        [HttpGet("AniDB/{id}")]
-        public ActionResult<Series> GetSeriesByAniDBID(int id)
+        [HttpGet("AniDB/{anidbID}")]
+        public ActionResult<Series> GetSeriesByAniDBID(int anidbID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(id);
+            var ser = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
         }
 
         /// <summary>
-        /// Queue a refresh of the AniDB Info for series with ID
+        /// Queue a refresh of the AniDB Info for series with AniDB ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
-        [HttpPost("AniDB/{id}/Refresh")]
-        public ActionResult QueueAniDBRefreshFromAniDBID(int id)
+        [HttpPost("AniDB/{anidbID}/Refresh")]
+        public ActionResult QueueAniDBRefreshFromAniDBID(int anidbID)
         {
-            Series.QueueAniDBRefresh(id);
+            Series.QueueAniDBRefresh(anidbID);
             return NoContent();
         }
 
         /// <summary>
         /// Queue a refresh of the AniDB Info for series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
-        [HttpPost("{id}/AniDB/Refresh")]
-        public ActionResult QueueAniDBRefresh(int id)
+        [HttpPost("{seriesID}/AniDB/Refresh")]
+        public ActionResult QueueAniDBRefresh(int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
@@ -130,12 +130,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Forcefully refresh the AniDB Info from XML on disk for series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/AniDB/ForceRefreshFromXML")]
-        public ActionResult RefreshAniDBFromXML(int id)
+        [HttpGet("{seriesID}/AniDB/ForceRefreshFromXML")]
+        public ActionResult RefreshAniDBFromXML(int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
@@ -147,12 +147,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get TvDB Info for series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
-        [HttpGet("{id}/TvDB")]
-        public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails(int id)
+        [HttpGet("{seriesID}/TvDB")]
+        public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails(int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetTvDBInfo(HttpContext, ser);
@@ -161,13 +161,13 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <param name="includeDisabled"></param>
         /// <returns></returns>
-        [HttpGet("{id}/Images/{IncludeDisabled?}")]
-        public ActionResult<Images> GetSeriesImages(int id, bool includeDisabled)
+        [HttpGet("{seriesID}/Images/{IncludeDisabled?}")]
+        public ActionResult<Images> GetSeriesImages(int seriesID, bool includeDisabled)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetArt(HttpContext, ser.AniDB_ID, includeDisabled);
@@ -176,13 +176,13 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        [HttpGet("{id}/Tags/{filter}")]
-        public ActionResult<List<Tag>> GetSeriesTags(int id, TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
+        [HttpGet("{seriesID}/Tags/{filter}")]
+        public ActionResult<List<Tag>> GetSeriesTags(int seriesID, TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
@@ -193,13 +193,13 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get the cast listing for series with ID
         /// </summary>
-        /// <param name="id">Shoko ID</param>
+        /// <param name="seriesID">Shoko ID</param>
         /// <param name="roleType">Filter by role type</param>
         /// <returns></returns>
-        [HttpGet("{id}/Cast")]
-        public ActionResult<List<Role>> GetSeriesCast(int id, [FromQuery] Role.CreatorRoleType? roleType = null)
+        [HttpGet("{seriesID}/Cast")]
+        public ActionResult<List<Role>> GetSeriesCast(int seriesID, [FromQuery] Role.CreatorRoleType? roleType = null)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(id);
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetCast(HttpContext, ser.AniDB_ID, roleType);

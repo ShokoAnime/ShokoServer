@@ -34,13 +34,13 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Get Series for episode with epID.
+        /// Get Series for episode with episodeID.
         /// </summary>
         /// <returns></returns>
-        [HttpGet("Episode/{epID}/Series")]
-        public ActionResult<Series> GetSeriesFromEpisode(int epID)
+        [HttpGet("Episode/{episodeID}/Series")]
+        public ActionResult<Series> GetSeriesFromEpisode(int episodeID)
         {
-            var episode = RepoFactory.AnimeEpisode.GetByID(epID);
+            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (episode == null) return BadRequest("No episode with ID");
             var ser = episode.GetAnimeSeries();
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");

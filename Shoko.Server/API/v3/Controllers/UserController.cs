@@ -51,14 +51,14 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Patch a User with JSON Patch.
         /// </summary>
-        /// <param name="id">User ID</param>
+        /// <param name="userID">User ID</param>
         /// <param name="user">JSON Patch document</param>
         /// <returns></returns>
-        [HttpPatch("{id}")]
-        public ActionResult PatchUser(int id, [FromBody] JsonPatchDocument<User> user)
+        [HttpPatch("{userID}")]
+        public ActionResult PatchUser(int userID, [FromBody] JsonPatchDocument<User> user)
         {
             if (user == null) return BadRequest("object is invalid.");
-            var existing = RepoFactory.JMMUser.GetByID(id);
+            var existing = RepoFactory.JMMUser.GetByID(userID);
             if (existing == null) return BadRequest("No User with ID");
             var patchModel = new User(existing);
             user.ApplyTo(patchModel, ModelState);
@@ -147,18 +147,18 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Delete a User. This updates group filters and wipes internal watched states, so be careful.
         /// </summary>
-        /// <param name="id">User ID</param>
+        /// <param name="userID">User ID</param>
         /// <returns></returns>
-        [HttpDelete("{id}")]
-        public ActionResult DeleteUser(int id)
+        [HttpDelete("{userID}")]
+        public ActionResult DeleteUser(int userID)
         {
-            if (id == 0) return BadRequest("ID missing");
-            var user = RepoFactory.JMMUser.GetByID(id);
+            if (userID == 0) return BadRequest("ID missing");
+            var user = RepoFactory.JMMUser.GetByID(userID);
             var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
             allAdmins.Remove(user);
             if (allAdmins.Count < 1) return BadRequest("There must be at least one admin user");
             
-            RepoFactory.JMMUser.RemoveUser(id, true);
+            RepoFactory.JMMUser.RemoveUser(userID, true);
             return Ok();
         }
     }
