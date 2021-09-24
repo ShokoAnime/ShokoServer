@@ -2035,7 +2035,7 @@ namespace Shoko.Server.Renamer
                 if (!Directory.Exists(fldr.ImportFolderLocation)) continue;
 
                 // Continue if on a separate drive and there's no space
-                if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                if (!ServerSettings.Instance.Import.SkipDiskSpaceChecks && !args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
                     var available = 0L;
                     try
@@ -2100,7 +2100,7 @@ namespace Shoko.Server.Renamer
                     var dstImportFolder = place.ImportFolder;
                     if (dstImportFolder == null) continue;
                     // check space
-                    if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
+                    if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) && !ServerSettings.Instance.Import.SkipDiskSpaceChecks)
                     {
                         var available = 0L;
                         try

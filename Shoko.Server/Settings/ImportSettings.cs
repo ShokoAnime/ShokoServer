@@ -34,6 +34,8 @@ namespace Shoko.Server.Settings
 
         public int AggressiveFileLockWaitTimeSeconds { get; set; } = 8;
         
+        public bool SkipDiskSpaceChecks { get; set; }
+        
         public bool RenameThenMove { get; set; }
 
         public bool RenameOnImport { get; set; } = false;

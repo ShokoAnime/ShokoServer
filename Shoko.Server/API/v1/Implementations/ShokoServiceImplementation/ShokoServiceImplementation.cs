@@ -530,6 +530,7 @@ namespace Shoko.Server
                 ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
                 ServerSettings.Instance.Import.RenameOnImport = contractIn.Import_RenameOnImport;
                 ServerSettings.Instance.Import.MoveOnImport = contractIn.Import_MoveOnImport;
+                ServerSettings.Instance.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
 
                 // Language
                 ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();

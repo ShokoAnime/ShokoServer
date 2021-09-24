@@ -497,6 +497,7 @@ namespace Shoko.Server.Settings
                 Hash_CRC32 = Import.Hash_CRC32,
                 Hash_MD5 = Import.Hash_MD5,
                 Hash_SHA1 = Import.Hash_SHA1,
+                SkipDiskSpaceChecks = Import.SkipDiskSpaceChecks,
 
                 // Language
                 LanguagePreference = string.Join(",", LanguagePreference),
