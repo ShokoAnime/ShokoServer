@@ -151,6 +151,22 @@ namespace Shoko.Server.Commands
                             else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
+                    
+                    // check watched settings
+                    if (ServerSettings.Instance.AniDb.MyList_ReadWatched && aniFile.IsWatched > 0)
+                    {
+                        foreach (var user in RepoFactory.JMMUser.GetAll())
+                        {
+                            var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
+                            {
+                                JMMUserID = user.JMMUserID,
+                                VideoLocalID = vidLocal.VideoLocalID,
+                            };
+
+                            userRecord.WatchedDate = aniFile.WatchedDate ?? DateTime.Now;
+                            RepoFactory.VideoLocalUser.Save(userRecord);
+                        }
+                    }
                 }
 
                 PopulateAnimeForFile(vidLocal, animeIDs);

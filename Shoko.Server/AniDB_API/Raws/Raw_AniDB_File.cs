@@ -48,6 +48,8 @@ namespace AniDBAPI
 
         [XmlIgnore]
         public int IsWatched { get; set; }
+        [XmlIgnore]
+        public DateTime? WatchDate { get; set; }
 
         public string CRC { get; set; }
 
@@ -277,7 +279,8 @@ namespace AniDBAPI
             Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[40].Trim());
             Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[41].Trim());
 
-            IsWatched = 0; // 0 = false, 1 = true
+            IsWatched = string.IsNullOrEmpty(mlViewed) ? 0 : 1; // 0 = false, 1 = true
+            if (long.TryParse(mlViewDate, out long watchedStamp)) WatchDate = DateTime.UnixEpoch + TimeSpan.FromSeconds(watchedStamp);
             Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[38].Trim());
             Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[39].Trim());
 
@@ -293,6 +296,7 @@ namespace AniDBAPI
             //sb.Append(" | episodeID: " + EpisodeID.ToString());
             sb.Append(" | animeID: " + AnimeID);
             sb.Append(" | IsWatched: " + IsWatched);
+            sb.Append(" | WatchedDate: " + WatchDate);
             sb.Append(" | FileName: " + FileName);
             sb.Append(" | FileSize: " + FileSize);
             sb.Append(" | DateTimeUpdated: " + DateTimeUpdated);

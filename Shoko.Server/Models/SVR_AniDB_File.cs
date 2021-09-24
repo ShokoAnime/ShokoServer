@@ -287,6 +287,7 @@ namespace Shoko.Server.Models
             anidbfile.GroupID = fileInfo.GroupID;
             anidbfile.Hash = fileInfo.ED2KHash;
             anidbfile.IsWatched = fileInfo.IsWatched;
+            anidbfile.WatchedDate = fileInfo.WatchDate;
             anidbfile.MD5 = fileInfo.MD5;
             anidbfile.SHA1 = fileInfo.SHA1;
             anidbfile.FileVersion = fileInfo.FileVersion;
