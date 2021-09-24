@@ -78,6 +78,7 @@
         public bool Hash_MD5 { get; set; }
         public bool Hash_SHA1 { get; set; }
         public bool Import_UseExistingFileWatchedStatus { get; set; }
+        public bool SkipDiskSpaceChecks { get; set; }
 
         // Language
         public string LanguagePreference { get; set; }
