@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -198,16 +198,16 @@ namespace Shoko.Server.Providers.TvDB
                 var unused = GetSeriesInfoOnlineAsync(tvDBID, true).Result;
             }
 
-            CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID) ??
-                                       new CrossRef_AniDB_TvDB();
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDBAndProviderID(animeID, tvDBID.ToString(), Shoko.Models.Constants.Providers.TvDB) ??
+                                       new CrossRef_AniDB();
 
             xref.AniDBID = animeID;
 
-            xref.TvDBID = tvDBID;
-
+            xref.ProviderID = tvDBID.ToString();
+            xref.ProviderMediaType = MediaType.TvShow;
             xref.CrossRefSource = CrossRefSource.User;
 
-            RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
+            RepoFactory.CrossRef_AniDB.Save(xref);
 
             logger.Info(
                 $"Adding TvDB Link: AniDB(ID:{animeID}) -> TvDB(ID:{tvDBID})");
@@ -215,10 +215,10 @@ namespace Shoko.Server.Providers.TvDB
             if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
             {
                 // check for Trakt associations
-                List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+                List<CrossRef_AniDB> trakt = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.Trakt);
                 if (trakt.Count != 0)
-                    foreach (CrossRef_AniDB_TraktV2 a in trakt)
-                        RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                    foreach (CrossRef_AniDB a in trakt)
+                        RepoFactory.CrossRef_AniDB.Delete(a);
 
                 var cmd2 = new CommandRequest_TraktSearchAnime(animeID, false);
                 cmd2.Save();
@@ -228,17 +228,17 @@ namespace Shoko.Server.Providers.TvDB
         public static void RemoveAllAniDBTvDBLinks(int animeID, bool updateStats = true)
         {
             // check for Trakt associations
-            List<CrossRef_AniDB_TraktV2> trakt = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID);
+            List<CrossRef_AniDB> trakt = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.Trakt);
             if (trakt.Count != 0)
-                foreach (CrossRef_AniDB_TraktV2 a in trakt)
-                    RepoFactory.CrossRef_AniDB_TraktV2.Delete(a);
+                foreach (CrossRef_AniDB a in trakt)
+                    RepoFactory.CrossRef_AniDB.Delete(a);
 
-            List<CrossRef_AniDB_TvDB> xrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
+            List<CrossRef_AniDB> xrefs = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.TvDB);
             if (xrefs == null || xrefs.Count == 0) return;
 
-            foreach (CrossRef_AniDB_TvDB xref in xrefs)
+            foreach (CrossRef_AniDB xref in xrefs)
             {
-                RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
+                RepoFactory.CrossRef_AniDB.Delete(xref);
             }
 
             if (updateStats) SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
@@ -739,13 +739,14 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void LinkAniDBTvDBEpisode(int aniDBID, int tvDBID)
         {
-            CrossRef_AniDB_TvDB_Episode_Override xref =
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBAndTvDBEpisodeIDs(aniDBID, tvDBID) ??
-                new CrossRef_AniDB_TvDB_Episode_Override();
+            CrossRef_AniDB_Episode_Override xref =
+                RepoFactory.CrossRef_AniDB_Episode_Override.GetByAniDBAndProviderEpisodeIDs(aniDBID, Shoko.Models.Constants.Providers.TvDB, tvDBID.ToString()) ??
+                new CrossRef_AniDB_Episode_Override();
 
             xref.AniDBEpisodeID = aniDBID;
-            xref.TvDBEpisodeID = tvDBID;
-            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(xref);
+            xref.ProviderEpisodeID = tvDBID.ToString();
+            xref.Provider = Shoko.Models.Constants.Providers.TvDB;
+            RepoFactory.CrossRef_AniDB_Episode_Override.Save(xref);
 
             SVR_AnimeEpisode ep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(aniDBID);
 
@@ -758,14 +759,14 @@ namespace Shoko.Server.Providers.TvDB
         // Removes all TVDB information from a series, bringing it back to a blank state.
         public static void RemoveLinkAniDBTvDB(int animeID, int tvDBID)
         {
-            CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvDBID);
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDBAndProviderID(animeID, tvDBID.ToString(), Shoko.Models.Constants.Providers.TvDB);
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_TvDB.Delete(xref);
-            RepoFactory.CrossRef_AniDB_TvDB_Episode.Delete(
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeID));
-            RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Delete(
-                RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID));
+            RepoFactory.CrossRef_AniDB.Delete(xref);
+            RepoFactory.CrossRef_AniDB_Episode.Delete(
+                RepoFactory.CrossRef_AniDB_Episode.GetByAnimeID(animeID, Shoko.Models.Constants.Providers.TvDB));
+            RepoFactory.CrossRef_AniDB_Episode_Override.Delete(
+                RepoFactory.CrossRef_AniDB_Episode_Override.GetByAnimeID(animeID, Shoko.Models.Constants.Providers.TvDB));
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
         }
@@ -785,11 +786,11 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void UpdateAllInfo(bool force)
         {
-            IReadOnlyList<CrossRef_AniDB_TvDB> allCrossRefs = RepoFactory.CrossRef_AniDB_TvDB.GetAll();
-            foreach (CrossRef_AniDB_TvDB xref in allCrossRefs)
+            IReadOnlyList<CrossRef_AniDB> allCrossRefs = RepoFactory.CrossRef_AniDB.GetAll().Where(a=>a.Provider==Shoko.Models.Constants.Providers.TvDB).ToList();
+            foreach (CrossRef_AniDB xref in allCrossRefs)
             {
                 CommandRequest_TvDBUpdateSeries cmd =
-                    new CommandRequest_TvDBUpdateSeries(xref.TvDBID, force);
+                    new CommandRequest_TvDBUpdateSeries(int.Parse(xref.ProviderID), force);
                 cmd.Save();
             }
         }
@@ -889,11 +890,11 @@ namespace Shoko.Server.Providers.TvDB
 
                 foreach (SVR_AnimeSeries ser in RepoFactory.AnimeSeries.GetAll())
                 {
-                    List<CrossRef_AniDB_TvDB> xrefs = ser.GetCrossRefTvDB();
+                    List<CrossRef_AniDB> xrefs = ser.GetCrossRef(Shoko.Models.Constants.Providers.TvDB);
                     if (xrefs == null) continue;
 
-                    foreach (CrossRef_AniDB_TvDB xref in xrefs)
-                        if (!allTvDBIDs.Contains(xref.TvDBID)) allTvDBIDs.Add(xref.TvDBID);
+                    foreach (CrossRef_AniDB xref in xrefs)
+                        if (!allTvDBIDs.Contains(int.Parse(xref.ProviderID))) allTvDBIDs.Add(int.Parse(xref.ProviderID));
                 }
 
                 // get the time we last did a TvDB update

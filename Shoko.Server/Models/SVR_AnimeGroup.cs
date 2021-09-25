@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -729,17 +729,16 @@ namespace Shoko.Server.Models
             var subLangStatsByAnime = new Lazy<Dictionary<int, LanguageStat>>(
                 () => RepoFactory.Adhoc.GetSubtitleLanguageStatsByAnime(session, allAnimeIds.Value),
                 isThreadSafe: false);
-            var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TvDB>>(
-                () => RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
-            var traktXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_TraktV2>>(
-                () => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allAnimeIds.Value), isThreadSafe: false);
+            var tvDbXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB>>(
+                () => RepoFactory.CrossRef_AniDB.GetByAniDBIDs(allAnimeIds.Value, Shoko.Models.Constants.Providers.TvDB), isThreadSafe: false);
+            var traktXrefByAnime = new Lazy<ILookup<int, CrossRef_AniDB>>(
+                () => RepoFactory.CrossRef_AniDB.GetByAniDBIDs(allAnimeIds.Value, Shoko.Models.Constants.Providers.Trakt), isThreadSafe: false);
             var allVidQualByGroup = new Lazy<ILookup<int, string>>(
                 () => RepoFactory.Adhoc.GetAllVideoQualityByGroup(session, allGroupIds.Value), isThreadSafe: false);
-            var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_Other>>(
-                () => RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDsAndType(session, allAnimeIds.Value,
-                    CrossRefType.MovieDB), isThreadSafe: false);
-            var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB_MAL>>(
-                () => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeIDs(session, allAnimeIds.Value), isThreadSafe: false);
+            var movieDbXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB>>(
+                () => RepoFactory.CrossRef_AniDB.GetByAniDBIDs(allAnimeIds.Value, Shoko.Models.Constants.Providers.MovieDB), isThreadSafe: false);
+            var malXRefByAnime = new Lazy<ILookup<int, CrossRef_AniDB>>(
+                () => RepoFactory.CrossRef_AniDB.GetByAniDBIDs(allAnimeIds.Value, Shoko.Models.Constants.Providers.MAL), isThreadSafe: false);
             var votesByGroup = BatchGetVotes(animeGroups);
             DateTime now = DateTime.Now;
 

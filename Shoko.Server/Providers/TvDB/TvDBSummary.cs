@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using NLog;
 using Shoko.Models.Server;
@@ -16,9 +16,9 @@ namespace Shoko.Models.TvDB
         public Dictionary<int, TvDBDetails> TvDetails = new Dictionary<int, TvDBDetails>();
 
         // All the TvDB cross refs for this anime
-        private List<CrossRef_AniDB_TvDB> crossRefTvDB;
+        private List<CrossRef_AniDB> crossRefTvDB;
 
-        public List<CrossRef_AniDB_TvDB> CrossRefTvDB
+        public List<CrossRef_AniDB> CrossRefTvDB
         {
             get
             {
@@ -34,7 +34,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDB = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+                crossRefTvDB = RepoFactory.CrossRef_AniDB.GetByAniDB(AnimeID, Shoko.Models.Constants.Providers.TvDB);
             }
             catch (Exception ex)
             {
@@ -43,9 +43,9 @@ namespace Shoko.Models.TvDB
         }
 
         // All the episode overrides for this anime
-        private List<CrossRef_AniDB_TvDB_Episode_Override> crossRefTvDBEpisodes;
+        private List<CrossRef_AniDB_Episode_Override> crossRefTvDBEpisodes;
 
-        public List<CrossRef_AniDB_TvDB_Episode_Override> CrossRefTvDBEpisodes
+        public List<CrossRef_AniDB_Episode_Override> CrossRefTvDBEpisodes
         {
             get
             {
@@ -66,8 +66,8 @@ namespace Shoko.Models.TvDB
                 if (dictTvDBCrossRefEpisodes == null)
                 {
                     dictTvDBCrossRefEpisodes = new Dictionary<int, int>();
-                    foreach (CrossRef_AniDB_TvDB_Episode_Override xrefEp in CrossRefTvDBEpisodes)
-                        dictTvDBCrossRefEpisodes[xrefEp.AniDBEpisodeID] = xrefEp.TvDBEpisodeID;
+                    foreach (CrossRef_AniDB_Episode_Override xrefEp in CrossRefTvDBEpisodes)
+                        dictTvDBCrossRefEpisodes[xrefEp.AniDBEpisodeID] = int.Parse(xrefEp.ProviderEpisodeID);
                 }
                 return dictTvDBCrossRefEpisodes;
             }
@@ -121,7 +121,7 @@ namespace Shoko.Models.TvDB
         {
             try
             {
-                crossRefTvDBEpisodes = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(AnimeID);
+                crossRefTvDBEpisodes = RepoFactory.CrossRef_AniDB_Episode_Override.GetByAnimeID(AnimeID, Shoko.Models.Constants.Providers.TvDB);
             }
             catch (Exception ex)
             {
@@ -150,10 +150,10 @@ namespace Shoko.Models.TvDB
         {
             if (CrossRefTvDB == null) return;
 
-            foreach (CrossRef_AniDB_TvDB xref in CrossRefTvDB)
+            foreach (CrossRef_AniDB xref in CrossRefTvDB)
             {
-                TvDBDetails det = new TvDBDetails(xref.TvDBID);
-                TvDetails[xref.TvDBID] = det;
+                TvDBDetails det = new TvDBDetails(int.Parse(xref.ProviderID));
+                TvDetails[int.Parse(xref.ProviderID)] = det;
             }
         }
     }

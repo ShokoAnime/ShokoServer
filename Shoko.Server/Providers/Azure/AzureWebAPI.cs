@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
  using System.Collections.Generic;
  using System.IO;
  using System.Linq;
@@ -29,11 +29,8 @@
 
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        #region TvDB
 
-        public static void Delete_CrossRefAniDBTvDB(int animeID, int aniDBStartEpisodeType, int aniDBStartEpisodeNumber,
-            int tvDBID,
-            int tvDBSeasonNumber, int tvDBStartEpisodeNumber)
+        public static void Delete_CrossRefAniDB(int animeID, string provider, string providerid)
         {
             // id = animeid
             // p = username
@@ -47,36 +44,34 @@
             //localhost:50994
             //jmm.azurewebsites.net
             string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB/{animeID}?p={
+                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB/{provider}/{animeID.ToString()}/{providerid}?p={
                     ServerSettings.Instance.AniDb.Username
-                }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={tvDBID}&p5={tvDBSeasonNumber}&p6={
-                    tvDBStartEpisodeNumber
                 }";
 
 
             DeleteDataJson(uri);
         }
 
-        public static void Send_CrossRefAniDBTvDB(CrossRef_AniDB_TvDBV2 data, string animeName)
+        public static void Send_CrossRefAniDB(CrossRef_AniDB data, string animeName)
         {
             //if (!ServerSettings.WebCache_XRefFileEpisode_Send) return;
 
             string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB";
 
-            Azure_CrossRef_AniDB_TvDB_Request input = data.ToRequest(animeName);
+            Azure_CrossRef_AniDB_Request input = data.ToRequest(animeName);
             string json = JSONHelper.Serialize(input);
             SendData(uri, json, "POST");
         }
 
-        public static List<Azure_CrossRef_AniDB_TvDB> Get_CrossRefAniDBTvDB(int animeID)
+        public static List<Azure_CrossRef_AniDB> Get_CrossRefAniDB(int animeID)
         {
             try
             {
                 string username = Constants.AnonWebCacheUsername;
 
 
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_TvDB/{animeID}?p={username}";
-                string msg = $"Getting AniDB/TvDB Cross Ref From Cache: {animeID}";
+                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB/{animeID}?p={username}";
+                string msg = $"Getting AniDB Cross Ref From Cache: {animeID}";
 
                 DateTime start = DateTime.Now;
                 ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
@@ -84,159 +79,21 @@
                 string json = GetDataJson(uri);
 
                 TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/TvDB Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
+                msg = $"Got AniDB Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
                 ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
 
-                List<Azure_CrossRef_AniDB_TvDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_TvDB>>(json);
+                List<Azure_CrossRef_AniDB> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB>>(json);
 
-                return xrefs ?? new List<Azure_CrossRef_AniDB_TvDB>();
+                return xrefs ?? new List<Azure_CrossRef_AniDB>();
             }
             catch
             {
-                return new List<Azure_CrossRef_AniDB_TvDB>();
+                return new List<Azure_CrossRef_AniDB>();
             }
         }
 
-        #endregion
-
-        #region Trakt
-
-        public static List<Azure_CrossRef_AniDB_Trakt> Get_CrossRefAniDBTrakt(int animeID)
-        {
-            try
-            {
-                string username = Constants.AnonWebCacheUsername;
-
-                string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={username}";
-                string msg = $"Getting AniDB/Trakt Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/Trakt Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                List<Azure_CrossRef_AniDB_Trakt> xrefs = JSONHelper.Deserialize<List<Azure_CrossRef_AniDB_Trakt>>(json);
-
-                return xrefs ?? new List<Azure_CrossRef_AniDB_Trakt>();
-            }
-            catch
-            {
-                return new List<Azure_CrossRef_AniDB_Trakt>();
-            }
-        }
-
-        public static void Send_CrossRefAniDBTrakt(CrossRef_AniDB_TraktV2 data, string animeName)
-        {
-            if (!ServerSettings.Instance.WebCache.Trakt_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt";
-
-            Azure_CrossRef_AniDB_Trakt_Request input = data.ToRequest(animeName);
-            string json = JSONHelper.Serialize(input);
-            SendData(uri, json, "POST");
-        }
-
-        public static void Delete_CrossRefAniDBTrakt(int animeID, int aniDBStartEpisodeType,
-            int aniDBStartEpisodeNumber,
-            string traktID,
-            int traktSeasonNumber, int traktStartEpisodeNumber)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-            // p4 = traktID
-            // p5 = traktSeasonNumber
-            // p6 = traktStartEpisodeNumber
-            // p7 = auth key
-
-            if (!ServerSettings.Instance.WebCache.Trakt_Send) return;
-
-            //localhost:50994
-            //jmm.azurewebsites.net
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Trakt/{animeID}?p={
-                    ServerSettings.Instance.AniDb.Username
-                }&p2={aniDBStartEpisodeType}&p3={aniDBStartEpisodeNumber}&p4={traktID}&p5={traktSeasonNumber}&p6={
-                    traktStartEpisodeNumber
-                }";
 
 
-            DeleteDataJson(uri);
-        }
-
-        #endregion
-
-        #region Cross Ref Other
-
-        public static Azure_CrossRef_AniDB_Other Get_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
-        {
-            try
-            {
-                if (!ServerSettings.Instance.WebCache.TvDB_Get) return null;
-
-                string username = Constants.AnonWebCacheUsername;
-
-                string uri =
-                    $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other/{animeID}?p={username}&p2={
-                            (int) xrefType
-                        }";
-                string msg = $"Getting AniDB/Other Cross Ref From Cache: {animeID}";
-
-                DateTime start = DateTime.Now;
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                string json = GetDataJson(uri);
-
-                TimeSpan ts = DateTime.Now - start;
-                msg = $"Got AniDB/MAL Cross Ref From Cache: {animeID} - {ts.TotalMilliseconds}";
-                ShokoService.LogToSystem(Constants.DBLogType.APIAzureHTTP, msg);
-
-                Azure_CrossRef_AniDB_Other xref = JSONHelper.Deserialize<Azure_CrossRef_AniDB_Other>(json);
-
-                return xref;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public static void Send_CrossRefAniDBOther(CrossRef_AniDB_Other data)
-        {
-            if (!ServerSettings.Instance.WebCache.TvDB_Send) return;
-
-            string uri = $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other";
-
-            Azure_CrossRef_AniDB_Other_Request input = data.ToRequest();
-            string json = JSONHelper.Serialize(input);
-
-            SendData(uri, json, "POST");
-        }
-
-        public static void Delete_CrossRefAniDBOther(int animeID, CrossRefType xrefType)
-        {
-            // id = animeid
-            // p = username
-            // p2 = AniDBStartEpisodeType
-            // p3 = AniDBStartEpisodeNumber
-
-            if (!ServerSettings.Instance.WebCache.TvDB_Send) return;
-
-            string username = Constants.AnonWebCacheUsername;
-
-            string uri =
-                $@"http://{azureHostBaseAddress}/api/CrossRef_AniDB_Other/{animeID}?p={username}&p2={(int) xrefType}";
-
-
-            DeleteDataJson(uri);
-        }
-
-        #endregion
 
         #region Cross Ref File Episode
 

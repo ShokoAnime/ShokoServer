@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 86;
+        public int RequiredVersion { get; } = 87;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -612,6 +612,17 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
             new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
             new DatabaseCommand(86, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
+            new DatabaseCommand(87, 1, "CREATE TABLE CrossRef_AniDB(CrossRef_AniDBID int IDENTITY(1,1) NOT NULL, AniDBID int NOT NULL, ProviderID nvarchar(100), Provider nvarchar(30), CrossRefSource INT NOT NULL,ProviderMediaType INT NOT NULL);"),
+            new DatabaseCommand(87, 2, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_AniDBID_Provider_ProviderID ON CrossRef_AniDB(AniDBID,Provider,ProviderID);"),
+            new DatabaseCommand(87, 3, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Provider_ProviderID_AniDBID ON CrossRef_AniDB(Provider,ProviderID,AniDBID);"),
+            new DatabaseCommand(87, 4, "CREATE TABLE CrossRef_AniDB_Episode(CrossRef_AniDB_EpisodeID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, ProviderEpisodeID nvarchar(100), Provider nvarchar(30), MatchRating INT NOT NULL);"),
+            new DatabaseCommand(87, 5, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Episode_AniDBEpisodeID_Provider_ProviderID ON CrossRef_AniDB_Episode(AniDBEpisodeID,Provider,ProviderEpisodeID);"),
+            new DatabaseCommand(87, 6, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Episode_Provider_ProviderID_AniDBEpisodeID ON CrossRef_AniDB_Episode(Provider,ProviderEpisodeID,AniDBEpisodeID);"),
+            new DatabaseCommand(87, 7, "CREATE TABLE CrossRef_AniDB_Episode_Override(CrossRef_AniDB_OverrideID int IDENTITY(1,1) NOT NULL, AniDBEpisodeID int NOT NULL, ProviderEpisodeID nvarchar(100), Provider nvarchar(30));"),
+            new DatabaseCommand(87, 8, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Episode_Override_AniDBEpisodeID_Provider_ProviderID ON CrossRef_AniDB_Episode_Override(AniDBEpisodeID,Provider,ProviderEpisodeID);"),
+            new DatabaseCommand(87, 9, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Episode_Override_Provider_ProviderID_AniDBEpisodeID ON CrossRef_AniDB_Episode_Override(Provider,ProviderEpisodeID,AniDBEpisodeID);"),
+            new DatabaseCommand(87, 10, DatabaseFixes.MigrateAllProviderCrossRefsToV4),
+
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

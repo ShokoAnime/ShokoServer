@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -2886,15 +2886,17 @@ namespace Shoko.Server.API.v2.Modules
         public Dictionary<string, object> GetLinks(int id)
         {
             Dictionary<string, object> links = new Dictionary<string, object>();
-
             var serie = RepoFactory.AnimeSeries.GetByID(id);
-            var trakt = serie.GetTraktShow();
-            links.Add("trakt", trakt?.Select(x => x.URL));
-            var tvdb = serie.GetTvDBSeries();
-            if (tvdb != null) links.Add("tvdb", tvdb.Select(x => x.SeriesID));
-            var tmdb = serie.CrossRefMovieDB;
-            if (tmdb != null) links.Add("tmdb", tmdb.CrossRefID); //not sure this will work.
-
+            Dictionary<string, List<CrossRef_AniDB>> refs=serie.GetCrossRef().GroupBy(a=>a.Provider,a=>a).ToDictionary(a=>a.Key, a=>a.ToList());
+            foreach (string s in refs.Keys)
+            {
+                List<CrossRef_AniDB> k = refs[s];
+                CrossRef_AniDB first = k.First();
+                if (first.ProviderMediaType == MediaType.Movie)
+                    links.Add(s, first.ProviderID);
+                else
+                    links.Add(s, k.Select(a => a.ProviderID));
+            }
             return links;
         }
     }

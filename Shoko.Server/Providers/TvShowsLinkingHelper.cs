@@ -9,40 +9,41 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server
 {
-    public static class TvDBLinkingHelper
+    public static class TvShowsLinkingHelper
     {
         static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
+        public static void GenerateEpisodeMatches(int animeID, string provider, bool skipMatchClearing = false)
         {
             DateTime start = DateTime.Now;
             // wipe old links except User Verified
             if (!skipMatchClearing)
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
+                RepoFactory.CrossRef_AniDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID, provider);
 
-            List<CrossRef_AniDB_TvDB> tvxrefs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID);
-            int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
+            List<CrossRef_AniDB> tvxrefs = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, provider);
+            string providerId = tvxrefs.FirstOrDefault()?.ProviderID ?? "";
 
-            var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
+            var matches = GetTvDBEpisodeMatches(animeID, provider, providerId);
 
-            List<CrossRef_AniDB_TvDB_Episode> tosave = new List<CrossRef_AniDB_TvDB_Episode>();
+            List<CrossRef_AniDB_Episode> tosave = new List<CrossRef_AniDB_Episode>();
             foreach (var match in matches)
             {
-                if (match.AniDB == null || match.TvDB == null) continue;
-                var xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
-                    match.TvDB.Id);
+                if (match.AniDB == null || match.Episode == null) continue;
+                var xref = RepoFactory.CrossRef_AniDB_Episode.GetByAniDBAndProviderEpisodeIDs(match.AniDB.EpisodeID,
+                    match.Episode.ProviderId, provider);
                 // Don't touch User Verified links
                 if (xref?.MatchRating == MatchRating.UserVerified) continue;
 
                 // check for duplicates only if we skip clearing the links
                 if (skipMatchClearing)
                 {
-                    xref = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBAndTvDBEpisodeIDs(match.AniDB.EpisodeID,
-                        match.TvDB.Id);
+                    xref = RepoFactory.CrossRef_AniDB_Episode.GetByAniDBAndProviderEpisodeIDs(match.AniDB.EpisodeID,
+                        match.Episode.ProviderId, provider);
                     if (xref != null)
                     {
                         if (xref.MatchRating != match.Rating)
@@ -54,9 +55,9 @@ namespace Shoko.Server
                     }
                 }
 
-                if (xref == null) xref = new CrossRef_AniDB_TvDB_Episode();
+                if (xref == null) xref = new CrossRef_AniDB_Episode();
                 xref.AniDBEpisodeID = match.AniDB.EpisodeID;
-                xref.TvDBEpisodeID = match.TvDB.Id;
+                xref.ProviderEpisodeID = match.Episode.ProviderId;
                 xref.MatchRating = match.Rating;
 
                 tosave.Add(xref);
@@ -68,32 +69,33 @@ namespace Shoko.Server
             if (tosave.Count == 0)
             {
                 ts = DateTime.Now - start;
-                logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
+                logger.Trace($"Updated {provider} Matches for {anime} in {ts.TotalMilliseconds}ms");
                 return;
             }
 
-            tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Save);
+            tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_Episode.Save);
             ts = DateTime.Now - start;
-            logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
+            logger.Trace($"Updated {provider} Matches for {anime} in {ts.TotalMilliseconds}ms");
         }
 
-        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
+        public static List<CrossRef_AniDB_Episode> GetMatchPreview(int animeID, string provider, string providerid)
         {
-            var matches = GetTvDBEpisodeMatches(animeID, tvdbID);
-            return matches.Where(a => a.AniDB != null && a.TvDB != null).OrderBy(a => a.AniDB.EpisodeType)
-                .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_TvDB_Episode
+            var matches = GetTvDBEpisodeMatches(animeID, provider, providerid);
+            return matches.Where(a => a.AniDB != null && a.Episode != null).OrderBy(a => a.AniDB.EpisodeType)
+                .ThenBy(a => a.AniDB.EpisodeNumber).Select(match => new CrossRef_AniDB_Episode
                 {
                     AniDBEpisodeID = match.AniDB.EpisodeID,
-                    TvDBEpisodeID = match.TvDB.Id,
+                    Provider = match.Episode.Provider,
+                    ProviderEpisodeID = match.Episode.ProviderId,
                     MatchRating = match.Rating
                 }).ToList();
         }
 
-        public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreviewWithOverrides(int animeID, int tvdbID)
+        public static List<CrossRef_AniDB_Episode> GetMatchPreviewWithOverrides(int animeID, string provider, string providerid)
         {
-            var matches = GetMatchPreview(animeID, tvdbID);
-            var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAnimeID(animeID);
-            List<CrossRef_AniDB_TvDB_Episode> result = new List<CrossRef_AniDB_TvDB_Episode>();
+            var matches = GetMatchPreview(animeID, provider, providerid);
+            var overrides = RepoFactory.CrossRef_AniDB_Episode_Override.GetByAnimeID(animeID, provider);
+            List<CrossRef_AniDB_Episode> result = new List<CrossRef_AniDB_Episode>();
             foreach (var match in matches)
             {
                 var match_override = overrides.FirstOrDefault(a => a.AniDBEpisodeID == match.AniDBEpisodeID);
@@ -103,10 +105,11 @@ namespace Shoko.Server
                 }
                 else
                 {
-                    var new_match = new CrossRef_AniDB_TvDB_Episode
+                    var new_match = new CrossRef_AniDB_Episode
                     {
                         AniDBEpisodeID = match_override.AniDBEpisodeID,
-                        TvDBEpisodeID = match_override.TvDBEpisodeID,
+                        Provider = match_override.Provider,
+                        ProviderEpisodeID = match_override.ProviderEpisodeID,
                         MatchRating = MatchRating.UserVerified
                     };
                     result.Add(new_match);
@@ -116,8 +119,7 @@ namespace Shoko.Server
             return result;
         }
 
-        public static List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)> GetTvDBEpisodeMatches(
-            int animeID, int tvdbID)
+        public static List<(AniDB_Episode AniDB, GenericEpisode Episode, MatchRating Rating)> GetTvDBEpisodeMatches(int animeID, string provider, string providerid)
         {
             /*   These all apply to normal episodes mainly.
              *   It will fail for specials (BD will cause most to have the same air date).
@@ -150,12 +152,12 @@ namespace Shoko.Server
             // we need extra logic to determine if a series is one or more seasons
 
             // Get TvDB first, if we can't get the episodes, then there's no valid link
-            if (tvdbID == 0) return new List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Rating)>();
+            if (string.IsNullOrEmpty(providerid)) return new List<(AniDB_Episode AniDB, GenericEpisode Episode, MatchRating Rating)>();
 
-            List<TvDB_Episode> tveps = RepoFactory.TvDB_Episode.GetBySeriesID(tvdbID);
-            List<TvDB_Episode> tvepsNormal = tveps.Where(a => a.SeasonNumber != 0).OrderBy(a => a.SeasonNumber)
+            List<GenericEpisode> tveps = GenericEpisode.RepoFromProvider(provider).GetByProviderID(providerid);
+            List<GenericEpisode> tvepsNormal = tveps.Where(a => a.SeasonNumber != 0).OrderBy(a => a.SeasonNumber)
                 .ThenBy(a => a.EpisodeNumber).ToList();
-            List<TvDB_Episode> tvepsSpecial =
+            List<GenericEpisode> tvepsSpecial =
                 tveps.Where(a => a.SeasonNumber == 0).OrderBy(a => a.EpisodeNumber).ToList();
 
             // Get AniDB
@@ -165,8 +167,8 @@ namespace Shoko.Server
 
             SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
 
-            List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches =
-                new List<(AniDB_Episode, TvDB_Episode, MatchRating)>();
+            List<(AniDB_Episode, GenericEpisode, MatchRating)> matches =
+                new List<(AniDB_Episode, GenericEpisode, MatchRating)>();
 
             // Try to match OVAs
             if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
@@ -175,7 +177,7 @@ namespace Shoko.Server
 
             // Only try to match normal episodes if this is a series
             if (anime?.AnimeType != (int) AnimeType.Movie && aniepsNormal.Count > 0 && tvepsNormal.Count > 0)
-                TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
+                TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, provider, ref matches);
 
             // Specials. We aren't going to try too hard here.
             // We'll try by titles and dates, but we'll rely mostly on overrides
@@ -184,16 +186,16 @@ namespace Shoko.Server
 
             if (aniepsSpecial.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsSpecial, tvepsSpecial, ref matches);
-            logger.Debug("Matching Anime: "+(anime?.PreferredTitle ?? "EMPTY")+" TvID: "+tvdbID+" Type: "+(anime?.AnimeType.ToString() ?? "None"));
-            logger.Debug("Anime Ep Count: "+aniepsNormal.Count+" Specials: "+aniepsSpecial.Count);
-            logger.Debug("TvDB Ep Count: "+tvepsNormal.Count+" Specials: "+tvepsSpecial.Count);
+            logger.Debug($"Matching Anime: {(anime?.PreferredTitle ?? "EMPTY")} Provider: {provider} ProviderId: {providerid} Type: {(anime?.AnimeType.ToString() ?? "None")}");
+            logger.Debug($"Anime Ep Count: {aniepsNormal.Count} Specials: {aniepsSpecial.Count}");
+            logger.Debug($"{provider} Ep Count: {tvepsNormal.Count} Specials: {tvepsSpecial.Count}");
             logger.Debug("Match Count: " + matches.Count);
             if (matches.Count == 0)
             {
                 //Special Exception, sometimes tvdb matches series as anidb movies or viceversa
                 if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
                      anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
-                    TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
+                    TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, provider, ref matches);
                 
             }
             if (matches.Count == 0)
@@ -201,7 +203,7 @@ namespace Shoko.Server
                 //Special Exception (PATLABOR 1990) //Anime marked as an OVA in AniDb, and used as normal season in tvdb
                 if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
                      anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
-                    TryToMatchNormalEpisodesToTvDB(aniepsSpecial, tvepsNormal, anime?.EndDate == null, ref matches);
+                    TryToMatchNormalEpisodesToTvDB(aniepsSpecial, tvepsNormal, anime?.EndDate == null, provider, ref matches);
             }
             return matches;
         }
@@ -209,12 +211,12 @@ namespace Shoko.Server
         #region internal processing
 
         private static void TryToMatchNormalEpisodesToTvDB(List<AniDB_Episode> aniepsNormal,
-            List<TvDB_Episode> tvepsNormal, bool isAiring, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            List<GenericEpisode> tvepsNormal, bool isAiring, string provider, ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             // determine 1-1
             bool one2one = aniepsNormal.Count == tvepsNormal.Count;
 
-            List<IGrouping<int, TvDB_Episode>> seasonLookup =
+            List<IGrouping<int, GenericEpisode>> seasonLookup =
                 tvepsNormal.GroupBy(a => a.SeasonNumber).OrderBy(a => a.Key).ToList();
 
             // Exclude shows with numbered titles from title matching.
@@ -229,8 +231,8 @@ namespace Shoko.Server
             if (!one2one)
             {
                 // we'll need to split seasons and see if the series spans multiple or matches a specific season
-                List<TvDB_Episode> temp = new List<TvDB_Episode>();
-                TryToMatchSeasonsByAirDates(aniepsNormal, seasonLookup, isAiring, ref temp);
+                List<GenericEpisode> temp = new List<GenericEpisode>();
+                TryToMatchSeasonsByAirDates(aniepsNormal, seasonLookup, isAiring, provider, ref temp);
 
                 one2one = aniepsNormal.Count == temp.Count;
 
@@ -334,8 +336,8 @@ namespace Shoko.Server
             }
         }
 
-        private static void TryToMatchSpeicalsToTvDB(List<AniDB_Episode> aniepsSpecial, List<TvDB_Episode> tvepsSpecial,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        private static void TryToMatchSpeicalsToTvDB(List<AniDB_Episode> aniepsSpecial, List<GenericEpisode> tvepsSpecial,
+            ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             // Specials are almost never going to be one to one. We'll assume they are and let the user fix them
             // Air Dates are less accurate for specials (BD/DVD release makes them all the same). Try Titles first
@@ -377,14 +379,14 @@ namespace Shoko.Server
                 IsTitleNumberedAndConsecutive(a.Item1.GetEnglishTitle(), a.Item2.GetEnglishTitle()));
         }
 
-        public static bool HasNumberedTitles(List<TvDB_Episode> eps)
+        public static bool HasNumberedTitles(List<GenericEpisode> eps)
         {
             return eps.Zip(eps.Skip(1), Tuple.Create).All(a =>
-                IsTitleNumberedAndConsecutive(a.Item1.EpisodeName, a.Item2.EpisodeName));
+                IsTitleNumberedAndConsecutive(a.Item1.Title, a.Item2.Title));
         }
 
         private static void TryToMatchSeasonsByAirDates(List<AniDB_Episode> aniepsNormal,
-            List<IGrouping<int, TvDB_Episode>> seasonLookup, bool isAiring, ref List<TvDB_Episode> temp)
+            List<IGrouping<int, GenericEpisode>> seasonLookup, bool isAiring, string provider, ref List<GenericEpisode> temp)
         {
             /*
              * My brain ceased complex thought, so a diagram to picture it or something
@@ -461,9 +463,9 @@ namespace Shoko.Server
                         {
                             // only check the relations if they have the same TvDB Series ID
                             var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Prequel" && RepoFactory.CrossRef_AniDB_TvDB
-                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
-                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
+                                .Where(a => a?.RelationType == "Prequel" && RepoFactory.CrossRef_AniDB
+                                    .GetByAniDB(a.RelatedAnimeID, provider).Any(b =>
+                                                    season.Select(c => c.ProviderId).Contains(b.ProviderID))).ToList();
 
                             List<AniDB_Anime_Relation> allPrequels = new List<AniDB_Anime_Relation>();
                             allPrequels.AddRange(relations);
@@ -517,9 +519,9 @@ namespace Shoko.Server
                         {
                             // only check the relations if they have the same TvDB Series ID
                             var relations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(aniepsNormal[0].AnimeID)
-                                .Where(a => a?.RelationType == "Sequel" && RepoFactory.CrossRef_AniDB_TvDB
-                                                .GetByAnimeID(a.RelatedAnimeID).Any(b =>
-                                                    season.Select(c => c.SeriesID).Contains(b.TvDBID))).ToList();
+                                .Where(a => a?.RelationType == "Sequel" && RepoFactory.CrossRef_AniDB
+                                                .GetByAniDB(a.RelatedAnimeID, provider).Any(b =>
+                                                    season.Select(c => c.ProviderId).Contains(b.ProviderID))).ToList();
 
                             List<AniDB_Anime_Relation> allSequels = new List<AniDB_Anime_Relation>();
                             allSequels.AddRange(relations);
@@ -587,7 +589,7 @@ namespace Shoko.Server
         }
 
         private static void TryToMatchSeasonsByEpisodeTitles(List<AniDB_Episode> aniepsNormal,
-            List<IGrouping<int, TvDB_Episode>> seasonLookup, ref List<TvDB_Episode> temp)
+            List<IGrouping<int, GenericEpisode>> seasonLookup, ref List<GenericEpisode> temp)
         {
             // Will try to compare the Titles for the first and last episodes of the series
             // This is very inacurrate, but may fix the situations with pre-screenings
@@ -606,7 +608,7 @@ namespace Shoko.Server
             {
                 var epsInSeason = season.OrderBy(a => a.EpisodeNumber).ToList();
 
-                string tvstart = epsInSeason.FirstOrDefault()?.EpisodeName;
+                string tvstart = epsInSeason.FirstOrDefault()?.Title;
                 if (string.IsNullOrEmpty(tvstart)) continue;
                 // fuzzy match
                 if (anistart.FuzzyMatches(tvstart))
@@ -615,7 +617,7 @@ namespace Shoko.Server
                     continue;
                 }
 
-                string tvend = epsInSeason.LastOrDefault()?.EpisodeName;
+                string tvend = epsInSeason.LastOrDefault()?.Title;
                 if (string.IsNullOrEmpty(tvend)) continue;
                 // fuzzy match
                 if (aniend.FuzzyMatches(tvend))
@@ -626,8 +628,8 @@ namespace Shoko.Server
         }
 
         private static void TryToMatchEpisodes1To1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            ref List<GenericEpisode> tvepsNormal,
+            ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -650,8 +652,8 @@ namespace Shoko.Server
         }
 
         private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
+            ref List<GenericEpisode> tvepsNormal,
+            ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches, bool fuzzy)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -660,7 +662,7 @@ namespace Shoko.Server
 
                 foreach (var tvep in tvepsNormal)
                 {
-                    string tvtitle = tvep.EpisodeName;
+                    string tvtitle = tvep.Title;
                     if (string.IsNullOrEmpty(tvtitle)) continue;
 
                     // fuzzy match
@@ -681,7 +683,7 @@ namespace Shoko.Server
             }
         }
 
-        private static void CorrectMatchRatings(ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        private static void CorrectMatchRatings(ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             for (int index = 0; index < matches.Count; index++)
             {
@@ -703,7 +705,7 @@ namespace Shoko.Server
                 // if the dates match, then they would have filled with Good, so the fuzzy search is only being done once
 
                 var aniTitle = match.Item1.GetEnglishTitle();
-                var tvTitle = match.Item2.EpisodeName;
+                var tvTitle = match.Item2.Title;
                 // this method returns false if either is null
                 bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
 
@@ -714,8 +716,8 @@ namespace Shoko.Server
         }
 
         private static void FillUnmatchedEpisodes1To1(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode AniDB, TvDB_Episode TvDB, MatchRating Match)> matches)
+            ref List<GenericEpisode> tvepsNormal,
+            ref List<(AniDB_Episode AniDB, GenericEpisode TvDB, MatchRating Match)> matches)
         {
             if (aniepsNormal.Count == 0) return;
             // Find the missing episodes, and if there is a remaining episode to fill it with, then do it
@@ -781,7 +783,7 @@ namespace Shoko.Server
         }
 
         private static bool TryToMatchRegularlyDistributedEpisodes(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches,
+            ref List<GenericEpisode> tvepsNormal, ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches,
             bool isregular, int firstgroupingcount)
         {
             // first use the checks from earlier to see if it's regularly distributed
@@ -794,7 +796,7 @@ namespace Shoko.Server
             // last check to ensure that it is firstgroupingcount to 1
             if (tvepsNormal.Count != tvDBEpisodeRatio) return false;
             int count = 0;
-            TvDB_Episode ep = null;
+            GenericEpisode ep = null;
             foreach (var aniep in aniepsNormal.ToList())
             {
                 if (count % firstgroupingcount == 0)
@@ -815,8 +817,8 @@ namespace Shoko.Server
         }
         
         private static void TryToMatchEpisodesManyTo1ByTitle(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            ref List<GenericEpisode> tvepsNormal,
+            ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -825,7 +827,7 @@ namespace Shoko.Server
 
                 foreach (var tvep in tvepsNormal)
                 {
-                    string tvtitle = tvep.EpisodeName;
+                    string tvtitle = tvep.Title;
                     if (string.IsNullOrEmpty(tvtitle)) continue;
 
                     if (!anititle.RemoveDiacritics().FilterLetters().Equals(tvtitle.RemoveDiacritics().FilterLetters(),
@@ -839,7 +841,7 @@ namespace Shoko.Server
         }
 
         private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
-            ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            ref List<GenericEpisode> tvepsNormal, ref List<(AniDB_Episode, GenericEpisode, MatchRating)> matches)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -860,23 +862,19 @@ namespace Shoko.Server
             }
         }
 
-        public static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacy(
-            List<Azure_CrossRef_AniDB_TvDB> links)
-        {
-            var list = links.Select(a => (a.AnimeID, a.AniDBStartEpisodeType, a.AniDBStartEpisodeNumber, a.TvDBID,
-                a.TvDBSeasonNumber, a.TvDBStartEpisodeNumber)).ToList();
-            return GetSpecialsOverridesFromLegacy(list);
-        }
+        //OBSOLETE
 
-        public static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacy(
+        [Obsolete]
+        public static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacyObsolete(
             List<CrossRef_AniDB_TvDBV2> links)
         {
             var list = links.Select(a => (a.AnimeID, a.AniDBStartEpisodeType, a.AniDBStartEpisodeNumber, a.TvDBID,
                 a.TvDBSeasonNumber, a.TvDBStartEpisodeNumber)).ToList();
-            return GetSpecialsOverridesFromLegacy(list);
+            return GetSpecialsOverridesFromLegacyObsolete(list);
         }
 
-        private static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacy(
+        [Obsolete]
+        private static List<CrossRef_AniDB_TvDB_Episode_Override> GetSpecialsOverridesFromLegacyObsolete(
             List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber
                 )> links)
         {
@@ -909,13 +907,13 @@ namespace Shoko.Server
                 .Where(a => a.EpisodeType == (int) EpisodeType.Special || a.EpisodeType == (int) EpisodeType.Episode)
                 .OrderBy(a => a.EpisodeNumber).ToList();
 
-            RemoveDefaultLinks(episodes, ref xrefs);
+            RemoveDefaultLinksObsolete(episodes, ref xrefs);
             
             List<CrossRef_AniDB_TvDB_Episode_Override> output = new List<CrossRef_AniDB_TvDB_Episode_Override>();
 
             foreach (AniDB_Episode episode in episodes)
             {
-                var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
+                var xref = GetXRefForEpisodeObsolete(episode.EpisodeType, episode.EpisodeNumber, xrefs);
                 // we are dealing with tuples, so we can only return default, which will set everything to 0
                 if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
@@ -957,7 +955,8 @@ namespace Shoko.Server
             return output;
         }
 
-        private static void RemoveDefaultLinks(List<AniDB_Episode> episodes, ref List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber)> xrefs)
+
+        private static void RemoveDefaultLinksObsolete(List<AniDB_Episode> episodes, ref List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int TvDBStartNumber)> xrefs)
         {
             // generate default links
             // check to see if they match
@@ -969,7 +968,7 @@ namespace Shoko.Server
             int season = -1;
             foreach (AniDB_Episode episode in episodes)
             {
-                var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
+                var xref = GetXRefForEpisodeObsolete(episode.EpisodeType, episode.EpisodeNumber, xrefs);
                 // we are dealing with tuples, so we can only return default, which will set everything to 0
                 if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
@@ -1010,11 +1009,101 @@ namespace Shoko.Server
             if (!new_xrefs.SequenceEqual(xrefs)) return;
             xrefs.Clear();
         }
+        /*
+        private static void RemoveDefaultLinks(List<AniDB_Episode> episodes, string provider, ref List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, string ProviderId, int ProviderSeason, int ProviderStartNumber)> xrefs)
+        {
+            // generate default links
+            // check to see if they match
+            // if so, remove them
+            List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, string ProviderId, int ProviderSeason, int ProviderStartNumber)> new_xrefs =
+                new List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, string ProviderId, int ProviderSeason, int ProviderStartNumber)>();
+            int season = -1;
+            foreach (AniDB_Episode episode in episodes)
+            {
+                var xref = GetXRefForEpisode(episode.EpisodeType, episode.EpisodeNumber, xrefs);
+                // we are dealing with tuples, so we can only return default, which will set everything to 0
+                if (xref.AniDBStartType == 0) continue; // 0 is invalid
 
+                GenericEpisode tvep = GenericEpisode.RepoFromProvider(provider).GetByProviderIdSeasonAnEpNumber(xref.ProviderId, xref.ProviderSeason, xref.ProviderStartNumber);
+                if (tvep == null) continue;
+
+                // due to AniDB not matching up (season BS), we take the delta, and then iterate next TvDB episode 
+                int delta = episode.EpisodeNumber - xref.AniDBStartNumber;
+
+                if (delta > 0)
+                {
+                    for (int j = 0; j < delta; j++)
+                    {
+                        // continue outer loop
+                        if (tvep == null) goto label0;
+                        var nextep = tvep.GetNextEpisode();
+                        if (nextep.episodeNumber == 0) goto label0;
+                        switch (provider)
+                        {
+                            case Shoko.Models.Constants.Providers.TvDB:
+                                tvep = new GenericEpisode(RepoFactory.TvDB_Episode.GetBySeriesIDSeasonNumberAndEpisode(int.Parse(xref.ProviderId), nextep.season, nextep.episodeNumber));
+                                break;
+                            case Shoko.Models.Constants.Providers.Trakt:
+                                tvep = new GenericEpisode(RepoFactory.Trakt_Episode.GetByShowIDSeasonAndEpisode(int.Parse(xref.ProviderId), nextep.season, nextep.episodeNumber));
+                                break;
+                            default:
+                                tvep = null;
+                                break;
+                        }
+                    }
+                }
+
+                if (tvep == null) continue;
+
+                if (tvep.SeasonNumber != season)
+                {
+                    if (tvep.SeasonNumber == 0) goto label1; 
+                    new_xrefs.Add((episode.AnimeID, episode.EpisodeType, episode.EpisodeNumber, xref.ProviderId, tvep.SeasonNumber, tvep.EpisodeNumber));
+                    season = tvep.SeasonNumber;
+                }
+
+                label0: ;
+            }
+            label1:
+            if (!new_xrefs.SequenceEqual(xrefs)) return;
+            xrefs.Clear();
+        }
+        */
+        /*
+        private static (int AnimeID, int AniDBStartType, int AniDBStartNumber, string ProviderId, int ProviderSeason, int ProviderStartNumber) GetXRefForEpisode(int type, int number,
+                List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, string ProviderId, int ProviderSeason, int ProviderStartNumber)> xrefs)
+        {
+            // only use the AniDBStartType that is relevant
+            xrefs = xrefs.Where(a => a.AniDBStartType == type).ToList();
+            if (xrefs.Count == 0) return default;
+            // assume that it defaults to starting at S1E1 when not stated
+            var first = xrefs[0];
+            if (first.AniDBStartNumber > number)
+            {
+                int tvdbSeason = type == (int) EpisodeType.Episode ? 1 : 0;
+                return (first.AnimeID, type, 1, first.ProviderId, tvdbSeason, 1);
+            }
+
+            // loop the rest
+            for (int i = 0; i < xrefs.Count; i++)
+            {
+                var xref = xrefs[i];
+                // if it's last, then return
+                if (i + 1 == xrefs.Count) return xref;
+                // get the next one to check if it matches better
+                var next = xrefs[i + 1];
+                if (next.AniDBStartNumber <= number) continue;
+                if (xref.AniDBStartNumber <= number) return xref;
+            }
+
+            return default;
+        }
+        */
+        [Obsolete]
         private static (int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
-            TvDBStartNumber) GetXRefForEpisode(int type, int number,
-                List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
-                    TvDBStartNumber)> xrefs)
+            TvDBStartNumber) GetXRefForEpisodeObsolete(int type, int number,
+                                               List<(int AnimeID, int AniDBStartType, int AniDBStartNumber, int TvDBID, int TvDBSeason, int
+                                                   TvDBStartNumber)> xrefs)
         {
             // only use the AniDBStartType that is relevant
             xrefs = xrefs.Where(a => a.AniDBStartType == type).ToList();
@@ -1041,7 +1130,6 @@ namespace Shoko.Server
 
             return default;
         }
-
         private static int ToIso8601WeekNumber(this DateTime date)
         {
             var thursday = date.AddDays(3 - date.DayOfWeek.DayOffset());

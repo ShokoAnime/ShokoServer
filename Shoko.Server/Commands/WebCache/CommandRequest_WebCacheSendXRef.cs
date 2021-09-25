@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Xml;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
@@ -11,26 +11,26 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
-    [Command(CommandRequestType.WebCache_SendXRefAniDBTvDB)]
-    public class CommandRequest_WebCacheSendXRefAniDBTvDB : CommandRequestImplementation
+    [Command(CommandRequestType.WebCache_SendXRefAniDB)]
+    public class CommandRequest_WebCacheSendXRef : CommandRequestImplementation
     {
-        public int CrossRef_AniDB_TvDBID { get; set; }
+        public int CrossRef_AniDB { get; set; }
 
         public override CommandRequestPriority DefaultPriority => CommandRequestPriority.Priority10;
 
         public override QueueStateStruct PrettyDescription => new QueueStateStruct
         {
             queueState = QueueStateEnum.WebCacheSendXRefAniDBTvDB,
-            extraParams = new[] {CrossRef_AniDB_TvDBID.ToString()}
+            extraParams = new[] {CrossRef_AniDB.ToString()}
         };
 
-        public CommandRequest_WebCacheSendXRefAniDBTvDB()
+        public CommandRequest_WebCacheSendXRef()
         {
         }
 
-        public CommandRequest_WebCacheSendXRefAniDBTvDB(int xrefID)
+        public CommandRequest_WebCacheSendXRef(int xrefID)
         {
-            CrossRef_AniDB_TvDBID = xrefID;
+            CrossRef_AniDB = xrefID;
             Priority = (int) DefaultPriority;
 
             GenerateCommandID();
@@ -42,23 +42,23 @@ namespace Shoko.Server.Commands
             {
                 //if (string.IsNullOrEmpty(ServerSettings.WebCacheAuthKey)) return;
 
-                CrossRef_AniDB_TvDB xref = RepoFactory.CrossRef_AniDB_TvDB.GetByID(CrossRef_AniDB_TvDBID);
+                CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByID(CrossRef_AniDB);
                 if (xref == null) return;
 
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AniDBID);
                 if (anime == null) return;
 
-                AzureWebAPI.Send_CrossRefAniDBTvDB(xref.ToV2Model(), anime.MainTitle);
+                AzureWebAPI.Send_CrossRefAniDB(xref, anime.MainTitle);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDBTvDB: {0}" + ex);
+                logger.Error(ex, "Error processing CommandRequest_WebCacheSendXRefAniDB: {0}" + ex);
             }
         }
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_WebCacheSendXRefAniDBTvDB{CrossRef_AniDB_TvDBID}";
+            CommandID = $"CommandRequest_WebCacheSendXRefAniDB{CrossRef_AniDB}";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)
@@ -76,9 +76,9 @@ namespace Shoko.Server.Commands
                 docCreator.LoadXml(CommandDetails);
 
                 // populate the fields
-                CrossRef_AniDB_TvDBID =
-                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDBTvDB",
-                        "CrossRef_AniDB_TvDBID"));
+                CrossRef_AniDB =
+                    int.Parse(TryGetProperty(docCreator, "CommandRequest_WebCacheSendXRefAniDB",
+                        "CrossRef_AniDB"));
             }
 
             return true;

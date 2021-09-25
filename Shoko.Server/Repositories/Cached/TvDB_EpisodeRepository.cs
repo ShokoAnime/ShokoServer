@@ -1,12 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
+using Shoko.Server.Providers;
 
 namespace Shoko.Server.Repositories.Cached
 {
-    public class TvDB_EpisodeRepository : BaseCachedRepository<TvDB_Episode, int>
+    
+    public class TvDB_EpisodeRepository : BaseCachedRepository<TvDB_Episode, int>, IEpisodeGenericRepo
     {
         private PocoIndex<int, TvDB_Episode, int> SeriesIDs;
         private PocoIndex<int, TvDB_Episode, int> EpisodeIDs;
@@ -136,5 +138,28 @@ namespace Shoko.Server.Repositories.Cached
         {
             return entity.TvDB_EpisodeID;
         }
+
+        public List<GenericEpisode> GetByProviderID(string providerId) => this.GetBySeriesID(int.Parse(providerId)).Select(a => new GenericEpisode(a)).ToList();
+
+        public int GetNumberOfEpisodesForSeason(string providerId, int season) => this.GetNumberOfEpisodesForSeason(int.Parse(providerId), season);
+
+        public int GetLastSeasonForSeries(string providerId) => this.getLastSeasonForSeries(int.Parse(providerId));
+
+        public GenericEpisode GetByEpisodeProviderID(string episodeproviderId)
+        {
+            TvDB_Episode ep = this.GetByTvDBID(int.Parse(episodeproviderId));
+            if (ep == null)
+                return null;
+            return new GenericEpisode(ep);
+        }
+
+        public GenericEpisode GetByProviderIdSeasonAnEpNumber(string providerId, int season, int epNumber)
+        {
+            TvDB_Episode ep = this.GetBySeriesIDSeasonNumberAndEpisode(int.Parse(providerId), season, epNumber);
+            if (ep == null)
+                return null;
+            return new GenericEpisode(ep);
+        }
+
     }
 }

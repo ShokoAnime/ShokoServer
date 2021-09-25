@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
+using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
@@ -124,8 +125,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
             var anime = ser.GetAnime();
             if (anime != null) ids.AniDB = anime.AnimeID;
             // TvDB
-            var tvdbs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
-            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID).Distinct());
+            var tvdbs = RepoFactory.CrossRef_AniDB.GetByAniDB(ser.AniDB_ID, Constants.Providers.TvDB);
+            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => int.Parse(a.ProviderID)).Distinct());
             // TODO Cache the rest of these, so that they don't severely slow down the API
             // MovieDB
             // TODO make this able to support more than one, in fact move it to its own and remove CrossRef_Other
@@ -136,7 +137,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             //    .Distinct().ToList();
             //if (traktids.Any()) ids.TraktTv.AddRange(traktids);
             // MAL
-            var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
+            var malids = RepoFactory.CrossRef_AniDB.GetByAniDB(ser.AniDB_ID,Constants.Providers.MAL).Select(a => int.Parse(a.ProviderID)).Distinct()
                 .ToList();
             if (malids.Any()) ids.MAL.AddRange(malids);
             // TODO AniList later
@@ -395,15 +396,15 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         private static void AddMovieDBImages(HttpContext ctx, Images images, int animeID, bool includeDisabled = false)
         {
-            var moviedb = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            
+            var moviedb = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Constants.Providers.MovieDB).FirstOrDefault();
+                
             List<MovieDB_Poster> moviedbPosters = moviedb == null
                 ? new List<MovieDB_Poster>()
-                : RepoFactory.MovieDB_Poster.GetByMovieID(int.Parse(moviedb.CrossRefID));
+                : RepoFactory.MovieDB_Poster.GetByMovieID(int.Parse(moviedb.ProviderID));
             
             List<MovieDB_Fanart> moviedbFanarts = moviedb == null
                 ? new List<MovieDB_Fanart>()
-                : RepoFactory.MovieDB_Fanart.GetByMovieID(int.Parse(moviedb.CrossRefID));
+                : RepoFactory.MovieDB_Fanart.GetByMovieID(int.Parse(moviedb.ProviderID));
             
             images.Posters.AddRange(moviedbPosters.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
             {

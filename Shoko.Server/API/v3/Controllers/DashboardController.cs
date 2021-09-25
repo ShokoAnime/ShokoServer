@@ -92,9 +92,8 @@ namespace Shoko.Server.API.v3.Controllers
             if (ser?.Contract == null || ser?.GetAnime() == null) return false;
             if (ser?.GetAnime()?.Restricted > 0) return false;
             // MovieDB is in AniDB_Other, and that's a Direct repository, so we don't want to call it on API
-            bool movieLinkMissing = ser?.Contract.CrossRefAniDBMovieDB == null;
-            bool tvlinkMissing =
-                RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
+            bool movieLinkMissing = ser?.Contract.CrossRefAniDB == null || ser.Contract.CrossRefAniDB.Count(a => a.Provider == Shoko.Models.Constants.Providers.MovieDB && a.ProviderMediaType == MediaType.Movie) == 0;
+            bool tvlinkMissing = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID).Count == 0;
             return movieLinkMissing && tvlinkMissing;
         }
 

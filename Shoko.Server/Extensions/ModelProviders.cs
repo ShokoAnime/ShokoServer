@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -26,17 +26,6 @@ namespace Shoko.Server.Extensions
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        public static Azure_CrossRef_AniDB_Other_Request ToRequest(this CrossRef_AniDB_Other c)
-        {
-            return new Azure_CrossRef_AniDB_Other_Request
-            {
-                CrossRef_AniDB_OtherID = c.CrossRef_AniDB_OtherID,
-                AnimeID = c.AnimeID,
-                CrossRefID = c.CrossRefID,
-                CrossRefSource = c.CrossRefSource,
-                CrossRefType = c.CrossRefType,
-            };
-        }
 
         public static Azure_FileHash_Request ToHashRequest(this AniDB_File anifile)
         {
@@ -137,37 +126,15 @@ namespace Shoko.Server.Extensions
             return r;
         }
 
-        public static Azure_CrossRef_AniDB_Trakt_Request ToRequest(this CrossRef_AniDB_TraktV2 xref, string animeName)
+        public static Azure_CrossRef_AniDB_Request ToRequest(this CrossRef_AniDB xref, string animeName)
         {
-            Azure_CrossRef_AniDB_Trakt_Request r = new Azure_CrossRef_AniDB_Trakt_Request
+            Azure_CrossRef_AniDB_Request r = new Azure_CrossRef_AniDB_Request
             {
-                AnimeID = xref.AnimeID,
+                AniDBID = xref.AniDBID,
                 AnimeName = animeName,
-                AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
-                AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
-                TraktID = xref.TraktID,
-                TraktSeasonNumber = xref.TraktSeasonNumber,
-                TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
-                TraktTitle = xref.TraktTitle,
-                CrossRefSource = xref.CrossRefSource,
-                Username = Constants.AnonWebCacheUsername,
-                AuthGUID = string.Empty
-            };
-            return r;
-        }
-
-        public static Azure_CrossRef_AniDB_TvDB_Request ToRequest(this CrossRef_AniDB_TvDBV2 xref, string animeName)
-        {
-            Azure_CrossRef_AniDB_TvDB_Request r = new Azure_CrossRef_AniDB_TvDB_Request
-            {
-                AnimeID = xref.AnimeID,
-                AnimeName = animeName,
-                AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
-                AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
-                TvDBID = xref.TvDBID,
-                TvDBSeasonNumber = xref.TvDBSeasonNumber,
-                TvDBStartEpisodeNumber = xref.TvDBStartEpisodeNumber,
-                TvDBTitle = xref.TvDBTitle,
+                ProviderID = xref.ProviderID,
+                Provider = xref.Provider,
+                ProviderMediaType = xref.ProviderMediaType,
                 CrossRefSource = xref.CrossRefSource,
                 Username = Constants.AnonWebCacheUsername,
                 AuthGUID = string.Empty
@@ -819,16 +786,7 @@ namespace Shoko.Server.Extensions
             animeep.DateTimeCreated = DateTime.Now;
         }
 
-        public static CrossRef_AniDB_TvDBV2 ToV2Model(this CrossRef_AniDB_TvDB xref)
-        {
-            return new CrossRef_AniDB_TvDBV2
-            {
-                AnimeID = xref.AniDBID,
-                CrossRefSource = (int) xref.CrossRefSource,
-                TvDBID = xref.TvDBID
-            };
-        }
-
+        [Obsolete]
         public static (int season, int episodeNumber) GetNextEpisode(this TvDB_Episode ep)
         {
             if (ep == null) return (0, 0);
@@ -843,27 +801,5 @@ namespace Shoko.Server.Extensions
             return (ep.SeasonNumber, ep.EpisodeNumber + 1);
         }
 
-        public static (int season, int episodeNumber) GetPreviousEpisode(this TvDB_Episode ep)
-        {
-            // check bounds and exit
-            if (ep.SeasonNumber == 1 && ep.EpisodeNumber == 1) return (0, 0);
-            // self explanatory
-            if (ep.EpisodeNumber > 1) return (ep.SeasonNumber, ep.EpisodeNumber - 1);
-
-            // episode number is 1
-            // get the last episode of last season
-            int epsInSeason = RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber - 1);
-            return (ep.SeasonNumber - 1, epsInSeason);
-        }
-
-        public static int GetAbsoluteEpisodeNumber(this TvDB_Episode ep)
-        {
-            if (ep.SeasonNumber == 1 || ep.SeasonNumber == 0) return ep.EpisodeNumber;
-            int number = ep.EpisodeNumber;
-            for (int season = 1; season < RepoFactory.TvDB_Episode.getLastSeasonForSeries(ep.SeriesID); season++)
-                number += RepoFactory.TvDB_Episode.GetNumberOfEpisodesForSeason(ep.SeriesID, ep.SeasonNumber);
-
-            return number;
-        }
     }
 }

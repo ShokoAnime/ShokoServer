@@ -231,7 +231,7 @@ namespace Shoko.Server.API.v3.Controllers
             {
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
                 RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
+                    TvShowsLinkingHelper.GenerateEpisodeMatches(animeseries.AniDB_ID, Shoko.Models.Constants.Providers.TvDB, true));
             }
             catch (Exception e)
             {

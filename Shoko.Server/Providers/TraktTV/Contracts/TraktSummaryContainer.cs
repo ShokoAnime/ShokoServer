@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using NLog;
 using Shoko.Models.Server;
@@ -16,9 +16,9 @@ namespace Shoko.Server.Providers.TraktTV
         public Dictionary<string, TraktDetailsContainer> TraktDetails = new Dictionary<string, TraktDetailsContainer>();
 
         // All the Trakt cross refs for this anime
-        private List<CrossRef_AniDB_TraktV2> crossRefTraktV2;
+        private List<CrossRef_AniDB> crossRefTraktV2;
 
-        public List<CrossRef_AniDB_TraktV2> CrossRefTraktV2
+        public List<CrossRef_AniDB> CrossRefTraktV2
         {
             get
             {
@@ -34,7 +34,7 @@ namespace Shoko.Server.Providers.TraktTV
         {
             try
             {
-                crossRefTraktV2 = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
+                crossRefTraktV2 = RepoFactory.CrossRef_AniDB.GetByAniDB(AnimeID, Shoko.Models.Constants.Providers.Trakt);
             }
             catch (Exception ex)
             {
@@ -114,10 +114,10 @@ namespace Shoko.Server.Providers.TraktTV
         {
             if (CrossRefTraktV2 == null) return;
 
-            foreach (CrossRef_AniDB_TraktV2 xref in CrossRefTraktV2)
+            foreach (CrossRef_AniDB xref in CrossRefTraktV2)
             {
-                TraktDetailsContainer det = new TraktDetailsContainer(xref.TraktID);
-                TraktDetails[xref.TraktID] = det;
+                TraktDetailsContainer det = new TraktDetailsContainer(xref.ProviderID);
+                TraktDetails[xref.ProviderID] = det;
             }
         }
     }

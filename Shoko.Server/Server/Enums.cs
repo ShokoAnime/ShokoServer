@@ -1,4 +1,4 @@
-﻿namespace Shoko.Server.Server
+namespace Shoko.Server.Server
 {
     public enum CommandRequestType
     {
@@ -73,6 +73,9 @@
         TvDB_UpdateEpisode = 97,
         NullCommand = 98,
         DownloadAniDBImages = 99,
+        WebCache_SendXRefAniDB = 100,
+        WebCache_DeleteXRefAniDB = 101
+
     }
 
     public enum CommandRequestPriority

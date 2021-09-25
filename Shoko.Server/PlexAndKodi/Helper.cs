@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -214,7 +214,7 @@ namespace Shoko.Server.PlexAndKodi
         }
 
 
-        public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_TvDBV2> cross,
+        public static Video VideoFromAnimeEpisode(IProvider prov, List<CrossRef_AniDB_EpisodeMap> cross,
             KeyValuePair<SVR_AnimeEpisode, CL_AnimeEpisode_User> e, int userid)
         {
             Video v = GenerateVideoFromAnimeEpisode(e.Key, e.Value.JMMUserID);
@@ -244,13 +244,13 @@ namespace Shoko.Server.PlexAndKodi
 
                 if (cross != null && cross.Count > 0)
                 {
-                    CrossRef_AniDB_TvDBV2 c2 =
+                    CrossRef_AniDB_EpisodeMap c2 =
                         cross.FirstOrDefault(
                             a =>
                                 a.AniDBStartEpisodeType == v.EpisodeType &&
                                 a.AniDBStartEpisodeNumber <= v.EpisodeNumber);
-                    if (c2?.TvDBSeasonNumber > 0)
-                        v.ParentIndex = c2.TvDBSeasonNumber;
+                    if (c2?.ProviderSeasonNumber > 0)
+                        v.ParentIndex = c2.ProviderSeasonNumber;
                 }
                 AddLinksToAnimeEpisodeVideo(prov, v, userid);
             }
@@ -766,14 +766,14 @@ namespace Shoko.Server.PlexAndKodi
                                   RepoFactory.AniDB_Vote.GetByEntityAndType(anidb.AnimeID, AniDBVoteType.AnimeTemp);
                 if (vote != null) p.UserRating = (int) (vote.VoteValue / 100D);
 
-                List<CrossRef_AniDB_TvDBV2> ls = ser.CrossRefAniDBTvDBV2;
+                List<CrossRef_AniDB_EpisodeMap> ls = ser.EpisodeMap;
                 if (ls != null && ls.Count > 0)
                 {
-                    foreach (CrossRef_AniDB_TvDBV2 c in ls)
+                    foreach (CrossRef_AniDB_EpisodeMap c in ls)
                     {
-                        if (c.TvDBSeasonNumber == 0) continue;
-                        p.Season = c.TvDBSeasonNumber.ToString();
-                        p.Index = c.TvDBSeasonNumber;
+                        if (c.ProviderSeasonNumber == 0) continue;
+                        p.Season = c.ProviderSeasonNumber.ToString();
+                        p.Index = c.ProviderSeasonNumber;
                     }
                 }
                 p.Thumb = p.ParentThumb = anime.DefaultImagePoster.GenPoster(null);

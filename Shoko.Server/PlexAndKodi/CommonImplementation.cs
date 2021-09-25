@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -264,7 +264,7 @@ namespace Shoko.Server.PlexAndKodi
                         CL_AnimeSeries_User con = ser.GetUserContract(userid);
                         if (con == null)
                             return new MediaContainer {ErrorString = "Invalid Series, Contract not found"};
-                        Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
+                        Video v = Helper.VideoFromAnimeEpisode(prov, con.EpisodeMap, ep, userid);
                         if (v != null && v.Medias != null && v.Medias.Count > 0)
                         {
                             Helper.AddInformationFromMasterSeries(v, con, ser.GetPlexContract(userid));
@@ -381,7 +381,7 @@ namespace Shoko.Server.PlexAndKodi
                     return new MediaContainer {ErrorString = "Invalid Serie, Contract not found"};
                 try
                 {
-                    Video v = Helper.VideoFromAnimeEpisode(prov, con.CrossRefAniDBTvDBV2, ep, userid);
+                    Video v = Helper.VideoFromAnimeEpisode(prov, con.EpisodeMap, ep, userid);
                     if (v != null)
                     {
                         Video nv = ser.GetPlexContract(userid);
@@ -1084,7 +1084,7 @@ namespace Shoko.Server.PlexAndKodi
                 {
                     try
                     {
-                        Video v = Helper.VideoFromAnimeEpisode(prov, cseries.CrossRefAniDBTvDBV2, ep, userid);
+                        Video v = Helper.VideoFromAnimeEpisode(prov, cseries.EpisodeMap, ep, userid);
                         if (v != null && v.Medias != null && v.Medias.Count > 0)
                         {
                             if (nocast && !hasRoles) hasRoles = true;

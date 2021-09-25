@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
@@ -23,37 +24,52 @@ namespace Shoko.Server.Repositories.Cached
                 return TvDBIDs.GetOne(id);
             }
         }
-
-        public ILookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>> GetByAnimeIDs(ISessionWrapper session,
-            int[] animeIds)
+        public Dictionary<int, TvDB_Series> GetByTvDBIDs(IReadOnlyCollection<int> tvdbIds)
         {
-            if (session == null)
-                throw new ArgumentNullException(nameof(session));
+            if (tvdbIds == null)
+                throw new ArgumentNullException(nameof(tvdbIds));
+
+            if (tvdbIds.Count == 0)
+            {
+                return new Dictionary<int, TvDB_Series>();
+            }
+
+            lock (Cache)
+            {
+                return tvdbIds.Select(id => TvDBIDs.GetOne(id)).Where(a=>a!=null).ToDictionary(a=>a.SeriesID,a=>a);
+            }
+        }
+
+        public ILookup<int, (CrossRef_AniDB, TvDB_Series)> GetByAnimeIDs(int[] animeIds)
+        {
             if (animeIds == null)
                 throw new ArgumentNullException(nameof(animeIds));
 
             if (animeIds.Length == 0)
             {
-                return EmptyLookup<int, Tuple<CrossRef_AniDB_TvDB, TvDB_Series>>.Instance;
+                return EmptyLookup<int, (CrossRef_AniDB, TvDB_Series)>.Instance;
             }
 
             lock (globalDBLock)
             {
-                var tvDbSeriesByAnime = session.CreateSQLQuery(@"
-                SELECT {cr.*}, {series.*}
-                    FROM CrossRef_AniDB_TvDB cr
-                        INNER JOIN TvDB_Series series
-                            ON series.SeriesID = cr.TvDBID
-                    WHERE cr.AniDBID IN (:animeIds)")
-                    .AddEntity("cr", typeof(CrossRef_AniDB_TvDB))
-                    .AddEntity("series", typeof(TvDB_Series))
-                    .SetParameterList("animeIds", animeIds)
-                    .List<object[]>()
-                    .ToLookup(r => ((CrossRef_AniDB_TvDB) r[0]).AniDBID,
-                        r => new Tuple<CrossRef_AniDB_TvDB, TvDB_Series>((CrossRef_AniDB_TvDB) r[0],
-                            (TvDB_Series) r[1]));
+                ILookup<int, CrossRef_AniDB> lk=RepoFactory.CrossRef_AniDB.GetByAniDBIDs(animeIds, Shoko.Models.Constants.Providers.TvDB);
+                Dictionary<int, TvDB_Series> sr = GetByTvDBIDs(lk.SelectMany(a => a).Select(a => int.Parse(a.ProviderID)).Distinct().ToList());
+                Dictionary<int, List<(CrossRef_AniDB, TvDB_Series)>> dic = new Dictionary<int, List<(CrossRef_AniDB, TvDB_Series)>>();
+                foreach (IGrouping<int, CrossRef_AniDB> g in lk)
+                {
+                    List<(CrossRef_AniDB, TvDB_Series)> ls = new List<(CrossRef_AniDB, TvDB_Series)>();
+                    foreach (CrossRef_AniDB k in g)
+                    {
+                        int s = int.Parse(k.ProviderID);
+                        if (dic.ContainsKey(s))
+                            ls.Add((k,sr[s]));
+                    }
+                    if (ls.Count>0)
+                        dic.Add(g.Key, ls);
+                }
 
-                return tvDbSeriesByAnime;
+                return dic.SelectMany(a=>a.Value.Select(x=>new { Key = a.Key, Value = x})).ToLookup(a=>a.Key, a=>a.Value);
+
             }
         }
 

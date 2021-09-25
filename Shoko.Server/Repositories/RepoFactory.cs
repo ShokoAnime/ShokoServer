@@ -41,8 +41,6 @@ namespace Shoko.Server.Repositories
         public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate { get; } = new AniDB_AnimeUpdateRepository();
         public static CrossRef_Subtitles_AniDB_FileRepository CrossRef_Subtitles_AniDB_File { get; } = new CrossRef_Subtitles_AniDB_FileRepository();
         public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File { get; } = new CrossRef_Languages_AniDB_FileRepository();
-        public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; } = new CrossRef_AniDB_OtherRepository();
-        public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; } = new CrossRef_AniDB_MALRepository();
         public static BookmarkedAnimeRepository BookmarkedAnime { get; } = new BookmarkedAnimeRepository();
         public static AniDB_SeiyuuRepository AniDB_Seiyuu { get; } = new AniDB_SeiyuuRepository();
         public static AniDB_ReleaseGroupRepository AniDB_ReleaseGroup { get; } = new AniDB_ReleaseGroupRepository();
@@ -88,27 +86,33 @@ namespace Shoko.Server.Repositories
         public static AniDB_VoteRepository AniDB_Vote { get; } = new AniDB_VoteRepository();
         public static TvDB_EpisodeRepository TvDB_Episode { get; } = new TvDB_EpisodeRepository();
         public static TvDB_SeriesRepository TvDB_Series { get; } = new TvDB_SeriesRepository();
-        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } = new CrossRef_AniDB_TvDBRepository();
-        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = new CrossRef_AniDB_TvDB_EpisodeRepository();
-        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; } = new CrossRef_AniDB_TvDB_Episode_OverrideRepository();
         public static TvDB_ImagePosterRepository TvDB_ImagePoster { get; } = new TvDB_ImagePosterRepository();
         public static TvDB_ImageFanartRepository TvDB_ImageFanart { get; } = new TvDB_ImageFanartRepository();
         public static TvDB_ImageWideBannerRepository TvDB_ImageWideBanner { get; } = new TvDB_ImageWideBannerRepository();
-        public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; } = new CrossRef_AniDB_TraktV2Repository();
         public static AnimeCharacterRepository AnimeCharacter { get; } = new AnimeCharacterRepository();
         public static AnimeStaffRepository AnimeStaff { get; } = new AnimeStaffRepository();
         public static CrossRef_Anime_StaffRepository CrossRef_Anime_Staff { get; } = new CrossRef_Anime_StaffRepository();
         public static GroupFilterRepository GroupFilter { get; } = new GroupFilterRepository();
-
+        public static CrossRef_AniDBRepository CrossRef_AniDB { get; } = new CrossRef_AniDBRepository();
+        public static CrossRef_AniDB_EpisodeRepository CrossRef_AniDB_Episode { get; } = new CrossRef_AniDB_EpisodeRepository();
+        public static CrossRef_AniDB_Episode_OverrideRepository CrossRef_AniDB_Episode_Override { get; } = new CrossRef_AniDB_Episode_OverrideRepository();
+        
 
         /************** Might need to be DEPRECATED **************/
-        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; } = new CrossRef_AniDB_Trakt_EpisodeRepository();
 
 
         /************** DEPRECATED **************/
         /* We need to delete them at some point */
 
         public static GroupFilterConditionRepository GroupFilterCondition { get; } = new GroupFilterConditionRepository();
+        public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2 { get; } = new CrossRef_AniDB_TraktV2Repository();
+        public static CrossRef_AniDB_TvDBRepository CrossRef_AniDB_TvDB { get; } = new CrossRef_AniDB_TvDBRepository();
+        public static CrossRef_AniDB_TvDB_EpisodeRepository CrossRef_AniDB_TvDB_Episode { get; } = new CrossRef_AniDB_TvDB_EpisodeRepository();
+        public static CrossRef_AniDB_TvDB_Episode_OverrideRepository CrossRef_AniDB_TvDB_Episode_Override { get; } = new CrossRef_AniDB_TvDB_Episode_OverrideRepository();
+        public static CrossRef_AniDB_OtherRepository CrossRef_AniDB_Other { get; } = new CrossRef_AniDB_OtherRepository();
+        public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL { get; } = new CrossRef_AniDB_MALRepository();
+        public static CrossRef_AniDB_Trakt_EpisodeRepository CrossRef_AniDB_Trakt_Episode { get; } = new CrossRef_AniDB_Trakt_EpisodeRepository();
+
 
         public static void PostInit()
         {

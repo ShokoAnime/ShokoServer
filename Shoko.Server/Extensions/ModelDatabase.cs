@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NHibernate;
@@ -111,7 +111,7 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross)
+        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB cross)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -119,14 +119,14 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB_Other cross, ISessionWrapper session)
+        public static MovieDB_Movie GetMovieDB_Movie(this CrossRef_AniDB cross, ISessionWrapper session)
         {
-            if (cross.CrossRefType != (int) CrossRefType.MovieDB)
+            if (cross.Provider!=Shoko.Models.Constants.Providers.MovieDB)
                 return null;
-            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.CrossRefID));
+            return RepoFactory.MovieDb_Movie.GetByOnlineID(session, int.Parse(cross.ProviderID));
         }
 
-        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross)
+        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB cross)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -134,14 +134,18 @@ namespace Shoko.Server.Extensions
             }
         }
 
-        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB_TraktV2 cross, ISession session)
+        public static Trakt_Show GetByTraktShow(this CrossRef_AniDB cross, ISession session)
         {
-            return RepoFactory.Trakt_Show.GetByTraktSlug(session, cross.TraktID);
+            if (cross.Provider!=Shoko.Models.Constants.Providers.Trakt)
+                return null;
+            return RepoFactory.Trakt_Show.GetByTraktSlug(session, cross.ProviderID);
         }
 
-        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB_TvDB cross)
+        public static TvDB_Series GetTvDBSeries(this CrossRef_AniDB cross)
         {
-            return RepoFactory.TvDB_Series.GetByTvDBID(cross.TvDBID);
+            if (cross.Provider!=Shoko.Models.Constants.Providers.TvDB)
+                return null;
+            return RepoFactory.TvDB_Series.GetByTvDBID(int.Parse(cross.ProviderID));
         }
 
         public static AniDB_Episode GetEpisode(this CrossRef_File_Episode cross)

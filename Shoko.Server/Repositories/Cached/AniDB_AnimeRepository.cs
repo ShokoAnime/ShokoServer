@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
@@ -105,7 +105,7 @@ namespace Shoko.Server.Repositories
             if (generateTvDBMatches)
             {
                 // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
-                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
+                TvShowsLinkingHelper.GenerateEpisodeMatches(obj.AnimeID, Shoko.Models.Constants.Providers.TvDB);
             }
         }
 

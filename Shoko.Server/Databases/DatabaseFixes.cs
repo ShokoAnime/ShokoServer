@@ -170,7 +170,7 @@ namespace Shoko.Server.Databases
                 // Split them by series so that we can escape on error more easily
                 foreach (var special in specials)
                 {
-                    var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(special.ToList());
+                    var overrides = TvShowsLinkingHelper.GetSpecialsOverridesFromLegacyObsolete(special.ToList());
                     foreach (var episodeOverride in overrides)
                     {
                         var exists =
@@ -204,7 +204,7 @@ namespace Shoko.Server.Databases
                 // Split them by series so that we can escape on error more easily
                 foreach (var special in ovas)
                 {
-                    var overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(special.ToList());
+                    var overrides = TvShowsLinkingHelper.GetSpecialsOverridesFromLegacyObsolete(special.ToList());
                     foreach (var episodeOverride in overrides)
                     {
                         var exists =
@@ -288,7 +288,7 @@ namespace Shoko.Server.Databases
                             $" {count}/{list.Count}");
                     }
 
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true);
+                    TvShowsLinkingHelper.GenerateEpisodeMatches(animeseries.AniDB_ID, Shoko.Models.Constants.Providers.TvDB, true);
                 });
 
                 string dropV2 = "DROP TABLE CrossRef_AniDB_TvDBV2";
@@ -313,7 +313,7 @@ namespace Shoko.Server.Databases
                         $" {count}/{list.Count}");
                 }
 
-                TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true);
+                TvShowsLinkingHelper.GenerateEpisodeMatches(animeseries.AniDB_ID, Shoko.Models.Constants.Providers.TvDB, true);
             });
         }
 
@@ -741,6 +741,112 @@ namespace Shoko.Server.Databases
                 logger.Error(e);
             }
         }
+
+        private static void ProcessBatch<T>(IEnumerable<T> items,string title, BaseCachedRepository<T, int> repo) where T:class, new()
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            {
+                int i = 0;
+                var batches = items.Batch(50).ToList();
+                foreach (var batch in batches)
+                {
+                    i++;
+                    ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
+                       $"Migrating {title}", $"{i}/{batches.Count}");
+                    try
+                    {
+                        using (var transaction = session.BeginTransaction())
+                        {
+                            foreach (var item in batch)
+                                repo.SaveWithOpenTransaction(session.Wrap(), item);
+                            transaction.Commit();
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error($"There was an error saving {title}: {e}");
+                    }
+                }
+            }
+        }
+
+
+        public static void MigrateAllProviderCrossRefsToV4()
+        {
+            try
+            {
+                //MAL
+                var mals = RepoFactory.CrossRef_AniDB_MAL.GetAll().Select(a=>new CrossRef_AniDB
+                {
+                    AniDBID = a.AnimeID,
+                    Provider = Shoko.Models.Constants.Providers.MAL,
+                    ProviderID = a.MALID.ToString(),
+                    CrossRefSource = (CrossRefSource)a.CrossRefSource,
+                    ProviderMediaType = MediaType.Unknown,
+                });
+                ProcessBatch(mals, "MAL CrossReferences",RepoFactory.CrossRef_AniDB);
+                //MovieDB
+                var movies = RepoFactory.CrossRef_AniDB_Other.GetAll().Where(a=>a.CrossRefSource==(int)CrossRefType.MovieDB).Select(a=>new CrossRef_AniDB
+                {
+                    AniDBID = a.AnimeID,
+                    Provider = Shoko.Models.Constants.Providers.MovieDB,
+                    ProviderID = a.CrossRefID,
+                    CrossRefSource = CrossRefSource.Automatic,
+                    ProviderMediaType = MediaType.Movie
+                });
+                ProcessBatch(movies, "MovieDB CrossReferences",RepoFactory.CrossRef_AniDB);
+                //Trakt
+                var trakts = RepoFactory.CrossRef_AniDB_TraktV2.GetAll().Select(a=>new CrossRef_AniDB
+                {
+                    AniDBID = a.AnimeID,
+                    Provider = Shoko.Models.Constants.Providers.Trakt,
+                    ProviderID = a.TraktID,
+                    CrossRefSource = (CrossRefSource)a.CrossRefSource,
+                    ProviderMediaType = MediaType.TvShow
+                });
+                ProcessBatch(trakts, "Trakt CrossReferences",RepoFactory.CrossRef_AniDB);
+                var traktsEps = RepoFactory.CrossRef_AniDB_Trakt_Episode.GetAll().Select(a=>new CrossRef_AniDB_Episode
+                {
+                    AniDBEpisodeID = a.AniDBEpisodeID,
+                    Provider = Shoko.Models.Constants.Providers.Trakt,
+                    ProviderEpisodeID = a.TraktID+"_"+a.Season+"_"+a.EpisodeNumber,
+                    MatchRating = MatchRating.Good
+                });
+                ProcessBatch(traktsEps, "Trakt Episode CrossReferences", RepoFactory.CrossRef_AniDB_Episode);
+                //TvDB
+                var tvs = RepoFactory.CrossRef_AniDB_TvDB.GetAll().Select(a=>new CrossRef_AniDB
+                {
+                    AniDBID = a.AniDBID,
+                    Provider = Shoko.Models.Constants.Providers.TvDB,
+                    ProviderID = a.TvDBID.ToString(),
+                    CrossRefSource = (CrossRefSource)a.CrossRefSource,
+                    ProviderMediaType = MediaType.TvShow
+                });
+                ProcessBatch(tvs, "TvDB CrossReferences",RepoFactory.CrossRef_AniDB);
+                var tvEps = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetAll().Select(a=>new CrossRef_AniDB_Episode
+                {
+                    AniDBEpisodeID = a.AniDBEpisodeID,
+                    Provider = Shoko.Models.Constants.Providers.TvDB,
+                    ProviderEpisodeID = a.TvDBEpisodeID.ToString(),
+                    MatchRating = a.MatchRating
+                });
+                ProcessBatch(tvEps, "TvDB Episode CrossReferences",RepoFactory.CrossRef_AniDB_Episode);
+                var tvEpsOverride = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetAll().Select(a=>new CrossRef_AniDB_Episode_Override
+                {
+                    AniDBEpisodeID = a.AniDBEpisodeID,
+                    Provider = Shoko.Models.Constants.Providers.TvDB,
+                    ProviderEpisodeID = a.TvDBEpisodeID.ToString()
+                });
+                ProcessBatch(tvEpsOverride, "TvDB Episode Override CrossReferences",RepoFactory.CrossRef_AniDB_Episode_Override);
+
+            }
+            catch (Exception e)
+            {
+                logger.Error(e);
+            }
+        }
+
 
         public static void UpdateAllTvDBSeries()
         {

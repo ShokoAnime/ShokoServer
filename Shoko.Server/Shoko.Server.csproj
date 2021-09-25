@@ -30,6 +30,7 @@
     <Resource Remove="obj\**\*" />
     <Content Remove="bin\**\*" />
     <Content Remove="obj\**\*" />
+    <Compile Remove="API\v1\Implementations\ShokoServiceImplementationMetro.cs" />
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

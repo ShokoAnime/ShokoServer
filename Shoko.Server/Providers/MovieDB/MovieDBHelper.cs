@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Web;
 using NHibernate;
 using NLog;
@@ -19,6 +20,7 @@ using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
+using MediaType = Shoko.Models.Enums.MediaType;
 
 namespace Shoko.Server.Providers.MovieDB
 {
@@ -277,45 +279,40 @@ namespace Shoko.Server.Providers.MovieDB
             // download and update series info and images
             UpdateMovieInfo(movieDBID, true);
 
-            CrossRef_AniDB_Other xref =
-                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.MovieDB).FirstOrDefault(a=>a.ProviderMediaType==MediaType.Movie);
             if (xref == null)
-                xref = new CrossRef_AniDB_Other();
+                xref = new CrossRef_AniDB();
 
-            xref.AnimeID = animeID;
+            xref.AniDBID = animeID;
             if (fromWebCache)
-                xref.CrossRefSource = (int) CrossRefSource.WebCache;
+                xref.CrossRefSource = CrossRefSource.WebCache;
             else
-                xref.CrossRefSource = (int) CrossRefSource.User;
-
-            xref.CrossRefType = (int) CrossRefType.MovieDB;
-            xref.CrossRefID = movieDBID.ToString();
-            RepoFactory.CrossRef_AniDB_Other.Save(xref);
+                xref.CrossRefSource = CrossRefSource.User;
+            xref.ProviderMediaType = MediaType.Movie;
+            xref.Provider = Shoko.Models.Constants.Providers.MovieDB;
+            xref.ProviderID = movieDBID.ToString();
+            RepoFactory.CrossRef_AniDB.Save(xref);
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 
             if (ServerSettings.Instance.WebCache.Enabled)
             {
-                CommandRequest_WebCacheSendXRefAniDBOther req =
-                    new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
+                CommandRequest_WebCacheSendXRef req = new CommandRequest_WebCacheSendXRef(xref.CrossRef_AniDBID);
                 req.Save();
             }
         }
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
         {
-            CrossRef_AniDB_Other xref =
-                RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDB(animeID, Shoko.Models.Constants.Providers.MovieDB).FirstOrDefault();
             if (xref == null) return;
 
-            RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
+            RepoFactory.CrossRef_AniDB.Delete(xref.CrossRef_AniDBID);
 
             if (ServerSettings.Instance.WebCache.Enabled)
             {
-                CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(
-                    animeID,
-                    CrossRefType.MovieDB);
+                CommandRequest_WebCacheDeleteXRef req = new CommandRequest_WebCacheDeleteXRef(animeID, Shoko.Models.Constants.Providers.MovieDB, xref.ProviderID);
                 req.Save();
             }
         }
@@ -331,11 +328,8 @@ namespace Shoko.Server.Providers.MovieDB
 
                 if (anime.IsMovieDBLinkDisabled()) continue;
 
-                // don't scan if it is associated on the TvDB
-                if (anime.GetCrossRefTvDB().Count > 0) continue;
-
-                // don't scan if it is associated on the MovieDB
-                if (anime.GetCrossRefMovieDB() != null) continue;
+                if (anime.GetCrossRefs().Any(a => a.ProviderMediaType == MediaType.TvShow))
+                    continue;
 
                 // don't scan if it is not a movie
                 if (!anime.GetSearchOnMovieDB())

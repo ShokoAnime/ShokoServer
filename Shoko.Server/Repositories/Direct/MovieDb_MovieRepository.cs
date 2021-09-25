@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Criterion;
@@ -28,8 +28,7 @@ namespace Shoko.Server.Repositories.Direct
             return cr;
         }
 
-        public Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>> GetByAnimeIDs(ISessionWrapper session,
-            int[] animeIds)
+        public Dictionary<int, (CrossRef_AniDB, MovieDB_Movie)> GetByAnimeIDs(ISessionWrapper session, int[] animeIds)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));
@@ -38,26 +37,29 @@ namespace Shoko.Server.Repositories.Direct
 
             if (animeIds.Length == 0)
             {
-                return new Dictionary<int, Tuple<CrossRef_AniDB_Other, MovieDB_Movie>>();
+                return new Dictionary<int, (CrossRef_AniDB, MovieDB_Movie)>();
+            }
+            ILookup<int, CrossRef_AniDB> lk=RepoFactory.CrossRef_AniDB.GetByAniDBIDs(animeIds, Shoko.Models.Constants.Providers.MovieDB);
+            List<int> movieids = lk.SelectMany(a => a).Select(a => int.Parse(a.ProviderID)).ToList();
+           Dictionary<int, MovieDB_Movie> cr = session
+                .CreateCriteria(typeof(MovieDB_Movie))
+                .Add(Restrictions.In("MovieId", movieids))
+                .List<MovieDB_Movie>().ToDictionary(a=>a.MovieId,a=>a);
+            Dictionary<int, (CrossRef_AniDB, MovieDB_Movie)> dic = new Dictionary<int, (CrossRef_AniDB, MovieDB_Movie)>();
+            foreach (IGrouping<int, CrossRef_AniDB> g in lk)
+            {
+                if (g.Any())
+                {
+                    CrossRef_AniDB kr = g.ElementAt(0);
+                    int movieid = int.Parse(kr.ProviderID);
+                    if (cr.ContainsKey(movieid))
+                    {
+                        dic.Add(g.Key, (kr, cr[movieid]));
+                    }
+                }
             }
 
-            var movieByAnime = session.CreateSQLQuery(@"
-                SELECT {cr.*}, {movie.*}
-                    FROM CrossRef_AniDB_Other cr
-                        INNER JOIN MovieDB_Movie movie
-                            ON cr.CrossRefType = :crossRefType
-                                AND movie.MovieId = cr.CrossRefID
-                    WHERE cr.AnimeID IN (:animeIds)")
-                .AddEntity("cr", typeof(CrossRef_AniDB_Other))
-                .AddEntity("movie", typeof(MovieDB_Movie))
-                .SetInt32("crossRefType", (int) CrossRefType.MovieDB)
-                .SetParameterList("animeIds", animeIds)
-                .List<object[]>()
-                .ToDictionary(r => ((CrossRef_AniDB_Other) r[0]).AnimeID,
-                    r => new Tuple<CrossRef_AniDB_Other, MovieDB_Movie>((CrossRef_AniDB_Other) r[0],
-                        (MovieDB_Movie) r[1]));
-
-            return movieByAnime;
+            return dic;
         }
     }
 }

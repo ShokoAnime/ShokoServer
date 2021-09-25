@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using NHibernate;
 using Shoko.Commons.Queue;
@@ -15,6 +16,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Constants = Shoko.Models.Constants;
 
 namespace Shoko.Server.Commands
 {
@@ -61,12 +63,11 @@ namespace Shoko.Server.Commands
                     {
                         try
                         {
-                            Azure_CrossRef_AniDB_Other crossRef =
-                                AzureWebAPI.Get_CrossRefAniDBOther(AnimeID,
-                                    CrossRefType.MovieDB);
+                            Azure_CrossRef_AniDB crossRef = AzureWebAPI.Get_CrossRefAniDB(AnimeID)
+                                .FirstOrDefault(a => a.Provider == Constants.Providers.MovieDB && a.ProviderMediaType == MediaType.Movie);
                             if (crossRef != null)
                             {
-                                int movieID = int.Parse(crossRef.CrossRefID);
+                                int movieID = int.Parse(crossRef.ProviderID);
                                 MovieDB_Movie movie = RepoFactory.MovieDb_Movie.GetByOnlineID(sessionWrapper, movieID);
                                 if (movie == null)
                                 {

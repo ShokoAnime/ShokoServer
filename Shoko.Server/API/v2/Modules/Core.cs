@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Globalization;
@@ -12,11 +12,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Providers;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -401,9 +403,9 @@ namespace Shoko.Server.API.v2.Modules
         {
             try
             {
-                RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinks();
+                RepoFactory.CrossRef_AniDB_Episode.DeleteAllUnverifiedLinks(Shoko.Models.Constants.Providers.TvDB);
                 RepoFactory.AnimeSeries.GetAll().ToList().AsParallel().ForAll(animeseries =>
-                    TvDBLinkingHelper.GenerateTvDBEpisodeMatches(animeseries.AniDB_ID, true));
+                    TvShowsLinkingHelper.GenerateEpisodeMatches(animeseries.AniDB_ID, Shoko.Models.Constants.Providers.TvDB, true));
             }
             catch (Exception e)
             {
@@ -418,6 +420,7 @@ namespace Shoko.Server.API.v2.Modules
         {
             public string Anime { get; set; }
             public int AnimeID { get; set; }
+            public string Provider { get; set; }
             public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Current { get; set; }
             public IEnumerable<(AniEpSummary AniDB, TvDBEpSummary TvDB)> Calculated { get; set; }
         }
@@ -459,6 +462,7 @@ namespace Shoko.Server.API.v2.Modules
             public int TvDBEpisodeNumber { get; set; }
             public string TvDBEpisodeName { get; set; }
 
+
             protected bool Equals(TvDBEpSummary other)
             {
                 return TvDBSeason == other.TvDBSeason && TvDBEpisodeNumber == other.TvDBEpisodeNumber && string.Equals(TvDBEpisodeName, other.TvDBEpisodeName);
@@ -495,38 +499,39 @@ namespace Shoko.Server.API.v2.Modules
                 var result = new List<EpisodeMatchComparison>();
                 foreach (var animeseries in list)
                 {
-                    List<CrossRef_AniDB_TvDB> tvxrefs =
-                        RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeseries.AnimeID);
-                    int tvdbID = tvxrefs.FirstOrDefault()?.TvDBID ?? 0;
-                    var matches = TvDBLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, tvdbID).Select(a => (
+                    Dictionary<string, List<CrossRef_AniDB>> tvxrefs = RepoFactory.CrossRef_AniDB.GetByAniDB(animeseries.AnimeID).Where(a=>a.ProviderMediaType==MediaType.TvShow).GroupBy(a=>a.Provider).ToDictionary(a=>a.Key,a=>a.ToList());
+                    foreach(string prov in tvxrefs.Keys)
+                    {
+                        CrossRef_AniDB first = tvxrefs[prov].First();
+                        var matches = TvShowsLinkingHelper.GetTvDBEpisodeMatches(animeseries.AnimeID, prov, first.ProviderID).Select(a => (
                         AniDB: new AniEpSummary
                         {
                             AniDBEpisodeType = a.AniDB.EpisodeType,
                             AniDBEpisodeNumber = a.AniDB.EpisodeNumber,
                             AniDBEpisodeName = a.AniDB.GetEnglishTitle()
                         },
-                        TvDB: a.TvDB == null ? null : new TvDBEpSummary
+                        Episode: a.Episode == null ? null : new TvDBEpSummary
                         {
-                            TvDBSeason = a.TvDB.SeasonNumber,
-                            TvDBEpisodeNumber = a.TvDB.EpisodeNumber,
-                            TvDBEpisodeName = a.TvDB.EpisodeName
+                            TvDBSeason = a.Episode.SeasonNumber,
+                            TvDBEpisodeNumber = a.Episode.EpisodeNumber,
+                            TvDBEpisodeName = a.Episode.Title
                         })).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
-                    var currentMatches = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAnimeID(animeseries.AnimeID)
+                        var currentMatches = RepoFactory.CrossRef_AniDB_Episode.GetByAnimeID(animeseries.AnimeID, prov)
                         .Select(a =>
                         {
                             var AniDB = RepoFactory.AniDB_Episode.GetByEpisodeID(a.AniDBEpisodeID);
-                            var TvDB = RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID);
+                            GenericEpisode episode = GenericEpisode.RepoFromProvider(prov).GetByEpisodeProviderID(a.ProviderEpisodeID);
                             return (AniDB: new AniEpSummary
                                 {
                                     AniDBEpisodeType = AniDB.EpisodeType,
                                     AniDBEpisodeNumber = AniDB.EpisodeNumber,
                                     AniDBEpisodeName = AniDB.GetEnglishTitle()
                                 },
-                                TvDB: TvDB == null ? null : new TvDBEpSummary
+                                Episode: episode == null ? null : new TvDBEpSummary
                                 {
-                                    TvDBSeason = TvDB.SeasonNumber,
-                                    TvDBEpisodeNumber = TvDB.EpisodeNumber,
-                                    TvDBEpisodeName = TvDB.EpisodeName
+                                    TvDBSeason = episode.SeasonNumber,
+                                    TvDBEpisodeNumber = episode.EpisodeNumber,
+                                    TvDBEpisodeName = episode.Title
                                 });
                         }).OrderBy(a => a.AniDB.AniDBEpisodeType).ThenBy(a => a.AniDB.AniDBEpisodeNumber).ToList();
                     if (!currentMatches.SequenceEqual(matches))
@@ -535,9 +540,11 @@ namespace Shoko.Server.API.v2.Modules
                         {
                             Anime = animeseries.MainTitle,
                             AnimeID = animeseries.AnimeID,
+                            Provider = prov,
                             Current = currentMatches,
                             Calculated = matches,
                         });
+                    }
                     }
                 }
 

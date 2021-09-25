@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -57,23 +57,23 @@ namespace Shoko.Server.Commands
                 {
                     try
                     {
-                        List<Azure_CrossRef_AniDB_TvDB> cacheResults =
-                            AzureWebAPI.Get_CrossRefAniDBTvDB(AnimeID);
+                        List<Azure_CrossRef_AniDB> cacheResults = AzureWebAPI.Get_CrossRefAniDB(AnimeID).Where(a => a.Provider == Shoko.Models.Constants.Providers.TvDB).ToList();
                         if (cacheResults != null && cacheResults.Count > 0)
                         {
                             // check again to see if there are any links, user may have manually added links while
                             // this command was in the queue
-                            List<CrossRef_AniDB_TvDB> xrefTemp =
-                                RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(AnimeID);
+                            List<CrossRef_AniDB> xrefTemp =
+                                RepoFactory.CrossRef_AniDB.GetByAniDB(AnimeID, Shoko.Models.Constants.Providers.TvDB);
                             if (xrefTemp != null && xrefTemp.Count > 0) return;
 
                             // Add overrides for specials
-                            List<Azure_CrossRef_AniDB_TvDB> specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
+                            /*
+                            List<Azure_CrossRef_AniDB> specialXRefs = cacheResults.Where(a => a.TvDBSeasonNumber == 0)
                                 .OrderBy(a => a.AniDBStartEpisodeType).ThenBy(a => a.AniDBStartEpisodeNumber)
                                 .ToList();
                             if (specialXRefs.Count != 0)
                             {
-                                List<CrossRef_AniDB_TvDB_Episode_Override> overrides = TvDBLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
+                                List<CrossRef_AniDB_TvDB_Episode_Override> overrides = TvShowsLinkingHelper.GetSpecialsOverridesFromLegacy(specialXRefs);
                                 foreach (CrossRef_AniDB_TvDB_Episode_Override episodeOverride in overrides)
                                 {
                                     CrossRef_AniDB_TvDB_Episode_Override exists =
@@ -82,13 +82,13 @@ namespace Shoko.Server.Commands
                                     if (exists != null) continue;
                                     RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.Save(episodeOverride);
                                 }
-                            }
-                            foreach (Azure_CrossRef_AniDB_TvDB xref in cacheResults)
+                            }*/
+                            foreach (Azure_CrossRef_AniDB xref in cacheResults)
                             {
-                                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(xref.TvDBID, false);
+                                TvDB_Series tvser = TvDBApiHelper.GetSeriesInfoOnline(int.Parse(xref.ProviderID), false);
                                 if (tvser == null) continue;
                                 logger.Trace("Found tvdb match on web cache for {0}", AnimeID);
-                                TvDBApiHelper.LinkAniDBTvDB(AnimeID, xref.TvDBID, true);
+                                TvDBApiHelper.LinkAniDBTvDB(AnimeID, int.Parse(xref.ProviderID), true);
                             }
                             return;
                         }
@@ -201,16 +201,16 @@ namespace Shoko.Server.Commands
 
         private static void AddCrossRef_AniDB_TvDBV2(int animeID, int tvdbID, CrossRefSource source)
         {
-            CrossRef_AniDB_TvDB xref =
-                RepoFactory.CrossRef_AniDB_TvDB.GetByAniDBAndTvDBID(animeID, tvdbID);
+            CrossRef_AniDB xref = RepoFactory.CrossRef_AniDB.GetByAniDBAndProviderID(animeID, tvdbID.ToString(),Shoko.Models.Constants.Providers.TvDB);
             if (xref != null) return;
-            xref = new CrossRef_AniDB_TvDB
+            xref = new CrossRef_AniDB
             {
                 AniDBID = animeID,
-                TvDBID = tvdbID,
-                CrossRefSource = source
+                ProviderID = tvdbID.ToString(),
+                CrossRefSource = source,
+                ProviderMediaType = MediaType.TvShow
             };
-            RepoFactory.CrossRef_AniDB_TvDB.Save(xref);
+            RepoFactory.CrossRef_AniDB.Save(xref);
         }
         
         private static readonly Regex RemoveYear = new Regex(@"(^.*)( \([0-9]+\)$)", RegexOptions.Compiled);

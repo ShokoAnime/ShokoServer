@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -1004,14 +1004,14 @@ namespace Shoko.Server.Models
                     break;
 
                 case GroupFilterConditionType.AssignedMALInfo:
-                    bool malMissing = contractSerie.CrossRefAniDBMAL == null ||
-                                      contractSerie.CrossRefAniDBMAL.Count == 0;
+                    bool malMissing = contractSerie.CrossRefAniDB == null ||
+                                      contractSerie.CrossRefAniDB.Count(a=>a.Provider==Shoko.Models.Constants.Providers.MAL) == 0;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && malMissing) return false;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude && !malMissing) return false;
                     break;
 
                 case GroupFilterConditionType.AssignedMovieDBInfo:
-                    bool movieMissing = contractSerie.CrossRefAniDBMovieDB == null;
+                    bool movieMissing = contractSerie.CrossRefAniDB == null || contractSerie.CrossRefAniDB.Count(a=>a.Provider==Shoko.Models.Constants.Providers.MovieDB && a.ProviderMediaType==MediaType.Movie) == 0;
                     bool supposedToHaveMovieLink = contractSerie.AniDBAnime.AniDBAnime.AnimeType ==
                                                    (int) AnimeType.Movie &&
                                                    !(contractSerie.AniDBAnime.AniDBAnime.Restricted > 0);
@@ -1025,8 +1025,8 @@ namespace Shoko.Server.Models
                     // return true if excluding
                     if (contractSerie.AniDBAnime.AniDBAnime.Restricted > 0)
                         return gfc.GetConditionOperatorEnum() == GroupFilterOperator.Exclude;
-                    bool movieLinkMissing = contractSerie.CrossRefAniDBMovieDB == null;
-                    bool tvlinkMissing =
+                    bool movieLinkMissing = contractSerie.CrossRefAniDB == null || contractSerie.CrossRefAniDB.Count(a=>a.Provider==Shoko.Models.Constants.Providers.MovieDB && a.ProviderMediaType==MediaType.Movie) == 0;
+                   bool tvlinkMissing =
                         RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(contractSerie.AniDB_ID).Count == 0;
                         bool bothMissing = movieLinkMissing && tvlinkMissing;
                     if (gfc.GetConditionOperatorEnum() == GroupFilterOperator.Include && bothMissing) return false;
