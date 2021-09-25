@@ -53,7 +53,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
 
             var uid = ctx.GetUser()?.JMMUserID ?? 0;
-            Watched = ep.GetUserRecord(uid)?.WatchedDate;
+            Watched = ep.GetVideoLocals().Select(v => v.GetUserRecord(uid)?.WatchedDate).Where(v => v.HasValue).OrderByDescending(v => v).FirstOrDefault();
             Name = ep.Title;
 
             Size = ep.GetVideoLocals().Count;
