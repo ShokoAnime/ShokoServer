@@ -157,6 +157,7 @@ namespace Shoko.Server.Commands
                     {
                         foreach (var user in RepoFactory.JMMUser.GetAll())
                         {
+                            logger.Trace($"Setting watched date for User {user.JMMUserID} and videolocal id {vidLocal.VideoLocalID} to {aniFile.WatchedDate}");
                             var userRecord = vidLocal.GetUserRecord(user.JMMUserID) ?? new VideoLocal_User
                             {
                                 JMMUserID = user.JMMUserID,
