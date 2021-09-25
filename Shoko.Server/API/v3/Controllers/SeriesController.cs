@@ -15,7 +15,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -40,32 +39,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}")]
-        public ActionResult<Series> GetSeries(int seriesID)
+        public ActionResult<Series> GetSeries([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return new Series(HttpContext, ser);
-        }
-        
-        /// <summary>
-        /// Get the series that reside in the path that ends with <param name="path"></param>
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("PathEndsWith/{*path}")]
-        public ActionResult<List<Series>> GetSeries(string path)
-        {
-            var query = path;
-            if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
-            if (query.Contains("%")) query = Uri.UnescapeDataString(query);
-            query = query.Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
-            // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
-            return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-                .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
-                    .EndsWith(query, StringComparison.OrdinalIgnoreCase))
-                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
-                .Distinct()
-                .Where(ser => ser == null || User.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
         }
 
         /// <summary>
@@ -74,7 +53,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/AniDB")]
-        public ActionResult<Series.AniDB> GetSeriesAniDBDetails(int seriesID)
+        public ActionResult<Series.AniDB> GetSeriesAniDBDetails([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -90,7 +69,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
         [HttpGet("AniDB/{anidbID}")]
-        public ActionResult<Series> GetSeriesByAniDBID(int anidbID)
+        public ActionResult<Series> GetSeriesByAniDBID([FromRoute] int anidbID)
         {
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -104,7 +83,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
         [HttpPost("AniDB/{anidbID}/Refresh")]
-        public ActionResult QueueAniDBRefreshFromAniDBID(int anidbID)
+        public ActionResult QueueAniDBRefreshFromAniDBID([FromRoute] int anidbID)
         {
             Series.QueueAniDBRefresh(anidbID);
             return NoContent();
@@ -116,7 +95,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpPost("{seriesID}/AniDB/Refresh")]
-        public ActionResult QueueAniDBRefresh(int seriesID)
+        public ActionResult QueueAniDBRefresh([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -133,7 +112,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/AniDB/ForceRefreshFromXML")]
-        public ActionResult RefreshAniDBFromXML(int seriesID)
+        public ActionResult RefreshAniDBFromXML([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -143,44 +122,78 @@ namespace Shoko.Server.API.v3.Controllers
             Series.RefreshAniDBFromCachedXML(HttpContext, anime);
             return NoContent();
         }
-        
+
+        /// <summary>
+        /// Add a permanent or temprary user-submitted rating for the series.
+        /// </summary>
+        /// <param name="seriesID"></param>
+        /// <param name="vote"></param>
+        /// <returns></returns>
+        [HttpPost("{seriesID}/Vote")]
+        public ActionResult PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
+        {
+            if (vote.Value < 0)
+                return BadRequest("Value must be greater than or equal to 0.");
+            if (vote.Value > vote.MaxValue)
+                return BadRequest($"Value must be less than or equal to the set max value ({vote.MaxValue}).");
+            if (vote.MaxValue <= 0)
+                return BadRequest("Max value must be an integer above 0.");
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
+            Series.AddSeriesVote(HttpContext, ser, User.JMMUserID, vote);
+            return NoContent();
+        }
+
         /// <summary>
         /// Get TvDB Info for series with ID
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/TvDB")]
-        public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails(int seriesID)
+        public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetTvDBInfo(HttpContext, ser);
         }
-        
+
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
         /// <param name="includeDisabled"></param>
         /// <returns></returns>
-        [HttpGet("{seriesID}/Images/{IncludeDisabled?}")]
-        public ActionResult<Images> GetSeriesImages(int seriesID, bool includeDisabled)
+        [HttpGet("{seriesID}/Images")]
+        public ActionResult<Images> GetSeriesImages([FromRoute] int seriesID, [FromQuery] bool includeDisabled)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             return Series.GetArt(HttpContext, ser.AniDB_ID, includeDisabled);
         }
-        
+
         /// <summary>
-        /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
+        /// Get all images for series with ID, optionally with Disabled images, as well.
+        /// </summary>
+        /// <param name="seriesID">Shoko ID</param>
+        /// <param name="includeDisabled"></param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/Images/{IncludeDisabled}")]
+        [Obsolete]
+        public ActionResult<Images> GetSeriesImagesFromPath([FromRoute] int seriesID, [FromRoute] bool includeDisabled)
+            => GetSeriesImages(seriesID, includeDisabled);
+
+        /// <summary>
+        /// Get tags for Series with ID, optionally applying the given <see cref="TagFilter.Filter" />
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
         /// <param name="filter"></param>
+        /// <param name="excludeDescriptions"></param>
         /// <returns></returns>
-        [HttpGet("{seriesID}/Tags/{filter}")]
-        public ActionResult<List<Tag>> GetSeriesTags(int seriesID, TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
+        [HttpGet("{seriesID}/Tags")]
+        public ActionResult<List<Tag>> GetSeriesTags([FromRoute] int seriesID, [FromQuery] TagFilter.Filter filter = 0, [FromQuery] bool excludeDescriptions = false)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -189,7 +202,20 @@ namespace Shoko.Server.API.v3.Controllers
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
             return Series.GetTags(HttpContext, anime, filter, excludeDescriptions);
         }
-        
+
+        /// <summary>
+        /// Get tags for Series with ID, applying the given TagFilter (0 is show all)
+        /// </summary>
+        ///
+        /// <param name="seriesID">Shoko ID</param>
+        /// <param name="filter"></param>
+        /// <param name="excludeDescriptions"></param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/Tags/{filter}")]
+        [Obsolete]
+        public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute] int seriesID, [FromRoute] TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
+            => GetSeriesTags(seriesID, filter, excludeDescriptions);
+
         /// <summary>
         /// Get the cast listing for series with ID
         /// </summary>
@@ -197,7 +223,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="roleType">Filter by role type</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/Cast")]
-        public ActionResult<List<Role>> GetSeriesCast(int seriesID, [FromQuery] Role.CreatorRoleType? roleType = null)
+        public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID, [FromQuery] Role.CreatorRoleType? roleType = null)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
@@ -212,7 +238,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="newGroupID"></param>
         /// <returns></returns>
         [HttpPatch("{seriesID}/Move/{newGroupID}")]
-        public ActionResult MoveSeries(int seriesID, int newGroupID)
+        public ActionResult MoveSeries([FromRoute] int seriesID, int newGroupID)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null) return BadRequest("No Series with ID");
@@ -230,7 +256,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <returns></returns>
         [Authorize("admin")]
         [HttpDelete("{seriesID}")]
-        public ActionResult DeleteSeries(int seriesID, bool deleteFiles = false)
+        public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null) return BadRequest("No Series with ID");
@@ -240,6 +266,8 @@ namespace Shoko.Server.API.v3.Controllers
             return Ok();
         }
 
+        #region Search
+
         /// <summary>
         /// Search for series with given query in name or tag
         /// </summary>
@@ -248,7 +276,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="limit">number of return items</param>
         /// <returns>List<see cref="SeriesSearchResult"/></returns>
         [HttpGet("Search/{query}")]
-        public ActionResult<IEnumerable<SeriesSearchResult>> Search(string query, bool fuzzy = true, int limit = int.MaxValue)
+        public ActionResult<IEnumerable<SeriesSearchResult>> Search([FromRoute] string query, [FromQuery] bool fuzzy = true, [FromQuery] int limit = int.MaxValue)
         {
             SorensenDice search = new SorensenDice();
             query = query.ToLowerInvariant();
@@ -264,7 +292,7 @@ namespace Shoko.Server.API.v3.Controllers
             HashSet<string> languages = new HashSet<string>{"en", "x-jat"};
             languages.UnionWith(ServerSettings.Instance.LanguagePreference);
             var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<double, string>>();
-            
+
             if (fuzzy)
                 allSeries.ForAll(a => CheckTitlesFuzzy(search, languages, a, query, ref distLevenshtein, limit));
             else
@@ -317,7 +345,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="limit"></param>
         /// <returns></returns>
         [HttpGet("StartsWith/{query}")]
-        public ActionResult<List<SeriesSearchResult>> StartsWith(string query, int limit = int.MaxValue)
+        public ActionResult<List<SeriesSearchResult>> StartsWith([FromRoute] string query, int limit = int.MaxValue)
         {
             query = query.ToLowerInvariant();
 
@@ -346,6 +374,26 @@ namespace Shoko.Server.API.v3.Controllers
             #endregion
 
             return seriesList;
+        }
+
+        /// <summary>
+        /// Get the series that reside in the path that ends with <param name="path"></param>
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("PathEndsWith/{*path}")]
+        public ActionResult<List<Series>> GetSeries([FromRoute] string path)
+        {
+            var query = path;
+            if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
+            if (query.Contains("%")) query = Uri.UnescapeDataString(query);
+            query = query.Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
+            // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
+            return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+                .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
+                    .EndsWith(query, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes()).Select(a => a.GetAnimeSeries())
+                .Distinct()
+                .Where(ser => ser == null || User.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
         }
 
         #region internal function
@@ -493,6 +541,7 @@ namespace Shoko.Server.API.v3.Controllers
                 series.TryAdd(a, match);
         }
 
-#endregion
+        #endregion
+        #endregion
     }
 }

@@ -1,0 +1,38 @@
+using System;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+
+#nullable enable
+namespace Shoko.Server.API.v3.Models.Common
+{
+    /// <summary>
+    /// Vote object. Shared between sources, episodes vs series, etc.
+    /// Normalises the value
+    /// </summary>
+    public class Vote
+    {
+        /// <summary>
+        /// The normalised user-submitted rating in the range [0, <paramref name="maxValue" />].
+        /// /// </summary>
+        /// <returns></returns>
+        public decimal GetRating(int maxValue = 10)
+            => Math.Clamp((Math.Clamp(Value, 0, MaxValue) / MaxValue) * maxValue, 0, maxValue);
+
+        /// <summary>
+        /// The user-submitted rating relative to <see cref="Vote.MaxValue" />.
+        /// </summary>
+        [Required]
+        public decimal Value { get; set; }
+
+        /// <summary>
+        /// Max allowed value for the user-submitted rating. Assumes 10 if not set.
+        /// </summary>
+        [DefaultValue(10)]
+        public int MaxValue { get; set; }
+
+        /// <summary>
+        /// for temporary vs permanent, or any other situations that may arise later.
+        /// </summary>
+        public string? Type { get; set; }
+    }
+}

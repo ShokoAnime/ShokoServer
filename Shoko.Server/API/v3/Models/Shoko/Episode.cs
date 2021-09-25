@@ -22,18 +22,18 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// The relevant IDs for the Episode: Shoko, AniDB, TvDB
         /// </summary>
         public EpisodeIDs IDs { get; set; }
-        
+
         /// <summary>
         /// Length of the Episode
         /// </summary>
         public TimeSpan Duration { get; set; }
-        
+
         /// <summary>
         /// The Last Watched Date for the current user. If null, it is unwatched
         /// </summary>
         [Required]
         public DateTime? Watched { get; set; }
-        
+
         public Episode() {}
 
         public Episode(HttpContext ctx, SVR_AnimeEpisode ep)
@@ -149,6 +149,27 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 }).OrderBy(a => a.Season).ThenBy(a => a.ID).ThenBy(a => a.Number).ToList();
         }
 
+        public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
+        {
+            AniDB_Vote dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
+
+            if (dbVote == null)
+            {
+                dbVote = new AniDB_Vote
+                {
+                    EntityID = ep.AnimeEpisodeID,
+                    VoteType = (int) AniDBVoteType.Episode,
+                };
+            }
+
+            dbVote.VoteValue = (int) Math.Floor(vote.GetRating(1000));
+
+            RepoFactory.AniDB_Vote.Save(dbVote);
+
+            //var cmdVote = new CommandRequest_VoteAnimeEpisode(ep.AniDB_EpisodeID, voteType, vote.GetRating());
+            //cmdVote.Save();
+        }
+
         /// <summary>
         /// AniDB specific data for an Episode
         /// </summary>
@@ -158,33 +179,33 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// AniDB Episode ID
             /// </summary>
             public int ID { get; set; }
-            
+
             /// <summary>
             /// Episode Type
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
             public EpisodeType Type { get; set; }
-            
+
             /// <summary>
             /// Episode Number
             /// </summary>
             public int EpisodeNumber { get; set; }
-            
+
             /// <summary>
             /// First Listed Air Date. This may not be when it aired, but an early release date
             /// </summary>
             public DateTime? AirDate { get; set; }
-            
+
             /// <summary>
             /// Titles for the Episode
             /// </summary>
             public List<Title> Titles { get; set; }
-            
+
             /// <summary>
             /// AniDB Episode Summary
             /// </summary>
             public string Description { get; set; }
-            
+
             /// <summary>
             /// Episode Rating
             /// </summary>
@@ -197,57 +218,57 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// TvDB Episode ID
             /// </summary>
             public int ID { get; set; }
-            
+
             /// <summary>
             /// Season Number, 0 is Specials. TvDB's Season system doesn't always make sense for anime, so don't count on it
             /// </summary>
             public int Season { get; set; }
-            
+
             /// <summary>
             /// Episode Number in the Season. This is not Absolute Number
             /// </summary>
             public int Number { get; set; }
-            
+
             /// <summary>
             /// Absolute Episode Number. Keep in mind that due to reordering, this may not be accurate.
             /// </summary>
             public int AbsoluteNumber { get; set; }
-            
+
             /// <summary>
             /// Episode Title, in the language selected for TvDB. TvDB doesn't allow pulling more than one language at a time, so this isn't a list.
             /// </summary>
             public string Title { get; set; }
-            
+
             /// <summary>
             /// Episode Description, in the language selected for TvDB. See Title for more info on Language.
             /// </summary>
             public string Description { get; set; }
-            
+
             /// <summary>
             /// Air Date. Unfortunately, the TvDB air date doesn't necessarily conform to a specific timezone, so it can be a day off. If you see one that's wrong, please fix it on TvDB. You have the ID here in this model for easy lookup.
             /// </summary>
             public DateTime? AirDate { get; set; }
-            
+
             /// <summary>
             /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
             /// </summary>
             public int AirsAfterSeason { get; set; }
-            
+
             /// <summary>
             /// Mostly for specials. It shows when in the timeline the episode aired. I wouldn't count on it, as it's often blank.
             /// </summary>
             public int AirsBeforeSeason { get; set; }
-            
+
             /// <summary>
             /// Like AirsAfterSeason, it is for determining where in the timeline an episode airs. Also often blank.
             /// </summary>
             public int AirsBeforeEpisode { get; set; }
-            
+
             /// <summary>
             /// Rating of the episode
             /// </summary>
             public Rating Rating { get; set; }
-            
+
             /// <summary>
             /// The TvDB Thumbnail. Later, we'll have more thumbnail support, and episodes will have an Images endpoint like series, but for now, this will do.
             /// </summary>
