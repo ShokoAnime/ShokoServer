@@ -153,6 +153,7 @@ namespace Shoko.Server.Commands
                     }
                     
                     // check watched settings
+                    logger.Trace($"ReadWatched: {ServerSettings.Instance.AniDb.MyList_ReadWatched} File Watched: {aniFile.IsWatched}");
                     if (ServerSettings.Instance.AniDb.MyList_ReadWatched && aniFile.IsWatched > 0)
                     {
                         foreach (var user in RepoFactory.JMMUser.GetAll())
