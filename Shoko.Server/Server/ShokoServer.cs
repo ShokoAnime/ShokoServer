@@ -101,6 +101,7 @@ namespace Shoko.Server.Server
         public static IServiceProvider ServiceContainer => webHost.Services;
         
         private Mutex mutex;
+        private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";;
 
         internal static void ConfigureServices(IServiceCollection services)
         {
@@ -168,18 +169,22 @@ namespace Shoko.Server.Server
                     o.AddTag("logger", "${logger}");
 
                     // All Sentry Options are accessible here.
-                    o.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
+                    o.Dsn = SentryDsn;
                     o.AttachStacktrace = true;
+                    o.Release = Utils.GetApplicationVersion();
                     o.BeforeSend += delegate(SentryEvent e)
                     {
                         // Filter out some things. With Custom Exception Types, we can do this more gracefully, but meh
-                        if (e.Message?.Contains("AniDB ban or No Such Anime returned") == true) return null;
-                        if (e.Message?.Contains("AddFileToMyList") == true) return null;
-                        if (e.Message?.Contains("Login Failed") == true) return null;
-                        if (e.Message?.Contains("MyList xml is empty or invalid") == true) return null;
-                        if (e.Exception is UnauthorizedAccessException) return null;
-                        if (e.Exception is SocketException) return null;
-                        return e;
+                        if (e.Message?.Message?.Contains("AniDB ban or No Such Anime returned") == true) return null;
+                        if (e.Message?.Message?.Contains("AddFileToMyList") == true) return null;
+                        if (e.Message?.Message?.Contains("Login Failed") == true) return null;
+                        if (e.Message?.Message?.Contains("MyList xml is empty or invalid") == true) return null;
+                        switch (e.Exception)
+                        {
+                            case UnauthorizedAccessException:
+                            case SocketException: return null;
+                            default: return e;
+                        }
                     };
                 });
             var signalrTarget =
@@ -206,7 +211,7 @@ namespace Shoko.Server.Server
         {
             _sentry = SentrySdk.Init(opts =>
             {
-                opts.Dsn = new Dsn("https://47df427564ab42f4be998e637b3ec45a@sentry.io/1851880");
+                opts.Dsn = SentryDsn;
                 opts.Release = Utils.GetApplicationVersion();
             });
 
@@ -253,20 +258,23 @@ namespace Shoko.Server.Server
                 logger.Log(LogLevel.Error, e);
             }
 
-            try
+            if (!Utils.IsLinux)
             {
-                mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
-                //since it hasn't thrown an exception, then we already have one copy of the app open.
-                return false;
-                //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
-                //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
-                //Environment.Exit(0);
-            }
-            catch (Exception Ex)
-            {
-                //since we didn't find a mutex with that name, create one
-                Debug.WriteLine("Exception thrown:" + Ex.Message + " Creating a new mutex...");
-                mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
+                try
+                {
+                    mutex = Mutex.OpenExisting(ServerSettings.DefaultInstance + "Mutex");
+                    //since it hasn't thrown an exception, then we already have one copy of the app open.
+                    return false;
+                    //MessageBox.Show(Shoko.Commons.Properties.Resources.Server_Running,
+                    //    Shoko.Commons.Properties.Resources.ShokoServer, MessageBoxButton.OK, MessageBoxImage.Error);
+                    //Environment.Exit(0);
+                }
+                catch (Exception ex)
+                {
+                    //since we didn't find a mutex with that name, create one
+                    Debug.WriteLine("Exception thrown:" + ex.Message + " Creating a new mutex...");
+                    mutex = new Mutex(true, ServerSettings.DefaultInstance + "Mutex");
+                }
             }
 
             // RenameFileHelper.InitialiseRenamers();
@@ -1319,6 +1327,12 @@ namespace Shoko.Server.Server
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
 #endif
                 }).UseNLog()
+                .UseSentry(
+                    o =>
+                    {
+                        o.Release = Utils.GetApplicationVersion();
+                        o.Dsn = SentryDsn;
+                    })
 
                 .Build();
         }
