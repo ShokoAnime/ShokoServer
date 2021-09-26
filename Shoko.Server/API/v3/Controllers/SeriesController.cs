@@ -479,9 +479,13 @@ namespace Shoko.Server.API.v3.Controllers
             foreach (string title in seriesTitles)
             {
                 if (string.IsNullOrWhiteSpace(title)) continue;
-                var result = 0.0;
+                var result = 1.0;
                 // Check for exact match
-                if (!title.Equals(query, StringComparison.Ordinal))
+                if (title.Equals(query, StringComparison.Ordinal))
+                {
+                    result = 0.0;
+                }
+                else
                 {
                     var index = title.IndexOf(query, StringComparison.InvariantCultureIgnoreCase);
                     if (index >= 0) result = ((double) title.Length - index) / title.Length * 0.8D; // ensure that 0.8 doesn't skip later
