@@ -101,7 +101,7 @@ namespace Shoko.Server.Server
         public static IServiceProvider ServiceContainer => webHost.Services;
         
         private Mutex mutex;
-        private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";;
+        private const string SentryDsn = "https://47df427564ab42f4be998e637b3ec45a@o330862.ingest.sentry.io/1851880";
 
         internal static void ConfigureServices(IServiceCollection services)
         {
