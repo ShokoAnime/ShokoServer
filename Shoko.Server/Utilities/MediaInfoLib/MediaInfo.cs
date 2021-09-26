@@ -24,7 +24,7 @@ namespace Shoko.Server.Utilities.MediaInfoLib
             try
             {
                 string exe = GetMediaInfoPathForOS();
-                var escapedName = filename.Replace("\"", "\\\"").Replace("`", "\\`").Replace("$", "\\$");
+                var escapedName = filename.Replace("\"", "\\\"").Replace("$", "\\$");
                 string args = $"--OUTPUT=JSON \"{escapedName}\"";
 
                 var pProcess = GetProcess(exe, args);
