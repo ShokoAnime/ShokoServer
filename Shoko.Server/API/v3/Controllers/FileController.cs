@@ -174,7 +174,16 @@ namespace Shoko.Server.API.v3.Controllers
             if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
             if (query.Contains("%")) query = Uri.UnescapeDataString(query);
             if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
-            var regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+            Regex regex;
+
+            try
+            {
+                regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+            }
+            catch (RegexParseException e)
+            {
+                return BadRequest(e.Message);
+            }
 
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => regex.IsMatch(a.FullServerPath)).Select(a => a.VideoLocal)
