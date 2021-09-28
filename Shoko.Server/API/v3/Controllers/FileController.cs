@@ -150,7 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
             var query = path;
             if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
             if (query.Contains("%")) query = Uri.UnescapeDataString(query);
-            query = query.Replace('/', Path.DirectorySeparatorChar);
+            query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
             var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => a.FullServerPath.EndsWith(query, StringComparison.OrdinalIgnoreCase)).Select(a => a.VideoLocal)
                 .Distinct()

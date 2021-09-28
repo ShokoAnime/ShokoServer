@@ -386,7 +386,7 @@ namespace Shoko.Server.API.v3.Controllers
             var query = path;
             if (query.Contains("%") || query.Contains("+")) query = Uri.UnescapeDataString(query);
             if (query.Contains("%")) query = Uri.UnescapeDataString(query);
-            query = query.Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
+            query = query.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
             // There should be no circumstance where FullServerPath has no Directory Name, unless you have missing import folders
             return RepoFactory.VideoLocalPlace.GetAll().AsParallel()
                 .Where(a => a.FullServerPath != null && Path.GetDirectoryName(a.FullServerPath)
