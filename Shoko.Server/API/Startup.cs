@@ -198,6 +198,26 @@ namespace Shoko.Server.API
                     throw;
                 }
             });
+            // Source; https://www.tpeczek.com/2017/10/exploring-head-method-behavior-in.html
+            app.Use(async (context, next) =>
+            {
+                bool methodSwitched = false;
+
+                if (HttpMethods.IsHead(context.Request.Method))
+                {
+                    methodSwitched = true;
+
+                    context.Request.Method = HttpMethods.Get;
+                    context.Response.Body = Stream.Null;
+                }
+
+                await next.Invoke();
+
+                if (methodSwitched)
+                {
+                    context.Request.Method = HttpMethods.Head;
+                }
+            });
 
 #if DEBUG
             app.UseDeveloperExceptionPage();
