@@ -142,6 +142,9 @@ namespace Shoko.Server.API.v3.Controllers
         [NonAction]
         private void ScrobbleToTrakt(SVR_VideoLocal file, SVR_AnimeEpisode episode, long position, ScrobblePlayingStatus status)
         {
+            if (User.IsTraktUser == 0)
+                return;
+            
             float percentage = 100 * (position / file.Duration);
             ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int) AnimeType.Movie
                 ? ScrobblePlayingType.movie
