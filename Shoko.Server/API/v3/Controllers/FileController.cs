@@ -93,15 +93,15 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
         {
             // Handle legacy scrobble events.
-            if (string.IsNullOrEmpty(eventName) || !episodeID.HasValue) {
+            if (string.IsNullOrEmpty(eventName)) {
                 return ScrobbleStatusOnFile(fileID, watched, resumePosition);
             }
 
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null) return BadRequest("Could not get VideoLocal with ID: " + fileID);
 
-            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID.Value);
-            if (episode == null) return BadRequest("Could not get AnimeEpisode with ID: " + fileID);
+            var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.GetAnimeEpisodes()?.FirstOrDefault();
+            if (episode == null) return BadRequest("Could not get AnimeEpisode with ID: " + episodeID);
             
             var playbackPositionTicks = resumePosition ?? 0;
             var watchedTillCompletion = watched ?? false;
