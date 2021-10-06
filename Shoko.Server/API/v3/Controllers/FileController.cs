@@ -6,10 +6,13 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Models.Enums;
 using Shoko.Models.MediaInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
@@ -81,11 +84,74 @@ namespace Shoko.Server.API.v3.Controllers
         /// Update either watch status, resume position, or both.
         /// </summary>
         /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
+        /// <param name="eventName">The name of the event that triggered the scrobble.</param>
+        /// <param name="episodeID">The episode id to scrobble to trakt.</param>
         /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
         /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
         /// <returns></returns>
         [HttpPatch("{fileID}/Scrobble")]
-        public ActionResult ScrobbleStatusOnFile(int fileID, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+        public ActionResult ScrobbleFileAndEpisode([FromRoute] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+        {
+            // Handle legacy scrobble events.
+            if (string.IsNullOrEmpty(eventName) || !episodeID.HasValue) {
+                return ScrobbleStatusOnFile(fileID, watched, resumePosition);
+            }
+
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null) return BadRequest("Could not get VideoLocal with ID: " + fileID);
+
+            var episode = RepoFactory.AnimeEpisode.GetByID(episodeID.Value);
+            if (episode == null) return BadRequest("Could not get AnimeEpisode with ID: " + fileID);
+            
+            var playbackPositionTicks = resumePosition ?? 0;
+            var watchedTillCompletion = watched ?? false;
+            if (playbackPositionTicks >= file.Duration) {
+                watchedTillCompletion = true;
+                playbackPositionTicks = 0;
+            }
+
+            switch (eventName) {
+                // The playback was started.
+                case "play":
+                // The playback was resumed after a pause.
+                case "resume":
+                    ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Start);
+                    break;
+                // The playback was paused.
+                case "pause":
+                    ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Pause);
+                    break;
+                // The playback was ended.
+                case "stop":
+                    ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Stop);
+                    break;
+                // The playback is still active, but the playback position changed.
+                case "scrobble":
+                    break;
+                // A user interaction caused the watch state to change.
+                case "user-interaction":
+                    break;
+            }
+
+            file.ToggleWatchedStatus(watchedTillCompletion, User.JMMUserID);
+            file.SetResumePosition(playbackPositionTicks, User.JMMUserID);
+
+            return NoContent();
+        }
+
+        [NonAction]
+        private void ScrobbleToTrakt(SVR_VideoLocal file, SVR_AnimeEpisode episode, long position, ScrobblePlayingStatus status)
+        {
+            float percentage = 100 * (position / file.Duration);
+            ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int) AnimeType.Movie
+                ? ScrobblePlayingType.movie
+                : ScrobblePlayingType.episode;
+            
+            TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), status, percentage);
+        }
+        
+        [NonAction]
+        private ActionResult ScrobbleStatusOnFile(int fileID, bool? watched, long? resumePosition)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null) return BadRequest("Could not get videolocal with ID: " + fileID);
