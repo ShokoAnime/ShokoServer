@@ -245,6 +245,7 @@ namespace Shoko.Server.API.v2.Modules
         #region plexapi
         #pragma warning disable 0649
 
+        [DataContract]
         public class PlexEvent
         {
             [Required]
@@ -272,6 +273,7 @@ namespace Shoko.Server.API.v2.Modules
             [Required]
             public PlexMetadata Metadata;
 
+            [DataContract]
             public class PlexAccount
             {
                 [DataMember(Name = "id")]
@@ -284,6 +286,7 @@ namespace Shoko.Server.API.v2.Modules
                 public string Title;
             }
 
+            [DataContract]
             public class PlexBasicInfo
             {
                 [DataMember(Name = "title")]
@@ -293,6 +296,7 @@ namespace Shoko.Server.API.v2.Modules
                 public string Uuid;
             }
 
+            [DataContract]
             public class PlexPlayerInfo : PlexBasicInfo
             {
                 [DataMember(Name = "local")]
@@ -302,6 +306,7 @@ namespace Shoko.Server.API.v2.Modules
                 public string PublicAdress;
             }
 
+            [DataContract]
             public class PlexMetadata
             {
                 #region Library information
@@ -411,6 +416,7 @@ namespace Shoko.Server.API.v2.Modules
                 #endregion
             }
 
+            [DataContract]
             public class PlexProviderInfo {
                 [DataMember(Name = "id")]
                 public string Id;
