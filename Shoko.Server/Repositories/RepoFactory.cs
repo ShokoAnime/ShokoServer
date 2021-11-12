@@ -8,6 +8,7 @@ using Shoko.Commons.Properties;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -141,7 +142,7 @@ namespace Shoko.Server.Repositories
                     Task task = Task.Run(() => repo.Populate());
 
                     // don't wait longer than 3 minutes
-                    if (!task.Wait(180000)) throw new TimeoutException($"{repo.GetType()} took too long to cache.");
+                    if (!task.Wait(ServerSettings.Instance.CachingDatabaseTimeout * 1000)) throw new TimeoutException($"{repo.GetType()} took too long to cache.");
                 }
             }
             catch (Exception exception)

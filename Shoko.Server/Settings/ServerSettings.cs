@@ -57,6 +57,8 @@ namespace Shoko.Server.Settings
         [Range(0, 1, ErrorMessage = "PluginAutoWatchThreshold must be between 0 and 1")]
         public double PluginAutoWatchThreshold { get; set; } = 0.89;
 
+        public int CachingDatabaseTimeout { get; set; } = 180;
+
         public string Culture { get; set; } = "en";
 
         /// <summary>
@@ -678,4 +680,3 @@ namespace Shoko.Server.Settings
         }
     }
 }
- 
