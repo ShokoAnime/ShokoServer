@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,7 +16,7 @@ namespace Shoko.Server.FileHelper
 
             string e2dk = "", crc32 = "", md5 = "", sha1 = "";
 
-            using (Stream source = File.OpenRead(filename))
+            using (Stream source = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
