@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -76,7 +76,7 @@ namespace Shoko.Server.Commands
             var accessType = writeAccess ? FileAccess.ReadWrite : FileAccess.Read;
             try
             {
-                using (FileStream fs = File.Open(fileName, FileMode.Open, accessType, FileShare.None))
+                using (FileStream fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite))
                 {
                     long size = fs.Seek(0, SeekOrigin.End);
                     return size;
