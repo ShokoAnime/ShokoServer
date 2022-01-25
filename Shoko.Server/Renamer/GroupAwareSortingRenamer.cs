@@ -10,7 +10,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Renamer
 {
-    [Renamer(RENAMER_ID, Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
+    [Renamer(RENAMER_ID, Description = "Group Aware Sorter")]
     public class GroupAwareRenamer : IRenamer
     {
         internal const string RENAMER_ID = nameof(GroupAwareRenamer);
@@ -50,8 +50,8 @@ namespace Shoko.Server.Renamer
 
             IImportFolder destFolder = series.Restricted switch
             {
-                true => args.AvailableFolders.FirstOrDefault(a => a.Location.Contains("Hentai") && ValidDestinationFolder(a)),
-                false => args.AvailableFolders.FirstOrDefault(a => !a.Location.Contains("Hentai") && ValidDestinationFolder(a))
+                true => args.AvailableFolders.FirstOrDefault(a => a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) && ValidDestinationFolder(a)),
+                false => args.AvailableFolders.FirstOrDefault(a => !a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) && ValidDestinationFolder(a))
             };
 
             return (destFolder, path);

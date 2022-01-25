@@ -607,7 +607,7 @@ namespace Shoko.Server.Models
             if (File.Exists(newFullServerPath))
             {
                 logger.Info($"A file already exists at the desired location for {FullServerPath}");
-                return (string.Empty, "ERROR: The File already exists at the destination");
+                return (newFolderPath, string.Empty);
             }
 
             ShokoServer.PauseWatchingFiles();
@@ -711,6 +711,7 @@ namespace Shoko.Server.Models
         // returns false if we should retry
         private bool MoveFileIfRequired(bool deleteEmpty = true)
         {
+            // TODO move A LOT of this into renamer helper methods. A renamer can do them optionally
             if (!ServerSettings.Instance.Import.MoveOnImport)
             {
                 logger.Trace($"Skipping move of \"{this.FullServerPath}\" as move on import is disabled");

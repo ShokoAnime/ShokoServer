@@ -77,6 +77,7 @@ namespace Shoko.Server.Commands
 
                 //now that we have all the has info, we can get the AniDB Info
                 ProcessFile_AniDB(vlocal);
+                vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
             }
             catch (Exception ex)
             {
@@ -221,8 +222,6 @@ namespace Shoko.Server.Commands
                         videoLocals.ForEach(a => a.Places.ForEach(b => b.RemoveAndDeleteFile()));
                     }
                 }
-
-                vidLocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
 
                 // Add this file to the users list
                 if (ServerSettings.Instance.AniDb.MyList_AddFiles && !SkipMyList && vidLocal.MyListID <= 0)
