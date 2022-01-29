@@ -277,7 +277,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 },
                 Title = anime.MainTitle,
                 Titles = anime.GetTitles().Select(title => new Title
-                    {Language = title.Language, Name = title.Title, Type = title.TitleType}).ToList(),
+                    {
+                        Name = title.Title,
+                        Language = title.Language,
+                        Type = title.TitleType,
+                        Default = string.Equals(title.Title, anime.MainTitle),
+                        Source = "AniDB",
+                    }
+                ).ToList(),
             };
 
             if (anime.AirDate != null)
@@ -513,6 +520,34 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// </summary>
             public Rating Rating { get; set; }
 
+        }
+        
+        public class AniDBSearchResult
+        {
+            /// <summary>
+            /// AniDB ID
+            /// </summary>
+            [Required]
+            public int ID { get; set; }
+            
+            /// <summary>
+            /// Main Title. Either the shoko name of the series if
+            /// it's available locally, or the first "x-jat" or "main" title for
+            /// the series.
+            /// </summary>
+            [Required]
+            public string Title { get; set; }
+            
+            /// <summary>
+            /// There should always be at least one of these, since name will be valid
+            /// </summary>
+            [Required]
+            public List<Title> Titles { get; set; }
+            
+            /// <summary>
+            /// Shoko ID if the series is available locally.
+            /// </summary>
+            public int? ShokoID { get; set; }
         }
 
         /// <summary>

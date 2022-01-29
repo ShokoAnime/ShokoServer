@@ -106,11 +106,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     Votes = votes
                 },
                 Titles = titles.Select(a => new Title
-                {
-                    Source = "AniDB",
-                    Name = a.Title,
-                    Language = a.Language.ToLower()
-                }).ToList()
+                    {
+                        Name = a.Title,
+                        Language = a.Language.ToLower(),
+                        Default = false,
+                        Source = "AniDB",
+                    }
+                ).ToList(),
             };
         }
 

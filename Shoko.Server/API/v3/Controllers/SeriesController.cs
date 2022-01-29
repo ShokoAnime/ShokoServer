@@ -3,11 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Web;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons.Extensions;
+using Shoko.Server.AniDB_API.Titles;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -336,6 +338,91 @@ namespace Shoko.Server.API.v3.Controllers
             }
 
             return seriesList;
+        }
+        
+        /// <summary>
+        /// Search the title dump for the given query or directly using the anidb id.
+        /// </summary>
+        /// <param name="query">target string</param>
+        /// <param name="includeTitles">Include titles</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/Search/{query}")]
+        public List<Series.AniDBSearchResult> OnlineAnimeTitleSearch([FromRoute] string query, [FromQuery] bool includeTitles = true)
+        {
+            List<Series.AniDBSearchResult> list = new List<Series.AniDBSearchResult>();
+
+            // check if it is a title search or an ID search
+            if (int.TryParse(query, out int aid))
+            {
+                // user is direct entering the anime id
+
+                // try the local database first
+                // if not download the data from AniDB now
+                SVR_AniDB_Anime anime = Server.ShokoService.AnidbProcessor.GetAnimeInfoHTTP(aid, false,
+                    ServerSettings.Instance.AniDb.DownloadRelatedAnime);
+                if (anime != null)
+                {
+                    Series.AniDBSearchResult res = new Series.AniDBSearchResult
+                    {
+                        ID = anime.AnimeID,
+                        Title = anime.MainTitle,
+                        Titles = includeTitles ? anime.GetTitles().Select(title => new Title
+                            {
+                                Language = title.Language,
+                                Name = title.Title,
+                                Type = title.TitleType,
+                                Default = string.Equals(title.Title, anime.MainTitle),
+                                Source = "AniDB",
+                            }
+                        ).ToList() : null,
+                    };
+
+                    // check for existing series and group details
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                    if (ser != null)
+                    {
+                        res.ShokoID = ser.AnimeSeriesID;
+                        res.Title = anime.GetFormattedTitle();
+                    }
+                    list.Add(res);
+                }
+            }
+            else
+            {
+                // title search so look at the web cache
+                var result = AniDB_TitleHelper.Instance.SearchTitle(HttpUtility.UrlDecode(query));
+
+                foreach (var item in result)
+                {
+                    var mainTitle = (item.Titles.FirstOrDefault(a => a.TitleLanguage == "x-jat" && a.TitleType == "main") ?? item.Titles.FirstOrDefault());
+                    Series.AniDBSearchResult res = new Series.AniDBSearchResult
+                    {
+                        ID = item.AnimeID,
+                        Title = mainTitle.Title,
+                        Titles = includeTitles ? item.Titles.Select(title => new Title
+                            {
+                                Language = title.TitleLanguage,
+                                Name = title.Title,
+                                Type = title.TitleType,
+                                Default = title == mainTitle,
+                                Source = "AniDB",
+                            }
+                        ).ToList() : null,
+                    };
+
+                    // check for existing series and group details
+                    SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(item.AnimeID);
+                    if (ser != null)
+                    {
+                        res.ShokoID = ser.AnimeSeriesID;
+                        res.Title = ser.GetAnime().GetFormattedTitle();
+                    }
+
+                    list.Add(res);
+                }
+            }
+
+            return list;
         }
 
         /// <summary>
