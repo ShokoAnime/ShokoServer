@@ -13,6 +13,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
@@ -206,6 +207,26 @@ namespace Shoko.Server.API.v3.Controllers
                 FullOutput = result,
                 Ed2k = result.Split('\n').FirstOrDefault(s => s.Trim().Contains("ed2k://"))
             };
+        }
+
+        /// <summary>
+        /// Rescan a file on AniDB
+        /// </summary>
+        /// <param name="fileID">VideoLocal ID</param>
+        /// <returns></returns>
+        [HttpPost("{fileID}/Rescan")]
+        public ActionResult RescanFile(int fileID)
+        {
+            var vl = RepoFactory.VideoLocal.GetByID(fileID);
+            if (vl == null) return NotFound();
+
+            var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
+            if (string.IsNullOrEmpty(file)) return this.NoContent();
+
+            CommandRequest_ProcessFile cmd =
+                new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+            cmd.Save();
+            return Ok();
         }
 
         /// <summary>
