@@ -14,11 +14,6 @@ namespace Shoko.Server.Utilities
         private const string AnalyticsId = "UA-128934547-1";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-//#if !DEBUG
-        //private const string Endpoint = "https://www.google-analytics.com/debug";
-//#else
-        private const string Endpoint = "https://www.google-analytics.com";
-//#endif
         /// <summary>
         /// Send the event to Google.
         /// </summary>
@@ -36,47 +31,11 @@ namespace Shoko.Server.Utilities
 
         internal static bool PostException(Exception ex, bool fatal = false)
         {
-                SentrySdk.CaptureException(ex);
-
-                return PostData("exception",
-                new Dictionary<string, string>
-                {
-                    {"exd", ex.GetType().FullName},
-                    {"exf", (fatal ? 1 : 0).ToString()}
-                });
+            SentrySdk.CaptureException(ex);
+            return false;
         }
 
-        private static bool PostData(string type, IDictionary<string, string> extraData)
-        {
-            if (ServerSettings.Instance.GA_OptOutPlzDont) return false;
-
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    var data = new Dictionary<string, string>();
-                    data.Add("t", type);
-                    data.Add("an", "Shoko Server");
-                    data.Add("tid", AnalyticsId);
-                    data.Add("cid", ServerSettings.Instance.GA_Client.ToString());
-                    data.Add("v", "1");
-                    data.Add("av", Utils.GetApplicationVersion());
-                    data.Add("ul", CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture).DisplayName);
-                    data.Add("aip", "1");
-                    data.AddRange(extraData);
-
-                    var resp = client.PostAsync($"{Endpoint}/collect", new FormUrlEncodedContent(data))
-                        .ConfigureAwait(false).GetAwaiter().GetResult();
-
-                    return true;
-                }
-            }
-            catch (HttpRequestException ex)
-            {
-                Logger.Error("There was an error posting to Google Analytics", ex);
-                return false;
-            }
-        }
+        private static bool PostData(string type, IDictionary<string, string> extraData) => false;
 
         public static void Startup()
         {
