@@ -66,12 +66,13 @@ namespace Shoko.Server.API.v3.Controllers
         }
         
         /// <summary>
-        /// Mark a file as watched or unwatched
+        /// Mark a file as watched or unwatched. Use the "Scrobble" endpoint instead.
         /// </summary>
         /// <param name="fileID">VideoLocal ID. Watched Status is kept per file, no matter how many copies or where they are.</param>
         /// <param name="watched">Is it watched?</param>
         /// <returns></returns>
         [HttpPost("{fileID}/watched/{watched}")]
+        [Obsolete]
         public ActionResult SetWatchedStatusOnFile(int fileID, bool watched)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
@@ -182,13 +183,41 @@ namespace Shoko.Server.API.v3.Controllers
 
             return Ok();
         }
+
+        /// <summary>
+        /// Mark or unmark a file as ignored.
+        /// </summary>
+        /// <param name="fileID">VideoLocal ID</param>
+        /// <param name="value">Thew new ignore value.</param>
+        /// <returns></returns>
+        [HttpPatch("{fileID}/Ignore")]
+        public ActionResult IgnoreFile(int fileID, [FromQuery] bool value = true)
+        {
+            var vl = RepoFactory.VideoLocal.GetByID(fileID);
+            if (vl == null) return NotFound();
+
+            vl.IsIgnored = value ? 1 : 0;
+            RepoFactory.VideoLocal.Save(vl, false);
+
+            return Ok();
+        }
         
         /// <summary>
-        /// Run a file through AVDump
+        /// Run a file through AVDump and return the result.
         /// </summary>
         /// <param name="fileID">VideoLocal ID</param>
         /// <returns></returns>
         [HttpPost("{fileID}/avdump")]
+        [Obsolete]
+        public ActionResult<AVDumpResult> AvDumpFileObsolete(int fileID)
+            => AvDumpFile(fileID);
+        
+        /// <summary>
+        /// Run a file through AVDump and return the result.
+        /// </summary>
+        /// <param name="fileID">VideoLocal ID</param>
+        /// <returns></returns>
+        [HttpPost("{fileID}/AVDump")]
         public ActionResult<AVDumpResult> AvDumpFile(int fileID)
         {
             if (string.IsNullOrWhiteSpace(ServerSettings.Instance.AniDb.AVDumpKey))
@@ -210,7 +239,7 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
-        /// Rescan a file on AniDB
+        /// Rescan a file on AniDB.
         /// </summary>
         /// <param name="fileID">VideoLocal ID</param>
         /// <returns></returns>
@@ -223,9 +252,28 @@ namespace Shoko.Server.API.v3.Controllers
             var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
             if (string.IsNullOrEmpty(file)) return this.NoContent();
 
-            CommandRequest_ProcessFile cmd =
-                new CommandRequest_ProcessFile(vl.VideoLocalID, true);
-            cmd.Save();
+            var command = new CommandRequest_ProcessFile(vl.VideoLocalID, true);
+            command.Save();
+            return Ok();
+        }
+
+        /// <summary>
+        /// Rehash a file.
+        /// </summary>
+        /// <param name="fileID">VideoLocal ID</param>
+        /// <returns></returns>
+        [HttpPost("{fileID}/Rehash")]
+        public ActionResult RehashFile(int fileID)
+        {
+            var vl = RepoFactory.VideoLocal.GetByID(fileID);
+            if (vl == null) return NotFound();
+
+            var file = vl.GetBestVideoLocalPlace(true)?.FullServerPath;
+            if (string.IsNullOrEmpty(file)) return this.NoContent();
+
+            var command = new CommandRequest_HashFile(file, true);
+            command.Save();
+
             return Ok();
         }
 
@@ -287,27 +335,74 @@ namespace Shoko.Server.API.v3.Controllers
         }
         
         /// <summary>
-        /// Get Recently Added Files
+        /// Get recently added files.
         /// </summary>
         /// <returns></returns>
         [HttpGet("Recent/{limit:int?}")]
-        public List<File.FileDetailed> GetRecentFiles(int limit = 100)
+        [Obsolete]
+        public List<File.FileDetailed> GetRecentFilesObselete([FromRoute] int limit = 100)
+            => GetRecentFiles(limit);
+
+        /// <summary>
+        /// Get recently added files.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Default is 100. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number. Default is 0.</param>
+        /// <returns></returns>
+        [HttpGet("Recent")]
+        public List<File.FileDetailed> GetRecentFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
         {
-            if (limit <= 0) limit = -1;
-            return RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID)
+            if (pageSize <= 0) pageSize = -1;
+            if (page <= 0) page = 0;
+            var skip = pageSize == -1 ? 0 : pageSize * page;
+            return RepoFactory.VideoLocal.GetMostRecentlyAdded(pageSize, skip, User.JMMUserID)
                 .Select(file => new File.FileDetailed(HttpContext, file)).ToList();
         }
 
         /// <summary>
-        /// Get Unrecognized Files. <see cref="File.FileDetailed"/> is not relevant here, as there will be no links.
+        /// Get ignored files.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Default is 100. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number. Default is 0.</param>
+        /// <returns></returns>
+        [HttpGet("Ignored")]
+        public List<File> GetIgnoredFiles([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        {
+            if (pageSize <= 0)
+                return RepoFactory.VideoLocal.GetIgnoredVideos().Select(a => new File(HttpContext, a)).ToList();
+            if (page <= 0) page = 0;
+            return RepoFactory.VideoLocal.GetIgnoredVideos().Skip(pageSize * page).Take(pageSize)
+                .Select(a => new File(HttpContext, a)).ToList();
+        }
+
+        /// <summary>
+        /// Get files with more than one location.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Default is 100. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number. Default is 0.</param>
+        /// <returns></returns>
+        [HttpGet("Duplicates")]
+        public List<File> GetExactDuplicateFileSets([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        {
+            if (pageSize <= 0)
+                return RepoFactory.VideoLocal.GetExactDuplicateVideos().Select(a => new File(HttpContext, a)).ToList();
+            if (page <= 0) page = 0;
+            return RepoFactory.VideoLocal.GetExactDuplicateVideos().Skip(pageSize * page).Take(pageSize)
+                .Select(a => new File(HttpContext, a)).ToList();
+        }
+
+        /// <summary>
+        /// Get unrecognized files. <see cref="File.FileDetailed"/> is not relevant here, as there will be no links.
         /// Use pageSize and page (index 0) in the query to enable pagination.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="pageSize">Limits the number of results per page. Default is 100. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number. Default is 0.</param>
         [HttpGet("Unrecognized")]
         public List<File> GetUnrecognizedFiles(int pageSize = 100, int page = 0)
         {
             if (pageSize <= 0)
                 return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Select(a => new File(HttpContext, a)).ToList();
+            if (page <= 0) page = 0;
             return RepoFactory.VideoLocal.GetVideosWithoutEpisode().Skip(pageSize * page).Take(pageSize)
                 .Select(a => new File(HttpContext, a)).ToList();
         }
