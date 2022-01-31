@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -308,6 +308,37 @@ namespace Shoko.Server.Repositories.Cached
                 .Take(maxResults).ToList();
         }
 
+        public List<SVR_VideoLocal> GetMostRecentlyAdded(int take, int skip, int jmmuserID = -1)
+        {
+            if (skip > 0) skip = 0;
+            if (take == 0) return new List<SVR_VideoLocal>();
+            
+            SVR_JMMUser user = jmmuserID == -1 ? null : RepoFactory.JMMUser.GetByID(jmmuserID);
+            if (user == null)
+            {
+                lock (Cache)
+                {
+                    if (take == -1)
+                        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).ToList();
+                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).Take(take).ToList();
+                }
+            }
+            
+            if (take == -1)
+                return Cache.Values
+                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
+                    .OrderByDescending(a => a.DateTimeCreated)
+                    .Skip(skip)
+                    .ToList();
+
+            return Cache.Values
+                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
+                .OrderByDescending(a => a.DateTimeCreated)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
+
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
         {
             lock (Cache)
@@ -469,6 +500,18 @@ namespace Shoko.Server.Repositories.Cached
                 RepoFactory.CrossRef_File_Episode.GetAll()
                     .Where(a => a.CrossRefSource != 1)
                     .Select(a => GetByHash(a.Hash))
+                    .Where(a => a != null)
+                    .ToList();
+        }
+
+        public List<SVR_VideoLocal> GetExactDuplicateVideos()
+        {
+            return
+                RepoFactory.VideoLocalPlace.GetAll()
+                    .GroupBy(a => a.VideoLocalID)
+                    .Select(a => a.ToArray())
+                    .Where(a => a.Length > 1)
+                    .Select(a => GetByID(a.FirstOrDefault().VideoLocalID))
                     .Where(a => a != null)
                     .ToList();
         }
