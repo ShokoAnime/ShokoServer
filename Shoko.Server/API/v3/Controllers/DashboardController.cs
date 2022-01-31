@@ -112,8 +112,8 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Gets the top number of the most common tags visible to the current user.
         /// </summary>
-        /// <param name="pageSize">Limits the number of results per page. Default is 10. Set to 0 to disable the limit.</param>
-        /// <param name="page">Page number. Default is 0.</param>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
         /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
         /// <returns></returns>
         [HttpGet("TopTags")]
