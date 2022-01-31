@@ -97,10 +97,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Get episodes with multiple files attached.
         /// </summary>
-        /// <param name="ignoreVariations">Ignore manually toggled variations in the results. Defaults to false.</param>
-        /// <param name="onlyFinishedSeries">Only show finished series. Defaults to true.</param>
-        /// <param name="pageSize">Limits the number of results per page. Default is 100. Set to 0 to disable the limit.</param>
-        /// <param name="page">Page number. Default is 0.</param>
+        /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
+        /// <param name="onlyFinishedSeries">Only show finished series.</param>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("WithMultipleFiles")]
         public List<Episode> GetSoftDuplicatesForEpisode([FromQuery] bool ignoreVariations = true, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] int pageSize = 100, [FromQuery] int page = 0)
