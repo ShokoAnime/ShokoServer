@@ -26,12 +26,12 @@ namespace AniDBAPI
         {
             InitFields();
 
-            this.AnimeID = anid;
+            AnimeID = anid;
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "id"), out int id);
-            this.RelatedAnimeID = id;
+            RelatedAnimeID = id;
 
-            this.RelationType = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            RelationType = AniDBHTTPHelper.TryGetAttribute(node, "type");
         }
     }
 }

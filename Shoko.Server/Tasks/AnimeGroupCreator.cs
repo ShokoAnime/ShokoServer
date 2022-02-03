@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Shoko.Models.Server;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -16,6 +14,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Tasks
@@ -90,6 +89,7 @@ namespace Shoko.Server.Tasks
         /// <param name="tempGroupId">The ID of the temporary anime group to use for migration.</param>
         private void ClearGroupsAndDependencies(ISessionWrapper session, int tempGroupId)
         {
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Removing existing AnimeGroups and resetting GroupFilters"};
             _log.Info("Removing existing AnimeGroups and resetting GroupFilters");
 
             _animeGroupUserRepo.DeleteAll(session);
@@ -109,6 +109,7 @@ namespace Shoko.Server.Tasks
         private void UpdateAnimeSeriesContractsAndSave(ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeSeries> series)
         {
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Updating contracts for AnimeSeries"};
             _log.Info("Updating contracts for AnimeSeries");
 
             // Update batches of AnimeSeries contracts in parallel. Each parallel branch requires it's own session since NHibernate sessions aren't thread safe.
@@ -129,6 +130,7 @@ namespace Shoko.Server.Tasks
         private void UpdateAnimeGroupsAndTheirContracts(ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeGroup> groups)
         {
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Updating statistics and contracts for AnimeGroups"};
             _log.Info("Updating statistics and contracts for AnimeGroups");
 
             var allCreatedGroupUsers = new ConcurrentBag<List<SVR_AnimeGroup_User>>();
@@ -155,6 +157,7 @@ namespace Shoko.Server.Tasks
             _animeGroupRepo.UpdateBatch(session, groups);
             _log.Info("AnimeGroup statistics and contracts have been updated");
 
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Creating AnimeGroup_Users and updating plex/kodi contracts"};
             _log.Info("Creating AnimeGroup_Users and updating plex/kodi contracts");
 
             List<SVR_AnimeGroup_User> animeGroupUsers = allCreatedGroupUsers.SelectMany(groupUsers => groupUsers)
@@ -188,8 +191,10 @@ namespace Shoko.Server.Tasks
         {
             _log.Info("Updating Group Filters");
             _log.Info("Calculating Tag Filters");
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Calculating Tag Filters"};
             _groupFilterRepo.CalculateAnimeSeriesPerTagGroupFilter(session);
             _log.Info("Calculating All Other Filters");
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Calculating Non-Tag Filters"};
             IEnumerable<SVR_GroupFilter> grpFilters = _groupFilterRepo.GetAll(session).Where(a =>
                 a.FilterType != (int) GroupFilterType.Tag &&
                 ((GroupFilterType) a.FilterType & GroupFilterType.Directory) == 0).ToList();
@@ -201,7 +206,6 @@ namespace Shoko.Server.Tasks
                 {
                     filter.SeriesIds.Clear();
                     filter.CalculateGroupsAndSeries();
-
                     filter.UpdateEntityReferenceStrings();
                 });
 
@@ -226,6 +230,7 @@ namespace Shoko.Server.Tasks
         private IEnumerable<SVR_AnimeGroup> CreateGroupPerSeries(ISessionWrapper session,
             IReadOnlyList<SVR_AnimeSeries> seriesList)
         {
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Auto-generating Groups with 1 group per series"};
             _log.Info("Generating AnimeGroups for {0} AnimeSeries", seriesList.Count);
 
             DateTime now = DateTime.Now;
@@ -237,7 +242,7 @@ namespace Shoko.Server.Tasks
                 SVR_AnimeGroup group = new SVR_AnimeGroup();
                 SVR_AnimeSeries series = seriesList[grp];
 
-                @group.Populate(series, now);
+                group.Populate(series, now);
                 newGroupsToSeries[grp] = new Tuple<SVR_AnimeGroup, SVR_AnimeSeries>(group, series);
             }
 
@@ -271,6 +276,7 @@ namespace Shoko.Server.Tasks
         private IEnumerable<SVR_AnimeGroup> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session,
             IReadOnlyCollection<SVR_AnimeSeries> seriesList)
         {
+            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Auto-generating Groups based on Relation Trees"};
             _log.Info("Auto-generating AnimeGroups for {0} AnimeSeries based on aniDB relationships", seriesList.Count);
 
             DateTime now = DateTime.Now;
@@ -423,6 +429,7 @@ namespace Shoko.Server.Tasks
                 ShokoService.CmdProcessorHasher.Paused = true;
                 ShokoService.CmdProcessorImages.Paused = true;
 
+                ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo {Blocked = true, Status = "Beginning re-creation of all groups"};
                 _log.Info("Beginning re-creation of all groups");
 
                 IReadOnlyList<SVR_AnimeSeries> animeSeries = RepoFactory.AnimeSeries.GetAll();
@@ -495,6 +502,7 @@ namespace Shoko.Server.Tasks
             }
             finally
             {
+                ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo();
                 // Un-pause queues (if they were previously running)
                 ShokoService.CmdProcessorGeneral.Paused = cmdProcGeneralPaused;
                 ShokoService.CmdProcessorHasher.Paused = cmdProcHasherPaused;

@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
-using Shoko.Models;
-using Shoko.Models.Server;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Client;
-using Shoko.Models.Interfaces;
-using NLog;
-using NutzCode.CloudFileSystem;
-using NutzCode.CloudFileSystem.Plugins.LocalFileSystem;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-
-using Shoko.Server.Extensions;
-using Shoko.Server.Plex;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
+using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models;
+using Shoko.Models.Client;
+using Shoko.Models.Enums;
+using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Plex;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server
@@ -40,7 +39,7 @@ namespace Shoko.Server
             List<CL_BookmarkedAnime> baList = new List<CL_BookmarkedAnime>();
             try
             {
-                return RepoFactory.BookmarkedAnime.GetAll().Select(a => ModelClients.ToClient(a)).ToList();
+                return RepoFactory.BookmarkedAnime.GetAll().Select(a => a.ToClient()).ToList();
             }
             catch (Exception ex)
             {
@@ -65,7 +64,7 @@ namespace Shoko.Server
                     if (ba == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Bookmark with ID: " +
-                                                   contract.BookmarkedAnimeID.ToString();
+                                                   contract.BookmarkedAnimeID;
                         return contractRet;
                     }
                 }
@@ -76,7 +75,7 @@ namespace Shoko.Server
                     if (baTemp != null)
                     {
                         contractRet.ErrorMessage = "A bookmark with the AnimeID already exists: " +
-                                                   contract.AnimeID.ToString();
+                                                   contract.AnimeID;
                         return contractRet;
                     }
 
@@ -90,7 +89,7 @@ namespace Shoko.Server
 
                 RepoFactory.BookmarkedAnime.Save(ba);
 
-                contractRet.Result = ModelClients.ToClient(ba);
+                contractRet.Result = ba.ToClient();
             }
             catch (Exception ex)
             {
@@ -126,7 +125,7 @@ namespace Shoko.Server
         {
             try
             {
-                return ModelClients.ToClient(RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID));
+                return RepoFactory.BookmarkedAnime.GetByID(bookmarkedAnimeID).ToClient();
             }
             catch (Exception ex)
             {
@@ -242,6 +241,7 @@ namespace Shoko.Server
             return c;
         }
 
+        [DatabaseBlockedExempt]
         [HttpGet("Server")]
         public CL_ServerStatus GetServerStatus()
         {
@@ -375,71 +375,19 @@ namespace Shoko.Server
             return allTagNames;
         }
 
-        [HttpPost("CloudAccount/Directory/{cloudaccountid}")]
-        public List<string> DirectoriesFromImportFolderPath(int cloudaccountid, [FromForm]string path)
+        [HttpPost("CloudAccount/Directory")]
+        public List<string> DirectoriesFromImportFolderPath([FromForm]string path)
         {
-            if (path == null) path = "null";
-            List<string> result = new List<string>();
+            if (path == null) return new List<string>();
             try
             {
-                IFileSystem n = null;
-                if (cloudaccountid == 0)
-                {
-                    FileSystemResult<IFileSystem> ff = CloudFileSystemPluginFactory.Instance.List
-                        .FirstOrDefault(a => a.Name == "Local File System")
-                        ?.Init("", null, null);
-                    if (ff?.IsOk ?? false)
-                        n = ff.Result;
-                }
-                else
-                {
-                    SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountid);
-                    if (cl != null)
-                        n = cl.FileSystem;
-                }
-                if (n != null)
-                {
-                    FileSystemResult<IObject> dirr;
-                    if ((n as LocalFileSystem) != null && path.Equals("null"))
-                    {
-                        if (n.Directories == null) return result;
-                        return n.Directories.Select(a => a.FullName).OrderByNatural(a => a).ToList();
-                    }
-                    if (path.Equals("null"))
-                    {
-                        path = string.Empty;
-                    }
-                    dirr = n.Resolve(path);
-                    if (dirr == null || !dirr.IsOk || dirr.Result is IFile)
-                        return null;
-                    IDirectory dir = dirr.Result as IDirectory;
-                    FileSystemResult fr = dir.Populate();
-                    if (!fr?.IsOk ?? true)
-                        return result;
-                    return dir?.Directories?.Select(a => a.FullName).OrderByNatural(a => a).ToList();
-                }
+                return !Directory.Exists(path) ? new List<string>() : new DirectoryInfo(path).EnumerateDirectories().Select(a => a.FullName).OrderByNatural(a => a).ToList();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
             }
-            return result;
-        }
-
-        [HttpGet("CloudAccount")]
-        public List<CL_CloudAccount> GetCloudProviders()
-        {
-            List<CL_CloudAccount> ls = new List<CL_CloudAccount>();
-            try
-            {
-                ls.Add(SVR_CloudAccount.CreateLocalFileSystemAccount().ToClient());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => ls.Add(a.ToClient()));
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-            }
-            return ls;
+            return new List<string>();
         }
 
         #region Settings
@@ -566,22 +514,26 @@ namespace Shoko.Server
                 ServerSettings.Instance.MovieDb.AutoPostersAmount = contractIn.MovieDB_AutoPostersAmount;
 
                 // Import settings
-                ServerSettings.Instance.Import.VideoExtensions = contractIn.VideoExtensions.Split(',');
+                ServerSettings.Instance.Import.VideoExtensions = contractIn.VideoExtensions.Split(',').ToList();
                 ServerSettings.Instance.Import.UseExistingFileWatchedStatus = contractIn.Import_UseExistingFileWatchedStatus;
                 ServerSettings.Instance.AutoGroupSeries = contractIn.AutoGroupSeries;
                 ServerSettings.Instance.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
                 ServerSettings.Instance.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions;
                 ServerSettings.Instance.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
                 if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-                    ServerSettings.Instance.FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                    ServerSettings.Instance.FileQualityPreferences =
+                        ServerSettings.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
                 ServerSettings.Instance.Import.RunOnStart = contractIn.RunImportOnStart;
                 ServerSettings.Instance.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
                 ServerSettings.Instance.Import.Hash_CRC32 = contractIn.Hash_CRC32;
                 ServerSettings.Instance.Import.Hash_MD5 = contractIn.Hash_MD5;
                 ServerSettings.Instance.Import.Hash_SHA1 = contractIn.Hash_SHA1;
+                ServerSettings.Instance.Import.RenameOnImport = contractIn.Import_RenameOnImport;
+                ServerSettings.Instance.Import.MoveOnImport = contractIn.Import_MoveOnImport;
+                ServerSettings.Instance.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
 
                 // Language
-                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',');
+                ServerSettings.Instance.LanguagePreference = contractIn.LanguagePreference.Split(',').ToList();
                 ServerSettings.Instance.LanguageUseSynonyms = contractIn.LanguageUseSynonyms;
                 ServerSettings.Instance.EpisodeTitleSource = (DataSourceType) contractIn.EpisodeTitleSource;
                 ServerSettings.Instance.SeriesDescriptionSource = (DataSourceType) contractIn.SeriesDescriptionSource;
@@ -598,8 +550,8 @@ namespace Shoko.Server
                 //Plex
                 ServerSettings.Instance.Plex.Server = contractIn.Plex_ServerHost;
                 ServerSettings.Instance.Plex.Libraries = contractIn.Plex_Sections.Length > 0
-                    ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToArray()
-                    : new int[0];
+                    ? contractIn.Plex_Sections.Split(',').Select(int.Parse).ToList()
+                    : new ();
 
                 // SAVE!
                 ServerSettings.Instance.SaveSettings();
@@ -617,7 +569,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Save server settings exception:\n " + ex.ToString());
+                logger.Error(ex, "Save server settings exception:\n " + ex);
                 contract.ErrorMessage = ex.Message;
             }
             return contract;
@@ -1245,13 +1197,13 @@ namespace Shoko.Server
 
                 if (recs.Count == 0) return recs;
 
-                return recs;
             }
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return recs;
             }
+            return recs;
+
         }
 
         private double CalculateRecommendationScore(int userVoteValue, double approvalPercentage, decimal animeRating)
@@ -1374,7 +1326,6 @@ namespace Shoko.Server
                             if (anime != null)
                             {
                                 CL_AniDB_Character cl = chr.ToClient(aniChars[0].CharType);
-                                cl.Anime = anime.Contract.AniDBAnime;
                                 chars.Add(cl);
                             }
                         }

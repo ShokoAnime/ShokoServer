@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models;
 
@@ -13,17 +12,6 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_VideoLocal_Place, int> VideoLocals;
         private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
         private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
-
-        private VideoLocal_PlaceRepository()
-        {
-        }
-
-        public static VideoLocal_PlaceRepository Create()
-        {
-            var repo = new VideoLocal_PlaceRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
 
         protected override int SelectKey(SVR_VideoLocal_Place entity)
         {
@@ -65,6 +53,11 @@ namespace Shoko.Server.Repositories.Cached
             }
         }
 
+        public void DeleteWithoutChecking(SVR_VideoLocal_Place obj)
+        {
+            base.Delete(obj);
+        }
+
         public override void Delete(SVR_VideoLocal_Place obj)
         {
             // Remove associated duplicate file records
@@ -72,10 +65,6 @@ namespace Shoko.Server.Repositories.Cached
             if (dups != null && dups.Count > 0) dups.ForEach(RepoFactory.DuplicateFile.Delete);
 
             base.Delete(obj);
-            foreach (SVR_AnimeEpisode ep in obj.VideoLocal.GetAnimeEpisodes())
-            {
-                RepoFactory.AnimeEpisode.Save(ep);
-            }
         }
 
         public static Tuple<SVR_ImportFolder, string> GetFromFullPath(string fullPath)
@@ -87,16 +76,16 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_ImportFolder ifolder in shares)
             {
                 string importLocation = ifolder.ImportFolderLocation;
-                string importLocationFull = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
+                string importLocationFull = importLocation.TrimEnd(Path.DirectorySeparatorChar);
 
                 // add back the trailing back slashes
-                importLocationFull = importLocationFull + $"{System.IO.Path.DirectorySeparatorChar}";
+                importLocationFull = importLocationFull + $"{Path.DirectorySeparatorChar}";
 
-                importLocation = importLocation.TrimEnd(System.IO.Path.DirectorySeparatorChar);
+                importLocation = importLocation.TrimEnd(Path.DirectorySeparatorChar);
                 if (fullPath.StartsWith(importLocationFull, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string filePath = fullPath.Replace(importLocation, string.Empty);
-                    filePath = filePath.TrimStart(System.IO.Path.DirectorySeparatorChar);
+                    filePath = filePath.TrimStart(Path.DirectorySeparatorChar);
                     return new Tuple<SVR_ImportFolder, string>(ifolder, filePath);
                 }
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.Annotations
 {

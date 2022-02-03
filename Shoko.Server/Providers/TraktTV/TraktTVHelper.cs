@@ -160,15 +160,13 @@ namespace Shoko.Server.Providers.TraktTV
             try
             {
                 WebResponse response = (HttpWebResponse) request.GetResponse();
+                var httpResponse = (HttpWebResponse)response;
+                traktCode = (int)httpResponse.StatusCode;
                 Stream stream = response.GetResponseStream();
                 if (stream == null) return null;
 
                 StreamReader reader = new StreamReader(stream);
                 string strResponse = reader.ReadToEnd();
-
-                // get the response
-                var httpResponse = (HttpWebResponse) request.GetResponse();
-                traktCode = (int) httpResponse.StatusCode;
 
                 stream.Close();
                 reader.Close();
@@ -329,7 +327,7 @@ namespace Shoko.Server.Providers.TraktTV
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TraktTVHelper.GetTraktDeviceCode: " + ex);
-                throw ex;
+                throw;
             }
         }
 
@@ -393,7 +391,7 @@ namespace Shoko.Server.Providers.TraktTV
             catch (Exception ex)
             {
                 logger.Error(ex, "Error in TraktTVHelper.TraktAuthDeviceCodeToken: " + ex);
-                throw ex;
+                throw;
             }
         }
 
@@ -468,7 +466,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             logger.Trace("Changed trakt association: {0}", animeID);
 
-            if (!excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
+            if (ServerSettings.Instance.WebCache.Enabled && !excludeFromWebCache && ServerSettings.Instance.WebCache.Trakt_Send)
             {
                 CommandRequest_WebCacheSendXRefAniDBTrakt req =
                     new CommandRequest_WebCacheSendXRefAniDBTrakt(xref.CrossRef_AniDB_TraktV2ID);
@@ -491,7 +489,7 @@ namespace Shoko.Server.Providers.TraktTV
 
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 
-            if (ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
+            if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.TraktTv.Enabled && ServerSettings.Instance.WebCache.Trakt_Send)
             {
                 CommandRequest_WebCacheDeleteXRefAniDBTrakt req =
                     new CommandRequest_WebCacheDeleteXRefAniDBTrakt(animeID,

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using NLog;
-using Shoko.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
@@ -41,9 +40,9 @@ namespace AniDBAPI.Commands
             return "AniDBHTTPCommand_GetMyList";
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingMyListHTTP;
+            return AniDBUDPResponseCode.GettingMyListHTTP;
         }
 
         private void WriteAnimeMyListToFile(string xml)
@@ -87,7 +86,7 @@ namespace AniDBAPI.Commands
             return docAnime;
         }
 
-        public virtual enHelperActivityType Process()
+        public virtual AniDBUDPResponseCode Process()
         {
             try
             {
@@ -100,7 +99,7 @@ namespace AniDBAPI.Commands
                     docAnime.LoadXml(xmlResult);
                     myListItems = AniDBHTTPHelper.ProcessMyList(docAnime);
                     if (myListItems != null)
-                        return enHelperActivityType.GotMyListHTTP;
+                        return AniDBUDPResponseCode.GotMyListHTTP;
                 }
             }
             catch (Exception ex)
@@ -108,7 +107,7 @@ namespace AniDBAPI.Commands
                 logger.Error(ex);
             }
 
-            return enHelperActivityType.NoSuchAnime;
+            return AniDBUDPResponseCode.NoSuchAnime;
         }
 
         public AniDBHTTPCommand_GetMyList()
@@ -118,8 +117,8 @@ namespace AniDBAPI.Commands
 
         public void Init(string uname, string pword)
         {
-            this.username = uname;
-            this.password = pword;
+            username = uname;
+            password = pword;
             commandID = "MYLIST";
         }
     }

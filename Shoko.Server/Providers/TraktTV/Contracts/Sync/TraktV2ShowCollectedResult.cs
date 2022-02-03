@@ -19,8 +19,7 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         {
             if (show != null)
                 return string.Format("{0} - Last Collected: {1}", show.Title, last_collected_at);
-            else
-                return string.Format("TraktV2ShowCollectedResult - Last Watched: {0}", last_collected_at);
+            return string.Format("TraktV2ShowCollectedResult - Last Watched: {0}", last_collected_at);
         }
     }
 }

@@ -63,7 +63,7 @@ namespace AniDBAPI
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("reviewID: " + ReviewID.ToString());
+            sb.Append("reviewID: " + ReviewID);
             sb.Append(" | reviewText: " + ReviewText);
 
             return sb.ToString();

@@ -1,31 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Models;
 using Shoko.Models.Server;
-using NHibernate;
-using NHibernate.Criterion;
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
     public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
     {
-        private CustomTagRepository()
+        public CustomTagRepository()
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
                 RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses,
                     RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
             };
-        }
-
-        public static CustomTagRepository Create()
-        {
-            var repo = new CustomTagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(CustomTag entity)

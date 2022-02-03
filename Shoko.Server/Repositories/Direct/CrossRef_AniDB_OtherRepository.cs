@@ -1,28 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using Shoko.Commons.Collections;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class CrossRef_AniDB_OtherRepository : BaseDirectRepository<CrossRef_AniDB_Other, int>
     {
-        private CrossRef_AniDB_OtherRepository()
-        {
-        }
-
-        public static CrossRef_AniDB_OtherRepository Create()
-        {
-            return new CrossRef_AniDB_OtherRepository();
-        }
-
         public CrossRef_AniDB_Other GetByAnimeIDAndType(int animeID, CrossRefType xrefType)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

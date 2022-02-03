@@ -1,21 +1,24 @@
 ﻿﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
-using NLog;
-using Shoko.Commons.Utils;
-using Shoko.Models.Azure;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
+ using System.Collections.Generic;
+ using System.IO;
+ using System.Linq;
+ using System.Net;
+ using System.Reflection;
+ using System.Text;
+ using System.Threading.Tasks;
+ using System.Web;
+ using NLog;
+ using Shoko.Models.Azure;
+ using Shoko.Models.Enums;
+ using Shoko.Models.PlexAndKodi;
+ using Shoko.Models.Server;
+ using Shoko.Server.Extensions;
+ using Shoko.Server.Models;
+ using Shoko.Server.Repositories;
+ using Shoko.Server.Server;
  using Shoko.Server.Settings;
+ using Stream = System.IO.Stream;
+ using Utils = Shoko.Server.Utilities.Utils;
 
  namespace Shoko.Server.Providers.Azure
 {
@@ -454,7 +457,7 @@ using Shoko.Server.Repositories;
 
         private static string GetDataJson(string uri)
         {
-            return String.Empty;
+            return string.Empty;
             try
             {
                 HttpWebRequest webReq = (HttpWebRequest) WebRequest.Create(uri);
@@ -592,7 +595,7 @@ using Shoko.Server.Repositories;
                     DashboardType = null,
                     VideoPlayer = vidPlayer
                 };
-                System.Reflection.Assembly a = System.Reflection.Assembly.GetEntryAssembly();
+                Assembly a = Assembly.GetEntryAssembly();
                 try
                 {
                     if (a != null) uinfo.JMMServerVersion = Utils.GetApplicationVersion(a);
@@ -619,7 +622,7 @@ using Shoko.Server.Repositories;
                 SVR_AnimeEpisode_User rec = RepoFactory.AnimeEpisode_User.GetLastWatchedEpisode();
                 uinfo.LastEpisodeWatched = 0;
                 if (rec != null)
-                    uinfo.LastEpisodeWatched = AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
+                    uinfo.LastEpisodeWatched = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rec.WatchedDate);
 
                 return uinfo;
             }
@@ -779,7 +782,7 @@ using Shoko.Server.Repositories;
             }
         }
 
-        public static void Send_Media(string ed2k, Shoko.Models.PlexAndKodi.Media media)
+        public static void Send_Media(string ed2k, Media media)
         {
             if (string.IsNullOrEmpty(ed2k)) return;
 

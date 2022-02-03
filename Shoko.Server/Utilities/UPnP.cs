@@ -51,7 +51,7 @@ namespace UPnP
                     {
                         resp = resp.Substring(resp.ToLower().IndexOf("location:") + 9);
                         resp = resp.Substring(0, resp.IndexOf("\r")).Trim();
-                        if (!String.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
+                        if (!string.IsNullOrEmpty(_serviceUrl = GetServiceUrl(resp)))
                         {
                             _descUrl = resp;
                             return true;
@@ -102,15 +102,15 @@ namespace UPnP
 
         public static void ForwardPort(int port, ProtocolType protocol, string description)
         {
-            if (String.IsNullOrEmpty(_serviceUrl))
+            if (string.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
-                "<NewRemoteHost></NewRemoteHost><NewExternalPort>" + port.ToString() +
+                "<NewRemoteHost></NewRemoteHost><NewExternalPort>" + port +
                 "</NewExternalPort><NewProtocol>" +
                 protocol.ToString().ToUpper() + "</NewProtocol>" +
-                "<NewInternalPort>" + port.ToString() + "</NewInternalPort><NewInternalClient>" +
-                Dns.GetHostAddresses(Dns.GetHostName())[0].ToString() +
+                "<NewInternalPort>" + port + "</NewInternalPort><NewInternalClient>" +
+                Dns.GetHostAddresses(Dns.GetHostName())[0] +
                 "</NewInternalClient><NewEnabled>1</NewEnabled><NewPortMappingDescription>" + description +
                 "</NewPortMappingDescription><NewLeaseDuration>0</NewLeaseDuration></u:AddPortMapping>",
                 "AddPortMapping");
@@ -118,7 +118,7 @@ namespace UPnP
 
         public static void DeleteForwardingRule(int port, ProtocolType protocol)
         {
-            if (String.IsNullOrEmpty(_serviceUrl))
+            if (string.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -131,7 +131,7 @@ namespace UPnP
 
         public static IPAddress GetExternalIP()
         {
-            if (String.IsNullOrEmpty(_serviceUrl))
+            if (string.IsNullOrEmpty(_serviceUrl))
                 throw new Exception("No UPnP service available or Discover() has not been called");
             XmlDocument xdoc = SOAPRequest(_serviceUrl,
                 "<u:GetExternalIPAddress xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">" +
@@ -168,9 +168,9 @@ namespace UPnP
         {
             try
             {
-                if (NAT.Discover())
+                if (Discover())
                 {
-                    NAT.ForwardPort(jmmfileport, ProtocolType.Tcp, "JMM File Port");
+                    ForwardPort(jmmfileport, ProtocolType.Tcp, "JMM File Port");
                     UPnPPortAvailable = true;
                 }
                 else
@@ -199,15 +199,15 @@ namespace UPnP
                     if (IPFirstTime)
                     {
                         IPFirstTime = false;
-                        CachedAddress = NAT.GetExternalIP();
+                        CachedAddress = GetExternalIP();
                     }
                     else if (!IPThreadLock)
                     {
                         IPThreadLock = true;
                         LastChange = DateTime.Now.AddMinutes(2);
-                        ThreadPool.QueueUserWorkItem((a) =>
+                        ThreadPool.QueueUserWorkItem(a =>
                         {
-                            CachedAddress = NAT.GetExternalIP();
+                            CachedAddress = GetExternalIP();
                             IPThreadLock = false;
                         });
                     }

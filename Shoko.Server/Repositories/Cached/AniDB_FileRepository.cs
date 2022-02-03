@@ -1,12 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
-using NHibernate;
-using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -20,25 +16,8 @@ namespace Shoko.Server.Repositories
         private PocoIndex<int, SVR_AniDB_File, string> SHA1s;
         private PocoIndex<int, SVR_AniDB_File, string> MD5s;
         private PocoIndex<int, SVR_AniDB_File, int> FileIds;
-        private PocoIndex<int, SVR_AniDB_File, int> Animes;
         private PocoIndex<int, SVR_AniDB_File, string> Resolutions;
         private PocoIndex<int, SVR_AniDB_File, int> InternalVersions;
-
-        private AniDB_FileRepository()
-        {
-            EndDeleteCallback = (cr) =>
-            {
-                if (cr.AnimeID > 0)
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(cr.AnimeID);
-            };
-        }
-
-        public static AniDB_FileRepository Create()
-        {
-            var repo = new AniDB_FileRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
 
         protected override int SelectKey(SVR_AniDB_File entity)
         {
@@ -52,7 +31,6 @@ namespace Shoko.Server.Repositories
             SHA1s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.SHA1);
             MD5s = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.MD5);
             FileIds = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.FileID);
-            Animes = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.AnimeID);
             Resolutions = new PocoIndex<int, SVR_AniDB_File, string>(Cache, a => a.File_VideoResolution);
             InternalVersions = new PocoIndex<int, SVR_AniDB_File, int>(Cache, a => a.InternalVersion);
         }
@@ -68,11 +46,16 @@ namespace Shoko.Server.Repositories
 
         public void Save(SVR_AniDB_File obj, bool updateStats)
         {
+            if (obj.Anime_GroupName == null)
+                obj.Anime_GroupName = "UNKNOWN";
+            if (obj.Anime_GroupNameShort==null)
+                obj.Anime_GroupNameShort = "UNKNOWN";
             base.Save(obj);
             if (updateStats)
             {
                 logger.Trace("Updating group stats by file from AniDB_FileRepository.Save: {0}", obj.Hash);
-                SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
+                var anime = RepoFactory.CrossRef_File_Episode.GetByHash(obj.Hash).Select(a => a.AnimeID).Distinct();
+                anime.ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
             }
         }
 
@@ -128,7 +111,8 @@ namespace Shoko.Server.Repositories
         {
             lock (Cache)
             {
-                return Hashes.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fsize);
+                var list = Hashes.GetMultiple(hash);
+                return list.Count == 1 ? list.First() : list.FirstOrDefault(a => a.FileSize == fsize);
             }
         }
 
@@ -137,15 +121,6 @@ namespace Shoko.Server.Repositories
             lock (Cache)
             {
                 return FileIds.GetOne(fileID);
-            }
-        }
-
-
-        public List<SVR_AniDB_File> GetByAnimeID(int animeID)
-        {
-            lock (Cache)
-            {
-                return Animes.GetMultiple(animeID);
             }
         }
 

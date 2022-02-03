@@ -8,7 +8,6 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common
 {
@@ -95,7 +94,7 @@ namespace Shoko.Server.API.v2.Models.common
                         if (banners.Any())
                         {
                             var banner = banners[rand.Next(banners.Count)];
-                            filter.art.banner.Add(new Art()
+                            filter.art.banner.Add(new Art
                             {
                                 index = 0,
                                 url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.TvDB_Banner,
@@ -103,7 +102,7 @@ namespace Shoko.Server.API.v2.Models.common
                             });
                         }
 
-                        filter.art.thumb.Add(new Art()
+                        filter.art.thumb.Add(new Art
                         {
                             url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, (int) ImageEntityType.AniDB_Cover,
                                 anime.AniDB_ID),

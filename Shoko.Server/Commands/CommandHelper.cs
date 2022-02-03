@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using NLog;
 using Shoko.Models.Server;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Commands
@@ -111,7 +112,7 @@ namespace Shoko.Server.Commands
         {
             CommandRequestImpls = new Dictionary<CommandRequestType, ReflectionUtils.ObjectActivator<CommandRequestImplementation>>();
 
-            IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
+            IEnumerable<Type> types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => { try { return a.GetTypes(); } catch { return new Type[]{}; }}).Where(a => a.GetCustomAttribute<CommandAttribute>() != null);
             foreach (var commandType in types)
             {
                 var attr = commandType.GetCustomAttribute<CommandAttribute>().RequestType;

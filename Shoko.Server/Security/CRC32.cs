@@ -92,7 +92,7 @@ namespace Shoko.Server.Security
         /// Creates a CRC32 object using the specified Creates a CRC32 object 
         /// </summary>
         public CRC32(uint aPolynomial)
-            : this(aPolynomial, CRC32.AutoCache)
+            : this(aPolynomial, AutoCache)
         {
         }
 
@@ -101,12 +101,12 @@ namespace Shoko.Server.Security
         /// </summary>
         public CRC32(uint aPolynomial, bool cacheTable)
         {
-            this.HashSizeValue = 32;
+            HashSizeValue = 32;
 
             crc32Table = (uint[]) cachedCRC32Tables[aPolynomial];
             if (crc32Table == null)
             {
-                crc32Table = CRC32.BuildCRC32Table(aPolynomial);
+                crc32Table = BuildCRC32Table(aPolynomial);
                 if (cacheTable)
                     cachedCRC32Tables.Add(aPolynomial, crc32Table);
             }

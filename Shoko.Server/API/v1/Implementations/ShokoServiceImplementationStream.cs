@@ -1,25 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Models.Interfaces;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v1;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
 using Mime = MimeMapping.MimeUtility;
-using Timer = System.Timers.Timer;
 
 namespace Shoko.Server
 {
@@ -66,15 +60,25 @@ namespace Shoko.Server
                 string rangevalue = Request.Headers["Range"].FirstOrDefault() ??
                                     Request.Headers["range"].FirstOrDefault();
 
-  
-                FileSystemResult<Stream> fr = r.File.OpenRead();
-                if (fr == null || !fr.IsOk)
+
+                Stream fr = null;
+                string error = null;
+                try
+                {
+                    fr = r.File?.OpenRead();
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e);
+                    error = e.ToString();
+                }
+
+                if (fr == null)
                 {
                     return StatusCode((int) HttpStatusCode.BadRequest,
-                        "Unable to open file '" + r.File.FullName + "': " + fr?.Error);
+                        "Unable to open file '" + r.File?.FullName + "': " + error);
                 }
-                Stream org = fr.Result;
-                long totalsize = org.Length;
+                long totalsize = fr.Length;
                 long start = 0;
                 long end = totalsize - 1;
 
@@ -122,12 +126,12 @@ namespace Shoko.Server
 
                 Response.StatusCode = (int)(range ? HttpStatusCode.PartialContent : HttpStatusCode.OK);
 
-                var outstream = new SubStream(org, start, end - start + 1);
+                var outstream = new SubStream(fr, start, end - start + 1);
                 if (r.User != null && autowatch.HasValue && autowatch.Value && r.VideoLocal != null)
                 {
                     outstream.CrossPosition = (long) (totalsize * WatchedThreshold);
                     outstream.CrossPositionCrossed +=
-                        (a) =>
+                        a =>
                         {
                             Task.Factory.StartNew(() => { r.VideoLocal.ToggleWatchedStatus(true, r.User.JMMUserID); },
                                 new CancellationToken(),
@@ -152,9 +156,9 @@ namespace Shoko.Server
                 return StatusCode((int) r.Status, r.StatusDescription);
             Response.Headers.Add("Server", SERVER_VERSION);
             Response.Headers.Add("Accept-Ranges", "bytes");
-            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
+            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
             Response.ContentType = r.Mime;
-            Response.ContentLength = r.File.Size;
+            Response.ContentLength = r.File.Length;
             Response.StatusCode = (int)r.Status;
             return Ok();
         }
@@ -167,16 +171,16 @@ namespace Shoko.Server
                 return StatusCode((int) r.Status, r.StatusDescription);
             Response.Headers.Add("Server", SERVER_VERSION);
             Response.Headers.Add("Accept-Ranges", "bytes");
-            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Size - 1) + "/" + r.File.Size);
+            Response.Headers.Add("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
             Response.ContentType = r.Mime;
-            Response.ContentLength = r.File.Size;
+            Response.ContentLength = r.File.Length;
             Response.StatusCode = (int)r.Status;
             return Ok();
         }
 
         class InfoResult
         {
-            public IFile File { get; set; }
+            public FileInfo File { get; set; }
             public SVR_VideoLocal VideoLocal { get; set; }
             public SVR_JMMUser User { get; set; }
             public HttpStatusCode Status { get; set; }
@@ -202,10 +206,10 @@ namespace Shoko.Server
         public static string Base64DecodeUrl(string base64EncodedData)
         {
             var base64EncodedBytes =
-                System.Convert.FromBase64String(base64EncodedData.Replace("-", "+")
+                Convert.FromBase64String(base64EncodedData.Replace("-", "+")
                     .Replace("_", "/")
                     .Replace(",", "="));
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            return Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
         private InfoResult FinishResolve(InfoResult r, int? userId, bool? autowatch)
@@ -226,10 +230,7 @@ namespace Shoko.Server
                     return r;
                 }
             }
-            r.Mime = r.File.ContentType;
-            if (string.IsNullOrEmpty(r.Mime) || r.Mime.Equals("application/octet-stream",
-                    StringComparison.InvariantCultureIgnoreCase))
-                r.Mime = Mime.GetMimeMapping(r.File.FullName);
+            r.Mime = Mime.GetMimeMapping(r.File.FullName);
             r.Status = HttpStatusCode.OK;
             return r;
         }
@@ -239,7 +240,7 @@ namespace Shoko.Server
             InfoResult r = new InfoResult();
             string fullname = Base64DecodeUrl(filenamebase64);
             r.VideoLocal = null;
-            r.File = SVR_VideoLocal.ResolveFile(fullname);
+            r.File = new FileInfo(fullname);
             return FinishResolve(r, userId, autowatch);
         }
     }

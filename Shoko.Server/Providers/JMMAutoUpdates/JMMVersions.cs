@@ -5,7 +5,7 @@ namespace Shoko.Server.Providers.JMMAutoUpdates
     /// <remarks/>
     [XmlType(AnonymousType = true)]
     [XmlRoot("jmmversions", Namespace = "", IsNullable = false)]
-    public partial class JMMVersions
+    public class JMMVersions
     {
         [XmlElement("versions")]
         public Versions versions { get; set; }

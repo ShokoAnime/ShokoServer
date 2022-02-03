@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models;
-using Shoko.Models.Server;
-using NHibernate;
 using NLog;
+using Shoko.Commons.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -14,17 +11,6 @@ namespace Shoko.Server.Repositories.Cached
     public class JMMUserRepository : BaseCachedRepository<SVR_JMMUser, int>
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        private JMMUserRepository()
-        {
-        }
-
-        public static JMMUserRepository Create()
-        {
-            var repo = new JMMUserRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
 
         protected override int SelectKey(SVR_JMMUser entity) => entity.JMMUserID;
 
@@ -105,6 +91,48 @@ namespace Shoko.Server.Repositories.Cached
                     a.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase) &&
                     a.Password.Equals(hashedPassword));
             }
+        }
+
+        public bool RemoveUser(int userID, bool skipValidation = false)
+        {
+            var user = GetByID(userID);
+            if (!skipValidation)
+            {
+                var allAdmins = GetAll().Where(a => a.IsAdminUser()).ToList();
+                allAdmins.Remove(user);
+                if (allAdmins.Count < 1) return false;
+            }
+
+            var toSave = RepoFactory.GroupFilter.GetAll().Select(
+                a =>
+                {
+                    bool changed = false;
+                    if (a.GroupsIds.ContainsKey(userID))
+                    {
+                        a.GroupsIds.Remove(userID);
+                        changed = true;
+                    }
+
+                    if (a.SeriesIds.ContainsKey(userID))
+                    {
+                        a.SeriesIds.Remove(userID);
+                        changed = true;
+                    }
+
+                    if (!changed) return null;
+                    a.UpdateEntityReferenceStrings();
+                    return a;
+
+                }).Where(a => a != null).ToList();
+            RepoFactory.GroupFilter.Save(toSave);
+
+            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetByUserID(userID));
+            RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByUserID(userID));
+            RepoFactory.AnimeEpisode_User.Delete(RepoFactory.AnimeEpisode_User.GetByUserID(userID));
+            RepoFactory.VideoLocalUser.Delete(RepoFactory.VideoLocalUser.GetByUserID(userID));
+
+            Delete(user);
+            return true;
         }
 
         public long GetTotalRecordCount()

@@ -1,25 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate.Criterion;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class ScanFileRepository : BaseDirectRepository<ScanFile, int>
     {
-        private ScanFileRepository()
-        {
-        }
-
-        public static ScanFileRepository Create()
-        {
-            return new ScanFileRepository();
-        }
-
         public List<ScanFile> GetWaiting(int scanid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

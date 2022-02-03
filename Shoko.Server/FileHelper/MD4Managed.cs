@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Security.Cryptography;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.FileHelper
 {
@@ -21,7 +22,7 @@ namespace Shoko.Server.FileHelper
         {
             object obj = CryptoConfig.CreateFromName(hashName);
             // in case machine.config isn't configured to use any MD4 implementation
-            if (obj == null || Utils.IsRunningOnMono())
+            if (obj == null || Utils.IsRunningOnLinuxOrMac())
                 obj = new MD4Managed();
 
             return (MD4) obj;

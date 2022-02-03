@@ -17,7 +17,9 @@ using Shoko.Models.Plex.Connections;
 using Shoko.Models.Plex.Login;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Directory = Shoko.Models.Plex.Libraries.Directory;
 using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
 
@@ -41,10 +43,10 @@ namespace Shoko.Server.Plex
         private DateTime _lastCacheTime = DateTime.MinValue;
         private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
-        private MediaDevice[] _plexMediaDevices = null;
+        private MediaDevice[] _plexMediaDevices;
 
         private MediaDevice _mediaDevice;
-        private bool? isAuthenticated = null;
+        private bool? isAuthenticated;
 
         static PlexHelper()
         {
@@ -66,7 +68,11 @@ namespace Shoko.Server.Plex
                 if (_mediaDevice != null && ServerSettings.Instance.Plex.Server == _mediaDevice.ClientIdentifier)
                     return _mediaDevice;
                 _mediaDevice = GetPlexServers().FirstOrDefault(s => s.ClientIdentifier == ServerSettings.Instance.Plex.Server);
-                if (_mediaDevice != null) return _mediaDevice;
+                if (_mediaDevice != null)
+               {
+                   _lastMediaCacheTime = DateTime.Now;
+                   return _mediaDevice;
+               } 
                 if (!ServerSettings.Instance.Plex.Server.Contains(':')) return null;
 
 
@@ -75,6 +81,7 @@ namespace Shoko.Server.Plex
                     s.Connection.Any(c => c.Address == strings[0] && c.Port == strings[1]));
                 if (_mediaDevice != null)
                     ServerSettings.Instance.Plex.Server = _mediaDevice.ClientIdentifier;
+                _lastMediaCacheTime = DateTime.Now;
                 return _mediaDevice;
             }
             private set
@@ -329,6 +336,7 @@ namespace Shoko.Server.Plex
         public void InvalidateToken()
         {
             _user.PlexToken = string.Empty;
+            this.isAuthenticated = false;
             new ShokoServiceImplementation().SaveUser(_user);
         }
     }

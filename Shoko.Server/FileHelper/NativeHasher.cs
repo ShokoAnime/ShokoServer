@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Shoko.Server.FileHelper
 {
@@ -19,7 +16,7 @@ namespace Shoko.Server.FileHelper
 
             string e2dk = "", crc32 = "", md5 = "", sha1 = "";
 
-            using (Stream source = File.OpenRead(filename))
+            using (Stream source = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -107,7 +104,7 @@ namespace Shoko.Server.FileHelper
             RHPR_NO_MAGNET = 0x20,
             /** print file size in rhash_print_magnet */
             RHPR_FILESIZE = 0x40,
-        };
+        }
 
         [Flags]
         private enum RHashIds
@@ -150,6 +147,6 @@ namespace Shoko.Server.FileHelper
 
             /** The number of supported hash functions */
             RHASH_HASH_COUNT = 26
-        };
+        }
     }
 }

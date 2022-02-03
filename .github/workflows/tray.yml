@@ -1,0 +1,41 @@
+name: Build Tray Service
+
+on:
+  push:
+    branches: [ master ]
+#   pull_request:
+#     branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '5.0.x' ]
+
+    name: Shoko Tray Service build
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - run: dotnet publish -c Release -r win10-x64 --self-contained true -f net5.0-windows Shoko.TrayService
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Shoko.TrayService
+          path: Shoko.Server/bin/Release/net5.0-windows/win10-x64/publish/
+      - name: Archive Release
+        shell: powershell
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net5.0-windows\\win10-x64\\publish .\\ShokoServer.zip
+      - name: Upload Daily to shokoanime.com
+        shell: powershell
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run : .\\.github\\workflows\\UploadArchive.ps1

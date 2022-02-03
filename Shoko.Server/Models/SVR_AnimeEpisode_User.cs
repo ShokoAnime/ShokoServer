@@ -7,10 +7,6 @@ namespace Shoko.Server.Models
 {
     public class SVR_AnimeEpisode_User : AnimeEpisode_User
     {
-        public SVR_AnimeEpisode_User()
-        {
-        }
-
         public int ContractVersion { get; set; }
         public byte[] ContractBlob { get; set; }
         public int ContractSize { get; set; }
@@ -19,7 +15,7 @@ namespace Shoko.Server.Models
         public const int CONTRACT_VERSION = 3;
 
 
-        internal CL_AnimeEpisode_User _contract = null;
+        internal CL_AnimeEpisode_User _contract;
 
         internal virtual CL_AnimeEpisode_User Contract
         {

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Commons.Properties;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories
 {
@@ -19,17 +20,6 @@ namespace Shoko.Server.Repositories
             Animes = new PocoIndex<int, AniDB_Anime_Title, int>(Cache, a => a.AnimeID);
         }
 
-        private AniDB_Anime_TitleRepository()
-        {
-        }
-
-        public static AniDB_Anime_TitleRepository Create()
-        {
-            var repo = new AniDB_Anime_TitleRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         protected override int SelectKey(AniDB_Anime_Title entity)
         {
             return entity.AniDB_Anime_TitleID;
@@ -37,8 +27,8 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-            ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime_Title).Name, " DbRegen");
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, typeof(AniDB_Anime_Title).Name, " DbRegen");
             List<AniDB_Anime_Title> titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
             foreach (AniDB_Anime_Title title in titles)
             {
@@ -56,7 +46,7 @@ namespace Shoko.Server.Repositories
             }
         }
 
-        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs([NotNull] ISessionWrapper session, ICollection<int> ids)
+        public ILookup<int, AniDB_Anime_Title> GetByAnimeIDs(ISessionWrapper session, ICollection<int> ids)
         {
             if (session == null)
                 throw new ArgumentNullException(nameof(session));

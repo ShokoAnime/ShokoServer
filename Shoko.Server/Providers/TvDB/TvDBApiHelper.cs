@@ -14,7 +14,9 @@ using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using TvDbSharper;
 using TvDbSharper.Dto;
 using Language = TvDbSharper.Dto.Language;
@@ -23,8 +25,15 @@ namespace Shoko.Server.Providers.TvDB
 {
     public static class TvDBApiHelper
     {
-        private static readonly ITvDbClient client = new TvDbClient();
+        private static readonly ITvDbClient client;
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
+        static TvDBApiHelper()
+        {
+            client=new TvDbClient();
+            client.BaseUrl = "https://api-beta.thetvdb.com";
+        }
+
 
         public static string CurrentServerTime
         {
@@ -52,6 +61,7 @@ namespace Shoko.Server.Providers.TvDB
             catch (Exception e)
             {
                 logger.Error(e, $"Error in TvDBAuth: {e}");
+                Analytics.PostEvent("TvDB", "Login Failed");
                 throw;
             }
         }
@@ -89,15 +99,22 @@ namespace Shoko.Server.Providers.TvDB
                     await CheckAuthorizationAsync();
                     if (!string.IsNullOrEmpty(client.Authentication.Token))
                         return await GetSeriesInfoOnlineAsync(seriesID, forceRefresh);
+                    Analytics.PostEvent("TvDB", "Login Failed", "Tried to Get Series Without Login");
                     // suppress 404 and move on
-                } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
+                } else if (exception.StatusCode == (int) HttpStatusCode.NotFound)
+                {
+                    Analytics.PostEvent("TvDB", "404: GetSeriesInfo", $"{seriesID}");
+                    return null;
+                }
 
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TvDBApiHelper.GetSeriesInfoOnline: {ex}");
+                Analytics.PostException(ex);
             }
 
             return null;
@@ -143,10 +160,12 @@ namespace Shoko.Server.Providers.TvDB
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return results;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}\n        when searching for {criteria}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in SearchSeries: {ex}");
+                Analytics.PostException(ex);
             }
 
             return results;
@@ -269,10 +288,12 @@ namespace Shoko.Server.Providers.TvDB
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return languages;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TVDBHelper.GetSeriesBannersOnline: {ex}");
+                Analytics.PostException(ex);
             }
 
             return languages;
@@ -282,11 +303,9 @@ namespace Shoko.Server.Providers.TvDB
         {
             ImagesSummary summary = GetSeriesImagesCounts(seriesID);
             if (summary == null) return;
-            if (summary.Fanart > 0) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
-            if (summary.Poster > 0 || summary.Season > 0)
+            if (summary.Fanart > 0 && ServerSettings.Instance.TvDB.AutoFanart) DownloadAutomaticImages(GetFanartOnline(seriesID), seriesID, forceDownload);
+            if (summary.Poster > 0 || summary.Season > 0 && ServerSettings.Instance.TvDB.AutoPosters)
                 DownloadAutomaticImages(GetPosterOnline(seriesID), seriesID, forceDownload);
-            if (summary.Seasonwide > 0 || summary.Series > 0)
-                DownloadAutomaticImages(GetBannerOnline(seriesID), seriesID, forceDownload);
         }
 
         static ImagesSummary GetSeriesImagesCounts(int seriesID)
@@ -316,6 +335,7 @@ namespace Shoko.Server.Providers.TvDB
                 } else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             return null;
         }
@@ -347,6 +367,7 @@ namespace Shoko.Server.Providers.TvDB
                 else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return new Image[] { };
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch
             {
@@ -371,7 +392,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoFanartAmount) break;
@@ -406,10 +427,12 @@ namespace Shoko.Server.Providers.TvDB
                 else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TVDBApiHelper.GetSeriesFanartOnlineAsync: {ex}");
+                Analytics.PostException(ex);
             }
 
             return tvImages;
@@ -435,7 +458,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoPostersAmount) break;
@@ -470,10 +493,12 @@ namespace Shoko.Server.Providers.TvDB
                 else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TVDBApiHelper.GetPosterOnlineAsync: {ex}");
+                Analytics.PostException(ex);
             }
 
             return tvImages;
@@ -499,7 +524,7 @@ namespace Shoko.Server.Providers.TvDB
                 int count = 0;
                 foreach (Image image in images)
                 {
-                    int id = image.Id ?? 0;
+                    int id = image.Id;
                     if (id == 0) continue;
 
                     if (count >= ServerSettings.Instance.TvDB.AutoWideBannersAmount) break;
@@ -534,10 +559,12 @@ namespace Shoko.Server.Providers.TvDB
                 else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return tvImages;
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TVDBApiHelper.GetPosterOnlineAsync: {ex}");
+                Analytics.PostException(ex);
             }
 
             return tvImages;
@@ -597,57 +624,34 @@ namespace Shoko.Server.Providers.TvDB
                 }
         }
 
-        public static void DownloadAutomaticImages(List<TvDB_ImageWideBanner> images, int seriesID, bool forceDownload)
-        {
-            // find out how many images we already have locally
-            int imageCount = RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(seriesID).Count(banner =>
-                !string.IsNullOrEmpty(banner.GetFullImagePath()) && File.Exists(banner.GetFullImagePath()));
-
-            foreach (TvDB_ImageWideBanner img in images)
-                if (ServerSettings.Instance.TvDB.AutoWideBanners && imageCount < ServerSettings.Instance.TvDB.AutoWideBannersAmount &&
-                    !string.IsNullOrEmpty(img.GetFullImagePath()))
-                {
-                    bool fileExists = File.Exists(img.GetFullImagePath());
-                    if (fileExists && !forceDownload) continue;
-                    CommandRequest_DownloadImage cmd = new CommandRequest_DownloadImage(img.TvDB_ImageWideBannerID,
-                        ImageEntityType.TvDB_Banner, forceDownload);
-                    cmd.Save();
-                    imageCount++;
-                }
-                else
-                {
-                    //The TvDB_AutoFanartAmount point to download less images than its available
-                    // we should clean those image that we didn't download because those dont exists in local repo
-                    // first we check if file was downloaded
-                    if (string.IsNullOrEmpty(img.GetFullImagePath()) || !File.Exists(img.GetFullImagePath()))
-                        RepoFactory.TvDB_ImageWideBanner.Delete(img);
-                }
-        }
-
-        public static List<BasicEpisode> GetEpisodesOnline(int seriesID)
+        public static List<EpisodeRecord> GetEpisodesOnline(int seriesID)
         {
             return Task.Run(async () => await GetEpisodesOnlineAsync(seriesID)).Result;
         }
 
-        static async Task<List<BasicEpisode>> GetEpisodesOnlineAsync(int seriesID)
+        static async Task<List<EpisodeRecord>> GetEpisodesOnlineAsync(int seriesID)
         {
-            List<BasicEpisode> apiEpisodes = new List<BasicEpisode>();
+            List<EpisodeRecord> apiEpisodes = new List<EpisodeRecord>();
             try
             {
                 await CheckAuthorizationAsync();
 
-                var tasks = new List<Task<TvDbResponse<BasicEpisode[]>>>();
+                var tasks = new List<Task<TvDbResponse<EpisodeRecord[]>>>();
                 TvDBRateLimiter.Instance.EnsureRate();
                 var firstResponse = await client.Series.GetEpisodesAsync(seriesID, 1);
+                logger.Trace("First Page: First: " + (firstResponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (firstResponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (firstResponse?.Links?.Prev?.ToString() ?? "NULL") + "Last: " + (firstResponse?.Links?.Last?.ToString() ?? "NULL"));
 
                 for (int i = 2; i <= firstResponse.Links.Last; i++)
                 {
+                    logger.Trace("Adding Task: "+i);
                     TvDBRateLimiter.Instance.EnsureRate();
                     tasks.Add(client.Series.GetEpisodesAsync(seriesID, i));
                 }
 
                 var results = await Task.WhenAll(tasks);
-
+                var lastresponse = results.Length==0 ? firstResponse : results.Last();
+                logger.Trace("Last Page: First: " + (lastresponse?.Links?.First?.ToString() ?? "NULL") + "Next: " + (lastresponse?.Links?.Next?.ToString() ?? "NULL") + "Previous: " + (lastresponse?.Links?.Prev?.ToString() ?? "NULL") + "Last: " + (lastresponse?.Links?.Last?.ToString() ?? "NULL"));
+                logger.Trace("Last Count: "+(lastresponse?.Data.Length.ToString() ?? "NULL"));
                 apiEpisodes = firstResponse.Data.Concat(results.SelectMany(x => x.Data)).ToList();
             }
             catch (TvDbServerException exception)
@@ -660,106 +664,22 @@ namespace Shoko.Server.Providers.TvDB
                         return await GetEpisodesOnlineAsync(seriesID);
                     // suppress 404 and move on
                 }
-                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return apiEpisodes;
+                else if (exception.StatusCode == (int) HttpStatusCode.NotFound)
+                {
+                    Analytics.PostEvent("TvDB", "404: Get Episode List for Series", $"{seriesID}");
+                    return apiEpisodes;
+                }
                 logger.Error(exception,
                     $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
+                Analytics.PostException(exception);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TvDBApiHelper.GetEpisodesOnlineAsync: {ex}");
+                Analytics.PostException(ex);
             }
 
             return apiEpisodes;
-        }
-
-        public static TvDB_Episode UpdateEpisode(int episodeID, bool downloadImages, bool forceRefresh)
-        {
-            return QueueEpisodeImageDownloadAsync(episodeID, downloadImages, forceRefresh).Result;
-        }
-
-        static async Task<EpisodeRecord> GetEpisodeDetailsAsync(int episodeID)
-        {
-            try
-            {
-                await CheckAuthorizationAsync();
-
-                TvDBRateLimiter.Instance.EnsureRate();
-                var response = await client.Episodes.GetAsync(episodeID);
-                return response.Data;
-            }
-            catch (TvDbServerException exception)
-            {
-                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    client.Authentication.Token = null;
-                    await CheckAuthorizationAsync();
-                    if (!string.IsNullOrEmpty(client.Authentication.Token))
-                        return await GetEpisodeDetailsAsync(episodeID);
-                    // suppress 404 and move on
-                }
-                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
-                logger.Error(exception,
-                    $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, $"Error in TvDBApiHelper.GetEpisodeDetailsAsync: {ex}");
-            }
-
-            return null;
-        }
-
-        public static async Task<TvDB_Episode> QueueEpisodeImageDownloadAsync(int tvDBEpisodeID, bool downloadImages, bool forceRefresh)
-        {
-            try
-            {
-                TvDB_Episode ep = RepoFactory.TvDB_Episode.GetByTvDBID(tvDBEpisodeID);
-                if (ep == null || forceRefresh)
-                {
-                    EpisodeRecord episode = await GetEpisodeDetailsAsync(tvDBEpisodeID);
-                    if (episode == null)
-                        return null;
-
-                    if (ep == null) ep = new TvDB_Episode();
-                    ep.Populate(episode);
-                    RepoFactory.TvDB_Episode.Save(ep);
-                }
-
-                if (downloadImages)
-                    if (!string.IsNullOrEmpty(ep.Filename))
-                    {
-                        bool fileExists = File.Exists(ep.GetFullImagePath());
-                        if (!fileExists || forceRefresh)
-                        {
-                            CommandRequest_DownloadImage cmd =
-                                new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
-                                    ImageEntityType.TvDB_Episode, forceRefresh);
-                            cmd.Save();
-                        }
-                    }
-                return ep;
-            }
-            catch (TvDbServerException exception)
-            {
-                if (exception.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    client.Authentication.Token = null;
-                    await CheckAuthorizationAsync();
-                    if (!string.IsNullOrEmpty(client.Authentication.Token))
-                    {
-                        return await QueueEpisodeImageDownloadAsync(tvDBEpisodeID, downloadImages, forceRefresh);
-                    }
-                    // suppress 404 and move on
-                }
-                else if (exception.StatusCode == (int)HttpStatusCode.NotFound) return null;
-                logger.Error(exception,
-                    $"TvDB returned an error code: {exception.StatusCode}\n        {exception.Message}");
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, $"Error in TVDBHelper.GetEpisodes: {ex}");
-            }
-            return null;
         }
 
         public static void UpdateSeriesInfoAndImages(int seriesID, bool forceRefresh, bool downloadImages)
@@ -773,19 +693,31 @@ namespace Shoko.Server.Providers.TvDB
                 if (downloadImages)
                     DownloadAutomaticImages(seriesID, forceRefresh);
 
-                List<BasicEpisode> episodeItems = GetEpisodesOnline(seriesID);
+                List<EpisodeRecord> episodeItems = GetEpisodesOnline(seriesID);
                 logger.Trace($"Found {episodeItems.Count} Episode nodes");
 
                 List<int> existingEpIds = new List<int>();
-                foreach (BasicEpisode item in episodeItems)
+                foreach (EpisodeRecord item in episodeItems)
                 {
                     if (!existingEpIds.Contains(item.Id))
                         existingEpIds.Add(item.Id);
 
-                    string infoString = $"{tvSeries.SeriesName} - Episode {item.AbsoluteNumber?.ToString() ?? "X"}";
-                    CommandRequest_TvDBUpdateEpisode epcmd =
-                        new CommandRequest_TvDBUpdateEpisode(item.Id, infoString, downloadImages, forceRefresh);
-                    epcmd.Save();
+                    var ep = RepoFactory.TvDB_Episode.GetByTvDBID(item.Id) ?? new TvDB_Episode();
+                    ep.Populate(item);
+                    RepoFactory.TvDB_Episode.Save(ep);
+                    
+                    if (downloadImages)
+                        if (!string.IsNullOrEmpty(ep.Filename))
+                        {
+                            bool fileExists = File.Exists(ep.GetFullImagePath());
+                            if (!fileExists || forceRefresh)
+                            {
+                                CommandRequest_DownloadImage cmd =
+                                    new CommandRequest_DownloadImage(ep.TvDB_EpisodeID,
+                                        ImageEntityType.TvDB_Episode, forceRefresh);
+                                cmd.Save();
+                            }
+                        }
                 }
 
                 // get all the existing tvdb episodes, to see if any have been deleted
@@ -793,11 +725,15 @@ namespace Shoko.Server.Providers.TvDB
                 foreach (TvDB_Episode oldEp in allEps)
                     if (!existingEpIds.Contains(oldEp.Id))
                         RepoFactory.TvDB_Episode.Delete(oldEp.TvDB_EpisodeID);
-                // Not updating stats as it will happen with the episodes
+                
+                // Updating stats as it will not happen with the episodes
+                RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(seriesID).Select(a => a.AniDBID).Distinct()
+                    .ForEach(SVR_AniDB_Anime.UpdateStatsByAnimeID);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, $"Error in TVDBHelper.GetEpisodes: {ex}");
+                Analytics.PostException(ex);
             }
         }
 
@@ -836,6 +772,8 @@ namespace Shoko.Server.Providers.TvDB
 
         public static void ScanForMatches()
         {
+            if (!ServerSettings.Instance.TvDB.AutoLink) return;
+
             IReadOnlyList<SVR_AnimeSeries> allSeries = RepoFactory.CrossRef_AniDB_TvDB.GetSeriesWithoutLinks();
 
             foreach (SVR_AnimeSeries ser in allSeries)

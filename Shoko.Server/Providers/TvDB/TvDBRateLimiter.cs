@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using NLog;
-using System;
 
 namespace Shoko.Server.Providers.TvDB
 {
@@ -10,8 +10,8 @@ namespace Shoko.Server.Providers.TvDB
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
         private static readonly TvDBRateLimiter instance = new TvDBRateLimiter();
        
-        private static int ShortDelay = 500;
-        private static int LongDelay = 1000;
+        private static int ShortDelay = 100;
+        private static int LongDelay = 500;
 
         // Switch to longer delay after 1 hour
         private static long shortPeriod = 60 * 60 * 1000;

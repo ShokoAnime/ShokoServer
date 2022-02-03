@@ -2,35 +2,46 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NutzCode.CloudFileSystem;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
+using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using static Shoko.Models.Constants;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Renamer
 {
-    [Renamer("Legacy", Description = "Legacy")]
+    [Renamer(RENAMER_ID, Description = "Legacy")]
     public class LegacyRenamer : IRenamer
     {
-        private readonly RenameScript script;
+        private const string RENAMER_ID = "Legacy";
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-
-        public LegacyRenamer(RenameScript script)
+        
+        public string GetFilename(RenameEventArgs args)
         {
-            this.script = script;
+            if (args.Script == null)
+                throw new Exception("*Error: No script available for renamer");
+            if (args.Script.Type != RENAMER_ID && args.Script.Type != GroupAwareRenamer.RENAMER_ID) return null;
+
+            return GetNewFileName(args, args.Script.Script);
         }
 
-        public string GetFileName(SVR_VideoLocal vid) => script == null ? "*Error: No script available for renamer" : GetNewFileName(vid?.GetBestVideoLocalPlace(), script.Script);
-
-        public string GetFileName(SVR_VideoLocal_Place place) => script == null ? "*Error: No script available for renamer" : GetNewFileName(place, script.Script);
+        public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
+        {
+            if (args.Script == null)
+                throw new Exception("*Error: No script available for renamer");
+            return GetDestinationFolder(args);
+        }
 
         private static readonly char[] validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
 
-        private const int MaxEpisodeNameLength = 33;
         /* TESTS
         A   int     Anime id
         G   int     Group id
@@ -335,7 +346,7 @@ namespace Shoko.Server.Renamer
 
                 if (!int.TryParse(test, out int testBitDepth)) return false;
 
-                if (!int.TryParse(vid.VideoBitDepth, out int vidBitDepth)) return false;
+                if (vid.Media?.VideoStream == null) return false;
 
                 bool hasFileVersionOperator = greaterThan | greaterThanEqual | lessThan | lessThanEqual;
 
@@ -343,26 +354,26 @@ namespace Shoko.Server.Renamer
                 {
                     if (!notCondition)
                     {
-                        return testBitDepth == vidBitDepth;
+                        return testBitDepth == vid.Media?.VideoStream?.BitDepth;
                     }
-                    return testBitDepth != vidBitDepth;
+                    return testBitDepth != vid.Media?.VideoStream?.BitDepth;
                 }
                 if (greaterThan)
                 {
-                    return vidBitDepth > testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth > testBitDepth;
                 }
 
                 if (greaterThanEqual)
                 {
-                    return vidBitDepth >= testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth >= testBitDepth;
                 }
 
                 if (lessThan)
                 {
-                    return vidBitDepth < testBitDepth;
+                    return vid.Media?.VideoStream?.BitDepth < testBitDepth;
                 }
 
-                return vidBitDepth <= testBitDepth;
+                return vid.Media?.VideoStream?.BitDepth <= testBitDepth;
             }
             catch (Exception ex)
             {
@@ -1245,12 +1256,7 @@ namespace Shoko.Server.Renamer
                     Constants.FileRenameTag.VideoBitDepth.Length - 1); // remove % at the front
                 if (test.Trim().Equals(tagVideoBitDepth, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    bool bitDepthExists = false;
-                    if (!string.IsNullOrEmpty(vid?.VideoBitDepth))
-                    {
-                        int.TryParse(vid.VideoBitDepth, out int bitDepth);
-                        if (bitDepth > 0) bitDepthExists = true;
-                    }
+                    bool bitDepthExists = vid?.Media?.VideoStream != null && vid.Media?.VideoStream?.BitDepth != 0;
                     if (!bitDepthExists)
                     {
                         return notCondition;
@@ -1303,8 +1309,13 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        public static string GetNewFileName(SVR_VideoLocal_Place place, string script)
+        public static string GetNewFileName(RenameEventArgs args, string script)
         {
+            // Cheat and just look it up by location to avoid rewriting this whole file.
+            var sourceFolder = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => args.FileInfo.FilePath.StartsWith(a.ImportFolderLocation));
+            if (sourceFolder == null) throw new Exception("*Unable to get import folder");
+            var place = RepoFactory.VideoLocalPlace.GetByFilePathAndImportFolderID(
+                args.FileInfo.FilePath.Replace(sourceFolder.ImportFolderLocation, ""), sourceFolder.ImportFolderID);
             SVR_VideoLocal vid = place?.VideoLocal;
             string[] lines = script.Split(Environment.NewLine.ToCharArray());
 
@@ -1314,27 +1325,27 @@ namespace Shoko.Server.Renamer
             List<AniDB_Episode> episodes = new List<AniDB_Episode>();
             SVR_AniDB_Anime anime;
 
-            if (vid == null) return "*Error: Unable to access file";
+            if (vid == null) throw new Exception("*Error: Unable to access file");
 
             // get all the data so we don't need to get multiple times
             SVR_AniDB_File aniFile = vid.GetAniDBFile();
             if (aniFile == null)
             {
                 List<SVR_AnimeEpisode> animeEps = vid.GetAnimeEpisodes();
-                if (animeEps.Count == 0) return "*Error: Unable to get episode for file";
+                if (animeEps.Count == 0) throw new Exception("*Error: Unable to get episode for file");
 
-                episodes.Add(animeEps[0].AniDB_Episode);
+                episodes.AddRange(animeEps.Select(a => a.AniDB_Episode).OrderBy(a => a.EpisodeType).ThenBy(a => a.EpisodeNumber));
 
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
-                if (anime == null) return "*Error: Unable to get anime for file";
+                if (anime == null) throw new Exception("*Error: Unable to get anime for file");
             }
             else
             {
                 episodes = aniFile.Episodes;
-                if (episodes.Count == 0) return "*Error: Unable to get episode for file";
+                if (episodes.Count == 0) throw new Exception("*Error: Unable to get episode for file");
 
                 anime = RepoFactory.AniDB_Anime.GetByAnimeID(episodes[0].AnimeID);
-                if (anime == null) return "*Error: Unable to get anime for file";
+                if (anime == null) throw new Exception("*Error: Unable to get anime for file");
             }
 
             foreach (string line in lines)
@@ -1366,20 +1377,20 @@ namespace Shoko.Server.Renamer
                     if (action.ToUpper()
                         .Trim()
                         .Equals(Constants.FileRenameReserved.Fail, StringComparison.InvariantCultureIgnoreCase))
-                        return "*Error: The script called FAIL";
+                        throw new Exception("*Error: The script called FAIL");
 
                     PerformActionOnFileName(ref newFileName, action, vid, aniFile, episodes, anime);
                 }
             }
 
-            if (string.IsNullOrEmpty(newFileName)) return "*Error: the new filename is empty (script error)";
+            if (string.IsNullOrEmpty(newFileName)) throw new Exception("*Error: the new filename is empty (script error)");
 
             string pathToVid = place.FilePath;
-            if (string.IsNullOrEmpty(pathToVid)) return "*Error: Unable to get the file's old filename";
+            if (string.IsNullOrEmpty(pathToVid)) throw new Exception("*Error: Unable to get the file's old filename");
             string ext =
                 Path.GetExtension(pathToVid); //Prefer VideoLocal_Place as this is more accurate.
             if (string.IsNullOrEmpty(ext))
-                return "*Error: Unable to get the file's extension"; // fail if we get a blank extension, something went wrong.
+                throw new Exception("*Error: Unable to get the file's extension"); // fail if we get a blank extension, something went wrong.
 
             // finally add back the extension
             return Utils.ReplaceInvalidFolderNameCharacters($"{newFileName.Replace("`", "'")}{ext}");
@@ -1578,7 +1589,7 @@ namespace Shoko.Server.Renamer
             {
                 var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "EN")
                     .FirstOrDefault()?.Title;
-                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameEnglish, epname);
             }
 
@@ -1590,7 +1601,7 @@ namespace Shoko.Server.Renamer
             {
                 var epname = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, "X-JAT")
                     .FirstOrDefault()?.Title;
-                if (epname?.Length > MaxEpisodeNameLength) epname = epname.Substring(0, MaxEpisodeNameLength - 1) + "…";
+                if (epname?.Length > ServerSettings.Instance.LegacyRenamerMaxEpisodeLength) epname = epname.Substring(0, ServerSettings.Instance.LegacyRenamerMaxEpisodeLength - 1) + "…";
                 newFileName = newFileName.Replace(Constants.FileRenameTag.EpisodeNameRomaji, epname);
             }
 
@@ -1702,7 +1713,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().Contains(Constants.FileRenameTag.VideoCodec))
             {
                 newFileName = newFileName.Replace(Constants.FileRenameTag.VideoCodec,
-                    aniFile?.File_VideoCodec ?? vid.VideoCodec);
+                    aniFile?.File_VideoCodec ?? vid?.Media?.VideoStream?.CodecID);
             }
 
             #endregion
@@ -1712,7 +1723,7 @@ namespace Shoko.Server.Renamer
             if (action.Trim().Contains(Constants.FileRenameTag.AudioCodec))
             {
                 newFileName = newFileName.Replace(Constants.FileRenameTag.AudioCodec,
-                    aniFile?.File_AudioCodec ?? vid.AudioCodec);
+                    aniFile?.File_AudioCodec ?? vid?.Media?.AudioStreams.FirstOrDefault()?.CodecID);
             }
 
             #endregion
@@ -1721,7 +1732,8 @@ namespace Shoko.Server.Renamer
 
             if (action.Trim().Contains(Constants.FileRenameTag.VideoBitDepth))
             {
-                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth, vid.VideoBitDepth);
+                newFileName = newFileName.Replace(Constants.FileRenameTag.VideoBitDepth,
+                    (vid?.Media?.VideoStream?.BitDepth).ToString());
             }
 
             #endregion
@@ -2012,38 +2024,38 @@ namespace Shoko.Server.Renamer
             }
         }
 
-        public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
+        public (SVR_ImportFolder dest, string folder) GetDestinationFolder(MoveEventArgs args)
         {
-            if (!(video?.ImportFolder?.FileSystem?.Resolve(video.FullServerPath)?.Result is IFile sourceFile))
-                return (null, "File is null");
-
-            ImportFolder destFolder = null;
-            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll()
-                .Where(a => a != null && a.CloudID == video.ImportFolder.CloudID).ToList())
+            
+            SVR_ImportFolder destFolder = null;
+            foreach (SVR_ImportFolder fldr in RepoFactory.ImportFolder.GetAll())
             {
                 if (!fldr.FolderIsDropDestination) continue;
                 if (fldr.FolderIsDropSource) continue;
-                IFileSystem fs = fldr.FileSystem;
-                FileSystemResult<IObject> fsresult = fs?.Resolve(fldr.ImportFolderLocation);
-                if (fsresult == null || !fsresult.IsOk) continue;
+                if (!Directory.Exists(fldr.ImportFolderLocation)) continue;
 
                 // Continue if on a separate drive and there's no space
-                if (!fldr.CloudID.HasValue &&
-                    !video.ImportFolder.ImportFolderLocation.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
+                if (!ServerSettings.Instance.Import.SkipDiskSpaceChecks && !args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(fldr.ImportFolderLocation)))
                 {
-                    var fsresultquota = fldr.BaseDirectory.Quota();
-                    // if it's null, then we are likely on network FS, so we can't easily check
-                    if (fsresultquota != null && fsresultquota.IsOk &&
-                        fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                    var available = 0L;
+                    try
+                    {
+                        available = new DriveInfo(fldr.ImportFolderLocation).AvailableFreeSpace;
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
+                    if (available < args.FileInfo.FileSize) continue;
                 }
 
                 destFolder = fldr;
                 break;
             }
 
-            List<CrossRef_File_Episode> xrefs = video.VideoLocal.EpisodeCrossRefs;
+            IList<IEpisode> xrefs = args.EpisodeInfo;
             if (xrefs.Count == 0) return (null, "No xrefs");
-            CrossRef_File_Episode xref = xrefs.FirstOrDefault(a => a != null);
+            IEpisode xref = xrefs.FirstOrDefault(a => a != null);
             if (xref == null) return (null, "No xrefs");
 
             // find the series associated with this episode
@@ -2076,13 +2088,11 @@ namespace Shoko.Server.Renamer
                 if (crossOver) continue;
 
                 foreach (SVR_VideoLocal vid in ep.GetVideoLocals()
-                    .Where(a => a.Places.Any(b => b.ImportFolder.CloudID == destFolder?.CloudID &&
-                                                  b.ImportFolder.IsDropSource == 0)).ToList())
+                    .Where(a => a.Places.Any(b => b.ImportFolder.IsDropSource == 0)).ToList())
                 {
-                    if (vid.VideoLocalID == video.VideoLocalID) continue;
+                    if (vid.ED2KHash == args.FileInfo.Hashes.ED2K) continue;
 
-                    SVR_VideoLocal_Place place =
-                        vid.Places.FirstOrDefault(a => a.ImportFolder.CloudID == destFolder?.CloudID);
+                    SVR_VideoLocal_Place place = vid.Places.FirstOrDefault();
                     string thisFileName = place?.FilePath;
                     if (thisFileName == null) continue;
                     string folderName = Path.GetDirectoryName(thisFileName);
@@ -2090,29 +2100,29 @@ namespace Shoko.Server.Renamer
                     var dstImportFolder = place.ImportFolder;
                     if (dstImportFolder == null) continue;
                     // check space
-                    if (!video.ImportFolder.ImportFolderLocation.StartsWith(
-                        Path.GetPathRoot(dstImportFolder.ImportFolderLocation)))
+                    if (!args.FileInfo.FilePath.StartsWith(Path.GetPathRoot(dstImportFolder.ImportFolderLocation)) && !ServerSettings.Instance.Import.SkipDiskSpaceChecks)
                     {
-                        var fsresultquota = dstImportFolder.BaseDirectory.Quota();
-                        // if it's null, then we are likely on network FS, so we can't easily check
-                        if (fsresultquota != null && fsresultquota.IsOk &&
-                            fsresultquota.Result.AvailableSize < sourceFile.Size) continue;
+                        var available = 0L;
+                        try
+                        {
+                            available = new DriveInfo(dstImportFolder.ImportFolderLocation).AvailableFreeSpace;
+                        }
+                        catch (Exception e)
+                        {
+                            logger.Error(e);
+                        }
+                        if (available < vid.FileSize) continue;
                     }
 
-                    FileSystemResult<IObject> dir = dstImportFolder
-                        .FileSystem?.Resolve(Path.Combine(place.ImportFolder.ImportFolderLocation,
-                            folderName));
-                    if (dir == null || !dir.IsOk) continue;
+                    if (!Directory.Exists(Path.Combine(place.ImportFolder.ImportFolderLocation, folderName))) continue;
+
                     // ensure we aren't moving to the current directory
-                    if (Path.Combine(place.ImportFolder.ImportFolderLocation,
-                        folderName).Equals(Path.Combine(video.ImportFolder.ImportFolderLocation,
-                            Path.GetDirectoryName(video.FilePath)),
-                        StringComparison.InvariantCultureIgnoreCase))
+                    if (Path.Combine(place.ImportFolder.ImportFolderLocation, folderName).Equals(
+                        Path.GetDirectoryName(args.FileInfo.FilePath), StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
-                    // Not a directory
-                    if (!(dir.Result is IDirectory)) continue;
+
                     destFolder = place.ImportFolder;
 
                     return (destFolder, folderName);

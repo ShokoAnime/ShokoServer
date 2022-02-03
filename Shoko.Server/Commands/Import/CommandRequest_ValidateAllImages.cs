@@ -10,6 +10,7 @@ using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
@@ -410,7 +411,7 @@ namespace Shoko.Server.Commands
 
         public override void GenerateCommandID()
         {
-            CommandID = $"CommandRequest_ValidateAllImages";
+            CommandID = "CommandRequest_ValidateAllImages";
         }
 
         public override bool LoadFromDBCommand(CommandRequest cq)

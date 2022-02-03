@@ -33,7 +33,7 @@ namespace AniDBAPI
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("AniDB_GroupStatus:: AnimeID: " + AnimeID.ToString());
+            sb.Append("AniDB_GroupStatus:: AnimeID: " + AnimeID);
             sb.Append(" | GroupName: " + GroupName);
             sb.Append(" | LastEpisode: " + LastEpisodeNumber);
 

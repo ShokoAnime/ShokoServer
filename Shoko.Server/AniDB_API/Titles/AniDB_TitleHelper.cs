@@ -1,14 +1,13 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Shoko.Commons.Utils;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.AniDB_API.Titles
 {
@@ -29,7 +28,7 @@ namespace Shoko.Server.AniDB_API.Titles
 
         private static AniDB_TitleHelper instance;
 
-        public static AniDB_TitleHelper Instance => instance ?? (instance = new AniDB_TitleHelper());
+        public static AniDB_TitleHelper Instance => instance ??= new AniDB_TitleHelper();
 
         public List<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
         {
@@ -38,20 +37,13 @@ namespace Shoko.Server.AniDB_API.Titles
                 if (cache == null) CreateCache();
                 if (cache != null)
                 {
-                    // TODO Maybe sort this or something one day
-                    ConcurrentBag<AniDBRaw_AnimeTitle_Anime> matches = new ConcurrentBag<AniDBRaw_AnimeTitle_Anime>();
-                    Parallel.ForEach(cache.Animes.ToList(), anime =>
-                    {
-                        foreach (var animeTitle in anime.Titles)
-                        {
-                            if (!ServerSettings.Instance.LanguagePreference.Contains(animeTitle.TitleLanguage) &&
-                                animeTitle.TitleLanguage != "en" && animeTitle.TitleLanguage != "x-jat") continue;
-                            if (!animeTitle.Title.FuzzyMatches(query)) continue;
-                            matches.Add(anime);
-                            break;
-                        }
-                    });
-                    return matches.OrderBy(a => a.AnimeID).ToList();
+                    List<AniDBRaw_AnimeTitle_Anime> results = SeriesSearch.SearchCollection(query, cache.Animes,
+                        anime => anime.Titles.Where(a =>
+                                a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") ||
+                                ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
+                            .Select(a => a.Title)
+                            .ToList()).Select(a => a.Result).ToList();
+                    return results;
                 }
             }
             catch (Exception e)
@@ -136,11 +128,21 @@ namespace Shoko.Server.AniDB_API.Titles
             try
             {
                 if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
+                
+                // Ignore all certificate failures.
+                ServicePointManager.Expect100Continue = true;                
+                //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                //ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                
                 // Download the file
                 using (var client = new WebClient())
                 {
-                    client.Headers.Add("Accept-Encoding", "gzip");
-                    var stream = client.OpenRead("http://anidb.net/api/anime-titles.xml.gz");
+                    client.Headers.Add(HttpRequestHeader.UserAgent, "Mozilla / 5.0(Windows NT 10.0; Win64; x64; rv: 74.0) Gecko / 20100101 Firefox / 74.0");
+                    client.Headers.Add("Accept", "text / html,application / xhtml + xml,application / xml; q = 0.9,image / webp,*/*;q=0.8");
+                    client.Headers.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
+                    client.Headers.Add("Accept-Encoding", "gzip,deflate");
+
+                    var stream = client.OpenRead(Constants.AniDBTitlesURL);
                     GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
                     var textResponse = new StreamReader(gzip).ReadToEnd();
                     File.WriteAllText(CacheFilePathTemp, textResponse);

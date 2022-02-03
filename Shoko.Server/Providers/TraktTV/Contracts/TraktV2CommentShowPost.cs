@@ -14,10 +14,6 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         [DataMember(Name = "spoiler")]
         public bool spoiler { get; set; }
 
-        public TraktV2CommentShowPost()
-        {
-        }
-
         public void Init(string shoutText, bool isSpoiler, string traktSlug)
         {
             comment = shoutText;

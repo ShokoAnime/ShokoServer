@@ -47,7 +47,7 @@
         MarkFileDisk = 29
     }
 
-    public enum enHelperActivityType
+    public enum AniDBUDPResponseCode
     {
         //Login
         LoggingIn = 1,

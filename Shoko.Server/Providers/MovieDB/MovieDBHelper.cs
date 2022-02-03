@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using Shoko.Models.Server;
+using System.Web;
 using NHibernate;
 using NLog;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Settings;
@@ -153,7 +152,7 @@ namespace Shoko.Server.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(criteria);
+                SearchContainer<SearchMovie> resultsTemp = client.SearchMovie(HttpUtility.UrlDecode(criteria));
 
                 logger.Info($"Got {resultsTemp.Results.Count} of {resultsTemp.TotalResults} results");
                 foreach (SearchMovie result in resultsTemp.Results)
@@ -181,7 +180,7 @@ namespace Shoko.Server.Providers.MovieDB
             try
             {
                 TMDbClient client = new TMDbClient(apiKey);
-                TvShow result = client.GetTvShow(id, TvShowMethods.Images, null);
+                TvShow result = client.GetTvShow(id, TvShowMethods.Images);
 
                 if (result != null)
                 {
@@ -200,6 +199,36 @@ namespace Shoko.Server.Providers.MovieDB
             }
 
             return results;
+        }
+
+        public static void UpdateAllMovieInfo(bool saveImages)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenSession())
+            {
+                var all = RepoFactory.MovieDb_Movie.GetAll();
+                int max = all.Count;
+                int i = 0;
+                foreach (var batch in all.Batch(50))
+                {
+                    using (var trans = session.BeginTransaction())
+                    {
+                        foreach (MovieDB_Movie movie in batch)
+                        {
+                            try
+                            {
+                                i++;
+                                logger.Info($"Updating MovieDB Movie {i}/{max}");
+                                UpdateMovieInfo(session, movie.MovieId, saveImages);
+                            }
+                            catch (Exception e)
+                            {
+                                logger.Error($"Failed to Update MovieDB Movie ID: {movie.MovieId} Error: {e}");
+                            }
+                        }
+                        trans.Commit();
+                    }
+                }
+            }
         }
 
         public static void UpdateMovieInfo(int movieID, bool saveImages)
@@ -266,9 +295,12 @@ namespace Shoko.Server.Providers.MovieDB
 
             logger.Trace("Changed moviedb association: {0}", animeID);
 
-            CommandRequest_WebCacheSendXRefAniDBOther req =
-                new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
-            req.Save();
+            if (ServerSettings.Instance.WebCache.Enabled)
+            {
+                CommandRequest_WebCacheSendXRefAniDBOther req =
+                    new CommandRequest_WebCacheSendXRefAniDBOther(xref.CrossRef_AniDB_OtherID);
+                req.Save();
+            }
         }
 
         public static void RemoveLinkAniDBMovieDB(int animeID)
@@ -279,9 +311,13 @@ namespace Shoko.Server.Providers.MovieDB
 
             RepoFactory.CrossRef_AniDB_Other.Delete(xref.CrossRef_AniDB_OtherID);
 
-            CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(animeID,
-                CrossRefType.MovieDB);
-            req.Save();
+            if (ServerSettings.Instance.WebCache.Enabled)
+            {
+                CommandRequest_WebCacheDeleteXRefAniDBOther req = new CommandRequest_WebCacheDeleteXRefAniDBOther(
+                    animeID,
+                    CrossRefType.MovieDB);
+                req.Save();
+            }
         }
 
         public static void ScanForMatches()

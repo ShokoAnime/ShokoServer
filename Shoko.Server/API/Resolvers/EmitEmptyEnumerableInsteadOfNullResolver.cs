@@ -16,19 +16,22 @@ namespace Shoko.Server
     {
         private static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
         {
-            ContractResolver = new EmitEmptyEnumerableInsteadOfNullResolver()
+            ContractResolver = new EmitEmptyEnumerableInsteadOfNullResolver
             {
                 NamingStrategy = new DefaultNamingStrategy()
             },
             ObjectCreationHandling = ObjectCreationHandling.Replace
         };
 
+        internal static MvcOptions MvcOptions { get; set; }
+
         public override void OnActionExecuted(ActionExecutedContext ctx)
         {
             if (!(ctx.Result is ObjectResult objectResult)) return;
             // It would be nice if we could cache this somehow, but IDK
-            objectResult.Formatters.Add(new JsonOutputFormatter(SerializerSettings,
-                ctx.HttpContext.RequestServices.GetRequiredService<ArrayPool<char>>()));
+        objectResult.Formatters.Add(new NewtonsoftJsonOutputFormatter(SerializerSettings,
+             ctx.HttpContext.RequestServices.GetRequiredService<ArrayPool<char>>(),
+             MvcOptions));
         }
     }
     

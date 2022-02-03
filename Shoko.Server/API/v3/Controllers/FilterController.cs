@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
@@ -16,12 +18,12 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get Filter with id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpGet("{id}")]
-        public ActionResult<Filter> GetFilter(int id)
+        [HttpGet("{filterID}")]
+        public ActionResult<Filter> GetFilter(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(id);
+            var gf = RepoFactory.GroupFilter.GetByID(filterID);
             if (gf == null) return BadRequest("No filter with id");
             return new Filter(HttpContext, gf);
         }
@@ -29,28 +31,28 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get Filter with id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpGet("{id}/Filter")]
-        public ActionResult<List<Filter>> GetSubFilters(int id)
+        [HttpGet("{filterID}/Filter")]
+        public ActionResult<List<Filter>> GetSubFilters(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(id);
+            var gf = RepoFactory.GroupFilter.GetByID(filterID);
             if (gf == null) return BadRequest("No filter with id");
             if (!((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory))
                 return BadRequest("Filter should be a Directory Filter");
-            return RepoFactory.GroupFilter.GetByParentID(id).Select(a => new Filter(HttpContext, a))
+            return RepoFactory.GroupFilter.GetByParentID(filterID).Select(a => new Filter(HttpContext, a))
                 .OrderBy(a => a.Name).ToList();
         }
         
         /// <summary>
         /// Get Conditions for Filter with id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpGet("{id}/Conditions")]
-        public ActionResult<Filter.FilterConditions> GetFilterConditions(int id)
+        [HttpGet("{filterID}/Conditions")]
+        public ActionResult<Filter.FilterConditions> GetFilterConditions(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(id);
+            var gf = RepoFactory.GroupFilter.GetByID(filterID);
             if (gf == null) return BadRequest("No filter with id");
             return Filter.GetConditions(gf);
         }
@@ -58,12 +60,12 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Get Sorting Criteria for Filter with id
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpGet("{id}/Sorting")]
-        public ActionResult<List<Filter.SortingCriteria>> GetFilterSortingCriteria(int id)
+        [HttpGet("{filterID}/Sorting")]
+        public ActionResult<List<Filter.SortingCriteria>> GetFilterSortingCriteria(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(id);
+            var gf = RepoFactory.GroupFilter.GetByID(filterID);
             if (gf == null) return BadRequest("No filter with id");
             return Filter.GetSortingCriteria(gf);
         }
@@ -97,6 +99,7 @@ namespace Shoko.Server.API.v3
             {
                 gf = RepoFactory.GroupFilter.GetByID(filter.IDs.ID);
                 if (gf == null) return BadRequest("No Filter with ID");
+                if (gf.Locked == 1) return BadRequest("Filter is Locked");
             }
             gf = filter.ToServerModel(gf);
             gf.CalculateGroupsAndSeries();
@@ -108,12 +111,12 @@ namespace Shoko.Server.API.v3
         /// <summary>
         /// Delete a filter
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpDelete("{id}")]
-        public ActionResult DeleteFilter(int id)
+        [HttpDelete("{filterID}")]
+        public ActionResult DeleteFilter(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(id);
+            var gf = RepoFactory.GroupFilter.GetByID(filterID);
             if (gf == null) return BadRequest("No filter with id");
             RepoFactory.GroupFilter.Delete(gf);
             return Ok();

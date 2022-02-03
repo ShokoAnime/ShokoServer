@@ -1,25 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class MovieDB_PosterRepository : BaseDirectRepository<MovieDB_Poster, int>
     {
-        private MovieDB_PosterRepository()
-        {
-        }
-
-        public static MovieDB_PosterRepository Create()
-        {
-            return new MovieDB_PosterRepository();
-        }
-
         public MovieDB_Poster GetByOnlineID(string url)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

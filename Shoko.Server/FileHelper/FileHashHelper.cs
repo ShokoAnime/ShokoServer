@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Configuration;
 using System.IO;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Server;
 using Shoko.Server.Settings;
@@ -45,9 +42,9 @@ namespace Shoko.Server.FileHelper
 
             try
             {
-                string[] exts = ServerSettings.Instance.Import.VideoExtensions;
+                var exts = ServerSettings.Instance.Import.VideoExtensions;
 
-                if (exts == null || exts.Length == 0)
+                if (exts == null || exts.Count == 0)
                 {
                     logger.Error("Could not find VideoExtensions app setting in config file");
                     return extList;
@@ -60,7 +57,7 @@ namespace Shoko.Server.FileHelper
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in GetVideoExtensions: " + ex.ToString());
+                logger.Error(ex, "Error in GetVideoExtensions: " + ex);
             }
 
             return extList;

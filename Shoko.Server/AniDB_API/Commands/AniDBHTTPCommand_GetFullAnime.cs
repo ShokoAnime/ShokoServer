@@ -1,10 +1,5 @@
-﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Xml;
-using Shoko.Server;
-using Shoko.Server.Providers.Azure;
-using Shoko.Models.Azure;
 using NLog;
 
 namespace AniDBAPI.Commands
@@ -49,20 +44,20 @@ namespace AniDBAPI.Commands
             set => titles = value;
         }
 
-        private List<Raw_AniDB_Category> categories = new List<Raw_AniDB_Category>();
-
-        public List<Raw_AniDB_Category> Categories
-        {
-            get => categories;
-            set => categories = value;
-        }
-
         private List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();
 
         public List<Raw_AniDB_Tag> Tags
         {
             get => tags;
             set => tags = value;
+        }
+
+        private List<Raw_AniDB_Staff> staff = new List<Raw_AniDB_Staff>();
+
+        public List<Raw_AniDB_Staff> Staff
+        {
+            get => staff;
+            set => staff = value;
         }
 
         private List<Raw_AniDB_Character> characters = new List<Raw_AniDB_Character>();
@@ -115,15 +110,15 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBHTTPCommand_GetFullAnime_" + AnimeID.ToString();
+            return "AniDBHTTPCommand_GetFullAnime_" + AnimeID;
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingAnimeHTTP;
+            return AniDBUDPResponseCode.GettingAnimeHTTP;
         }
 
-        public virtual enHelperActivityType Process()
+        public virtual AniDBUDPResponseCode Process()
         {
             XmlDocument docAnime = null;
 
@@ -157,11 +152,12 @@ namespace AniDBAPI.Commands
             {
                 logger.Trace("Anime data loaded for " + AnimeID + ". Processing and saving it.");
                 anime = AniDBHTTPHelper.ProcessAnimeDetails(docAnime, animeID);
-                if (anime == null) return enHelperActivityType.NoSuchAnime;
+                if (anime == null) return AniDBUDPResponseCode.NoSuchAnime;
 
                 episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
                 titles = AniDBHTTPHelper.ProcessTitles(docAnime, animeID);
                 tags = AniDBHTTPHelper.ProcessTags(docAnime, animeID);
+                staff = AniDBHTTPHelper.ProcessStaff(docAnime, animeID);
                 characters = AniDBHTTPHelper.ProcessCharacters(docAnime, animeID);
                 resources = AniDBHTTPHelper.ProcessResources(docAnime, animeID);
 
@@ -177,9 +173,9 @@ namespace AniDBAPI.Commands
                     similarAnime = null;
                     recommendations = null;
                 }
-                return enHelperActivityType.GotAnimeInfoHTTP;
+                return AniDBUDPResponseCode.GotAnimeInfoHTTP;
             }
-            return enHelperActivityType.NoSuchAnime;
+            return AniDBUDPResponseCode.NoSuchAnime;
         }
 
 
@@ -190,11 +186,11 @@ namespace AniDBAPI.Commands
 
         public void Init(int animeID, bool createSeriesRecord, bool forceFromAniDB, bool cacheOnly)
         {
-            this.ForceFromAniDB = forceFromAniDB;
-            this.CacheOnly = cacheOnly;
+            ForceFromAniDB = forceFromAniDB;
+            CacheOnly = cacheOnly;
             this.animeID = animeID;
             commandID = animeID.ToString();
-            this.createAnimeSeriesRecord = createSeriesRecord;
+            createAnimeSeriesRecord = createSeriesRecord;
         }
     }
 }

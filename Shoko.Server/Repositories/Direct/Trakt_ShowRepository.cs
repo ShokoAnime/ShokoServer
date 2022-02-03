@@ -1,23 +1,12 @@
-﻿using System.Collections.Generic;
-using Shoko.Models.Server;
-using NHibernate;
+﻿using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class Trakt_ShowRepository : BaseDirectRepository<Trakt_Show, int>
     {
-        private Trakt_ShowRepository()
-        {
-        }
-
-        public static Trakt_ShowRepository Create()
-        {
-            return new Trakt_ShowRepository();
-        }
-
         public Trakt_Show GetByTraktSlug(string slug)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

@@ -6,13 +6,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Resources;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
@@ -47,17 +46,15 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("{type}/{id}")]
         public FileResult GetImage(int type, int id)
         {
-            string path = GetImagePath(type, id, false);
+            string path = GetImagePath(type, id);
 
             if (string.IsNullOrEmpty(path))
             {
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
-            }
+
+            return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
 
         /// <summary>
@@ -75,20 +72,18 @@ namespace Shoko.Server.API.v2.Modules
             if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out float newratio))
                 newratio = 0.6667f;
 
-            string path = GetImagePath(type, id, false);
+            string path = GetImagePath(type, id);
 
             if (string.IsNullOrEmpty(path))
             {
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                FileStream fs = System.IO.File.OpenRead(path);
-                contentType = Mime.GetMimeMapping(path);
-                System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
-                return File(ResizeImageToRatio(im, newratio), contentType);
-            }
+
+            FileStream fs = System.IO.File.OpenRead(path);
+            contentType = Mime.GetMimeMapping(path);
+            System.Drawing.Image im = System.Drawing.Image.FromStream(fs);
+            return File(ResizeImageToRatio(im, newratio), contentType);
         }
 
         /// <summary>
@@ -97,6 +92,8 @@ namespace Shoko.Server.API.v2.Modules
         /// <param name="name">image file name</param>
         /// <returns></returns>
         [HttpGet("support/{name}")]
+        [InitFriendly]
+        [DatabaseBlockedExempt]
         public ActionResult GetSupportImage(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -113,6 +110,8 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         [HttpGet("support/{name}/{ratio}")]
+        [InitFriendly]
+        [DatabaseBlockedExempt]
         public ActionResult GetSupportImage(string name, string ratio)
         {
             if (string.IsNullOrEmpty(name))
@@ -139,9 +138,8 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="id">image id</param>
         /// <param name="type">image type</param>
-        /// <param name="thumb">thumb mode</param>
         /// <returns>string</returns>
-        internal string GetImagePath(int type, int id, bool thumb)
+        internal string GetImagePath(int type, int id)
         {
             ImageEntityType imageType = (ImageEntityType) type;
             string path;
@@ -255,23 +253,11 @@ namespace Shoko.Server.API.v2.Modules
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(id);
                     if (fanart == null)
                         return null;
-                    if (thumb)
-                    {
-                        //ratio
-                        path = fanart.GetFullThumbnailPath();
-                        if (System.IO.File.Exists(path))
-                            return path;
-                        path = string.Empty;
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                    }
-                    else
-                    {
-                        path = fanart.GetFullImagePath();
-                        if (System.IO.File.Exists(path))
-                            return path;
-                        path = string.Empty;
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                    }
+                    path = fanart.GetFullImagePath();
+                    if (System.IO.File.Exists(path))
+                        return path;
+                    path = string.Empty;
+                    logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
                     break;
 
                 // 8
@@ -361,7 +347,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <param name="type">image type</param>
         /// <returns>image body inside stream</returns>
-        [HttpGet("random/{type}")]
+        [HttpGet("{type}/random")]
         public FileResult GetRandomImage(int type)
         {
             string path = GetRandomImagePath(type);
@@ -371,10 +357,8 @@ namespace Shoko.Server.API.v2.Modules
                 Response.StatusCode = 404;
                 return File(MissingImage(), "image/png");
             }
-            else
-            {
-                return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
-            }
+
+            return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
 
         private string GetRandomImagePath(int type)

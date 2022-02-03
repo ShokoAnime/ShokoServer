@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -13,6 +13,7 @@ using Shoko.Models.Azure;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -20,12 +21,16 @@ using Shoko.Server.ImageDownload;
 using Shoko.Server.LZ4;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AniDB_Anime : AniDB_Anime
+    public class SVR_AniDB_Anime : AniDB_Anime, IAnime
     {
         #region DB columns
 
@@ -244,15 +249,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
 
         public List<CrossRef_AniDB_TraktV2> GetCrossRefTraktV2(ISession session) => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(session, AnimeID);
 
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL()
-        {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                return GetCrossRefMAL(session);
-            }
-        }
-
-        public List<CrossRef_AniDB_MAL> GetCrossRefMAL(ISession session) => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(session, AnimeID);
+        public List<CrossRef_AniDB_MAL> GetCrossRefMAL() => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(AnimeID);
 
         public TvDB_Series GetTvDBSeries()
         {
@@ -829,8 +826,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             // check for TvDB associations
             if (Restricted == 0)
             {
-                CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
-                cmd.Save();
+                if (ServerSettings.Instance.TvDB.AutoLink)
+                {
+                    CommandRequest_TvDBSearchAnime cmd = new CommandRequest_TvDBSearchAnime(AnimeID, forced: false);
+                    cmd.Save();
+                }
 
                 // check for Trakt associations
                 if (ServerSettings.Instance.TraktTv.Enabled && !string.IsNullOrEmpty(ServerSettings.Instance.TraktTv.AuthToken))
@@ -851,8 +851,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public bool PopulateAndSaveFromHTTP(ISession session, Raw_AniDB_Anime animeInfo, List<Raw_AniDB_Episode> eps,
-            List<Raw_AniDB_Anime_Title> titles,
-            List<Raw_AniDB_Category> cats, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars,
+            List<Raw_AniDB_Anime_Title> titles, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars, List<Raw_AniDB_Staff> staff,
             List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
             List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
@@ -874,7 +873,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
 
             // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(this);
+            RepoFactory.AniDB_Anime.Save(this, generateTvDBMatches: false);
 
             taskTimer.Start();
 
@@ -896,6 +895,11 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             CreateCharacters(session, chars);
             taskTimer.Stop();
             logger.Trace("CreateCharacters in : " + taskTimer.ElapsedMilliseconds);
+            taskTimer.Restart();
+
+            CreateStaff(session, staff);
+            taskTimer.Stop();
+            logger.Trace("CreateStaff in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
 
             CreateResources(resources);
@@ -925,74 +929,36 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             return true;
         }
 
-        /// <summary>
-        /// we are depending on the HTTP api call to get most of the info
-        /// we only use UDP to get mssing information
-        /// </summary>
-        /// <param name="animeInfo"></param>
-        public void PopulateAndSaveFromUDP(Raw_AniDB_Anime animeInfo)
-        {
-            // raw fields
-            reviewIDListRAW = animeInfo.ReviewIDListRAW;
-
-            // save now for FK purposes
-            RepoFactory.AniDB_Anime.Save(this);
-
-            CreateAnimeReviews();
-        }
-
         public void CreateEpisodes(List<Raw_AniDB_Episode> eps)
         {
             if (eps == null) return;
 
-
             EpisodeCountSpecial = 0;
             EpisodeCountNormal = 0;
 
-            HashSet<SVR_AnimeEpisode> animeEpsToDelete = new HashSet<SVR_AnimeEpisode>();
-            List<AniDB_Episode> aniDBEpsToDelete = new List<AniDB_Episode>();
-
-            foreach (Raw_AniDB_Episode epraw in eps)
-            {
-                //
-                // we need to do this check because some times AniDB will replace an existing episode with a new episode
-                List<AniDB_Episode> existingEps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(
-                    epraw.AnimeID, (EpisodeType) epraw.EpisodeType, epraw.EpisodeNumber);
-
-                // delete any old records
-                foreach (AniDB_Episode epOld in existingEps)
-                {
-                    if (epOld.EpisodeID != epraw.EpisodeID)
-                    {
-                        // first delete any AnimeEpisode records that point to the new anidb episode
-                        SVR_AnimeEpisode aniep = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(epOld.EpisodeID);
-                        if (aniep != null)
-                            animeEpsToDelete.Add(aniep);
-                        aniDBEpsToDelete.Add(epOld);
-                    }
-                }
-            }
-
-            // check to see if there are extra orphans and remove them
-            var series = RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
-            if (series != null)
-            {
-                var allEps = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID);
-                animeEpsToDelete.UnionWith(allEps);
-            }
-
-            RepoFactory.AnimeEpisode.Delete(animeEpsToDelete);
-            RepoFactory.AniDB_Episode.Delete(aniDBEpsToDelete);
-
-
+            Dictionary<int,AniDB_Episode> currentAniDBEpisodes=RepoFactory.AniDB_Episode.GetByAnimeID(AnimeID).ToDictionary(a=>a.EpisodeID,a=>a);
+            Dictionary<int, SVR_AnimeEpisode> currentAnimeEpisodes = currentAniDBEpisodes.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.Key)).Where(a=>a!=null).ToDictionary(a => a.AniDB_EpisodeID, a => a);
+            List<AniDB_Episode_Title> oldtitles = currentAniDBEpisodes.Select(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.Key)).Where(a=>a!=null).SelectMany(a => a).ToList();
+            RepoFactory.AniDB_Episode_Title.Delete(oldtitles);
+            
             List<AniDB_Episode> epsToSave = new List<AniDB_Episode>();
+            List<AniDB_Episode_Title> titlesToSave = new List<AniDB_Episode_Title>();
+
             foreach (Raw_AniDB_Episode epraw in eps)
             {
-                AniDB_Episode epNew = RepoFactory.AniDB_Episode.GetByEpisodeID(epraw.EpisodeID);
-                if (epNew == null) epNew = new AniDB_Episode();
-
+                AniDB_Episode epNew=new AniDB_Episode();
+                if (currentAniDBEpisodes.ContainsKey(epraw.EpisodeID))
+                {
+                    epNew = currentAniDBEpisodes[epraw.EpisodeID];
+                    currentAniDBEpisodes.Remove(epraw.EpisodeID);
+                    if (currentAnimeEpisodes.ContainsKey(epraw.EpisodeID))
+                        currentAnimeEpisodes.Remove(epraw.EpisodeID);
+                }
                 epNew.Populate(epraw);
                 epsToSave.Add(epNew);
+
+                // Titles
+                titlesToSave.AddRange(epraw.Titles);
 
                 // since the HTTP api doesn't return a count of the number of specials, we will calculate it here
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Episode)
@@ -1001,7 +967,23 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 if (epNew.GetEpisodeTypeEnum() == EpisodeType.Special)
                     EpisodeCountSpecial++;
             }
+
+            if (currentAniDBEpisodes.Count > 0)
+            {
+                logger.Trace("Deleting the following episodes (no longer in AniDB)");
+                foreach (AniDB_Episode ep in currentAniDBEpisodes.Values)
+                {
+                    logger.Trace("AniDB Ep: "+ep.EpisodeID+" Type: "+ep.EpisodeType+" Number: "+ep.EpisodeNumber);
+                }
+                foreach (SVR_AnimeEpisode ep in currentAnimeEpisodes.Values)
+                {
+                    logger.Trace("Shoko Ep: "+ep.AnimeEpisodeID+" AniEp: "+ep.AniDB_EpisodeID);
+                }
+            }
+            RepoFactory.AnimeEpisode.Delete(currentAnimeEpisodes.Values.ToList());
+            RepoFactory.AniDB_Episode.Delete(currentAniDBEpisodes.Values.ToList());
             RepoFactory.AniDB_Episode.Save(epsToSave);
+            RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
 
             EpisodeCount = EpisodeCountSpecial + EpisodeCountNormal;
         }
@@ -1258,6 +1240,101 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
+        private void CreateStaff(ISession session, List<Raw_AniDB_Staff> staffList)
+        {
+            if (staffList == null) return;
+
+            ISessionWrapper sessionWrapper = session.Wrap();
+
+            // delete all the existing cross references just in case one has been removed
+            List<AniDB_Anime_Staff> animeStaff =
+                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(sessionWrapper, AnimeID);
+
+            try
+            {
+                RepoFactory.AniDB_Anime_Staff.Delete(animeStaff);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Remove Staff for {MainTitle}: {ex}");
+            }
+
+            List<AniDB_Anime_Staff> animeStaffToSave = new List<AniDB_Anime_Staff>();
+            List<CrossRef_Anime_Staff> xRefToSave = new List<CrossRef_Anime_Staff>();
+            foreach (Raw_AniDB_Staff rawStaff in staffList)
+            {
+                try
+                {
+                    // save the link between character and seiyuu
+                    AniDB_Anime_Staff stf = RepoFactory.AniDB_Anime_Staff.GetByAnimeIDAndCreatorID(rawStaff.AnimeID, rawStaff.CreatorID);
+                    if (stf == null)
+                    {
+                        stf = new AniDB_Anime_Staff
+                        {
+                            AnimeID = rawStaff.AnimeID,
+                            CreatorID = rawStaff.CreatorID,
+                            CreatorType = rawStaff.CreatorType,
+                        };
+                        animeStaffToSave.Add(stf);
+                    }
+
+                    var staff = RepoFactory.AnimeStaff.GetByAniDBID(stf.CreatorID);
+                    if (staff == null)
+                    {
+                        staff = new AnimeStaff
+                        {
+                            // Unfortunately, most of the info is not provided
+                            AniDBID = rawStaff.CreatorID,
+                            Name = rawStaff.CreatorName,
+                        };
+                        // we need an ID for xref
+                        RepoFactory.AnimeStaff.Save(staff);
+                    }
+
+                    StaffRoleType roleType = rawStaff.CreatorType switch
+                    {
+                        "Animation Work" => StaffRoleType.Studio,
+                        "Original Work" => StaffRoleType.SourceWork,
+                        "Music" => StaffRoleType.Music,
+                        "Character Design" => StaffRoleType.CharacterDesign,
+                        "Direction" => StaffRoleType.Director,
+                        "Series Composition" => StaffRoleType.SeriesComposer,
+                        "Chief Animation Direction" => StaffRoleType.Producer,
+                        _ => StaffRoleType.Staff,
+                    };
+
+                    var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(AnimeID, null,
+                        staff.StaffID, roleType);
+                    if (xrefAnimeStaff == null)
+                    {
+                        xrefAnimeStaff = new CrossRef_Anime_Staff
+                        {
+                            AniDB_AnimeID = AnimeID,
+                            Language = "Japanese",
+                            RoleType = (int) roleType,
+                            Role = rawStaff.CreatorType,
+                            RoleID = null,
+                            StaffID = staff.StaffID,
+                        };
+                        xRefToSave.Add(xrefAnimeStaff);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error($"Unable to Populate and Save Staff for {MainTitle}: {ex}");
+                }
+            }
+            try
+            {
+                RepoFactory.AniDB_Anime_Staff.Save(animeStaffToSave);
+                RepoFactory.CrossRef_Anime_Staff.Save(xRefToSave);
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Unable to Save Staff for {MainTitle}: {ex}");
+            }
+        }
+
         public void CreateResources(List<Raw_AniDB_ResourceLink> resources)
         {
             if (resources == null) return;
@@ -1268,59 +1345,59 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                 {
                     case AniDB_ResourceLinkType.ANN:
                     {
-                        this.ANNID = resource.ID;
+                        ANNID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.ALLCinema:
                     {
-                        this.AllCinemaID = resource.ID;
+                        AllCinemaID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.AnimeNFO:
                     {
-                        this.AnimeNfo = resource.ID;
+                        AnimeNfo = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Site_JP:
                     {
-                        this.Site_JP = resource.RawID;
+                        Site_JP = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Site_EN:
                     {
-                        this.Site_EN = resource.RawID;
+                        Site_EN = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Wiki_EN:
                     {
-                        this.Wikipedia_ID = resource.RawID;
+                        Wikipedia_ID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Wiki_JP:
                     {
-                        this.WikipediaJP_ID = resource.RawID;
+                        WikipediaJP_ID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Syoboi:
                     {
-                        this.SyoboiID = resource.ID;
+                        SyoboiID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Anison:
                     {
-                        this.AnisonID = resource.ID;
+                        AnisonID = resource.ID;
                         break;
                     }
                     case AniDB_ResourceLinkType.Crunchyroll:
                     {
-                        this.CrunchyrollID = resource.RawID;
+                        CrunchyrollID = resource.RawID;
                         break;
                     }
                     case AniDB_ResourceLinkType.MAL:
                     {
                         int id = resource.ID;
                         if (id == 0) break;
-                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id) != null) continue;
+                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id).Any(a => a.AnimeID == AnimeID)) continue;
                         CrossRef_AniDB_MAL xref = new CrossRef_AniDB_MAL
                         {
                             AnimeID = AnimeID,
@@ -1844,7 +1921,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             contract.Detail.EpisodeCountSpecial = EpisodeCountSpecial;
             contract.Detail.FanartURL = GetDefaultFanartOnlineURL();
             contract.Detail.OverallRating = this.GetAniDBRating();
-            contract.Detail.PosterURL = string.Format(Constants.URLS.AniDB_Images, Picname);
+            contract.Detail.PosterURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, Picname);
             contract.Detail.TotalVotes = this.GetAniDBTotalVotes();
 
 
@@ -1922,18 +1999,145 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             if (an != null)
                 RepoFactory.AniDB_Anime.Save(an);
             SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(id);
-            if (series != null)
-            {
-                // Update more than just stats in case the xrefs have changed
-                series.UpdateStats(true, true, true);
-                RepoFactory.AnimeSeries.Save(series, true, false, alsoupdateepisodes: true);
-            }
+            // Updating stats saves everything and updates groups
+            series?.UpdateStats(true, true, true);
         }
 
         public DateTime GetDateTimeUpdated()
         {
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(AnimeID);
             return update?.UpdatedAt ?? DateTime.MinValue;
+        }
+
+        AnimeType IAnime.Type => (AnimeType) AnimeType;
+        IReadOnlyList<AnimeTitle> IAnime.Titles =>
+            GetTitles().Select(a =>
+            {
+                var title = new AnimeTitle
+                    {LanguageCode = a.Language, Language = GetLanguage(a.Language), Title = a.Title};
+                if (!Enum.TryParse(a.TitleType, true, out TitleType type)) return null;
+                title.Type = type;
+                return title;
+            }).Where(a => a != null && a.Type != TitleType.None).ToList();
+        double IAnime.Rating => Rating / 100D;
+
+        EpisodeCounts IAnime.EpisodeCounts => new EpisodeCounts
+        {
+            Episodes = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Episode),
+            Credits = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Credits),
+            Others = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Other),
+            Parodies = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Parody),
+            Specials = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Special),
+            Trailers = GetAniDBEpisodes().Count(a => a.EpisodeType == (int) EpisodeType.Trailer)
+        };
+
+        string IAnime.PreferredTitle => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID)?.GetSeriesName() ?? PreferredTitle;
+        bool IAnime.Restricted => Restricted == 1;
+        public static TitleLanguage GetLanguage(string lang)
+        {
+            switch (lang.ToUpper())
+            {
+                case "EN":
+                    return TitleLanguage.English;
+                case "X-JAT":
+                    return TitleLanguage.Romaji;
+                case "JA":
+                    return TitleLanguage.Japanese;
+                case "AR":
+                    return TitleLanguage.Arabic;
+                case "BD":
+                    return TitleLanguage.Bangladeshi;
+                case "BG":
+                    return TitleLanguage.Bulgarian;
+                case "CA":
+                    return TitleLanguage.FrenchCanadian;
+                case "CS":
+                    return TitleLanguage.Czech;
+                case "CZ":
+                    return TitleLanguage.Czech;
+                case "DA":
+                    return TitleLanguage.Danish;
+                case "DK":
+                    return TitleLanguage.Danish;
+                case "DE":
+                    return TitleLanguage.German;
+                case "EL":
+                    return TitleLanguage.Greek;
+                case "ES":
+                    return TitleLanguage.Spanish;
+                case "ET":
+                    return TitleLanguage.Estonian;
+                case "FI":
+                    return TitleLanguage.Finnish;
+                case "FR":
+                    return TitleLanguage.French;
+                case "GL":
+                    return TitleLanguage.Galician;
+                case "GR":
+                    return TitleLanguage.Greek;
+                case "HE":
+                    return TitleLanguage.Hebrew;
+                case "HU":
+                    return TitleLanguage.Hungarian;
+                case "IL":
+                    return TitleLanguage.Hebrew;
+                case "IT":
+                    return TitleLanguage.Italian;
+                case "KO":
+                    return TitleLanguage.Korean;
+                case "LT":
+                    return TitleLanguage.Lithuania;
+                case "MN":
+                    return TitleLanguage.Mongolian;
+                case "MS":
+                    return TitleLanguage.Malaysian;
+                case "MY":
+                    return TitleLanguage.Malaysian;
+                case "NL":
+                    return TitleLanguage.Dutch;
+                case "NO":
+                    return TitleLanguage.Norwegian;
+                case "PL":
+                    return TitleLanguage.Polish;
+                case "PT":
+                    return TitleLanguage.Portuguese;
+                case "PT-BR":
+                    return TitleLanguage.BrazilianPortuguese;
+                case "RO":
+                    return TitleLanguage.Romanian;
+                case "RU":
+                    return TitleLanguage.Russian;
+                case "SK":
+                    return TitleLanguage.Slovak;
+                case "SL":
+                    return TitleLanguage.Slovenian;
+                case "SR":
+                    return TitleLanguage.Serbian;
+                case "SV":
+                    return TitleLanguage.Swedish;
+                case "SE":
+                    return TitleLanguage.Swedish; // Common country vs language code mixup
+                case "TH":
+                    return TitleLanguage.Thai;
+                case "TR":
+                    return TitleLanguage.Turkish;
+                case "UK":
+                    return TitleLanguage.Ukrainian; // Modern ISO code
+                case "UA":
+                    return TitleLanguage.Ukrainian; // Deprecated ISO code
+                case "VI":
+                    return TitleLanguage.Vietnamese;
+                case "ZH":
+                    return TitleLanguage.Chinese;
+                case "X-ZHT":
+                    return TitleLanguage.Pinyin;
+                case "ZH-HANS":
+                    return TitleLanguage.ChineseSimplified;
+                case "ZH-HANT":
+                    return TitleLanguage.ChineseTraditional;
+            }
+
+            return TitleLanguage.Unknown;
         }
     }
 }

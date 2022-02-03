@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Cryptography;
 
 namespace Shoko.Server
 {
@@ -35,7 +36,7 @@ namespace Shoko.Server
         /// <param name="source">the message to hash</param>
         /// <param name="digestType">type of the hashing algorithm</param>
         /// <returns>message digest in hexadecimal form, or string.Empty if error occurs</returns>
-        public static string Hash(string source, Digest.Type digestType)
+        public static string Hash(string source, Type digestType)
         {
             if (source == null || source.Length <= 0)
                 return string.Empty;
@@ -48,25 +49,22 @@ namespace Shoko.Server
                 case Type.CRAM_MD5:
                     throw new Exception("CRAM_MD5 not implemented");
                 case Type.MD5:
-                    destBytes = System.Security.Cryptography.MD5.Create().ComputeHash(sourceBytes);
+                    destBytes = MD5.Create().ComputeHash(sourceBytes);
                     break;
                 case Type.SHA1:
-                    destBytes = System.Security.Cryptography.SHA1.Create().ComputeHash(sourceBytes);
+                    destBytes = SHA1.Create().ComputeHash(sourceBytes);
                     break;
                 case Type.SHA256:
-                    destBytes = System.Security.Cryptography.SHA256.Create().ComputeHash(sourceBytes);
+                    destBytes = SHA256.Create().ComputeHash(sourceBytes);
                     break;
                 case Type.SHA512:
-                    destBytes = System.Security.Cryptography.SHA512.Create().ComputeHash(sourceBytes);
-                    break;
-                default:
+                    destBytes = SHA512.Create().ComputeHash(sourceBytes);
                     break;
             }
 
             if (destBytes != null && destBytes.Length > 0)
                 return StringTools.ConvertByteArrayToHex(destBytes);
-            else
-                return string.Empty;
+            return string.Empty;
         }
     }
 }

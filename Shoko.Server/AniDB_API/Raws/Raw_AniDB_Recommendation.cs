@@ -31,13 +31,13 @@ namespace AniDBAPI
         {
             InitFields();
 
-            this.AnimeID = anid;
+            AnimeID = anid;
 
-            this.RecommendationTypeText = AniDBHTTPHelper.TryGetAttribute(node, "type");
-            this.RecommendationText = node.InnerText.Trim().Replace('`', '\'');
+            RecommendationTypeText = AniDBHTTPHelper.TryGetAttribute(node, "type");
+            RecommendationText = node.InnerText.Trim().Replace('`', '\'');
 
             int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "uid"), out int uid);
-            this.UserID = uid;
+            UserID = uid;
         }
     }
 }

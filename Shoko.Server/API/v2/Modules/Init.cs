@@ -1,31 +1,30 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-//using Microsoft.SqlServer.Management.Smo;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.SqlServer.Management.Smo;
 using NLog;
-using System.IO;
 using Shoko.Commons;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Utilities;
-using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.SqlServer.Management.Smo;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings;
-using Microsoft.AspNetCore.Authorization;
+using Shoko.Server.Utilities;
+using Constants = Shoko.Server.Server.Constants;
+using DatabaseSettings = Shoko.Server.API.v2.Models.core.DatabaseSettings; //using Microsoft.SqlServer.Management.Smo;
+using ServerStatus = Shoko.Server.API.v2.Models.core.ServerStatus;
 
 //using Microsoft.SqlServer.Management.Smo;
 
@@ -35,69 +34,11 @@ namespace Shoko.Server.API.v2.Modules
     [Route("/api/init")]
     [ApiController]
     [ApiVersion("2.0")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
     public class Init : BaseController
     {
         private readonly Logger logger = LogManager.GetCurrentClassLogger();
-        /// <inheritdoc />
-        /// <summary>
-        /// Preinit Module for connection testing and setup
-        /// Settings will be loaded prior to this starting
-        /// Unless otherwise noted, these will only work before server init
-        /// </summary>
-        public Init()// : base("/api/init")
-        {
-            /*// Get version, regardless of server status
-            // This will work after init
-            Get("/version", ctx => GetVersion());
-
-            // Get the startup state
-            // This will work after init
-            Get("/status", ctx => GetServerStatus());
-
-            // Get the Default User Credentials
-            Get("/defaultuser", ctx => GetDefaultUserCredentials());
-
-            // Set the Default User Credentials
-            // Pass this a Credentials object
-            Post("/defaultuser", ctx => SetDefaultUserCredentials());
-
-            // Set AniDB user/pass
-            // Pass this a Credentials object
-            Post("/anidb", ctx => SetAniDB());
-
-            // Get existing AniDB user, don't provide pass
-            Get("/anidb", ctx => GetAniDB());
-
-            // Test AniDB login
-            Get("/anidb/test", ctx => TestAniDB());
-
-            // Get Database Settings
-            Get("/database", ctx => GetDatabaseSettings());
-
-            // Set Database Settings
-            Post("/database", ctx => SetDatabaseSettings());
-
-            // Test Database Connection
-            Get("/database/test", ctx => TestDatabaseConnection());
-
-            // Get SQL Server Instances on the Machine
-            Get("/database/sqlserverinstance", ctx => GetMSSQLInstances());
-
-            // Get the whole settings file
-            Get("/config", ctx => ExportConfig());
-
-            // Replace the whole settings file
-            Post("/config", ctx => ImportConfig());
-
-            // Get a single setting value
-            Get("/setting", ctx => GetSetting());
-
-            // Set a single setting value
-            Patch("/setting", ctx => SetSetting());
-
-            // Start the server
-            Get("/startserver", ctx => StartServer());*/
-        }
 
         /// <summary>
         /// Return current version of ShokoServer and several modules
@@ -215,7 +156,7 @@ namespace Shoko.Server.API.v2.Modules
             ServerStatus status = new ServerStatus
             {
                 server_started = ServerState.Instance.ServerOnline,
-                startup_state = ServerState.Instance.CurrentSetupStatus,
+                startup_state = ServerState.Instance.ServerStartingStatus,
                 server_uptime = uptimemsg,
                 first_run = ServerSettings.Instance.FirstRun,
                 startup_failed = ServerState.Instance.StartupFailed,
@@ -464,7 +405,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>200 if connection successful, 400 otherwise</returns>
         [Authorize("init")]
         [HttpGet("database/test")]
-        public ActionResult<APIMessage> TestDatabaseConnection()
+        public APIMessage TestDatabaseConnection()
         {
             if (ServerSettings.Instance.Database.Type == Constants.DatabaseType.MySQL && new MySQL().TestConnection())
                 return APIStatus.OK();
@@ -521,8 +462,10 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>APIStatus</returns>
         [Authorize("init")]
         [HttpPost("config")]
+        [Obsolete]
         public ActionResult ImportConfig(CL_ServerSettings settings)
         {
+            return BadRequest("The model that this method takes is deprecated and will break the settings file. Use APIv3");
             string raw_settings = settings.ToJSON();
 
             if (raw_settings.Length == new CL_ServerSettings().ToJSON().Length)
@@ -550,31 +493,7 @@ namespace Shoko.Server.API.v2.Modules
         [HttpGet("setting")]
         private ActionResult<Setting> GetSetting(Setting setting)
         {
-            try
-            {
-                return NoContent();
-                // TODO recursive reflection to get into the settings
-                if (string.IsNullOrEmpty(setting?.setting)) return APIStatus.BadRequest("An invalid setting was passed");
-                try
-                {
-                    var value = ServerSettings.Instance;
-                    if (value == null) return APIStatus.BadRequest("An invalid setting was passed");
-
-                    return new Setting
-                    {
-                        setting = setting.setting,
-                        value = value.ToString()
-                    };
-                }
-                catch
-                {
-                    return APIStatus.BadRequest("An invalid setting was passed");
-                }
-            }
-            catch
-            {
-                return APIStatus.InternalError();
-            }
+            return NoContent();
         }
 
         /// <summary>
@@ -586,38 +505,6 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult SetSetting(Setting setting)
         {
             return NoContent();
-            // TODO Refactor Settings to a POCO that is serialized, and at runtime, build a dictionary of types to validate against
-            try
-            {
-                if (string.IsNullOrEmpty(setting.setting))
-                    return APIStatus.BadRequest("An invalid setting was passed");
-
-                if (setting.value == null) return APIStatus.BadRequest("An invalid value was passed");
-
-                var property = typeof(ServerSettings).GetProperty(setting.setting);
-                if (property == null) return APIStatus.BadRequest("An invalid setting was passed");
-                if (!property.CanWrite) return APIStatus.BadRequest("An invalid setting was passed");
-                var settingType = property.PropertyType;
-                try
-                {
-                    var converter = TypeDescriptor.GetConverter(settingType);
-                    if (!converter.CanConvertFrom(typeof(string)))
-                        return APIStatus.BadRequest("An invalid value was passed");
-                    var value = converter.ConvertFromInvariantString(setting.value);
-                    if (value == null) return APIStatus.BadRequest("An invalid value was passed");
-                    property.SetValue(null, value);
-                }
-                catch
-                {
-                    // ignore, we are returning the error below
-                }
-
-                return APIStatus.BadRequest("An invalid value was passed");
-            }
-            catch
-            {
-                return APIStatus.InternalError();
-            }
         }
 
         #endregion

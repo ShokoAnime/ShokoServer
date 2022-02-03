@@ -1,7 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using NHibernate.Type;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {

@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -42,8 +43,8 @@ namespace Shoko.Server.Repositories.Cached
                 Save(animeStaff);
                 i++;
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, typeof(CrossRef_Anime_Staff).Name,
                         $" DbRegen - {i}/{list.Count}");
             }
         }
@@ -51,17 +52,6 @@ namespace Shoko.Server.Repositories.Cached
         protected override int SelectKey(CrossRef_Anime_Staff entity)
         {
             return entity.CrossRef_Anime_StaffID;
-        }
-
-        private CrossRef_Anime_StaffRepository()
-        {
-        }
-
-        public static CrossRef_Anime_StaffRepository Create()
-        {
-            var repo = new CrossRef_Anime_StaffRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public List<CrossRef_Anime_Staff> GetByStaffID(int id)

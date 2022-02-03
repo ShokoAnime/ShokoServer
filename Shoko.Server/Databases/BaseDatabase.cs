@@ -5,14 +5,17 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using Shoko.Models.Server;
 using NHibernate.Util;
 using NLog;
+using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Databases
 {
@@ -48,7 +51,7 @@ namespace Shoko.Server.Databases
 
         public virtual bool TestConnection()
         {
-            // For SQLite, we assume conection succeeds
+            // For SQLite, we assume connection succeeds
             return true;
         }
 
@@ -112,7 +115,7 @@ namespace Shoko.Server.Databases
         public ArrayList GetData(string sql)
         {
             ArrayList ret = null;
-            ConnectionWrapper(GetConnectionString(), (myConn) => { ret = ExecuteReader(myConn, sql); });
+            ConnectionWrapper(GetConnectionString(), myConn => { ret = ExecuteReader(myConn, sql); });
             return ret;
         }
 
@@ -140,11 +143,11 @@ namespace Shoko.Server.Databases
                     string message = cmd.CommandName;
                     if (message.Length > 42)
                         message = message.Substring(0, 42) + "...";
-                    message = ServerState.Instance.CurrentSetupStatus =
-                        Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+                    message = ServerState.Instance.ServerStartingStatus =
+                        Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
                         " - " + message;
                     Logger.Info($"Starting Server: {message}");
-                    ServerState.Instance.CurrentSetupStatus = message;
+                    ServerState.Instance.ServerStartingStatus = message;
 
                     cmd.DatabaseFix();
                     AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
@@ -173,10 +176,10 @@ namespace Shoko.Server.Databases
             string message = cmd.CommandName;
             if (message.Length > 42)
                 message = message.Substring(0, 42) + "...";
-            message = ServerState.Instance.CurrentSetupStatus =
-                Commons.Properties.Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
+            message = ServerState.Instance.ServerStartingStatus =
+                Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
                 " - " + message;
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
 
             switch (cmd.Type)
             {
@@ -208,30 +211,30 @@ namespace Shoko.Server.Databases
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            string message = Commons.Properties.Resources.Database_Users;
+            string message = Resources.Database_Users;
 
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialUsers();
 
-            message = Commons.Properties.Resources.Database_Filters;
+            message = Resources.Database_Filters;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialGroupFilters();
 
-            message = Commons.Properties.Resources.Database_LockFilters;
+            message = Resources.Database_LockFilters;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateOrVerifyLockedFilters();
 
-            message = Commons.Properties.Resources.Database_RenameScripts;
+            message = Resources.Database_RenameScripts;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialRenameScript();
 
-            message = Commons.Properties.Resources.Database_CustomTags;
+            message = Resources.Database_CustomTags;
             Logger.Info($"Starting Server: {message}");
-            ServerState.Instance.CurrentSetupStatus = message;
+            ServerState.Instance.ServerStartingStatus = message;
             CreateInitialCustomTags();
         }
 
@@ -253,7 +256,7 @@ namespace Shoko.Server.Databases
             // Favorites
             SVR_GroupFilter gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_Favorites,
+                GroupFilterName = Resources.Filter_Favorites,
                 ApplyToSeries = 0,
                 BaseCondition = 1,
                 Locked = 0,
@@ -272,7 +275,7 @@ namespace Shoko.Server.Databases
             // Missing Episodes
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_MissingEpisodes,
+                GroupFilterName = Resources.Filter_MissingEpisodes,
                 ApplyToSeries = 0,
                 BaseCondition = 1,
                 Locked = 0,
@@ -292,7 +295,7 @@ namespace Shoko.Server.Databases
             // Newly Added Series
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_Added,
+                GroupFilterName = Resources.Filter_Added,
                 ApplyToSeries = 0,
                 BaseCondition = 1,
                 Locked = 0,
@@ -311,7 +314,7 @@ namespace Shoko.Server.Databases
             // Newly Airing Series
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_Airing,
+                GroupFilterName = Resources.Filter_Airing,
                 ApplyToSeries = 0,
                 BaseCondition = 1,
                 Locked = 0,
@@ -330,7 +333,7 @@ namespace Shoko.Server.Databases
             // Votes Needed
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_Votes,
+                GroupFilterName = Resources.Filter_Votes,
                 ApplyToSeries = 1,
                 BaseCondition = 1,
                 Locked = 0,
@@ -363,7 +366,7 @@ namespace Shoko.Server.Databases
             // Recently Watched
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_RecentlyWatched,
+                GroupFilterName = Resources.Filter_RecentlyWatched,
                 ApplyToSeries = 0,
                 BaseCondition = 1,
                 Locked = 0,
@@ -382,7 +385,7 @@ namespace Shoko.Server.Databases
             // TvDB/MovieDB Link Missing
             gf = new SVR_GroupFilter
             {
-                GroupFilterName = Commons.Properties.Resources.Filter_LinkMissing,
+                GroupFilterName = Resources.Filter_LinkMissing,
                 ApplyToSeries = 1, // This makes far more sense as applied to series
                 BaseCondition = 1,
                 Locked = 0,
@@ -441,7 +444,7 @@ namespace Shoko.Server.Databases
 
             Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
 
-            initialScript.ScriptName = Commons.Properties.Resources.Rename_Default;
+            initialScript.ScriptName = Resources.Rename_Default;
             initialScript.IsEnabledOnImport = 0;
             initialScript.RenamerType = "Legacy";
             initialScript.Script =
@@ -478,7 +481,7 @@ namespace Shoko.Server.Databases
                 "DO REPLACE '<' '('" + Environment.NewLine +
                 "DO REPLACE '>' ')'" + Environment.NewLine +
                 "DO REPLACE ':' '-'" + Environment.NewLine +
-                "DO REPLACE '" + ((Char) 34).ToString() + "' '`'" + Environment.NewLine +
+                "DO REPLACE '" + ((char) 34) + "' '`'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '/' '_'" + Environment.NewLine +
                 "DO REPLACE '\\' '_'" + Environment.NewLine +
@@ -502,40 +505,40 @@ namespace Shoko.Server.Databases
                 // Dropped
                 CustomTag tag = new CustomTag
                 {
-                    TagName = Commons.Properties.Resources.CustomTag_Dropped,
-                    TagDescription = Commons.Properties.Resources.CustomTag_DroppedInfo
+                    TagName = Resources.CustomTag_Dropped,
+                    TagDescription = Resources.CustomTag_DroppedInfo
                 };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Pinned
                 tag = new CustomTag
                 {
-                    TagName = Commons.Properties.Resources.CustomTag_Pinned,
-                    TagDescription = Commons.Properties.Resources.CustomTag_PinnedInfo
+                    TagName = Resources.CustomTag_Pinned,
+                    TagDescription = Resources.CustomTag_PinnedInfo
                 };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Ongoing
                 tag = new CustomTag
                 {
-                    TagName = Commons.Properties.Resources.CustomTag_Ongoing,
-                    TagDescription = Commons.Properties.Resources.CustomTag_OngoingInfo
+                    TagName = Resources.CustomTag_Ongoing,
+                    TagDescription = Resources.CustomTag_OngoingInfo
                 };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Series Completion
                 tag = new CustomTag
                 {
-                    TagName = Commons.Properties.Resources.CustomTag_SeriesComplete,
-                    TagDescription = Commons.Properties.Resources.CustomTag_SeriesCompleteInfo
+                    TagName = Resources.CustomTag_SeriesComplete,
+                    TagDescription = Resources.CustomTag_SeriesCompleteInfo
                 };
                 RepoFactory.CustomTag.Save(tag);
 
                 // Waiting for Bluray Completion
                 tag = new CustomTag
                 {
-                    TagName = Commons.Properties.Resources.CustomTag_BlurayComplete,
-                    TagDescription = Commons.Properties.Resources.CustomTag_BlurayCompleteInfo
+                    TagName = Resources.CustomTag_BlurayComplete,
+                    TagDescription = Resources.CustomTag_BlurayCompleteInfo
                 };
                 RepoFactory.CustomTag.Save(tag);
             }

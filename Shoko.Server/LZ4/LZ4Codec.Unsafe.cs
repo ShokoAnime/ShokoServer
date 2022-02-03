@@ -452,7 +452,7 @@ namespace LZ4pn
             public byte* nextToUpdate;
             public int[] hashTable;
             public ushort[] chainTable;
-        };
+        }
 
         // ReSharper restore InconsistentNaming
 

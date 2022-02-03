@@ -62,23 +62,23 @@ namespace Shoko.Server.AniDB_API.Raws
             // 222 MYLIST STATS
             // 281|3539|4025|1509124|0|0|0|0|100|100|0|3|5|170|23|0|4001
 
-            this.Animes = AniDBAPILib.ProcessAniDBInt(sDetails[0]);
-            this.Episodes = AniDBAPILib.ProcessAniDBInt(sDetails[1]);
-            this.Files = AniDBAPILib.ProcessAniDBInt(sDetails[2]);
-            this.SizeOfFiles = AniDBAPILib.ProcessAniDBLong(sDetails[3]);
-            this.AddedAnimes = AniDBAPILib.ProcessAniDBInt(sDetails[4]);
-            this.AddedEpisodes = AniDBAPILib.ProcessAniDBInt(sDetails[5]);
-            this.AddedFiles = AniDBAPILib.ProcessAniDBInt(sDetails[6]);
-            this.AddedGroups = AniDBAPILib.ProcessAniDBInt(sDetails[7]);
-            this.LeechPct = AniDBAPILib.ProcessAniDBInt(sDetails[8]);
-            this.GloryPct = AniDBAPILib.ProcessAniDBInt(sDetails[9]);
-            this.ViewedPct = AniDBAPILib.ProcessAniDBInt(sDetails[10]);
-            this.MylistPct = AniDBAPILib.ProcessAniDBInt(sDetails[11]);
-            this.ViewedMylistPct = AniDBAPILib.ProcessAniDBInt(sDetails[12]);
-            this.EpisodesViewed = AniDBAPILib.ProcessAniDBInt(sDetails[13]);
-            this.Votes = AniDBAPILib.ProcessAniDBInt(sDetails[14]);
-            this.Reviews = AniDBAPILib.ProcessAniDBInt(sDetails[15]);
-            this.ViewiedLength = AniDBAPILib.ProcessAniDBInt(sDetails[16]);
+            Animes = AniDBAPILib.ProcessAniDBInt(sDetails[0]);
+            Episodes = AniDBAPILib.ProcessAniDBInt(sDetails[1]);
+            Files = AniDBAPILib.ProcessAniDBInt(sDetails[2]);
+            SizeOfFiles = AniDBAPILib.ProcessAniDBLong(sDetails[3]);
+            AddedAnimes = AniDBAPILib.ProcessAniDBInt(sDetails[4]);
+            AddedEpisodes = AniDBAPILib.ProcessAniDBInt(sDetails[5]);
+            AddedFiles = AniDBAPILib.ProcessAniDBInt(sDetails[6]);
+            AddedGroups = AniDBAPILib.ProcessAniDBInt(sDetails[7]);
+            LeechPct = AniDBAPILib.ProcessAniDBInt(sDetails[8]);
+            GloryPct = AniDBAPILib.ProcessAniDBInt(sDetails[9]);
+            ViewedPct = AniDBAPILib.ProcessAniDBInt(sDetails[10]);
+            MylistPct = AniDBAPILib.ProcessAniDBInt(sDetails[11]);
+            ViewedMylistPct = AniDBAPILib.ProcessAniDBInt(sDetails[12]);
+            EpisodesViewed = AniDBAPILib.ProcessAniDBInt(sDetails[13]);
+            Votes = AniDBAPILib.ProcessAniDBInt(sDetails[14]);
+            Reviews = AniDBAPILib.ProcessAniDBInt(sDetails[15]);
+            ViewiedLength = AniDBAPILib.ProcessAniDBInt(sDetails[16]);
         }
 
         public override string ToString()

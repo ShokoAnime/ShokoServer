@@ -36,17 +36,24 @@ namespace Shoko.Server.LZ4
             return Encode(data, 0, data.Length);
         }
 
-        public static T DeserializeObject<T>(byte[] data, int originalsize) where T : class
+        public static T DeserializeObject<T>(byte[] data, int originalsize, JsonConverter[] converters = null) where T : class
         {
             if (data == null || data.Length == 0)
                 return null;
             try
             {
-                return JsonConvert.DeserializeObject<T>(
-                    Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize)), new JsonSerializerSettings
+                var settings = converters == null
+                    ? new JsonSerializerSettings
                     {
                         Error = HandleDeserializationError
-                    });
+                    }
+                    : new JsonSerializerSettings
+                    {
+                        Error = HandleDeserializationError,
+                        Converters = converters
+                    };
+                string obj = Encoding.UTF8.GetString(Decode(data, 0, data.Length, originalsize));
+                return JsonConvert.DeserializeObject<T>(obj, settings);
             }
             catch
             {
@@ -57,6 +64,7 @@ namespace Shoko.Server.LZ4
         public static void HandleDeserializationError(object sender, ErrorEventArgs errorArgs)
         {
             var currentError = errorArgs.ErrorContext.Error.Message;
+
             errorArgs.ErrorContext.Handled = true;
         }
 

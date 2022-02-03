@@ -5,7 +5,6 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -15,16 +14,16 @@ using Newtonsoft.Json;
 using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
-using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.API.v2.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -37,17 +36,13 @@ namespace Shoko.Server.API.v2.Modules
     {
         //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
-        public Common()
-        {
-        }
-        
         #region 01. Import Folders
 
         /// <summary>
         /// Handle /api/folder/list
         /// List all saved Import Folders
         /// </summary>
-        /// <returns>List<Contract_ImportFolder></returns>
+        /// <returns><see cref="List{ImportFolder}"/></returns>
         [HttpGet("folder/list")]
         public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
 
@@ -291,8 +286,8 @@ namespace Shoko.Server.API.v2.Modules
             if (vl == null) return NotFound("VideoLocal Not Found");
             SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
             if (pl?.FullServerPath == null) return NotFound("videolocal_place not found");
-            CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-            cr_hashfile.Save();
+            CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+            crHashfile.Save();
 
             return Ok();
         }
@@ -311,8 +306,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                    cr_hashfile.Save();
+                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    crHashfile.Save();
                 }
             }
             catch (Exception ex)
@@ -337,8 +332,8 @@ namespace Shoko.Server.API.v2.Modules
                 {
                     SVR_VideoLocal_Place pl = vl.GetBestVideoLocalPlace(true);
                     if (pl?.FullServerPath == null) continue;
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
-                    cr_hashfile.Save();
+                    CommandRequest_HashFile crHashfile = new CommandRequest_HashFile(pl.FullServerPath, true);
+                    crHashfile.Save();
                 }
             }
             catch (Exception ex)
@@ -374,27 +369,33 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return newest posts from
         /// </summary>
-        /// <returns>List<WebNews></returns>
+        /// <returns><see cref="List{WebNews}"/></returns>
         [HttpGet("news/get")]
         public List<WebNews> GetNews(int max)
         {
             var client = new WebClient();
             client.Headers.Add("User-Agent", "jmmserver");
             client.Headers.Add("Accept", "application/json");
-            var response = client.DownloadString(new Uri("http://shokoanime.com/wp-json/wp/v2/posts"));
-            List<dynamic> news_feed = JsonConvert.DeserializeObject<List<dynamic>>(response);
+            var response = client.DownloadString(new Uri("https://shokoanime.com/feed.json"));
+            dynamic newsFeed = JsonConvert.DeserializeObject<dynamic>(response);
             List<WebNews> news = new List<WebNews>();
             int limit = 0;
-            foreach (dynamic post in news_feed)
+            foreach (dynamic post in newsFeed.items)
             {
                 limit++;
+                string postAuthor = "shoko team";
+                if ((string)post.author != "")
+                {
+                    postAuthor = (string)post.author;
+                }
+
                 WebNews wn = new WebNews
                 {
-                    author = post.author,
-                    date = post.date,
-                    link = post.link,
-                    title = HttpUtility.HtmlDecode((string)post.title.rendered),
-                    description = post.excerpt.rendered
+                    author = postAuthor,
+                    date = post.date_published,
+                    link = post.url,
+                    title = HttpUtility.HtmlDecode((string)post.title),
+                    description = post.content_text
                 };
                 news.Add(wn);
                 if (limit >= max) break;
@@ -405,7 +406,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/search
         /// </summary>
-        /// <returns>Filter or APIStatu</returns>
+        /// <returns>Filter or APIStatus</returns>
         [HttpGet("search")]
         public ActionResult<Filter> BigSearch([FromQuery] API_Call_Parameters para)
         {
@@ -419,24 +420,24 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != string.Empty)
             {
-                Filter search_filter = new Filter
+                Filter searchFilter = new Filter
                 {
                     name = "Search",
                     groups = new List<Group>()
                 };
-                Group search_group = new Group
+                Group searchGroup = new Group
                 {
                     name = para.query,
                     series = new List<Serie>()
                 };
-                search_group.series = Search(query, para.limit, para.limit_tag, (int) para.offset,
+                searchGroup.series = Search(query, para.limit, para.limit_tag, (int) para.offset,
                     para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                     para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter).Value.ToList();
-                search_group.size = search_group.series.Count();
-                search_filter.groups.Add(search_group);
-                search_filter.size = search_filter.groups.Count();
+                searchGroup.size = searchGroup.series.Count();
+                searchFilter.groups.Add(searchGroup);
+                searchFilter.size = searchFilter.groups.Count();
 
-                return search_filter;
+                return searchFilter;
             }
             return BadRequest("missing 'query'");
         }
@@ -458,23 +459,23 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (query != string.Empty)
             {
-                Filter search_filter = new Filter
+                Filter searchFilter = new Filter
                 {
                     name = "Search",
                     groups = new List<Group>()
                 };
-                Group search_group = new Group
+                Group searchGroup = new Group
                 {
                     name = para.query,
                     series = new List<Serie>()
                 };
-                search_group.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
+                searchGroup.series = (List<Serie>) (StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter));
-                search_group.size = search_group.series.Count();
-                search_filter.groups.Add(search_group);
-                search_filter.size = search_filter.groups.Count();
+                searchGroup.size = searchGroup.series.Count();
+                searchFilter.groups.Add(searchGroup);
+                searchFilter.size = searchFilter.groups.Count();
 
-                return search_filter;
+                return searchFilter;
             }
 
             return BadRequest("missing 'query'");
@@ -499,7 +500,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Return current information about Queues (hash, general, images)
         /// </summary>
-        /// <returns>Dictionary<string, QueueInfo></returns>
+        /// <returns><see cref="Dictionary{String,QueueInfo}" /></returns>
         [HttpGet("queue/get")]
         public ActionResult<Dictionary<string, QueueInfo>> GetQueue()
         {
@@ -726,7 +727,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file
         /// </summary>
-        /// <returns>List<RawFile> or RawFile or APIStatus</returns>
+        /// <returns><see cref="List{RawFile}"/> or <seealso cref="RawFile"/> or <seealso cref="APIStatus"/></returns>
 
         [HttpGet("file")]
         public object GetFile(int id = 0, int limit = 0, int level = 0)
@@ -741,7 +742,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Gets files whose data does not match AniDB
         /// </summary>
-        /// <returns></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/needsavdumped")]
         public ActionResult<List<RawFile>> GetFilesWithMismatchedInfo(int level)
         {
@@ -750,10 +751,10 @@ namespace Shoko.Server.API.v2.Modules
             var allvids = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.Media != null)
                 .ToDictionary(a => a, a => a.GetAniDBFile());
             return allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
-                .Where(_tuple => _tuple.anidb != null)
-                .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
-                .Select(_tuple => GetFileById(_tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
+                .Where(tuple => tuple.anidb != null)
+                .Where(tuple => tuple.anidb.IsDeprecated != 1)
+                .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
         }
 
         /// <summary>
@@ -769,10 +770,10 @@ namespace Shoko.Server.API.v2.Modules
             Task.Factory.StartNew(() =>
             {
                 var list = allvids.Keys.Select(vid => new {vid, anidb = allvids[vid]})
-                    .Where(_tuple => _tuple.anidb != null)
-                    .Where(_tuple => _tuple.anidb.IsDeprecated != 1)
-                    .Where(_tuple => _tuple.vid.Media.Chaptered != (_tuple.anidb.IsChaptered == 1))
-                    .Select(_tuple => _tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
+                    .Where(tuple => tuple.anidb != null)
+                    .Where(tuple => tuple.anidb.IsDeprecated != 1)
+                    .Where(tuple => tuple.vid.Media?.MenuStreams.Any() != (tuple.anidb.IsChaptered == 1))
+                    .Select(tuple => tuple.vid.GetBestVideoLocalPlace(true)?.FullServerPath)
                     .Where(path => !string.IsNullOrEmpty(path)).ToList();
                 int index = 0;
                 foreach (var path in list)
@@ -807,7 +808,7 @@ namespace Shoko.Server.API.v2.Modules
         /// </summary>
         /// <returns></returns>
         [HttpGet("file/multiple")]
-        private object GetMultipleFiles([FromQuery] API_Call_Parameters para)
+        public object GetMultipleFiles([FromQuery] API_Call_Parameters para)
         {
             JMMUser user = HttpContext.GetUser();
 
@@ -818,34 +819,29 @@ namespace Shoko.Server.API.v2.Modules
                 List<SVR_AnimeEpisode> list = RepoFactory.AnimeEpisode.GetEpisodesWithMultipleFiles(true).ToList();
                 foreach(SVR_AnimeEpisode ep in list)
                 {
-                    Serie serie = null;
                     SVR_AnimeSeries series = ep?.GetAnimeSeries();
                     if (series == null) continue;
+
+                    Serie serie = null;
                     if (results.ContainsKey(series.AnimeSeriesID)) serie = results[series.AnimeSeriesID];
-                    if (serie == null)
-                        serie =
-                            Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
-                                para.notag == 1, 0,
-                                false, para.allpics != 0, para.pic, para.tagfilter);
-                    if (serie.eps == null) serie.eps = new List<Episode>();
+                    serie ??= Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
+                        para.notag == 1, 0, false, para.allpics != 0, para.pic, para.tagfilter);
+                    serie.eps ??= new List<Episode>();
                     Episode episode = Episode.GenerateFromAnimeEpisode(HttpContext, ep, userID, 0);
                     List<SVR_VideoLocal> vls = ep.GetVideoLocals();
-                    if (vls.Count > 0)
+                    if (vls.Count <= 0) continue;
+
+                    episode.files = new List<RawFile>();
+                    vls.Sort(FileQualityFilter.CompareTo);
+                    bool first = true;
+                    episode.files.AddRange(vls.Select(vl =>
                     {
-                        episode.files = new List<RawFile>();
-                        vls.Sort(FileQualityFilter.CompareTo);
-                        bool first = true;
-                        foreach (SVR_VideoLocal vl in vls)
-                        {
-                            RawFile file = new RawFile(HttpContext, vl, 0, userID, ep);
-                            if (first)
-                            {
-                                file.is_preferred = 1;
-                                first = false;
-                            }
-                            episode.files.Add(file);
-                        }
-                    }
+                        RawFile file = new RawFile(HttpContext, vl, 0, userID, ep)
+                            {is_preferred = first ? 1 : 0};
+                        first = false;
+                        return file;
+                    }));
+
                     serie.eps.Add(episode);
                     results[series.AnimeSeriesID] = serie;
                 }
@@ -873,20 +869,21 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file/recent
         /// </summary>
-        /// <returns>List<RawFile></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/recent")]
-        public List<RawFile> GetRecentFiles(int limit = 0, int level = 0)
+        public List<RawFile.RecentFile> GetRecentFiles(int limit = 0, int level = 0)
         {
-            JMMUser user = HttpContext.GetUser();
             // default 50 as that's reasonable
             if (limit == 0) limit = 50;
 
-            List<RawFile> list = new List<RawFile>();
-            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, user.JMMUserID))
+            List<RawFile.RecentFile> list = new List<RawFile.RecentFile>();
+            foreach (SVR_VideoLocal file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID))
             {
-                var allowed = !file.GetAnimeEpisodes().Any(a => a.GetAnimeSeries()?.GetAnime()?.GetAllTags()
-                                        ?.FindInEnumerable(user.GetHideCategories()) ?? false);
-                if (allowed) list.Add(new RawFile(HttpContext, file, level, user?.JMMUserID ?? 0));
+                list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
+                {
+                    ep_id = file.GetAnimeEpisodes().FirstOrDefault()?.AnimeEpisodeID ?? 0,
+                    series_id = file.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries()?.AnimeSeriesID ?? 0
+                });
             }
 
             return list;
@@ -895,7 +892,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <summary>
         /// Handle /api/file/unsort
         /// </summary>
-        /// <returns>List<RawFile></returns>
+        /// <returns><see cref="List{RawFile}"/></returns>
         [HttpGet("file/unsort")]
         public List<RawFile> GetUnsort(int offset = 0, int level = 0, int limit = 0)
         {
@@ -1114,7 +1111,7 @@ namespace Shoko.Server.API.v2.Modules
         public ActionResult<List<Episode>> GetEpisodeFromHash(string hash, int pic = 1)
         {
             JMMUser user = HttpContext.GetUser();
-            if (String.IsNullOrEmpty(hash)) return BadRequest("missing 'hash'");
+            if (string.IsNullOrEmpty(hash)) return BadRequest("missing 'hash'");
 
             List<SVR_AnimeEpisode> list_aep = RepoFactory.AnimeEpisode.GetByHash(hash);
             
@@ -1586,15 +1583,11 @@ namespace Shoko.Server.API.v2.Modules
                     RepoFactory.BookmarkedAnime.Save(ba);
                     return Ok();
                 }
-                else
-                {
-                    return Ok("already added");
-                }
+
+                return Ok("already added");
             }
-            else
-            {
-                return BadRequest();
-            }
+
+            return BadRequest();
         }
 
         /// <summary>
@@ -1811,7 +1804,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (!string.IsNullOrEmpty(para.query))
             {
-                return Search(para.query, para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
+                return Search(HttpUtility.UrlDecode(para.query), para.limit, para.limit_tag, (int) para.offset, para.tags, user.JMMUserID,
                     para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
             return BadRequest("missing 'query'");
@@ -1833,7 +1826,7 @@ namespace Shoko.Server.API.v2.Modules
             }
             if (!string.IsNullOrEmpty(para.query))
             {
-                return Search(para.query, para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
+                return Search(HttpUtility.UrlDecode(para.query), para.limit, para.limit_tag, (int) para.offset, 1, user.JMMUserID,
                     para.nocast != 0,
                     para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter);
             }
@@ -1962,7 +1955,7 @@ namespace Shoko.Server.API.v2.Modules
         /// <returns>Info class above</returns>
         internal object GetSeriesInfoByFolder(int id)
         {
-            Info info = new Info()
+            Info info = new Info
             {
                 id = id
             };
@@ -1997,7 +1990,7 @@ namespace Shoko.Server.API.v2.Modules
                     }
                     else
                     {
-                        SeriesInfo ser = new SeriesInfo()
+                        SeriesInfo ser = new SeriesInfo
                         {
                             id = series.AnimeSeriesID,
                             filesize = vl.FileSize,
@@ -2210,150 +2203,6 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         /// <summary>
-        /// Join a string like string.Join but
-        /// </summary>
-        /// <param name="seperator"></param>
-        /// <param name="values"></param>
-        /// <param name="replaceinvalid"></param>
-        /// <returns></returns>
-        internal string Join(string seperator, IEnumerable<string> values, bool replaceinvalid)
-        {
-            if (!replaceinvalid) return string.Join(seperator, values);
-
-            List<string> newItems = values.Select(s => SanitizeFuzzy(s, replaceinvalid)).ToList();
-
-            return string.Join(seperator, newItems);
-        }
-
-        private static readonly char[] InvalidPathChars =
-            $"{new string(Path.GetInvalidFileNameChars())}{new string(Path.GetInvalidPathChars())}()+".ToCharArray();
-
-        private static readonly char[] ReplaceWithSpace = @"[-.]".ToCharArray();
-
-        internal static string SanitizeFuzzy(string value, bool replaceInvalid)
-        {
-            if (!replaceInvalid) return value;
-
-            value = value.FilterCharacters(InvalidPathChars, true);
-            value = ReplaceWithSpace.Aggregate(value, (current, c) => current.Replace(c, ' '));
-
-            return value.CompactWhitespaces();
-        }
-
-        /// <summary>
-        /// function used in fuzzy search
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="query"></param>
-        /// <param name="distLevenshtein"></param>
-        /// <param name="limit"></param>
-        private static void CheckTitlesFuzzy(SVR_AnimeSeries a, string query,
-            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>> distLevenshtein, int limit)
-        {
-            if (distLevenshtein.Count >= limit) return;
-            if (a?.Contract?.AniDBAnime?.AniDBAnime.AllTitles == null) return;
-            var dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
-            string match = string.Empty;
-            foreach (string title in a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title).ToList())
-            {
-                if (string.IsNullOrEmpty(title)) continue;
-                int k = Math.Max(Math.Min((int)(title.Length / 6D), (int)(query.Length / 6D)), 1);
-                if (query.Length <= 4 || title.Length <= 4) k = 0;
-                var result = Misc.BitapFuzzySearch(title, query, k);
-                if (result.index == -1) continue;
-                if (result.distance < dist.distance)
-                {
-                    match = title;
-                    dist = result;
-                } else if (result.distance == dist.distance)
-                {
-                    if (title.Length < match.Length) match = title;
-                }
-            }
-            // Keep the lowest distance, then by shortest title
-            if (dist.distance < int.MaxValue)
-                distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
-                    (key, oldValue) =>
-                    {
-                        if (oldValue.Item1.distance < dist.distance) return oldValue;
-                        if (oldValue.Item1.distance == dist.distance)
-                            return oldValue.Item2.Length < match.Length
-                                ? oldValue
-                                : new Tuple<Misc.SearchInfo, string>(dist, match);
-
-                        return new Tuple<Misc.SearchInfo, string>(dist, match);
-                    });
-        }
-
-        /// <summary>
-        /// function used in fuzzy tag search
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="query"></param>
-        /// <param name="distLevenshtein"></param>
-        /// <param name="limit"></param>
-        private static void CheckTagsFuzzy(SVR_AnimeSeries a, string query,
-            ref ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>> distLevenshtein, int limit)
-        {
-            if (distLevenshtein.Count >= limit) return;
-            Misc.SearchInfo dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
-            string match = string.Empty;
-            if (a?.Contract?.AniDBAnime?.Tags != null &&
-                a.Contract.AniDBAnime.Tags.Count > 0)
-            {
-                foreach (string tag in a.Contract.AniDBAnime.Tags.Select(b => b.TagName).ToList())
-                {
-                    if (string.IsNullOrEmpty(tag)) continue;
-                    int k = Math.Min((int)(tag.Length / 6D), (int)(query.Length / 6D));
-                    var result = Misc.BitapFuzzySearch(tag, query, k);
-                    if (result.index == -1) continue;
-                    if (result.distance < dist.distance)
-                    {
-                        match = tag;
-                        dist = result;
-                    }
-                }
-                if (dist.distance < int.MaxValue)
-                    distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
-                        (key, oldValue) => Math.Min(oldValue.Item1.distance, dist.distance) == dist.distance
-                            ? new Tuple<Misc.SearchInfo, string>(dist, match)
-                            : oldValue);
-            }
-
-            if (distLevenshtein.Count >= limit || a?.Contract?.AniDBAnime?.CustomTags == null ||
-                a.Contract.AniDBAnime.CustomTags.Count <= 0) return;
-
-            dist = new Misc.SearchInfo { index = -1, distance = int.MaxValue};
-            match = string.Empty;
-            foreach (string customTag in a.Contract.AniDBAnime.CustomTags.Select(b => b.TagName).ToList())
-            {
-                if (string.IsNullOrEmpty(customTag)) continue;
-                int k = Math.Min((int)(customTag.Length / 6D), (int)(query.Length / 6D));
-                var result = Misc.BitapFuzzySearch(customTag, query, k);
-                if (result.index == -1) continue;
-                if (result.distance < dist.distance)
-                {
-                    match = customTag;
-                    dist = result;
-                }
-            }
-            if (dist.distance < int.MaxValue)
-                distLevenshtein.AddOrUpdate(a, new Tuple<Misc.SearchInfo, string>(dist, match),
-                    (key, oldValue) => Math.Min(oldValue.Item1.distance, dist.distance) == dist.distance
-                        ? new Tuple<Misc.SearchInfo, string>(dist, match)
-                        : oldValue);
-        }
-
-        class SearchGrouping
-        {
-            public List<SVR_AnimeSeries> Series { get; set; }
-            public bool exact_match { get; set; }
-            public int distance { get; set; }
-            public int index { get; set; }
-            public string match { get; set; }
-        }
-        
-        /// <summary>
         /// Search for serie with given query in name or tag
         /// </summary>
         /// <param name="query">target string</param>
@@ -2377,357 +2226,42 @@ namespace Shoko.Server.API.v2.Modules
             if (user == null) return Unauthorized();
 
             List<Serie> series_list = new List<Serie>();
-            Dictionary<SVR_AnimeSeries, string> series = new Dictionary<SVR_AnimeSeries, string>();
-            ParallelQuery<SVR_AnimeSeries> allSeries = RepoFactory.AnimeSeries.GetAll()
-                .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                            !a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                .FindInEnumerable(user.GetHideCategories()))
-                .AsParallel();
 
-            #region Search_TitlesOnly
+            var series = SeriesSearch.Search(uid, query, offset + limit + limit_tag, GetFlags(tagSearch, fuzzy), tagfilter);
+            foreach (SeriesSearch.SearchResult<SVR_AnimeSeries> ser in series)
+            {
+                if (offset == 0)
+                {
+                    series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Result, uid, nocast, notag, level,
+                        all,
+                        ser.Match, allpic, pic, tagfilter));
+                }
+                else
+                {
+                    offset -= 1;
+                }
+            }
 
+            return series_list;
+        }
+
+        private SeriesSearch.SearchFlags GetFlags(int tagSearch, bool fuzzy)
+        {
             switch (tagSearch)
             {
                 case 0:
-                    if (!fuzzy || query.Length >= (IntPtr.Size * 8))
-                    {
-                        series = allSeries
-                            .Where(a => Join(",", a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title), fuzzy)
-                                            .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
-                                                StringComparison.InvariantCultureIgnoreCase) >= 0)
-                            .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => string.Empty);
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level, all,
-                                        ser.Value, allpic, pic, tagfilter));
-                                if (series_list.Count >= limit)
-                                {
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
-                        allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
-
-                        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
-                        {
-                            var tempSeries = a.ToList();
-                            tempSeries.Sort((j, k) =>
-                            {
-                                var result1 = distLevenshtein[j];
-                                var result2 = distLevenshtein[k];
-                                var exactMatch = result2.Item1.exact_match.CompareTo(result1.Item1.exact_match);
-                                if (exactMatch != 0) return exactMatch;
-                                // calculate word boundaries
-                                // we already know that they are equal to each other here
-                                if (result1.Item1.exact_match && result2.Item1.exact_match)
-                                {
-                                    bool startsWith1 = result1.Item1.index == 0;
-                                    if (!startsWith1)
-                                    {
-                                        char startChar1 = result1.Item2[result1.Item1.index - 1];
-                                        startsWith1 = char.IsWhiteSpace(startChar1) || char.IsPunctuation(startChar1) ||
-                                                      char.IsSeparator(startChar1);
-                                    }
-
-                                    bool startsWith2 = result2.Item1.index == 0;
-                                    if (!startsWith2)
-                                    {
-                                        char startChar2 = result2.Item2[result2.Item1.index - 1];
-                                        startsWith2 = char.IsWhiteSpace(startChar2) || char.IsPunctuation(startChar2) ||
-                                                      char.IsSeparator(startChar2);
-                                    }
-
-                                    int index1 = result1.Item2.Length + result1.Item1.index;
-                                    bool endsWith1 = result1.Item2.Length <= index1;
-                                    if (!endsWith1)
-                                    {
-                                        char endChar1 = result1.Item2[index1];
-                                        endsWith1 = char.IsWhiteSpace(endChar1) || char.IsPunctuation(endChar1) ||
-                                                    char.IsSeparator(endChar1);
-                                    }
-
-                                    int index2 = result2.Item2.Length + result2.Item1.index;
-                                    bool endsWith2 = result2.Item2.Length <= index2;
-                                    if (!endsWith2)
-                                    {
-                                        char endChar2 = result2.Item2[index2];
-                                        endsWith2 = char.IsWhiteSpace(endChar2) || char.IsPunctuation(endChar2) ||
-                                                    char.IsSeparator(endChar2);
-                                    }
-                                    int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
-                                    if (word != 0) return word;
-                                    int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
-                                    if (indexComp != 0) return indexComp;
-                                }
-
-                                var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
-                                if (distance != 0) return distance;
-                                string title1 = j.GetSeriesName();
-                                string title2 = k.GetSeriesName();
-                                if (title1 == null && title2 == null) return 0;
-                                if (title1 == null) return 1;
-                                if (title2 == null) return -1;
-                                return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
-                            });
-                            var result = new SearchGrouping
-                            {
-                                Series = a.OrderBy(b => b.AirDate).ToList(),
-                                exact_match = distLevenshtein[tempSeries[0]].Item1.exact_match,
-                                distance = distLevenshtein[tempSeries[0]].Item1.distance,
-                                index = distLevenshtein[tempSeries[0]].Item1.index,
-                                match = distLevenshtein[tempSeries[0]].Item2
-                            };
-                            return result;
-                        });
-
-                        series = tempListToSort.OrderBy(a => a.distance)
-                            .SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a].Item2);
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level,
-                                    all,
-                                    ser.Value, allpic, pic, tagfilter));
-                                if (series_list.Count >= limit)
-                                {
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    break;
+                    return fuzzy
+                        ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Fuzzy
+                        : SeriesSearch.SearchFlags.Titles;
                 case 1:
-                    int realLimit = limit_tag != 0 ? limit_tag : limit;
-                    if (!fuzzy || query.Length >= IntPtr.Size)
-                    {
-                        series = allSeries
-                            .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                        (a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                             .Contains(query,
-                                                 StringComparer.InvariantCultureIgnoreCase) || a.Contract.AniDBAnime
-                                             .CustomTags
-                                             .Select(b => b.TagName)
-                                             .Contains(query, StringComparer.InvariantCultureIgnoreCase)))
-                            .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => string.Empty);
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level, all,
-                                        ser.Value, allpic, pic, tagfilter));
-                                if (series_list.Count >= realLimit)
-                                {
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
-                        allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, realLimit));
-
-                        series = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1.distance)
-                            .ThenBy(a => distLevenshtein[a].Item2.Length)
-                            .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => distLevenshtein[a].Item2);
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level,
-                                    all,
-                                    ser.Value, allpic, pic, tagfilter));
-                                if (series_list.Count >= realLimit)
-                                {
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    break;
+                    return fuzzy
+                        ? SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
+                        : SeriesSearch.SearchFlags.Tags;
                 default:
-                    bool use_extra = limit_tag != 0;
-                    if (!fuzzy || query.Length >= (IntPtr.Size * 8))
-                    {
-                        series = allSeries
-                            .Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                        Join(",", a.Contract.AniDBAnime.AnimeTitles.Select(b => b.Title), fuzzy)
-                                            .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
-                                                StringComparison.InvariantCultureIgnoreCase) >= 0)
-                            .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                            .ToDictionary(a => a, a => string.Empty);
-
-                        int tag_limit = use_extra ? limit_tag : limit - series.Count;
-                        if (tag_limit < 0) tag_limit = 0;
-                        series = series.ToList().Take(limit).ToDictionary(a => a.Key, a => a.Value);
-                        if (tag_limit > 0)
-                            series.AddRange(allSeries.Where(a => a?.Contract?.AniDBAnime?.AniDBAnime != null &&
-                                                                 (a.Contract.AniDBAnime.Tags.Select(b => b.TagName)
-                                                                      .Contains(query,
-                                                                          StringComparer.InvariantCultureIgnoreCase) ||
-                                                                  a
-                                                                      .Contract
-                                                                      .AniDBAnime.CustomTags.Select(b => b.TagName)
-                                                                      .Contains(query,
-                                                                          StringComparer.InvariantCultureIgnoreCase)))
-                                .OrderBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                                .Take(tag_limit)
-                                .ToDictionary(a => a, a => string.Empty));
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(
-                                    SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level, all,
-                                        ser.Value, allpic, pic, tagfilter));
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
-                        allSeries.ForAll(a => CheckTitlesFuzzy(a, query, ref distLevenshtein, limit));
-
-                        var tempListToSort = distLevenshtein.Keys.GroupBy(a => a.AnimeGroupID).Select(a =>
-                        {
-                            var tempSeries = a.ToList();
-                            tempSeries.Sort((j, k) =>
-                            {
-                                var result1 = distLevenshtein[j];
-                                var result2 = distLevenshtein[k];
-                                var exactMatch = result2.Item1.exact_match.CompareTo(result1.Item1.exact_match);
-                                if (exactMatch != 0) return exactMatch;
-                                // calculate word boundaries
-                                // we already know that they are equal to each other here
-                                if (result1.Item1.exact_match && result2.Item1.exact_match)
-                                {
-                                    bool startsWith1 = result1.Item1.index == 0;
-                                    if (!startsWith1)
-                                    {
-                                        char startChar1 = result1.Item2[result1.Item1.index - 1];
-                                        startsWith1 = char.IsWhiteSpace(startChar1) || char.IsPunctuation(startChar1) ||
-                                                      char.IsSeparator(startChar1);
-                                    }
-
-                                    bool startsWith2 = result2.Item1.index == 0;
-                                    if (!startsWith2)
-                                    {
-                                        char startChar2 = result2.Item2[result2.Item1.index - 1];
-                                        startsWith2 = char.IsWhiteSpace(startChar2) || char.IsPunctuation(startChar2) ||
-                                                      char.IsSeparator(startChar2);
-                                    }
-
-                                    int index1 = result1.Item2.Length + result1.Item1.index;
-                                    bool endsWith1 = result1.Item2.Length <= index1;
-                                    if (!endsWith1)
-                                    {
-                                        char endChar1 = result1.Item2[index1];
-                                        endsWith1 = char.IsWhiteSpace(endChar1) || char.IsPunctuation(endChar1) ||
-                                                    char.IsSeparator(endChar1);
-                                    }
-
-                                    int index2 = result2.Item2.Length + result2.Item1.index;
-                                    bool endsWith2 = result2.Item2.Length <= index2;
-                                    if (!endsWith2)
-                                    {
-                                        char endChar2 = result2.Item2[index2];
-                                        endsWith2 = char.IsWhiteSpace(endChar2) || char.IsPunctuation(endChar2) ||
-                                                    char.IsSeparator(endChar2);
-                                    }
-                                    int word = (startsWith2 && endsWith2).CompareTo(startsWith1 && endsWith1);
-                                    if (word != 0) return word;
-                                    int indexComp = result1.Item1.index.CompareTo(result2.Item1.index);
-                                    if (indexComp != 0) return indexComp;
-                                }
-
-                                var distance = result1.Item1.distance.CompareTo(result2.Item1.distance);
-                                if (distance != 0) return distance;
-                                string title1 = j.GetSeriesName();
-                                string title2 = k.GetSeriesName();
-                                if (title1 == null && title2 == null) return 0;
-                                if (title1 == null) return 1;
-                                if (title2 == null) return -1;
-                                return String.Compare(title1, title2, StringComparison.InvariantCultureIgnoreCase);
-                            });
-                            var result = new SearchGrouping
-                            {
-                                Series = a.OrderBy(b => b.AirDate).ToList(),
-                                exact_match = distLevenshtein[tempSeries[0]].Item1.exact_match,
-                                distance = distLevenshtein[tempSeries[0]].Item1.distance,
-                                index = distLevenshtein[tempSeries[0]].Item1.index,
-                                match = distLevenshtein[tempSeries[0]].Item2
-                            };
-                            return result;
-                        });
-
-                        series = tempListToSort.OrderBy(a => a.distance)
-                            .SelectMany(a => a.Series).ToDictionary(a => a, a => distLevenshtein[a].Item2);
-
-                        distLevenshtein = new ConcurrentDictionary<SVR_AnimeSeries, Tuple<Misc.SearchInfo, string>>();
-
-                        int tag_limit = use_extra ? limit_tag : limit - series.Count;
-                        if (tag_limit < 0) tag_limit = 0;
-
-                        if (tag_limit > 0)
-                        {
-                            allSeries.ForAll(a => CheckTagsFuzzy(a, query, ref distLevenshtein, tag_limit));
-                            series.AddRange(distLevenshtein.Keys.OrderBy(a => distLevenshtein[a].Item1.distance)
-                                .ThenBy(a => distLevenshtein[a].Item2.Length)
-                                .ThenBy(a => a.Contract.AniDBAnime.AniDBAnime.MainTitle)
-                                .ToDictionary(a => a, a => distLevenshtein[a].Item2));
-                        }
-                        foreach (KeyValuePair<SVR_AnimeSeries, string> ser in series)
-                        {
-                            if (offset == 0)
-                            {
-                                series_list.Add(SearchResult.GenerateFromAnimeSeries(HttpContext, ser.Key, uid, nocast, notag, level,
-                                    all,
-                                    ser.Value, allpic, pic, tagfilter));
-                            }
-                            else
-                            {
-                                offset -= 1;
-                            }
-                        }
-                    }
-                    break;
+                    return fuzzy
+                        ? SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags | SeriesSearch.SearchFlags.Fuzzy
+                        : SeriesSearch.SearchFlags.Titles | SeriesSearch.SearchFlags.Tags;
             }
-
-            #endregion
-
-            return series_list;
         }
 
         private static void CheckTitlesStartsWith(SVR_AnimeSeries a, string query,
@@ -3146,24 +2680,24 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         private static void CheckGroupNameFuzzy(SVR_AnimeGroup a, string query,
-            ref ConcurrentDictionary<SVR_AnimeGroup, int> distLevenshtein, int limit)
+            ConcurrentDictionary<SVR_AnimeGroup, double> distLevenshtein, int limit)
         {
             if (distLevenshtein.Count >= limit) return;
-            int dist = int.MaxValue;
+            double dist = double.MaxValue;
 
             if (string.IsNullOrEmpty(a.GroupName)) return;
             int k = Math.Max(Math.Min((int)(a.GroupName.Length / 6D), (int)(query.Length / 6D)), 1);
             if (query.Length <= 4 || a.GroupName.Length <= 4) k = 0;
-            var result = Misc.BitapFuzzySearch(a.GroupName, query, k);
-            if (result.index == -1) return;
-            if (result.distance < dist)
+            var result = Misc.DiceFuzzySearch(a.GroupName, query, k, a);
+            if (result.Index == -1) return;
+            if (result.Distance < dist)
             {
-                dist = result.distance;
+                dist = result.Distance;
             }
             // Keep the lowest distance
             if (dist < int.MaxValue)
                 distLevenshtein.AddOrUpdate(a, dist,
-                    (key, oldValue) => Math.Min(oldValue, dist) == dist ? dist : oldValue);
+                    (key, oldValue) => Math.Abs(Math.Min(oldValue, dist) - dist) < 0.0001D ? dist : oldValue);
         }
 
         internal object SearchGroupName(string query, int limit, int offset, int uid, bool nocast,
@@ -3187,7 +2721,7 @@ namespace Shoko.Server.API.v2.Modules
             {
                 groups = allGroups
                     .Where(a => a.GroupName
-                                    .IndexOf(SanitizeFuzzy(query, fuzzy), 0,
+                                    .IndexOf(SeriesSearch.SanitizeFuzzy(query, fuzzy), 0,
                                         StringComparison.InvariantCultureIgnoreCase) >= 0)
                     .OrderBy(a => a.SortName)
                     .ToList();
@@ -3211,8 +2745,8 @@ namespace Shoko.Server.API.v2.Modules
             }
             else
             {
-                var distLevenshtein = new ConcurrentDictionary<SVR_AnimeGroup, int>();
-                allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, ref distLevenshtein, limit));
+                var distLevenshtein = new ConcurrentDictionary<SVR_AnimeGroup, double>();
+                allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, distLevenshtein, limit));
 
                 groups = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
                     .ThenBy(a => a.GroupName.Length)

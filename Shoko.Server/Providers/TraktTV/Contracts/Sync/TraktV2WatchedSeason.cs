@@ -16,8 +16,7 @@ namespace Shoko.Server.Providers.TraktTV.Contracts
         {
             if (episodes != null)
                 return string.Format("Season: {0} - Episodes Watched: {1}", number, episodes.Count);
-            else
-                return string.Format("Season: {0}", number);
+            return string.Format("Season: {0}", number);
         }
     }
 }

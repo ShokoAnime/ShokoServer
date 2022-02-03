@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Collections;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
@@ -13,19 +13,8 @@ namespace Shoko.Server.Repositories
         private PocoIndex<int, AniDB_Anime_Tag, int> Animes;
         private PocoIndex<int, AniDB_Anime_Tag, int> TagIDs;
 
-        private AniDB_Anime_TagRepository()
-        {
-        }
-
         public override void RegenerateDb()
         {
-        }
-
-        public static AniDB_Anime_TagRepository Create()
-        {
-            var repo = new AniDB_Anime_TagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(AniDB_Anime_Tag entity)
@@ -75,7 +64,7 @@ namespace Shoko.Server.Repositories
 
         public List<SVR_AnimeSeries> GetAnimeWithTag(string tagName)
         {
-            return GetAll().Where(a => RepoFactory.AniDB_Tag.GetByName(tagName).Select(b => b.TagID).Contains(a.TagID))
+            return GetAll().AsParallel().Where(a => RepoFactory.AniDB_Tag.GetByName(tagName).Select(b => b.TagID).Contains(a.TagID))
                 .Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID))
                 .Where(a => a != null)
                 .ToList();

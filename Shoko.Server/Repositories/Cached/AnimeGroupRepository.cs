@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using Shoko.Models.Server;
-using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Models;
-using Shoko.Models.Enums;
+using Shoko.Commons.Properties;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -22,14 +20,14 @@ namespace Shoko.Server.Repositories.Cached
 
         private ChangeTracker<int> Changes = new ChangeTracker<int>();
 
-        private AnimeGroupRepository()
+        public AnimeGroupRepository()
         {
-            BeginDeleteCallback = (cr) =>
+            BeginDeleteCallback = cr =>
             {
                 RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
                 cr.DeleteFromFilters();
             };
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
                 {
@@ -40,13 +38,6 @@ namespace Shoko.Server.Repositories.Cached
                         Save(ngrp, false, true);
                 }
             };
-        }
-
-        public static AnimeGroupRepository Create()
-        {
-            var repo = new AnimeGroupRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeGroup entity)
@@ -66,7 +57,7 @@ namespace Shoko.Server.Repositories.Cached
                 .ToList();
             int max = grps.Count;
             int cnt = 0;
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeGroup).Name, " DbRegen");
             if (max <= 0) return;
             foreach (SVR_AnimeGroup g in grps)
@@ -78,12 +69,12 @@ namespace Shoko.Server.Repositories.Cached
                 cnt++;
                 if (cnt % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AnimeGroup).Name,
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, typeof(AnimeGroup).Name,
                         " DbRegen - " + cnt + "/" + max);
                 }
             }
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 typeof(AnimeGroup).Name,
                 " DbRegen - " + max + "/" + max);
         }
@@ -128,7 +119,7 @@ namespace Shoko.Server.Repositories.Cached
                             RepoFactory.GroupFilter.CreateOrVerifyDirectoryFilters(false, grp.Contract.Stat_AllTags,
                                 grp.Contract.Stat_AllYears, grp.Contract.Stat_AllSeasons);
                             //This call will create extra years or tags if the Group have a new year or tag
-                            grp.UpdateGroupFilters(types, null);
+                            grp.UpdateGroupFilters(types);
                         }
                     }
                 }

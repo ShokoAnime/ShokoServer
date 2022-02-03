@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Models;
-using Shoko.Models.Server;
-using NHibernate;
-using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
-using Shoko.Models;
 using Shoko.Models.Enums;
+using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories
 {
@@ -15,10 +10,6 @@ namespace Shoko.Server.Repositories
     {
         private PocoIndex<int, CrossRef_CustomTag, int> Tags;
         private PocoIndex<int, CrossRef_CustomTag, int, int> Refs;
-
-        private CrossRef_CustomTagRepository()
-        {
-        }
 
         protected override int SelectKey(CrossRef_CustomTag entity)
         {
@@ -33,14 +24,6 @@ namespace Shoko.Server.Repositories
 
         public override void RegenerateDb()
         {
-        }
-
-
-        public static CrossRef_CustomTagRepository Create()
-        {
-            var repo = new CrossRef_CustomTagRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public List<CrossRef_CustomTag> GetByAnimeID(int id)

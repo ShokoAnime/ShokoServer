@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
 
 namespace Shoko.Server.API.v2.Models
@@ -15,7 +16,7 @@ namespace Shoko.Server.API.v2.Models
         public string name { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public List<Shoko.Models.PlexAndKodi.AnimeTitle> titles { get; set; }
+        public List<AnimeTitle> titles { get; set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public string summary { get; set; }

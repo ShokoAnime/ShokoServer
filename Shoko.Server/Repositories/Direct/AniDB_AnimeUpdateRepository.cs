@@ -1,9 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Shoko.Models.Server;
+﻿using System.Linq;
 using NHibernate.Criterion;
 using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
@@ -12,15 +9,6 @@ namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
     {
-        private AniDB_AnimeUpdateRepository()
-        {
-        }
-
-        public static AniDB_AnimeUpdateRepository Create()
-        {
-            return new AniDB_AnimeUpdateRepository();
-        }
-
         public AniDB_AnimeUpdate GetByAnimeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

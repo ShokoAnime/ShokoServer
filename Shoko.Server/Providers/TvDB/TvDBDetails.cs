@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NLog;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Models.TvDB
@@ -21,7 +20,7 @@ namespace Shoko.Models.TvDB
             PopulateTvDBEpisodes();
         }
 
-        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes = null;
+        private Dictionary<int, TvDB_Episode> dictTvDBEpisodes;
 
         public Dictionary<int, TvDB_Episode> DictTvDBEpisodes
         {
@@ -60,7 +59,7 @@ namespace Shoko.Models.TvDB
             }
         }
 
-        private Dictionary<int, int> dictTvDBSeasons = null;
+        private Dictionary<int, int> dictTvDBSeasons;
 
         public Dictionary<int, int> DictTvDBSeasons
         {
@@ -101,7 +100,7 @@ namespace Shoko.Models.TvDB
             }
         }
 
-        private Dictionary<int, int> dictTvDBSeasonsSpecials = null;
+        private Dictionary<int, int> dictTvDBSeasonsSpecials;
 
         public Dictionary<int, int> DictTvDBSeasonsSpecials
         {
@@ -163,7 +162,7 @@ namespace Shoko.Models.TvDB
             }
         }
 
-        private List<TvDB_Episode> tvDBEpisodes = null;
+        private List<TvDB_Episode> tvDBEpisodes;
 
         public List<TvDB_Episode> TvDBEpisodes
         {

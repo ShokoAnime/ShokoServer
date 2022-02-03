@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Security.Principal;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Server.API.v2.Models.common;
-using Shoko.Server.API.v3;
-using Shoko.Server.ImageDownload;
-using Shoko.Server.Models;
-using Shoko.Server.PlexAndKodi;
-using Shoko.Server.Repositories;
+﻿using System.Linq;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Shoko.Models.Enums;
+using Shoko.Server.API.Authentication;
+using Shoko.Server.API.v3;
+using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API
 {
@@ -22,7 +16,7 @@ namespace Shoko.Server.API
         public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, int type, int id, bool short_url = true)
         {
             var imgType = (ImageEntityType) type;
-            return APIHelper.ProperURL(ctx,
+            return ProperURL(ctx,
                 $"/api/v3/image/{Image.GetSourceFromType(imgType)}/{Image.GetSimpleTypeFromImageType(imgType)}/{id}",
                 short_url);
         }
@@ -40,12 +34,13 @@ namespace Shoko.Server.API
 
         public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
         {
+            if (!ServerState.Instance.ServerOnline)
+                return InitUser.Instance;
+
             if (!(identity?.Identity?.IsAuthenticated ?? false)) return null;
 
             var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (nameIdentifier == null) return null;
-
-            return RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
+            return nameIdentifier == null ? null : RepoFactory.JMMUser.GetByID(int.Parse(nameIdentifier));
         }
 
         public static SVR_JMMUser GetUser(this HttpContext ctx) => ctx.User.GetUser();

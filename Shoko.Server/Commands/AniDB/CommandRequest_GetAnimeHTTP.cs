@@ -5,6 +5,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
@@ -25,7 +26,7 @@ namespace Shoko.Server.Commands
             extraParams = new[] {AnimeID.ToString()}
         };
 
-        public int RelDepth { get; set; } = 0;
+        public int RelDepth { get; set; }
 
         public CommandRequest_GetAnimeHTTP()
         {

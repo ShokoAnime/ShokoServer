@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
-using Shoko.Server.Models;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Shoko.Server.Models;
 
 namespace Shoko.Server.API
 {

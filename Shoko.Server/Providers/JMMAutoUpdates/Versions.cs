@@ -1,7 +1,9 @@
-﻿namespace Shoko.Server.Providers.JMMAutoUpdates
+﻿using System.Xml.Serialization;
+
+namespace Shoko.Server.Providers.JMMAutoUpdates
 {
-    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType = true)]
-    public partial class Versions
+    [XmlType(AnonymousType = true)]
+    public class Versions
     {
         /// <remarks/>
         public string serverversion { get; set; }

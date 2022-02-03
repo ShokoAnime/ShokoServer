@@ -13,9 +13,9 @@ namespace Shoko.Server.Repositories.Cached
     {
         private PocoIndex<int, AniDB_Vote, int> EntityIDs;
 
-        private AniDB_VoteRepository()
+        public AniDB_VoteRepository()
         {
-            EndSaveCallback = (cr) =>
+            EndSaveCallback = cr =>
             {
                 switch (cr.VoteType)
                 {
@@ -29,7 +29,7 @@ namespace Shoko.Server.Repositories.Cached
                         break;
                 }
             };
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 switch (cr.VoteType)
                 {
@@ -43,13 +43,6 @@ namespace Shoko.Server.Repositories.Cached
                         break;
                 }
             };
-        }
-
-        public static AniDB_VoteRepository Create()
-        {
-            var repo = new AniDB_VoteRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public AniDB_Vote GetByEntityAndType(int entID, AniDBVoteType voteType)

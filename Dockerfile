@@ -1,35 +1,37 @@
-FROM mono:5.20
+FROM mcr.microsoft.com/dotnet/sdk:5.0
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
-ENV PUID=1000 \
-    PGID=100
-
-RUN apt-get update && apt-get install -y --force-yes gnupg curl
-
-RUN curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | apt-key add -
-RUN echo "deb http://dl.bintray.com/cazzar/shoko-deps jesse main" | tee -a /etc/apt/sources.list
-RUN echo "deb http://ftp.debian.org/debian stretch-backports main" | tee -a /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -y --force-yes libmediainfo0v5 librhash0 sqlite.interop jq unzip && apt-get install -y --force-yes -t stretch-backports gosu
 
 RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
-RUN mv /usr/src/app/source/dockerentry.sh /dockerentry.sh
 
-ADD https://github.com/NuGet/Home/releases/download/3.3/NuGet.exe .
-RUN mono NuGet.exe restore
-RUN xbuild /property:Configuration=CLI /property:OutDir=/usr/src/app/build/
-RUN rm -rf /usr/src/app/source
-RUN rm /usr/src/app/build/System.Net.Http.dll
+RUN dotnet build -c=Release -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj
+
+FROM mcr.microsoft.com/dotnet/aspnet:5.0
+ENV PUID=1000 \
+    PGID=100 \
+    AVDUMP_MONO=false \
+    LANG=C.UTF-8 \
+    LC_CTYPE=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+RUN apt-get update && apt-get install -y gnupg curl
+
+RUN curl https://mediaarea.net/repo/deb/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://mediaarea.net/repo/deb/debian/ buster main" | tee -a /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev 
+
+WORKDIR /usr/src/app/build
+COPY --from=0 /usr/src/app/build .
+COPY ./dockerentry.sh /dockerentry.sh
 
 WORKDIR /usr/src/app/build/webui
 #RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '. | map(select(.prerelease==false)) | .[0].assets[0].browser_download_url') -o latest.zip
 RUN curl -L $(curl https://api.github.com/repos/ShokoAnime/ShokoServer-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip
 RUN unzip -o latest.zip
 RUN rm latest.zip
-
-WORKDIR /usr/src/app/build
 
 VOLUME /home/shoko/.shoko/
 VOLUME /usr/src/app/build/webui

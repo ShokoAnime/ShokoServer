@@ -1,50 +1,44 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
 {
     public class RenameScriptRepository : BaseDirectRepository<RenameScript, int>
     {
-        private RenameScriptRepository()
-        {
-        }
-
-        public static RenameScriptRepository Create()
-        {
-            return new RenameScriptRepository();
-        }
-
         public RenameScript GetDefaultScript()
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                RenameScript cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("IsEnabledOnImport", 1))
-                    .UniqueResult<RenameScript>();
-                return cr;
-            }
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("IsEnabledOnImport", 1))
+                .UniqueResult<RenameScript>();
+            return cr;
         }
 
         public RenameScript GetDefaultOrFirst()
         {
-            return GetAll().FirstOrDefault(a => a.IsEnabledOnImport == 1) ?? GetAll().FirstOrDefault();
+            // This should list the enabled one first, falling back if none are
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .AddOrder(Order.Desc("IsEnabledOnImport"))
+                .AddOrder(Order.Asc("RenameScriptID"))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
 
         public RenameScript GetByName(string scriptName)
         {
-            using (var session = DatabaseFactory.SessionFactory.OpenSession())
-            {
-                IList<RenameScript> cr = session
-                    .CreateCriteria(typeof(RenameScript))
-                    .Add(Restrictions.Eq("ScriptName", scriptName))
-                    .List<RenameScript>();
-                return cr.FirstOrDefault();
-            }
+            if (string.IsNullOrEmpty(scriptName)) return null;
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            var cr = session
+                .CreateCriteria(typeof(RenameScript))
+                .Add(Restrictions.Eq("ScriptName", scriptName))
+                .List<RenameScript>().FirstOrDefault();
+            return cr;
         }
     }
 }

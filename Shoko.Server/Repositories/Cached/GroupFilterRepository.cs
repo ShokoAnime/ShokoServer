@@ -4,25 +4,26 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NHibernate;
-using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
-using Shoko.Server.Databases;
+using Shoko.Models.Server;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
+using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Repositories.Cached
 {
     public class GroupFilterRepository : BaseCachedRepository<SVR_GroupFilter, int>
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         private PocoIndex<int, SVR_GroupFilter, int> Parents;
 
         private BiDictionaryManyToMany<int, GroupFilterConditionType> Types;
@@ -31,25 +32,18 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_GroupFilter> PostProcessFilters { get; set; }
 
-        private GroupFilterRepository()
+        public GroupFilterRepository()
         {
-            EndSaveCallback = (obj) =>
+            EndSaveCallback = obj =>
             {
                 Types[obj.GroupFilterID] = obj.Types;
                 Changes.AddOrUpdate(obj.GroupFilterID);
             };
-            EndDeleteCallback = (obj) =>
+            EndDeleteCallback = obj =>
             {
                 Types.Remove(obj.GroupFilterID);
                 Changes.Remove(obj.GroupFilterID);
             };
-        }
-
-        public static GroupFilterRepository Create()
-        {
-            var repo = new GroupFilterRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_GroupFilter entity)
@@ -84,7 +78,7 @@ namespace Shoko.Server.Repositories.Cached
         public override void PostProcess()
         {
             const string t = "GroupFilter";
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 t, string.Empty);
             foreach (SVR_GroupFilter g in Cache.Values.ToList())
                 if (g.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
@@ -97,9 +91,9 @@ namespace Shoko.Server.Repositories.Cached
             foreach (SVR_GroupFilter gf in PostProcessFilters)
             {
                 cnt++;
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, t,
-                    Commons.Properties.Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, t,
+                    Resources.Filter_Recalc + " " + cnt + "/" + max + " - " +
                     gf.GroupFilterName);
                 if (gf.GroupsIdsVersion < SVR_GroupFilter.GROUPFILTER_VERSION ||
                     gf.GroupConditionsVersion < SVR_GroupFilter.GROUPCONDITIONS_VERSION ||
@@ -109,9 +103,9 @@ namespace Shoko.Server.Repositories.Cached
             }
 
             // Clean up. This will populate empty conditions and remove duplicate filters
-            ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                 t,
-                " " + Commons.Properties.Resources.GroupFilter_Cleanup);
+                " " + Resources.GroupFilter_Cleanup);
             IReadOnlyList<SVR_GroupFilter> all = GetAll();
             HashSet<SVR_GroupFilter> set = new HashSet<SVR_GroupFilter>(all);
             List<SVR_GroupFilter> notin = all.Except(set).ToList();
@@ -142,9 +136,9 @@ namespace Shoko.Server.Repositories.Cached
 
             List<SVR_GroupFilter> lockedGFs = RepoFactory.GroupFilter.GetLockedGroupFilters();
 
-            ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Validating, t,
-                " " + Commons.Properties.Resources.Filter_CreateContinueWatching);
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, t,
+                " " + Resources.Filter_CreateContinueWatching);
 
             SVR_GroupFilter cwatching =
                 lockedGFs.FirstOrDefault(
@@ -194,7 +188,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 SVR_GroupFilter gf = new SVR_GroupFilter
                 {
-                    GroupFilterName = Commons.Properties.Resources.Filter_All,
+                    GroupFilterName = Resources.Filter_All,
                     Locked = 1,
                     InvisibleInClients = 0,
                     FilterType = (int) GroupFilterType.All,
@@ -212,7 +206,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 tagsdirec = new SVR_GroupFilter
                 {
-                    GroupFilterName = Commons.Properties.Resources.Filter_Tags,
+                    GroupFilterName = Resources.Filter_Tags,
                     InvisibleInClients = 0,
                     FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Tag),
                     BaseCondition = 1,
@@ -229,7 +223,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 yearsdirec = new SVR_GroupFilter
                 {
-                    GroupFilterName = Commons.Properties.Resources.Filter_Years,
+                    GroupFilterName = Resources.Filter_Years,
                     InvisibleInClients = 0,
                     FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Year),
                     BaseCondition = 1,
@@ -246,7 +240,7 @@ namespace Shoko.Server.Repositories.Cached
             {
                 seasonsdirec = new SVR_GroupFilter
                 {
-                    GroupFilterName = Commons.Properties.Resources.Filter_Seasons,
+                    GroupFilterName = Resources.Filter_Seasons,
                     InvisibleInClients = 0,
                     FilterType = (int) (GroupFilterType.Directory | GroupFilterType.Season),
                     BaseCondition = 1,
@@ -294,10 +288,10 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, t,
-                            Commons.Properties.Resources.Filter_CreatingTag + " " +
-                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, t,
+                            Resources.Filter_CreatingTag + " " +
+                            Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                     SVR_GroupFilter yf = new SVR_GroupFilter
                     {
                         ParentGroupFilterID = tagsdirec.GroupFilterID,
@@ -362,10 +356,10 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, t,
-                            Commons.Properties.Resources.Filter_CreatingYear + " " +
-                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, t,
+                            Resources.Filter_CreatingYear + " " +
+                            Resources.Filter_Filter + " " + cnt + "/" + max + " - " + s);
                     SVR_GroupFilter yf = new SVR_GroupFilter
                     {
                         ParentGroupFilterID = yearsdirec.GroupFilterID,
@@ -425,10 +419,10 @@ namespace Shoko.Server.Repositories.Cached
                 {
                     cnt++;
                     if (frominit)
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, t,
-                            Commons.Properties.Resources.Filter_CreatingSeason + " " +
-                            Commons.Properties.Resources.Filter_Filter + " " + cnt + "/" + max + " - " + season);
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, t,
+                            Resources.Filter_CreatingSeason + " " +
+                            Resources.Filter_Filter + " " + cnt + "/" + max + " - " + season);
                     SVR_GroupFilter yf = new SVR_GroupFilter
                     {
                         ParentGroupFilterID = seasonsdirectory.GroupFilterID,
@@ -468,7 +462,7 @@ namespace Shoko.Server.Repositories.Cached
                 if (!onlyconditions)
                     obj.UpdateEntityReferenceStrings();
                 bool resaveConditions = obj.GroupFilterID == 0;
-                obj.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(obj._conditions);
+                obj.GroupConditions = JsonConvert.SerializeObject(obj._conditions);
                 obj.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
                 base.Save(obj);
                 if (resaveConditions)
@@ -714,7 +708,7 @@ namespace Shoko.Server.Repositories.Cached
                 };
                 yf.Conditions.Add(gfc);
                 yf.UpdateEntityReferenceStrings();
-                yf.GroupConditions = Newtonsoft.Json.JsonConvert.SerializeObject(yf._conditions);
+                yf.GroupConditions = JsonConvert.SerializeObject(yf._conditions);
                 yf.GroupConditionsVersion = SVR_GroupFilter.GROUPCONDITIONS_VERSION;
                 toAdd.Add(yf);
             }

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using AniDBAPI;
-using NHibernate;
 using NLog;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
@@ -13,12 +12,13 @@ using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
 using Shoko.Models.TvDB;
 using Shoko.Server.AniDB_API.Raws;
-using Shoko.Server.Models;
 using Shoko.Server.LZ4;
+using Shoko.Server.Models;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
+using Shoko.Server.Server;
+using TvDbSharper.Dto;
 
 namespace Shoko.Server.Extensions
 {
@@ -81,7 +81,7 @@ namespace Shoko.Server.Extensions
         public static Azure_Media_Request ToMediaRequest(this SVR_VideoLocal v)
         {
             //Cleanup any File subtitles from media information.
-            Media m = (Media) v.Media.Clone();
+            Media m = new Media(v.VideoLocalID, v.Media);
             if (m.Parts != null && m.Parts.Count > 0)
             {
                 foreach (Part p in m.Parts)
@@ -151,7 +151,7 @@ namespace Shoko.Server.Extensions
                 TraktTitle = xref.TraktTitle,
                 CrossRefSource = xref.CrossRefSource,
                 Username = Constants.AnonWebCacheUsername,
-                AuthGUID = String.Empty
+                AuthGUID = string.Empty
             };
             return r;
         }
@@ -259,10 +259,10 @@ namespace Shoko.Server.Extensions
             show.Year = tvshow.Year.ToString();
         }
 
-        public static void Populate(this TvDB_Episode episode, TvDbSharper.Dto.EpisodeRecord apiEpisode)
+        public static void Populate(this TvDB_Episode episode, EpisodeRecord apiEpisode)
         {
             episode.Id = apiEpisode.Id;
-            episode.SeriesID = int.Parse(apiEpisode.SeriesId);
+            episode.SeriesID =apiEpisode.SeriesId;
             episode.SeasonID = 0;
             episode.SeasonNumber = apiEpisode.AiredSeason ?? 0;
             episode.EpisodeNumber = apiEpisode.AiredEpisodeNumber ?? 0;
@@ -310,7 +310,7 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_Episode.TryGetProperty: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_Episode.TryGetProperty: " + ex);
             }
 
             return string.Empty;
@@ -325,13 +325,13 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_Series.TryGetProperty: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_Series.TryGetProperty: " + ex);
             }
 
             return string.Empty;
         }
 
-        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
+        [Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.Series.Image instead.")]
         public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, XmlNode node)
         {
             try
@@ -343,53 +343,42 @@ namespace Shoko.Server.Extensions
                 fanart.BannerType2 = node["BannerType2"].InnerText;
                 fanart.Colors = node["Colors"].InnerText;
                 fanart.Language = node["Language"].InnerText;
-                fanart.ThumbnailPath = node["ThumbnailPath"].InnerText;
                 fanart.VignettePath = node["VignettePath"].InnerText;
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex);
                 return false;
             }
         }
 
-        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImageFanart fanart, int seriesID, Image image)
         {
-            if (image.Id == null) {
-                logger.Error("Error in TvDB_ImageFanart.Populate, image.Id is null, series: {0}",seriesID);
-                return false;
-            }
             try
             {
                 fanart.SeriesID = seriesID;
-                fanart.Id = image.Id ?? 0;
+                fanart.Id = image.Id;
                 fanart.BannerPath = image.FileName;
                 fanart.BannerType2 = image.Resolution;
                 fanart.Colors = string.Empty;
-                fanart.ThumbnailPath = image.Thumbnail;
                 fanart.VignettePath = string.Empty;
                 return true;
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImageFanart.Init: " + ex);
                 return false;
             }
         }
 
-        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImagePoster poster, int seriesID, Image image)
         {
-            if (image.Id == null)
-            {
-                logger.Error("Error in TvDB_ImagePoster.Populate, image.Id is null, series: {0}", seriesID);
-                return false;
-            }
             try
             {
                 poster.SeriesID = seriesID;
                 poster.SeasonNumber = null;
-                poster.Id = image.Id ?? 0;
+                poster.Id = image.Id;
                 poster.BannerPath = image.FileName;
                 poster.BannerType = image.KeyType;
                 poster.BannerType2 = image.Resolution;
@@ -397,18 +386,13 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImagePoster.Populate: " + ex);
                 return false;
             }
         }
 
-        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, TvDbSharper.Dto.Image image)
+        public static bool Populate(this TvDB_ImageWideBanner poster, int seriesID, Image image)
         {
-            if (image.Id == null)
-            {
-                logger.Error("Error in TvDB_ImageWideBanner.Populate, image.Id is null, series: {0}", seriesID);
-                return false;
-            }
             try
             {
                 poster.SeriesID = seriesID;
@@ -421,7 +405,7 @@ namespace Shoko.Server.Extensions
                     poster.SeasonNumber = null;
                 }
 
-                poster.Id = image.Id ?? 0;
+                poster.Id = image.Id;
                 poster.BannerPath = image.FileName;
                 poster.BannerType = image.KeyType;
                 poster.BannerType2 = image.Resolution;
@@ -429,7 +413,7 @@ namespace Shoko.Server.Extensions
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex.ToString());
+                logger.Error(ex, "Error in TvDB_ImageWideBanner.Populate: " + ex);
                 return false;
             }
         }
@@ -450,7 +434,7 @@ namespace Shoko.Server.Extensions
             series.Banner = TryGetSeriesProperty(doc, "banner");
         }
 
-        [System.Obsolete("PopulateFromSeriesInfo XmlDocument is deprecated, please use PopulateFromSeriesInfo TvDbSharper.Series instead.")]
+        [Obsolete("PopulateFromSeriesInfo XmlDocument is deprecated, please use PopulateFromSeriesInfo TvDbSharper.Series instead.")]
         public static void PopulateFromSeriesInfo(this TvDB_Series series, XmlDocument doc)
         {
             series.SeriesID = 0;
@@ -472,7 +456,7 @@ namespace Shoko.Server.Extensions
             series.Poster = TryGetSeriesProperty(doc, "poster");
         }
 
-        public static void PopulateFromSeriesInfo(this TvDB_Series series, TvDbSharper.Dto.Series apiSeries)
+        public static void PopulateFromSeriesInfo(this TvDB_Series series, Series apiSeries)
         {
             series.SeriesID = 0;
             series.Overview = string.Empty;
@@ -492,7 +476,7 @@ namespace Shoko.Server.Extensions
             if (apiSeries.SiteRating != null) series.Rating = (int) Math.Round(apiSeries.SiteRating.Value * 10);
         }
 
-        [System.Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
+        [Obsolete("Populate XmlNode is deprecated, please use Populate TvDbSharper.SeriesSearchResult instead.")]
         public static void Populate(this TVDB_Series_Search_Response response, XmlNode series)
         {
             response.Id = string.Empty;
@@ -508,7 +492,7 @@ namespace Shoko.Server.Extensions
             if (series["language"] != null) response.Language = series["language"].InnerText;
         }
 
-        public static void Populate(this TVDB_Series_Search_Response response, TvDbSharper.Dto.SeriesSearchResult series)
+        public static void Populate(this TVDB_Series_Search_Response response, SeriesSearchResult series)
         {
             response.Id = string.Empty;
             response.SeriesID = series.Id;
@@ -668,14 +652,14 @@ namespace Shoko.Server.Extensions
                 CharKanjiName = character.CharKanjiName,
                 CharDescription = character.CharDescription,
                 CharType = charRel.CharType,
-                CharImageURL = string.Format(Constants.URLS.AniDB_Images, character.PicName)
+                CharImageURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, character.PicName)
             };
             AniDB_Seiyuu seiyuu = character.GetSeiyuu();
             if (seiyuu != null)
             {
                 contract.SeiyuuID = seiyuu.AniDB_SeiyuuID;
                 contract.SeiyuuName = seiyuu.SeiyuuName;
-                contract.SeiyuuImageURL = string.Format(Constants.URLS.AniDB_Images, seiyuu.PicName);
+                contract.SeiyuuImageURL = string.Format(ShokoService.AnidbProcessor.ImageServerUrl, seiyuu.PicName);
             }
 
             return contract;

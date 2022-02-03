@@ -11,10 +11,6 @@ namespace Shoko.Server.Providers.MovieDB
         public int ImageWidth { get; set; }
         public int ImageHeight { get; set; }
 
-        public MovieDB_Image_Result()
-        {
-        }
-
         public override string ToString()
         {
             return string.Format("{0} - {1} - {2}x{3} - {4}", ImageType, ImageSize, ImageWidth, ImageHeight, URL);

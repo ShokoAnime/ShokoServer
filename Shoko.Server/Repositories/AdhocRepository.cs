@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using Shoko.Server.Utilities;
 using NHibernate;
 using Shoko.Commons.Collections;
 using Shoko.Server.Databases;
@@ -18,15 +17,6 @@ namespace Shoko.Server.Repositories
 
     public class AdhocRepository
     {
-        private AdhocRepository()
-        {
-        }
-
-        public static AdhocRepository Create()
-        {
-            return new AdhocRepository();
-        }
-
         #region Video Quality
 
         /// <summary>
@@ -39,7 +29,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT Distinct(File_Source) FROM AniDB_File";
 
                 using (IDataReader rdr = command.ExecuteReader())
@@ -65,7 +55,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT ag.AnimeGroupID, anifile.File_Source ";
                 command.CommandText += "from AnimeGroup ag ";
                 command.CommandText += "INNER JOIN AnimeSeries ser on ser.AnimeGroupID = ag.AnimeGroupID ";
@@ -111,7 +101,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source ";
                 command.CommandText += "FROM AnimeSeries ser ";
                 command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
@@ -153,7 +143,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anifile.File_Source ";
                 command.CommandText += "from AnimeGroup ag ";
                 command.CommandText += "INNER JOIN AnimeSeries ser on ser.AnimeGroupID = ag.AnimeGroupID ";
@@ -163,7 +153,7 @@ namespace Shoko.Server.Repositories
                 command.CommandText += "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash ";
                 command.CommandText += "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
                 // See Note 1
-                command.CommandText += "where ag.AnimeGroupID = " + animeGroupID.ToString();
+                command.CommandText += "where ag.AnimeGroupID = " + animeGroupID;
                 command.CommandText += " GROUP BY anifile.File_Source ";
 
                 using (IDataReader rdr = command.ExecuteReader())
@@ -218,7 +208,7 @@ namespace Shoko.Server.Repositories
             if (animeGroupIds != null)
             {
                 query += @"
-                    WHERE ag.AnimeGroupID IN (" + String.Join(",", animeGroupIds) + ")";
+                    WHERE ag.AnimeGroupID IN (" + string.Join(",", animeGroupIds) + ")";
             }
 
             var results = session.CreateSQLQuery(query)
@@ -242,7 +232,7 @@ namespace Shoko.Server.Repositories
         {
             HashSet<string> vidQuals = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-            System.Data.IDbCommand command = session.Connection.CreateCommand();
+            IDbCommand command = session.Connection.CreateCommand();
             command.CommandText = "SELECT anifile.File_Source "
                                   + "FROM AnimeSeries ser "
                                   + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
@@ -252,7 +242,7 @@ namespace Shoko.Server.Repositories
                                   + "INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash "
                                   + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
             // See Note 1
-            command.CommandText += "where anime.AnimeID = " + animeID.ToString()
+            command.CommandText += "where anime.AnimeID = " + animeID
                                    + " GROUP BY anifile.File_Source ";
 
             using (IDataReader rdr = command.ExecuteReader())
@@ -292,7 +282,7 @@ namespace Shoko.Server.Repositories
                     INNER JOIN CrossRef_File_Episode xref on aniep.EpisodeID = xref.EpisodeID
                     INNER JOIN AniDB_File anifile on anifile.Hash = xref.Hash
                     INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID
-                    WHERE anime.AnimeID IN (" + String.Join(",", animeIDs) + @")
+                    WHERE anime.AnimeID IN (" + string.Join(",", animeIDs) + @")
                     GROUP BY anime.AnimeID, anifile.File_Source ";
 
                 var allVidQualPerAnime = new Dictionary<int, HashSet<string>>();
@@ -353,7 +343,7 @@ namespace Shoko.Server.Repositories
                         return dictStats; // No anime IDs means no results. So, no need to perform query
                     }
 
-                    command.CommandText += "AND anime.AnimeID IN (" + String.Join(",", animeIds) + ") ";
+                    command.CommandText += "AND anime.AnimeID IN (" + string.Join(",", animeIds) + ") ";
                 }
 
                 command.CommandText +=
@@ -396,7 +386,7 @@ namespace Shoko.Server.Repositories
             {
                 VideoQualityEpisodeCount = new Dictionary<string, int>()
             };
-            System.Data.IDbCommand command = session.Connection.CreateCommand();
+            IDbCommand command = session.Connection.CreateCommand();
             command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber "
                                   + "from AnimeSeries ser "
                                   + "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID "
@@ -407,7 +397,7 @@ namespace Shoko.Server.Repositories
                                   + "INNER JOIN CrossRef_Subtitles_AniDB_File subt on subt.FileID = anifile.FileID ";
             // See Note 1
             command.CommandText += "WHERE aniep.EpisodeType = 1 " // normal episodes only
-                                   + "AND anime.AnimeID =  " + aID.ToString()
+                                   + "AND anime.AnimeID =  " + aID
                                    +
                                    " GROUP BY anime.AnimeID, anime.MainTitle, anifile.File_Source, aniep.EpisodeNumber ";
 
@@ -480,7 +470,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
 #pragma warning disable 2100
                 command.CommandText = "SELECT Distinct(lan.LanguageName) ";
                 command.CommandText += "FROM CrossRef_Languages_AniDB_File audio ";
@@ -511,7 +501,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT Distinct(lan.LanguageName) ";
                 command.CommandText += "FROM CrossRef_Subtitles_AniDB_File subt ";
                 command.CommandText += "INNER JOIN Language lan on subt.LanguageID = lan.LanguageID ";
@@ -537,7 +527,7 @@ namespace Shoko.Server.Repositories
 
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                System.Data.IDbCommand command = session.Connection.CreateCommand();
+                IDbCommand command = session.Connection.CreateCommand();
                 command.CommandText = "SELECT anime.AnimeID, anime.MainTitle, lan.LanguageName ";
                 command.CommandText += "FROM AnimeSeries ser  ";
                 command.CommandText += "INNER JOIN AniDB_Anime anime on anime.AnimeID = ser.AniDB_ID ";
@@ -698,7 +688,7 @@ namespace Shoko.Server.Repositories
                 return new Dictionary<int, LanguageStat>();
             }
 
-            string predicate = " IN (" + String.Join(",", aIDs) + ") ";
+            string predicate = " IN (" + string.Join(",", aIDs) + ") ";
 
             return GetAudioLanguageStatsByAnimeResults(session, predicate);
         }
@@ -724,7 +714,7 @@ namespace Shoko.Server.Repositories
                 return new Dictionary<int, LanguageStat>();
             }
 
-            string predicate = " IN (" + String.Join(",", aIDs) + ") ";
+            string predicate = " IN (" + string.Join(",", aIDs) + ") ";
 
             return GetSubtitleLanguageStatsByAnimeResults(session, predicate);
         }

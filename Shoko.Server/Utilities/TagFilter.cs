@@ -1,12 +1,36 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Commons.Extensions;
+
+// ReSharper disable StringLiteralTypo
+// ReSharper disable StaticMemberInGenericType
+// ReSharper disable IdentifierTypo
 
 namespace Shoko.Server
 {
     public static class TagFilter
     {
-        public static readonly HashSet<string> TagBlacklistAniDBHelpers = new HashSet<string>
+        public static readonly TagFilter<string> String = new(s => s.ToLowerInvariant(), s => s.ToLowerInvariant());
+
+        [Flags]
+        public enum Filter : long
+        {
+            None = 0,
+            AnidbInternal = 1 << 0,
+            ArtStyle = 1 << 1,
+            Source = 1 << 2,
+            Misc = 1 << 3,
+            Plot = 1 << 4,
+            Setting = 1 << 5,
+            Programming = 1 << 6,
+            Genre = 1 << 7,
+
+            // This should always be last, if we get that many categories, then we should redesign this
+            Invert = 1 << 31,
+        }
+
+        public static readonly HashSet<string> TagBlacklistAniDBHelpers = new()
         {
             // AniDB tags that don't help with anything
             "asia",
@@ -36,6 +60,7 @@ namespace Shoko.Server
             "motifs",
             "nevada",
             "origin",
+            "original work",
             "place",
             "season",
             "setting",
@@ -51,8 +76,8 @@ namespace Shoko.Server
             "ungrouped",
             "unsorted"
         };
-        
-        public static readonly HashSet<string> TagBlacklistGenre = new HashSet<string>
+
+        public static readonly HashSet<string> TagBlacklistGenre = new()
         {
             // tags that generally define what a series is about or the theme of it
             "18 restricted",
@@ -72,6 +97,7 @@ namespace Shoko.Server
             "hard science fiction",
             "heroic fantasy",
             "high fantasy",
+            "horror",
             "isekai",
             "kodomo",
             "merchandising show",
@@ -85,12 +111,12 @@ namespace Shoko.Server
             "school life",
             "science fiction",
             "seinen",
-            "shoujo", 
+            "shoujo",
             "shounen",
             "soft science fiction",
-            "speculative fiction", 
+            "speculative fiction",
             "sports",
-            "steampunk", 
+            "steampunk",
             "strategy",
             "superhero",
             "survival",
@@ -99,7 +125,7 @@ namespace Shoko.Server
             "violence",
         };
 
-        public static readonly HashSet<string> TagBlacklistProgramming = new HashSet<string>
+        public static readonly HashSet<string> TagBlacklistProgramming = new()
         {
             // Tags that involve how or where it aired, or any awards it got
             "animax taishou",
@@ -131,7 +157,7 @@ namespace Shoko.Server
             "wakate animator ikusei project",
         };
 
-        public static readonly HashSet<string> TagBlacklistSetting = new HashSet<string>
+        public static readonly HashSet<string> TagBlacklistSetting = new()
         {
             // Tags that involve the setting, a time or place in which the story occurs.
             // I've seen more that fall under this that AniDB hasn't listed
@@ -262,7 +288,7 @@ namespace Shoko.Server
             "yokohama",
         };
 
-        public static readonly HashSet<string> TagBlackListSource = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListSource = new()
         {
             // tags containing the source of series
             "4-koma",
@@ -291,7 +317,7 @@ namespace Shoko.Server
             "visual novel"
         };
 
-        public static readonly HashSet<string> TagBlackListArtStyle = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListArtStyle = new()
         {
             // tags that focus on art style
             "3d cg animation",
@@ -333,7 +359,7 @@ namespace Shoko.Server
             "widescreen transition",
         };
 
-        public static readonly HashSet<string> TagBlackListUsefulHelpers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListUsefulHelpers = new()
         {
             // tags that focus on episode attributes
             "crossover episode",
@@ -353,7 +379,7 @@ namespace Shoko.Server
             "subtle op ed sequence change"
         };
 
-        public static readonly HashSet<string> TagBlackListPlotSpoilers = new HashSet<string>
+        public static readonly HashSet<string> TagBlackListPlotSpoilers = new()
         {
             // tags that could contain story-line spoilers
             "branching story",
@@ -378,23 +404,6 @@ namespace Shoko.Server
             "unresolved romance"
         };
 
-        [Flags]
-        public enum Filter : long
-        {
-            None          = 0,
-            AnidbInternal = 1 << 0,
-            ArtStyle      = 1 << 1,
-            Source        = 1 << 2,
-            Misc          = 1 << 3,
-            Plot          = 1 << 4,
-            Setting       = 1 << 5,
-            Programming   = 1 << 6,
-            Genre         = 1 << 7,
-            // This should always be last, if we get that many categories, then we should redesign this
-            Invert        = 1 << 31,
-        }
-
-
         /// <summary>
         /// Filters tags based on settings specified in flags
         ///        0b00000001 : Hide AniDB Internal Tags
@@ -404,81 +413,13 @@ namespace Shoko.Server
         ///        0b00010000 : Hide Plot Spoiler Tags
         ///        0b00100000 : Hide Settings Tags
         /// </summary>
-        /// <param name="strings">A list of strings [ "meta tags", "elements", "comedy" ]</param>
+        /// <param name="tag">the tag to check</param>
         /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
-        /// <param name="addTags">is it okay to add tags to the list</param>
-        /// <returns>the original list with items removed based on rules provided</returns>
-        public static List<string> ProcessTags(Filter flags, List<string> strings, bool addTags = true, bool invert = false)
-        {
-            if (strings.Count == 0) return strings;
-
-            List<string> toAdd = new List<string>();
-
-            if (strings.Count == 1)
-            {
-                if (IsTagBlackListed(strings[0], flags, ref toAdd) ^ invert) strings.Clear();
-                return strings;
-            }
-
-            List<string> toRemove = new List<string>((int)Math.Ceiling(strings.Count / 2D));
-
-            var stringsSet = new HashSet<string>(strings);
-            strings.AsParallel().ForAll(a => MarkTagsForRemoval(a, flags, ref toRemove, ref toAdd));
-
-            foreach (var a in toRemove) if (stringsSet.Contains(a)) strings.Remove(a);
-
-            if (addTags) toAdd.ForEach(strings.Add);
-
-            return strings;
-        }
-
-        private static void MarkTagsForRemoval(string a, Filter flags, ref List<string> toRemove, ref List<string> toAdd)
-        {
-            if (IsTagBlackListed(a, flags, ref toAdd))
-            {
-                lock (toRemove)
-                {
-                    toRemove.Add(a);
-                }
-            }
-            else
-            {
-                if (!flags.HasFlag(Filter.Setting))
-                {
-                    if (a.Equals("alternative present"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add("present");
-                        }
-                    } else if (a.Equals("alternative past"))
-                    {
-                        lock (toRemove)
-                        {
-                            toRemove.Add("past");
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Filters tags based on settings specified in flags
-        ///        0b00000001 : Hide AniDB Internal Tags
-        ///        0b00000010 : Hide Art Style Tags
-        ///        0b00000100 : Hide Source TransactionHelper.Work Tags
-        ///        0b00001000 : Hide Useful Miscellaneous Tags
-        ///        0b00010000 : Hide Plot Spoiler Tags
-        ///        0b00100000 : Hide Settings Tags
-        /// </summary>
-        /// <param name="a">the tag to check</param>
-        /// <param name="flags">the <see cref="TagFilter.Filter"/> flags</param>
-        /// <param name="toAdd">tags to add</param>
         /// <returns>true if the tag would be removed</returns>
-        public static bool IsTagBlackListed(string a, Filter flags, ref List<string> toAdd)
+        public static bool IsTagBlackListed(string tag, Filter flags)
         {
-            string tag = a.Trim().ToLowerInvariant();
-            bool inverted = (flags & Filter.Invert) != 0;
+            tag = tag.Trim().ToLowerInvariant();
+            bool inverted = flags.HasFlag(Filter.Invert);
             if (flags.HasFlag(Filter.ArtStyle))
             {
                 if (TagBlackListArtStyle.Contains(tag)) return inverted ^ true;
@@ -488,17 +429,8 @@ namespace Shoko.Server
 
             if (flags.HasFlag(Filter.Source)) // if source excluded
             {
+                if (tag.Equals("original work")) return true;
                 if (TagBlackListSource.Contains(tag)) return inverted ^ true;
-            }
-            else
-            {
-                if (tag.Equals("new"))
-                {
-                    toAdd.Add("Original Work");
-                    return inverted ^ true;
-                }
-
-                if (tag.Equals("original work")) return inverted ^ true;
             }
 
             if (flags.HasFlag(Filter.Misc))
@@ -520,13 +452,14 @@ namespace Shoko.Server
             {
                 if (TagBlacklistSetting.Contains(tag)) return inverted ^ true;
                 if (tag.EndsWith("period")) return inverted ^ true;
+                if (tag.EndsWith("era")) return inverted ^ true;
             }
-            
+
             if (flags.HasFlag(Filter.Programming))
             {
                 if (TagBlacklistProgramming.Contains(tag)) return inverted ^ true;
             }
-            
+
             if (flags.HasFlag(Filter.Genre))
             {
                 if (TagBlacklistGenre.Contains(tag)) return inverted ^ true;
@@ -564,6 +497,109 @@ namespace Shoko.Server
             }
 
             return inverted ^ false;
+        }
+    }
+
+    public class TagFilter<T> where T : class
+    {
+        private readonly Dictionary<string, T> _tagRenameDictionary = new(1);
+        private readonly Dictionary<string, T> _tagReplacementDictionary = new(1);
+        private readonly Func<T, string> _nameSelector;
+
+        public TagFilter(Func<string, T> lookup, Func<T, string> nameSelector)
+        {
+            _nameSelector = nameSelector;
+
+            T GetTag(string name) => lookup(name) ?? (typeof(T) == typeof(string) ? name as T : (T)Activator.CreateInstance(typeof(T), name));
+
+            var existing = GetTag("original work");
+            _tagRenameDictionary.Add("new", existing);
+
+            existing = GetTag("present");
+            _tagReplacementDictionary.Add("alternative present", existing);
+
+            existing = GetTag("past");
+            _tagReplacementDictionary.Add("alternative past", existing);
+        }
+
+        /// <summary>
+        /// T needs to have a T(string name) constructor
+        /// </summary>
+        /// <param name="flags"></param>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public List<T> ProcessTags(TagFilter.Filter flags, IEnumerable<T> input)
+        {
+            var tags = input.DistinctBy(_nameSelector).ToList();
+            ProcessModifications(flags, tags);
+
+            return tags;
+        }
+
+        private void ProcessModifications(TagFilter.Filter flags, List<T> tags)
+        {
+            var toAdd = new HashSet<T>(1);
+            var toRemove = new HashSet<T>((int)Math.Ceiling(tags.Count / 2D));
+            if (tags.Count > 1)
+                tags.AsParallel().ForAll(tag => MarkTagsForRemoval(tag, flags, toRemove, toAdd));
+            else if (tags.Count == 1)
+                MarkTagsForRemoval(tags[0], flags, toRemove, toAdd);
+
+            foreach (var tag in toRemove)
+            {
+                // Skip if we want to both remove and add the tag
+                if (toAdd.Contains(tag))
+                    continue;
+
+                tags.Remove(tag);
+            }
+            
+            tags.AddRange(toAdd.Where(tag => !tags.Contains(tag) && !toRemove.Contains(tag)));
+
+            var nameToTagDictionary = tags.ToDictionary(_nameSelector, t => t);
+
+            // Add the "original work" tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
+            if (flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert) && !nameToTagDictionary.Any(tag => TagFilter.TagBlackListSource.Contains(tag.Key)))
+            {
+                // cheap way to lookup original work tag
+                if (_tagRenameDictionary.TryGetValue("new", out var existing)) tags.Add(existing);
+            }
+        }
+
+        private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, HashSet<T> toRemove, HashSet<T> toAdd)
+        {
+            var sourceName = _nameSelector(sourceTag);
+            string tag = sourceName.Trim().ToLowerInvariant();
+            if (TagFilter.IsTagBlackListed(tag, flags))
+            {
+                lock (toRemove)
+                {
+                    toRemove.Add(sourceTag);
+                }
+            }
+            else
+            {
+                if (_tagRenameDictionary.TryGetValue(tag, out var newTag))
+                {
+                    lock (toRemove)
+                    {
+                        toRemove.Add(sourceTag);
+                    }
+
+                    lock (toAdd)
+                    {
+                        toAdd.Add(newTag);
+                    }
+                }
+
+                if (_tagReplacementDictionary.TryGetValue(tag, out newTag))
+                {
+                    lock (toRemove)
+                    {
+                        toRemove.Add(newTag);
+                    }
+                }
+            }
         }
     }
 }

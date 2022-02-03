@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -10,8 +10,14 @@ using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Microsoft.Win32;
 using NHibernate;
+using NHibernate.AdoNet;
+using NHibernate.Cfg;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
@@ -20,12 +26,12 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 80;
+        public int RequiredVersion { get; } = 86;
 
         public void BackupDatabase(string fullfilename)
         {
             fullfilename = Path.GetFileName(fullfilename) + ".bak";
-            //TODO We cannot write the backup anywere, because
+            //TODO We cannot write the backup anywhere, because
             //1) The server could be elsewhere,
             //2) The SqlServer running account should have read write access to our backup dir which is nono
             // So we backup in the default SQL SERVER BACKUP DIRECTORY.
@@ -83,10 +89,23 @@ namespace Shoko.Server.Databases
                 };persist security info=True;user id={
                     ServerSettings.Instance.Database.Username
                 };password={ServerSettings.Instance.Database.Password}";
+            // SQL Server batching on Mono is busted atm.
+            // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
+            // but waiting for release
             return Fluently.Configure()
                 .Database(MsSqlConfiguration.MsSql2008.ConnectionString(connectionstring))
-                .Mappings(m =>
-                    m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
+                {
+                    // SQL Server batching on Mono is busted atm.
+                    // Fixed in https://github.com/mono/corefx/commit/6e65509a17da898933705899677c22eae437d68a
+                    // but waiting for release. This will negatively affect performance, but there's not much choice
+                    if (!Utils.IsRunningOnLinuxOrMac()) return;
+                    prop.Batcher<NonBatchingBatcherFactory>();
+                    prop.BatchSize = 0;
+                    // uncomment this for SQL output
+                    //prop.LogSqlInConsole = true;
+                }))
                 .BuildSessionFactory();
         }
 
@@ -122,7 +141,7 @@ namespace Shoko.Server.Databases
             db.Create();
         }
 
-        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
+        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
         {
             new DatabaseCommand(0, 1,
                 "CREATE TABLE [Versions]( [VersionsID] [int] IDENTITY(1,1) NOT NULL, [VersionType] [varchar](100) NOT NULL, [VersionValue] [varchar](100) NOT NULL,  CONSTRAINT [PK_Versions] PRIMARY KEY CLUSTERED  ( [VersionsID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
@@ -551,7 +570,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(65, 2, "ALTER TABLE TvDB_Series ADD Rating INT NULL"),
             new DatabaseCommand(66, 1, "ALTER TABLE AniDB_Episode ADD Description nvarchar(max) NOT NULL DEFAULT('')"),
             new DatabaseCommand(66, 2, DatabaseFixes.FixCharactersWithGrave),
-            new DatabaseCommand(67, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(67, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(68, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(68, 2, Importer.UpdateAllStats),
             new DatabaseCommand(69, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
@@ -586,6 +605,13 @@ namespace Shoko.Server.Databases
             // DatabaseFixes.MigrateTvDBLinks_v2_to_V3() drops the CrossRef_AniDB_TvDBV2 table. We do it after init to migrate
             new DatabaseCommand(79, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(80, 1, DatabaseFixes.RegenTvDBMatches),
+            new DatabaseCommand(81, 1, "ALTER TABLE AnimeSeries ADD UpdatedAt datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(82, 1, DatabaseFixes.MigrateAniDBToNet),
+            new DatabaseCommand(83, 1, DropVideoLocalMediaColumns),
+            new DatabaseCommand(84, 1, "DROP INDEX IF EXISTS UIX_CrossRef_AniDB_MAL_MALID ON CrossRef_AniDB_MAL;"),
+            new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
+            new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
+            new DatabaseCommand(86, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
@@ -597,6 +623,39 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(
                 "CREATE INDEX IX_Versions_VersionType ON Versions(VersionType,VersionValue,VersionRevision);"),
         };
+
+        private static void DropVideoLocalMediaColumns()
+        {
+            string[] columns =
+            {
+                "VideoCodec", "VideoBitrate", "VideoBitDepth", "VideoFrameRate", "VideoResolution", "AudioCodec", "AudioBitrate",
+                "Duration"
+            };
+            columns.ForEach(a => DropColumnWithDefaultConstraint("VideoLocal", a));
+        }
+
+        private static void DropColumnWithDefaultConstraint(string table, string column)
+        {
+            using (var session = DatabaseFactory.SessionFactory.OpenStatelessSession())
+            {
+                using (var trans = session.BeginTransaction())
+                {
+                    string query = $@"DECLARE @ConstraintName nvarchar(200)
+SELECT @ConstraintName = Name FROM SYS.DEFAULT_CONSTRAINTS
+WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
+AND PARENT_COLUMN_ID = (SELECT column_id FROM sys.columns
+                        WHERE NAME = N'{column}'
+                        AND object_id = OBJECT_ID(N'{table}'))
+IF @ConstraintName IS NOT NULL
+EXEC('ALTER TABLE {table} DROP CONSTRAINT ' + @ConstraintName)";
+                    session.CreateSQLQuery(query).ExecuteUpdate();
+
+                    query = $@"ALTER TABLE {table} DROP COLUMN {column}";
+                    session.CreateSQLQuery(query).ExecuteUpdate();
+                    trans.Commit();
+                }
+            }
+        }
 
         protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
         {
@@ -662,12 +721,12 @@ namespace Shoko.Server.Databases
 
         public void CreateAndUpdateSchema()
         {
-            ConnectionWrapper(GetConnectionString(), (myConn) =>
+            ConnectionWrapper(GetConnectionString(), myConn =>
             {
                 bool create = (ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") == 0);
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 bool update = (ExecuteScalar(myConn,
@@ -681,7 +740,7 @@ namespace Shoko.Server.Databases
                 PreFillVersions(createTables.Union(patchCommands));
                 if (create)
                     ExecuteWithException(myConn, createTables);
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });

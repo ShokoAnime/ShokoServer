@@ -6,7 +6,7 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_GetMyListFileInfo : AniDBUDPCommand, IAniDBUDPCommand
     {
-        private int fileID = 0;
+        private int fileID;
 
         public int FileID
         {
@@ -16,10 +16,10 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_GetMyListFileInfo" + FileID.ToString();
+            return "AniDBCommand_GetMyListFileInfo" + FileID;
         }
 
-        private Raw_AniDB_MyListFile myListFile = null;
+        private Raw_AniDB_MyListFile myListFile;
 
         public Raw_AniDB_MyListFile MyListFile
         {
@@ -27,12 +27,12 @@ namespace AniDBAPI.Commands
             set { myListFile = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingMyListFileInfo;
+            return AniDBUDPResponseCode.GettingMyListFileInfo;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -40,11 +40,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchMyListFile;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchMyListFile;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetMyListFileInfo.Process: Response: {0}", socketResponse);
 
@@ -58,13 +58,13 @@ namespace AniDBAPI.Commands
                 {
                     myListFile = new Raw_AniDB_MyListFile(socketResponse);
                     //BaseConfig.MyAnimeLog.Write(myListFile.ToString());
-                    return enHelperActivityType.GotMyListFileInfo;
+                    return AniDBUDPResponseCode.GotMyListFileInfo;
                 }
-                case "321": return enHelperActivityType.NoSuchMyListFile;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "321": return AniDBUDPResponseCode.NoSuchMyListFile;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchMyListFile;
+            return AniDBUDPResponseCode.NoSuchMyListFile;
         }
 
         public AniDBCommand_GetMyListFileInfo()
@@ -74,8 +74,8 @@ namespace AniDBAPI.Commands
 
         public void Init(int fileId)
         {
-            this.fileID = fileId;
-            commandText = "MYLIST fid=" + fileID.ToString();
+            fileID = fileId;
+            commandText = "MYLIST fid=" + fileID;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetMyListFileInfo.Process: Request: {0}", commandText);
 

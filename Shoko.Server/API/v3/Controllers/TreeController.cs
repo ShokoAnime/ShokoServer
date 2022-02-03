@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Models.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     /// <summary>
     /// This Controller is intended to provide the tree. An example would be "api/v3/filter/4/group/12/series".
@@ -73,11 +75,23 @@ namespace Shoko.Server.API.v3
 
             return f.SeriesIds[User.JMMUserID].Select(id => RepoFactory.AnimeSeries.GetByID(id))
                 .Where(ser => ser?.AnimeGroupID == groupID).Select(ser => new Series(HttpContext, ser)).OrderBy(a =>
-                    Series.GetAniDBInfo(HttpContext, RepoFactory.AniDB_Anime.GetByAnimeID(a.IDs.ID)))
+                    Series.GetAniDBInfo(HttpContext, RepoFactory.AniDB_Anime.GetByAnimeID(a.IDs.ID)).AirDate)
                 .ToList();
         }
         
-        
+        /// <summary>
+        /// Get Episodes for Series with seriesID. Filter or group info is irrelevant at this level
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("Series/{seriesID}/Episode")]
+        public ActionResult<List<Episode>> GetEpisodes(int seriesID, bool includeMissing = false)
+        {
+            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (ser == null) return BadRequest("No Series with ID");
+            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
+            return ser.GetAnimeEpisodes().Select(a => new Episode(HttpContext, a))
+                .Where(a => a.Size > 0 || includeMissing).ToList();
+        }
     }
     
     

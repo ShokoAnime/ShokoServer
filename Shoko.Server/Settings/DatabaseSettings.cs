@@ -1,6 +1,6 @@
-using System;
 using System.IO;
 using Newtonsoft.Json;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings
 {

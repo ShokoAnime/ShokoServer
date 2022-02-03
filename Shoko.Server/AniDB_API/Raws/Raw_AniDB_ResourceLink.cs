@@ -26,13 +26,9 @@ namespace AniDBAPI
 
         #endregion
 
-        public Raw_AniDB_ResourceLink()
-        {
-        }
-
         public void ProcessFromHTTPResult(XmlNode node, int anid)
         {
-            this.AnimeID = anid;
+            AnimeID = anid;
 
             bool result = int.TryParse(AniDBHTTPHelper.TryGetAttribute(node, "type"), out int typeInt);
             if (!result) return;

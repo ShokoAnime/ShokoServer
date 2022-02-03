@@ -1,14 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.Cached;
-using NHibernate;
-using NHibernate.Criterion;
-using NutzCode.InMemoryIndex;
-using Shoko.Commons.Collections;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories
 {
@@ -16,19 +7,8 @@ namespace Shoko.Server.Repositories
     {
         private PocoIndex<int, AnimeStaff, int> AniDBIDs;
 
-        private AnimeStaffRepository()
-        {
-        }
-
         public override void RegenerateDb()
         {
-        }
-
-        public static AnimeStaffRepository Create()
-        {
-            var repo = new AnimeStaffRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(AnimeStaff entity)

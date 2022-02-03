@@ -24,17 +24,6 @@ namespace Shoko.Server.Repositories.Cached
             return entity.TvDB_ImagePosterID;
         }
 
-        private TvDB_ImagePosterRepository()
-        {
-        }
-
-        public static TvDB_ImagePosterRepository Create()
-        {
-            var repo = new TvDB_ImagePosterRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public TvDB_ImagePoster GetByTvDBID(int id)
         {
             lock (Cache)

@@ -1,5 +1,4 @@
 ﻿using System.Runtime.Serialization;
-using Shoko.Models;
 using Shoko.Models.Client;
 
 namespace Shoko.Server.Providers.TraktTV.Contracts

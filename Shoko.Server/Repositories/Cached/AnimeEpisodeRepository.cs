@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
-using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
@@ -19,20 +16,13 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_AnimeEpisode, int> Series;
         private PocoIndex<int, SVR_AnimeEpisode, int> EpisodeIDs;
 
-        private AnimeEpisodeRepository()
+        public AnimeEpisodeRepository()
         {
-            EndDeleteCallback = (cr) =>
+            EndDeleteCallback = cr =>
             {
                 RepoFactory.AnimeEpisode_User.Delete(
                     RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
             };
-        }
-
-        public static AnimeEpisodeRepository Create()
-        {
-            var repo = new AnimeEpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_AnimeEpisode entity)
@@ -49,27 +39,6 @@ namespace Shoko.Server.Repositories.Cached
         public override void RegenerateDb()
         {
         }
-
-
-        private void UpdatePlexContract(SVR_AnimeEpisode e)
-        {
-            e.PlexContract = Helper.GenerateVideoFromAnimeEpisode(e);
-        }
-
-        public override void Save(SVR_AnimeEpisode obj)
-        {
-            lock (obj)
-            {
-                if (obj.AnimeEpisodeID == 0)
-                {
-                    obj.PlexContract = null;
-                    base.Save(obj);
-                }
-                UpdatePlexContract(obj);
-                base.Save(obj);
-            }
-        }
-
 
         public List<SVR_AnimeEpisode> GetBySeriesID(int seriesid)
         {
@@ -97,13 +66,13 @@ namespace Shoko.Server.Repositories.Cached
         /// <returns>the AnimeEpisode given the file information</returns>
         public SVR_AnimeEpisode GetByFilename(string name)
         {
+            if (string.IsNullOrEmpty(name)) return null;
             return RepoFactory.VideoLocalPlace.GetAll()
-                .Where(v => name.Equals(v.FilePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
+                .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                     StringComparison.InvariantCultureIgnoreCase))
-                .Where(a => a.VideoLocal != null)
-                .Select(a => a.VideoLocal.GetAnimeEpisodes())
-                .FirstOrDefault()
-                ?.FirstOrDefault();
+                .Where(a => a?.VideoLocal != null)
+                .SelectMany(a => a.VideoLocal.GetAnimeEpisodes())
+                .FirstOrDefault();
         }
 
 

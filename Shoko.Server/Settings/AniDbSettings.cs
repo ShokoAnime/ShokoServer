@@ -11,7 +11,7 @@ namespace Shoko.Server.Settings
         public string Password { get; set; }
 
         [Required(AllowEmptyStrings = false)]
-        public string ServerAddress { get; set; } = "api.anidb.info";
+        public string ServerAddress { get; set; } = "api.anidb.net";
 
         public ushort ServerPort { get; set; } = 9000;
 
@@ -31,7 +31,7 @@ namespace Shoko.Server.Settings
 
         public bool MyList_AddFiles { get; set; } = true;
 
-        public AniDBFile_State MyList_StorageState { get; set; } = AniDBFile_State.Disk;
+        public AniDBFile_State MyList_StorageState { get; set; } = AniDBFile_State.HDD;
 
         public AniDBFileDeleteType MyList_DeleteType { get; set; } = AniDBFileDeleteType.MarkUnknown;
 

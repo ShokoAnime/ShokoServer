@@ -1,6 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Models.Server;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
 {
@@ -20,7 +19,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.Id).Not.Nullable();
             Map(x => x.Language);
             Map(x => x.SeriesID).Not.Nullable();
-            Map(x => x.ThumbnailPath);
             Map(x => x.VignettePath);
         }
     }

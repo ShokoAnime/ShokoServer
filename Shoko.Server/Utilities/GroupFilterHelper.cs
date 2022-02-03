@@ -2,11 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using FluentNHibernate.MappingModel.Collections;
-using Shoko.Models.Server;
-using NHibernate;
-using NHibernate.Persister.Entity;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.Models;

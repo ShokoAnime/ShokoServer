@@ -1,23 +1,13 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class AniDB_Anime_SimilarRepository : BaseDirectRepository<AniDB_Anime_Similar, int>
     {
-        private AniDB_Anime_SimilarRepository()
-        {
-        }
-
-        public static AniDB_Anime_SimilarRepository Create()
-        {
-            return new AniDB_Anime_SimilarRepository();
-        }
-
         public AniDB_Anime_Similar GetByAnimeIDAndSimilarID(int animeid, int similaranimeid)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

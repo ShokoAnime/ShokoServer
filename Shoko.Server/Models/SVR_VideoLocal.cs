@@ -3,23 +3,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Web.Script.Serialization;
+using Newtonsoft.Json;
 using NLog;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Utils;
 using Shoko.Models.Client;
 using Shoko.Models.Interfaces;
-using Shoko.Models.PlexAndKodi;
+using Shoko.Models.MediaInfo;
 using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.LZ4;
-using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
+using Shoko.Server.Utilities.MediaInfoLib;
+using Media = Shoko.Models.PlexAndKodi.Media;
+using MediaContainer = Shoko.Models.MediaInfo.MediaContainer;
 
 namespace Shoko.Server.Models
 {
@@ -38,21 +38,31 @@ namespace Shoko.Server.Models
 
         public int MyListID { get; set; }
 
-        [ScriptIgnore]
+        public bool IsManualLink => GetAniDBFile() == null;
+
+        /// <summary>
+        /// Duration in ms. (MediaInfo model has it in seconds
+        /// </summary>
+        public long Duration => (long) (Media?.GeneralStream?.Duration * 1000 ?? 0);
+
+        public string VideoResolution => Media?.VideoStream == null ? "0x0" : $"{Media.VideoStream.Width}x{Media.VideoStream.Height}";
+
         public string Info => string.IsNullOrEmpty(FileName) ? string.Empty : FileName;
 
 
-        public const int MEDIA_VERSION = 3;
+        public const int MEDIA_VERSION = 4;
 
 
-        internal Media _media;
+        private MediaContainer _media { get; set; }
 
-        public virtual Media Media
+        public virtual MediaContainer Media
         {
             get
             {
-                if ((_media == null) && (MediaBlob != null) && (MediaBlob.Length > 0) && (MediaSize > 0))
-                    _media = CompressionHelper.DeserializeObject<Media>(MediaBlob, MediaSize);
+                if (MediaVersion == MEDIA_VERSION && (_media?.GeneralStream?.Duration ?? 0) == 0 && MediaBlob != null &&
+                    MediaBlob.Length > 0 && MediaSize > 0)
+                    _media = CompressionHelper.DeserializeObject<MediaContainer>(MediaBlob, MediaSize,
+                        new JsonConverter[] {new StreamJsonConverter()});
                 return _media;
             }
             set
@@ -89,7 +99,6 @@ namespace Shoko.Server.Models
             return sb.ToString();
         }
 
-        [ScriptIgnore]
         public string ED2KHash
         {
             get => Hash;
@@ -161,36 +170,31 @@ namespace Shoko.Server.Models
             }
         }
 
-        public static IFile ResolveFile(string fullname)
+        public static bool ResolveFile(string fullname)
         {
-            if (string.IsNullOrEmpty(fullname)) return null;
+            if (string.IsNullOrEmpty(fullname)) return false;
             Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(fullname);
-            IFileSystem fs = tup?.Item1?.FileSystem;
-            if (fs == null)
-                return null;
+            if (tup.Item1 == null)
+                return false;
             try
             {
-                FileSystemResult<IObject> fobj = fs.Resolve(fullname);
-                if (fobj == null || !fobj.IsOk || fobj.Result is IDirectory) return null;
-                return fobj.Result as IFile;
+                return File.Exists(fullname);
             }
             catch (Exception)
             {
                 logger.Warn("File with Exception: " + fullname);
-                return null;
+                return false;
             }
         }
 
-        public IFile GetBestFileLink()
+        public FileInfo GetBestFileLink()
         {
-            IFile file = null;
             foreach (SVR_VideoLocal_Place p in Places.OrderBy(a => a.ImportFolderType))
             {
-                file = ResolveFile(p.FullServerPath);
-                if (file != null)
-                    break;
+                if (ResolveFile(p.FullServerPath))
+                    return new FileInfo(p.FullServerPath);
             }
-            return file;
+            return null;
         }
 
         public SVR_VideoLocal_Place GetBestVideoLocalPlace(bool resolve = false)
@@ -400,7 +404,7 @@ namespace Shoko.Server.Models
                 HashSource = HashSource,
                 IsIgnored = IsIgnored,
                 IsVariation = IsVariation,
-                Duration = Duration,
+                Duration = (long) (Media?.GeneralStream.Duration ?? 0),
                 MD5 = MD5,
                 SHA1 = SHA1,
                 VideoLocalID = VideoLocalID,
@@ -419,7 +423,16 @@ namespace Shoko.Server.Models
                 cl.ResumePosition = userRecord.ResumePosition;
             }
 
-            cl.Media = GetMediaFromUser(userID);
+            try
+            {
+
+                if (Media?.GeneralStream != null) cl.Media = new Media(VideoLocalID, Media);
+            }
+            catch (Exception e)
+            {
+                logger.Error($"There was an error generating a Desktop client contract: {e}");
+            }
+
             return cl;
         }
 
@@ -433,57 +446,6 @@ namespace Shoko.Server.Models
             if (!string.IsNullOrEmpty(FileName)) return false;
             if (FileSize > 0) return false;
             return true;
-        }
-
-        private static readonly Regex UrlSafe = new Regex("[ \\$^`:<>\\[\\]\\{\\}\"“\\+%@/;=\\?\\\\\\^\\|~‘,]",
-            RegexOptions.Compiled);
-
-        private static readonly Regex UrlSafe2 = new Regex("[^0-9a-zA-Z_\\.\\s]", RegexOptions.Compiled);
-
-        public Media GetMediaFromUser(int userID, bool populateIfNull = false)
-        {
-            if (Media == null && populateIfNull)
-            {
-                SVR_VideoLocal_Place pl = GetBestVideoLocalPlace();
-                if (pl?.FullServerPath != null)
-                {
-                    IFileSystem f = pl.ImportFolder.FileSystem;
-                    FileSystemResult<IObject> src = f?.Resolve(pl.FullServerPath);
-                    if (src != null && src.IsOk && src.Result is IFile)
-                        if (pl.RefreshMediaInfo())
-                            RepoFactory.VideoLocal.Save(pl.VideoLocal, true);
-                }
-            }
-            if (Media == null) return null;
-            var n = (Media) Media.Clone();
-            if (n.Parts == null) return n;
-            foreach (Part p in n.Parts)
-            {
-                string name = UrlSafe.Replace(Path.GetFileName(FileName), " ")
-                    .Replace("  ", " ")
-                    .Replace("  ", " ")
-                    .Trim();
-                name = UrlSafe2.Replace(name, string.Empty)
-                    .Trim()
-                    .Replace("..", ".")
-                    .Replace("..", ".")
-                    .Replace("__", "_")
-                    .Replace("__", "_")
-                    .Replace(" ", "_")
-                    .Replace("_.", ".");
-                while (name.StartsWith("_"))
-                    name = name.Substring(1);
-                while (name.StartsWith("."))
-                    name = name.Substring(1);
-                p.Key = ((IProvider) null).ReplaceSchemeHost(
-                    ((IProvider) null).ConstructVideoLocalStream(userID, VideoLocalID, name, false));
-                if (p.Streams == null) continue;
-                foreach (Stream s in p.Streams.Where(a => a.File != null && a.StreamType == 3).ToList())
-                    s.Key =
-                        ((IProvider) null).ReplaceSchemeHost(
-                            ((IProvider) null).ConstructFileStream(userID, s.File, false));
-            }
-            return n;
         }
 
         public CL_VideoDetailed ToClientDetailed(int userID)
@@ -526,13 +488,14 @@ namespace Shoko.Server.Models
             }
             if (userRecord != null)
                 cl.VideoLocal_ResumePosition = userRecord.ResumePosition;
-            cl.VideoInfo_AudioBitrate = AudioBitrate;
-            cl.VideoInfo_AudioCodec = AudioCodec;
+            cl.VideoInfo_AudioBitrate = Media?.AudioStreams.FirstOrDefault()?.BitRate.ToString();
+            cl.VideoInfo_AudioCodec =
+                LegacyMediaUtils.TranslateCodec(Media?.AudioStreams.FirstOrDefault());
             cl.VideoInfo_Duration = Duration;
-            cl.VideoInfo_VideoBitrate = VideoBitrate;
-            cl.VideoInfo_VideoBitDepth = VideoBitDepth;
-            cl.VideoInfo_VideoCodec = VideoCodec;
-            cl.VideoInfo_VideoFrameRate = VideoFrameRate;
+            cl.VideoInfo_VideoBitrate = (Media?.VideoStream?.BitRate ?? 0).ToString();
+            cl.VideoInfo_VideoBitDepth = (Media?.VideoStream?.BitDepth ?? 0).ToString();
+            cl.VideoInfo_VideoCodec = LegacyMediaUtils.TranslateCodec(Media?.VideoStream);
+            cl.VideoInfo_VideoFrameRate = Media?.VideoStream?.FrameRate.ToString();
             cl.VideoInfo_VideoResolution = VideoResolution;
 
             // AniDB File
@@ -590,7 +553,7 @@ namespace Shoko.Server.Models
 
             AniDB_ReleaseGroup relGroup = ReleaseGroup; // to prevent multiple db calls
             cl.ReleaseGroup = relGroup;
-            cl.Media = GetMediaFromUser(userID);
+            if (Media != null) cl.Media = new Media(VideoLocalID, Media);
             return cl;
         }
 

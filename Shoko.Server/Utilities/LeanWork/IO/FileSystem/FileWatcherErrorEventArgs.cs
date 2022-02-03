@@ -7,6 +7,6 @@ public class FileWatcherErrorEventArgs : HandledEventArgs
 
     public FileWatcherErrorEventArgs(Exception exception)
     {
-        this.Error = exception;
+        Error = exception;
     }
 }

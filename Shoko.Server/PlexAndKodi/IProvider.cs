@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Shoko.Models.PlexAndKodi;
-using Nancy;
 
 namespace Shoko.Server.PlexAndKodi
 {

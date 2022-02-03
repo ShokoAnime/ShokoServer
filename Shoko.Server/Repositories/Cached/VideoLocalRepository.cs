@@ -1,15 +1,20 @@
-﻿using System;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FluentNHibernate.Utils;
-using Shoko.Models.Server;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Server.Databases;
-using Shoko.Server.Models;
-using Shoko.Server.Extensions;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
+using Shoko.Commons.Utils;
+using Shoko.Models.Server;
+using Shoko.Server.Commands;
+using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -21,7 +26,7 @@ namespace Shoko.Server.Repositories.Cached
         private PocoIndex<int, SVR_VideoLocal, string> MD5;
         private PocoIndex<int, SVR_VideoLocal, int> Ignored;
 
-        private VideoLocalRepository()
+        public VideoLocalRepository()
         {
             DeleteWithOpenTransactionCallback = (ses, obj) =>
             {
@@ -29,13 +34,6 @@ namespace Shoko.Server.Repositories.Cached
                 RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses,
                     RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
             };
-        }
-
-        public static VideoLocalRepository Create()
-        {
-            var repo = new VideoLocalRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(SVR_VideoLocal entity)
@@ -67,13 +65,12 @@ namespace Shoko.Server.Repositories.Cached
 
         public override void RegenerateDb()
         {
+            ServerState.Instance.ServerStartingStatus = string.Format(
+                Resources.Database_Validating, nameof(VideoLocal), " Checking Media Info");
             int count = 0;
-            int max = 0;
-            ServerState.Instance.CurrentSetupStatus = string.Format(
-                Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name, " Generating Media Info");
+            int max;
             try
             {
-                count = 0;
                 var list = Cache.Values.Where(a => a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || a.MediaBlob == null)
                     .ToList();
                 max = list.Count;
@@ -81,18 +78,12 @@ namespace Shoko.Server.Repositories.Cached
                 list.ForEach(
                     a =>
                     {
-                        //Fix possible paths in filename
-                        if (!string.IsNullOrEmpty(a.FileName))
-                        {
-                            int b = a.FileName.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-                            if (b > 0)
-                                a.FileName = a.FileName.Substring(b + 1);
-                        }
-                        Save(a, false);
+                        CommandRequest_ReadMediaInfo cmd = new CommandRequest_ReadMediaInfo(a.VideoLocalID);
+                        cmd.Save();
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                            " Generating Media Info - " + count + "/" + max);
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, nameof(VideoLocal),
+                            " Queuing Media Info Commands - " + count + "/" + max);
                     });
             }
             catch
@@ -106,8 +97,8 @@ namespace Shoko.Server.Repositories.Cached
                     .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
                     .GroupBy(a => a.Hash)
                     .ToDictionary(g => g.Key, g => g.ToList());
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Empty Records");
                 using (var transaction = session.BeginTransaction())
                 {
@@ -118,20 +109,18 @@ namespace Shoko.Server.Repositories.Cached
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Empty Records - " + count + "/" + max);
                     }
                     transaction.Commit();
                 }
                 var toRemove = new List<SVR_VideoLocal>();
                 var comparer = new VideoLocalComparer();
-                count = 0;
-                max = locals.Keys.Count;
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                    " Cleaning Duplicate Records");
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, nameof(VideoLocal),
+                    " Checking for Duplicate Records");
 
                 foreach (string hash in locals.Keys)
                 {
@@ -154,21 +143,28 @@ namespace Shoko.Server.Repositories.Cached
                         }
                     }
                     toRemove.AddRange(froms);
-                    count++;
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
-                        " Cleaning Duplicate Records - " + count + "/" + max);
                 }
 
-                using (var transaction = session.BeginTransaction())
+                count = 0;
+                max = toRemove.Count;
+                foreach (SVR_VideoLocal[] batch in toRemove.Batch(50))
                 {
-                    foreach (SVR_VideoLocal remove in toRemove)
-                        DeleteWithOpenTransaction(session, remove);
-                    transaction.Commit();
+                    using (var transaction = session.BeginTransaction())
+                    {
+                        foreach (SVR_VideoLocal remove in batch)
+                        {
+                            count++;
+                            ServerState.Instance.ServerStartingStatus = string.Format(
+                                Resources.Database_Validating, nameof(VideoLocal),
+                                " Cleaning Duplicate Records - " + count + "/" + max);
+                            DeleteWithOpenTransaction(session, remove);
+                        }
+                        transaction.Commit();
+                    }
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, nameof(VideoLocal),
                     " Cleaning Fragmented Records");
                 using (var transaction = session.BeginTransaction())
                 {
@@ -182,8 +178,8 @@ namespace Shoko.Server.Repositories.Cached
                         // We don't need to update anything since they don't exist
                         RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(session, xref);
                         count++;
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, typeof(VideoLocal).Name,
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, nameof(VideoLocal),
                             " Cleaning Fragmented Records - " + count + "/" + max);
                     }
                     transaction.Commit();
@@ -202,7 +198,7 @@ namespace Shoko.Server.Repositories.Cached
 
         private void UpdateMediaContracts(SVR_VideoLocal obj)
         {
-            if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION || obj.Duration == 0)
+            if (obj.Media == null || obj.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
             {
                 SVR_VideoLocal_Place place = obj.GetBestVideoLocalPlace(true);
                 place?.RefreshMediaInfo();
@@ -283,7 +279,7 @@ namespace Shoko.Server.Repositories.Cached
             lock (Cache)
             {
                 return Cache.Values.Where(p => p.Places.Any(
-                        a => a.FilePath.Contains(fileName, StringComparison.InvariantCultureIgnoreCase)))
+                        a => a.FilePath.FuzzyMatches(fileName)))
                     .ToList();
             }
         }
@@ -300,19 +296,47 @@ namespace Shoko.Server.Repositories.Cached
                     return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
                 }
             }
+
             if (maxResults == -1)
-                return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Where(a =>
-                {
-                    var series = a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
-                        .DistinctBy(b => b.AniDB_ID);
-                    return series.All(user.AllowedSeries);
-                }).ToList();
-            return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Where(a =>
+                return Cache.Values
+                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                        .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
+                    .ToList();
+            return Cache.Values
+                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
+                    .DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries)).OrderByDescending(a => a.DateTimeCreated)
+                .Take(maxResults).ToList();
+        }
+
+        public List<SVR_VideoLocal> GetMostRecentlyAdded(int take, int skip, int jmmuserID = -1)
+        {
+            if (skip > 0) skip = 0;
+            if (take == 0) return new List<SVR_VideoLocal>();
+            
+            SVR_JMMUser user = jmmuserID == -1 ? null : RepoFactory.JMMUser.GetByID(jmmuserID);
+            if (user == null)
             {
-                var series = a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null)
-                    .DistinctBy(b => b.AniDB_ID);
-                return series.All(user.AllowedSeries);
-            }).Take(maxResults).ToList();
+                lock (Cache)
+                {
+                    if (take == -1)
+                        return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).ToList();
+                    return Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).Take(take).ToList();
+                }
+            }
+            
+            if (take == -1)
+                return Cache.Values
+                    .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
+                    .OrderByDescending(a => a.DateTimeCreated)
+                    .Skip(skip)
+                    .ToList();
+
+            return Cache.Values
+                .Where(a => a.GetAnimeEpisodes().Select(b => b.GetAnimeSeries()).Where(b => b != null).DistinctBy(b => b.AniDB_ID).All(user.AllowedSeries))
+                .OrderByDescending(a => a.DateTimeCreated)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
         }
 
         public List<SVR_VideoLocal> GetRandomFiles(int maxResults)
@@ -354,7 +378,7 @@ namespace Shoko.Server.Repositories.Cached
                 }
             }
 
-            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            IEnumerator IEnumerable.GetEnumerator()
             {
                 return GetEnumerator();
             }
@@ -438,8 +462,7 @@ namespace Shoko.Server.Repositories.Cached
         {
             lock (Cache)
             {
-                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION ||
-                                               a.Duration == 0)
+                return Cache.Values.Where(a => a.Media == null || a.MediaVersion < SVR_VideoLocal.MEDIA_VERSION)
                     .ToList();
             }
         }
@@ -477,6 +500,18 @@ namespace Shoko.Server.Repositories.Cached
                 RepoFactory.CrossRef_File_Episode.GetAll()
                     .Where(a => a.CrossRefSource != 1)
                     .Select(a => GetByHash(a.Hash))
+                    .Where(a => a != null)
+                    .ToList();
+        }
+
+        public List<SVR_VideoLocal> GetExactDuplicateVideos()
+        {
+            return
+                RepoFactory.VideoLocalPlace.GetAll()
+                    .GroupBy(a => a.VideoLocalID)
+                    .Select(a => a.ToArray())
+                    .Where(a => a.Length > 1)
+                    .Select(a => GetByID(a.FirstOrDefault().VideoLocalID))
                     .Where(a => a != null)
                     .ToList();
         }

@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories
 {
     // ReSharper disable once InconsistentNaming
-    public abstract class BaseCachedRepository<T, S> : ICachedRepository, IRepository<T, S> where T : class
+    public abstract class BaseCachedRepository<T, S> : ICachedRepository, IRepository<T, S> where T : class, new()
     {
         internal PocoCache<S, T> Cache;
 
@@ -23,11 +25,16 @@ namespace Shoko.Server.Repositories
         public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
         public Action<T> EndSaveCallback { get; set; }
 
+        public BaseCachedRepository()
+        {
+            RepoFactory.CachedRepositories.Add(this);
+        }
+
         public virtual void Populate(ISessionWrapper session, bool displayname = true)
         {
             if (displayname)
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
                     string.Empty);
 
             // This is only called from main thread, so we don't need to lock

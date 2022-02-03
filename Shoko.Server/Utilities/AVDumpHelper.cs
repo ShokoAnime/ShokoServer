@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using NLog;
-using SharpCompress.Archives;
-using SharpCompress.Archives.Rar;
+using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Commons.Utils;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server
 {
@@ -52,7 +51,7 @@ namespace Shoko.Server
                     {
                         if (!reader.Entry.IsDirectory)
                         {
-                            reader.WriteEntryToDirectory(Destination, new ExtractionOptions()
+                            reader.WriteEntryToDirectory(Destination, new ExtractionOptions
                             {
                                 // This may have serious problems in the future, but for now, AVDump is flat
                                 ExtractFullPath = false,
@@ -131,7 +130,7 @@ namespace Shoko.Server
             while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
                 output.Write(buffer, 0, len);
         }
-
+        
         public static string DumpFile(int vid)
         {
             var vl = RepoFactory.VideoLocal.GetByID(vid);
@@ -192,10 +191,10 @@ namespace Shoko.Server
             string fileName = (char)34 + file + (char)34;
 
             var args = $"--Auth={ServerSettings.Instance.AniDb.Username.Trim()}:" +
-                       $"{ServerSettings.Instance.AniDb.AVDumpKey.Trim()}" +
+                       $"{ServerSettings.Instance.AniDb.AVDumpKey?.Trim()}" +
                        $" --LPort={ServerSettings.Instance.AniDb.AVDumpClientPort} --PrintEd2kLink -t {fileName}";
 
-            if (Utils.IsRunningOnMono())
+            if (Utils.IsRunningOnLinuxOrMac())
             {
                 executable = "mono";
                 args = $"{avdumpDestination} {args}";

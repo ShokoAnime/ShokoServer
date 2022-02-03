@@ -1,22 +1,12 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class Trakt_EpisodeRepository : BaseDirectRepository<Trakt_Episode, int>
     {
-        private Trakt_EpisodeRepository()
-        {
-        }
-
-        public static Trakt_EpisodeRepository Create()
-        {
-            return new Trakt_EpisodeRepository();
-        }
-
         public List<Trakt_Episode> GetByShowID(int showID)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

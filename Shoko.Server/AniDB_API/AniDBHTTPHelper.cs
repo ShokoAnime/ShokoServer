@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Xml;
 using NLog;
 using Shoko.Commons.Properties;
-using Shoko.Commons.Utils;
 using Shoko.Server;
 using Shoko.Server.AniDB_API.Raws;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI
@@ -342,14 +342,6 @@ namespace AniDBAPI
             return result;
         }
 
-        public static List<Raw_AniDB_Episode> GetEpisodes(int animeID)
-        {
-            XmlDocument docAnime = GetAnimeXMLFromAPI(animeID);
-            if (docAnime == null)
-                return null;
-            return ProcessEpisodes(docAnime, animeID);
-        }
-
         public static List<Raw_AniDB_Tag> ProcessTags(XmlDocument docAnime, int animeID)
         {
             List<Raw_AniDB_Tag> tags = new List<Raw_AniDB_Tag>();
@@ -371,6 +363,28 @@ namespace AniDBAPI
             }
 
             return tags;
+        }
+
+        public static List<Raw_AniDB_Staff> ProcessStaff(XmlDocument docAnime, int animeID)
+        {
+            var creators = new List<Raw_AniDB_Staff>();
+
+            XmlNodeList charItems = docAnime?["anime"]?["creators"]?.GetElementsByTagName("name");
+            if (charItems == null) return creators;
+            foreach (XmlNode node in charItems)
+            {
+                try
+                {
+                    Raw_AniDB_Staff staff = new Raw_AniDB_Staff();
+                    staff.ProcessFromHTTPResult(node, animeID);
+                    creators.Add(staff);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"Error in AniDBHTTPHelper.ProcessCharacters: {ex}");
+                }
+            }
+            return creators;
         }
 
         public static List<Raw_AniDB_Character> ProcessCharacters(XmlDocument docAnime, int animeID)

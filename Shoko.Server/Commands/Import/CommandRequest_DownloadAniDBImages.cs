@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Xml;
-using AniDBAPI;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Properties;
 using Shoko.Commons.Queue;
@@ -18,7 +17,9 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
@@ -66,7 +67,7 @@ namespace Shoko.Server.Commands
         {
             logger.Info("Processing CommandRequest_DownloadAniDBImages: {0}", AnimeID);
 
-            AniDbRateLimiter.Instance.EnsureRate();
+            StaticRateLimiter.UDP.EnsureRate();
             try
             {
                 List<ImageEntityType> types = new List<ImageEntityType>
@@ -90,7 +91,7 @@ namespace Shoko.Server.Commands
                                 return;
                             }
 
-                            downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, anime.Picname));
+                            downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname));
                             fileNames.Add(anime.PosterPath);
                             break;
 
@@ -110,7 +111,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var chr in chrs)
                             {
-                                downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, chr.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName));
                                 fileNames.Add(chr.GetPosterPath());
                             }
 
@@ -135,7 +136,7 @@ namespace Shoko.Server.Commands
 
                             foreach (var creator in creators)
                             {
-                                downloadURLs.Add(string.Format(Constants.URLS.AniDB_Images, creator.PicName));
+                                downloadURLs.Add(string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName));
                                 fileNames.Add(creator.GetPosterPath());
                             }
 
@@ -211,7 +212,7 @@ namespace Shoko.Server.Commands
             {
                 logger.Error("Error processing CommandRequest_DownloadAniDBImages: {0} - {1}", AnimeID, ex);
             }
-            AniDbRateLimiter.Instance.Reset();
+            StaticRateLimiter.UDP.Reset();
         }
 
         private void RecursivelyRetryDownload(string downloadURL, ref string tempFilePath, int count, int maxretry)
@@ -220,6 +221,12 @@ namespace Shoko.Server.Commands
             {
                 // download image
                 if (downloadURL.Length <= 0) return;
+
+                // Ignore all certificate failures.
+                ServicePointManager.Expect100Continue = true;                
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+
                 using (WebClient client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");
@@ -275,7 +282,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        private string GetFileName(ImageDownloadRequest req, bool thumbNailOnly)
+        private string GetFileName(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {

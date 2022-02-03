@@ -20,17 +20,6 @@ namespace Shoko.Server.Repositories.Cached
             TvDBIDs = new PocoIndex<int, TvDB_ImageFanart, int>(Cache, a => a.Id);
         }
 
-        private TvDB_ImageFanartRepository()
-        {
-        }
-
-        public static TvDB_ImageFanartRepository Create()
-        {
-            var repo = new TvDB_ImageFanartRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
-
         public TvDB_ImageFanart GetByTvDBID(int id)
         {
             lock (Cache)

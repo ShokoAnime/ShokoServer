@@ -14,6 +14,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
@@ -59,7 +60,7 @@ namespace Shoko.Server.Commands
                     bool doReturn = false;
 
                     // first check if the user wants to use the web cache
-                    if (ServerSettings.Instance.WebCache.Trakt_Get)
+                    if (ServerSettings.Instance.WebCache.Enabled && ServerSettings.Instance.WebCache.Trakt_Get)
                     {
                         try
                         {

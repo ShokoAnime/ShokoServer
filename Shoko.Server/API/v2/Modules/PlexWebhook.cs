@@ -1,28 +1,30 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
-using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
-using Shoko.Models.Server;
-using NLog;
-
-using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Plex;
-using Shoko.Server.Plex.Libraries;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Shoko.Models.Plex.Collection;
 using Shoko.Models.Plex.Libraries;
+using Shoko.Models.Server;
+using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Commands.Plex;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
-using System.ComponentModel.DataAnnotations;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Plex;
+using Shoko.Server.Plex.Libraries;
+using Shoko.Server.PlexAndKodi;
+using Shoko.Server.Providers.TraktTV;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -61,6 +63,7 @@ namespace Shoko.Server.API.v2.Modules
 
             return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.   
         }
+
         #region Plex events
 
         [NonAction]
@@ -75,7 +78,9 @@ namespace Shoko.Server.API.v2.Modules
 
             float per = 100 * (metadata.ViewOffset / (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
-            ScrobblePlayingType scrobbleType = episode.PlexContract.IsMovie ? ScrobblePlayingType.movie : ScrobblePlayingType.episode;
+            ScrobblePlayingType scrobbleType = episode.GetAnimeSeries()?.GetAnime()?.AnimeType == (int) AnimeType.Movie
+                ? ScrobblePlayingType.movie
+                : ScrobblePlayingType.episode;
 
             TraktTVHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
         }
@@ -91,7 +96,7 @@ namespace Shoko.Server.API.v2.Modules
                 return;
             }
 
-            logger.Trace($"Got anime: {anime}, ep: {episode.PlexContract.EpisodeNumber}");
+            logger.Trace($"Got anime: {anime}, ep: {episode.AniDB_Episode.EpisodeNumber}");
 
             var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
             if (user == null)
@@ -158,7 +163,7 @@ namespace Shoko.Server.API.v2.Modules
             var animeEps = anime
                     .GetAnimeEpisodes().Where(a => a.AniDB_Episode != null)
                     .Where(a => a.EpisodeTypeEnum == episodeType)
-                    .Where(a => a.PlexContract.EpisodeNumber == episodeNumber);
+                    .Where(a => a.AniDB_Episode.EpisodeNumber == episodeNumber);
 
             //if only one possible match
             if (animeEps.Count() == 1) return (animeEps.First(), anime);
@@ -238,73 +243,183 @@ namespace Shoko.Server.API.v2.Modules
         }
 
         #region plexapi
-        public class PlexEventSuper
-        {
-            public string user { get; set; }
-            public string Owner { get; set; }
-        }
-#pragma warning disable 0649
+        #pragma warning disable 0649
+
+        [DataContract]
         public class PlexEvent
         {
             [Required]
+            [DataMember(Name = "event")]
             public string Event;
+
+            [DataMember(Name = "user")]
             public bool User;
+
+            [DataMember(Name = "owner")]
             public bool Owner;
 
             [Required]
+            [DataMember(Name = "Account")]
             public PlexAccount Account;
+
             [Required]
+            [DataMember(Name = "Server")]
             public PlexBasicInfo Server;
+
+            [DataMember(Name = "Player")]
             public PlexPlayerInfo Player;
+
+            [DataMember(Name = "Metadata")]
             [Required]
             public PlexMetadata Metadata;
 
+            [DataContract]
             public class PlexAccount
             {
+                [DataMember(Name = "id")]
                 public int Id;
-                public string Thumb;
+
+                [DataMember(Name = "thumb")]
+                public string Thumbnail;
+
+                [DataMember(Name = "title")]
                 public string Title;
             }
 
+            [DataContract]
             public class PlexBasicInfo
             {
+                [DataMember(Name = "title")]
                 public string Title;
+
+                [DataMember(Name = "uuid")]
                 public string Uuid;
             }
 
+            [DataContract]
             public class PlexPlayerInfo : PlexBasicInfo
             {
+                [DataMember(Name = "local")]
                 public bool Local;
-                public string PublicAddress;
+
+                [DataMember(Name = "publicAddress")]
+                public string PublicAdress;
             }
 
+            [DataContract]
             public class PlexMetadata
             {
+                #region Library information
+
+                [DataMember(Name = "librarySectionType")]
                 public string LibrarySectionType;
-                public string RatingKey;
-                public string Key;
-                public string ParentRatingKey;
-                public string GrandparentRatingKey;
-                public string Guid;
+
+                [DataMember(Name = "librarySectionTitle")]
+                public string LibrarySectionTitle;
+
+                [DataMember(Name = "librarySectionId")]
                 public int LibrarySectionId;
+
+                [DataMember(Name = "librarySectionKey")]
+                public string LibrarySectionKey;
+
+                #endregion
+                #region Item information
+
+                [Required]
+                [DataMember(Name = "guid")]
+                public string Guid;
+
+                [DataMember(Name = "key")]
+                public string Key;
+
+                [DataMember(Name = "index")]
+                public int? Index;
+
+                [DataMember(Name = "type")]
                 public string Type;
+
+                [DataMember(Name = "contentRating")]
+                public string ContentRating;
+
+                [DataMember(Name = "studio")]
+                public string Studio;
+
+                [DataMember(Name = "title")]
                 public string Title;
-                public string GrandparentKey;
-                public string ParentKey;
-                public string GranparentTitle;
+
+                [DataMember(Name = "originalTitle")]
+                public string OriginalTitle;
+
+                [DataMember(Name = "summary")]
                 public string Summary;
-                public int Index;
-                public int ParentIndex;
-                public int RatingCount;
-                public string Thumb;
+
+                [DataMember(Name = "thumb")]
+                public string Thumbnail;
+
+                [DataMember(Name = "art")]
                 public string Art;
-                public string ParentThumb;
-                public string GrandparentThumb;
-                public string GrandparentArt;
-                public int LastViewedAt;
+
+                [DataMember(Name = "addedAt")]
                 public int AddedAt;
+
+                [DataMember(Name = "updatedAt")]
                 public int UpdatedAt;
+
+                [DataMember(Name = "lastViewedAt")]
+                public int LastViewedAt;
+
+                [DataMember(Name = "viewOffset")]
                 public int ViewOffset;
+
+                [DataMember(Name = "duration")]
+                public int? Duration;
+
+                [DataMember(Name = "Guid")]
+                public PlexProviderInfo[] Providers;
+
+                #endregion
+                #region Parent item information
+
+                [Required]
+                [DataMember(Name = "parentGuid")]
+                public string ParentGuid;
+
+                [DataMember(Name = "parentIndex")]
+                public int ParentIndex;
+
+                [DataMember(Name = "parentTitle")]
+                public string ParentTitle;
+
+                [DataMember(Name = "parentThumb")]
+                public string ParentThumbnail;
+
+                #endregion
+                #region Grand-parent item information
+
+                [Required]
+                [DataMember(Name = "grandParentGuid")]
+                public string GrandParentGuid;
+
+                [DataMember(Name = "grandParentTitle")]
+                public string GrandParentTitle;
+
+                [DataMember(Name = "grandparentThumb")]
+                public string GrandParentThumbnail;
+
+                [DataMember(Name = "grandparentArt")]
+                public string GrandparentArt;
+
+                [DataMember(Name = "grandparentTheme")]
+                public string GrandparentTheme;
+
+                #endregion
+            }
+
+            [DataContract]
+            public class PlexProviderInfo {
+                [DataMember(Name = "id")]
+                public string Id;
             }
         }
     }
@@ -326,7 +441,7 @@ namespace Shoko.Server.API.v2.Modules
 
                 // Attempt to convert the input value
                 var valueAsString = valueProviderResult.FirstValue;
-                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType, new JsonSerializerSettings() { ContractResolver = new CamelCasePropertyNamesContractResolver() });
+                var result = JsonConvert.DeserializeObject(valueAsString, bindingContext.ModelType);
                 if (result != null)
                 {
                     
@@ -338,7 +453,7 @@ namespace Shoko.Server.API.v2.Modules
             return Task.CompletedTask;
         }
     }
-#pragma warning restore 0649
-    #endregion
 
+    #pragma warning restore 0649
+    #endregion
 }

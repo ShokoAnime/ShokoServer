@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
@@ -32,10 +29,10 @@ namespace Shoko.Server.Commands
         public override CommandRequest ToDatabaseObject()
         {
             GenerateCommandID();
-            return new CommandRequest()
+            return new CommandRequest
             {
                 CommandID = CommandID,
-                CommandType = this.CommandType,
+                CommandType = CommandType,
                 Priority = Priority,
                 DateTimeUpdated = DateTime.Now,
                 CommandDetails = ""

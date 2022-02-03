@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 
 namespace AniDBAPI
 {
@@ -80,7 +81,7 @@ namespace AniDBAPI
                 }
                 catch (Exception ex)
                 {
-                    NLog.LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
+                    LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
                 }
 
                 //BaseConfig.MyAnimeLog.Write("grp: {0}", grp);

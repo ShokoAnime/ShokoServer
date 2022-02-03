@@ -1,18 +1,26 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Commons.Extensions;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
+
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-namespace Shoko.Server.API.v3
+using SSS = Shoko.Server.Server;
+
+namespace Shoko.Server.API.v3.Models.Shoko
 {
     /// <summary>
     /// Series object, stores all of the series info
@@ -40,6 +48,18 @@ namespace Shoko.Server.API.v3
         /// </summary>
         public List<Resource> Links { get; set; }
 
+        /// <summary>
+        /// The time when the series was created, during the process of the first file being added
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime Created { get; set; }
+
+        /// <summary>
+        /// The time when the series was last updated
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime Updated { get; set; }
+
         #region Constructors and Helper Methods
 
         public Series() {}
@@ -61,6 +81,9 @@ namespace Shoko.Server.API.v3
             Sizes = ModelHelper.GenerateSizes(ael, uid);
             Size = Sizes.Local.Credits + Sizes.Local.Episodes + Sizes.Local.Others + Sizes.Local.Parodies +
                    Sizes.Local.Specials + Sizes.Local.Trailers;
+
+            Created = ser.DateTimeCreated;
+            Updated = ser.DateTimeUpdated;
         }
 
         private void AddBasicAniDBInfo(HttpContext ctx, SVR_AnimeSeries ser)
@@ -74,12 +97,25 @@ namespace Shoko.Server.API.v3
                 string voteType = (AniDBVoteType) vote.VoteType == AniDBVoteType.Anime ? "Permanent" : "Temporary";
                 UserRating = new Rating
                 {
-                    Value = (decimal) Math.Round(vote.VoteValue / 100D, 1), MaxValue = 10, Type = voteType,
+                    Value = ((decimal) Math.Round(vote.VoteValue / 100D, 1)),
+                    MaxValue = 10,
+                    Type = voteType,
                     Source = "User"
                 };
             }
         }
-        
+
+        public static void RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
+        {
+            SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
+        }
+
+        public static void QueueAniDBRefresh(int animeID)
+        {
+            CommandRequest_GetAnimeHTTP command = new CommandRequest_GetAnimeHTTP(animeID, false, false, 0);
+            command.Save();
+        }
+
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko
@@ -89,7 +125,7 @@ namespace Shoko.Server.API.v3
             if (anime != null) ids.AniDB = anime.AnimeID;
             // TvDB
             var tvdbs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
-            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID));
+            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID).Distinct());
             // TODO Cache the rest of these, so that they don't severely slow down the API
             // MovieDB
             // TODO make this able to support more than one, in fact move it to its own and remove CrossRef_Other
@@ -100,9 +136,9 @@ namespace Shoko.Server.API.v3
             //    .Distinct().ToList();
             //if (traktids.Any()) ids.TraktTv.AddRange(traktids);
             // MAL
-            //var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
-            //    .ToList();
-            //if (malids.Any()) ids.MAL.AddRange(malids);
+            var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
+                .ToList();
+            if (malids.Any()) ids.MAL.AddRange(malids);
             // TODO AniList later
             return ids;
         }
@@ -111,11 +147,11 @@ namespace Shoko.Server.API.v3
         {
             Images images = new Images();
             Random rand = ctx.Items["Random"] as Random;
-            
-            var allImages = GetArt(ctx, ser.AniDB_ID, false);
+
+            var allImages = GetArt(ctx, ser.AniDB_ID);
             var defaultPoster = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(ser.AniDB_ID,
                 (int) ImageSizeType.Poster);
-            
+
             if (defaultPoster != null)
             {
                 images.Posters.Add(new Image(defaultPoster.ImageParentID,
@@ -131,7 +167,7 @@ namespace Shoko.Server.API.v3
 
             var fanart = allImages.Fanarts.GetRandomElement(rand);
             if (fanart != null) images.Fanarts.Add(fanart);
-            
+
             var banner = allImages.Banners.GetRandomElement(rand);
             if (banner != null) images.Banners.Add(banner);
 
@@ -143,28 +179,27 @@ namespace Shoko.Server.API.v3
         /// </summary>
         /// <param name="ctx"></param>
         /// <param name="animeID"></param>
+        /// <param name="roleType"></param>
         /// <returns></returns>
-        public static List<Role> GetCast(HttpContext ctx, int animeID)
+        public static List<Role> GetCast(HttpContext ctx, int animeID, Role.CreatorRoleType? roleType = null)
         {
             List<Role> roles = new List<Role>();
-            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
-                StaffRoleType.Seiyuu);
+            var xrefAnimeStaff = roleType.HasValue ? RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(animeID,
+                (StaffRoleType) roleType.Value) : RepoFactory.CrossRef_Anime_Staff.GetByAnimeID(animeID);
             foreach (var xref in xrefAnimeStaff)
             {
-                if (xref.RoleID == null) continue;
-                AnimeCharacter character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character == null) continue;
+                AnimeCharacter character = xref.RoleID.HasValue ? RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value) : null;
                 AnimeStaff staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
                 if (staff == null) continue;
                 Role role = new Role
                 {
-                    Character = new Role.Person
+                    Character = character != null ? new Role.Person
                     {
                         Name = character.Name,
                         AlternateName = character.AlternateName,
                         Image = new Image(xref.RoleID.Value, ImageEntityType.Character),
                         Description = character.Description
-                    },
+                    } : null,
                     Staff = new Role.Person
                     {
                         Name = staff.Name,
@@ -172,7 +207,7 @@ namespace Shoko.Server.API.v3
                         Description = staff.Description,
                         Image = new Image(xref.StaffID, ImageEntityType.Staff),
                     },
-                    RoleName = ((StaffRoleType) xref.RoleType).ToString(),
+                    RoleName = (Role.CreatorRoleType) xref.RoleType,
                     RoleDetails = xref.Role
                 };
                 roles.Add(role);
@@ -183,38 +218,54 @@ namespace Shoko.Server.API.v3
 
         public static List<Tag> GetTags(HttpContext ctx, SVR_AniDB_Anime anime, TagFilter.Filter filter, bool excludeDescriptions = false)
         {
-            // TODO This is probably slow. Make it faster.
             var tags = new List<Tag>();
-            
-            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToDictionary(a => a.TagName, a => a);
-            var filteredTags = TagFilter.ProcessTags(filter, allTags.Keys.ToList());
-            foreach (string filteredTag in filteredTags)
+
+            var allTags = anime.GetAniDBTags().DistinctBy(a => a.TagName).ToList();
+            var filteredTags = new TagFilter<AniDB_Tag>(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName).ProcessTags(filter, allTags);
+            foreach (AniDB_Tag tag in filteredTags)
             {
-                AniDB_Tag tag = allTags.ContainsKey(filteredTag)
-                    ? allTags[filteredTag]
-                    : RepoFactory.AniDB_Tag.GetByName(filteredTag).FirstOrDefault();
-                if (tag == null)
-                {
-                    tags.Add(new Tag { Name = filteredTag });
-                    continue;
-                }
                 var toAPI = new Tag
                 {
                     Name = tag.TagName
                 };
+                var animeXRef = RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).FirstOrDefault();
+                if (animeXRef != null) toAPI.Weight = animeXRef.Weight;
                 if (!excludeDescriptions) toAPI.Description = tag.TagDescription;
+
                 tags.Add(toAPI);
             }
-            
+
             return tags;
         }
-        
+
+        private static SeriesType GetAniDBSeriesType(AnimeType animeType)
+        {
+            switch (animeType)
+            {
+                default:
+                case AnimeType.None:
+                    return SeriesType.Unknown;
+                case AnimeType.TVSeries:
+                    return SeriesType.TV;
+                case AnimeType.Movie:
+                    return SeriesType.Movie;
+                case AnimeType.OVA:
+                    return SeriesType.OVA;
+                case AnimeType.TVSpecial:
+                    return SeriesType.TVSpecial;
+                case AnimeType.Web:
+                    return SeriesType.Web;
+                case AnimeType.Other:
+                    return SeriesType.Other;
+            }
+        }
+
         public static AniDB GetAniDBInfo(HttpContext ctx, SVR_AniDB_Anime anime)
         {
             var aniDB = new AniDB
             {
                 ID = anime.AnimeID,
-                SeriesType = anime.AnimeType.ToString(),
+                Type = GetAniDBSeriesType((AnimeType)anime.AnimeType),
                 Restricted = anime.Restricted == 1,
                 Description = anime.Description,
                 Rating = new Rating
@@ -226,24 +277,31 @@ namespace Shoko.Server.API.v3
                 },
                 Title = anime.MainTitle,
                 Titles = anime.GetTitles().Select(title => new Title
-                    {Language = title.Language, Name = title.Title, Type = title.TitleType}).ToList(),
+                    {
+                        Name = title.Title,
+                        Language = title.Language,
+                        Type = title.TitleType,
+                        Default = string.Equals(title.Title, anime.MainTitle),
+                        Source = "AniDB",
+                    }
+                ).ToList(),
             };
 
             if (anime.AirDate != null)
             {
                 var airdate = anime.AirDate.Value;
                 if (airdate != DateTime.MinValue)
-                    aniDB.AirDate = airdate.ToString("yyyy-MM-dd");
+                    aniDB.AirDate = airdate;
             }
             if (anime.EndDate != null)
             {
                 var enddate = anime.EndDate.Value;
                 if (enddate != DateTime.MinValue)
-                    aniDB.EndDate = enddate.ToString("yyyy-MM-dd");
+                    aniDB.EndDate = enddate;
             }
-            
+
             // Add Poster
-            v3.Images images = new Images();
+            Images images = new Images();
             AddAniDBPoster(ctx, images, anime.AnimeID);
             aniDB.Poster = images.Posters.FirstOrDefault();
 
@@ -264,33 +322,61 @@ namespace Shoko.Server.API.v3
                 };
                 if (tvdbSer.Rating != null)
                     model.Rating = new Rating {Source = "TvDB", Value = tvdbSer.Rating.Value, MaxValue = 10};
-                
-                v3.Images images = new Images();
+
+                Images images = new Images();
                 AddTvDBImages(ctx, images, ser.AniDB_ID);
                 model.Posters = images.Posters;
                 model.Fanarts = images.Fanarts;
                 model.Banners = images.Banners;
-                
+
                 // Aggregate stuff
                 var firstEp = ael.FirstOrDefault(a =>
-                        a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode &&
+                        a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) AniDBEpisodeType.Episode &&
                                                     a.AniDB_Episode.EpisodeNumber == 1))
                     ?.TvDBEpisode;
 
                 var lastEp = ael
-                    .Where(a => a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) EpisodeType.Episode))
+                    .Where(a => a.AniDB_Episode != null && (a.AniDB_Episode.EpisodeType == (int) AniDBEpisodeType.Episode))
                     .OrderBy(a => a.AniDB_Episode.EpisodeType)
                     .ThenBy(a => a.AniDB_Episode.EpisodeNumber).LastOrDefault()
                     ?.TvDBEpisode;
 
                 model.Season = firstEp?.SeasonNumber;
-                model.AirDate = firstEp?.AirDate?.ToString("yyyy-MM-dd");
-                model.EndDate = lastEp?.AirDate?.ToString("yyyy-MM-dd");
-                
+                model.AirDate = firstEp?.AirDate;
+                model.EndDate = lastEp?.AirDate;
+
                 models.Add(model);
             }
-            
+
             return models;
+        }
+
+        public static void AddSeriesVote(HttpContext context, SVR_AnimeSeries ser, int userID, Vote vote)
+        {
+            int voteType = (vote.Type?.ToLowerInvariant() ?? "") switch
+            {
+                "temporary" => (int) AniDBVoteType.AnimeTemp,
+                "permanent" => (int) AniDBVoteType.Anime,
+                _ => ser.GetAnime()?.GetFinishedAiring() ?? false ? (int) AniDBVoteType.Anime : (int) AniDBVoteType.AnimeTemp,
+            };
+
+            AniDB_Vote dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.AnimeTemp) ?? RepoFactory.AniDB_Vote.GetByEntityAndType(ser.AniDB_ID, AniDBVoteType.Anime);
+
+            if (dbVote == null)
+            {
+                dbVote = new AniDB_Vote
+                {
+                    EntityID = ser.AniDB_ID,
+                };
+            }
+
+            dbVote.VoteValue = (int) Math.Floor(vote.GetRating(1000));
+            dbVote.VoteType = voteType;
+
+            RepoFactory.AniDB_Vote.Save(dbVote);
+
+            var cmdVote = new CommandRequest_VoteAnime(ser.AniDB_ID, voteType, vote.GetRating());
+            cmdVote.Save();
         }
 
         public static Images GetArt(HttpContext ctx, int animeID, bool includeDisabled = false)
@@ -316,6 +402,7 @@ namespace Shoko.Server.API.v3
             var tvdbIDs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(animeID).ToList();
             var fanarts = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageFanart.GetBySeriesID(a.TvDBID)).ToList();
             var banners = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImageWideBanner.GetBySeriesID(a.TvDBID)).ToList();
+            var posters = tvdbIDs.SelectMany(a => RepoFactory.TvDB_ImagePoster.GetBySeriesID(a.TvDBID)).ToList();
             images.Fanarts.AddRange(fanarts.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
             {
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
@@ -331,20 +418,28 @@ namespace Shoko.Server.API.v3
                 bool preferred = defaultImage != null;
                 return new Image(a.TvDB_ImageWideBannerID, ImageEntityType.TvDB_Banner, preferred, a.Enabled == 0);
             }));
+
+            images.Posters.AddRange(posters.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
+            {
+                var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
+                    (int) ImageEntityType.TvDB_Cover);
+                bool preferred = defaultImage != null;
+                return new Image(a.TvDB_ImagePosterID, ImageEntityType.TvDB_Cover, preferred, a.Enabled == 0);
+            }));
         }
 
         private static void AddMovieDBImages(HttpContext ctx, Images images, int animeID, bool includeDisabled = false)
         {
             var moviedb = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(animeID, CrossRefType.MovieDB);
-            
+
             List<MovieDB_Poster> moviedbPosters = moviedb == null
                 ? new List<MovieDB_Poster>()
                 : RepoFactory.MovieDB_Poster.GetByMovieID(int.Parse(moviedb.CrossRefID));
-            
+
             List<MovieDB_Fanart> moviedbFanarts = moviedb == null
                 ? new List<MovieDB_Fanart>()
                 : RepoFactory.MovieDB_Fanart.GetByMovieID(int.Parse(moviedb.CrossRefID));
-            
+
             images.Posters.AddRange(moviedbPosters.Where(a => includeDisabled || a.Enabled != 0).Select(a =>
             {
                 var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
@@ -374,19 +469,20 @@ namespace Shoko.Server.API.v3
             /// </summary>
             [Required]
             public int ID { get; set; }
-            
+
             /// <summary>
             /// Series type. Series, OVA, Movie, etc
             /// </summary>
             [Required]
-            public string SeriesType { get; set; }
+            [JsonConverter(typeof(StringEnumConverter))]
+            public SeriesType Type { get; set; }
 
             /// <summary>
             /// Main Title, usually matches x-jat
             /// </summary>
             [Required]
             public string Title { get; set; }
-            
+
             /// <summary>
             /// Is it porn...or close enough
             /// If not provided, assume no
@@ -394,15 +490,15 @@ namespace Shoko.Server.API.v3
             public bool Restricted { get; set; }
 
             /// <summary>
-            /// Air date (2013-02-27, shut up avael)
+            /// Air date (2013-02-27, shut up avael). Anything without an air date is going to be missing a lot of info.
             /// </summary>
             [Required]
-            public string AirDate { get; set; }
+            public DateTime? AirDate { get; set; }
 
             /// <summary>
-            /// End date, can be null. Null means that it's still airing (2013-02-27)
+            /// End date, can be omitted. Omitted means that it's still airing (2013-02-27)
             /// </summary>
-            public string EndDate { get; set; }
+            public DateTime? EndDate { get; set; }
 
             /// <summary>
             /// There should always be at least one of these, since name will be valid
@@ -426,6 +522,34 @@ namespace Shoko.Server.API.v3
 
         }
         
+        public class AniDBSearchResult
+        {
+            /// <summary>
+            /// AniDB ID
+            /// </summary>
+            [Required]
+            public int ID { get; set; }
+            
+            /// <summary>
+            /// Main Title. Either the shoko name of the series if
+            /// it's available locally, or the first "x-jat" or "main" title for
+            /// the series.
+            /// </summary>
+            [Required]
+            public string Title { get; set; }
+            
+            /// <summary>
+            /// There should always be at least one of these, since name will be valid
+            /// </summary>
+            [Required]
+            public List<Title> Titles { get; set; }
+            
+            /// <summary>
+            /// Shoko ID if the series is available locally.
+            /// </summary>
+            public int? ShokoID { get; set; }
+        }
+
         /// <summary>
         /// The TvDB Data model for series
         /// </summary>
@@ -440,12 +564,12 @@ namespace Shoko.Server.API.v3
             /// <summary>
             /// Air date (2013-02-27, shut up avael)
             /// </summary>
-            public string AirDate { get; set; }
+            public DateTime? AirDate { get; set; }
 
             /// <summary>
             /// End date, can be null. Null means that it's still airing (2013-02-27)
             /// </summary>
-            public string EndDate { get; set; }
+            public DateTime? EndDate { get; set; }
 
             /// <summary>
             /// TvDB only supports one title
@@ -457,7 +581,7 @@ namespace Shoko.Server.API.v3
             /// Description
             /// </summary>
             public string Description { get; set; }
-            
+
             /// <summary>
             /// TvDB Season. This value is not guaranteed to be even kind of accurate
             /// TvDB matchings and links affect this. Null means no match. 0 means specials
@@ -468,17 +592,17 @@ namespace Shoko.Server.API.v3
             /// Posters
             /// </summary>
             public List<Image> Posters { get; set; }
-            
+
             /// <summary>
             /// Fanarts
             /// </summary>
             public List<Image> Fanarts { get; set; }
-            
+
             /// <summary>
             /// Banners
             /// </summary>
             public List<Image> Banners { get; set; }
-            
+
             /// <summary>
             /// The rating object
             /// </summary>
@@ -521,24 +645,24 @@ namespace Shoko.Server.API.v3
         /// </summary>
         [Required]
         public int AniDB { get; set; }
-        
+
         /// <summary>
         /// The TvDB IDs
         /// </summary>
         public List<int> TvDB { get; set; } = new List<int>();
-        
+
         // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
-        
+
         /// <summary>
         /// The MovieDB IDs
         /// </summary>
         public List<int> MovieDB { get; set; } = new List<int>();
-        
+
         /// <summary>
         /// The MyAnimeList IDs
         /// </summary>
         public List<int> MAL { get; set; } = new List<int>();
-        
+
         /// <summary>
         /// The TraktTv IDs
         /// </summary>
@@ -551,15 +675,56 @@ namespace Shoko.Server.API.v3
         #endregion
     }
 
+    /// <summary>
+    /// An Extended Series Model with Values for Search Results
+    /// </summary>
     public class SeriesSearchResult : Series
     {
+        /// <summary>
+        /// What is the string we matched on
+        /// </summary>
         public string Match { get; set; }
-        
+
+        /// <summary>
+        /// The Sorensen-Dice Distance of the match
+        /// </summary>
         public double Distance { get; set; }
         public SeriesSearchResult(HttpContext ctx, SVR_AnimeSeries ser, string match, double dist) : base(ctx, ser)
         {
             Match = match;
             Distance = dist;
         }
+    }
+
+    public enum SeriesType
+    {
+        /// <summary>
+        /// The series type is unknown.
+        /// </summary>
+        Unknown = 0,
+        /// <summary>
+        /// A catch-all type for future extensions when a provider can't use a current episode type, but knows what the future type should be.
+        /// </summary>
+        Other = 1,
+        /// <summary>
+        /// Standard TV series.
+        /// </summary>
+        TV = 2,
+        /// <summary>
+        /// TV special.
+        /// </summary>
+        TVSpecial = 3,
+        /// <summary>
+        /// Web series.
+        /// </summary>
+        Web = 4,
+        /// <summary>
+        /// All movies, regardless of source (e.g. web or theater)
+        /// </summary>
+        Movie = 5,
+        /// <summary>
+        /// Original Video Animations, AKA standalone releases that don't air on TV or the web.
+        /// </summary>
+        OVA = 6,
     }
 }

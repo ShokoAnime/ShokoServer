@@ -1,21 +1,11 @@
-﻿using Shoko.Models.Server;
-using NHibernate.Criterion;
+﻿using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class FileFfdshowPresetRepository : BaseDirectRepository<FileFfdshowPreset, int>
     {
-        private FileFfdshowPresetRepository()
-        {
-        }
-
-        public static FileFfdshowPresetRepository Create()
-        {
-            return new FileFfdshowPresetRepository();
-        }
-
         public FileFfdshowPreset GetByHashAndSize(string hash, long fsize)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

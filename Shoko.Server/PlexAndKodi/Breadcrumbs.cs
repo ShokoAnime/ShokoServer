@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Models.PlexAndKodi;
 using Force.DeepCloner;
 using NLog;
+using Shoko.Models.PlexAndKodi;
 
 namespace Shoko.Server.PlexAndKodi
 {

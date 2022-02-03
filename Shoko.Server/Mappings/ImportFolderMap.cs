@@ -1,5 +1,4 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Mappings
@@ -17,7 +16,6 @@ namespace Shoko.Server.Mappings
             Map(x => x.ImportFolderName).Not.Nullable();
             Map(x => x.IsDropDestination).Not.Nullable();
             Map(x => x.IsDropSource).Not.Nullable();
-            Map(x => x.CloudID).Nullable();
             Map(x => x.IsWatched).Not.Nullable();
         }
     }

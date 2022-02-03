@@ -1,23 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
-using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.NHibernate;
-using CL_AniDB_Anime_DefaultImage = Shoko.Models.Client.CL_AniDB_Anime_DefaultImage;
-using CL_AniDB_Anime_Relation = Shoko.Models.Client.CL_AniDB_Anime_Relation;
-using CL_AniDB_Anime_Similar = Shoko.Models.Client.CL_AniDB_Anime_Similar;
-using CL_AniDB_Character = Shoko.Models.Client.CL_AniDB_Character;
-using CL_AniDB_GroupStatus = Shoko.Models.Client.CL_AniDB_GroupStatus;
-using CL_AnimeEpisode_User = Shoko.Models.Client.CL_AnimeEpisode_User;
-using CL_AnimeGroup_User = Shoko.Models.Client.CL_AnimeGroup_User;
-using CL_AnimeSeries_User = Shoko.Models.Client.CL_AnimeSeries_User;
-using CL_BookmarkedAnime = Shoko.Models.Client.CL_BookmarkedAnime;
 
 namespace Shoko.Server.Extensions
 {
@@ -382,15 +372,68 @@ namespace Shoko.Server.Extensions
             return v;
         }
 
-        public static CL_CloudAccount ToClient(this SVR_CloudAccount cloud)
+        public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         {
-            return new CL_CloudAccount
+            CL_AnimeGroup_User contract = new CL_AnimeGroup_User
             {
-                Provider = cloud.Provider,
-                Name = cloud.Name,
-                CloudID = cloud.CloudID,
-                Icon = cloud.Icon
+                AnimeGroupID = c.AnimeGroupID,
+                AnimeGroupParentID = c.AnimeGroupParentID,
+                DefaultAnimeSeriesID = c.DefaultAnimeSeriesID,
+                GroupName = c.GroupName,
+                Description = c.Description,
+                IsFave = c.IsFave,
+                IsManuallyNamed = c.IsManuallyNamed,
+                UnwatchedEpisodeCount = c.UnwatchedEpisodeCount,
+                DateTimeUpdated = c.DateTimeUpdated,
+                WatchedEpisodeCount = c.WatchedEpisodeCount,
+                SortName = c.SortName,
+                WatchedDate = c.WatchedDate,
+                EpisodeAddedDate = c.EpisodeAddedDate,
+                LatestEpisodeAirDate = c.LatestEpisodeAirDate,
+                PlayedCount = c.PlayedCount,
+                WatchedCount = c.WatchedCount,
+                StoppedCount = c.StoppedCount,
+                OverrideDescription = c.OverrideDescription,
+                MissingEpisodeCount = c.MissingEpisodeCount,
+                MissingEpisodeCountGroups = c.MissingEpisodeCountGroups,
+                Stat_AirDate_Min = c.Stat_AirDate_Min,
+                Stat_AirDate_Max = c.Stat_AirDate_Max,
+                Stat_EndDate = c.Stat_EndDate,
+                Stat_SeriesCreatedDate = c.Stat_SeriesCreatedDate,
+                Stat_UserVotePermanent = c.Stat_UserVotePermanent,
+                Stat_UserVoteTemporary = c.Stat_UserVoteTemporary,
+                Stat_UserVoteOverall = c.Stat_UserVoteOverall,
+                Stat_IsComplete = c.Stat_IsComplete,
+                Stat_HasFinishedAiring = c.Stat_HasFinishedAiring,
+                Stat_IsCurrentlyAiring = c.Stat_IsCurrentlyAiring,
+                Stat_HasTvDBLink = c.Stat_HasTvDBLink,
+                Stat_HasTraktLink = c.Stat_HasTraktLink,
+                Stat_HasMALLink = c.Stat_HasMALLink,
+                Stat_HasMovieDBLink = c.Stat_HasMovieDBLink,
+                Stat_HasMovieDBOrTvDBLink = c.Stat_HasMovieDBOrTvDBLink,
+                Stat_SeriesCount = c.Stat_SeriesCount,
+                Stat_EpisodeCount = c.Stat_EpisodeCount,
+                Stat_AniDBRating = c.Stat_AniDBRating,
+                ServerPosterPath = c.ServerPosterPath,
+                SeriesForNameOverride = c.SeriesForNameOverride,
+
+                Stat_AllCustomTags =
+                new HashSet<string>(c.Stat_AllCustomTags, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllTags = new HashSet<string>(c.Stat_AllTags, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllYears = new HashSet<int>(c.Stat_AllYears),
+                Stat_AllTitles = new HashSet<string>(c.Stat_AllTitles, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AnimeTypes = new HashSet<string>(c.Stat_AnimeTypes,
+                StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllVideoQuality =
+                new HashSet<string>(c.Stat_AllVideoQuality, StringComparer.InvariantCultureIgnoreCase),
+                Stat_AllVideoQuality_Episodes = new HashSet<string>(c.Stat_AllVideoQuality_Episodes,
+                StringComparer.InvariantCultureIgnoreCase),
+                Stat_AudioLanguages =
+                new HashSet<string>(c.Stat_AudioLanguages, StringComparer.InvariantCultureIgnoreCase),
+                Stat_SubtitleLanguages = new HashSet<string>(c.Stat_SubtitleLanguages,
+                StringComparer.InvariantCultureIgnoreCase)
             };
+            return contract;
         }
     }
 }

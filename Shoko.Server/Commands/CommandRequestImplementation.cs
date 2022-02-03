@@ -3,22 +3,20 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using JetBrains.Annotations;
-using NHibernate;
 using NLog;
 using Shoko.Commons.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
     public class CommandAttribute : Attribute
     {
-        [NotNull]
         public CommandRequestType RequestType { get; }
 
-        public CommandAttribute([NotNull] CommandRequestType requestType) => RequestType = requestType;
+        public CommandAttribute(CommandRequestType requestType) => RequestType = requestType;
     }
 
     public abstract class CommandRequestImplementation : ICommandRequest
@@ -35,7 +33,7 @@ namespace Shoko.Server.Commands
         public int Priority { get; set; }
 
         [XmlIgnore]
-        public int CommandType => (int) ((int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1);
+        public int CommandType => (int?)GetType().GetCustomAttribute<CommandAttribute>()?.RequestType ?? -1;
 
         [XmlIgnore]
         public string CommandID { get; set; }

@@ -1,5 +1,4 @@
-﻿using Shoko.Models;
-using Shoko.Models.Enums;
+﻿using Shoko.Models.Enums;
 
 namespace Shoko.Server.ImageDownload
 {
@@ -11,9 +10,9 @@ namespace Shoko.Server.ImageDownload
 
         public ImageDownloadRequest(ImageEntityType imageType, object data, bool forceDownload)
         {
-            this.ImageType = imageType;
-            this.ImageData = data;
-            this.ForceDownload = forceDownload;
+            ImageType = imageType;
+            ImageData = data;
+            ForceDownload = forceDownload;
         }
     }
 }

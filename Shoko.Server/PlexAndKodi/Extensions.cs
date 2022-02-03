@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Metro;
-using Shoko.Server.Models;
+using Shoko.Models.PlexAndKodi;
+using Shoko.Models.Server;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Repositories;
 
@@ -87,12 +85,10 @@ namespace Shoko.Server.PlexAndKodi
                     prov.ServiceAddress + "/SearchTag/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
                     WebUtility.UrlEncode(query));
             }
-            else
-            {
-                return prov.ServerUrl(prov.ServicePort,
-                    prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
-                    WebUtility.UrlEncode(query));
-            }
+
+            return prov.ServerUrl(prov.ServicePort,
+                prov.ServiceAddress + "/Search/" + WebUtility.UrlEncode(userid) + "/" + limit + "/" +
+                WebUtility.UrlEncode(query));
         }
 
         public static string ConstructPlaylistUrl(this IProvider prov, int userid)
@@ -176,17 +172,17 @@ namespace Shoko.Server.PlexAndKodi
 
         public static void GenerateKey(this Video v, IProvider prov, int userid)
         {
-            switch ((Shoko.Models.PlexAndKodi.AnimeTypes) Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes),
+            switch ((AnimeTypes) Enum.Parse(typeof(AnimeTypes),
                 v.AnimeType, true))
             {
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeGroup:
+                case AnimeTypes.AnimeGroup:
                     v.Key = prov.ConstructGroupIdUrl(userid, v.Id);
                     break;
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeSerie:
+                case AnimeTypes.AnimeSerie:
                     v.Key = prov.ConstructSerieIdUrl(userid, v.Id.ToString());
                     break;
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
+                case AnimeTypes.AnimeEpisode:
+                case AnimeTypes.AnimeFile:
                     Helper.AddLinksToAnimeEpisodeVideo(prov, v, userid);
                     AddResumePosition(v, prov, userid);
                     break;
@@ -196,10 +192,10 @@ namespace Shoko.Server.PlexAndKodi
         public static void AddResumePosition(this Video v, IProvider prov, int userid)
         {
             switch (
-                (Shoko.Models.PlexAndKodi.AnimeTypes)
-                Enum.Parse(typeof(Shoko.Models.PlexAndKodi.AnimeTypes), v.AnimeType, true))
+                (AnimeTypes)
+                Enum.Parse(typeof(AnimeTypes), v.AnimeType, true))
             {
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeEpisode:
+                case AnimeTypes.AnimeEpisode:
                     if (v.Medias != null)
                     {
                         VideoLocal_User vl = v.Medias.Select(a => RepoFactory.VideoLocal.GetByID(a.Id))
@@ -216,7 +212,7 @@ namespace Shoko.Server.PlexAndKodi
                         }
                     }
                     break;
-                case Shoko.Models.PlexAndKodi.AnimeTypes.AnimeFile:
+                case AnimeTypes.AnimeFile:
                     VideoLocal_User vl2 = RepoFactory.VideoLocal.GetByID(v.Id)?.GetUserRecord(userid);
                     if (vl2 != null && vl2.ResumePosition > 0)
                     {
@@ -232,7 +228,7 @@ namespace Shoko.Server.PlexAndKodi
             bool noart = false)
         {
             m.ReplaceSchemeHost(prov);
-            info?.Update(m, noart).FillInfo(prov, m, noimage, true);
+            info?.Update(m, noart).FillInfo(prov, m, noimage);
             l.Add(m);
         }
 
@@ -241,7 +237,7 @@ namespace Shoko.Server.PlexAndKodi
             m.ReplaceSchemeHost(prov);
             if (info != null)
             {
-                info.FillInfo(prov, m, noimage, true);
+                info.FillInfo(prov, m, noimage);
                 m.Thumb = info.Thumb;
                 m.Art = info.Art;
                 m.Title = info.Title;
@@ -255,7 +251,7 @@ namespace Shoko.Server.PlexAndKodi
             m.ReplaceSchemeHost(prov);
             if (info != null)
             {
-                info.FillInfo(prov, m, noimage, true);
+                info.FillInfo(prov, m, noimage);
                 m.Thumb = info.Thumb;
                 m.Art = info.Art;
                 m.Title = info.Title;
@@ -268,7 +264,7 @@ namespace Shoko.Server.PlexAndKodi
             bool noimage = false)
         {
             m.ReplaceSchemeHost(prov);
-            info?.Update(m).FillInfo(prov, m, noimage, true);
+            info?.Update(m).FillInfo(prov, m, noimage);
 
             l.Add(m);
         }

@@ -1,8 +1,8 @@
 ﻿using System;
-using System.IO;
 using System.Xml;
-using System.Xml.Serialization;
 using NLog;
+using Shoko.Commons.Utils;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.JMMAutoUpdates
 {
@@ -52,7 +52,7 @@ namespace Shoko.Server.Providers.JMMAutoUpdates
             {
                 // get the latest version as according to the release
                 string uri = "http://shokoanime.com/files/versions.xml";
-                string xml = Shoko.Commons.Utils.Misc.DownloadWebPage(uri, null, true);
+                string xml = Misc.DownloadWebPage(uri, null, true);
 
                 XmlDocument xmldoc = new XmlDocument();
                 xmldoc.LoadXml(xml);

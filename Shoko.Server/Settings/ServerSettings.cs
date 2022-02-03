@@ -1,18 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
+using Shoko.Commons.Utils;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Server.ImageDownload;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+using Shoko.Server.Server;
+using Shoko.Server.Settings.DI;
+using Shoko.Server.Utilities;
+using Constants = Shoko.Server.Server.Constants;
+using Formatting = Newtonsoft.Json.Formatting;
 using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
-using System.Globalization;
 
 namespace Shoko.Server.Settings
 {
@@ -20,6 +28,7 @@ namespace Shoko.Server.Settings
     {
         private const string SettingsFilename = "settings-server.json";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly object SettingsLock = new object();
 
         //in this way, we could host two ShokoServers int the same machine
         [JsonIgnore]
@@ -48,6 +57,8 @@ namespace Shoko.Server.Settings
         [Range(0, 1, ErrorMessage = "PluginAutoWatchThreshold must be between 0 and 1")]
         public double PluginAutoWatchThreshold { get; set; } = 0.89;
 
+        public int CachingDatabaseTimeout { get; set; } = 180;
+
         public string Culture { get; set; } = "en";
 
         /// <summary>
@@ -56,9 +67,11 @@ namespace Shoko.Server.Settings
         public string WebUI_Settings { get; set; } = "";
 
         /// <summary>
-        /// FirstRun idicates if DB was configured or not, as it needed as backend for user authentication
+        /// FirstRun indicates if DB was configured or not, as it needed as backend for user authentication
         /// </summary>
         public bool FirstRun { get; set; } = true;
+
+        public int LegacyRenamerMaxEpisodeLength { get; set; } = 33;
 
         public LogRotatorSettings LogRotator { get; set; } = new LogRotatorSettings();
 
@@ -75,18 +88,20 @@ namespace Shoko.Server.Settings
         public ImportSettings Import { get; set; } = new ImportSettings();
 
         public PlexSettings Plex { get; set; } = new PlexSettings();
+        
+        public PluginSettings Plugins { get; set; } = new PluginSettings();
 
-        public bool AutoGroupSeries { get; set; } = false;
+        public bool AutoGroupSeries { get; set; }
 
         public string AutoGroupSeriesRelationExclusions { get; set; } = "same setting|character";
 
-        public bool AutoGroupSeriesUseScoreAlgorithm { get; set; } = false;
+        public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
-        public bool FileQualityFilterEnabled { get; set; } = false;
+        public bool FileQualityFilterEnabled { get; set; }
 
-        public FileQualityPreferences FileQualityFilterPreferences { get; set; } = new FileQualityPreferences();
+        public FileQualityPreferences FileQualityPreferences { get; set; } = new FileQualityPreferences();
 
-        public string[] LanguagePreference { get; set; } = new[] { "x-jat", "en" };
+        public List<string> LanguagePreference { get; set; } = new List<string> { "x-jat", "en" };
 
         public string EpisodeLanguagePreference { get; set; } = string.Empty;
 
@@ -111,17 +126,13 @@ namespace Shoko.Server.Settings
             }
         }
 
-        public string VLCLocation { get; set; } = string.Empty;
-
-        public bool MinimizeOnStartup { get; set; } = false;
-
         public TraktSettings TraktTv { get; set; } = new TraktSettings();
 
         public string UpdateChannel { get; set; } = "Stable";
 
         public LinuxSettings Linux { get; set; } = new LinuxSettings();
 
-        public bool TraceLog { get; set; } = false;
+        public bool TraceLog { get; set; }
 
         [JsonIgnore]
         public Guid GA_Client
@@ -152,177 +163,231 @@ namespace Shoko.Server.Settings
                 Instance.SaveSettings();
                 return;
             }
-            LoadSettingsFromFile(path, false);
+            LoadSettingsFromFile(path);
+            Instance.SaveSettings();
+
+            ShokoServer.SetTraceLogging(Instance.TraceLog);
         }
 
         private static ServerSettings LoadLegacySettings()
         {
-            Legacy.LoadSettings();
-            var settings = new ServerSettings()
+            var legacy = Legacy.LoadSettingsFromFile();
+            var settings = new ServerSettings
             {
-                ImagesPath = Legacy.ImagesPath,
-                AnimeXmlDirectory = Legacy.AnimeXmlDirectory,
-                MyListDirectory = Legacy.MyListDirectory,
-                ServerPort = (ushort)Legacy.JMMServerPort,
-                PluginAutoWatchThreshold = double.Parse(Legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
-                Culture = Legacy.Culture,
-                WebUI_Settings = Legacy.WebUI_Settings,
-                FirstRun = Legacy.FirstRun,
-                LogRotator = new LogRotatorSettings()
+                ImagesPath = legacy.ImagesPath,
+                AnimeXmlDirectory = legacy.AnimeXmlDirectory,
+                MyListDirectory = legacy.MyListDirectory,
+                ServerPort = (ushort) legacy.JMMServerPort,
+                PluginAutoWatchThreshold = double.Parse(legacy.PluginAutoWatchThreshold, CultureInfo.InvariantCulture),
+                Culture = legacy.Culture,
+                WebUI_Settings = legacy.WebUI_Settings,
+                FirstRun = legacy.FirstRun,
+                LogRotator =
+                    new LogRotatorSettings
+                    {
+                        Enabled = legacy.RotateLogs,
+                        Zip = legacy.RotateLogs_Zip,
+                        Delete = legacy.RotateLogs_Delete,
+                        Delete_Days = legacy.RotateLogs_Delete_Days
+                    },
+                AniDb = new AniDbSettings
                 {
-                    Enabled = Legacy.RotateLogs,
-                    Zip = Legacy.RotateLogs_Zip,
-                    Delete = Legacy.RotateLogs_Delete,
-                    Delete_Days = Legacy.RotateLogs_Delete_Days
+                    Username = legacy.AniDB_Username,
+                    Password = legacy.AniDB_Password,
+                    ServerAddress = legacy.AniDB_ServerAddress,
+                    ServerPort = ushort.Parse(legacy.AniDB_ServerPort),
+                    ClientPort = ushort.Parse(legacy.AniDB_ClientPort),
+                    AVDumpKey = legacy.AniDB_AVDumpKey,
+                    AVDumpClientPort = ushort.Parse(legacy.AniDB_AVDumpClientPort),
+                    DownloadRelatedAnime = legacy.AniDB_DownloadRelatedAnime,
+                    DownloadSimilarAnime = legacy.AniDB_DownloadSimilarAnime,
+                    DownloadReviews = legacy.AniDB_DownloadReviews,
+                    DownloadReleaseGroups = legacy.AniDB_DownloadReleaseGroups,
+                    MyList_AddFiles = legacy.AniDB_MyList_AddFiles,
+                    MyList_StorageState = legacy.AniDB_MyList_StorageState,
+                    MyList_DeleteType = legacy.AniDB_MyList_DeleteType,
+                    MyList_ReadUnwatched = legacy.AniDB_MyList_ReadUnwatched,
+                    MyList_ReadWatched = legacy.AniDB_MyList_ReadWatched,
+                    MyList_SetWatched = legacy.AniDB_MyList_SetWatched,
+                    MyList_SetUnwatched = legacy.AniDB_MyList_SetUnwatched,
+                    MyList_UpdateFrequency = legacy.AniDB_MyList_UpdateFrequency,
+                    Calendar_UpdateFrequency = legacy.AniDB_Calendar_UpdateFrequency,
+                    Anime_UpdateFrequency = legacy.AniDB_Anime_UpdateFrequency,
+                    MyListStats_UpdateFrequency = legacy.AniDB_MyListStats_UpdateFrequency,
+                    File_UpdateFrequency = legacy.AniDB_File_UpdateFrequency,
+                    DownloadCharacters = legacy.AniDB_DownloadCharacters,
+                    DownloadCreators = legacy.AniDB_DownloadCreators,
+                    MaxRelationDepth = legacy.AniDB_MaxRelationDepth
                 },
-                AniDb = new AniDbSettings()
+                WebCache = new WebCacheSettings
                 {
-                    Username = Legacy.AniDB_Username,
-                    Password = Legacy.AniDB_Password,
-                    ServerAddress = Legacy.AniDB_ServerAddress,
-                    ServerPort = ushort.Parse(Legacy.AniDB_ServerPort),
-                    ClientPort = ushort.Parse(Legacy.AniDB_ClientPort),
-                    AVDumpKey = Legacy.AniDB_AVDumpKey,
-                    AVDumpClientPort = ushort.Parse(Legacy.AniDB_AVDumpClientPort),
-                    DownloadRelatedAnime = Legacy.AniDB_DownloadRelatedAnime,
-                    DownloadSimilarAnime = Legacy.AniDB_DownloadSimilarAnime,
-                    DownloadReviews = Legacy.AniDB_DownloadReviews,
-                    DownloadReleaseGroups = Legacy.AniDB_DownloadReleaseGroups,
-                    MyList_AddFiles = Legacy.AniDB_MyList_AddFiles,
-                    MyList_StorageState = Legacy.AniDB_MyList_StorageState,
-                    MyList_DeleteType = Legacy.AniDB_MyList_DeleteType,
-                    MyList_ReadUnwatched = Legacy.AniDB_MyList_ReadUnwatched,
-                    MyList_ReadWatched = Legacy.AniDB_MyList_ReadWatched,
-                    MyList_SetWatched = Legacy.AniDB_MyList_SetWatched,
-                    MyList_SetUnwatched = Legacy.AniDB_MyList_SetUnwatched,
-                    MyList_UpdateFrequency = Legacy.AniDB_MyList_UpdateFrequency,
-                    Calendar_UpdateFrequency = Legacy.AniDB_Calendar_UpdateFrequency,
-                    Anime_UpdateFrequency = Legacy.AniDB_Anime_UpdateFrequency,
-                    MyListStats_UpdateFrequency = Legacy.AniDB_MyListStats_UpdateFrequency,
-                    File_UpdateFrequency = Legacy.AniDB_File_UpdateFrequency,
-                    DownloadCharacters = Legacy.AniDB_DownloadCharacters,
-                    DownloadCreators = Legacy.AniDB_DownloadCreators,
-                    MaxRelationDepth = Legacy.AniDB_MaxRelationDepth
+                    Address = legacy.WebCache_Address,
+                    XRefFileEpisode_Get = legacy.WebCache_XRefFileEpisode_Get,
+                    XRefFileEpisode_Send = legacy.WebCache_XRefFileEpisode_Send,
+                    TvDB_Get = legacy.WebCache_TvDB_Get,
+                    TvDB_Send = legacy.WebCache_TvDB_Send,
+                    Trakt_Get = legacy.WebCache_Trakt_Get,
+                    Trakt_Send = legacy.WebCache_Trakt_Send,
                 },
-                WebCache = new WebCacheSettings()
+                TvDB =
+                    new TvDBSettings
+                    {
+                        AutoLink = legacy.TvDB_AutoLink,
+                        AutoFanart = legacy.TvDB_AutoFanart,
+                        AutoFanartAmount = legacy.TvDB_AutoFanartAmount,
+                        AutoWideBanners = legacy.TvDB_AutoWideBanners,
+                        AutoWideBannersAmount = legacy.TvDB_AutoWideBannersAmount,
+                        AutoPosters = legacy.TvDB_AutoPosters,
+                        AutoPostersAmount = legacy.TvDB_AutoPostersAmount,
+                        UpdateFrequency = legacy.TvDB_UpdateFrequency,
+                        Language = legacy.TvDB_Language
+                    },
+                MovieDb =
+                    new MovieDbSettings
+                    {
+                        AutoFanart = legacy.MovieDB_AutoFanart,
+                        AutoFanartAmount = legacy.MovieDB_AutoFanartAmount,
+                        AutoPosters = legacy.MovieDB_AutoPosters,
+                        AutoPostersAmount = legacy.MovieDB_AutoPostersAmount
+                    },
+                Import =
+                    new ImportSettings
+                    {
+                        VideoExtensions = legacy.VideoExtensions.Split(',').ToList(),
+                        DefaultSeriesLanguage = legacy.DefaultSeriesLanguage,
+                        DefaultEpisodeLanguage = legacy.DefaultEpisodeLanguage,
+                        RunOnStart = legacy.RunImportOnStart,
+                        ScanDropFoldersOnStart = legacy.ScanDropFoldersOnStart,
+                        Hash_CRC32 = legacy.Hash_CRC32,
+                        Hash_MD5 = legacy.Hash_MD5,
+                        Hash_SHA1 = legacy.Hash_SHA1,
+                        UseExistingFileWatchedStatus = legacy.Import_UseExistingFileWatchedStatus
+                    },
+                Plex =
+                    new PlexSettings
+                    {
+                        ThumbnailAspects = legacy.PlexThumbnailAspects,
+                        Libraries = legacy.Plex_Libraries.ToList(),
+                        Token = legacy.Plex_Token,
+                        Server = legacy.Plex_Server
+                    },
+                AutoGroupSeries = legacy.AutoGroupSeries,
+                AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions,
+                AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
+                FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
+                FileQualityPreferences = legacy.FileQualityFilterPreferences,
+                LanguagePreference = legacy.LanguagePreference.Split(',').ToList(),
+                EpisodeLanguagePreference = legacy.EpisodeLanguagePreference,
+                LanguageUseSynonyms = legacy.LanguageUseSynonyms,
+                CloudWatcherTime = legacy.CloudWatcherTime,
+                EpisodeTitleSource = legacy.EpisodeTitleSource,
+                SeriesDescriptionSource = legacy.SeriesDescriptionSource,
+                SeriesNameSource = legacy.SeriesNameSource,
+                TraktTv = new TraktSettings
                 {
-                    Address = Legacy.WebCache_Address,
-                    XRefFileEpisode_Get = Legacy.WebCache_XRefFileEpisode_Get,
-                    XRefFileEpisode_Send = Legacy.WebCache_XRefFileEpisode_Send,
-                    TvDB_Get = Legacy.WebCache_TvDB_Get,
-                    TvDB_Send = Legacy.WebCache_TvDB_Send,
-                    Trakt_Get = Legacy.WebCache_Trakt_Get,
-                    Trakt_Send = Legacy.WebCache_Trakt_Send,
+                    Enabled = legacy.Trakt_IsEnabled,
+                    PIN = legacy.Trakt_PIN,
+                    AuthToken = legacy.Trakt_AuthToken,
+                    RefreshToken = legacy.Trakt_RefreshToken,
+                    TokenExpirationDate = legacy.Trakt_TokenExpirationDate,
+                    UpdateFrequency = legacy.Trakt_UpdateFrequency,
+                    SyncFrequency = legacy.Trakt_SyncFrequency
                 },
-                TvDB = new TvDBSettings()
+                UpdateChannel = legacy.UpdateChannel,
+                Linux = new LinuxSettings
                 {
-                    AutoLink = Legacy.TvDB_AutoLink,
-                    AutoFanart = Legacy.TvDB_AutoFanart,
-                    AutoFanartAmount = Legacy.TvDB_AutoFanartAmount,
-                    AutoWideBanners = Legacy.TvDB_AutoWideBanners,
-                    AutoWideBannersAmount = Legacy.TvDB_AutoWideBannersAmount,
-                    AutoPosters = Legacy.TvDB_AutoPosters,
-                    AutoPostersAmount = Legacy.TvDB_AutoPostersAmount,
-                    UpdateFrequency = Legacy.TvDB_UpdateFrequency,
-                    Language = Legacy.TvDB_Language
+                    UID = legacy.Linux_UID, GID = legacy.Linux_GID, Permission = legacy.Linux_Permission
                 },
-                MovieDb = new MovieDbSettings()
+                TraceLog = legacy.TraceLog,
+                Database = new DatabaseSettings
                 {
-                    AutoFanart = Legacy.MovieDB_AutoFanart,
-                    AutoFanartAmount = Legacy.MovieDB_AutoFanartAmount,
-                    AutoPosters = Legacy.MovieDB_AutoPosters,
-                    AutoPostersAmount = Legacy.MovieDB_AutoPostersAmount
-                },
-                Import = new ImportSettings()
-                {
-                    VideoExtensions = Legacy.VideoExtensions.Split(','),
-                    DefaultSeriesLanguage = Legacy.DefaultSeriesLanguage,
-                    DefaultEpisodeLanguage = Legacy.DefaultEpisodeLanguage,
-                    RunOnStart = Legacy.RunImportOnStart,
-                    ScanDropFoldersOnStart = Legacy.ScanDropFoldersOnStart,
-                    Hash_CRC32 = Legacy.Hash_CRC32,
-                    Hash_MD5 = Legacy.Hash_MD5,
-                    Hash_SHA1 = Legacy.Hash_SHA1,
-                    UseExistingFileWatchedStatus = Legacy.Import_UseExistingFileWatchedStatus
-                },
-                Plex = new PlexSettings()
-                {
-                    ThumbnailAspects = Legacy.PlexThumbnailAspects,
-                    Libraries = Legacy.Plex_Libraries,
-                    Token = Legacy.Plex_Token,
-                    Server = Legacy.Plex_Server
-                },
-                AutoGroupSeries = Legacy.AutoGroupSeries,
-                AutoGroupSeriesRelationExclusions = Legacy.AutoGroupSeriesRelationExclusions,
-                AutoGroupSeriesUseScoreAlgorithm = Legacy.AutoGroupSeriesUseScoreAlgorithm,
-                FileQualityFilterEnabled = Legacy.FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(Legacy.FileQualityFilterPreferences),
-                LanguagePreference = Legacy.LanguagePreference.Split(','),
-                EpisodeLanguagePreference = Legacy.EpisodeLanguagePreference,
-                LanguageUseSynonyms = Legacy.LanguageUseSynonyms,
-                CloudWatcherTime = Legacy.CloudWatcherTime,
-                EpisodeTitleSource = Legacy.EpisodeTitleSource,
-                SeriesDescriptionSource = Legacy.SeriesDescriptionSource,
-                SeriesNameSource = Legacy.SeriesNameSource,
-                VLCLocation = Legacy.VLCLocation,
-                MinimizeOnStartup = Legacy.MinimizeOnStartup,
-                TraktTv = new TraktSettings()
-                {
-                    Enabled = Legacy.Trakt_IsEnabled,
-                    PIN = Legacy.Trakt_PIN,
-                    AuthToken = Legacy.Trakt_AuthToken,
-                    RefreshToken = Legacy.Trakt_RefreshToken,
-                    TokenExpirationDate = Legacy.Trakt_TokenExpirationDate,
-                    UpdateFrequency = Legacy.Trakt_UpdateFrequency,
-                    SyncFrequency = Legacy.Trakt_SyncFrequency
-                },
-                UpdateChannel = Legacy.UpdateChannel,
-                Linux = new LinuxSettings()
-                {
-                    UID = Legacy.Linux_UID,
-                    GID = Legacy.Linux_GID,
-                    Permission = Legacy.Linux_Permission
-                },
-                TraceLog = Legacy.TraceLog
+                    MySqliteDirectory = legacy.MySqliteDirectory,
+                    DatabaseBackupDirectory = legacy.DatabaseBackupDirectory,
+                    Type = legacy.DatabaseType
+                }
             };
 
-            settings.Database = new DatabaseSettings()
-            {
-                MySqliteDirectory = Legacy.MySqliteDirectory,
-                DatabaseBackupDirectory = Legacy.DatabaseBackupDirectory
-            };
-            settings.Database.Type = Legacy.DatabaseType;
-            switch (Legacy.DatabaseType)
+            switch (legacy.DatabaseType)
             {
                 case Constants.DatabaseType.MySQL:
-                    settings.Database.Username = Legacy.MySQL_Username;
-                    settings.Database.Password = Legacy.MySQL_Password;
-                    settings.Database.Schema = Legacy.MySQL_SchemaName;
-                    settings.Database.Hostname = Legacy.MySQL_Hostname;
+                    settings.Database.Username = legacy.MySQL_Username;
+                    settings.Database.Password = legacy.MySQL_Password;
+                    settings.Database.Schema = legacy.MySQL_SchemaName;
+                    settings.Database.Hostname = legacy.MySQL_Hostname;
                     break;
                 case Constants.DatabaseType.SqlServer:
-                    settings.Database.Username = Legacy.DatabaseUsername;
-                    settings.Database.Password = Legacy.DatabasePassword;
-                    settings.Database.Schema = Legacy.DatabaseName;
-                    settings.Database.Hostname = Legacy.DatabaseServer;
+                    settings.Database.Username = legacy.DatabaseUsername;
+                    settings.Database.Password = legacy.DatabasePassword;
+                    settings.Database.Schema = legacy.DatabaseName;
+                    settings.Database.Hostname = legacy.DatabaseServer;
                     break;
             }
 
             return settings;
         }
 
-        public static void LoadSettingsFromFile(string path, bool delete = false)
+        public static T Deserialize<T>(string json) where T : class
         {
-            Instance = JsonConvert.DeserializeObject<ServerSettings>(File.ReadAllText(path));
-            var context = new ValidationContext(Instance, serviceProvider: null, items: null);
+            return Deserialize(typeof(T), json) as T;
+        }
+
+        public static object Deserialize(Type t, string json)
+        {
+            var serializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new NullToDefaultValueResolver(),
+                Converters = new List<JsonConverter>{new StringEnumConverter()},
+                Error = (sender, args) => { args.ErrorContext.Handled = true; },
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+            };
+            var result = JsonConvert.DeserializeObject(json, t, serializerSettings);
+            if (result == null) return null;
+            var context = new ValidationContext(result, serviceProvider: null, items: null);
             var results = new List<ValidationResult>();
 
-            if (!Validator.TryValidateObject(Instance, context, results))
+            if (!Validator.TryValidateObject(result, context, results))
             {
-                results.ForEach(s => Logger.Error(s.ErrorMessage));
-                throw new ValidationException();
+                throw new ValidationException(string.Join("\n", results.Select(a => a.ErrorMessage)));
             }
+
+            return result;
+        }
+
+        public static void LoadSettingsFromFile(string path, bool delete = false)
+        {
+            FixNonEmittedDefaults(path);
+            try
+            {
+                Instance = Deserialize<ServerSettings>(File.ReadAllText(path));
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e);
+            }
+
             if (delete) File.Delete(path);
+        }
+
+        /// <summary>
+        /// Fix the behavior of missing members in pre-4.0
+        /// </summary>
+        /// <param name="path"></param>
+        private static void FixNonEmittedDefaults(string path)
+        {
+            var json = File.ReadAllText(path);
+            if (json.Contains("\"FirstRun\":")) return;
+            var serializerSettings = new JsonSerializerSettings
+            {
+                Converters = new List<JsonConverter>{new StringEnumConverter()},
+                Error = (sender, args) => { args.ErrorContext.Handled = true; },
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Populate
+            };
+            var result = JsonConvert.DeserializeObject<ServerSettings>(json, serializerSettings);
+            string inCode = Serialize(result, true);
+            File.WriteAllText(path, inCode);
         }
 
         public void SaveSettings()
@@ -338,7 +403,24 @@ namespace Shoko.Server.Settings
                 throw new ValidationException();
             }
 
-            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented, new StringEnumConverter { AllowIntegerValues = true }));
+            lock (SettingsLock)
+            {
+                string onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
+                string inCode = Serialize(this, true);
+                if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
+            }
+        }
+
+        public static string Serialize(object obj, bool indent = false)
+        {
+            JsonSerializerSettings serializerSettings = new JsonSerializerSettings
+            {
+                Formatting = indent ? Formatting.Indented : Formatting.None,
+                DefaultValueHandling = DefaultValueHandling.Include,
+                MissingMemberHandling = MissingMemberHandling.Ignore,
+                Converters = new List<JsonConverter> {new StringEnumConverter()}
+            };
+            return JsonConvert.SerializeObject(obj, serializerSettings);
         }
 
         public CL_ServerSettings ToContract()
@@ -408,13 +490,16 @@ namespace Shoko.Server.Settings
                 AutoGroupSeriesUseScoreAlgorithm = AutoGroupSeriesUseScoreAlgorithm,
                 AutoGroupSeriesRelationExclusions = AutoGroupSeriesRelationExclusions,
                 FileQualityFilterEnabled = FileQualityFilterEnabled,
-                FileQualityFilterPreferences = JsonConvert.SerializeObject(FileQualityFilterPreferences),
+                FileQualityFilterPreferences = Serialize(FileQualityPreferences),
+                Import_MoveOnImport = Import.MoveOnImport,
+                Import_RenameOnImport = Import.RenameOnImport,
                 Import_UseExistingFileWatchedStatus = Import.UseExistingFileWatchedStatus,
                 RunImportOnStart = Import.RunOnStart,
                 ScanDropFoldersOnStart = Import.ScanDropFoldersOnStart,
                 Hash_CRC32 = Import.Hash_CRC32,
                 Hash_MD5 = Import.Hash_MD5,
                 Hash_SHA1 = Import.Hash_SHA1,
+                SkipDiskSpaceChecks = Import.SkipDiskSpaceChecks,
 
                 // Language
                 LanguagePreference = string.Join(",", LanguagePreference),
@@ -448,16 +533,36 @@ namespace Shoko.Server.Settings
 
         private static void DumpSettings(object obj, string path = "")
         {
+            if (obj == null)
+            {
+                Logger.Info($"{path}: null");
+                return;
+            }
             foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (prop.PropertyType.FullName.StartsWith("Shoko.Server")) DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                var type = prop.PropertyType;
+                if (type.FullName.StartsWith("Shoko.Server") ||
+                    type.FullName.StartsWith("Shoko.Models") ||
+                    type.FullName.StartsWith("Shoko.Plugin"))
+                {
+                    DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                    continue;
+                }
+
                 var value = prop.GetValue(obj);
 
-                if (prop.PropertyType.IsArray) value = string.Join(", ", ToEnum((Array) value));
+                if (!IsPrimitive(type)) value = Serialize(value);
                 if (prop.Name.ToLower().EndsWith("password")) value = "***HIDDEN***";
 
                 Logger.Info($"{path}.{prop.Name}: {value}");
             }
+        }
+
+        private static bool IsPrimitive(Type type)
+        {
+            if (type.IsPrimitive) return true;
+            if (type.IsValueType) return true;
+            return false;
         }
 
         static IEnumerable<object> ToEnum(Array a)
@@ -497,18 +602,17 @@ namespace Shoko.Server.Settings
 
             try
             {
-                string mediaInfoVersion = "**** MediaInfo - DLL Not found *****";
+                string mediaInfoVersion = "**** MediaInfo Not found *****";
 
                 string mediaInfoPath = Assembly.GetEntryAssembly().Location;
                 FileInfo fi = new FileInfo(mediaInfoPath);
-                mediaInfoPath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "MediaInfo.dll");
+                mediaInfoPath = Path.Combine(fi.Directory.FullName, "MediaInfo", "MediaInfo.exe");
 
                 if (File.Exists(mediaInfoPath))
                 {
                     FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(mediaInfoPath);
                     mediaInfoVersion =
-                        $"MediaInfo DLL {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
+                        $"MediaInfo {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({mediaInfoPath})";
                 }
                 Logger.Info(mediaInfoVersion);
 
@@ -517,10 +621,14 @@ namespace Shoko.Server.Settings
                 string fullHasherexepath = Assembly.GetEntryAssembly().Location;
                 fi = new FileInfo(fullHasherexepath);
                 fullHasherexepath = Path.Combine(fi.Directory.FullName, Environment.Is64BitProcess ? "x64" : "x86",
-                    "hasher.dll");
+                    "librhash.dll");
 
                 if (File.Exists(fullHasherexepath))
-                    hasherInfoVersion = $"Hasher DLL found at {fullHasherexepath}";
+                {
+                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(fullHasherexepath);
+                    hasherInfoVersion =
+                        $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({fullHasherexepath})";
+                }
                 Logger.Info(hasherInfoVersion);
             }
             catch (Exception ex)
@@ -552,6 +660,23 @@ namespace Shoko.Server.Settings
             public string Reason { get; set; }
             // ReSharper disable once UnusedAutoPropertyAccessor.Global
             public Exception Exception { get; set; }
+        }
+
+        public static void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSettings(Instance.AniDb)
+                .AddSettings(Instance)
+                .AddSettings(Instance.Database)
+                .AddSettings(Instance.FileQualityPreferences)
+                .AddSettings(Instance.Import)
+                .AddSettings(Instance.Linux)
+                .AddSettings(Instance.LogRotator)
+                .AddSettings(Instance.MovieDb)
+                .AddSettings(Instance.Plex)
+                .AddSettings(Instance.Plugins)
+                .AddSettings(Instance.TraktTv)
+                .AddSettings(Instance.TvDB)
+                .AddSettings(Instance.WebCache);
         }
     }
 }

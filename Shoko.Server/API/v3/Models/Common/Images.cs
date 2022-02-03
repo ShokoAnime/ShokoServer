@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     public class Images
     {

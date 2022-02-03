@@ -74,7 +74,7 @@ namespace AniDBAPI
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("AniDB_Group:: AnimeID: " + GroupID.ToString());
+            sb.Append("AniDB_Group:: AnimeID: " + GroupID);
             sb.Append(" | GroupName: " + GroupName);
             sb.Append(" | URL: " + URL);
 

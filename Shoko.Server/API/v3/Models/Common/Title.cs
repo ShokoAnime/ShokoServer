@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     /// <summary>
     /// Title object, stores the title, type, language, and source
@@ -25,6 +25,11 @@ namespace Shoko.Server.API.v3
         /// AniDB type
         /// </summary>
         public string Type { get; set; }
+        
+        /// <summary>
+        /// If this is the default title
+        /// </summary>
+        public bool Default { get; set; }
             
         /// <summary>
         /// AniDB, TvDB, AniList, etc

@@ -1,21 +1,11 @@
-﻿using Shoko.Models.Server;
-using NHibernate.Criterion;
+﻿using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class LanguageRepository : BaseDirectRepository<Language, int>
     {
-        private LanguageRepository()
-        {
-        }
-
-        public static LanguageRepository Create()
-        {
-            return new LanguageRepository();
-        }
-
         public Language GetByLanguageName(string lanname)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

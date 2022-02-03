@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Cached
 {
@@ -18,22 +15,6 @@ namespace Shoko.Server.Repositories.Cached
         {
             SeriesIDs = new PocoIndex<int, TvDB_Episode, int>(Cache, a => a.SeriesID);
             EpisodeIDs = new PocoIndex<int, TvDB_Episode, int>(Cache, a => a.Id);
-        }
-
-        private TvDB_EpisodeRepository()
-        {
-            EndSaveCallback += (episode) =>
-            {
-                var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(episode.SeriesID);
-                xref.ForEach(a => TvDBLinkingHelper.GenerateTvDBEpisodeMatches(a.AniDBID));
-            };
-        }
-
-        public static TvDB_EpisodeRepository Create()
-        {
-            var repo = new TvDB_EpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         public TvDB_Episode GetByTvDBID(int id)

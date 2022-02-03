@@ -49,17 +49,17 @@ namespace AniDBAPI.Commands
 
         public string GetKey()
         {
-            return "AniDBCommand_Vote" + entityID.ToString() + "_" + episodeNumber.ToString() + "_" +
-                   voteType.ToString() + "_" +
-                   episodeType.ToString();
+            return "AniDBCommand_Vote" + entityID + "_" + episodeNumber + "_" +
+                   voteType + "_" +
+                   episodeType;
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.AddingVote;
+            return AniDBUDPResponseCode.AddingVote;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -67,16 +67,16 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.NoSuchVote;
+            if (errorOccurred) return AniDBUDPResponseCode.NoSuchVote;
 
             string sMsgType = socketResponse.Substring(0, 3);
             switch (sMsgType)
             {
-                case "260": return enHelperActivityType.Voted;
+                case "260": return AniDBUDPResponseCode.Voted;
                 case "261":
 
                     // this means we were trying to retrieve the vote
@@ -84,31 +84,31 @@ namespace AniDBAPI.Commands
                     {
                         // 261 VOTE FOUNDCode Geass Hangyaku no Lelouch|900|1|4521
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
-                        vote.ProcessVoteFoundAnime(socketResponse, this.entityID, this.voteType);
-                        this.voteValue = vote.VoteValue;
+                        vote.ProcessVoteFoundAnime(socketResponse, entityID, voteType);
+                        voteValue = vote.VoteValue;
                     }
                     if (voteType == AniDBVoteType.Episode)
                     {
                         //261 VOTE FOUNDThe Day a New Demon Was Born|700|1|63091
                         Raw_AniDB_Vote vote = new Raw_AniDB_Vote();
-                        vote.ProcessVoteFoundEpisode(socketResponse, this.entityID, this.episodeNumber,
-                            this.episodeType);
-                        this.voteValue = vote.VoteValue;
+                        vote.ProcessVoteFoundEpisode(socketResponse, entityID, episodeNumber,
+                            episodeType);
+                        voteValue = vote.VoteValue;
                     }
-                    return enHelperActivityType.VoteFound;
-                case "262": return enHelperActivityType.VoteUpdated;
-                case "263": return enHelperActivityType.VoteRevoked;
+                    return AniDBUDPResponseCode.VoteFound;
+                case "262": return AniDBUDPResponseCode.VoteUpdated;
+                case "263": return AniDBUDPResponseCode.VoteRevoked;
                     
-                case "360": return enHelperActivityType.NoSuchVote;
-                case "361": return enHelperActivityType.InvalidVoteType;
-                case "362": return enHelperActivityType.InvalidVoteValue;
-                case "363": return enHelperActivityType.PermVoteNotAllowed;
-                case "364": return enHelperActivityType.PermVoteAlready;
+                case "360": return AniDBUDPResponseCode.NoSuchVote;
+                case "361": return AniDBUDPResponseCode.InvalidVoteType;
+                case "362": return AniDBUDPResponseCode.InvalidVoteValue;
+                case "363": return AniDBUDPResponseCode.PermVoteNotAllowed;
+                case "364": return AniDBUDPResponseCode.PermVoteAlready;
 
-                case "501": return enHelperActivityType.LoginRequired;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.NoSuchVote;
+            return AniDBUDPResponseCode.NoSuchVote;
         }
 
         public AniDBCommand_Vote()
@@ -129,14 +129,14 @@ namespace AniDBAPI.Commands
             // votes will be updated automatically (no questions asked)
             // tmpvoting when there exist a perm vote is not possible
 
-            this.entityID = entityid;
-            this.episodeNumber = -1;
+            entityID = entityid;
+            episodeNumber = -1;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue * 100);
+                voteValue = (int) (votevalue * 100);
             else
-                this.voteValue = (int) votevalue;
-            this.voteType = votetype;
-            this.episodeType = EpisodeType.Episode;
+                voteValue = (int) votevalue;
+            voteType = votetype;
+            episodeType = EpisodeType.Episode;
 
             commandID = entityID.ToString();
 
@@ -157,9 +157,9 @@ namespace AniDBAPI.Commands
                     break;
             }
 
-            commandText = "VOTE type=" + iVoteType.ToString();
-            commandText += "&id=" + entityID.ToString();
-            commandText += "&value=" + voteValue.ToString();
+            commandText = "VOTE type=" + iVoteType;
+            commandText += "&id=" + entityID;
+            commandText += "&value=" + voteValue;
         }
 
         public void InitEpisode(int entityid, int epno, decimal votevalue, EpisodeType epType)
@@ -175,14 +175,14 @@ namespace AniDBAPI.Commands
             // votes will be updated automatically (no questions asked)
             // tmpvoting when there exist a perm vote is not possible
 
-            this.entityID = entityid;
-            this.episodeNumber = epno;
+            entityID = entityid;
+            episodeNumber = epno;
             if (votevalue > 0)
-                this.voteValue = (int) (votevalue * 100);
+                voteValue = (int) (votevalue * 100);
             else
-                this.voteValue = (int) votevalue;
-            this.voteType = AniDBVoteType.Episode;
-            this.episodeType = epType;
+                voteValue = (int) votevalue;
+            voteType = AniDBVoteType.Episode;
+            episodeType = epType;
 
             commandID = entityID.ToString();
 
@@ -192,25 +192,25 @@ namespace AniDBAPI.Commands
             switch (epType)
             {
                 case EpisodeType.Credits:
-                    epNumberFormatted = "C" + epno.ToString();
+                    epNumberFormatted = "C" + epno;
                     break;
                 case EpisodeType.Special:
-                    epNumberFormatted = "S" + epno.ToString();
+                    epNumberFormatted = "S" + epno;
                     break;
                 case EpisodeType.Other:
-                    epNumberFormatted = "0" + epno.ToString();
+                    epNumberFormatted = "0" + epno;
                     break;
                 case EpisodeType.Trailer:
-                    epNumberFormatted = "T" + epno.ToString();
+                    epNumberFormatted = "T" + epno;
                     break;
                 case EpisodeType.Parody:
-                    epNumberFormatted = "P" + epno.ToString();
+                    epNumberFormatted = "P" + epno;
                     break;
             }
 
-            commandText = "VOTE type=" + iVoteType.ToString();
-            commandText += "&id=" + entityID.ToString();
-            commandText += "&value=" + voteValue.ToString();
+            commandText = "VOTE type=" + iVoteType;
+            commandText += "&id=" + entityID;
+            commandText += "&value=" + voteValue;
             commandText += "&epno=" + epNumberFormatted;
         }
     }

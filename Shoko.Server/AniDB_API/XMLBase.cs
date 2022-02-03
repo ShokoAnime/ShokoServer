@@ -11,7 +11,7 @@ namespace AniDBAPI
             XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
             ns.Add("", string.Empty);
 
-            XmlSerializer serializer = new XmlSerializer(this.GetType());
+            XmlSerializer serializer = new XmlSerializer(GetType());
             XmlWriterSettings settings = new XmlWriterSettings
             {
                 OmitXmlDeclaration = true // Remove the <?xml version="1.0" encoding="utf-8"?>

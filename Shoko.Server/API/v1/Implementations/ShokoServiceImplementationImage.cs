@@ -3,20 +3,17 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
-using Shoko.Models.Server;
+using System.Resources;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
-using Shoko.Server.Models;
+using Shoko.Models.Server;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
+using Shoko.Server.Properties;
 using Shoko.Server.Repositories;
-using Resources = Shoko.Server.Properties.Resources;
-using Shoko.Server.API.v1;
-using System.Net;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using HttpContext = Microsoft.AspNetCore.Http.HttpContext;
 using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server
@@ -134,7 +131,7 @@ namespace Shoko.Server
                 return NotFound();
             
             name = Path.GetFileNameWithoutExtension(name);
-            System.Resources.ResourceManager man = Resources.ResourceManager;
+            ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
                 return NotFound();
@@ -202,7 +199,7 @@ namespace Shoko.Server
         [HttpGet("Thumb/{imageId}/{imageType}/{ratio}")]
         public object GetThumb(int imageId, int imageType, float ratio)
         {
-            object m = GetImage(imageId, imageType, false);
+            object m = GetImage(imageId, imageType);
             if (m == NotFound()) return m;
 
             if (!(m is Stream image)) return NotFound();
@@ -300,26 +297,13 @@ namespace Shoko.Server
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageId);
                     if (fanart == null) return null;
-                    if (thumnbnailOnly.HasValue && thumnbnailOnly.Value)
+                    if (System.IO.File.Exists(fanart.GetFullImagePath()))
                     {
-                        if (System.IO.File.Exists(fanart.GetFullThumbnailPath()))
-                        {
-                            return fanart.GetFullThumbnailPath();
-                        }
-                        
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullThumbnailPath());
-                        return string.Empty;
+                        return fanart.GetFullImagePath();
                     }
-                    else
-                    {
-                        if (System.IO.File.Exists(fanart.GetFullImagePath()))
-                        {
-                            return fanart.GetFullImagePath();
-                        }
                         
-                        logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
-                        return string.Empty;
-                    }
+                    logger.Trace("Could not find TvDB_FanArt image: {0}", fanart.GetFullImagePath());
+                    return string.Empty;
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster mPoster = RepoFactory.MovieDB_Poster.GetByID(imageId);

@@ -2,11 +2,11 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.IO;
+using Microsoft.AspNetCore.Mvc;
 using Shoko.Commons;
 using Shoko.Models.Server;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
-using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules
@@ -14,6 +14,8 @@ namespace Shoko.Server.API.v2.Modules
     [ApiController]
     [Route("/api/version")]
     [ApiVersion("2.0")]
+    [InitFriendly]
+    [DatabaseBlockedExempt]
     public class Version : BaseController
     {
         /// <summary>

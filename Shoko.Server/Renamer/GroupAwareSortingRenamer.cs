@@ -1,64 +1,63 @@
+using System;
 using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Attributes;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Renamer
 {
-    // TODO make this support renaming, but only if enabled
-    [Renamer("GroupAwareRenamer", Description = "Group Aware Sorter (does not support renaming, only moving at this time)")]
+    [Renamer(RENAMER_ID, Description = "Group Aware Sorter")]
     public class GroupAwareRenamer : IRenamer
     {
-        public string GetFileName(SVR_VideoLocal_Place video) => Path.GetFileName(video.FilePath);
-
-        public string GetFileName(SVR_VideoLocal video)
+        internal const string RENAMER_ID = nameof(GroupAwareRenamer);
+        // Defer to whatever else
+        public string GetFilename(RenameEventArgs args)
         {
-            return Path.GetFileName(video.GetBestVideoLocalPlace().FilePath);
+            // Terrible hack to make it forcefully return Legacy Renamer
+            var legacy = (IRenamer) ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, typeof(LegacyRenamer));
+            return legacy.GetFilename(args);
         }
 
-        public (ImportFolder dest, string folder) GetDestinationFolder(SVR_VideoLocal_Place video)
+        public (IImportFolder destination, string subfolder) GetDestination(MoveEventArgs args)
         {
-            try
+            if (args?.EpisodeInfo == null) throw new ArgumentException("File is unrecognized. Not Moving");
+            // get the series
+            var series = args.AnimeInfo?.FirstOrDefault();
+
+            if (series == null) throw new ArgumentException("Series cannot be found for file");
+
+            // replace the invalid characters
+            string name = series.PreferredTitle.ReplaceInvalidPathCharacters();
+            if (string.IsNullOrEmpty(name)) throw new ArgumentException("Series Name is null or empty");
+
+            var group = args.GroupInfo?.FirstOrDefault();
+            if (group == null) throw new ArgumentException("Group could not be found for file");
+            
+            string path;
+            if (group.Series.Count == 1)
             {
-                SVR_AnimeSeries series = video.VideoLocal?.GetAnimeEpisodes().FirstOrDefault()?.GetAnimeSeries();
-
-                if (series == null) return (null, "Series is null");
-                string name = Utils.ReplaceInvalidFolderNameCharacters(series.GetSeriesName());
-                if (string.IsNullOrEmpty(name)) return (null, "Unable to get series name");
-
-                var anime = series.GetAnime();
-                ImportFolder destFolder = RepoFactory.ImportFolder.GetAll()
-                    .FirstOrDefault(a => a.ImportFolderLocation.Contains("Anime"));
-                if (anime.Restricted == 1)
-                {
-                    destFolder = RepoFactory.ImportFolder.GetAll()
-                        .FirstOrDefault(a => a.ImportFolderLocation.Contains("Hentai"));
-                }
-
-                if (destFolder == null)
-                    destFolder = RepoFactory.ImportFolder.GetAll().FirstOrDefault(a => a.FolderIsDropDestination) ??
-                                 RepoFactory.ImportFolder.GetAll().FirstOrDefault();
-
-                string path;
-                var group = series.AnimeGroup;
-                if (group == null) return (null, "group is null");
-                if (group.GetAllSeries().Count == 1)
-                {
-                    path = name;
-                }
-                else
-                {
-                    var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.GroupName);
-                    path = Path.Combine(groupName, name);
-                }
-
-                return (destFolder, path);
+                path = name;
             }
-            catch
+            else
             {
-                return (null, "ERROR");
+                var groupName = Utils.ReplaceInvalidFolderNameCharacters(group.Name);
+                path = Path.Combine(groupName, name);
             }
+
+            IImportFolder destFolder = series.Restricted switch
+            {
+                true => args.AvailableFolders.FirstOrDefault(a => a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) && ValidDestinationFolder(a)),
+                false => args.AvailableFolders.FirstOrDefault(a => !a.Location.Contains("Hentai", StringComparison.InvariantCultureIgnoreCase) && ValidDestinationFolder(a))
+            };
+
+            return (destFolder, path);
         }
+
+        private static bool ValidDestinationFolder(IImportFolder dest) =>
+            dest.DropFolderType.HasFlag(DropFolderType.Destination);
     }
 }

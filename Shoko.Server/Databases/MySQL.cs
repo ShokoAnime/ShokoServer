@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,10 @@ using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using MySql.Data.MySqlClient;
 using NHibernate;
+using Shoko.Commons.Properties;
+using NHibernate.Cfg;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
@@ -17,10 +20,10 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 87;
+        public int RequiredVersion { get; } = 93;
 
 
-        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>()
+        private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
         {
             new DatabaseCommand(0, 1,
                 "CREATE TABLE `Versions` ( `VersionsID` INT NOT NULL AUTO_INCREMENT , `VersionType` VARCHAR(100) NOT NULL , `VersionValue` VARCHAR(100) NOT NULL ,  PRIMARY KEY (`VersionsID`) ) ; "),
@@ -588,7 +591,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(71, 2, "ALTER TABLE `TvDB_Series` ADD `Rating` INT NULL"),
             new DatabaseCommand(72, 1, "ALTER TABLE `AniDB_Episode` ADD `Description` text character set utf8 NOT NULL"),
             new DatabaseCommand(72, 2, DatabaseFixes.FixCharactersWithGrave),
-            new DatabaseCommand(73, 1, DatabaseFixes.PopulateAniDBEpisodeDescriptions),
+            new DatabaseCommand(73, 1, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(74, 1, DatabaseFixes.MakeTagsApplyToSeries),
             new DatabaseCommand(74, 2, Importer.UpdateAllStats),
             new DatabaseCommand(75, 1, DatabaseFixes.RemoveBasePathsFromStaffAndCharacters),
@@ -624,6 +627,13 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(85, 1, DatabaseFixes.FixAniDB_EpisodesWithMissingTitles),
             new DatabaseCommand(86, 1, DatabaseFixes.RegenTvDBMatches),
             new DatabaseCommand(87, 1,"ALTER TABLE `AniDB_File` CHANGE COLUMN `File_AudioCodec` `File_AudioCodec` VARCHAR(500) NOT NULL;"),
+            new DatabaseCommand(88, 1,"ALTER TABLE `AnimeSeries` ADD `UpdatedAt` datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(89, 1, DatabaseFixes.MigrateAniDBToNet),
+            new DatabaseCommand(90, 1, "ALTER TABLE VideoLocal DROP COLUMN VideoCodec, DROP COLUMN VideoBitrate, DROP COLUMN VideoFrameRate, DROP COLUMN VideoResolution, DROP COLUMN AudioCodec, DROP COLUMN AudioBitrate, DROP COLUMN Duration;"),
+            new DatabaseCommand(91, 1, DropMALIndex),
+            new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
+            new DatabaseCommand(93, 1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` varchar(50) NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
+            new DatabaseCommand(93, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");
@@ -736,6 +746,36 @@ namespace Shoko.Server.Databases
             }
         }
 
+        public static void DropMALIndex()
+        {
+            MySQL mysql = new();
+            using MySqlConnection conn = new(mysql.GetConnectionString());
+            conn.Open();
+            string query = @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'CrossRef_AniDB_MAL' AND INDEX_NAME = 'UIX_CrossRef_AniDB_MAL_MALID';";
+            MySqlCommand cmd = new(query, conn);
+            object result = cmd.ExecuteScalar();
+            // not exists
+            if (result == null) return;
+            query = "DROP INDEX `UIX_CrossRef_AniDB_MAL_MALID` ON `CrossRef_AniDB_MAL`;";
+            cmd = new MySqlCommand(query, conn);
+            cmd.ExecuteScalar();
+        }
+
+        public static void DropAniDBUniqueIndex()
+        {
+            MySQL mysql = new();
+            using MySqlConnection conn = new(mysql.GetConnectionString());
+            conn.Open();
+            string query = @"SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_NAME = 'AniDB_File' AND INDEX_NAME = 'UIX_AniDB_File_FileID';";
+            MySqlCommand cmd = new(query, conn);
+            object result = cmd.ExecuteScalar();
+            // not exists
+            if (result == null) return;
+            query = "DROP INDEX `UIX_AniDB_File_FileID` ON `AniDB_File`;";
+            cmd = new MySqlCommand(query, conn);
+            cmd.ExecuteScalar();
+        }
+
         public override bool TestConnection()
         {
             try
@@ -834,6 +874,11 @@ namespace Shoko.Server.Databases
                         .Username(ServerSettings.Instance.Database.Username)
                         .Password(ServerSettings.Instance.Database.Password)))
                 .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoService>())
+                .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
+                {
+                    // uncomment this for SQL output
+                    //prop.LogSqlInConsole = true;
+                }))
                 .BuildSessionFactory();
         }
 
@@ -897,7 +942,7 @@ namespace Shoko.Server.Databases
 
         public void CreateAndUpdateSchema()
         {
-            ConnectionWrapper(GetConnectionString(), (myConn) =>
+            ConnectionWrapper(GetConnectionString(), myConn =>
             {
                 bool create = false;
                 bool fixtablesforlinux = false;
@@ -917,7 +962,7 @@ namespace Shoko.Server.Databases
                 }
                 if (create)
                 {
-                    ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_CreateSchema;
+                    ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema;
                     ExecuteWithException(myConn, createVersionTable);
                 }
                 count = ExecuteScalar(myConn,
@@ -932,7 +977,7 @@ namespace Shoko.Server.Databases
                     ExecuteWithException(myConn, createTables);
                 if (fixtablesforlinux)
                     ExecuteWithException(myConn, linuxTableFixes);
-                ServerState.Instance.CurrentSetupStatus = Commons.Properties.Resources.Database_ApplySchema;
+                ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
 
                 ExecuteWithException(myConn, patchCommands);
             });
@@ -941,10 +986,10 @@ namespace Shoko.Server.Databases
         private static void MySQLFixUTF8()
         {
             string sql = 
-                $"SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
-                $"FROM information_schema.COLUMNS " +
+                "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
+                "FROM information_schema.COLUMNS " +
                 $"WHERE table_schema = '{ServerSettings.Instance.Database.Schema}' " +
-                $"AND collation_name != 'utf8mb4_unicode_ci'";
+                "AND collation_name != 'utf8mb4_unicode_ci'";
 
             using (MySqlConnection conn = new MySqlConnection($"Server={ServerSettings.Instance.Database.Hostname};User ID={ServerSettings.Instance.Database.Username};Password={ServerSettings.Instance.Database.Password};database={ServerSettings.Instance.Database.Schema}"))
             {

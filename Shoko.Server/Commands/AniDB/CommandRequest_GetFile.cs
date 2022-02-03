@@ -4,9 +4,9 @@ using AniDBAPI;
 using Shoko.Commons.Queue;
 using Shoko.Models.Queue;
 using Shoko.Models.Server;
-using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
@@ -66,14 +66,13 @@ namespace Shoko.Server.Commands
                     SVR_AniDB_File aniFile = RepoFactory.AniDB_File.GetByHashAndFileSize(vlocal.Hash, vlocal.FileSize);
 
                     Raw_AniDB_File fileInfo = null;
-                    if (aniFile == null || ForceAniDB)
+                    if (aniFile == null || aniFile.FileSize != vlocal.FileSize || ForceAniDB)
                         fileInfo = ShokoService.AnidbProcessor.GetFileInfo(vlocal);
 
                     if (fileInfo != null)
                     {
                         // save to the database
-                        if (aniFile == null)
-                            aniFile = new SVR_AniDB_File();
+                        aniFile ??= new SVR_AniDB_File();
 
                         SVR_AniDB_File.Populate(aniFile, fileInfo);
 

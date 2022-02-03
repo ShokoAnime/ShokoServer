@@ -1,0 +1,28 @@
+name: Publish to Docker Hub
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git reference for what to push
+        default: master
+        required: true
+      tag:
+        description: Docker tag to push
+        default: latest
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+      with:
+        submodules: recursive
+        ref: "${{ github.event.inputs.ref }}"
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+    - name: Log into docker hub
+      run: docker login --username ${{ secrets.DOCKER_USERNAME }} --password ${{ secrets.DOCKER_PASSWORD }}
+    - name: Push daily to Docker Hub
+      run: docker push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}

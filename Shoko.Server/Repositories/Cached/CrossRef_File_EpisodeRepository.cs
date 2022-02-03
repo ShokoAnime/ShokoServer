@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Server.Repositories.NHibernate;
-using NHibernate;
-using NHibernate.Criterion;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Server;
 using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories
@@ -32,29 +28,20 @@ namespace Shoko.Server.Repositories
         {
         }
 
-        private CrossRef_File_EpisodeRepository()
+        public CrossRef_File_EpisodeRepository()
         {
-            EndSaveCallback = (obj) =>
+            EndSaveCallback = obj =>
             {
                 logger.Trace("Updating group stats by file from CrossRef_File_EpisodeRepository.Save: {0}", obj.Hash);
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
             };
-            EndDeleteCallback = (obj) =>
+            EndDeleteCallback = obj =>
             {
-                if (obj != null && obj.AnimeID > 0)
-                {
-                    logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}",
-                        obj.AnimeID);
-                    SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
-                }
+                if (obj == null || obj.AnimeID <= 0) return;
+                logger.Trace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {0}",
+                    obj.AnimeID);
+                SVR_AniDB_Anime.UpdateStatsByAnimeID(obj.AnimeID);
             };
-        }
-
-        public static CrossRef_File_EpisodeRepository Create()
-        {
-            var repo = new CrossRef_File_EpisodeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
         }
 
         protected override int SelectKey(CrossRef_File_Episode entity)

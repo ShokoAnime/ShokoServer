@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Server;
 using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
 using Shoko.Models.Client;
+using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Extensions;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
@@ -633,10 +633,13 @@ namespace Shoko.Server
                             return "Cannot remove associations created from AniDB data";
 
                         // delete cross ref from web cache
-                        CommandRequest_WebCacheDeleteXRefFileEpisode cr =
-                            new CommandRequest_WebCacheDeleteXRefFileEpisode(vid.Hash,
-                                ep.AniDB_EpisodeID);
-                        cr.Save();
+                        if (ServerSettings.Instance.WebCache.Enabled)
+                        {
+                            CommandRequest_WebCacheDeleteXRefFileEpisode cr =
+                                new CommandRequest_WebCacheDeleteXRefFileEpisode(vid.Hash,
+                                    ep.AniDB_EpisodeID);
+                            cr.Save();
+                        }
 
                         RepoFactory.CrossRef_File_Episode.Delete(xref.CrossRef_File_EpisodeID);
                     }
@@ -776,7 +779,7 @@ namespace Shoko.Server
         }
 
         [HttpPost("File/Association/{animeSeriesID}/{startingEpisodeNumber}/{singleEpisode}")]
-        public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, int startingEpisodeNumber, bool singleEpisode)
+        public string AssociateMultipleFiles(List<int> videoLocalIDs, int animeSeriesID, string startingEpisodeNumber, bool singleEpisode)
         {
             try
             {
@@ -784,8 +787,37 @@ namespace Shoko.Server
                 if (ser == null)
                     return "Could not find anime series record";
 
-                int epNumber = startingEpisodeNumber;
-                int total = startingEpisodeNumber + videoLocalIDs.Count - 1;
+                EpisodeType typeEnum = EpisodeType.Episode;
+                if (!int.TryParse(startingEpisodeNumber, out int epNumber))
+                {
+                    char type = startingEpisodeNumber[0];
+                    string text = startingEpisodeNumber.Substring(1);
+                    if (int.TryParse(text, out int epNum))
+                    {
+                        switch (type)
+                        {
+                            case 'S':
+                                typeEnum = EpisodeType.Special;
+                                break;
+                            case 'C':
+                                typeEnum = EpisodeType.Credits;
+                                break;
+                            case 'T':
+                                typeEnum = EpisodeType.Trailer;
+                                break;
+                            case 'P':
+                                typeEnum = EpisodeType.Parody;
+                                break;
+                            case 'O':
+                                typeEnum = EpisodeType.Other;
+                                break;
+                        }
+
+                        epNumber = epNum;
+                    }
+                }
+
+                int total = epNumber + videoLocalIDs.Count - 1;
                 int count = 1;
 
                 foreach (int videoLocalID in videoLocalIDs)
@@ -797,7 +829,7 @@ namespace Shoko.Server
                         return "Could not associate a cloud file without hash, hash it locally first";
 
                     List<AniDB_Episode> anieps =
-                        RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(ser.AniDB_ID, epNumber);
+                        RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(ser.AniDB_ID, typeEnum, epNumber);
                     if (anieps.Count == 0)
                         return "Could not find the AniDB episode record";
 
@@ -1280,8 +1312,8 @@ namespace Shoko.Server
                     files.Sort(FileQualityFilter.CompareTo);
                     return files.Select(a => a.ToClientDetailed(userID)).ToList();
                 }
-                else
-                    return new List<CL_VideoDetailed>();
+
+                return new List<CL_VideoDetailed>();
             }
             catch (Exception ex)
             {
@@ -1527,7 +1559,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return null;
+            return new ();
         }
 
         /// <summary>
@@ -1702,7 +1734,7 @@ namespace Shoko.Server
                 logger.Error(ex, ex.ToString());
             }
 
-            return null;
+            return new();
         }
 
         [HttpGet("Series/ForAnime/{animeID}/{userID}")]
@@ -1874,53 +1906,8 @@ namespace Shoko.Server
                 {
                     DeleteAnimeGroup(subGroup.AnimeGroupID, deleteFiles);
                 }
-                List<SVR_GroupFilter> gfs =
-                    RepoFactory.GroupFilter.GetWithConditionsTypes(new HashSet<GroupFilterConditionType>()
-                    {
-                        GroupFilterConditionType.AnimeGroup
-                    });
-                foreach (SVR_GroupFilter gf in gfs)
-                {
-                    bool change = false;
-                    List<GroupFilterCondition> c =
-                        gf.Conditions.Where(a => a.ConditionType == (int) GroupFilterConditionType.AnimeGroup).ToList();
-                    foreach (GroupFilterCondition gfc in c)
-                    {
-                        int.TryParse(gfc.ConditionParameter, out int thisGrpID);
-                        if (thisGrpID == animeGroupID)
-                        {
-                            change = true;
-                            gf.Conditions.Remove(gfc);
-                        }
-                    }
 
-                    if (change)
-                    {
-                        if (gf.Conditions.Count == 0)
-                            RepoFactory.GroupFilter.Delete(gf.GroupFilterID);
-                        else
-                        {
-                            gf.CalculateGroupsAndSeries();
-                            RepoFactory.GroupFilter.Save(gf);
-                        }
-                    }
-                }
-
-
-                RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
-
-                // finally update stats
-
-                if (parentGroupID.HasValue)
-                {
-                    SVR_AnimeGroup grpParent = RepoFactory.AnimeGroup.GetByID(parentGroupID.Value);
-
-                    if (grpParent != null)
-                    {
-                        grpParent.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-                        //StatsCache.Instance.UpdateUsingGroup(grpParent.TopLevelAnimeGroup.AnimeGroupID);
-                    }
-                }
+                grp.DeleteGroup();
 
                 return string.Empty;
             }
@@ -2017,7 +2004,7 @@ namespace Shoko.Server
                     if (grp == null)
                     {
                         contractout.ErrorMessage = "Could not find existing group with ID: " +
-                                                   contract.AnimeGroupID.Value.ToString();
+                                                   contract.AnimeGroupID.Value;
                         return contractout;
                     }
                 }
@@ -2089,7 +2076,7 @@ namespace Shoko.Server
                 ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                 {
-                    contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID.ToString();
+                    contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID;
                     return contractout;
                 }
 
@@ -2097,7 +2084,7 @@ namespace Shoko.Server
                 SVR_AnimeGroup grpTemp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
                 if (grpTemp == null)
                 {
-                    contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID.ToString();
+                    contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                     return contractout;
                 }
 
@@ -2165,7 +2152,7 @@ namespace Shoko.Server
                     if (ser == null)
                     {
                         contractout.ErrorMessage = "Could not find existing series with ID: " +
-                                                   contract.AnimeSeriesID.Value.ToString();
+                                                   contract.AnimeSeriesID.Value;
                         return contractout;
                     }
 
@@ -2253,25 +2240,8 @@ namespace Shoko.Server
                 }
 
                 // make sure the anime exists first
-                SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-
-                AniDB_AnimeUpdate update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
-                bool animeRecentlyUpdated = false;
-
-                if (update != null)
-                {
-                    TimeSpan ts = DateTime.Now - update.UpdatedAt;
-                    if (ts.TotalHours < 4) animeRecentlyUpdated = true;
-                }
-
-                // even if we are missing episode info, don't get data  more than once every 4 hours
-                // this is to prevent banning
-                if (!animeRecentlyUpdated)
-                {
-                    logger.Debug("Getting Anime record from AniDB....");
-                    anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, true,
-                        ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
-                }
+                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, false,
+                    ServerSettings.Instance.AutoGroupSeries || ServerSettings.Instance.AniDb.DownloadRelatedAnime);
 
                 if (anime == null)
                 {
@@ -2293,13 +2263,8 @@ namespace Shoko.Server
                     cmdStatus.Save();
                 }
 
-                // update stats
-                RepoFactory.AnimeSeries.Save(ser, false, false);
-
-                foreach (SVR_AnimeGroup grp in ser.AllGroupsAbove)
-                {
-                    RepoFactory.AnimeGroup.Save(grp, true, false);
-                }
+                // update stats, skip the missing and watched stats. We don't have any files for this series yet!
+                ser.UpdateStats(false, false, true);
 
                 response.Result = ser.GetUserContract(userID);
                 return response;
@@ -2916,7 +2881,7 @@ namespace Shoko.Server
                 if (gf == null)
                 {
                     response.ErrorMessage = "Could not find existing Group Filter with ID: " +
-                                            contract.GroupFilterID.ToString();
+                                            contract.GroupFilterID;
                     return response;
                 }
             }
@@ -3155,7 +3120,7 @@ namespace Shoko.Server
                     if (pl == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing Playlist with ID: " +
-                                                   contract.PlaylistID.ToString();
+                                                   contract.PlaylistID;
                         return contractRet;
                     }
                 }
@@ -3236,7 +3201,7 @@ namespace Shoko.Server
             catch (Exception ex)
             {
                 logger.Error(ex, ex.ToString());
-                return null;
+                return new();
             }
         }
 
@@ -3342,7 +3307,7 @@ namespace Shoko.Server
                     if (ctag == null)
                     {
                         contractRet.ErrorMessage = "Could not find existing custom tag with ID: " +
-                                                   contract.CustomTagID.ToString();
+                                                   contract.CustomTagID;
                         return contractRet;
                     }
                 }

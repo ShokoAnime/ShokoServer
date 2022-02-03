@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Threading;
-using NutzCode.CloudFileSystem;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Notification;
 using Shoko.Commons.Properties;
 using Shoko.Models.Azure;
 using Shoko.Server.Commands;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server
 {
@@ -46,10 +48,7 @@ namespace Shoko.Server
         private ServerInfo()
         {
             ImportFolders = new AsyncObservableCollection<SVR_ImportFolder>();
-            CloudAccounts = new AsyncObservableCollection<SVR_CloudAccount>();
             AdminMessages = new AsyncObservableCollection<Azure_AdminMessage>();
-            CloudProviders = new AsyncObservableCollection<CloudProvider>();
-            FolderProviders = new AsyncObservableCollection<SVR_CloudAccount>();
         }
 
         private void Init()
@@ -65,20 +64,96 @@ namespace Shoko.Server
             ShokoService.CmdProcessorImages.OnQueueCountChangedEvent += CmdProcessorImages_OnQueueCountChangedEvent;
             ShokoService.CmdProcessorImages.OnQueueStateChangedEvent += CmdProcessorImages_OnQueueStateChangedEvent;
 
+            // TODO Hook into AniDBConnectionHandler
+            //AniDBConnectionHandler.Instance.AniDBStateUpdate += OnAniDBStateUpdate;
+        }
 
-            //Populate Cloud Providers
-            foreach (ICloudPlugin plugin in CloudFileSystemPluginFactory.Instance.List)
+        private void OnAniDBStateUpdate(object sender, AniDBStateUpdate e)
+        {
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(ServerSettings.Instance.Culture);
+            switch (e.UpdateType)
             {
-                if (!plugin.Name.Equals("Local File System", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    CloudProvider p = new CloudProvider
+                case UpdateType.None:
+                    // We might use this somehow, but currently not fired 
+                    break;
+                case UpdateType.UDPBan:
+                    if (e.Value)
                     {
-                        Bitmap = plugin.Icon,
-                        Name = plugin.Name,
-                        Plugin = plugin
-                    };
-                    CloudProviders.Add(p);
-                }
+                        IsUDPBanned = true;
+                        UDPBanTime = e.UpdateTime;
+                        BanOrigin = @"UDP";
+                        BanReason = e.UpdateTime.ToString(CultureInfo.CurrentCulture);
+                    }
+                    else
+                    {
+                        IsUDPBanned = false;
+                        if (!IsHTTPBanned)
+                        {
+                            BanOrigin = string.Empty;
+                            BanReason = string.Empty;
+                        }
+                        else
+                        {
+                            BanOrigin = @"HTTP";
+                            BanReason = HTTPBanTime.ToString(CultureInfo.CurrentCulture);
+                        }
+                    }
+                    break;
+                case UpdateType.HTTPBan:
+                    if (e.Value)
+                    {
+                        IsHTTPBanned = true;
+                        HTTPBanTime = e.UpdateTime;
+                        BanOrigin = @"HTTP";
+                        BanReason = e.UpdateTime.ToString(CultureInfo.CurrentCulture);
+                    }
+                    else
+                    {
+                        IsHTTPBanned = false;
+                        if (!IsUDPBanned)
+                        {
+                            BanOrigin = string.Empty;
+                            BanReason = string.Empty;
+                        }
+                        else
+                        {
+                            BanOrigin = @"UDP";
+                            BanReason = UDPBanTime.ToString(CultureInfo.CurrentCulture);
+                        }
+                    }
+                    break;
+                case UpdateType.InvalidSession:
+                    IsInvalidSession = isInvalidSession;
+                    break;
+                case UpdateType.WaitingOnResponse:
+                    WaitingOnResponseAniDBUDP = e.Value;
+
+                    if (e.Value)
+                    {
+                        // TODO Start the Update Timer to add seconds to the waiting on AniDB message
+                        WaitingOnResponseAniDBUDPString = Resources.AniDB_ResponseWait;
+                    }
+                    else
+                    {
+                        // TODO Stop the timer
+                        WaitingOnResponseAniDBUDPString = Resources.Command_Idle;
+                    }
+                    break;
+                case UpdateType.OverloadBackoff:
+                    if (e.Value)
+                    {
+                        ExtendedPauseString = string.Format(Resources.AniDB_Paused, e.PauseTimeSecs, e.Message);
+                        HasExtendedPause = true;
+                    }
+                    else
+                    {
+                        ExtendedPauseString = string.Empty;
+                        HasExtendedPause = false;
+                    }
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -122,6 +197,8 @@ namespace Shoko.Server
 
             try
             {
+                AdminMessagesAvailable = false;
+                if (!ServerSettings.Instance.WebCache.Enabled) return; 
                 List<Azure_AdminMessage> msgs = AzureWebAPI.Get_AdminMessages();
                 if (msgs == null || msgs.Count == 0)
                 {
@@ -259,7 +336,36 @@ namespace Shoko.Server
             get => banOrigin;
             set => this.SetField(() => banOrigin, value);
         }
+        
+        private bool _isUDPBanned { get; set; }
+        
+        private bool IsUDPBanned
+        {
+            get => _isUDPBanned;
+            set
+            {
+                _isUDPBanned = value;
+                bool newValue = _isUDPBanned || _isHTTPBanned;
+                if (IsBanned != newValue) IsBanned = newValue;
+            }
+        }
 
+        private bool _isHTTPBanned { get; set; }
+
+        private bool IsHTTPBanned
+        {
+            get => _isHTTPBanned;
+            set
+            {
+                _isHTTPBanned = value;
+                bool newValue = _isUDPBanned || _isHTTPBanned;
+                if (IsBanned != newValue) IsBanned = newValue;
+            }
+        }
+
+        private DateTime UDPBanTime { get; set; }
+        private DateTime HTTPBanTime { get; set; }
+        
         private bool isBanned = false;
 
         public bool IsBanned
@@ -328,53 +434,12 @@ namespace Shoko.Server
 
         public AsyncObservableCollection<SVR_ImportFolder> ImportFolders { get; set; }
 
-        public AsyncObservableCollection<SVR_CloudAccount> FolderProviders { get; set; }
-
-        public AsyncObservableCollection<CloudProvider> CloudProviders { get; set; }
-
-        public class CloudProvider
-        {
-            public string Name { get; set; }
-            public byte[] Bitmap { get; set; }
-            public ICloudPlugin Plugin { get; set; }
-        }
-
-
-        public AsyncObservableCollection<SVR_CloudAccount> CloudAccounts { get; set; }
-
         public void RefreshImportFolders()
         {
             try
             {
                 ImportFolders.Clear();
                 RepoFactory.ImportFolder.GetAll().ForEach(a => ImportFolders.Add(a));
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        public void RefreshCloudAccounts()
-        {
-            try
-            {
-                CloudAccounts.Clear();
-                RepoFactory.CloudAccount.GetAll().ForEach(a => CloudAccounts.Add(a));
-            }
-            catch (Exception ex)
-            {
-                Utils.ShowErrorMessage(ex);
-            }
-        }
-
-        public void RefreshFolderProviders()
-        {
-            try
-            {
-                FolderProviders.Clear();
-                FolderProviders.Add(SVR_CloudAccount.CreateLocalFileSystemAccount());
-                RepoFactory.CloudAccount.GetAll().ForEach(a => FolderProviders.Add(a));
             }
             catch (Exception ex)
             {

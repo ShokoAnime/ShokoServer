@@ -3,9 +3,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
-using Shoko.Server;
 using NLog;
+using Shoko.Server;
 using Shoko.Server.AniDB_API;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace AniDBAPI.Commands
@@ -17,7 +19,7 @@ namespace AniDBAPI.Commands
         public string commandText = string.Empty;
         public string socketResponse = string.Empty;
         public string errorMessage = string.Empty;
-        public bool errorOccurred = false;
+        public bool errorOccurred;
         public string mcommandText = string.Empty;
 
         public string commandID = string.Empty;
@@ -41,7 +43,7 @@ namespace AniDBAPI.Commands
             mcommandText = commandText;
             errorOccurred = false;
 
-            AniDbRateLimiter.Instance.EnsureRate();
+            StaticRateLimiter.UDP.EnsureRate();
 
             if (commandType != enAniDBCommandType.Ping)
             {
@@ -55,7 +57,7 @@ namespace AniDBAPI.Commands
                 }
                 else
                 {
-                    encoding = System.Text.Encoding.ASCII;
+                    encoding = Encoding.ASCII;
                     changeencoding = enc;
                     string encod = changeencoding.EncodingName;
                     if (changeencoding.EncodingName.StartsWith("Unicode"))
@@ -72,30 +74,20 @@ namespace AniDBAPI.Commands
 
             do
             {
-                if (part > 0)
-                {
-                    mcommandText = mcommandText.Replace("part=" + (part - 1).ToString(), "part=" + part.ToString());
-                    AniDbRateLimiter.Instance.EnsureRate();
-                }
                 if (commandType != enAniDBCommandType.Login)
                 {
                     string msg = string.Format("UDP_COMMAND: {0}", mcommandText);
                     ShokoService.LogToSystem(Constants.DBLogType.APIAniDBUDP, msg);
                 }
-                else
-                {
-                    //string msg = commandText.Replace(ShokoServer.settings.Username, "******");
-                    //msg = msg.Replace(ShokoServer.settings.Password, "******");
-                    //MyAnimeLog.Write("commandText: {0}", msg);
-                }
+
                 bool repeatcmd;
                 int received;
-                Byte[] byReceivedAdd = new Byte[2000]; // max length should actually be 1400
+                byte[] byReceivedAdd = new byte[2000]; // max length should actually be 1400
                 do
                 {
                     repeatcmd = false;
                     // Send Message
-                    Byte[] SendByteAdd = Encoding.GetBytes(mcommandText.ToCharArray());
+                    byte[] SendByteAdd = encoding.GetBytes(mcommandText.ToCharArray());
 
                     try
                     {
@@ -136,8 +128,8 @@ namespace AniDBAPI.Commands
                         if ((received > 2) && (byReceivedAdd[0] == 0) && (byReceivedAdd[1] == 0))
                         {
                             //deflate
-                            Byte[] buff = new byte[65536];
-                            Byte[] input = new byte[received - 2];
+                            byte[] buff = new byte[65536];
+                            byte[] input = new byte[received - 2];
                             Array.Copy(byReceivedAdd, 2, input, 0, received - 2);
                             Inflater inf = new Inflater(false);
                             inf.SetInput(input);
@@ -176,7 +168,7 @@ namespace AniDBAPI.Commands
                 {
                     if (changeencoding != null)
                         encoding = changeencoding;
-                    System.Text.Encoding enco;
+                    Encoding enco;
                     if ((byReceivedAdd[0] == 0xFE) && (byReceivedAdd[1] == 0xFF))
                         enco = encoding;
                     else
@@ -190,7 +182,7 @@ namespace AniDBAPI.Commands
                     {
                         //Lets handle multipart
                         part++;
-                        string[] sp1 = decodedstring.Split(new char[] {'\n'}, StringSplitOptions.RemoveEmptyEntries);
+                        string[] sp1 = decodedstring.Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries);
 
                         if (sp1[0].StartsWith("233 ANIMEDESC") || sp1[0].StartsWith("233  ANIMEDESC"))
                         {
@@ -266,7 +258,7 @@ namespace AniDBAPI.Commands
             int val = 0;
             if (socketResponse.Length > 2)
                 int.TryParse(socketResponse.Substring(0, 3), out val);
-            this.ResponseCode = val;
+            ResponseCode = val;
 
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
@@ -323,7 +315,7 @@ namespace AniDBAPI.Commands
                 {
                     logger.Info("Forcing reconnection to AniDB");
                     ShokoService.AnidbProcessor.Dispose();
-                    AniDbRateLimiter.Instance.EnsureRate();
+                    StaticRateLimiter.UDP.EnsureRate();
 
                     ShokoService.AnidbProcessor.Init(ServerSettings.Instance.AniDb.Username,
                         ServerSettings.Instance.AniDb.Password, ServerSettings.Instance.AniDb.ServerAddress,

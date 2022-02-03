@@ -2,29 +2,32 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentNHibernate.Utils;
-using Shoko.Models.Server;
+using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Commons.Queue;
 using Shoko.Models.Azure;
 using Shoko.Models.Enums;
+using Shoko.Models.Queue;
+using Shoko.Models.Server;
 using Shoko.Server.Commands;
 using Shoko.Server.Commands.AniDB;
 using Shoko.Server.Commands.Azure;
-using NLog;
 using Shoko.Server.Databases;
-using NutzCode.CloudFileSystem;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Queue;
-using Shoko.Models.Queue;
-using Shoko.Server.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Models;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Providers.Azure;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 using Shoko.Server.Providers.TvDB;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
+using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server
 {
@@ -115,12 +118,14 @@ namespace Shoko.Server
 
         public static void SyncMedia()
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             List<SVR_VideoLocal> allfiles = RepoFactory.VideoLocal.GetAll().ToList();
             AzureWebAPI.Send_Media(allfiles);
         }
 
         public static void SyncHashes()
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             bool paused = ShokoService.CmdProcessorHasher.Paused;
             ShokoService.CmdProcessorHasher.Paused = true;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -136,7 +141,7 @@ namespace Shoko.Server
                 //Check if we can populate md5,sha and crc from AniDB_Files
                 foreach (SVR_VideoLocal v in missfiles.ToList())
                 {
-                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                    ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                     {
                         queueState = QueueStateEnum.CheckingFile,
                         extraParams = new[] {v.FileName}
@@ -181,9 +186,9 @@ namespace Shoko.Server
                     try
                     {
                         SVR_VideoLocal_Place p = v.GetBestVideoLocalPlace(true);
-                        if (p != null && p.ImportFolder.CloudID == 0)
+                        if (p != null)
                         {
-                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct()
+                            ShokoService.CmdProcessorHasher.QueueState = new QueueStateStruct
                             {
                                 queueState = QueueStateEnum.HashingFile,
                                 extraParams = new[] {v.FileName}
@@ -214,7 +219,7 @@ namespace Shoko.Server
         }
 
 
-        public static void RunImport_ScanFolder(int importFolderID)
+        public static void RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
         {
             // get a complete list of files
             List<string> fileList = new List<string>();
@@ -242,7 +247,7 @@ namespace Shoko.Server
                     catch (Exception ex)
                     {
                         string msg = string.Format("Error RunImport_ScanFolder XREF: {0} - {1}", vl.FullServerPath,
-                            ex.ToString());
+                            ex);
                         logger.Info(msg);
                     }
                 }
@@ -266,7 +271,12 @@ namespace Shoko.Server
                         if (fldr.IsDropSource == 1)
                             dictFilesExisting[fileName].RenameAndMoveAsRequired();
                     }
-                    if (fileName.Contains("$RECYCLE.BIN")) continue;
+
+                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                    {
+                        logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                        continue;
+                    }
 
                     filesFound++;
                     logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
@@ -275,8 +285,7 @@ namespace Shoko.Server
 
                     videosFound++;
 
-                    CommandRequest_HashFile cr_hashfile = new CommandRequest_HashFile(fileName, false);
-                    cr_hashfile.Save();
+                    new CommandRequest_HashFile(fileName, false, skipMyList).Save();
                 }
                 logger.Debug("Found {0} new files", filesFound);
                 logger.Debug("Found {0} videos", videosFound);
@@ -313,7 +322,12 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                }
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -349,7 +363,7 @@ namespace Shoko.Server
                 {
                     string msg = string.Format("Error RunImport_NewFiles XREF: {0} - {1}",
                         ((vl.FullServerPath ?? vl.FilePath) ?? vl.VideoLocal_Place_ID.ToString()),
-                        ex.ToString());
+                        ex);
                     logger.Error(msg);
                     //throw;
                 }
@@ -380,7 +394,11 @@ namespace Shoko.Server
             List<string> fileListNew = new List<string>();
             foreach (string fileName in fileList)
             {
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                }
                 if (!dictFilesExisting.ContainsKey(fileName))
                     fileListNew.Add(fileName);
             }
@@ -427,7 +445,12 @@ namespace Shoko.Server
             foreach (string fileName in fileList)
             {
                 i++;
-                if (fileName.Contains("$RECYCLE.BIN")) continue;
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(fileName,s)))
+                {
+                    logger.Trace("Import exclusion, skipping --- {0}", fileName);
+                    continue;
+                } 
+
                 filesFound++;
                 logger.Trace("Processing File {0}/{1} --- {2}", i, fileList.Count, fileName);
 
@@ -778,10 +801,9 @@ namespace Shoko.Server
             }
         }
 
-        public static void RemoveRecordsWithoutPhysicalFiles()
+        public static void RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
         {
             logger.Info("Remove Missing Files: Start");
-            HashSet<SVR_AnimeEpisode> episodesToUpdate = new HashSet<SVR_AnimeEpisode>();
             HashSet<SVR_AnimeSeries> seriesToUpdate = new HashSet<SVR_AnimeSeries>();
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
@@ -792,17 +814,12 @@ namespace Shoko.Server
                     .ToDictionary(a => a.Key, a => a.ToList());
                 foreach (SVR_ImportFolder folder in filesAll.Keys)
                 {
-                    IFileSystem fs = folder.FileSystem;
-                    if (fs == null) continue;
-
                     foreach (SVR_VideoLocal_Place vl in filesAll[folder])
                     {
-                        FileSystemResult<IObject> obj = null;
-                        if (!string.IsNullOrWhiteSpace(vl.FullServerPath)) obj = fs.Resolve(vl.FullServerPath);
-                        if (obj != null && obj.IsOk) continue;
+                        if (File.Exists(vl.FullServerPath)) continue;
                         // delete video local record
                         logger.Info("Removing Missing File: {0}", vl.VideoLocalID);
-                        vl.RemoveRecordWithOpenTransaction(session, episodesToUpdate, seriesToUpdate);
+                        vl.RemoveRecordWithOpenTransaction(session, seriesToUpdate);
                     }
                 }
 
@@ -868,7 +885,6 @@ namespace Shoko.Server
                             {
                                 if (!string.IsNullOrWhiteSpace(place?.FullServerPath)) continue;
                                 logger.Info("RemoveRecordsWithOrphanedImportFolder : {0}", v.FileName);
-                                episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                                 seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                                     .DistinctBy(a => a.AnimeSeriesID));
                                 RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, place);
@@ -895,12 +911,16 @@ namespace Shoko.Server
                     if (v.Places?.Count > 0) continue;
                     // delete video local record
                     logger.Info("RemoveOrphanedVideoLocal : {0}", v.FileName);
-                    episodesToUpdate.UnionWith(v.GetAnimeEpisodes());
                     seriesToUpdate.UnionWith(v.GetAnimeEpisodes().Select(a => a.GetAnimeSeries())
                         .DistinctBy(a => a.AnimeSeriesID));
-                    CommandRequest_DeleteFileFromMyList cmdDel =
-                        new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                    cmdDel.Save();
+
+                    if (removeMyList)
+                    {
+                        CommandRequest_DeleteFileFromMyList cmdDel =
+                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
+                        cmdDel.Save();
+                    }
+
                     using (var transaction = session.BeginTransaction())
                     {
                         RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, v);
@@ -923,23 +943,6 @@ namespace Shoko.Server
                 }
 
                 // update everything we modified
-                foreach (SVR_AnimeEpisode ep in episodesToUpdate)
-                {
-                    if (ep.AnimeEpisodeID == 0)
-                    {
-                        ep.PlexContract = null;
-                        RepoFactory.AnimeEpisode.Save(ep);
-                    }
-                    try
-                    {
-                        ep.PlexContract = Helper.GenerateVideoFromAnimeEpisode(ep);
-                        RepoFactory.AnimeEpisode.SaveWithOpenTransaction(session, ep);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.GetCurrentClassLogger().Error(ex, ex.ToString());
-                    }
-                }
                 foreach (SVR_AnimeSeries ser in seriesToUpdate)
                 {
                     ser.QueueUpdateStats();
@@ -948,59 +951,19 @@ namespace Shoko.Server
             logger.Info("Remove Missing Files: Finished");
         }
 
-        public static string DeleteCloudAccount(int cloudaccountID)
-        {
-            SVR_CloudAccount cl = RepoFactory.CloudAccount.GetByID(cloudaccountID);
-            if (cl == null) return "Could not find Cloud Account ID: " + cloudaccountID;
-            foreach (SVR_ImportFolder f in RepoFactory.ImportFolder.GetByCloudId(cl.CloudID))
-            {
-                string r = DeleteImportFolder(f.ImportFolderID);
-                if (!string.IsNullOrEmpty(r))
-                    return r;
-            }
-            RepoFactory.CloudAccount.Delete(cloudaccountID);
-            ServerInfo.Instance.RefreshImportFolders();
-            ServerInfo.Instance.RefreshCloudAccounts();
-            return string.Empty;
-        }
-
-        public static string DeleteImportFolder(int importFolderID)
+        public static string DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
         {
             try
             {
                 SVR_ImportFolder ns = RepoFactory.ImportFolder.GetByID(importFolderID);
-
                 if (ns == null) return "Could not find Import Folder ID: " + importFolderID;
 
-                // first delete all the files attached  to this import folder
-                Dictionary<int, SVR_AnimeSeries> affectedSeries = new Dictionary<int, SVR_AnimeSeries>();
-
-                foreach (SVR_VideoLocal_Place vid in RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID))
-                {
-                    //Thread.Sleep(5000);
-                    logger.Info("Deleting video local record: {0}", vid.FullServerPath);
-
-                    List<SVR_AnimeEpisode> animeEpisodes = vid.VideoLocal?.GetAnimeEpisodes();
-                    if (animeEpisodes?.Count > 0)
-                    {
-                        var ser = animeEpisodes[0].GetAnimeSeries();
-                        if (ser != null && !affectedSeries.ContainsKey(ser.AnimeSeriesID))
-                            affectedSeries.Add(ser.AnimeSeriesID, ser);
-                    }
-                    SVR_VideoLocal v = vid.VideoLocal;
-                    // delete video local record
-                    logger.Info("RemoveRecordsWithoutPhysicalFiles : {0}", vid.FullServerPath);
-                    if (v?.Places.Count == 1)
-                    {
-                        RepoFactory.VideoLocalPlace.Delete(vid);
-                        RepoFactory.VideoLocal.Delete(v);
-                        CommandRequest_DeleteFileFromMyList cmdDel =
-                            new CommandRequest_DeleteFileFromMyList(v.MyListID);
-                        cmdDel.Save();
-                    }
-                    else
-                        RepoFactory.VideoLocalPlace.Delete(vid);
-                }
+                HashSet<SVR_AnimeSeries> affectedSeries = new HashSet<SVR_AnimeSeries>();
+                var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
+                logger.Info($"Deleting {vids.Count} video local records");
+                using var session = DatabaseFactory.SessionFactory.OpenSession();
+                vids.ForEach(vid =>
+                    vid.RemoveRecordWithOpenTransaction(session, affectedSeries, removeFromMyList, false));
 
                 // delete any duplicate file records which reference this folder
                 RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(importFolderID));
@@ -1009,21 +972,7 @@ namespace Shoko.Server
                 // delete the import folder
                 RepoFactory.ImportFolder.Delete(importFolderID);
 
-                //TODO APIv2: Delete this hack after migration to headless
-                //hack until gui id dead
-                try
-                {
-                    Utils.MainThreadDispatch(() =>
-                    {
-                        ServerInfo.Instance.RefreshImportFolders();
-                    });
-                }
-                catch
-                {
-                    //dont do this at home :-)
-                }
-
-                foreach (SVR_AnimeSeries ser in affectedSeries.Values)
+                foreach (SVR_AnimeSeries ser in affectedSeries)
                 {
                     ser.QueueUpdateStats();
                 }
@@ -1050,7 +999,8 @@ namespace Shoko.Server
                 gf.QueueUpdate();
             }
 
-            RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+            CommandRequest_RefreshGroupFilter cmd = new CommandRequest_RefreshGroupFilter(0);
+            cmd.Save();
         }
 
 
@@ -1225,6 +1175,7 @@ namespace Shoko.Server
 
         public static void SendUserInfoUpdate(bool forceRefresh)
         {
+            if (!ServerSettings.Instance.WebCache.Enabled) return; 
             // update the anonymous user info every 12 hours
             // we will always assume that an anime was downloaded via http first
 
@@ -1410,7 +1361,7 @@ namespace Shoko.Server
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex.ToString());
+                logger.Error(ex, "Error in CheckForTraktTokenUpdate: " + ex);
             }
         }
 

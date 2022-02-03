@@ -1,10 +1,9 @@
 using System;
 using System.Text;
 using System.Xml.Serialization;
-using Shoko.Server;
-using Shoko.Models;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Server;
 
 namespace AniDBAPI
 {
@@ -49,6 +48,8 @@ namespace AniDBAPI
 
         [XmlIgnore]
         public int IsWatched { get; set; }
+        [XmlIgnore]
+        public DateTime? WatchDate { get; set; }
 
         public string CRC { get; set; }
 
@@ -192,11 +193,11 @@ namespace AniDBAPI
             // 33. Eclipse Productions ** group name
             // 34. Eclipse ** group name short
 
-            this.FileSize = long.Parse(sDetails[8].Trim());
-            this.ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
-            this.MD5 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
-            this.SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
-            this.CRC = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim()).ToUpper();
+            FileSize = long.Parse(sDetails[8].Trim());
+            ED2KHash = AniDBAPILib.ProcessAniDBString(sDetails[9].Trim()).ToUpper();
+            MD5 = AniDBAPILib.ProcessAniDBString(sDetails[10].Trim()).ToUpper();
+            SHA1 = AniDBAPILib.ProcessAniDBString(sDetails[11].Trim()).ToUpper();
+            CRC = AniDBAPILib.ProcessAniDBString(sDetails[12].Trim()).ToUpper();
             FileID = int.Parse(sDetails[0].Trim());
             AnimeID = int.Parse(sDetails[1].Trim());
 
@@ -206,15 +207,15 @@ namespace AniDBAPI
             else
             {
                 AniDBFileFlags eFlags = (AniDBFileFlags) state;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV2)) FileVersion = 2;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV3)) FileVersion = 3;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV4)) FileVersion = 4;
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_ISV5)) FileVersion = 5;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV2)) FileVersion = 2;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV3)) FileVersion = 3;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV4)) FileVersion = 4;
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_ISV5)) FileVersion = 5;
 
-                if (BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CEN))
+                if (eFlags.HasFlag(AniDBFileFlags.FILE_CEN))
                     IsCensored = 1;
 
-                IsChaptered = BitMaskHelper.IsSet(eFlags, AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
+                IsChaptered = eFlags.HasFlag(AniDBFileFlags.FILE_CHAPTERED) ? 1 : 0;
             }
 
             if (int.TryParse(sDetails[6].Trim(), out int isdep))
@@ -278,7 +279,8 @@ namespace AniDBAPI
             Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[40].Trim());
             Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[41].Trim());
 
-            IsWatched = 0; // 0 = false, 1 = true
+            IsWatched = string.IsNullOrEmpty(mlViewed) ? 0 : 1; // 0 = false, 1 = true
+            if (long.TryParse(mlViewDate, out long watchedStamp)) WatchDate = DateTime.UnixEpoch + TimeSpan.FromSeconds(watchedStamp);
             Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[38].Trim());
             Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[39].Trim());
 
@@ -289,15 +291,16 @@ namespace AniDBAPI
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("Raw_AniDB_File:: hash: " + ED2KHash);
-            sb.Append(" | fileID: " + FileID.ToString());
+            sb.Append(" | fileID: " + FileID);
             sb.Append(" | Source: " + File_Source);
             //sb.Append(" | episodeID: " + EpisodeID.ToString());
-            sb.Append(" | animeID: " + AnimeID.ToString());
-            sb.Append(" | IsWatched: " + IsWatched.ToString());
+            sb.Append(" | animeID: " + AnimeID);
+            sb.Append(" | IsWatched: " + IsWatched);
+            sb.Append(" | WatchedDate: " + WatchDate);
             sb.Append(" | FileName: " + FileName);
-            sb.Append(" | FileSize: " + FileSize.ToString());
-            sb.Append(" | DateTimeUpdated: " + DateTimeUpdated.ToString());
-            sb.Append(" | EpisodesRAW: " + EpisodesRAW.ToString());
+            sb.Append(" | FileSize: " + FileSize);
+            sb.Append(" | DateTimeUpdated: " + DateTimeUpdated);
+            sb.Append(" | EpisodesRAW: " + EpisodesRAW);
             sb.Append(" | EpisodesPercentRAW: " + EpisodesPercentRAW);
             sb.Append(" | LanguagesRAW: " + LanguagesRAW);
             sb.Append(" | SubtitlesRAW: " + SubtitlesRAW);

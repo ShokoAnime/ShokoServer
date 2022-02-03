@@ -6,40 +6,18 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.PlexAndKodi;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.PlexAndKodi;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Utilities;
+using AnimeTitle = Shoko.Plugin.Abstractions.DataModels.AnimeTitle;
+using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.Models
 {
-    public class SVR_AnimeEpisode : AnimeEpisode
+    public class SVR_AnimeEpisode : AnimeEpisode, IEpisode
     {
-        private DateTime _lastPlexRegen = DateTime.MinValue;
-        private Video _plexContract;
-
-        public virtual Video PlexContract
-        {
-            get
-            {
-                if (_plexContract == null || _lastPlexRegen.Add(TimeSpan.FromMinutes(10)) > DateTime.Now)
-                {
-                    _lastPlexRegen = DateTime.Now;
-                    return _plexContract = Helper.GenerateVideoFromAnimeEpisode(this);
-                }
-                return _plexContract;
-            }
-            set
-            {
-                _plexContract = value;
-                _lastPlexRegen = DateTime.Now;
-            }
-        }
-
-        public void CollectContractMemory()
-        {
-            _plexContract = null;
-        }
-
         public EpisodeType EpisodeTypeEnum => (EpisodeType) AniDB_Episode.EpisodeType;
 
         public AniDB_Episode AniDB_Episode => RepoFactory.AniDB_Episode.GetByEpisodeID(AniDB_EpisodeID);
@@ -75,6 +53,22 @@ namespace Shoko.Server.Models
                     .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault() ?? RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
                     .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
                     .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).FirstOrDefault();
+            }
+        }
+
+        public List<TvDB_Episode> TvDBEpisodes
+        {
+            get
+            {
+                // Try Overrides first, then regular
+                var overrides = RepoFactory.CrossRef_AniDB_TvDB_Episode_Override.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                    .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                    .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
+                return overrides.Count > 0
+                    ? overrides
+                    : RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(AniDB_EpisodeID)
+                        .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
+                        .OrderBy(a => a.SeasonNumber).ThenBy(a => a.EpisodeNumber).ToList();
             }
         }
 
@@ -176,6 +170,19 @@ namespace Shoko.Server.Models
                 vid.SetResumePosition(0, userID);
             }
         }
+        
+        public void RemoveVideoLocals(bool deleteFiles)
+        {
+            GetVideoLocals().SelectMany(a => a.Places).ForEach(place =>
+            {
+                if (!deleteFiles) place.RemoveRecord();
+                else place.RemoveRecordAndDeletePhysicalFile(false);
+            }, place =>
+            {
+                if (!deleteFiles) place.RemoveRecord();
+                else place.RemoveRecordAndDeletePhysicalFile();
+            });
+        }
 
         public string Title
         {
@@ -195,5 +202,17 @@ namespace Shoko.Server.Models
                     ?.Title;
             }
         }
+
+        IReadOnlyList<AnimeTitle> IEpisode.Titles => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(AniDB_EpisodeID)
+            .Select(a => new AnimeTitle
+                {LanguageCode = a.Language, Language = SVR_AniDB_Anime.GetLanguage(a.Language), Title = a.Title})
+            .ToList();
+        int IEpisode.EpisodeID => AniDB_EpisodeID;
+        int IEpisode.AnimeID => AniDB_Episode?.AnimeID ?? 0;
+        int IEpisode.Duration => AniDB_Episode?.LengthSeconds ?? 0;
+        int IEpisode.Number => AniDB_Episode?.EpisodeNumber ?? 0;
+        Shoko.Plugin.Abstractions.DataModels.EpisodeType IEpisode.Type =>
+            (Shoko.Plugin.Abstractions.DataModels.EpisodeType) (AniDB_Episode?.EpisodeType ?? 0);
+        DateTime? IEpisode.AirDate => AniDB_Episode?.GetAirDateAsDate();
     }
 }

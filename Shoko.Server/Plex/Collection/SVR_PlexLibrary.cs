@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Shoko.Models.Plex;
 using Shoko.Models.Plex.Collection;
+using Shoko.Models.Plex.TVShow;
+using MediaContainer = Shoko.Models.Plex.TVShow.MediaContainer;
 
 namespace Shoko.Server.Plex.Collection
 {
@@ -13,12 +15,12 @@ namespace Shoko.Server.Plex.Collection
 
         private PlexHelper Helper { get; }
 
-        public Shoko.Models.Plex.TVShow.Episode[] GetEpisodes()
+        public Episode[] GetEpisodes()
         {
             var (_, data) = Helper.RequestFromPlexAsync($"/library/metadata/{RatingKey}/allLeaves").GetAwaiter()
                 .GetResult();
             return JsonConvert
-                .DeserializeObject<MediaContainer<Shoko.Models.Plex.TVShow.MediaContainer>>(data, Helper.SerializerSettings)
+                .DeserializeObject<MediaContainer<MediaContainer>>(data, Helper.SerializerSettings)
                 .Container.Metadata;
         }
     }

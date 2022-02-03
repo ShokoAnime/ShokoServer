@@ -1,112 +1,205 @@
 ﻿using System;
-
-using NLog;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
-using Shoko.Server.Renamer;
-using Shoko.Server.Repositories;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using NLog;
+using Shoko.Commons.Extensions;
+using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Server.Models;
+using Shoko.Server.Repositories;
+using Shoko.Server.Server;
+using Shoko.Server.Settings;
+using Shoko.Plugin.Abstractions.Attributes;
 
 namespace Shoko.Server
 {
     public class RenameFileHelper
     {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static IDictionary<string, Type> ScriptImplementations = new Dictionary<string, Type>();
-        public static IDictionary<string, string> ScriptDescriptions { get; } = new Dictionary<string, string>();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        public static IDictionary<string, (Type type, string description)> Renamers { get; } = new Dictionary<string, (Type type, string description)>();
 
-        public static IRenamer GetRenamer()
+        private static IRenameScript _getRenameScript(string name)
         {
-            var script = RepoFactory.RenameScript.GetDefaultScript();
-            if (script == null) return null;
-            return GetRenamerFor(script);
-        }
-
-        public static IRenamer GetRenamerWithFallback()
-        {
-            var script = RepoFactory.RenameScript.GetDefaultOrFirst();
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultScript();
             if (script == null) return null;
 
-            return GetRenamerFor(script);
-        }
-
-        public static IRenamer GetRenamer(string scriptName)
-        {
-            var script = RepoFactory.RenameScript.GetByName(scriptName);
-            if (script == null) return null;
-
-            return GetRenamerFor(script);
-        }
-
-        private static IRenamer GetRenamerFor(RenameScript script)
-        {
-            if (!ScriptImplementations.ContainsKey(script.RenamerType))
-                return null;
-
-            try
+            return new RenameScriptImpl
             {
-                return (IRenamer) Activator.CreateInstance(ScriptImplementations[script.RenamerType], script);
-            }
-            catch (MissingMethodException)
-            {
-                return (IRenamer)Activator.CreateInstance(ScriptImplementations[script.RenamerType]);
-            }
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData,
+            };
         }
 
-        public static void InitialiseRenamers()
+        private static IRenameScript _getRenameScriptWithFallback(string name)
         {
-            List<Assembly> asse = new List<Assembly>();
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            UriBuilder uri = new UriBuilder(assembly.GetName().CodeBase);
-            string dirname = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
-            asse.Add(Assembly.GetCallingAssembly()); //add this to dynamically load as well.
-            foreach (string dll in Directory.GetFiles(dirname, $"Renamer.*.dll", SearchOption.AllDirectories))
+            var script = RepoFactory.RenameScript.GetByName(name) ?? RepoFactory.RenameScript.GetDefaultOrFirst();
+            if (script == null) return null;
+
+            return new RenameScriptImpl
+            {
+                Script = script.Script,
+                Type = script.RenamerType,
+                ExtraData = script.ExtraData
+            };
+        }
+
+        public static string GetFilename(SVR_VideoLocal_Place place, string scriptName)
+        {
+            var result = Path.GetFileName(place.FilePath);
+            var script = _getRenameScript(scriptName);
+            var args = new RenameEventArgs
+            {
+                AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
+                    .Where(a => a != null).Cast<IAnime>().ToList(),
+                GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                    .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
+                EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
+                FileInfo = place,
+                Script = script,
+            };
+
+            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
+            {                
+                try
+                {
+                    // get filename from plugin
+                    var res = renamer.GetFilename(args);
+                    // if the plugin said to cancel, then do so
+                    if (args.Cancel) return null;
+                    // if the plugin returned no name, then defer
+                    if (string.IsNullOrEmpty(res)) continue;
+                    return res;
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
+
+                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
+
+                    return null;
+                }
+            }
+
+            return result;
+        }
+        
+        public static (ImportFolder, string) GetDestination(SVR_VideoLocal_Place place, string scriptName)
+        {
+            var script = _getRenameScriptWithFallback(scriptName);
+
+            var args = new MoveEventArgs
+            {
+                AnimeInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a?.GetAnimeSeries()?.GetAnime())
+                    .Where(a => a != null).Cast<IAnime>().ToList(),
+                GroupInfo = place.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()?.AnimeGroup)
+                    .Where(a => a != null).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
+                EpisodeInfo = place.VideoLocal?.GetAnimeEpisodes().Where(a => a != null).Cast<IEpisode>().ToList(),
+                FileInfo = place,
+                AvailableFolders = RepoFactory.ImportFolder.GetAll().Cast<IImportFolder>()
+                    .Where(a => a.DropFolderType != DropFolderType.Excluded).ToList(),
+                Script = script,
+            };
+
+            foreach (var renamer in GetPluginRenamersSorted(script?.Type))
             {
                 try
                 {
-                    asse.Add(Assembly.LoadFile(dll));
+                    // get destination from renamer
+                    var (destFolder, destPath) = renamer.GetDestination(args);
+                    // if the renamer has said to cancel, then return null
+                    if (args.Cancel) return (null, null);
+                    // if no path was specified, then defer
+                    if (string.IsNullOrEmpty(destPath) || destFolder == null) continue;
+                    destPath = RemoveFilename(place.FilePath, destPath);
+
+                    var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
+                    if (importFolder == null)
+                    {
+                        Logger.Error(
+                            $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}"
+                        );
+                        continue;
+                    }
+
+                    return (importFolder, destPath);
                 }
-                catch (FileLoadException)
+                catch (Exception e)
                 {
-                }
-                catch (BadImageFormatException)
-                {
+                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
+
+                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
+
+                    return (null, null);
                 }
             }
 
-            var implementations = asse.SelectMany(a => a.GetTypes())
-                .Where(a => a.GetInterfaces().Contains(typeof(IRenamer)));
+            return (null, null);
+        }
 
-            foreach (var implementation in implementations)
+        private static string RemoveFilename(string filePath, string destPath)
+        {
+            var name = Path.DirectorySeparatorChar + Path.GetFileName(filePath);
+            var last = destPath.LastIndexOf(Path.DirectorySeparatorChar);
+
+            if (last <= -1 || last >= destPath.Length - 1) return destPath;
+            var end = destPath[last..];
+            if (end.Equals(name, StringComparison.Ordinal)) destPath = destPath[..last];
+
+            return destPath;
+        }
+        
+        internal static void FindRenamers(IList<Assembly> assemblies)
+        {
+            var allTypes = assemblies.SelectMany(a => 
+                {
+                    try
+                    {
+                        return a.GetTypes();
+                    } 
+                    catch
+                    {
+                        return Type.EmptyTypes;
+                    }
+                }).Where(a => a.GetInterfaces().Contains(typeof(IRenamer))).ToList();
+
+            foreach (var implementation in allTypes)
             {
-                IEnumerable<RenamerAttribute> attributes = implementation.GetCustomAttributes<RenamerAttribute>();
-                foreach ((string key, string desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
+                var attributes = implementation.GetCustomAttributes<RenamerAttribute>();
+                foreach (var (key, desc) in attributes.Select(a => (key: a.RenamerId, desc: a.Description)))
                 {
                     if (key == null) continue;
-                    if (ScriptImplementations.ContainsKey(key))
+                    if (Renamers.ContainsKey(key))
                     {
-                        logger.Warn($"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {ScriptImplementations[key]}@{ScriptImplementations[key].Assembly.Location}");
+                        Logger.Warn(
+                            $"[RENAMER] Warning Duplicate renamer key \"{key}\" of types {implementation}@{implementation.Assembly.Location} and {Renamers[key]}@{Renamers[key].type.Assembly.Location}");
                         continue;
                     }
-                    ScriptImplementations.Add(key, implementation);
-                    ScriptDescriptions.Add(key, desc);
+
+                    Renamers.Add(key, (implementation, desc));
                 }
             }
         }
-        public static string GetNewFileName(SVR_VideoLocal_Place vid)
+
+        public static IList<IRenamer> GetPluginRenamersSorted(string renamerName) => 
+            _getEnabledRenamers(renamerName).OrderBy(a => renamerName == a.Key ? 0 : int.MaxValue)
+                .ThenBy(a => ServerSettings.Instance.Plugins.RenamerPriorities.ContainsKey(a.Key) ? ServerSettings.Instance.Plugins.RenamerPriorities[a.Key] : int.MaxValue)
+                .ThenBy(a => a.Key, StringComparer.InvariantCulture)
+                .Select(a => (IRenamer)ActivatorUtilities.CreateInstance(ShokoServer.ServiceContainer, a.Value.type)).ToList();
+
+        private static IEnumerable<KeyValuePair<string, (Type type, string description)>> _getEnabledRenamers(string renamerName)
         {
-            try
+            foreach(var kvp in Renamers)
             {
-                return GetRenamer()?.GetFileName(vid);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, ex.ToString());
-                return string.Empty;
+                if (!string.IsNullOrEmpty(renamerName) && kvp.Key != renamerName) continue;
+                if (ServerSettings.Instance.Plugins.EnabledRenamers.TryGetValue(kvp.Key, out bool isEnabled) && !isEnabled) continue;
+
+                yield return kvp;
             }
         }
     }

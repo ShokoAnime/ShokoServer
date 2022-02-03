@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 using Shoko.Commons.Extensions;
 using Shoko.Commons.Utils;
 using Shoko.Models.Azure;
@@ -14,10 +15,11 @@ namespace Shoko.Server
 {
     public static class TvDBLinkingHelper
     {
-        #region TvDB Matching
+        static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public static void GenerateTvDBEpisodeMatches(int animeID, bool skipMatchClearing = false)
         {
+            DateTime start = DateTime.Now;
             // wipe old links except User Verified
             if (!skipMatchClearing)
                 RepoFactory.CrossRef_AniDB_TvDB_Episode.DeleteAllUnverifiedLinksForAnime(animeID);
@@ -52,19 +54,27 @@ namespace Shoko.Server
                     }
                 }
 
-                xref = new CrossRef_AniDB_TvDB_Episode
-                {
-                    AniDBEpisodeID = match.AniDB.EpisodeID,
-                    TvDBEpisodeID = match.TvDB.Id,
-                    MatchRating = match.Rating
-                };
+                if (xref == null) xref = new CrossRef_AniDB_TvDB_Episode();
+                xref.AniDBEpisodeID = match.AniDB.EpisodeID;
+                xref.TvDBEpisodeID = match.TvDB.Id;
+                xref.MatchRating = match.Rating;
 
                 tosave.Add(xref);
             }
 
-            if (tosave.Count == 0) return;
+            TimeSpan ts;
+            string anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID)?.MainTitle ?? animeID.ToString();
+
+            if (tosave.Count == 0)
+            {
+                ts = DateTime.Now - start;
+                logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
+                return;
+            }
 
             tosave.Batch(50).ForEach(RepoFactory.CrossRef_AniDB_TvDB_Episode.Save);
+            ts = DateTime.Now - start;
+            logger.Trace($"Updated TvDB Matches for {anime} in {ts.TotalMilliseconds}ms");
         }
 
         public static List<CrossRef_AniDB_TvDB_Episode> GetMatchPreview(int animeID, int tvdbID)
@@ -174,9 +184,29 @@ namespace Shoko.Server
 
             if (aniepsSpecial.Count > 0 && tvepsSpecial.Count > 0)
                 TryToMatchSpeicalsToTvDB(aniepsSpecial, tvepsSpecial, ref matches);
-
+            logger.Debug("Matching Anime: "+(anime?.PreferredTitle ?? "EMPTY")+" TvID: "+tvdbID+" Type: "+(anime?.AnimeType.ToString() ?? "None"));
+            logger.Debug("Anime Ep Count: "+aniepsNormal.Count+" Specials: "+aniepsSpecial.Count);
+            logger.Debug("TvDB Ep Count: "+tvepsNormal.Count+" Specials: "+tvepsSpecial.Count);
+            logger.Debug("Match Count: " + matches.Count);
+            if (matches.Count == 0)
+            {
+                //Special Exception, sometimes tvdb matches series as anidb movies or viceversa
+                if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
+                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
+                    TryToMatchNormalEpisodesToTvDB(aniepsNormal, tvepsNormal, anime?.EndDate == null, ref matches);
+                
+            }
+            if (matches.Count == 0)
+            {
+                //Special Exception (PATLABOR 1990) //Anime marked as an OVA in AniDb, and used as normal season in tvdb
+                if ((anime?.AnimeType == (int) AnimeType.OVA || anime?.AnimeType == (int) AnimeType.Movie ||
+                     anime?.AnimeType == (int) AnimeType.TVSpecial) && (aniepsSpecial.Count > 0))
+                    TryToMatchNormalEpisodesToTvDB(aniepsSpecial, tvepsNormal, anime?.EndDate == null, ref matches);
+            }
             return matches;
         }
+
+        #region internal processing
 
         private static void TryToMatchNormalEpisodesToTvDB(List<AniDB_Episode> aniepsNormal,
             List<TvDB_Episode> tvepsNormal, bool isAiring, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
@@ -232,6 +262,7 @@ namespace Shoko.Server
                         bool weekly1to1 = isregular && firstgroupingcount == 1;
                         if (isregular && firstgroupingcount != 1)
                         {
+                            // one2one can only be false here, but we're saying it for clarity
                             one2one = false;
                             // skip the next step, since we are pretty confident in the season matching here
                             // since we are skipping ahead, set tvepsNormal
@@ -265,12 +296,18 @@ namespace Shoko.Server
             // It's one to one, possibly spanning multiple seasons
             if (one2one)
             {
-                TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
-
                 if (!hasNumberedTitles)
                 {
-                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches);
+                    // Sometimes, the dates are wrong and titles are exact
+                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches, false);
+                    TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
+                    TryToMatchEpisodes1To1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches, true);
                     CorrectMatchRatings(ref matches);
+                }
+                else
+                {
+                    // We have numbered titles. There are exceptions to every rule, but numbered eps are assumed missing data, so it can't be "correct"
+                    TryToMatchEpisodes1To1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
                 }
 
                 FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
@@ -284,8 +321,13 @@ namespace Shoko.Server
                     firstgroupingcount)) return;
 
                 // the rest won't be pretty
+                // Try to match exact titles. This may get really messy, but hopefully the exact matching will prevent issues
+                TryToMatchEpisodesManyTo1ByTitle(ref aniepsNormal, ref tvepsNormal, ref matches);
                 // try to match air dates. Don't remove eps from the list of possible matches
                 TryToMatchEpisodesManyTo1ByAirDate(ref aniepsNormal, ref tvepsNormal, ref matches);
+
+                // Correct Matches
+                CorrectMatchRatings(ref matches);
 
                 // Fill in the rest and pray to Molag Bal for vengence on thy enemies
                 FillUnmatchedEpisodes1To1(ref aniepsNormal, ref tvepsNormal, ref matches);
@@ -297,7 +339,7 @@ namespace Shoko.Server
         {
             // Specials are almost never going to be one to one. We'll assume they are and let the user fix them
             // Air Dates are less accurate for specials (BD/DVD release makes them all the same). Try Titles first
-            TryToMatchEpisodes1To1ByTitle(ref aniepsSpecial, ref tvepsSpecial, ref matches);
+            TryToMatchEpisodes1To1ByTitle(ref aniepsSpecial, ref tvepsSpecial, ref matches, true);
             TryToMatchEpisodes1To1ByAirDate(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             FillUnmatchedEpisodes1To1(ref aniepsSpecial, ref tvepsSpecial, ref matches);
             CorrectMatchRatings(ref matches);
@@ -448,7 +490,7 @@ namespace Shoko.Server
                                     (aniep, tvep) =>
                                         aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
                                         tvep.AirDate?.ToIso8601WeekNumber() &&
-                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a) >=
                                 prequelEps.Count * 2D / 3D;
 
                             if (!match) continue;
@@ -505,7 +547,7 @@ namespace Shoko.Server
                                     (aniep, tvep) =>
                                         aniep.GetAirDateAsDate()?.ToIso8601WeekNumber() ==
                                         tvep.AirDate?.ToIso8601WeekNumber() &&
-                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a == true) >=
+                                        aniep.GetAirDateAsDate()?.Year == tvep.AirDate?.Year).Count(a => a) >=
                                 epsilon;
                             if (!match) continue;
 
@@ -609,7 +651,7 @@ namespace Shoko.Server
 
         private static void TryToMatchEpisodes1To1ByTitle(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal,
-            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches, bool fuzzy)
         {
             foreach (var aniep in aniepsNormal.ToList())
             {
@@ -622,9 +664,16 @@ namespace Shoko.Server
                     if (string.IsNullOrEmpty(tvtitle)) continue;
 
                     // fuzzy match
-                    if (!anititle.FuzzyMatches(tvtitle)) continue;
+                    if (fuzzy)
+                    {
+                        if (!anititle.FuzzyMatches(tvtitle)) continue;
+                    }
+                    else
+                    {
+                        if (!anititle.Equals(tvtitle, StringComparison.InvariantCultureIgnoreCase)) continue;
+                    }
                     // Add them to the matches and remove them from the lists to process
-                    matches.Add((aniep, tvep, MatchRating.Bad));
+                    matches.Add((aniep, tvep, fuzzy ? MatchRating.Bad : MatchRating.Mkay));
                     tvepsNormal.Remove(tvep);
                     aniepsNormal.Remove(aniep);
                     break;
@@ -658,7 +707,9 @@ namespace Shoko.Server
                 // this method returns false if either is null
                 bool titlesMatch = aniTitle.FuzzyMatches(tvTitle);
 
-                if (!titlesMatch) matches[index] = (match.Item1, match.Item2, MatchRating.Mkay);
+                matches[index] = titlesMatch
+                    ? (match.Item1, match.Item2, MatchRating.Good)
+                    : (match.Item1, match.Item2, MatchRating.Mkay);
             }
         }
 
@@ -762,6 +813,30 @@ namespace Shoko.Server
             return true;
 
         }
+        
+        private static void TryToMatchEpisodesManyTo1ByTitle(ref List<AniDB_Episode> aniepsNormal,
+            ref List<TvDB_Episode> tvepsNormal,
+            ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
+        {
+            foreach (var aniep in aniepsNormal.ToList())
+            {
+                string anititle = aniep.GetEnglishTitle();
+                if (string.IsNullOrEmpty(anititle)) continue;
+
+                foreach (var tvep in tvepsNormal)
+                {
+                    string tvtitle = tvep.EpisodeName;
+                    if (string.IsNullOrEmpty(tvtitle)) continue;
+
+                    if (!anititle.RemoveDiacritics().FilterLetters().Equals(tvtitle.RemoveDiacritics().FilterLetters(),
+                        StringComparison.InvariantCultureIgnoreCase)) continue;
+                        // Add them to the matches and remove them from the lists to process
+                    matches.Add((aniep, tvep, MatchRating.Mkay));
+                    aniepsNormal.Remove(aniep);
+                    break;
+                }
+            }
+        }
 
         private static void TryToMatchEpisodesManyTo1ByAirDate(ref List<AniDB_Episode> aniepsNormal,
             ref List<TvDB_Episode> tvepsNormal, ref List<(AniDB_Episode, TvDB_Episode, MatchRating)> matches)
@@ -778,7 +853,7 @@ namespace Shoko.Server
                     // check if the dates are within reason
                     if (!aniair.Value.IsWithinErrorMargin(tvair.Value, TimeSpan.FromDays(1.5))) continue;
                     // Add them to the matches and remove them from the lists to process
-                    matches.Add((aniep, tvep, MatchRating.Good));
+                    matches.Add((aniep, tvep, MatchRating.Mkay));
                     aniepsNormal.Remove(aniep);
                     break;
                 }
@@ -967,8 +1042,6 @@ namespace Shoko.Server
             return default;
         }
 
-        #endregion
-
         private static int ToIso8601WeekNumber(this DateTime date)
         {
             var thursday = date.AddDays(3 - date.DayOfWeek.DayOffset());
@@ -979,5 +1052,7 @@ namespace Shoko.Server
         {
             return ((int)weekDay + 6) % 7;
         }
+
+        #endregion
     }
 }

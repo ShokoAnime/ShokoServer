@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,17 +7,17 @@ using System.Xml;
 using AniDBAPI;
 using AniDBAPI.Commands;
 using NHibernate;
-using NHibernate.Criterion;
 using NLog;
 using Shoko.Commons.Extensions;
+using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Server.Commands;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases
@@ -26,6 +26,13 @@ namespace Shoko.Server.Databases
     {
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        public static void MigrateAniDBToNet()
+        {
+            string anidb = ServerSettings.Instance.AniDb.ServerAddress;
+            if (!anidb.EndsWith(".info", StringComparison.InvariantCultureIgnoreCase)) return;
+            ServerSettings.Instance.AniDb.ServerAddress = anidb.Substring(0, anidb.Length - 5) + ".net";
+            ServerSettings.Instance.SaveSettings();
+        }
 
         public static void DeleteSerieUsersWithoutSeries()
         {
@@ -73,22 +80,22 @@ namespace Shoko.Server.Databases
 
         public static void FixEmptyVideoInfos()
         {
-            List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll()
-                .Where(a => string.IsNullOrEmpty(a.FileName))
-                .ToList();
-            foreach (SVR_VideoLocal v in locals)
-            {
-                SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
-                if (!string.IsNullOrEmpty(p?.FilePath) && v.Media != null)
-                {
-                    v.FileName = p.FilePath;
-                    int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
-                    if (a > 0)
-                        v.FileName = p.FilePath.Substring(a + 1);
-                    SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);
-                    RepoFactory.VideoLocal.Save(v, false);
-                }
-            }
+            // List<SVR_VideoLocal> locals = RepoFactory.VideoLocal.GetAll()
+            //     .Where(a => string.IsNullOrEmpty(a.FileName))
+            //     .ToList();
+            // foreach (SVR_VideoLocal v in locals)
+            // {
+            //     SVR_VideoLocal_Place p = v.Places.OrderBy(a => a.ImportFolderType).FirstOrDefault();
+            //     if (!string.IsNullOrEmpty(p?.FilePath) && v.Media != null)
+            //     {
+            //         v.FileName = p.FilePath;
+            //         int a = p.FilePath.LastIndexOf($"{Path.DirectorySeparatorChar}", StringComparison.InvariantCulture);
+            //         if (a > 0)
+            //             v.FileName = p.FilePath.Substring(a + 1);
+            //         SVR_VideoLocal_Place.FillVideoInfoFromMedia(v, v.Media);
+            //         RepoFactory.VideoLocal.Save(v, false);
+            //     }
+            // }
         }
 
         public static void RemoveOldMovieDBImageRecords()
@@ -276,8 +283,8 @@ namespace Shoko.Server.Databases
                     Interlocked.Increment(ref count);
                     if (count % 50 == 0)
                     {
-                        ServerState.Instance.CurrentSetupStatus = string.Format(
-                            Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
+                        ServerState.Instance.ServerStartingStatus = string.Format(
+                            Resources.Database_Validating, "Generating TvDB Episode Matchings",
                             $" {count}/{list.Count}");
                     }
 
@@ -301,8 +308,8 @@ namespace Shoko.Server.Databases
                 Interlocked.Increment(ref count);
                 if (count % 50 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Generating TvDB Episode Matchings",
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, "Generating TvDB Episode Matchings",
                         $" {count}/{list.Count}");
                 }
 
@@ -312,33 +319,46 @@ namespace Shoko.Server.Databases
 
         public static void FixAniDB_EpisodesWithMissingTitles()
         {
-            var specials = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.GetEnglishTitle()))
-                .Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
+            logger.Info("Checking for Episodes with Missing Titles");
+            var episodes = RepoFactory.AniDB_Episode.GetAll()
+                .Where(a => !RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID).Any() &&
+                            RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) != null).ToList();
+            var animeIDs = episodes.Select(a => a.AnimeID).Distinct().OrderBy(a => a).ToList();
             int count = 0;
-            foreach (int animeID in specials)
+            logger.Info($"There are {episodes.Count} episodes in {animeIDs.Count} anime with missing titles. Attempting to fill them from HTTP cache");
+            foreach (int animeID in animeIDs)
             {
                 count++;
                 try
                 {
                     var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-                    if (anime == null) continue;
+                    if (anime == null)
+                    {
+                        logger.Info($"Anime {animeID} is missing it's AniDB_Anime record. That's a problem. Try importing a file for the anime.");
+                        continue;
+                    }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating,
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating,
                         $"Generating Episode Info for {anime.MainTitle}",
-                        $" {count}/{specials.Count}");
+                        $" {count}/{animeIDs.Count}");
                     XmlDocument docAnime = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (docAnime == null) continue;
+                    logger.Info($"{anime.MainTitle} has a proper HTTP cache. Attempting to regenerate info from it.");
 
-                    var episodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
-                    anime.CreateEpisodes(episodes);
-                    // we don't need to save the AniDB_Anime, since nothing has changed in it
+                    var rawEpisodes = AniDBHTTPHelper.ProcessEpisodes(docAnime, animeID);
+                    anime.CreateEpisodes(rawEpisodes);
+                    logger.Info($"Recreating Episodes for {anime.MainTitle}");
+                    SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+                    if (series == null) continue;
+                    series.CreateAnimeEpisodes();
                 }
                 catch (Exception e)
                 {
                     logger.Error($"Error Populating Episode Titles for Anime ({animeID}): {e}");
                 }
             }
+            logger.Info("Finished Filling Episode Titles from Cache.");
         }
 
         public static void FixDuplicateTraktLinks()
@@ -442,15 +462,16 @@ namespace Shoko.Server.Databases
             // Don't even bother on new DBs
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                long vlCount = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult<long>();
+                var result = session.CreateSQLQuery("SELECT COUNT(VideoLocalID) FROM VideoLocal").UniqueResult();
+                long vlCount = result is int ? (int) result : result is long ? (long) result : 0;
                 if (vlCount == 0) return;
             }
 
             // Get the list from AniDB
             AniDBHTTPCommand_GetMyList cmd = new AniDBHTTPCommand_GetMyList();
             cmd.Init(ServerSettings.Instance.AniDb.Username, ServerSettings.Instance.AniDb.Password);
-            enHelperActivityType ev = cmd.Process();
-            if (ev != enHelperActivityType.GotMyListHTTP)
+            AniDBUDPResponseCode ev = cmd.Process();
+            if (ev != AniDBUDPResponseCode.GotMyListHTTP)
             {
                 logger.Warn("AniDB did not return a successful code: " + ev);
                 return;
@@ -466,8 +487,8 @@ namespace Shoko.Server.Databases
                 count++;
                 if (count % 10 == 0)
                 {
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, "Populating MyList IDs (this will help solve MyList issues)",
                         $" {count}/{list.Count}");
                 }
 
@@ -487,7 +508,7 @@ namespace Shoko.Server.Databases
             }
         }
 
-        public static void PopulateAniDBEpisodeDescriptions()
+        public static void RefreshAniDBInfoFromXML()
         {
             int i = 0;
             var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
@@ -495,8 +516,8 @@ namespace Shoko.Server.Databases
             foreach (var animeID in list)
             {
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating AniDB Info from Cache",
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, "Populating AniDB Info from Cache",
                         $" {i}/{list.Count}");
                 i++;
                 try
@@ -504,7 +525,7 @@ namespace Shoko.Server.Databases
                     var getAnimeCmd = new AniDBHTTPCommand_GetFullAnime();
                     getAnimeCmd.Init(animeID, false, false, true);
                     var result = getAnimeCmd.Process();
-                    if (result == enHelperActivityType.Banned_555 || result == enHelperActivityType.NoSuchAnime)
+                    if (result == AniDBUDPResponseCode.Banned_555 || result == AniDBUDPResponseCode.NoSuchAnime)
                         continue;
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
@@ -585,8 +606,8 @@ namespace Shoko.Server.Databases
             foreach (var anime in animes)
             {
                 if (i % 10 == 0)
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, "Populating Resource Links from Cache",
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, "Populating Resource Links from Cache",
                         $" {i}/{animes.Count}");
                 i++;
                 try
@@ -611,7 +632,7 @@ namespace Shoko.Server.Databases
                 foreach (var animeBatch in batches)
                 {
                     i++;
-                    ServerState.Instance.CurrentSetupStatus = string.Format(Commons.Properties.Resources.Database_Validating,
+                    ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
                         "Saving AniDB_Anime batch ", $"{i}/{batches.Count}");
                     try
                     {

@@ -1,22 +1,12 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
     {
-        private FileNameHashRepository()
-        {
-        }
-
-        public static FileNameHashRepository Create()
-        {
-            return new FileNameHashRepository();
-        }
-
         public List<FileNameHash> GetByHash(string hash)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

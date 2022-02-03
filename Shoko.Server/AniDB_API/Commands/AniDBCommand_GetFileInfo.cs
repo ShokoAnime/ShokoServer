@@ -7,12 +7,12 @@ namespace AniDBAPI.Commands
 {
     public class AniDBCommand_GetFileInfo : AniDBUDPCommand, IAniDBUDPCommand
     {
-        public Raw_AniDB_File fileInfo = null;
+        public Raw_AniDB_File fileInfo;
 
         //public Raw_AniDB_Episode episodeInfo = null;
-        public IHash fileData = null;
+        public IHash fileData;
 
-        private bool forceRefresh = false;
+        private bool forceRefresh;
 
         public bool ForceRefresh
         {
@@ -20,9 +20,9 @@ namespace AniDBAPI.Commands
             set { forceRefresh = value; }
         }
 
-        public virtual enHelperActivityType GetStartEventType()
+        public virtual AniDBUDPResponseCode GetStartEventType()
         {
-            return enHelperActivityType.GettingFileInfo;
+            return AniDBUDPResponseCode.GettingFileInfo;
         }
 
         public string GetKey()
@@ -30,7 +30,7 @@ namespace AniDBAPI.Commands
             return "AniDBCommand_GetFileInfo" + fileData.ED2KHash;
         }
 
-        public virtual enHelperActivityType Process(ref Socket soUDP,
+        public virtual AniDBUDPResponseCode Process(ref Socket soUDP,
             ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc)
         {
             ProcessCommand(ref soUDP, ref remoteIpEndPoint, sessionID, enc);
@@ -38,11 +38,11 @@ namespace AniDBAPI.Commands
             // handle 555 BANNED and 598 - UNKNOWN COMMAND
             switch (ResponseCode)
             {
-                case 598: return enHelperActivityType.UnknownCommand_598;
-                case 555: return enHelperActivityType.Banned_555;
+                case 598: return AniDBUDPResponseCode.UnknownCommand_598;
+                case 555: return AniDBUDPResponseCode.Banned_555;
             }
 
-            if (errorOccurred) return enHelperActivityType.FileDoesNotExist;
+            if (errorOccurred) return AniDBUDPResponseCode.FileDoesNotExist;
 
             //BaseConfig.MyAnimeLog.Write("AniDBCommand_GetFileInfo.Process: Response: {0}", socketResponse);
 
@@ -60,13 +60,13 @@ namespace AniDBAPI.Commands
 
                     fileInfo = new Raw_AniDB_File(socketResponse);
                     //episodeInfo = new Raw_AniDB_Episode(socketResponse, enEpisodeSourceType.File);
-                    return enHelperActivityType.GotFileInfo;
+                    return AniDBUDPResponseCode.GotFileInfo;
                 }
-                case "320": return enHelperActivityType.FileDoesNotExist;
-                case "501": return enHelperActivityType.LoginRequired;
+                case "320": return AniDBUDPResponseCode.FileDoesNotExist;
+                case "501": return AniDBUDPResponseCode.LoginRequired;
             }
 
-            return enHelperActivityType.FileDoesNotExist;
+            return AniDBUDPResponseCode.FileDoesNotExist;
         }
 
         public AniDBCommand_GetFileInfo()
@@ -88,12 +88,12 @@ namespace AniDBAPI.Commands
             int aByte4 = 192; // amask - byte4
 
             this.fileData = fileData;
-            this.forceRefresh = force;
+            forceRefresh = force;
 
             commandID = fileData.Info;
             // 220 FILE572794|6107|99294|2723|c646d82a184a33f4e4f98af39f29a044|8452c4bf|high|HDTV|Vorbis (Ogg Vorbis)|148|H264/AVC|1773|1280x720|mkv|1470||1239494400|2|The Day It Began|Hajimari no Hi|712|14|Eclipse Productions|Eclipse
 
-            commandText = "FILE size=" + fileData.FileSize.ToString();
+            commandText = "FILE size=" + fileData.FileSize;
             commandText += "&ed2k=" + fileData.ED2KHash;
             commandText +=
                 $"&fmask={fByte1.ToString("X").PadLeft(2, '0')}{fByte2.ToString("X").PadLeft(2, '0')}{fByte3.ToString("X").PadLeft(2, '0')}{fByte4.ToString("X").PadLeft(2, '0')}{fByte5.ToString("X").PadLeft(2, '0')}";

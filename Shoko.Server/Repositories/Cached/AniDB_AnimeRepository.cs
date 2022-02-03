@@ -1,36 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
 using NutzCode.InMemoryIndex;
 using Shoko.Commons.Extensions;
-using Shoko.Models;
+using Shoko.Commons.Properties;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories
 {
     public class AniDB_AnimeRepository : BaseCachedRepository<SVR_AniDB_Anime, int>
     {
         private static PocoIndex<int, SVR_AniDB_Anime, int> Animes;
-
-        private AniDB_AnimeRepository()
-        {
-        }
-
-        public static AniDB_AnimeRepository Create()
-        {
-            var repo = new AniDB_AnimeRepository();
-            RepoFactory.CachedRepositories.Add(repo);
-            return repo;
-        }
 
         protected override int SelectKey(SVR_AniDB_Anime entity)
         {
@@ -54,8 +44,8 @@ namespace Shoko.Server.Repositories
                 int max = animeToUpdate.Count;
                 int count = 0;
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, typeof(AniDB_Anime).Name, " DbRegen");
                 if (max <= 0) return;
                 foreach (SVR_AniDB_Anime[] animeBatch in animeToUpdate.Batch(batchSize))
                 {
@@ -77,18 +67,23 @@ namespace Shoko.Server.Repositories
                         trans.Commit();
                     }
 
-                    ServerState.Instance.CurrentSetupStatus = string.Format(
-                        Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name,
+                    ServerState.Instance.ServerStartingStatus = string.Format(
+                        Resources.Database_Validating, typeof(AniDB_Anime).Name,
                         " DbRegen - " + count + "/" + max);
                 }
 
-                ServerState.Instance.CurrentSetupStatus = string.Format(
-                    Commons.Properties.Resources.Database_Validating, typeof(AniDB_Anime).Name,
+                ServerState.Instance.ServerStartingStatus = string.Format(
+                    Resources.Database_Validating, typeof(AniDB_Anime).Name,
                     " DbRegen - " + max + "/" + max);
             }
         }
 
         public override void Save(SVR_AniDB_Anime obj)
+        {
+            Save(obj, true);
+        }
+
+        public void Save(SVR_AniDB_Anime obj, bool generateTvDBMatches)
         {
             lock (globalDBLock)
             {
@@ -106,7 +101,10 @@ namespace Shoko.Server.Repositories
                     // populate the database
                     base.Save(obj);
                 }
-                // Update TvDB Linking. Doing it here as updating anime updates epiosde info in batch
+            }
+            if (generateTvDBMatches)
+            {
+                // Update TvDB Linking. Doing it here as updating anime updates episode info in batch
                 TvDBLinkingHelper.GenerateTvDBEpisodeMatches(obj.AnimeID);
             }
         }

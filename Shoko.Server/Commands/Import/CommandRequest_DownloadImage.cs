@@ -15,7 +15,9 @@ using Shoko.Server.AniDB_API;
 using Shoko.Server.Extensions;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Commands
@@ -208,20 +210,11 @@ namespace Shoko.Server.Commands
                 List<string> fileNames = new List<string>();
                 List<string> downloadURLs = new List<string>();
 
-                string fileNameTemp = GetFileName(req, false);
-                string downloadURLTemp = GetFileURL(req, false);
+                string fileNameTemp = GetFileName(req);
+                string downloadURLTemp = GetFileURL(req);
 
                 fileNames.Add(fileNameTemp);
                 downloadURLs.Add(downloadURLTemp);
-
-                if (req.ImageType == ImageEntityType.TvDB_FanArt)
-                {
-                    fileNameTemp = GetFileName(req, true);
-                    downloadURLTemp = GetFileURL(req, true);
-
-                    fileNames.Add(fileNameTemp);
-                    downloadURLs.Add(downloadURLTemp);
-                }
 
                 for (int i = 0; i < fileNames.Count; i++)
                 {
@@ -323,6 +316,12 @@ namespace Shoko.Server.Commands
             {
                 // download image
                 if (downloadURL.Length <= 0) return;
+                
+                // Ignore all certificate failures.
+                ServicePointManager.Expect100Continue = true;                
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                
                 using (WebClient client = new WebClient())
                 {
                     client.Headers.Add("user-agent", "JMM");
@@ -376,7 +375,7 @@ namespace Shoko.Server.Commands
             }
         }
 
-        public static string GetFileURL(ImageDownloadRequest req, bool thumbNailOnly)
+        public static string GetFileURL(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {
@@ -386,15 +385,15 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-                    return string.Format(Constants.URLS.TvDB_Images, fanart.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, fanart.BannerPath);
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;
-                    return string.Format(Constants.URLS.TvDB_Images, poster.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, poster.BannerPath);
 
                 case ImageEntityType.TvDB_Banner:
                     TvDB_ImageWideBanner wideBanner = req.ImageData as TvDB_ImageWideBanner;
-                    return string.Format(Constants.URLS.TvDB_Images, wideBanner.Id);
+                    return string.Format(Constants.URLS.TvDB_Images, wideBanner.BannerPath);
 
                 case ImageEntityType.MovieDB_Poster:
                     MovieDB_Poster moviePoster = req.ImageData as MovieDB_Poster;
@@ -406,22 +405,22 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.AniDB_Cover:
                     SVR_AniDB_Anime anime = req.ImageData as SVR_AniDB_Anime;
-                    return string.Format(Constants.URLS.AniDB_Images, anime.Picname);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, anime.Picname);
 
                 case ImageEntityType.AniDB_Character:
                     AniDB_Character chr = req.ImageData as AniDB_Character;
-                    return string.Format(Constants.URLS.AniDB_Images, chr.PicName);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, chr.PicName);
 
                 case ImageEntityType.AniDB_Creator:
                     AniDB_Seiyuu creator = req.ImageData as AniDB_Seiyuu;
-                    return string.Format(Constants.URLS.AniDB_Images, creator.PicName);
+                    return string.Format(ShokoService.AnidbProcessor.ImageServerUrl, creator.PicName);
 
                 default:
                     return string.Empty;
             }
         }
 
-        private string GetFileName(ImageDownloadRequest req, bool thumbNailOnly)
+        private string GetFileName(ImageDownloadRequest req)
         {
             switch (req.ImageType)
             {
@@ -435,10 +434,7 @@ namespace Shoko.Server.Commands
 
                 case ImageEntityType.TvDB_FanArt:
                     TvDB_ImageFanart fanart = req.ImageData as TvDB_ImageFanart;
-                    if (thumbNailOnly)
-                        return fanart.GetFullThumbnailPath();
-                    else
-                        return fanart.GetFullImagePath();
+                    return fanart.GetFullImagePath();
 
                 case ImageEntityType.TvDB_Cover:
                     TvDB_ImagePoster poster = req.ImageData as TvDB_ImagePoster;

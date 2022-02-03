@@ -1,97 +1,138 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Client;
-using Shoko.Models.Server;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
     public class ImportFolderController : BaseController
     {
         /// <summary>
-        /// Handle /api/folder/list
-        /// List all saved Import Folders
+        /// List all Import Folders
         /// </summary>
-        /// <returns>List<ImportFolder></returns>
+        /// <returns></returns>
         [HttpGet]
-        public ActionResult<IEnumerable<ImportFolder>> GetFolders() => new ShokoServiceImplementation().GetImportFolders();
+        public ActionResult<List<ImportFolder>> GetFolders()
+        {
+            return RepoFactory.ImportFolder.GetAll().Select(a => new ImportFolder(a)).ToList();
+        }
 
         /// <summary>
-        /// Handle /api/folder/add
-        /// Add Folder to Import Folders repository
+        /// Add an Import Folder. Does not run import on the folder, so you must scan it yourself.
         /// </summary>
         /// <returns>ImportFolder with generated values like ID</returns>
         [HttpPost]
         public ActionResult<ImportFolder> AddFolder(ImportFolder folder)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            if (folder.ImportFolderLocation == string.Empty)
-                return new APIMessage(StatusCodes.Status400BadRequest,
-                    "Bad Request: The Folder path must not be Empty");
+            if (folder.Path == string.Empty)
+                return BadRequest("The Folder path must not be Empty");
             try
             {
-                return RepoFactory.ImportFolder.SaveImportFolder(folder);
+                var import = folder.GetServerModel();
+
+                var newFolder = RepoFactory.ImportFolder.SaveImportFolder(import);
+
+                return new ImportFolder(newFolder);
             }
             catch (Exception e)
             {
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
         }
 
         /// <summary>
-        /// Handle /api/folder/edit
-        /// Edit folder giving full ImportFolder object with ID
+        /// Patch an Import Folder with JSON Patch.
+        /// </summary>
+        /// <param name="folderID">Import Folder ID</param>
+        /// <param name="folder">JSON Patch document</param>
+        /// <returns></returns>
+        [HttpPatch("{folderID}")]
+        public ActionResult PatchImportFolder(int folderID, [FromBody] JsonPatchDocument<ImportFolder> folder)
+        {
+            if (folder == null) return BadRequest("object is invalid.");
+            var existing = RepoFactory.ImportFolder.GetByID(folderID);
+            if (existing == null) return BadRequest("No Import Folder with ID");
+            var patchModel = new ImportFolder(existing);
+            folder.ApplyTo(patchModel, ModelState);
+            TryValidateModel(patchModel);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var serverModel = patchModel.GetServerModel();
+            RepoFactory.ImportFolder.SaveImportFolder(serverModel);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Edit Import Folder. This replaces all values. 
         /// </summary>
         /// <returns>APIStatus</returns>
-        [HttpPatch]
+        [HttpPut]
         public ActionResult EditFolder(ImportFolder folder)
         {
-            if (String.IsNullOrEmpty(folder.ImportFolderLocation) || folder.ImportFolderID == 0)
-                return new APIMessage(400, "ImportFolderLocation and ImportFolderID missing");
+            if (string.IsNullOrEmpty(folder.Path))
+                return BadRequest("Path missing. Import Folders must be a location that exists on the server");
 
-            if (folder.IsDropDestination == 1 && folder.IsDropSource == 1)
-                return new APIMessage(StatusCodes.Status409Conflict,
-                    "The Import Folder can't be both Destination and Source");
-
-            if (folder.ImportFolderID == 0)
-                return new APIMessage(StatusCodes.Status409Conflict, "The Import Folder must have an ID");
+            if (folder.ID == 0)
+                return BadRequest("ID missing. If this is a new Folder, then use POST");
 
             try
             {
-                RepoFactory.ImportFolder.SaveImportFolder(folder);
+                RepoFactory.ImportFolder.SaveImportFolder(folder.GetServerModel());
                 return Ok();
             }
             catch (Exception e)
             {
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
         }
 
         /// <summary>
-        /// Handle /api/folder/delete
-        /// Delete Import Folder out of Import Folder repository
+        /// Delete an Import Folder
         /// </summary>
-        /// <returns>APIStatus</returns>
-        [HttpDelete]
-        public ActionResult DeleteFolder(int folderId)
+        /// <param name="folderID">Import Folder ID</param>
+        /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>
+        /// <param name="updateMyList">Pretty self explanatory. If this is true, and <paramref name="removeRecords"/> is true, then it will update the list status</param>
+        /// <returns></returns>
+        [HttpDelete("{folderID}")]
+        public ActionResult DeleteFolder(int folderID, bool removeRecords = true, bool updateMyList = true)
         {
-            if (folderId != 0)
+            if (folderID == 0) return BadRequest("ID missing");
+
+            if (!removeRecords)
             {
-                string res = Importer.DeleteImportFolder(folderId);
-                if (res == string.Empty)
-                {
-                    return APIStatus.OK();
-                }
-                return new APIMessage(500, res);
+                // These are annoying to clean up later, so do it now. We can easily recreate them.
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder1(folderID));
+                RepoFactory.DuplicateFile.Delete(RepoFactory.DuplicateFile.GetByImportFolder2(folderID));
+                RepoFactory.ImportFolder.Delete(folderID);
+                return Ok();
             }
-            return new APIMessage(400, "ImportFolderID missing");
+            string res = Importer.DeleteImportFolder(folderID, updateMyList);
+            return res == string.Empty ? Ok() : InternalError(res);
+        }
+
+        /// <summary>
+        /// Scan a Specific Import Folder. This checks ALL files, not just new ones. Good for cleaning up files in strange states and making drop folders retry moves 
+        /// </summary>
+        /// <param name="folderID">Import Folder ID</param>
+        /// <returns></returns>
+        [HttpGet("{folderID}/Scan")]
+        public ActionResult ScanImportFolder(int folderID)
+        {
+            var folder = RepoFactory.ImportFolder.GetByID(folderID);
+            if (folder == null) return BadRequest("No Import Folder with ID");
+            Importer.RunImport_ScanFolder(folderID);
+            return Ok();
         }
     }
 }

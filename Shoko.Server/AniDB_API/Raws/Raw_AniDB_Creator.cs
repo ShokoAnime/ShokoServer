@@ -69,7 +69,7 @@ namespace AniDBAPI
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("creatorID: " + CreatorID.ToString());
+            sb.Append("creatorID: " + CreatorID);
             sb.Append(" | creatorName: " + CreatorName);
             sb.Append(" | picName: " + PicName);
 

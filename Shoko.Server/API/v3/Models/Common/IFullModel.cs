@@ -1,4 +1,4 @@
-namespace Shoko.Server.API.v3
+namespace Shoko.Server.API.v3.Models.Common
 {
     public interface IFullModel<T>
     {

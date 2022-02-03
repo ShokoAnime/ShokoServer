@@ -8,6 +8,7 @@ using Shoko.Commons.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v2.Modules
 {
@@ -35,7 +36,7 @@ namespace Shoko.Server.API.v2.Modules
 
             int watched_files = 0;
             int watched_series = 0;
-            long hours = 0;
+            decimal hours = 0;
 
             List<string> tags;
 
@@ -62,15 +63,15 @@ namespace Shoko.Server.API.v2.Modules
                     return contract?.UnwatchedEpisodeCount == 0;
                 });
 
-                hours = watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
-                    .Sum(a => a.Duration) / 3600000; // 1000ms * 60s * 60m = ?h
+                hours = Math.Round((decimal)  watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID)).Where(a => a != null)
+                    .Sum(a => a.Media?.GeneralStream?.Duration ?? 0) / 3600, 1, MidpointRounding.AwayFromZero); // 60s * 60m = ?h
 
                 tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                     .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
                     .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
                     .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
-                tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
+                tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
             }
             else
             {
@@ -87,7 +88,7 @@ namespace Shoko.Server.API.v2.Modules
                     .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
                     .Where(a => a != null).ToList();
                 var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
-                tags = TagFilter.ProcessTags(tagfilter, tags).Take(10).ToList();
+                tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
             }
 
             return new Dictionary<string, object>

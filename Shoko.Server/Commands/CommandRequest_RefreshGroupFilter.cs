@@ -4,6 +4,7 @@ using Shoko.Models.Queue;
 using Shoko.Models.Server;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Commands
 {
@@ -35,6 +36,11 @@ namespace Shoko.Server.Commands
 
         public override void ProcessCommand()
         {
+            if (GroupFilterID == 0)
+            {
+                RepoFactory.GroupFilter.CreateOrVerifyLockedFilters();
+                return;
+            }
             SVR_GroupFilter gf = RepoFactory.GroupFilter.GetByID(GroupFilterID);
             if (gf == null) return;
             gf.CalculateGroupsAndSeries();

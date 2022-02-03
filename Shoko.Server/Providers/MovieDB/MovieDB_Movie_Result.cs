@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Shoko.Models;
 using NLog;
 using Shoko.Models.Client;
 using TMDbLib.Objects.General;
@@ -23,10 +22,6 @@ namespace Shoko.Server.Providers.MovieDB
         public override string ToString()
         {
             return "MovieDBSearchResult: " + MovieID + ": " + MovieName;
-        }
-
-        public MovieDB_Movie_Result()
-        {
         }
 
         public bool Populate(Movie movie, ImagesWithId imgs)
@@ -74,10 +69,10 @@ namespace Shoko.Server.Providers.MovieDB
         {
             CL_MovieDBMovieSearch_Response cl = new CL_MovieDBMovieSearch_Response
             {
-                MovieID = this.MovieID,
-                MovieName = this.MovieName,
-                OriginalName = this.OriginalName,
-                Overview = this.Overview
+                MovieID = MovieID,
+                MovieName = MovieName,
+                OriginalName = OriginalName,
+                Overview = Overview
             };
             return cl;
         }

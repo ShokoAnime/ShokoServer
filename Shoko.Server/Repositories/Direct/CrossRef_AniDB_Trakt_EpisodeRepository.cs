@@ -1,22 +1,13 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models.Server;
 using NHibernate;
 using NHibernate.Criterion;
+using Shoko.Models.Server;
 using Shoko.Server.Databases;
 
 namespace Shoko.Server.Repositories.Direct
 {
     public class CrossRef_AniDB_Trakt_EpisodeRepository : BaseDirectRepository<CrossRef_AniDB_Trakt_Episode, int>
     {
-        private CrossRef_AniDB_Trakt_EpisodeRepository()
-        {
-        }
-
-        public static CrossRef_AniDB_Trakt_EpisodeRepository Create()
-        {
-            return new CrossRef_AniDB_Trakt_EpisodeRepository();
-        }
-
         public CrossRef_AniDB_Trakt_Episode GetByAniDBEpisodeID(int id)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())

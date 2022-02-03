@@ -4,7 +4,10 @@
 PUID=${PUID:-1000}
 PGID=${PGID:-100}
 
-[ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && mono --debug /usr/src/app/build/Shoko.CLI.exe
+[ $PUID -eq 0 ] && [ $PGID -eq 0 ] && echo "You really shouldn't be doing this..." && dotnet /usr/src/app/build/Shoko.CLI.dll
+
+
+[ "$AVDUMP_MONO" = true ] && (which mono > /dev/null || (apt-get update && apt-get install -y mono-runtime libmono-system-xml-linq4.0-cil))
 
 GROUP="shokogroup"
 USER="shoko"
@@ -48,12 +51,18 @@ New directory: /home/shoko/.shoko
     exit 1
 fi
 
+# set umask to specified value if defined
+if [[ ! -z "${UMASK}" ]]; then
+     umask "${UMASK}"
+fi
+
 echo "
 -------------------------------------
 User uid:    $(id -u $USER)
 User gid:    $(id -g $USER)
+UMASK set:    $(umask)
 -------------------------------------
 "
 
 # Go and run the server 
-exec gosu $USER:$GROUP mono --debug /usr/src/app/build/Shoko.CLI.exe
+exec gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI

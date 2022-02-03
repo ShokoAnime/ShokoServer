@@ -6,8 +6,8 @@ namespace AniDBAPI.Commands
 {
     public interface IAniDBUDPCommand
     {
-        enHelperActivityType GetStartEventType();
-        enHelperActivityType Process(ref Socket soUDP, ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc);
+        AniDBUDPResponseCode GetStartEventType();
+        AniDBUDPResponseCode Process(ref Socket soUDP, ref IPEndPoint remoteIpEndPoint, string sessionID, Encoding enc);
         string GetKey();
     }
 }
