@@ -207,16 +207,6 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <param name="fileID">VideoLocal ID</param>
         /// <returns></returns>
-        [HttpPost("{fileID}/avdump")]
-        [Obsolete]
-        public ActionResult<AVDumpResult> AvDumpFileObsolete(int fileID)
-            => AvDumpFile(fileID);
-        
-        /// <summary>
-        /// Run a file through AVDump and return the result.
-        /// </summary>
-        /// <param name="fileID">VideoLocal ID</param>
-        /// <returns></returns>
         [HttpPost("{fileID}/AVDump")]
         public ActionResult<AVDumpResult> AvDumpFile(int fileID)
         {
