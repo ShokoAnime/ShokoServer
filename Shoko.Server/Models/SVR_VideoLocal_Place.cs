@@ -600,14 +600,14 @@ namespace Shoko.Server.Models
             // Last ditch effort to ensure we aren't moving a file unto itself
             if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
             {
-                logger.Info($"The file is already at its desired location: {FullServerPath}");
-                return (string.Empty, "ERROR: The file is already at its desired location");
+                logger.Info($"Moving file SKIPPED! The file is already at its desired location: {FullServerPath}");
+                return (newFolderPath, string.Empty);
             }
 
             if (File.Exists(newFullServerPath))
             {
-                logger.Info($"A file already exists at the desired location for {FullServerPath}");
-                return (newFolderPath, string.Empty);
+                logger.Error($"A file already exists at the desired location: {FullServerPath}");
+                return (string.Empty, "ERROR: A file already exists at the destination");
             }
 
             ShokoServer.PauseWatchingFiles();
