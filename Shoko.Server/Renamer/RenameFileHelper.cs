@@ -78,11 +78,8 @@ namespace Shoko.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
-
-                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
-
-                    return null;
+                    if (ServerSettings.Instance.Plugins.DeferOnError && !args.Cancel) continue;
+                    throw;
                 }
             }
 
@@ -131,11 +128,8 @@ namespace Shoko.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
-
-                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
-
-                    return (null, null);
+                    if (ServerSettings.Instance.Plugins.DeferOnError && !args.Cancel) continue;
+                    throw;
                 }
             }
 
