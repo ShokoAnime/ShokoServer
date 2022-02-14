@@ -57,21 +57,20 @@ namespace Shoko.Server.Models
                 return (true, string.Empty, "Error: Do not attempt to use a temp file to rename.");
             if (ImportFolder == null)
             {
-                logger.Error(
-                    $"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: {FilePath}");
+                logger.Error($"Error: The renamer can't get the import folder for ImportFolderID: {ImportFolderID}, File: \"{FilePath}\"");
                 return (true, string.Empty, "Error: Could not find the file");
             }
 
             string renamed = RenameFileHelper.GetFilename(this, scriptName);
             if (string.IsNullOrEmpty(renamed))
             {
-                logger.Error("Error: The renamer returned a null or empty name for: " + FilePath);
+                logger.Error($"Error: The renamer returned a null or empty name for: \"{FilePath}\"");
                 return (true, string.Empty, "Error: The file renamer returned a null or empty value");
             }
 
             if (renamed.StartsWith("*Error: "))
             {
-                logger.Error("Error: The renamer returned an error on file: " + FilePath + "\n            " + renamed);
+                logger.Error($"Error: The renamer returned an error on file: \"{FilePath}\"\n            {renamed}");
                 return (true, string.Empty, renamed.Substring(1));
             }
 
@@ -81,13 +80,13 @@ namespace Shoko.Server.Models
             // check if the file exists
             if (string.IsNullOrEmpty(fullFileName))
             {
-                logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
+                logger.Error($"Error could not find the original file for renaming, or it is in use: \"{fullFileName}\"");
                 return (false, renamed, "Error: Could not access the file");
             }
 
             if (!File.Exists(fullFileName))
             {
-                logger.Error("Error could not find the original file for renaming, or it is in use: " + fullFileName);
+                logger.Error($"Error could not find the original file for renaming, or it is in use: \"{fullFileName}\"");
                 return (false, renamed, "Error: Could not access the file");
             }
 
@@ -100,13 +99,13 @@ namespace Shoko.Server.Models
             {
                 if (fullFileName.Equals(newFullName, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    logger.Info($"Renaming file SKIPPED! no change From ({fullFileName}) to ({newFullName})");
+                    logger.Info($"Renaming file SKIPPED! no change From \"{fullFileName}\" to \"{newFullName}\"");
                     return (true, renamed, string.Empty);
                 }
 
                 if (File.Exists(newFullName))
                 {
-                    logger.Info($"Renaming file SKIPPED! Destination Exists ({newFullName})");
+                    logger.Info($"Renaming file SKIPPED! Destination Exists \"{newFullName}\"");
                     return (true, renamed, "Error: The filename already exists");
                 }
                 if (preview) return (false, renamed, string.Empty);
@@ -121,8 +120,7 @@ namespace Shoko.Server.Models
                 }
                 catch (Exception e)
                 {
-                    logger.Info(
-                        $"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {e}");
+                    logger.Info($"Renaming file FAILED! From \"{fullFileName}\" to \"{newFullName}\" - {e}");
                     ShokoServer.UnpauseWatchingFiles();
                     return (false, renamed, "Error: Failed to rename file");
                 }
@@ -137,7 +135,7 @@ namespace Shoko.Server.Models
 
                     if (!File.Exists(oldSubPath))
                     {
-                        logger.Error($"Unable to rename external subtitle {sub.Filename}. Cannot access the file");
+                        logger.Error($"Unable to rename external subtitle \"{sub.Filename}\". Cannot access the file");
                         continue;
                     }
                     var newSub = sub.Filename.Replace(oldBasename, newBasename);
@@ -148,15 +146,15 @@ namespace Shoko.Server.Models
                     }
                     catch (Exception e)
                     {
-                        logger.Error($"Unable to rename external subtitle {sub.Filename} to {newSub}. {e}");
+                        logger.Error($"Unable to rename external subtitle \"{sub.Filename}\" to \"{newSub}\". {e}");
                     }
                 }
 
-                logger.Info($"Renaming file SUCCESS! From ({fullFileName}) to ({newFullName})");
+                logger.Info($"Renaming file SUCCESS! From \"{fullFileName}\" to \"{newFullName}\"");
                 Tuple<SVR_ImportFolder, string> tup = VideoLocal_PlaceRepository.GetFromFullPath(newFullName);
                 if (tup == null)
                 {
-                    logger.Error($"Unable to LOCATE file {newFullName} inside the import folders");
+                    logger.Error($"Unable to LOCATE file \"{newFullName}\" inside the import folders");
                     ShokoServer.UnpauseWatchingFiles();
                     return (false, renamed, "Error: Unable to resolve new path");
                 }
@@ -205,7 +203,7 @@ namespace Shoko.Server.Models
             }
             catch (Exception ex)
             {
-                logger.Info($"Renaming file FAILED! From ({fullFileName}) to ({newFullName}) - {ex.Message}");
+                logger.Info($"Renaming file FAILED! From \"{fullFileName}\" to \"{newFullName}\" - {ex.Message}");
                 logger.Error(ex, ex.ToString());
                 return (true, string.Empty, $"Error: {ex.Message}");
             }
@@ -540,14 +538,13 @@ namespace Shoko.Server.Models
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             if (FullServerPath == null)
             {
-                logger.Error("Could not find or access the file to move: {0}",
-                    VideoLocal_Place_ID);
+                logger.Error($"Could not find or access the file to move: {VideoLocal_Place_ID}");
                 return (string.Empty, "ERROR: Unable to access file");
             }
 
             if (!File.Exists(FullServerPath))
             {
-                logger.Error("Could not find or access the file to move: {0}", FullServerPath);
+                logger.Error($"Could not find or access the file to move: \"{FullServerPath}\"");
                 // this can happen due to file locks, so retry
                 return (string.Empty, "ERROR: Could not access the file");
             }
@@ -562,11 +559,11 @@ namespace Shoko.Server.Models
                 // In this case, an error string was returned, but we'll suppress it and give an error elsewhere
                 if (newFolderPath != null)
                 {
-                    logger.Error("Unable to find destination for: {0}", FullServerPath);
-                    logger.Error("The error message was: " + newFolderPath);
+                    logger.Error($"Unable to find destination for: \"{FullServerPath}\"");
+                    logger.Error($"The error message was: {newFolderPath}");
                     return (string.Empty, "ERROR: " + newFolderPath);
                 }
-                logger.Error("Unable to find destination for: {0}", FullServerPath);
+                logger.Error($"Unable to find destination for: \"{FullServerPath}\"");
                 return (string.Empty, "ERROR: There was an error but no error code returned...");
             }
 
@@ -575,7 +572,7 @@ namespace Shoko.Server.Models
 
             if (string.IsNullOrEmpty(newFolderPath))
             {
-                logger.Error("Unable to find destination for: {0}", FullServerPath);
+                logger.Error($"Unable to find destination for: \"{FullServerPath}\"");
                 return (string.Empty, "ERROR: The returned path was null or empty");
             }
 
@@ -593,34 +590,33 @@ namespace Shoko.Server.Models
                 catch (Exception e)
                 {
                     logger.Error(e);
-                    return (string.Empty, $"ERROR: Unable to create directory tree: {destFullTree}");
+                    return (string.Empty, $"ERROR: Unable to create directory tree: \"{destFullTree}\"");
                 }
             }
 
             // Last ditch effort to ensure we aren't moving a file unto itself
             if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
             {
-                logger.Info($"Moving file SKIPPED! The file is already at its desired location: {FullServerPath}");
+                logger.Info($"Moving file SKIPPED! The file is already at its desired location: \"{FullServerPath}\"");
                 return (newFolderPath, string.Empty);
             }
 
             if (File.Exists(newFullServerPath))
             {
-                logger.Error($"A file already exists at the desired location: {FullServerPath}");
+                logger.Error($"A file already exists at the desired location: \"{FullServerPath}\"");
                 return (string.Empty, "ERROR: A file already exists at the destination");
             }
 
             ShokoServer.PauseWatchingFiles();
 
-            logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
+            logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
             try
             {
                 sourceFile.MoveTo(newFullServerPath);
             }
             catch (Exception e)
             {
-                logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath,
-                    newFullServerPath, e);
+                logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
                 ShokoServer.UnpauseWatchingFiles();
                 return (newFullServerPath, "ERROR: " + e);
             }
@@ -679,7 +675,7 @@ namespace Shoko.Server.Models
                         }
                         catch (Exception e)
                         {
-                            logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile, e);
+                            logger.Warn($"Unable to DELETE file: \"{subtitleFile}\" error {e}");
                         }
                     }
 
@@ -689,7 +685,7 @@ namespace Shoko.Server.Models
                     }
                     catch (Exception e)
                     {
-                        logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile, newSubPath, e);
+                        logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
                     }
                 }
             }
@@ -721,12 +717,11 @@ namespace Shoko.Server.Models
             // TODO Make this take an argument to disable removing empty dirs. It's slow, and should only be done if needed
             try
             {
-                logger.Trace("Attempting to MOVE file: {0}", FullServerPath ?? VideoLocal_Place_ID.ToString());
+                logger.Trace($"Attempting to MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\"");
 
                 if (FullServerPath == null)
                 {
-                    logger.Error("Could not find or access the file to move: {0}",
-                        VideoLocal_Place_ID);
+                    logger.Error($"Could not find or access the file to move: {VideoLocal_Place_ID}");
                     return true;
                 }
 
@@ -734,13 +729,13 @@ namespace Shoko.Server.Models
                 // otherwise we don't need to move it
                 if (ImportFolder.IsDropSource == 0)
                 {
-                    logger.Trace("Not moving file as it is NOT in the drop folder: {0}", FullServerPath);
+                    logger.Trace($"Not moving file as it is NOT in the drop folder: \"{FullServerPath}\"");
                     return true;
                 }
 
                 if (!File.Exists(FullServerPath))
                 {
-                    logger.Error("Could not find or access the file to move: {0}", FullServerPath);
+                    logger.Error($"Could not find or access the file to move: \"{FullServerPath}\"");
                     // this can happen due to file locks, so retry
                     return false;
                 }
@@ -753,7 +748,7 @@ namespace Shoko.Server.Models
                 {
                     // In this case, an error string was returned, but we'll suppress it and give an error elsewhere
                     if (newFolderPath != null) return true;
-                    logger.Error("Could not find a valid destination: {0}", FullServerPath);
+                    logger.Error($"Could not find a valid destination: \"{FullServerPath}\"");
                     return true;
                 }
 
@@ -786,7 +781,7 @@ namespace Shoko.Server.Models
                 // Last ditch effort to ensure we aren't moving a file unto itself
                 if (newFullServerPath.Equals(FullServerPath, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    logger.Error($"Resolved to move {newFullServerPath} unto itself. NOT MOVING");
+                    logger.Error($"Resolved to move \"{newFullServerPath}\" unto itself. NOT MOVING");
                     return true;
                 }
 
@@ -809,9 +804,7 @@ namespace Shoko.Server.Models
                     }
                     if (destVideoLocal.Hash == VideoLocal.Hash)
                     {
-                        logger.Info(
-                            "Not moving file as it already exists at the new location, deleting source file instead: {0} --- {1}",
-                            FullServerPath, newFullServerPath);
+                        logger.Info($"Not moving file as it already exists at the new location, deleting source file instead: \"{FullServerPath}\" --- \"{newFullServerPath}\"");
 
                         // if the file already exists, we can just delete the source file instead
                         // this is safer than deleting and moving
@@ -821,7 +814,7 @@ namespace Shoko.Server.Models
                         }
                         catch (Exception e)
                         {
-                            logger.Warn("Unable to DELETE file: {0} error {1}", FullServerPath, e);
+                            logger.Warn($"Unable to DELETE file: \"{FullServerPath}\" error {e}");
                             RemoveRecord(false);
 
                             // check for any empty folders in drop folder
@@ -860,14 +853,14 @@ namespace Shoko.Server.Models
 
                         // Move
                         ShokoServer.PauseWatchingFiles();
-                        logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
+                        logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                         try
                         {
                             sourceFile.MoveTo(newFullServerPath);
                         }
                         catch (Exception e)
                         {
-                            logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath, newFullServerPath, e);
+                            logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
                             ShokoServer.UnpauseWatchingFiles();
                             return false;
                         }
@@ -912,14 +905,14 @@ namespace Shoko.Server.Models
                 else
                 {
                     ShokoServer.PauseWatchingFiles();
-                    logger.Info("Moving file from {0} to {1}", FullServerPath, newFullServerPath);
+                    logger.Info($"Moving file from \"{FullServerPath}\" to \"{newFullServerPath}\"");
                     try
                     {
                         sourceFile.MoveTo(newFullServerPath);
                     }
                     catch (Exception e)
                     {
-                        logger.Error("Unable to MOVE file: {0} to {1} error {2}", FullServerPath, newFullServerPath, e);
+                        logger.Error($"Unable to MOVE file: \"{FullServerPath}\" to \"{newFullServerPath}\" error {e}");
                         ShokoServer.UnpauseWatchingFiles();
                         return false;
                     }
@@ -982,7 +975,7 @@ namespace Shoko.Server.Models
                             }
                             catch (Exception e)
                             {
-                                logger.Warn("Unable to DELETE file: {0} error {1}", subtitleFile, e);
+                                logger.Warn($"Unable to DELETE file: \"{subtitleFile}\" error {e}");
                             }
                         }
 
@@ -992,7 +985,7 @@ namespace Shoko.Server.Models
                         }
                         catch (Exception e)
                         {
-                            logger.Error("Unable to MOVE file: {0} to {1} error {2}", subtitleFile, newSubPath, e);
+                            logger.Error($"Unable to MOVE file: \"{subtitleFile}\" to \"{newSubPath}\" error {e}");
                         }
                     }
                 }
@@ -1003,8 +996,7 @@ namespace Shoko.Server.Models
             }
             catch (Exception ex)
             {
-                string msg = $"Could not MOVE file: {FullServerPath ?? VideoLocal_Place_ID.ToString()} -- {ex}";
-                logger.Error(ex, msg);
+                logger.Error(ex, $"Could not MOVE file: \"{FullServerPath ?? VideoLocal_Place_ID.ToString()}\" -- {ex}");
             }
             ShokoServer.UnpauseWatchingFiles();
             return true;
