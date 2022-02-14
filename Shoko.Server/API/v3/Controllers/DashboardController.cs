@@ -104,8 +104,20 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="number">The max number of results to return. (Defaults to 10)</param>
         /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
         /// <returns></returns>
-        [HttpGet("TopTags/{number?}")]
-        public List<Tag> GetTopTags(int number = 10, [FromQuery] TagFilter.Filter filter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
+        [HttpGet("TopTags/{number}")]
+        [Obsolete]
+        public List<Tag> GetTopTagsObsolete(int number = 10, [FromQuery] TagFilter.Filter filter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
+            => GetTopTags(number, 0, filter);
+            
+        /// <summary>
+        /// Gets the top number of the most common tags visible to the current user.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <param name="filter">The <see cref="TagFilter.Filter" /> to use. (Defaults to <see cref="TagFilter.Filter.AnidbInternal" /> | <see cref="TagFilter.Filter.Misc" /> | <see cref="TagFilter.Filter.Source" />)</param>
+        /// <returns></returns>
+        [HttpGet("TopTags")]
+        public List<Tag> GetTopTags([FromQuery] int pageSize = 10, [FromQuery] int page = 0, [FromQuery] TagFilter.Filter filter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source)
         {
             var tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                 .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
@@ -116,7 +128,11 @@ namespace Shoko.Server.API.v3.Controllers
                     Description = a.TagDescription,
                     Weight = 0
                 }).ToList();
-            return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags).Take(number).ToList();
+            if (pageSize <= 0)
+                return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags).ToList();
+            if (page <= 0) page = 0;
+            return new TagFilter<Tag>(tag => new Tag(tag), tag => tag.Name).ProcessTags(filter, tags)
+                .Skip(pageSize * page).Take(pageSize).ToList();
         }
 
         /// <summary>
