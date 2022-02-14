@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
@@ -344,6 +346,112 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     };
                 });
                 SeriesIDs.AddRange(epIDs);
+            }
+        }
+        
+        /// <summary>
+        /// Input models.
+        /// </summary>
+        public class Input
+        {
+            /// <summary>
+            /// Link a file to multiple episodes.
+            /// </summary>
+            public class LinkEpisodesBody
+            {
+                /// <summary>
+                /// An array of episode identifiers to link to the file.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] episodeIDs { get; set; }
+            }
+
+            /// <summary>
+            /// Link a file to an episode range in a series.
+            /// </summary>
+            public class LinkSeriesBody
+            {
+                /// <summary>
+                /// The series identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int seriesID { get; set; }
+
+                /// <summary>
+                /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public string rangeStart { get; set; }
+
+                /// <summary>
+                /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="rangeStart"/>.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public  string rangeEnd { get; set; }
+            }
+
+            /// <summary>
+            /// Link multiple files to an episode range in a series.
+            /// </summary>
+            public class LinkSeriesMultipleBody
+            {
+                /// <summary>
+                /// An array of file identifiers to link in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
+
+                /// <summary>
+                /// The series identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int seriesID { get; set; }
+
+                /// <summary>
+                /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public string rangeStart { get; set; }
+
+                /// <summary>
+                /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
+                /// </summary>
+                /// <value></value>
+                [DefaultValue(false)]
+                public bool singleEpisode { get; set; }
+            }
+
+            /// <summary>
+            /// Unlink the spesified episodes from a file.
+            /// </summary>
+            public class UnlinkEpisodesBody
+            {
+                /// <summary>
+                /// An array of episode identifiers to unlink from the file.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] episodeIDs { get; set; }
+            }
+
+            /// <summary>
+            /// Unlink multiple files in batch.
+            /// </summary>
+            public class UnlinkMultipleBody
+            {
+                /// <summary>
+                /// An array of file identifiers to unlink in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
             }
         }
     }
