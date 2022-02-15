@@ -108,18 +108,6 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
-            services.AddLogging(loggingBuilder => //add NLog based logging.
-            {
-                //NLog;
-                loggingBuilder.ClearProviders();
-#if DEBUG
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
-                loggingBuilder.AddNLog(new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
-            });
             Loader.Instance.Load(services);
         }
         
@@ -152,6 +140,9 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
+#if DEBUG
+            LogManager.Configuration.AddRule(LogLevel.Debug, LogLevel.Debug, target, "*", true);
+#endif
  
             var signalrTarget =
                 new AsyncTargetWrapper(
@@ -1287,11 +1278,7 @@ namespace Shoko.Server.Server
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-#if DEBUG
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
                 }).UseNLog()
                 .UseSentry(
                     o =>
