@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.MovieDB;
@@ -213,9 +212,9 @@ namespace Shoko.Server.API.v3.Controllers
             catch (Exception e)
             {
                 Logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
-            return APIStatus.OK();
+            return Ok();
         }
         
         /// <summary>
@@ -235,10 +234,10 @@ namespace Shoko.Server.API.v3.Controllers
             catch (Exception e)
             {
                 Logger.Error(e);
-                return APIStatus.InternalError(e.Message);
+                return InternalError(e.Message);
             }
 
-            return APIStatus.OK();
+            return Ok();
         }
         
         /// <summary>
