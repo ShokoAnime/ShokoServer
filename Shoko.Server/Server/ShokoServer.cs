@@ -1757,7 +1757,7 @@ namespace Shoko.Server.Server
 
         private static void CreateTestCommandRequests()
         {
-            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true);
+            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true, false);
             cr_anime.Save();
 
             /*

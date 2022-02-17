@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
@@ -195,8 +196,7 @@ namespace Shoko.Server.API.v3.Controllers
                     var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (xml == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        Series.QueueAniDBRefresh(animeID, true, false, false);
                         updatedAnime++;
                         continue;
                     }
@@ -204,8 +204,7 @@ namespace Shoko.Server.API.v3.Controllers
                     var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
                     if (rawAnime == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        Series.QueueAniDBRefresh(animeID, true, false, false);
                         updatedAnime++;
                     }
                 }

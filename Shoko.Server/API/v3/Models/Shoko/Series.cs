@@ -110,9 +110,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
             SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
         }
 
-        public static void QueueAniDBRefresh(int animeID)
+        public static void QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry)
         {
-            CommandRequest_GetAnimeHTTP command = new CommandRequest_GetAnimeHTTP(animeID, false, false, 0);
+            var command = new CommandRequest_GetAnimeHTTP(animeID, force, downloadRelations, createSeriesEntry);
             command.Save();
         }
 

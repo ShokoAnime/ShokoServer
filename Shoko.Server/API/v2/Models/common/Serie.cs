@@ -63,7 +63,7 @@ namespace Shoko.Server.API.v2.Models.common
             SVR_AniDB_Anime aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
             if (aniDB_Anime == null)
             {
-                CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false);
+                CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(bookmark.AnimeID, true, false, false);
                 cr_anime.Save();
  
                 Serie empty_serie = new Serie

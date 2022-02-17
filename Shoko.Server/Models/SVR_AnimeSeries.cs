@@ -395,17 +395,17 @@ namespace Shoko.Server.Models
             SeriesNameOverride = string.Empty;
         }
 
-        public void CreateAnimeEpisodes()
+        public void CreateAnimeEpisodes(SVR_AniDB_Anime anime = null)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                CreateAnimeEpisodes(session);
+                CreateAnimeEpisodes(session, anime);
             }
         }
 
-        public void CreateAnimeEpisodes(ISession session)
+        public void CreateAnimeEpisodes(ISession session, SVR_AniDB_Anime anime = null)
         {
-            SVR_AniDB_Anime anime = GetAnime();
+            anime = anime ?? GetAnime();
             if (anime == null) return;
 
             var eps = anime.GetAniDBEpisodes();

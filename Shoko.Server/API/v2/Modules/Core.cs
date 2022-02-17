@@ -290,7 +290,7 @@ namespace Shoko.Server.API.v2.Modules
                     var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (xml == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
                         cmd.Save();
                         updatedAnime++;
                         continue;
@@ -299,7 +299,7 @@ namespace Shoko.Server.API.v2.Modules
                     var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
                     if (rawAnime == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
                         cmd.Save();
                         updatedAnime++;
                     }

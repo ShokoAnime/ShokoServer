@@ -351,7 +351,7 @@ namespace Shoko.Server.Databases
                     logger.Info($"Recreating Episodes for {anime.MainTitle}");
                     SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                     if (series == null) continue;
-                    series.CreateAnimeEpisodes();
+                    series.CreateAnimeEpisodes(anime);
                 }
                 catch (Exception e)
                 {
@@ -530,7 +530,7 @@ namespace Shoko.Server.Databases
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0);
+                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
                     }
                 }
                 catch (Exception e)

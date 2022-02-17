@@ -82,8 +82,7 @@ namespace Shoko.Server.Commands
                         if (myVote.VoteType == AniDBVoteType.Anime || myVote.VoteType == AniDBVoteType.AnimeTemp)
                         {
                             // download the anime info if the user doesn't already have it
-                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID,
-                                false, false);
+                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(thisVote.EntityID, false, false, false);
                             cmdAnime.Save();
                         }
                     }
