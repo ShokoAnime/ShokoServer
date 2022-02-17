@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
                         {
                             AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
 
-                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = ep == null;
+                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
                             else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
