@@ -86,12 +86,12 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="force">Forcefully retrive updated data from AniDB</param>
         /// <param name="downloadRelations">Download relations for the series</param>
         /// <param name="createSeriesEntry">Create a Shoko Series entry if it doesn't exist</param>
-        /// <returns></returns>
+        /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+        /// <returns>True if the refresh is done, otherwise false</returns>
         [HttpPost("AniDB/{anidbID}/Refresh")]
-        public ActionResult QueueAniDBRefreshFromAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool createSeriesEntry = false)
+        public ActionResult<bool> QueueAniDBRefreshFromAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool createSeriesEntry = false, [FromQuery] bool immediate = false)
         {
-            Series.QueueAniDBRefresh(anidbID, force, downloadRelations, createSeriesEntry);
-            return NoContent();
+            return Series.QueueAniDBRefresh(anidbID, force, downloadRelations, createSeriesEntry, immediate);
         }
 
         /// <summary>
@@ -100,34 +100,33 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <param name="force">Forcefully retrive updated data from AniDB</param>
         /// <param name="downloadRelations">Download relations for the series</param>
-        /// <returns></returns>
+        /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
+        /// <returns>True if the refresh is done, otherwise false</returns>
         [HttpPost("{seriesID}/AniDB/Refresh")]
-        public ActionResult QueueAniDBRefresh([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false)
+        public ActionResult<bool> QueueAniDBRefresh([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool immediate = false)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            Series.QueueAniDBRefresh(anime.AnimeID, force, downloadRelations, false);
-            return NoContent();
+            return Series.QueueAniDBRefresh(anime.AnimeID, force, downloadRelations, false, immediate);
         }
 
         /// <summary>
         /// Forcefully refresh the AniDB Info from XML on disk for series with ID
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
-        /// <returns></returns>
+        /// <returns>True if the refresh is done, otherwise false</returns>
         [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
-        public ActionResult RefreshAniDBFromXML([FromRoute] int seriesID)
+        public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
         {
             var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (ser == null) return BadRequest("No Series with ID");
             if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
             var anime = ser.GetAnime();
             if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            Series.RefreshAniDBFromCachedXML(HttpContext, anime);
-            return NoContent();
+            return Series.RefreshAniDBFromCachedXML(HttpContext, anime);
         }
 
         /// <summary>

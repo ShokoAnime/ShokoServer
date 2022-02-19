@@ -907,7 +907,6 @@ namespace Shoko.Server.AniDB_API
             RepoFactory.AniDB_ReleaseGroup.Save(relGroup);
         }
 
-
         public GroupStatusCollection GetReleaseGroupStatusUDP(int animeID)
         {
             if (!Login()) return null;
@@ -1009,13 +1008,10 @@ namespace Shoko.Server.AniDB_API
             }
         }
 
-        public void UpdateCachedAnimeInfoHTTP(SVR_AniDB_Anime anime)
+        public bool UpdateCachedAnimeInfoHTTP(SVR_AniDB_Anime anime, bool createSeriesEntry = false)
         {
             if (anime == null)
-            {
-                logger.Trace("");
-                return;
-            }
+                return false;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var animeID = anime.AnimeID;
@@ -1029,14 +1025,14 @@ namespace Shoko.Server.AniDB_API
                     if (result == AniDBUDPResponseCode.NoSuchAnime)
                     {
                         logger.Error($"Failed get cached anime info for {animeID}. AniDB ban or No Such Anime returned");
-                        return;
+                        return false;
                     }
                 }
 
                 if (getAnimeCmd.Anime == null)
                 {
                     logger.Error($"Failed get cached anime info for {animeID}. Anime was null");
-                    return;
+                    return false;
                 }
 
 
@@ -1044,10 +1040,10 @@ namespace Shoko.Server.AniDB_API
 
                 if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Tags,
                     getAnimeCmd.Characters, getAnimeCmd.Staff, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                    false, 0, false))
+                    false, 0, createSeriesEntry))
                 {
                     logger.Error($"Failed populate cached anime info for {animeID}");
-                    return;
+                    return false;
                 }
 
                 // create AnimeEpisode records for all episodes in this anime only if we have a series
@@ -1059,8 +1055,8 @@ namespace Shoko.Server.AniDB_API
                 }
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
             }
+            return true;
         }
-
 
         public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true, int relDepth = 0, bool createSeriesEntry = false)
         {

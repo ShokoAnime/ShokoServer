@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Commands;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 // ReSharper disable UnusedMember.Local
@@ -105,15 +106,23 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
         }
 
-        public static void RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
+        public static bool RefreshAniDBFromCachedXML(HttpContext ctx, SVR_AniDB_Anime anime)
         {
-            SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
+            return SSS.ShokoService.AnidbProcessor.UpdateCachedAnimeInfoHTTP(anime);
         }
 
-        public static void QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry)
+        public static bool QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false)
         {
+            if (immediate && !ShokoService.AnidbProcessor.IsHttpBanned) {
+                var anime = ShokoService.AnidbProcessor.GetAnimeInfoHTTP(animeID, force, downloadRelations, 0, createSeriesEntry);
+                if (anime != null) {
+                    return true;
+                }
+            }
+
             var command = new CommandRequest_GetAnimeHTTP(animeID, force, downloadRelations, createSeriesEntry);
             command.Save();
+            return false;
         }
 
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
