@@ -141,6 +141,10 @@ namespace Shoko.Server.Server
             }
 
 #if DEBUG
+            // Disable blackhole http info logs
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+            // Enable debug logging
             LogManager.Configuration.AddRule(LogLevel.Debug, LogLevel.Debug, target, "*", true);
 #endif
  
