@@ -128,27 +128,34 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko
-            var ids = new SeriesIDs {ID = ser.AnimeSeriesID};
+            var ids = new SeriesIDs { ID = ser.AnimeSeriesID };
+            
             // AniDB
-            var anime = ser.GetAnime();
-            if (anime != null) ids.AniDB = anime.AnimeID;
+            var anidbId = ser.GetAnime()?.AnimeID;
+            if (anidbId.HasValue) ids.AniDB = anidbId.Value;
+            
             // TvDB
-            var tvdbs = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
-            if (tvdbs.Any()) ids.TvDB.AddRange(tvdbs.Select(a => a.TvDBID).Distinct());
-            // TODO Cache the rest of these, so that they don't severely slow down the API
-            // MovieDB
-            // TODO make this able to support more than one, in fact move it to its own and remove CrossRef_Other
-            //var moviedb = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB);
-            //if (moviedb != null && int.TryParse(moviedb.CrossRefID, out int movieID)) ids.MovieDB.Add(movieID);
+            var tvdbIds = RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID);
+            if (tvdbIds.Any()) ids.TvDB.AddRange(tvdbIds.Select(a => a.TvDBID).Distinct());
+            
+            // TODO: Cache the rest of these, so that they don't severely slow down the API
+
+            // TMDB
+            // TODO: make this able to support more than one, in fact move it to its own and remove CrossRef_Other
+            var tmdbId = RepoFactory.CrossRef_AniDB_Other.GetByAnimeIDAndType(ser.AniDB_ID, CrossRefType.MovieDB);
+            if (tmdbId != null && int.TryParse(tmdbId.CrossRefID, out int movieID)) ids.TMDB.Add(movieID);
+            
             // Trakt
-            //var traktids = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(ser.AniDB_ID).Select(a => a.TraktID)
-            //    .Distinct().ToList();
-            //if (traktids.Any()) ids.TraktTv.AddRange(traktids);
+            // var traktIds = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(ser.AniDB_ID).Select(a => a.TraktID)
+            //     .Distinct().ToList();
+            // if (traktIds.Any()) ids.TraktTv.AddRange(traktIds);
+            
             // MAL
-            var malids = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
+            var malIds = RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(ser.AniDB_ID).Select(a => a.MALID).Distinct()
                 .ToList();
-            if (malids.Any()) ids.MAL.AddRange(malids);
-            // TODO AniList later
+            if (malIds.Any()) ids.MAL.AddRange(malIds);
+            
+            // TODO: AniList later
             return ids;
         }
 
@@ -644,9 +651,9 @@ namespace Shoko.Server.API.v3.Models.Shoko
         // TODO Support for TvDB string IDs (like in the new URLs) one day maybe
 
         /// <summary>
-        /// The MovieDB IDs
+        /// The Movie DB IDs
         /// </summary>
-        public List<int> MovieDB { get; set; } = new List<int>();
+        public List<int> TMDB { get; set; } = new List<int>();
 
         /// <summary>
         /// The MyAnimeList IDs
