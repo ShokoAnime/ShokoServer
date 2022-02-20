@@ -26,26 +26,19 @@ namespace Shoko.Server.API.v3.Controllers
         [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(400), ProducesResponseType(404)]
         public ActionResult GetImage(string source, string type, string value)
         {
-            ImageEntityType sourceType;
-            try
-            {
-                sourceType = Image.GetImageTypeFromSourceAndType(source, type);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var sourceType = Image.GetImageTypeFromSourceAndType(source, type) ?? ImageEntityType.None;
+            if (sourceType == ImageEntityType.None)
+                return NotFound("The requested resource does not exist.");
 
             if (sourceType == ImageEntityType.Static)
-            {
                 return GetStaticImage(value);
-            }
 
             if (!int.TryParse(value, out int id))
-                return BadRequest("The 'value' must be an integer ID for all types except 'Static'");
+                return NotFound("The requested resource does not exist.");
 
             string path = Image.GetImagePath(sourceType, id);
-            if (string.IsNullOrEmpty(path)) return NotFound("The image was not found");
+            if (string.IsNullOrEmpty(path))
+                return NotFound("The requested resource does not exist.");
             return File(System.IO.File.OpenRead(path), Mime.GetMimeMapping(path));
         }
         
@@ -58,12 +51,12 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult GetStaticImage(string name)
         {
             if (string.IsNullOrEmpty(name))
-                return BadRequest("You must provide an image name that matches a Resource");
+                return NotFound("The requested resource does not exist.");
             name = Path.GetFileNameWithoutExtension(name);
             ResourceManager man = Resources.ResourceManager;
             byte[] dta = (byte[]) man.GetObject(name);
             if ((dta == null) || (dta.Length == 0))
-                return BadRequest("The Resource requested does not exist");
+                return NotFound("The requested resource does not exist.");
             MemoryStream ms = new MemoryStream(dta);
             ms.Seek(0, SeekOrigin.Begin);
 

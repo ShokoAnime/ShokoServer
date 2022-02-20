@@ -312,7 +312,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultPoster() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.Poster);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Poster);
 
         public string PosterPathNoDefault
         {
@@ -427,7 +427,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultFanart() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.Fanart);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Fanart);
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
         {
@@ -526,7 +526,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.WideBanner);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.WideBanner);
 
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
         {

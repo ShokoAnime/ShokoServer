@@ -75,7 +75,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return f.SeriesIds[User.JMMUserID].Select(id => RepoFactory.AnimeSeries.GetByID(id))
                 .Where(ser => ser?.AnimeGroupID == groupID).Select(ser => new Series(HttpContext, ser)).OrderBy(a =>
-                    Series.GetAniDBInfo(HttpContext, RepoFactory.AniDB_Anime.GetByAnimeID(a.IDs.ID)).AirDate)
+                    new Series.AniDB(HttpContext, RepoFactory.AniDB_Anime.GetByAnimeID(a.IDs.ID)).AirDate)
                 .ToList();
         }
         
