@@ -1,7 +1,8 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using ImageMagick;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -20,14 +21,14 @@ namespace Shoko.Server.API.v3.Models.Common
         /// AniDB, TvDB, MovieDB, etc
         /// </summary>
         [Required]
-        public string Source { get; set; }
-        
+        public ImageSource Source { get; set; }
+
         /// <summary>
         /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
         /// </summary>
         [Required]
-        public string Type { get; set; }
-        
+        public ImageType Type { get; set; }
+
         /// <summary>
         /// The image's ID, usually an int, but in the case of Static resources, it is the resource name.
         /// </summary>
@@ -39,9 +40,9 @@ namespace Shoko.Server.API.v3.Models.Common
         /// these for quick access and no need for caching
         /// </summary>
         public string RelativeFilepath { get; set; }
-        
+
         /// <summary>
-        /// Is it marked as default. Multiple defaults are possible
+        /// Is it marked as default. Only one default is possible for a given <see cref="Image.Type"/>.
         /// </summary>
         public bool Preferred { get; set; }
         
@@ -54,7 +55,7 @@ namespace Shoko.Server.API.v3.Models.Common
         /// Height of the image.
         /// </summary>
         public int? Height { get; set; }
-        
+
         /// <summary>
         /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
         /// </summary>
@@ -92,90 +93,95 @@ namespace Shoko.Server.API.v3.Models.Common
             Disabled = disabled;
         }
 
-        public static string GetSimpleTypeFromImageType(ImageEntityType type)
+        public static ImageType GetSimpleTypeFromImageType(ImageEntityType type)
         {
             switch (type)
             {
                 case ImageEntityType.TvDB_Cover:
                 case ImageEntityType.MovieDB_Poster:
                 case ImageEntityType.AniDB_Cover:
-                    return "Poster";
+                    return ImageType.Poster;
                 case ImageEntityType.TvDB_Banner:
-                    return "Banner";
+                    return ImageType.Banner;
                 case ImageEntityType.TvDB_Episode:
-                    return "Thumb";
+                    return ImageType.Thumb;
                 case ImageEntityType.TvDB_FanArt:
                 case ImageEntityType.MovieDB_FanArt:
-                    return "Fanart";
+                    return ImageType.Fanart;
                 case ImageEntityType.AniDB_Character:
                 case ImageEntityType.Character:
-                    return "Character";
+                    return ImageType.Character;
                 case ImageEntityType.AniDB_Creator:
                 case ImageEntityType.Staff:
-                    return "Staff";
+                    return ImageType.Staff;
                 case ImageEntityType.Static:
-                    return "Static";
+                    return ImageType.Static;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
         }
 
-        public static string GetSourceFromType(ImageEntityType type)
+        public static ImageSource GetSourceFromType(ImageEntityType type)
         {
             switch (type)
             {
                 case ImageEntityType.AniDB_Cover:
                 case ImageEntityType.AniDB_Character:
                 case ImageEntityType.AniDB_Creator:
-                    return "AniDB";
+                    return ImageSource.AniDB;
                 case ImageEntityType.TvDB_Banner:
                 case ImageEntityType.TvDB_Cover:
                 case ImageEntityType.TvDB_Episode:
                 case ImageEntityType.TvDB_FanArt:
-                    return "TvDB";
+                    return ImageSource.TvDB;
                 case ImageEntityType.MovieDB_FanArt:
                 case ImageEntityType.MovieDB_Poster:
-                    return "TMDB";
+                    return ImageSource.TMDB;
                 case ImageEntityType.Character:
                 case ImageEntityType.Staff:
                 case ImageEntityType.Static:
-                    return "Shoko";
+                    return ImageSource.Shoko;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
         }
-        
+
         /// <summary>
-        /// Gets the <see cref="ImageEntityType"/> for the given <paramref name="source"/> and <paramref name="imageType"/>.
+        /// Gets the <see cref="ImageEntityType"/> for the given <paramref name="imageSource"/> and <paramref name="imageType"/>.
         /// </summary>
-        /// <param name="source"></param>
+        /// <param name="imageSource"></param>
         /// <param name="imageType"></param>
         /// <returns></returns>
-        public static ImageEntityType? GetImageTypeFromSourceAndType(string source, string imageType)
+        public static ImageEntityType? GetImageTypeFromSourceAndType(ImageSource imageSource, ImageType imageType)
         {
-            return (source.ToLower(CultureInfo.InvariantCulture)) switch {
-                "anidb" => (imageType.ToLower(CultureInfo.InvariantCulture)) switch {
-                    "poster" => ImageEntityType.AniDB_Cover,
-                    "character" => ImageEntityType.AniDB_Character,
-                    "staff" => ImageEntityType.AniDB_Creator,
+            return imageSource switch
+            {
+                ImageSource.AniDB => imageType switch
+                {
+                    ImageType.Poster => ImageEntityType.AniDB_Cover,
+                    ImageType.Character => ImageEntityType.AniDB_Character,
+                    ImageType.Staff => ImageEntityType.AniDB_Creator,
                     _ => null,
                 },
-                "tvdb" => (imageType.ToLower(CultureInfo.InvariantCulture)) switch {
-                    "poster" => ImageEntityType.TvDB_Cover,
-                    "banner" => ImageEntityType.TvDB_Banner,
-                    "thumb" => ImageEntityType.TvDB_Episode,
-                    "fanart" => ImageEntityType.TvDB_FanArt,
+                ImageSource.TvDB => imageType switch
+                {
+                    ImageType.Poster => ImageEntityType.TvDB_Cover,
+                    ImageType.Banner => ImageEntityType.TvDB_Banner,
+                    ImageType.Thumb => ImageEntityType.TvDB_Episode,
+                    ImageType.Fanart => ImageEntityType.TvDB_FanArt,
                     _ => null,
                 },
-                "tmdb" => (imageType.ToLower(CultureInfo.InvariantCulture)) switch {
-                    "poster" => ImageEntityType.MovieDB_Poster,
-                    "fanart" => ImageEntityType.MovieDB_FanArt,
+                ImageSource.TMDB => imageType switch
+                {
+                    ImageType.Poster => ImageEntityType.MovieDB_Poster,
+                    ImageType.Fanart => ImageEntityType.MovieDB_FanArt,
                     _ => null,
                 },
-                "shoko" => (imageType.ToLower(CultureInfo.InvariantCulture)) switch {
-                    "static" => ImageEntityType.Static,
-                    "character" => ImageEntityType.Character,
-                    "staff" => ImageEntityType.Staff,
+                ImageSource.Shoko => imageType switch
+                {
+                    ImageType.Static => ImageEntityType.Static,
+                    ImageType.Character => ImageEntityType.Character,
+                    ImageType.Staff => ImageEntityType.Staff,
                     _ => null,
                 },
                 _ => null,
@@ -189,7 +195,8 @@ namespace Shoko.Server.API.v3.Models.Common
         /// <returns>The <see cref="ImageSizeType"/></returns>
         public static ImageSizeType? GetImageSizeTypeFromImageEntityType(ImageEntityType imageEntityType)
         {
-            return imageEntityType switch {
+            return imageEntityType switch
+            {
                 // Posters
                 ImageEntityType.AniDB_Cover => ImageSizeType.Poster,
                 ImageEntityType.TvDB_Cover => ImageSizeType.Poster,
@@ -204,7 +211,28 @@ namespace Shoko.Server.API.v3.Models.Common
                 _ => null,
             };
         }
-        
+
+        /// <summary>
+        /// Gets the <see cref="ImageSizeType"/> from the given <paramref name="imageType"/>.
+        /// </summary>
+        /// <param name="imageType"></param>
+        /// <returns>The <see cref="ImageSizeType"/></returns>
+        public static ImageSizeType GetImageSizeTypeFromType(ImageType imageType)
+        {
+            return (imageType) switch
+            {
+                // Posters
+                ImageType.Poster => ImageSizeType.Poster,
+
+                // Banners
+                ImageType.Banner => ImageSizeType.WideBanner,
+
+                // Fanart
+                ImageType.Fanart => ImageSizeType.Fanart,
+                _ => ImageSizeType.Poster,
+            };
+        }
+
         public static string GetImagePath(ImageEntityType type, int id)
         {
             string path;
@@ -361,7 +389,76 @@ namespace Shoko.Server.API.v3.Models.Common
 
             return path;
         }
-        
+
+        /// <summary>
+        /// Image source.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum ImageSource
+        {
+            /// <summary>
+            ///
+            /// </summary>
+            AniDB = 1,
+
+            /// <summary>
+            ///
+            /// </summary>
+            TvDB = 2,
+
+            /// <summary>
+            ///
+            /// </summary>
+            TMDB = 3,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Shoko = 100,
+        }
+
+        /// <summary>
+        /// Image type.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum ImageType
+        {
+            /// <summary>
+            ///
+            /// </summary>
+            Poster = 1,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Banner = 2,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Thumb = 3,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Fanart = 4,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Character = 5,
+
+            /// <summary>
+            ///
+            /// </summary>
+            Staff = 6,
+
+            /// <summary>
+            /// Static resources are only valid if the <see cref="Image.Source"/> is set to <see cref="ImageSource.Shoko"/>.
+            /// </summary>
+            Static = 100,
+        }
+
         /// <summary>
         /// Input models.
         /// </summary>
@@ -369,11 +466,20 @@ namespace Shoko.Server.API.v3.Models.Common
         {
             public class DefaultImageBody
             {
+                /// <summary>
+                /// The ID. A stringified int since we send the ID as a string
+                /// from the API. Also see <seealso cref="Image.ID"/>.
+                /// </summary>
+                /// <value></value>
                 [Required]
-                public string ID { get; set; }
-                
+                public string ID { get; set; }
+
+                /// <summary>
+                /// The image source.
+                /// </summary>
+                /// <value></value>
                 [Required]
-                public string Source { get; set; }
+                public Image.ImageSource Source { get; set; }
             }
         }
     }

@@ -25,15 +25,48 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class SeriesController : BaseController
     {
+        #region Return messages
+
+        internal static string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
+
+        internal static string SeriesNotFoundWithAnidbID = "No Series entry for the given anidbID";
+
+        internal static string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
+
+        internal static string AnidbNotFoundForSeriesDB = "No Series.AniDB entry for the given seriesID";
+
+        internal static string AnidbNotFoundForAniDB = "No Series.AniDB entry for the given anidbID";
+
+        internal static string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
+
+        #endregion
+        #region Metadata
+        #region Shoko
+
         /// <summary>
-        /// Get a list of all series available to the current user
+        /// Get a paginated list of all <see cref="Series"/> available to the current <see cref="User"/>.
         /// </summary>
+        /// <param name="page">The page index.</param>
+        /// <param name="pageSize">The page size.</param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult<List<Series>> GetAllSeries()
+        public ActionResult<List<Series>> GetAllSeries([FromQuery] int page = 0, [FromQuery] int pageSize = 50)
         {
-            var allSeries = RepoFactory.AnimeSeries.GetAll().Where(a => User.AllowedSeries(a));
-            return allSeries.Select(a => new Series(HttpContext, a)).OrderBy(a => a.Name).ToList();
+            var series = RepoFactory.AnimeSeries.GetAll()
+                .Where(a => User.AllowedSeries(a))
+                .OrderBy(a => a.GetSeriesName());
+
+            if (pageSize <= 0)
+                return series
+                    .Select(a => new Series(HttpContext, a))
+                    .ToList();
+
+            if (page <= 0) page = 0;
+            return series
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .Select(a => new Series(HttpContext, a))
+                .ToList();
         }
 
         /// <summary>
@@ -44,11 +77,36 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{seriesID}")]
         public ActionResult<Series> GetSeries([FromRoute] int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return new Series(HttpContext, ser);
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            return new Series(HttpContext, series);
         }
+
+        /// <summary>
+        /// Delete a Series
+        /// </summary>
+        /// <param name="seriesID">The ID of the Series</param>
+        /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpDelete("{seriesID}")]
+        public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+
+            series.DeleteSeries(deleteFiles, true);
+
+            return Ok();
+        }
+        
+        #endregion
+        #region AniDB
 
         /// <summary>
         /// Get AniDB Info for series with ID
@@ -56,14 +114,19 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns></returns>
         [HttpGet("{seriesID}/AniDB")]
-        public ActionResult<Series.AniDB> GetSeriesAniDBDetails([FromRoute] int seriesID)
+        public ActionResult<Series.AniDB> GetSeriesAnidbBySeriesID([FromRoute] int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            var anime = ser.GetAnime();
-            if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            return new Series.AniDB(HttpContext, anime);
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anidb = series.GetAnime();
+            if (anidb == null)
+                return InternalError(AnidbNotFoundForSeriesDB);
+
+            return new Series.AniDB(HttpContext, anidb);
         }
 
         /// <summary>
@@ -72,12 +135,15 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
         [HttpGet("AniDB/{anidbID}")]
-        public ActionResult<Series.AniDB> GetSeriesAnidbDetailsByAnidbID([FromRoute] int anidbID)
+        public ActionResult<Series.AniDB> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
         {
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
-            if (anime == null) return NotFound("No Series.AniDB entry for the given id");
-            if (!User.AllowedAnime(anime)) return Forbid("Accessing Series.AniDB is not allowed for the current user");
-            return new Series.AniDB(HttpContext, anime);
+            var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
+            if (anidb == null)
+                return NotFound(AnidbNotFoundForAniDB);
+            if (!User.AllowedAnime(anidb))
+                return Forbid(AnidbForbiddenForUser);
+
+            return new Series.AniDB(HttpContext, anidb);
         }
 
         /// <summary>
@@ -86,12 +152,15 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="anidbID">AniDB ID</param>
         /// <returns></returns>
         [HttpGet("AniDB/{anidbID}/Series")]
-        public ActionResult<Series> GetSeriesByAniDBID([FromRoute] int anidbID)
+        public ActionResult<Series> GetSeriesByAnidbID([FromRoute] int anidbID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return new Series(HttpContext, ser);
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(anidbID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithAnidbID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            return new Series(HttpContext, series);
         }
 
         /// <summary>
@@ -104,11 +173,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
         /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
         [HttpPost("AniDB/{anidbID}/Refresh")]
-        public ActionResult<bool> QueueAniDBRefreshFromAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
+        public ActionResult<bool> RefreshAnidbByAnidbID([FromRoute] int anidbID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
         {
-            if (!createSeriesEntry.HasValue) {
+            if (!createSeriesEntry.HasValue)
                 createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
-            }
+
             return Series.QueueAniDBRefresh(anidbID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
@@ -122,17 +191,22 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="immediate">Try to immediately refresh the data if we're not HTTP banned.</param>
         /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
         [HttpPost("{seriesID}/AniDB/Refresh")]
-        public ActionResult<bool> QueueAniDBRefresh([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
+        public ActionResult<bool> RefreshAnidbBySeriesID([FromRoute] int seriesID, [FromQuery] bool force = false, [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null, [FromQuery] bool immediate = false)
         {
-            if (!createSeriesEntry.HasValue) {
+            if (!createSeriesEntry.HasValue)
                 createSeriesEntry = ServerSettings.Instance.AniDb.AutomaticallyImportSeries;
-            }
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            var anime = ser.GetAnime();
-            if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            return Series.QueueAniDBRefresh(anime.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
+
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anidb = series.GetAnime();
+            if (anidb == null)
+                return InternalError(AnidbNotFoundForSeriesDB);
+
+            return Series.QueueAniDBRefresh(anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
 
         /// <summary>
@@ -141,15 +215,44 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="seriesID">Shoko ID</param>
         /// <returns>True if the refresh is done, otherwise false if it failed.</returns>
         [HttpPost("{seriesID}/AniDB/Refresh/ForceFromXML")]
-        public ActionResult<bool> RefreshAniDBFromXML([FromRoute] int seriesID)
+        public ActionResult<bool> RefreshAnidbFromXML([FromRoute] int seriesID)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            var anime = ser.GetAnime();
-            if (anime == null) return BadRequest("No AniDB_Anime for Series");
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anime = series.GetAnime();
+            if (anime == null)
+                return InternalError(AnidbNotFoundForSeriesDB);
+
             return Series.RefreshAniDBFromCachedXML(HttpContext, anime);
         }
+    
+        #endregion
+        #region TvDB
+
+        /// <summary>
+        /// Get TvDB Info for series with ID
+        /// </summary>
+        /// <param name="seriesID">Shoko ID</param>
+        /// <returns></returns>
+        [HttpGet("{seriesID}/TvDB")]
+        public ActionResult<List<Series.TvDB>> GetSeriesTvdb([FromRoute] int seriesID)
+        {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            return Series.GetTvDBInfo(HttpContext, series);
+        }
+        
+        #endregion
+        #endregion
+        #region Vote
 
         /// <summary>
         /// Add a permanent or temprary user-submitted rating for the series.
@@ -160,32 +263,35 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpPost("{seriesID}/Vote")]
         public ActionResult PostSeriesUserVote([FromRoute] int seriesID, [FromBody] Vote vote)
         {
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
             if (vote.Value < 0)
                 return BadRequest("Value must be greater than or equal to 0.");
             if (vote.Value > vote.MaxValue)
                 return BadRequest($"Value must be less than or equal to the set max value ({vote.MaxValue}).");
             if (vote.MaxValue <= 0)
                 return BadRequest("Max value must be an integer above 0.");
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            Series.AddSeriesVote(HttpContext, ser, User.JMMUserID, vote);
+
+            Series.AddSeriesVote(HttpContext, series, User.JMMUserID, vote);
+
             return NoContent();
         }
+        
+        #endregion
+        #region Images
+        #region All images
 
-        /// <summary>
-        /// Get TvDB Info for series with ID
-        /// </summary>
-        /// <param name="seriesID">Shoko ID</param>
-        /// <returns></returns>
-        [HttpGet("{seriesID}/TvDB")]
-        public ActionResult<List<Series.TvDB>> GetSeriesTvDBDetails([FromRoute] int seriesID)
-        {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return Series.GetTvDBInfo(HttpContext, ser);
-        }
+        private static HashSet<Image.ImageType> AllowedImageTypes = new() { Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Fanart };
+
+        private static string InvalidIDForSource = "Invalid image id for selected source.";
+
+        private static string InvalidImageTypeForSeries = "Invalid image type for series images.";
+
+        private static string InvalidImageIsDisabled = "Image is disabled.";
 
         /// <summary>
         /// Get all images for series with ID, optionally with Disabled images, as well.
@@ -196,300 +302,188 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{seriesID}/Images")]
         public ActionResult<Images> GetSeriesImages([FromRoute] int seriesID, [FromQuery] bool includeDisabled)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return Series.GetArt(HttpContext, ser.AniDB_ID, includeDisabled);
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            return Series.GetArt(HttpContext, series.AniDB_ID, includeDisabled);
         }
 
-        /// <summary>
-        /// Get all images for series with ID, optionally with Disabled images, as well.
-        /// </summary>
-        /// <param name="seriesID">Shoko ID</param>
-        /// <param name="includeDisabled"></param>
-        /// <returns></returns>
-        [HttpGet("{seriesID}/Images/{IncludeDisabled}")]
-        [Obsolete]
-        public ActionResult<Images> GetSeriesImagesFromPath([FromRoute] int seriesID, [FromRoute] bool includeDisabled)
-            => GetSeriesImages(seriesID, includeDisabled);
+        #endregion
+        #region Default image
 
         /// <summary>
-        /// Get the default poster for a series.
+        /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
         /// </summary>
         /// <param name="seriesID">Series ID</param>
+        /// <param name="imageType">Poster, Banner, Fanart</param>
         /// <returns></returns>
-        [HttpGet("{seriesID}/Images/Poster")]
-        public ActionResult<Image> GetSeriesDefaultPoster([FromRoute] int seriesID)
+        [HttpGet("{seriesID}/Images/{imageType}")]
+        public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
 
-            var defaultImage = Series.GetDefaultImage(series.AniDB_ID, ImageSizeType.Poster);
-            if (defaultImage != null)
-            {
-                return defaultImage;
-            }
+            if (!AllowedImageTypes.Contains(imageType))
+                return BadRequest(InvalidImageTypeForSeries);
+
+            var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
+            var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, imageSizeType);
+            if (defaultBanner != null)
+                return defaultBanner;
+
             var images = Series.GetArt(HttpContext, series.AniDB_ID);
-            return images.Posters.FirstOrDefault();
+            return imageSizeType switch
+            {
+                ImageSizeType.Poster => images.Posters.FirstOrDefault(),
+                ImageSizeType.WideBanner => images.Banners.FirstOrDefault(),
+                ImageSizeType.Fanart => images.Fanarts.FirstOrDefault(),
+                _ => null,
+            };
         }
 
+
         /// <summary>
-        /// Set the default poster for a series.
+        /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
         /// </summary>
         /// <param name="seriesID">Series ID</param>
-        /// <param name="body">The body containing the source and id used to set the poster.</param>
+        /// <param name="imageType">Poster, Banner, Fanart</param>
+        /// <param name="body">The body containing the source and id used to set.</param>
         /// <returns></returns>
-        [HttpPatch("{seriesID}/Images/Poster")]
-        public ActionResult<Image> SetSeriesDefaultPoster([FromRoute] int seriesID, [FromBody] Image.Input.DefaultImageBody body)
+        [HttpPatch("{seriesID}/Images/{imageType}")]
+        public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-            
-            if (!int.TryParse(body.ID, out var imageID))
-                return BadRequest("Invalid body id. Id must be a stringified int.");
-            
-            var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, "Poster");
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            if (!AllowedImageTypes.Contains(imageType))
+                return BadRequest(InvalidImageTypeForSeries);
+
+            var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, imageType);
             if (!imageEntityType.HasValue)
                 return BadRequest("Invalid body source");
-            
-            switch (imageEntityType.Value) {
-                case ImageEntityType.AniDB_Cover: {
+
+            // All dynamic ids are stringified ints, so extract the image id from the body.
+            if (!int.TryParse(body.ID, out var imageID))
+                return BadRequest("Invalid body id. Id must be a stringified int.");
+
+            // Check if the id is valid for the given type and source.
+
+            switch (imageEntityType.Value)
+            {
+                // Posters
+                case ImageEntityType.AniDB_Cover:
                     if (imageID != series.AniDB_ID)
-                        return BadRequest("Invalid image id for selected source and id");
+                        return BadRequest(InvalidIDForSource);
                     break;
-                }
-                case ImageEntityType.TvDB_Cover: {
-                    var poster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
-                    if (poster == null)
-                        return BadRequest("Invalid image id for selected source and id");
-                    if (poster.Enabled != 1)
-                        return BadRequest("Image is disabled");
+                case ImageEntityType.TvDB_Cover:
+                    {
+                        var tvdbPoster = RepoFactory.TvDB_ImagePoster.GetByID(imageID);
+                        if (tvdbPoster == null)
+                            return BadRequest(InvalidIDForSource);
+                        if (tvdbPoster.Enabled != 1)
+                            return BadRequest(InvalidImageIsDisabled);
+                        break;
+                    }
+                case ImageEntityType.MovieDB_Poster:
+                    var tmdbPoster = RepoFactory.MovieDB_Poster.GetByID(imageID);
+                    if (tmdbPoster == null)
+                        return BadRequest(InvalidIDForSource);
+                    if (tmdbPoster.Enabled != 1)
+                        return BadRequest(InvalidImageIsDisabled);
                     break;
-                }
-                case ImageEntityType.MovieDB_Poster: {
-                    var poster = RepoFactory.MovieDB_Poster.GetByID(imageID);
-                    if (poster == null)
-                        return BadRequest("Invalid image id for selected source and id");
-                    if (poster.Enabled != 1)
-                        return BadRequest("Image is disabled");
+
+                // Banners
+                case ImageEntityType.TvDB_Banner:
+                    var tvdbBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
+                    if (tvdbBanner == null)
+                        return BadRequest(InvalidIDForSource);
+                    if (tvdbBanner.Enabled != 1)
+                        return BadRequest(InvalidImageIsDisabled);
                     break;
-                }
+
+                // Fanart
+                case ImageEntityType.TvDB_FanArt:
+                    var tvdbFanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
+                    if (tvdbFanart == null)
+                        return BadRequest(InvalidIDForSource);
+                    if (tvdbFanart.Enabled != 1)
+                        return BadRequest(InvalidImageIsDisabled);
+                    break;
+                case ImageEntityType.MovieDB_FanArt:
+                    var tmdbFanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
+                    if (tmdbFanart == null)
+                        return BadRequest(InvalidIDForSource);
+                    if (tmdbFanart.Enabled != 1)
+                        return BadRequest(InvalidImageIsDisabled);
+                    break;
+
+                // Not allowed.
                 default:
-                    return BadRequest("Invalid source");
+                    return BadRequest("Invalid source and/or type");
             }
 
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.Poster) ?? new() { AnimeID = series.AniDB_ID };
-
+            var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
+            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType) ?? new() { AnimeID = series.AniDB_ID, ImageType = (int)imageSizeType };
             defaultImage.ImageParentID = imageID;
-            defaultImage.ImageParentType = (int) imageEntityType.Value;
-            defaultImage.ImageType = (int) ImageSizeType.Poster;
+            defaultImage.ImageParentType = (int)imageEntityType.Value;
+
+            // Create or update the entry.
             RepoFactory.AniDB_Anime_DefaultImage.Save(defaultImage);
-            return new Image(imageID, imageEntityType.Value, true);
-        }
 
-        /// <summary>
-        /// Unset the default poster for a series.
-        /// </summary>
-        /// <param name="seriesID">Series ID</param>
-        /// <returns></returns>
-        [HttpDelete("{seriesID}/Images/Poster")]
-        public ActionResult DeleteSeriesDefaultPoster([FromRoute] int seriesID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.Poster);
-            if (defaultImage == null)
-                return BadRequest("No default poster.");
-
-            RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
-            
             // Update the contract data (used by Shoko Desktop).
             RepoFactory.AnimeSeries.Save(series, false);
-            return NoContent();
-        }
 
-        /// <summary>
-        /// Get the default banner for a series.
-        /// </summary>
-        /// <param name="seriesID">Series ID</param>
-        /// <returns></returns>
-        [HttpGet("{seriesID}/Images/Banner")]
-        public ActionResult<Image> GetSeriesDefaultBanner([FromRoute] int seriesID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-
-            var defaultBanner = Series.GetDefaultImage(series.AniDB_ID, ImageSizeType.WideBanner);
-            if (defaultBanner != null)
-            {
-                return defaultBanner;
-            }
-            var images = Series.GetArt(HttpContext, series.AniDB_ID);
-            return images.Banners.FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Set the default banner for a series.
-        /// </summary>
-        /// <param name="seriesID">Series ID</param>
-        /// <param name="body">The body containing the source and id used to set the banner.</param>
-        /// <returns></returns>
-        [HttpPatch("{seriesID}/Images/Banner")]
-        public ActionResult<Image> SetSeriesDefaultBanner([FromRoute] int seriesID, [FromBody] Image.Input.DefaultImageBody body)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-            
-            if (!int.TryParse(body.ID, out var imageID))
-                return BadRequest("Invalid body id. Id must be a stringified int.");
-            
-            var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, "Banner");
-            if (!imageEntityType.HasValue)
-                return BadRequest("Invalid body source");
-            
-            switch (imageEntityType.Value) {
-                case ImageEntityType.TvDB_Banner:
-                    var wideBanner = RepoFactory.TvDB_ImageWideBanner.GetByID(imageID);
-                    if (wideBanner == null)
-                        return BadRequest("Invalid image id for selected source and id");
-                    if (wideBanner.Enabled != 1)
-                        return BadRequest("Image is disabled");
-                    break;
-                default:
-                    return BadRequest("Invalid source");
-            }
-
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.WideBanner) ?? new() { AnimeID = series.AniDB_ID };
-
-            defaultImage.ImageParentID = imageID;
-            defaultImage.ImageParentType = (int) imageEntityType.Value;
-            defaultImage.ImageType = (int) ImageSizeType.WideBanner;
-            RepoFactory.AniDB_Anime_DefaultImage.Save(defaultImage);
             return new Image(imageID, imageEntityType.Value, true);
         }
 
         /// <summary>
-        /// Unset the default banner for a series.
+        /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
         /// </summary>
         /// <param name="seriesID"></param>
+        /// <param name="imageType">Poster, Banner, Fanart</param>
         /// <returns></returns>
-        [HttpDelete("{seriesID}/Images/Banner")]
-        public ActionResult DeleteSeriesDefaultBanner([FromRoute] int seriesID)
+        [HttpDelete("{seriesID}/Images/{imageType}")]
+        public ActionResult DeleteSeriesDefaultImageForType([FromRoute] int seriesID, [FromRoute] Image.ImageType imageType)
         {
+            // Check if the series exists and if the user can access the series.
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
 
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.WideBanner);
+            // Check if
+            if (!AllowedImageTypes.Contains(imageType))
+                return BadRequest(InvalidImageTypeForSeries);
+
+            // Check if a default image is set.
+            var imageSizeType = Image.GetImageSizeTypeFromType(imageType);
+            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, imageSizeType);
             if (defaultImage == null)
                 return BadRequest("No default banner.");
 
+            // Delete the entry.
             RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
-            
+
             // Update the contract data (used by Shoko Desktop).
             RepoFactory.AnimeSeries.Save(series, false);
+
+            // Don't return any content.
             return NoContent();
-        }
-
-        /// <summary>
-        /// Get the default fanart for the series.
-        /// </summary>
-        /// <param name="seriesID">Series ID</param>
-        /// <returns></returns>
-        [HttpGet("{seriesID}/Images/Fanart")]
-        public ActionResult<Image> GetSeriesDefaultFanart([FromRoute] int seriesID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-
-            var defaultImage = Series.GetDefaultImage(series.AniDB_ID, ImageSizeType.Fanart);
-            if (defaultImage != null)
-            {
-                return defaultImage;
-            }
-            var images = Series.GetArt(HttpContext, series.AniDB_ID);
-            return images.Fanarts.FirstOrDefault();
         }
         
-        /// <summary>
-        /// Set the default fanart for the series.
-        /// </summary>
-        /// <param name="seriesID">Series ID</param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        [HttpPatch("{seriesID}/Images/Fanart")]
-        public ActionResult<Image> SetSeriesDefaultFanart([FromRoute] int seriesID, [FromBody] Image.Input.DefaultImageBody body)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-            
-            if (!int.TryParse(body.ID, out var imageID))
-                return BadRequest("Invalid body id. Id must be a stringified int.");
-            
-            var imageEntityType = Image.GetImageTypeFromSourceAndType(body.Source, "Fanart");
-            if (!imageEntityType.HasValue)
-                return BadRequest("Invalid body source");
-            
-            switch (imageEntityType.Value) {
-                case ImageEntityType.TvDB_FanArt: {
-                    var fanart = RepoFactory.TvDB_ImageFanart.GetByID(imageID);
-                    if (fanart == null)
-                        return BadRequest("Invalid image id for selected source and id");
-                    if (fanart.Enabled != 1)
-                        return BadRequest("Image is disabled");
-                    break;
-                }
-                case ImageEntityType.MovieDB_FanArt: {
-                    var fanart = RepoFactory.MovieDB_Fanart.GetByID(imageID);
-                    if (fanart == null)
-                        return BadRequest("Invalid image id for selected source and id");
-                    if (fanart.Enabled != 1)
-                        return BadRequest("Image is disabled");
-                    break;
-                }
-                default:
-                    return BadRequest("Invalid source");
-            }
-
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.Fanart) ?? new() { AnimeID = series.AniDB_ID };
-
-            defaultImage.ImageParentID = imageID;
-            defaultImage.ImageParentType = (int) imageEntityType.Value;
-            defaultImage.ImageType = (int) ImageSizeType.Fanart;
-            RepoFactory.AniDB_Anime_DefaultImage.Save(defaultImage);
-            return new Image(imageID, imageEntityType.Value, true);
-        }
-
-        /// <summary>
-        /// Unset the default fanart for the series.
-        /// </summary>
-        /// <param name="seriesID"></param>
-        /// <returns></returns>
-        [HttpDelete("{seriesID}/Images/Fanart")]
-        public ActionResult DeleteSeriesDefaultFanart([FromRoute] int seriesID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return NotFound("No Series with ID");
-            if (!User.AllowedSeries(series)) return Forbid("Series not allowed for current user");
-
-            var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(series.AniDB_ID, ImageSizeType.Fanart);
-            if (defaultImage == null)
-                return BadRequest("No default Fanart.");
-
-            RepoFactory.AniDB_Anime_DefaultImage.Delete(defaultImage);
-            
-            // Update the contract data (used by Shoko Desktop).
-            RepoFactory.AnimeSeries.Save(series, false);
-            return NoContent();
-        }
+        #endregion
+        #endregion
+        #region Tags
 
         /// <summary>
         /// Get tags for Series with ID, optionally applying the given <see cref="TagFilter.Filter" />
@@ -501,12 +495,16 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{seriesID}/Tags")]
         public ActionResult<List<Tag>> GetSeriesTags([FromRoute] int seriesID, [FromQuery] TagFilter.Filter filter = 0, [FromQuery] bool excludeDescriptions = false)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            var anime = ser.GetAnime();
-            if (anime == null) return BadRequest("No AniDB_Anime for Series");
-            return Series.GetTags(HttpContext, anime, filter, excludeDescriptions);
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            var anidb = series.GetAnime();
+            if (anidb == null) return new List<Tag>();
+
+            return Series.GetTags(HttpContext, anidb, filter, excludeDescriptions);
         }
 
         /// <summary>
@@ -522,6 +520,9 @@ namespace Shoko.Server.API.v3.Controllers
         public ActionResult<List<Tag>> GetSeriesTagsFromPath([FromRoute] int seriesID, [FromRoute] TagFilter.Filter filter, [FromQuery] bool excludeDescriptions = false)
             => GetSeriesTags(seriesID, filter, excludeDescriptions);
 
+        #endregion
+        #region Cast
+
         /// <summary>
         /// Get the cast listing for series with ID
         /// </summary>
@@ -531,47 +532,44 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{seriesID}/Cast")]
         public ActionResult<List<Role>> GetSeriesCast([FromRoute] int seriesID, [FromQuery] Role.CreatorRoleType? roleType = null)
         {
-            var ser = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (ser == null) return BadRequest("No Series with ID");
-            if (!User.AllowedSeries(ser)) return BadRequest("Series not allowed for current user");
-            return Series.GetCast(HttpContext, ser.AniDB_ID, roleType);
+            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
+
+            return Series.GetCast(HttpContext, series.AniDB_ID, roleType);
         }
 
+        #endregion
+        #region Group
+        
         /// <summary>
         /// Move the series to a new group, and update accordingly
         /// </summary>
         /// <param name="seriesID">Shoko ID</param>
-        /// <param name="newGroupID"></param>
-        /// <returns></returns>
-        [HttpPatch("{seriesID}/Move/{newGroupID}")]
-        public ActionResult MoveSeries([FromRoute] int seriesID, int newGroupID)
-        {
-            var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return BadRequest("No Series with ID");
-            var grp = RepoFactory.AnimeGroup.GetByID(newGroupID);
-            if (grp == null) return BadRequest("No Group with ID");
-            series.MoveSeries(grp);
-            return Ok();
-        }
-
-        /// <summary>
-        /// Delete a Series
-        /// </summary>
-        /// <param name="seriesID">The ID of the Series</param>
-        /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+        /// <param name="groupID"></param>
         /// <returns></returns>
         [Authorize("admin")]
-        [HttpDelete("{seriesID}")]
-        public ActionResult DeleteSeries([FromRoute] int seriesID, [FromQuery] bool deleteFiles = false)
+        [HttpPatch("{seriesID}/Move/{groupID}")]
+        public ActionResult MoveSeries([FromRoute] int seriesID, [FromRoute] int groupID)
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-            if (series == null) return BadRequest("No Series with ID");
+            if (series == null)
+                return NotFound(SeriesNotFoundWithSeriesID);
+            if (!User.AllowedSeries(series))
+                return Forbid(SeriesForbiddenForUser);
 
-            series.DeleteSeries(deleteFiles, true);
+            var group = RepoFactory.AnimeGroup.GetByID(groupID);
+            if (group == null)
+                return BadRequest("No Group entry for the given groupID");
+
+            series.MoveSeries(group);
 
             return Ok();
         }
 
+        #endregion
         #region Search
 
         /// <summary>
@@ -643,7 +641,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return seriesList;
         }
-        
+
         /// <summary>
         /// Search the title dump for the given query or directly using the anidb id.
         /// </summary>
@@ -651,7 +649,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="includeTitles">Include titles</param>
         /// <returns></returns>
         [HttpGet("AniDB/Search/{query}")]
-        public List<Series.AniDBSearchResult> OnlineAnimeTitleSearch([FromRoute] string query, [FromQuery] bool includeTitles = true)
+        public ActionResult<List<Series.AniDBSearchResult>> OnlineAnimeTitleSearch([FromRoute] string query, [FromQuery] bool includeTitles = true)
         {
             List<Series.AniDBSearchResult> list = new List<Series.AniDBSearchResult>();
 
@@ -736,7 +734,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="limit"></param>
         /// <returns></returns>
         [HttpGet("StartsWith/{query}")]
-        public ActionResult<List<SeriesSearchResult>> StartsWith([FromRoute] string query, int limit = int.MaxValue)
+        public ActionResult<List<SeriesSearchResult>> StartsWith([FromRoute] string query, [FromQuery] int limit = int.MaxValue)
         {
             query = query.ToLowerInvariant();
 
@@ -787,7 +785,7 @@ namespace Shoko.Server.API.v3.Controllers
                 .Where(ser => ser == null || User.AllowedSeries(ser)).Select(a => new Series(HttpContext, a)).ToList();
         }
 
-        #region internal function
+        #region Helpers
 
         /// <summary>
         /// function used in fuzzy search

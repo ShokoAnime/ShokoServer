@@ -15,16 +15,15 @@ namespace Shoko.Server.API.v3.Controllers
     {
         
         /// <summary>
-        /// /api/v3/image/tvdb/fanart/12
-        /// returns an image
+        /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
         /// </summary>
         /// <param name="source">AniDB, TvDB, MovieDB, Shoko</param>
         /// <param name="type">Poster, Fanart, Banner, Thumb, Static</param>
         /// <param name="value">Usually the ID, but the resource name in the case of image/Shoko/Static/{value}</param>
         /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
         [HttpGet("{source}/{type}/{value}")]
-        [ProducesResponseType(typeof(FileStreamResult),200), ProducesResponseType(400), ProducesResponseType(404)]
-        public ActionResult GetImage(string source, string type, string value)
+        [ProducesResponseType(typeof(FileStreamResult), 200), ProducesResponseType(404)]
+        public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type, [FromRoute] string value)
         {
             var sourceType = Image.GetImageTypeFromSourceAndType(source, type) ?? ImageEntityType.None;
             if (sourceType == ImageEntityType.None)
@@ -45,22 +44,20 @@ namespace Shoko.Server.API.v3.Controllers
         /// <summary>
         /// Gets a static server resource
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="filePath"></param>
         /// <returns></returns>
         [NonAction]
-        public ActionResult GetStaticImage(string name)
+        public ActionResult GetStaticImage(string filePath)
         {
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(filePath))
                 return NotFound("The requested resource does not exist.");
-            name = Path.GetFileNameWithoutExtension(name);
-            ResourceManager man = Resources.ResourceManager;
-            byte[] dta = (byte[]) man.GetObject(name);
-            if ((dta == null) || (dta.Length == 0))
-                return NotFound("The requested resource does not exist.");
-            MemoryStream ms = new MemoryStream(dta);
-            ms.Seek(0, SeekOrigin.Begin);
 
-            return File(ms, "image/png");
+            var fileName = Path.GetFileNameWithoutExtension(filePath);
+            var buffer = (byte[]) Resources.ResourceManager.GetObject(fileName);
+            if ((buffer == null) || (buffer.Length == 0))
+                return NotFound("The requested resource does not exist.");
+
+            return File(buffer, Mime.GetMimeMapping(fileName) ?? "image/png");
         }
     }
 }

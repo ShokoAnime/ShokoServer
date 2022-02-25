@@ -275,10 +275,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
         {
             var ael = ser.GetAnimeEpisodes();
             return RepoFactory.CrossRef_AniDB_TvDB.GetByAnimeID(ser.AniDB_ID)
-                .Select(xref => {
-                    var tvdbSer = RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID);
-                    return new TvDB(ctx, tvdbSer, ser, ael);
-                })
+                .Select(xref => RepoFactory.TvDB_Series.GetByTvDBID(xref.TvDBID))
+                .Select(tvdbSer => new TvDB(ctx, tvdbSer, ser, ael))
                 .ToList();
         }
 
