@@ -21,7 +21,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// The Filter ID. self explanatory
         /// </summary>
-        public IDs IDs { get; set; }
+        public FilterIDs IDs { get; set; }
 
         /// <summary>
         /// Locked Filters cannot be edited
@@ -32,22 +32,22 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// Things like Seasons, Years, Tags, etc only count series individually, rather than by group
         /// </summary>
         public bool ApplyAtSeriesLevel { get; set; }
-        
+
         /// <summary>
         /// Directory Filters have subfilters
         /// </summary>
         public bool Directory { get; set; }
-        
+
         /// <summary>
         /// This determines whether to hide the filter in API queries. Things with this need to be explicitly asked for
         /// </summary>
         public bool HideInAPI { get; set; }
-        
+
         public Filter() {}
 
         public Filter(HttpContext ctx, SVR_GroupFilter gf)
         {
-            IDs = new IDs {ID = gf.GroupFilterID};
+            IDs = new FilterIDs { ID = gf.GroupFilterID, ParentFilter = gf.ParentGroupFilterID ?? 0 };
             Name = gf.GroupFilterName;
             SVR_JMMUser user = ctx.GetUser();
             Directory = ((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory);
@@ -57,7 +57,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 Size += RepoFactory.GroupFilter.GetByParentID(gf.GroupFilterID).Count;
 
             ApplyAtSeriesLevel = gf.ApplyToSeries == 1;
-            
+
             // It's never null, just marked Nullable for some reason
             Locked = gf.Locked != null && gf.Locked.Value == 1;
 
@@ -73,7 +73,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         {
             return new FilterConditions(gf);
         }
-        
+
         /// <summary>
         /// Get the Sorting Criteria for the Group Filter. ORDER DOES MATTER
         /// </summary>
@@ -82,6 +82,14 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public static List<SortingCriteria> GetSortingCriteria(SVR_GroupFilter gf)
         {
             return gf.SortCriteriaList.Select(a => new SortingCriteria(a)).ToList();
+        }
+
+        public class FilterIDs : IDs
+        {
+            /// <summary>
+            /// The <see cref="IDs.ID"/> of the parent <see cref="Filter"/>, if it has one.
+            /// </summary>
+            public int ParentFilter { get; set; }
         }
 
         public class FilterConditions
@@ -120,7 +128,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Condition Operator, how it applies
             /// </summary>
             public GroupFilterOperator Operator { get; set; }
-            
+
             /// <summary>
             /// The actual value to compare
             /// </summary>
@@ -146,7 +154,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public GroupFilterSorting Type { get; set; }
 
             /// <summary>
-            /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example 
+            /// Assumed Ascending unless this is specified. You must set this if you want highest rating, for example
             /// </summary>
             public bool Descending { get; set; }
             public SortingCriteria(GroupFilterSortingCriteria criteria)
@@ -165,25 +173,24 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// The Parent Filter ID. You don't need to know this otherwise, but if you are saving a new filter, it is important.
             /// </summary>
             public int ParentID { get; set; }
-            
+
             /// <summary>
             /// The Filter conditions
             /// </summary>
             public FilterConditions Conditions { get; set; }
-            
+
             /// <summary>
             /// The sorting criteria
             /// </summary>
             public List<SortingCriteria> Sorting { get; set; }
-            
-            
+
             /// <summary>
             /// Creates a server model compatible with the database. This does not calculate any cached data, such as groups and series.
             /// </summary>
             /// <returns></returns>
             public SVR_GroupFilter ToServerModel(SVR_GroupFilter existing = null)
             {
-                SVR_GroupFilter gf = new SVR_GroupFilter
+                var groupFilter = new SVR_GroupFilter
                 {
                     FilterType = Directory ? (int) (GroupFilterType.UserDefined | GroupFilterType.Directory) : (int) GroupFilterType.UserDefined,
                     ApplyToSeries = ApplyAtSeriesLevel ? 1 : 0,
@@ -212,20 +219,28 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     }).ToList()
                 };
 
-                // Merge into existing
-                if (existing == null) return gf;
+                // Return new group filter.
+                if (existing == null)
+                    return groupFilter;
 
-                if (gf.GroupFilterName != null) existing.GroupFilterName = gf.GroupFilterName;
-                if (gf.Conditions != null)
+                // Merge into existing group filter.
+                existing.ApplyToSeries = groupFilter.ApplyToSeries;
+                existing.ParentGroupFilterID = groupFilter.ParentGroupFilterID;
+                existing.FilterType = groupFilter.FilterType;
+                existing.InvisibleInClients = groupFilter.InvisibleInClients;
+                if (groupFilter.GroupFilterName != null)
                 {
-                    existing.BaseCondition = gf.BaseCondition;
-                    existing.Conditions = gf.Conditions;
+                    existing.GroupFilterName = groupFilter.GroupFilterName;
                 }
-                if (gf.SortCriteriaList != null) existing.SortCriteriaList = gf.SortCriteriaList;
-                existing.ApplyToSeries = gf.ApplyToSeries;
-                existing.ParentGroupFilterID = gf.ParentGroupFilterID;
-                existing.FilterType = gf.FilterType;
-                existing.InvisibleInClients = gf.InvisibleInClients;
+                if (groupFilter.Conditions != null)
+                {
+                    existing.BaseCondition = groupFilter.BaseCondition;
+                    existing.Conditions = groupFilter.Conditions;
+                }
+                if (groupFilter.SortCriteriaList != null)
+                {
+                    existing.SortCriteriaList = groupFilter.SortCriteriaList;
+                }
                 return existing;
             }
         }
