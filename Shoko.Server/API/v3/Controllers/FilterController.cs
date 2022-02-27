@@ -93,7 +93,7 @@ namespace Shoko.Server.API.v3.Controllers
             return groupIDs
                 .Select(a => RepoFactory.AnimeGroup.GetByID(a))
                 .Where(a => a != null)
-                .GroupFilterSort(groupFilter)
+                .OrderByGroupFilter(groupFilter)
                 .Select(a => new Group(HttpContext, a))
                 .ToList();
         }
