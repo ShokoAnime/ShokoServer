@@ -279,8 +279,8 @@ namespace AniDBAPI
             Anime_GroupName = AniDBAPILib.ProcessAniDBString(sDetails[40].Trim());
             Anime_GroupNameShort = AniDBAPILib.ProcessAniDBString(sDetails[41].Trim());
 
-            IsWatched = string.IsNullOrEmpty(mlViewed) ? 0 : 1; // 0 = false, 1 = true
-            if (long.TryParse(mlViewDate, out long watchedStamp)) WatchDate = DateTime.UnixEpoch + TimeSpan.FromSeconds(watchedStamp);
+            IsWatched = !string.IsNullOrEmpty(mlViewed) && mlViewed == "1" ? 1 : 0; // 0 = false, 1 = true
+            if (long.TryParse(mlViewDate, out long watchedStamp) && watchedStamp > 0) WatchDate = DateTime.UnixEpoch + TimeSpan.FromSeconds(watchedStamp);
             Episode_Rating = AniDBAPILib.ProcessAniDBInt(sDetails[38].Trim());
             Episode_Votes = AniDBAPILib.ProcessAniDBInt(sDetails[39].Trim());
 
