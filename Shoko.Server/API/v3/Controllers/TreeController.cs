@@ -221,9 +221,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// </remarks>
         /// <param name="groupID"><see cref="Group"/> ID</param>
         /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
+        /// <param name="includeMissing">Include series with missing episodes in the list.</param>
         /// <returns></returns>
         [HttpGet("Group/{groupID}/Series")]
-        public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false)
+        public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false)
         {
             // Check if the group exists.
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -234,6 +235,7 @@ namespace Shoko.Server.API.v3.Controllers
                 .Where(a => User.AllowedSeries(a))
                 .OrderBy(OrderByAirDate)
                 .Select(series => new Series(HttpContext, series))
+                .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
         }
 
@@ -289,7 +291,6 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(file => new File.FileDetailed(file))
                 .ToList();
         }
-
 
         #endregion
         #region Ordering helpers
