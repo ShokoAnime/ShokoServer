@@ -1,6 +1,8 @@
-namespace Shoko.Plugin.Abstractions;
-
-public class FileDetectedEventArgs : FileEventArgs
+namespace Shoko.Plugin.Abstractions
 {
-    
+
+    public class FileDetectedEventArgs : FileEventArgs
+    {
+
+    }
 }

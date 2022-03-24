@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net5.0-windows</TargetFramework>
@@ -10,6 +10,7 @@
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
+        <UseWindowsForms>true</UseWindowsForms>
         <Configurations>Debug;Release</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
     </PropertyGroup>
