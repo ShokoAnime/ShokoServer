@@ -329,7 +329,7 @@ namespace Shoko.Server.Models
                     }
 
                     string name = FullServerPath.Replace("/", $"{Path.DirectorySeparatorChar}");
-                    m = MediaInfo.GetMediaInfo(name); //Mediainfo should have libcurl.dll for http
+                    m = Utilities.MediaInfoLib.MediaInfo.GetMediaInfo(name); //Mediainfo should have libcurl.dll for http
                     var duration = m?.GeneralStream?.Duration ?? 0;
                     if (duration == 0)
                         m = null;
@@ -1061,14 +1061,14 @@ namespace Shoko.Server.Models
         string IVideoFile.Filename => Path.GetFileName(FilePath);
         string IVideoFile.FilePath => FullServerPath;
         long IVideoFile.FileSize => VideoLocal?.FileSize ?? 0;
-        IAniDBFile IVideoFile.AniDBFileInfo => VideoLocal?.GetAniDBFile();
+        public IAniDBFile AniDBFileInfo => VideoLocal?.GetAniDBFile();
 
-        IHashes IVideoFile.Hashes => VideoLocal == null
+        public IHashes Hashes => VideoLocal == null
             ? null
             : new VideoHashes
                 {CRC = VideoLocal.CRC32, MD5 = VideoLocal.MD5, ED2K = VideoLocal.Hash, SHA1 = VideoLocal.SHA1};
 
-        IMediaContainer IVideoFile.MediaInfo => VideoLocal?.Media;
+        public IMediaContainer MediaInfo => VideoLocal?.Media;
 
         private class VideoHashes : IHashes
         {

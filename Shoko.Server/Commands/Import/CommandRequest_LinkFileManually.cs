@@ -118,6 +118,8 @@ namespace Shoko.Server.Commands
                 grp.EpisodeAddedDate = DateTime.Now;
                 RepoFactory.AnimeGroup.Save(grp, false, false);
             }
+            
+            ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
 
             if (ServerSettings.Instance.AniDb.MyList_AddFiles)
             {

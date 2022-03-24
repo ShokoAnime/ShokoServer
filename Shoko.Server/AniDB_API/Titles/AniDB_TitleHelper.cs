@@ -14,7 +14,7 @@ namespace Shoko.Server.AniDB_API.Titles
     public class AniDB_TitleHelper
     {
         // ensure that it doesn't try to download at the same time
-        private static readonly object accessLock = new object();
+        private static readonly object AccessLock = new();
 
         private static readonly string CacheFilePath = Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml");
         
@@ -24,20 +24,20 @@ namespace Shoko.Server.AniDB_API.Titles
         private static readonly string CacheFilePathBak =
             Path.Combine(ServerSettings.ApplicationPath, "anime-titles.xml") + ".bak";
 
-        private AniDBRaw_AnimeTitles cache;
+        private AniDBRaw_AnimeTitles _cache;
 
-        private static AniDB_TitleHelper instance;
+        private static AniDB_TitleHelper _instance;
 
-        public static AniDB_TitleHelper Instance => instance ??= new AniDB_TitleHelper();
+        public static AniDB_TitleHelper Instance => _instance ??= new AniDB_TitleHelper();
 
         public List<AniDBRaw_AnimeTitle_Anime> SearchTitle(string query)
         {
             try
             {
-                if (cache == null) CreateCache();
-                if (cache != null)
+                if (_cache == null) CreateCache();
+                if (_cache != null)
                 {
-                    List<AniDBRaw_AnimeTitle_Anime> results = SeriesSearch.SearchCollection(query, cache.Animes,
+                    List<AniDBRaw_AnimeTitle_Anime> results = SeriesSearch.SearchCollection(query, _cache.Animes,
                         anime => anime.Titles.Where(a =>
                                 a.TitleLanguage.Equals("en") || a.TitleLanguage.Equals("x-jat") ||
                                 ServerSettings.Instance.LanguagePreference.Contains(a.TitleLanguage))
@@ -64,14 +64,14 @@ namespace Shoko.Server.AniDB_API.Titles
                     File.Move(CacheFilePathTemp, CacheFilePath);
                 }
                 if (!File.Exists(CacheFilePath))
-                    lock (accessLock) DownloadCache();
+                    lock (AccessLock) DownloadCache();
             }
             
             if (!File.Exists(CacheFilePath)) return;
 
-            lock (accessLock)
+            lock (AccessLock)
             {
-                // If data is stale, then redownload
+                // If data is stale, then re-download
                 DateTime lastWriteTime = File.GetLastWriteTime(CacheFilePath);
                 if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
                 {
@@ -83,7 +83,7 @@ namespace Shoko.Server.AniDB_API.Titles
             {
                 LoadCache();
             }
-            catch (Exception e)
+            catch
             {
                 Decompress();
                 LoadCache();
@@ -93,37 +93,33 @@ namespace Shoko.Server.AniDB_API.Titles
         private void LoadCache()
         {
             // Load the file
-            using (var stream = new FileStream(CacheFilePath, FileMode.Open))
+            using var stream = new FileStream(CacheFilePath, FileMode.Open);
+            XmlSerializer serializer = new XmlSerializer(typeof(AniDBRaw_AnimeTitles));
+            if (serializer.Deserialize(stream) is AniDBRaw_AnimeTitles rawData)
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(AniDBRaw_AnimeTitles));
-                if (serializer.Deserialize(stream) is AniDBRaw_AnimeTitles rawData)
-                {
-                    cache = rawData;
-                }
+                _cache = rawData;
             }
         }
 
-        private void Decompress()
+        private static void Decompress()
         {
-            using (var stream = new FileStream(CacheFilePath, FileMode.Open))
-            {
-                GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
-                var textResponse = new StreamReader(gzip).ReadToEnd();
-                if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
-                File.WriteAllText(CacheFilePathTemp, textResponse);
+            using var stream = new FileStream(CacheFilePath, FileMode.Open);
+            GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
+            var textResponse = new StreamReader(gzip).ReadToEnd();
+            if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
+            File.WriteAllText(CacheFilePathTemp, textResponse);
                 
-                // backup the old one
-                if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
+            // backup the old one
+            if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
-                // rename new one
-                File.Move(CacheFilePathTemp, CacheFilePath);
+            // rename new one
+            File.Move(CacheFilePathTemp, CacheFilePath);
 
-                // remove old one
-                if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
-            }
+            // remove old one
+            if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
         }
 
-        private void DownloadCache()
+        private static void DownloadCache()
         {
             try
             {
@@ -143,9 +139,12 @@ namespace Shoko.Server.AniDB_API.Titles
                     client.Headers.Add("Accept-Encoding", "gzip,deflate");
 
                     var stream = client.OpenRead(Constants.AniDBTitlesURL);
-                    GZipStream gzip = new GZipStream(stream, CompressionMode.Decompress);
-                    var textResponse = new StreamReader(gzip).ReadToEnd();
-                    File.WriteAllText(CacheFilePathTemp, textResponse);
+                    if (stream != null)
+                    {
+                        var gzip = new GZipStream(stream, CompressionMode.Decompress);
+                        var textResponse = new StreamReader(gzip).ReadToEnd();
+                        File.WriteAllText(CacheFilePathTemp, textResponse);
+                    }
                 }
                 
                 // backup the old one
