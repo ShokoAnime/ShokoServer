@@ -33,11 +33,17 @@ namespace Shoko.Server.API.v3.Controllers
 
         internal static string SeriesForbiddenForUser = "Accessing Series is not allowed for the current user";
 
-        internal static string AnidbNotFoundForSeriesDB = "No Series.AniDB entry for the given seriesID";
+        internal static string AnidbNotFoundForSeriesID = "No Series.AniDB entry for the given seriesID";
 
-        internal static string AnidbNotFoundForAniDB = "No Series.AniDB entry for the given anidbID";
+        internal static string AnidbNotFoundForAnidbID = "No Series.AniDB entry for the given anidbID";
 
         internal static string AnidbForbiddenForUser = "Accessing Series.AniDB is not allowed for the current user";
+
+        internal static string TvdbNotFoundForSeriesID = "No Series.TvDB entry for the given seriesID";
+
+        internal static string TvdbNotFoundForTvdbID = "No Series.TvDB entry for the given tvdbID";
+
+        internal static string TvdbForbiddenForUser = "Accessing Series.TvDB is not allowed for the current user";
 
         #endregion
         #region Metadata
@@ -124,7 +130,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             var anidb = series.GetAnime();
             if (anidb == null)
-                return InternalError(AnidbNotFoundForSeriesDB);
+                return InternalError(AnidbNotFoundForSeriesID);
 
             return new Series.AniDB(HttpContext, anidb);
         }
@@ -139,7 +145,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var anidb = RepoFactory.AniDB_Anime.GetByAnimeID(anidbID);
             if (anidb == null)
-                return NotFound(AnidbNotFoundForAniDB);
+                return NotFound(AnidbNotFoundForAnidbID);
             if (!User.AllowedAnime(anidb))
                 return Forbid(AnidbForbiddenForUser);
 
@@ -204,7 +210,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             var anidb = series.GetAnime();
             if (anidb == null)
-                return InternalError(AnidbNotFoundForSeriesDB);
+                return InternalError(AnidbNotFoundForSeriesID);
 
             return Series.QueueAniDBRefresh(anidb.AnimeID, force, downloadRelations, createSeriesEntry.Value, immediate);
         }
@@ -225,7 +231,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             var anime = series.GetAnime();
             if (anime == null)
-                return InternalError(AnidbNotFoundForSeriesDB);
+                return InternalError(AnidbNotFoundForSeriesID);
 
             return Series.RefreshAniDBFromCachedXML(HttpContext, anime);
         }
@@ -243,13 +249,60 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var series = RepoFactory.AnimeSeries.GetByID(seriesID);
             if (series == null)
-                return NotFound(SeriesNotFoundWithSeriesID);
+                return NotFound(TvdbNotFoundForSeriesID);
             if (!User.AllowedSeries(series))
-                return Forbid(SeriesForbiddenForUser);
+                return Forbid(TvdbForbiddenForUser);
 
             return Series.GetTvDBInfo(HttpContext, series);
         }
-        
+
+        /// <summary>
+        /// Get TvDB Info from the TvDB ID
+        /// </summary>
+        /// <param name="tvdbID">TvDB ID</param>
+        /// <returns></returns>
+        [HttpGet("TvDB/{tvdbID}")]
+        public ActionResult<Series.TvDB> GetSeriesTvdbByTvdbID([FromRoute] int tvdbID)
+        {
+            var tvdb = RepoFactory.TvDB_Series.GetByTvDBID(tvdbID);
+            if (tvdb == null)
+                return NotFound(TvdbNotFoundForTvdbID);
+            var xref = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID).FirstOrDefault();
+            if (xref == null)
+                return NotFound(TvdbNotFoundForTvdbID);
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID);
+            if (series == null)
+                return NotFound(TvdbNotFoundForTvdbID);
+
+            if (!User.AllowedSeries(series))
+                return Forbid(TvdbForbiddenForUser);
+
+            return new Series.TvDB(HttpContext, tvdb, series, series.GetAnimeEpisodes());
+        }
+
+        /// <summary>
+        /// Get a Series from the TvDB ID
+        /// </summary>
+        /// <param name="tvdbID">TvDB ID</param>
+        /// <returns></returns>
+        [HttpGet("TvDB/{tvdbID}/Series")]
+        public ActionResult<List<Series>> GetSeriesByTvdbID([FromRoute] int tvdbID)
+        {
+            var tvdb = RepoFactory.TvDB_Series.GetByTvDBID(tvdbID);
+            if (tvdb == null)
+                return NotFound(TvdbNotFoundForTvdbID);
+            var seriesList = RepoFactory.CrossRef_AniDB_TvDB.GetByTvDBID(tvdbID)
+                .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.AniDBID))
+                .ToList();
+
+            if (seriesList.Any(series => !User.AllowedSeries(series)))
+                return Forbid(SeriesForbiddenForUser);
+
+            return seriesList
+                .Select(series => new Series(HttpContext, series))
+                .ToList();
+        }
+
         #endregion
         #endregion
         #region Vote
