@@ -26,16 +26,16 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// IDs such as the group ID, default series, parent group, etc.
         /// </summary>
         public GroupIDs IDs { get; set; }
-        
+
         /// <summary>
         /// The sort name for the group.
         /// </summary>
-        public string SortName { get; set; }
-        
+        public string SortName { get; set; }
+
         /// <summary>
-        /// 
+        /// A short description of the group.
         /// </summary>
-        public string Description { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
         /// Marked as true when you rename a group to something custom. Different from using a default Series's name
@@ -54,7 +54,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
             List<SVR_AnimeEpisode> ael = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
             IDs = new GroupIDs { ID = group.AnimeGroupID };
-            if (group.DefaultAnimeSeriesID != null) IDs.DefaultSeries = group.DefaultAnimeSeriesID.Value;
+            if (group.DefaultAnimeSeriesID != null)
+                IDs.DefaultSeries = group.DefaultAnimeSeriesID.Value;
+            if (group.AnimeGroupParentID.HasValue)
+                IDs.ParentGroup = group.AnimeGroupParentID.Value;
+            IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
+            
 
             Name = group.GroupName;
             SortName = group.SortName;
@@ -91,9 +96,16 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public int DefaultSeries { get; set; }
 
             /// <summary>
-            /// Parent Group, if it has one
+            /// The ID of the direct parent group, if it has one.
             /// </summary>
-            public int ParentGroup { get; set; }
+            public int? ParentGroup { get; set; }
+
+            /// <summary>
+            /// The ID of the top-level (ancestor) group this group belongs to.
+            /// If the current group is a top-level group then it refers to
+            /// itself.
+            /// </summary>
+            public int TopLevelGroup { get; set; }
         }
 
         /// <summary>

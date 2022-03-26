@@ -128,7 +128,12 @@ namespace Shoko.Server.API.v3.Models.Shoko
         public static SeriesIDs GetIDs(SVR_AnimeSeries ser)
         {
             // Shoko
-            var ids = new SeriesIDs { ID = ser.AnimeSeriesID };
+            var ids = new SeriesIDs
+            {
+                ID = ser.AnimeSeriesID,
+                ParentGroup = ser.AnimeGroupID,
+                TopLevelGroup = ser.TopLevelAnimeGroup.AnimeGroupID,
+            };
             
             // AniDB
             var anidbId = ser.GetAnime()?.AnimeID;
@@ -631,6 +636,19 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
     public class SeriesIDs : IDs
     {
+        #region Groups
+
+        /// <summary>
+        /// The ID of the direct parent group, if it has one.
+        /// </summary>
+        public int ParentGroup { get; set; }
+
+        /// <summary>
+        /// The ID of the top-level (ancestor) group this series belongs to.
+        /// </summary>
+        public int TopLevelGroup { get; set; }
+
+        #endregion
         #region XRefs
 
         // These are useful for many things, but for clients, it is mostly auxiliary
