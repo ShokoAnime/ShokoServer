@@ -13,6 +13,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <Configurations>Debug;Release</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>
