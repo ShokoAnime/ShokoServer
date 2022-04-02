@@ -5,6 +5,7 @@ using System.Linq;
 using Shoko.Commons.Extensions;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models;
 
 namespace Shoko.Server
@@ -14,6 +15,9 @@ namespace Shoko.Server
         public event EventHandler<FileDetectedEventArgs> FileDetected;
         public event EventHandler<FileHashedEventArgs> FileHashed;
         public event EventHandler<FileMatchedEventArgs> FileMatched;
+        public event EventHandler<AniDBBannedEventArgs> AniDBBanned;
+        public event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
+        public event EventHandler<EpisodeInfoUpdatedEventArgs> EpisodeUpdated;
 
         private static ShokoEventHandler _instance;
         public static ShokoEventHandler Instance
@@ -26,7 +30,7 @@ namespace Shoko.Server
             }
         }
 
-        public void OnFileDetected(SVR_ImportFolder folder, FileInfo file)
+        internal void OnFileDetected(SVR_ImportFolder folder, FileInfo file)
         {
             var path = file.FullName.Replace(folder.ImportFolderLocation, "");
             if (!path.StartsWith("/")) path = "/" + path;
@@ -38,7 +42,7 @@ namespace Shoko.Server
             });
         }
         
-        public void OnFileHashed(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
+        internal void OnFileHashed(SVR_ImportFolder folder, SVR_VideoLocal_Place vlp)
         {
             var path = vlp.FilePath;
             FileHashed?.Invoke(null, new FileHashedEventArgs
@@ -51,7 +55,7 @@ namespace Shoko.Server
             });
         }
 
-        public void OnFileMatched(SVR_VideoLocal_Place vlp)
+        internal void OnFileMatched(SVR_VideoLocal_Place vlp)
         {
             var series = vlp.VideoLocal?.GetAnimeEpisodes().Select(a => a.GetAnimeSeries()).DistinctBy(a => a.AniDB_ID).ToList() ?? new List<SVR_AnimeSeries>();
             FileMatched?.Invoke(
@@ -63,6 +67,35 @@ namespace Shoko.Server
                     GroupInfo = series.Select(a => a.AnimeGroup).DistinctBy(a => a.AnimeGroupID).Cast<IGroup>().ToList(),
                 }
             );
+        }
+
+        internal void OnAniDBBanned(AniDBBanType type, DateTime time, DateTime resumeTime)
+        {
+            AniDBBanned?.Invoke(null, new AniDBBannedEventArgs
+            {
+                Type = type,
+                Time = time,
+                ResumeTime = resumeTime,
+            });
+        }
+
+        internal void OnSeriesUpdated(DataSourceEnum source, SVR_AniDB_Anime anime)
+        {
+            SeriesUpdated?.Invoke(null, new SeriesInfoUpdatedEventArgs
+            {
+                Type = source,
+                AnimeInfo = anime,
+            });
+        }
+
+        internal void OnEpisodeUpdated(DataSourceEnum source, SVR_AniDB_Anime anime, SVR_AnimeEpisode episode)
+        {
+            EpisodeUpdated?.Invoke(null, new EpisodeInfoUpdatedEventArgs
+            {
+                Type = source,
+                AnimeInfo = anime,
+                EpisodeInfo = episode,
+            });
         }
     }
 }
