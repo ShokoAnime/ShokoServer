@@ -30,6 +30,7 @@ using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.AniDB_API;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
@@ -109,6 +110,7 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
+            services.AddSingleton(ShokoService.AnidbProcessor);
             services.AddLogging(loggingBuilder => //add NLog based logging.
             {
                 //NLog;
