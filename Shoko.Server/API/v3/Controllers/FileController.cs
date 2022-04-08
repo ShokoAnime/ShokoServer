@@ -15,6 +15,7 @@ using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Commands;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using CommandRequestPriority = Shoko.Server.Server.CommandRequestPriority;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Path = System.IO.Path;
 
@@ -287,9 +288,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// Rescan a file on AniDB.
         /// </summary>
         /// <param name="fileID">VideoLocal ID</param>
+        /// <param name="priority">Increase the priority to the max for the queued command.</param>
         /// <returns></returns>
         [HttpPost("{fileID}/Rescan")]
-        public ActionResult RescanFile([FromRoute] int fileID)
+        public ActionResult RescanFile([FromRoute] int fileID, [FromQuery] bool priority = false)
         {
             var file = RepoFactory.VideoLocal.GetByID(fileID);
             if (file == null)
@@ -300,6 +302,7 @@ namespace Shoko.Server.API.v3.Controllers
                 return BadRequest(FileNoPath);
 
             var command = new CommandRequest_ProcessFile(file.VideoLocalID, true);
+            if (priority) command.Priority = (int) CommandRequestPriority.Priority1;
             command.Save();
             return Ok();
         }
