@@ -145,7 +145,7 @@ namespace Shoko.Server.Server
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
             LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
             // Enable debug logging
-            LogManager.Configuration.AddRule(LogLevel.Debug, LogLevel.Debug, target, "*", true);
+            LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
 #endif
  
             var signalrTarget =
@@ -162,7 +162,7 @@ namespace Shoko.Server.Server
             var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
             if (rule == null) return;
             if (enabled)
-                rule.EnableLoggingForLevel(LogLevel.Trace);
+                rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
             else
                 rule.DisableLoggingForLevel(LogLevel.Trace);
             LogManager.ReconfigExistingLoggers();
