@@ -78,6 +78,8 @@ namespace Shoko.Server.Commands
                 //now that we have all the has info, we can get the AniDB Info
                 ProcessFile_AniDB(vlocal);
                 vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+                
+                ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
             }
             catch (Exception ex)
             {

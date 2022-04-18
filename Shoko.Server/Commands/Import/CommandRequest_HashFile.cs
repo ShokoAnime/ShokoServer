@@ -496,6 +496,9 @@ namespace Shoko.Server.Commands
                 if (vlocalplace.RefreshMediaInfo())
                     RepoFactory.VideoLocal.Save(vlocalplace.VideoLocal, true);
             }
+
+            ShokoEventHandler.Instance.OnFileHashed(folder, vlocalplace);
+
             // now add a command to process the file
             CommandRequest_ProcessFile cr_procfile = new CommandRequest_ProcessFile(vlocal.VideoLocalID, false, SkipMyList);
             cr_procfile.Save();

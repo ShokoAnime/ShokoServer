@@ -1,7 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net5.0-windows</TargetFramework>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
         <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
         <Platforms>x64;AnyCPU</Platforms>
         <Deterministic>false</Deterministic>
@@ -9,8 +10,10 @@
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
         <UseWPF>true</UseWPF>
+        <UseWindowsForms>true</UseWindowsForms>
         <Configurations>Debug;Release</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <OutputPath>..\Shoko.Server\bin\Debug\</OutputPath>

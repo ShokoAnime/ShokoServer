@@ -15,10 +15,12 @@ using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions;
 using Shoko.Server.Commands;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
@@ -35,9 +37,9 @@ namespace Shoko.Server.AniDB_API
         // we use this lock to make don't try and access AniDB too much (UDP and HTTP)
         private readonly object lockAniDBConnections = new object();
 
-        private static readonly int HTTPBanTimerResetLength = 12;
-        
-        private static readonly int UDPBanTimerResetLength = 12;
+        internal static readonly int HTTPBanTimerResetLength = 12;
+
+        internal static readonly int UDPBanTimerResetLength = 12;
 
         private IPEndPoint localIpEndPoint;
         private IPEndPoint remoteIpEndPoint;
@@ -58,6 +60,8 @@ namespace Shoko.Server.AniDB_API
 
         public DateTime? HttpBanTime { get; set; }
         public DateTime? UdpBanTime { get; set; }
+
+        internal event EventHandler<AniDBStateUpdate> AniDBStateUpdate;
 
         public string ImageServerUrl {
             get {
@@ -104,6 +108,7 @@ namespace Shoko.Server.AniDB_API
                     }
                     httpBanResetTimer.Start();
                     Analytics.PostEvent("AniDB", "Http Banned");
+                    ShokoEventHandler.Instance.OnAniDBBanned(AniDBBanType.HTTP, HttpBanTime.Value, HttpBanTime.Value.AddHours(HTTPBanTimerResetLength));
                 }
                 else
                 {
@@ -128,8 +133,16 @@ namespace Shoko.Server.AniDB_API
                         ServerInfo.Instance.IsBanned = false;
                         ServerInfo.Instance.BanOrigin = string.Empty;
                         ServerInfo.Instance.BanReason = string.Empty;
-                  }
+                    }
                 }
+                
+                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+                {
+                    Value = value,
+                    UpdateTime = HttpBanTime.Value,
+                    UpdateType = UpdateType.HTTPBan,
+                    PauseTimeSecs = HTTPBanTimerResetLength,
+                });
             }
         }
 
@@ -152,6 +165,7 @@ namespace Shoko.Server.AniDB_API
                     }
                     udpBanResetTimer.Start();
                     Analytics.PostEvent("AniDB", "Udp Banned");
+                    ShokoEventHandler.Instance.OnAniDBBanned(AniDBBanType.UDP, UdpBanTime.Value, UdpBanTime.Value.AddHours(UDPBanTimerResetLength));
                 }
                 else
                 {
@@ -178,6 +192,14 @@ namespace Shoko.Server.AniDB_API
                         ServerInfo.Instance.BanReason = string.Empty;
                     }
                 }
+
+                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+                {
+                    Value = value,
+                    UpdateTime = UdpBanTime.Value,
+                    UpdateType = UpdateType.UDPBan,
+                    PauseTimeSecs = UDPBanTimerResetLength,
+                });
             }
         }
 
@@ -191,6 +213,12 @@ namespace Shoko.Server.AniDB_API
             {
                 isInvalidSession = value;
                 ServerInfo.Instance.IsInvalidSession = isInvalidSession;
+                AniDBStateUpdate?.Invoke(this, new AniDBStateUpdate
+                {
+                    Value = value,
+                    UpdateTime = DateTime.Now,
+                    UpdateType = UpdateType.InvalidSession,
+                });
             }
         }
 

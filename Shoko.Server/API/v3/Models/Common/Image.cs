@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using ImageMagick;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Server.Extensions;
@@ -45,6 +46,16 @@ namespace Shoko.Server.API.v3.Models.Common
         public bool Preferred { get; set; }
         
         /// <summary>
+        /// Width of the image.
+        /// </summary>
+        public int? Width { get; set; }
+
+        /// <summary>
+        /// Height of the image.
+        /// </summary>
+        public int? Height { get; set; }
+        
+        /// <summary>
         /// Is it marked as disabled. You must explicitly ask for these, for obvious reasons.
         /// </summary>
         public bool Disabled { get; set; }
@@ -54,10 +65,21 @@ namespace Shoko.Server.API.v3.Models.Common
             if (type == ImageEntityType.Static)
                 throw new ArgumentException("Static Resources do not use an integer ID");
             
-            RelativeFilepath = GetImagePath(type, id)?.Replace(ImageUtils.GetBaseImagesPath(), "")
-                .Replace("\\", "/");
-            if (RelativeFilepath != null && !RelativeFilepath.StartsWith("/"))
-                RelativeFilepath = "/" + RelativeFilepath;
+            var imagePath = GetImagePath(type, id);
+            if (string.IsNullOrEmpty(imagePath)) {
+                RelativeFilepath = null;
+                Width = null;
+                Height = null;
+            }
+            else
+            {
+                var info = new MagickImageInfo(imagePath);
+                RelativeFilepath = imagePath.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                if (!RelativeFilepath.StartsWith("/"))
+                    RelativeFilepath = "/" + RelativeFilepath;
+                Width = info.Width;
+                Height = info.Height;
+            }
         }
 
         public Image(string id, ImageEntityType type, bool preferred = false, bool disabled = false)

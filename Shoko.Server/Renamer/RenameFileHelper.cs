@@ -78,11 +78,8 @@ namespace Shoko.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
-
-                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
-
-                    return null;
+                    if (!ServerSettings.Instance.Plugins.DeferOnError || args.Cancel) throw;
+                    Logger.Warn($"Renamer: {renamer.GetType().Name} threw an error while renaming, deferring to next renamer. Filename: \"{result}\" Error message: \"{e.Message}\"");
                 }
             }
 
@@ -116,14 +113,15 @@ namespace Shoko.Server
                     if (args.Cancel) return (null, null);
                     // if no path was specified, then defer
                     if (string.IsNullOrEmpty(destPath) || destFolder == null) continue;
+                    if (Path.AltDirectorySeparatorChar != Path.DirectorySeparatorChar) {
+                        destPath = destPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                    }
                     destPath = RemoveFilename(place.FilePath, destPath);
 
                     var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
                     if (importFolder == null)
                     {
-                        Logger.Error(
-                            $"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}"
-                        );
+                        Logger.Error($"Renamer returned a Destination Import Folder, but it could not be found. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}");
                         continue;
                     }
 
@@ -131,11 +129,8 @@ namespace Shoko.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.Error($"Renamer threw an error. The offending plugin was: {renamer.GetType().GetAssemblyName()} with renamer: {renamer.GetType().Name}. The error was: {e}");
-
-                    if (ServerSettings.Instance.Plugins.DeferOnError) continue;
-
-                    return (null, null);
+                    if (!ServerSettings.Instance.Plugins.DeferOnError || args.Cancel) throw;
+                    Logger.Warn($"Renamer: {renamer.GetType().Name} threw an error while moving, deferring to next renamer. Path: \"{place.FullServerPath}\" Error message: \"{e.Message}\"");
                 }
             }
 
