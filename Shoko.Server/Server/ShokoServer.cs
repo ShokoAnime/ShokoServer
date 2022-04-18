@@ -111,18 +111,6 @@ namespace Shoko.Server.Server
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
             services.AddSingleton(ShokoService.AnidbProcessor);
-            services.AddLogging(loggingBuilder => //add NLog based logging.
-            {
-                //NLog;
-                loggingBuilder.ClearProviders();
-#if DEBUG
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
-                loggingBuilder.AddNLog(new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
-            });
             Loader.Instance.Load(services);
         }
         
@@ -155,6 +143,13 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
+#if DEBUG
+            // Disable blackhole http info logs
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+            // Enable debug logging
+            LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
+#endif
  
             var signalrTarget =
                 new AsyncTargetWrapper(
@@ -170,7 +165,7 @@ namespace Shoko.Server.Server
             var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
             if (rule == null) return;
             if (enabled)
-                rule.EnableLoggingForLevel(LogLevel.Trace);
+                rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
             else
                 rule.DisableLoggingForLevel(LogLevel.Trace);
             LogManager.ReconfigExistingLoggers();
@@ -1293,11 +1288,7 @@ namespace Shoko.Server.Server
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-#if DEBUG
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
                 }).UseNLog()
                 .UseSentry(
                     o =>
