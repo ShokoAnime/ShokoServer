@@ -113,6 +113,9 @@ namespace Shoko.Server
                     if (args.Cancel) return (null, null);
                     // if no path was specified, then defer
                     if (string.IsNullOrEmpty(destPath) || destFolder == null) continue;
+                    if (Path.AltDirectorySeparatorChar != Path.DirectorySeparatorChar) {
+                        destPath = destPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                    }
                     destPath = RemoveFilename(place.FilePath, destPath);
 
                     var importFolder = RepoFactory.ImportFolder.GetByImportLocation(destFolder.Location);
