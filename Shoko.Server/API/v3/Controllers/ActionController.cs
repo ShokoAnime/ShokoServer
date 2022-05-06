@@ -287,6 +287,17 @@ namespace Shoko.Server.API.v3.Controllers
             Importer.UpdateAllStats();
             return Ok();
         }
+        
+        /// <summary>
+        /// Queues a task to import only new files found in the import folder
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ImportNewFiles")]
+        public ActionResult ImportNewFiles()
+        {
+            Importer.RunImport_NewFiles();
+            return Ok();
+        }
         #endregion
     }
 }
