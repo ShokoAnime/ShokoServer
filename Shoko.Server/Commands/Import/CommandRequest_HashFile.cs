@@ -211,7 +211,6 @@ namespace Shoko.Server.Commands
                         ServerSettings.Instance.SaveSettings();
                     }
 
-                    Thread.Sleep(waitTime);
                     numAttempts = 0;
 
                     //For systems with no locking
