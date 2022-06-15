@@ -93,7 +93,9 @@ namespace Shoko.Server.API.v3.Controllers
             if (episode == null)
                 return NotFound(EpisodeNotFoundWithEpisodeID);
 
-            return Episode.GetTvDBInfo(episode.AniDB_EpisodeID);
+            return episode.TvDBEpisodes
+                .Select(a => new Episode.TvDB(a))
+                .ToList();
         }
 
         /// <summary>

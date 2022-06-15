@@ -79,22 +79,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
         }
 
-        /// <summary>
-        /// Get TvDB data from AniDBEpisode ID
-        /// </summary>
-        /// <param name="id">AniDB Episode ID</param>
-        /// <returns></returns>
-        public static List<TvDB> GetTvDBInfo(int id)
-        {
-            return RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(id)
-                .Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID))
-                .Where(a => a != null)
-                .Select(a => new TvDB(a))
-                .OrderBy(a => a.Season)
-                .ThenBy(a => a.Number)
-                .ToList();
-        }
-
         public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
         {
             AniDB_Vote dbVote = RepoFactory.AniDB_Vote.GetByEntityAndType(ep.AnimeEpisodeID, AniDBVoteType.Episode);
