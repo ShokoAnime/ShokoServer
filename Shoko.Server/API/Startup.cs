@@ -79,6 +79,29 @@ namespace Shoko.Server.API
                         options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
                     }
 
+                    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme()
+                    {
+                        Description = "Shoko API Key Header",
+                        Name = "apikey",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = "apikey",
+                    });
+
+                    options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                    {
+                        {
+                            new OpenApiSecurityScheme {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id="ApiKey",
+                                },
+                            },
+                            new string[]{}
+                        },
+                    });
+
                     // add a custom operation filter which sets default values
                     //options.OperationFilter<SwaggerDefaultValues>();
 
