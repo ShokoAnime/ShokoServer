@@ -13,7 +13,8 @@ namespace Shoko.Server.API.v3.Models.Common
     {
         /// <summary>
         /// The normalised user-submitted rating in the range [0, <paramref name="maxValue" />].
-        /// /// </summary>
+        /// </summary>
+        /// <param name="maxValue">The max value to use.</param>
         /// <returns></returns>
         public decimal GetRating(int maxValue = 10)
             => Math.Clamp((Math.Clamp(Value, 0, MaxValue) / MaxValue) * maxValue, 0, maxValue);

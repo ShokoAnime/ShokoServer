@@ -4,15 +4,16 @@ using System.Threading.Tasks;
 using AniDBAPI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NLog;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Commands;
 using Shoko.Server.Providers.MovieDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Tasks;
 
 namespace Shoko.Server.API.v3.Controllers
 {
@@ -20,8 +21,12 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class ActionController : BaseController
     {
+        public ActionController(ILogger<ActionController> logger) : base()
+        {
+            Logger = logger;
+        }
         
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly ILogger<ActionController> Logger;
 
         #region Common Actions
         /// <summary>
@@ -34,7 +39,7 @@ namespace Shoko.Server.API.v3.Controllers
             ShokoServer.RunImport();
             return Ok();
         }
-        
+
         /// <summary>
         /// This was for web cache hash syncing, and will be for perceptual hashing maybe eventually.
         /// </summary>
@@ -69,7 +74,7 @@ namespace Shoko.Server.API.v3.Controllers
 
             return Ok();
         }
-        
+
         /// <summary>
         /// Remove Entries in the Shoko Database for Files that are no longer accessible
         /// </summary>
@@ -102,7 +107,7 @@ namespace Shoko.Server.API.v3.Controllers
             ShokoServer.Instance.DownloadAllImages();
             return Ok();
         }
-        
+
         /// <summary>
         /// Updates All MovieDB Info
         /// </summary>
@@ -137,10 +142,10 @@ namespace Shoko.Server.API.v3.Controllers
             new CommandRequest_ValidateAllImages().Save();
             return Ok();
         }
-        #endregion        
-        
+        #endregion
+
         #region Admin Actions
-        
+
         /// <summary>
         /// Gets files whose data does not match AniDB
         /// </summary>
@@ -161,17 +166,17 @@ namespace Shoko.Server.API.v3.Controllers
                 int index = 0;
                 foreach (var path in list)
                 {
-                    Logger.Info($"AVDump Start {index + 1}/{list.Count}: {path}");
+                    Logger.LogInformation($"AVDump Start {index + 1}/{list.Count}: {path}");
                     AVDumpHelper.DumpFile(path);
-                    Logger.Info($"AVDump Finished {index + 1}/{list.Count}: {path}");
+                    Logger.LogInformation($"AVDump Finished {index + 1}/{list.Count}: {path}");
                     index++;
-                    Logger.Info($"AVDump Progress: {list.Count - index} remaining");
+                    Logger.LogInformation($"AVDump Progress: {list.Count - index} remaining");
                 }
             });
 
             return Ok();
         }
-        
+
         /// <summary>
         /// This Downloads XML data from AniDB where there is none. This should only happen:
         /// A. If someone deleted or corrupted them.
@@ -185,18 +190,17 @@ namespace Shoko.Server.API.v3.Controllers
             try
             {
                 var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-                Logger.Info($"Starting the check for {allAnime.Count} anime XML files");
+                Logger.LogInformation($"Starting the check for {allAnime.Count} anime XML files");
                 int updatedAnime = 0;
                 for (var i = 0; i < allAnime.Count; i++)
                 {
                     var animeID = allAnime[i];
-                    if (i % 10 == 1) Logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
+                    if (i % 10 == 1) Logger.LogInformation($"Checking anime {i + 1}/{allAnime.Count} for XML file");
 
                     var xml = APIUtils.LoadAnimeHTTPFromFile(animeID);
                     if (xml == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        Series.QueueAniDBRefresh(animeID, true, false, false);
                         updatedAnime++;
                         continue;
                     }
@@ -204,21 +208,20 @@ namespace Shoko.Server.API.v3.Controllers
                     var rawAnime = AniDBHTTPHelper.ProcessAnimeDetails(xml, animeID);
                     if (rawAnime == null)
                     {
-                        CommandRequest_GetAnimeHTTP cmd = new CommandRequest_GetAnimeHTTP(animeID, true, false);
-                        cmd.Save();
+                        Series.QueueAniDBRefresh(animeID, true, false, false);
                         updatedAnime++;
                     }
                 }
-                Logger.Info($"Updating {updatedAnime} anime");
+                Logger.LogInformation($"Updating {updatedAnime} anime");
             }
             catch (Exception e)
             {
-                Logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
-                return APIStatus.InternalError(e.Message);
+                Logger.LogError(e, $"Error checking and queuing AniDB XML Updates: {e}");
+                return InternalError(e.Message);
             }
-            return APIStatus.OK();
+            return Ok();
         }
-        
+
         /// <summary>
         /// Regenerate All Episode Matchings for TvDB. Generally, don't do this unless there was an error that was fixed.
         /// In those cases, you'd be told to.
@@ -235,13 +238,13 @@ namespace Shoko.Server.API.v3.Controllers
             }
             catch (Exception e)
             {
-                Logger.Error(e);
-                return APIStatus.InternalError(e.Message);
+                Logger.LogError(e, e.Message);
+                return InternalError(e.Message);
             }
 
-            return APIStatus.OK();
+            return Ok();
         }
-        
+
         /// <summary>
         /// BEWARE this is a dangerous command!
         /// It syncs all of the states in Shoko's library to AniDB.
@@ -254,7 +257,7 @@ namespace Shoko.Server.API.v3.Controllers
             ShokoServer.SyncMyList();
             return Ok();
         }
-        
+
         /// <summary>
         /// Update All AniDB Series Info
         /// </summary>
@@ -276,7 +279,7 @@ namespace Shoko.Server.API.v3.Controllers
             ShokoServer.RefreshAllMediaInfo();
             return Ok();
         }
-        
+
         /// <summary>
         /// Queues commands to Update All Series Stats and Force a Recalculation of All Group Filters
         /// </summary>
@@ -297,6 +300,21 @@ namespace Shoko.Server.API.v3.Controllers
         {
             Importer.RunImport_NewFiles();
             return Ok();
+        }
+
+        /// <summary>
+        /// Recreate all <see cref="Group"/>s. This will delete any and all existing groups.
+        /// </summary>
+        /// <remarks>
+        /// This action requires an admin account because it's a destructive action.
+        /// </remarks>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpGet("RecreateAllGroups")]
+        public ActionResult RecreateAllGroups()
+        {
+            Task.Run(() => new AnimeGroupCreator().RecreateAllGroups());
+            return Ok("Check the server status via init/status or SignalR's Events hub");
         }
         #endregion
     }

@@ -952,7 +952,7 @@ namespace Shoko.Server.AniDB_API
                 if (eps.Count == 0)
                 {
                     CommandRequest_GetAnimeHTTP cr_anime =
-                        new CommandRequest_GetAnimeHTTP(animeID, true, false, 0);
+                        new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
                     cr_anime.Save();
                 }
                 // update the missing episode stats on groups and children
@@ -1008,13 +1008,10 @@ namespace Shoko.Server.AniDB_API
             }
         }
 
-        public void UpdateCachedAnimeInfoHTTP(SVR_AniDB_Anime anime)
+        public bool UpdateCachedAnimeInfoHTTP(SVR_AniDB_Anime anime, bool createSeriesEntry = false)
         {
             if (anime == null)
-            {
-                logger.Trace("");
-                return;
-            }
+                return false;
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
                 var animeID = anime.AnimeID;
@@ -1028,14 +1025,14 @@ namespace Shoko.Server.AniDB_API
                     if (result == AniDBUDPResponseCode.NoSuchAnime)
                     {
                         logger.Error($"Failed get cached anime info for {animeID}. AniDB ban or No Such Anime returned");
-                        return;
+                        return false;
                     }
                 }
 
                 if (getAnimeCmd.Anime == null)
                 {
                     logger.Error($"Failed get cached anime info for {animeID}. Anime was null");
-                    return;
+                    return false;
                 }
 
 
@@ -1043,34 +1040,34 @@ namespace Shoko.Server.AniDB_API
 
                 if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Tags,
                     getAnimeCmd.Characters, getAnimeCmd.Staff, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                    false, 0))
+                    false, 0, createSeriesEntry))
                 {
                     logger.Error($"Failed populate cached anime info for {animeID}");
-                    return;
+                    return false;
                 }
 
                 // create AnimeEpisode records for all episodes in this anime only if we have a series
                 SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
                 if (ser != null)
                 {
-                    ser.CreateAnimeEpisodes(session);
+                    ser.CreateAnimeEpisodes(session, anime);
                     RepoFactory.AnimeSeries.Save(ser, true, false);
                 }
                 SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
             }
+            return true;
         }
 
-
-        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true, int relDepth = 0)
+        public SVR_AniDB_Anime GetAnimeInfoHTTP(int animeID, bool forceRefresh = false, bool downloadRelations = true, int relDepth = 0, bool createSeriesEntry = false)
         {
             using (var session = DatabaseFactory.SessionFactory.OpenSession())
             {
-                return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations, relDepth);
+                return GetAnimeInfoHTTP(session, animeID, forceRefresh, downloadRelations, relDepth, createSeriesEntry);
             }
         }
 
         public SVR_AniDB_Anime GetAnimeInfoHTTP(ISession session, int animeID, bool forceRefresh,
-            bool downloadRelations, int relDepth = 0)
+            bool downloadRelations, int relDepth = 0, bool createSeriesEntry = false)
         {
             //if (!Login()) return null;
 
@@ -1108,7 +1105,7 @@ namespace Shoko.Server.AniDB_API
 
             if (getAnimeCmd.Anime != null)
             {
-                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth);
+                return SaveResultsForAnimeXML(session, animeID, downloadRelations || ServerSettings.Instance.AutoGroupSeries, true, getAnimeCmd, relDepth, createSeriesEntry);
             }
 
             logger.Error($"Failed get anime info for {animeID}. Anime was null");
@@ -1117,7 +1114,7 @@ namespace Shoko.Server.AniDB_API
 
         public SVR_AniDB_Anime SaveResultsForAnimeXML(ISession session, int animeID, bool downloadRelations,
             bool validateImages,
-            AniDBHTTPCommand_GetFullAnime getAnimeCmd, int relDepth)
+            AniDBHTTPCommand_GetFullAnime getAnimeCmd, int relDepth, bool createSeriesEntry)
         {
             ISessionWrapper sessionWrapper = session.Wrap();
 
@@ -1126,7 +1123,7 @@ namespace Shoko.Server.AniDB_API
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID) ?? new SVR_AniDB_Anime();
             if (!anime.PopulateAndSaveFromHTTP(session, getAnimeCmd.Anime, getAnimeCmd.Episodes, getAnimeCmd.Titles, getAnimeCmd.Tags,
                 getAnimeCmd.Characters, getAnimeCmd.Staff, getAnimeCmd.Resources, getAnimeCmd.Relations, getAnimeCmd.SimilarAnime, getAnimeCmd.Recommendations,
-                downloadRelations, relDepth))
+                downloadRelations, relDepth, createSeriesEntry))
             {
                 logger.Error($"Failed populate anime info for {animeID}");
                 return null;
@@ -1139,12 +1136,16 @@ namespace Shoko.Server.AniDB_API
                 cmd.Save();
             }
 
+            var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            // conditionally create AnimeSeries if it doesn't exist
+            if (series == null && createSeriesEntry) {
+                series = anime.CreateAnimeSeriesAndGroup(sessionWrapper);
+            }
             // create AnimeEpisode records for all episodes in this anime only if we have a series
-            SVR_AnimeSeries ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (ser != null)
+            if (series != null)
             {
-                ser.CreateAnimeEpisodes(session);
-                RepoFactory.AnimeSeries.Save(ser, true, false);
+                series.CreateAnimeEpisodes(session, anime);
+                RepoFactory.AnimeSeries.Save(series, true, false);
             }
             SVR_AniDB_Anime.UpdateStatsByAnimeID(animeID);
 

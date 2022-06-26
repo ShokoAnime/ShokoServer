@@ -914,7 +914,7 @@ namespace Shoko.Server
                     // which esssential means deleting the record
 
                     AniDB_Anime_DefaultImage img =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
                     if (img != null)
                         RepoFactory.AniDB_Anime_DefaultImage.Delete(img.AniDB_Anime_DefaultImageID);
                 }
@@ -922,7 +922,7 @@ namespace Shoko.Server
                 {
                     // making the image the default for it's type (poster, fanart etc)
                     AniDB_Anime_DefaultImage img =
-                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, (int) sizeType);
+                        RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID, sizeType);
                     if (img == null)
                         img = new AniDB_Anime_DefaultImage();
 

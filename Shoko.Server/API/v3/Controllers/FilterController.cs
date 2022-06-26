@@ -15,35 +15,121 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class FilterController : BaseController
     {
+        internal static string FilterNotFound = "No Filter entry for the given filterID";
+
         /// <summary>
-        /// Get Filter with id
+        /// Get All <see cref="Filter"/>s
         /// </summary>
-        /// <param name="filterID"></param>
+        /// <param name="includeEmpty"></param>
+        /// <param name="includeInvisible"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<List<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeInvisible = false, [FromQuery] int page = 0, [FromQuery] int pageSize = 10)
+        {
+            var groupFilters = RepoFactory.GroupFilter.GetTopLevel()
+                .Where(filter =>
+                {
+                    if (filter.InvisibleInClients != 0 && !includeInvisible)
+                        return false;
+                    if (filter.GroupsIds.ContainsKey(User.JMMUserID) && filter.GroupsIds[User.JMMUserID].Count > 0 || includeEmpty)
+                        return true;
+                    return ((GroupFilterType)filter.FilterType).HasFlag(GroupFilterType.Directory);
+                })
+                .OrderBy(filter => filter.GroupFilterName);
+
+            if (pageSize <= 0)
+                return groupFilters
+                    .Select(filter => new Filter(HttpContext, filter))
+                    .ToList();
+
+            if (page <= 0) page = 0;
+            return groupFilters
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .Select(filter => new Filter(HttpContext, filter))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Create or update a filter
+        /// </summary>
+        /// <param name="body"></param>
+        /// <returns>The resulting Filter, with ID</returns>
+        [HttpPost]
+        public ActionResult<Filter> SaveFilter(Filter.FullFilter body)
+        {
+            SVR_GroupFilter groupFilter = null;
+            if (body.IDs.ID != 0)
+            {
+                groupFilter = RepoFactory.GroupFilter.GetByID(body.IDs.ID);
+                if (groupFilter == null)
+                    return NotFound(FilterNotFound);
+                if (groupFilter.Locked == 1)
+                    return Forbid("Filter is Locked");
+            }
+            groupFilter = body.ToServerModel(groupFilter);
+            groupFilter.CalculateGroupsAndSeries();
+            RepoFactory.GroupFilter.Save(groupFilter);
+
+            return new Filter(HttpContext, groupFilter);
+        }
+
+        /// <summary>
+        /// Preview the Groups that will be in the filter if the changes are applied
+        /// </summary>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        [HttpPost("Preview")]
+        public ActionResult<List<Group>> PreviewFilterChanges(Filter.FullFilter body)
+        {
+            var groupFilter = body.ToServerModel();
+            groupFilter.CalculateGroupsAndSeries();
+
+            if (!groupFilter.GroupsIds.TryGetValue(User.JMMUserID, out var groupIDs))
+                return new List<Group>();
+
+            return groupIDs
+                .Select(a => RepoFactory.AnimeGroup.GetByID(a))
+                .Where(a => a != null)
+                .OrderByGroupFilter(groupFilter)
+                .Select(a => new Group(HttpContext, a))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get the <see cref="Filter"/> for the given <paramref name="filterID"/>.
+        /// </summary>
+        /// <param name="filterID">Filter ID</param>
         /// <returns></returns>
         [HttpGet("{filterID}")]
         public ActionResult<Filter> GetFilter(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(filterID);
-            if (gf == null) return BadRequest("No filter with id");
-            return new Filter(HttpContext, gf);
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
+            if (groupFilter == null)
+                return NotFound(FilterNotFound);
+
+            return new Filter(HttpContext, groupFilter);
         }
 
         /// <summary>
-        /// Get Filter with id
+        /// Delete a filter
         /// </summary>
         /// <param name="filterID"></param>
         /// <returns></returns>
-        [HttpGet("{filterID}/Filter")]
-        public ActionResult<List<Filter>> GetSubFilters(int filterID)
+        [Authorize("admin")]
+        [HttpDelete("{filterID}")]
+        public ActionResult DeleteFilter(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(filterID);
-            if (gf == null) return BadRequest("No filter with id");
-            if (!((GroupFilterType) gf.FilterType).HasFlag(GroupFilterType.Directory))
-                return BadRequest("Filter should be a Directory Filter");
-            return RepoFactory.GroupFilter.GetByParentID(filterID).Select(a => new Filter(HttpContext, a))
-                .OrderBy(a => a.Name).ToList();
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
+            if (groupFilter == null)
+                return NotFound(FilterNotFound);
+
+            RepoFactory.GroupFilter.Delete(groupFilter);
+            return NoContent();
         }
-        
+
         /// <summary>
         /// Get Conditions for Filter with id
         /// </summary>
@@ -52,11 +138,13 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{filterID}/Conditions")]
         public ActionResult<Filter.FilterConditions> GetFilterConditions(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(filterID);
-            if (gf == null) return BadRequest("No filter with id");
-            return Filter.GetConditions(gf);
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
+            if (groupFilter == null)
+                return NotFound(FilterNotFound);
+
+            return Filter.GetConditions(groupFilter);
         }
-        
+
         /// <summary>
         /// Get Sorting Criteria for Filter with id
         /// </summary>
@@ -65,61 +153,11 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("{filterID}/Sorting")]
         public ActionResult<List<Filter.SortingCriteria>> GetFilterSortingCriteria(int filterID)
         {
-            var gf = RepoFactory.GroupFilter.GetByID(filterID);
-            if (gf == null) return BadRequest("No filter with id");
-            return Filter.GetSortingCriteria(gf);
-        }
+            var groupFilter = RepoFactory.GroupFilter.GetByID(filterID);
+            if (groupFilter == null)
+                return NotFound(FilterNotFound);
 
-        /// <summary>
-        /// Preview the Groups that will be in the filter if the changes are applied
-        /// </summary>
-        /// <param name="filter"></param>
-        /// <returns></returns>
-        [HttpPost("Preview")]
-        public ActionResult<List<Group>> PreviewFilterChanges(Filter.FullFilter filter)
-        {
-            SVR_GroupFilter gf = filter.ToServerModel();
-            gf.CalculateGroupsAndSeries();
-
-            if (!gf.GroupsIds.ContainsKey(User.JMMUserID)) return new List<Group>();
-            return gf.GroupsIds[User.JMMUserID].Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                .Where(a => a != null).GroupFilterSort(gf).Select(a => new Group(HttpContext, a)).ToList();
-        }
-        
-        /// <summary>
-        /// Create or update a filter
-        /// </summary>
-        /// <param name="filter"></param>
-        /// <returns>The resulting Filter, with ID</returns>
-        [HttpPost]
-        public ActionResult<Filter> SaveFilter(Filter.FullFilter filter)
-        {
-            SVR_GroupFilter gf = null;
-            if (filter.IDs.ID != 0)
-            {
-                gf = RepoFactory.GroupFilter.GetByID(filter.IDs.ID);
-                if (gf == null) return BadRequest("No Filter with ID");
-                if (gf.Locked == 1) return BadRequest("Filter is Locked");
-            }
-            gf = filter.ToServerModel(gf);
-            gf.CalculateGroupsAndSeries();
-            RepoFactory.GroupFilter.Save(gf);
-
-            return new Filter(HttpContext, gf);
-        }
-
-        /// <summary>
-        /// Delete a filter
-        /// </summary>
-        /// <param name="filterID"></param>
-        /// <returns></returns>
-        [HttpDelete("{filterID}")]
-        public ActionResult DeleteFilter(int filterID)
-        {
-            var gf = RepoFactory.GroupFilter.GetByID(filterID);
-            if (gf == null) return BadRequest("No filter with id");
-            RepoFactory.GroupFilter.Delete(gf);
-            return Ok();
+            return Filter.GetSortingCriteria(groupFilter);
         }
     }
 }

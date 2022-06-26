@@ -35,6 +35,29 @@ namespace Shoko.Server.Models
         internal Dictionary<int, HashSet<int>> _groupsId = new Dictionary<int, HashSet<int>>();
         internal Dictionary<int, HashSet<int>> _seriesId = new Dictionary<int, HashSet<int>>();
         internal List<GroupFilterCondition> _conditions = new List<GroupFilterCondition>();
+        
+        public SVR_GroupFilter Parent
+        {
+            get
+            {
+                return ParentGroupFilterID.HasValue ? RepoFactory.GroupFilter.GetByID(ParentGroupFilterID.Value) : null;
+            }
+        }
+
+        public SVR_GroupFilter TopLevelGroupFilter
+        {
+            get
+            {
+                var parent = Parent;
+                if (parent == null) return this;
+                while (true)
+                {
+                    var next = parent.Parent;
+                    if (next == null) return parent;
+                    parent = next;
+                }
+            }
+        }
 
 
         public virtual HashSet<GroupFilterConditionType> Types

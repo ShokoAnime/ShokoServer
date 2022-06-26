@@ -150,7 +150,7 @@ namespace Shoko.Server.Commands
                         {
                             AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
 
-                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = ep == null;
+                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
                             else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
@@ -267,7 +267,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                     logger.Warn($"Queuing GET for AniDB_Anime: {animeID}");
-                    CommandRequest_GetAnimeHTTP animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true);
+                    CommandRequest_GetAnimeHTTP animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true, ServerSettings.Instance.AniDb.AutomaticallyImportSeries);
                     animeCommand.Save();
                     return;
                 }
@@ -280,7 +280,7 @@ namespace Shoko.Server.Commands
                 {
                     // We will put UpdatedAt in the CreateAnimeSeriesAndGroup method, to ensure it exists at first write
                     ser = anime.CreateAnimeSeriesAndGroup();
-                    ser.CreateAnimeEpisodes();
+                    ser.CreateAnimeEpisodes(anime);
                 }
                 else
                 {
@@ -293,7 +293,7 @@ namespace Shoko.Server.Commands
                         {
                             logger.Info(
                                 $"Series {anime.MainTitle} needs episodes regenerated (an episode was added or deleted from AniDB)");
-                            ser.CreateAnimeEpisodes();
+                            ser.CreateAnimeEpisodes(anime);
                             ser.UpdatedAt = DateTime.Now;
                         }
                     }

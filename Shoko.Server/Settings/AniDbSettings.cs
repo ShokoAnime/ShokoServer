@@ -59,5 +59,6 @@ namespace Shoko.Server.Settings
         [Range(0, 5, ErrorMessage = "Max Relation Depth may only be between 0 and 5")]
         public int MaxRelationDepth { get; set; } = 3;
 
+        public bool AutomaticallyImportSeries { get; set; } = false;
     }
 }

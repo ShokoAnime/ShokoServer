@@ -761,7 +761,7 @@ namespace Shoko.Server
 
             foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
             {
-                var cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false);
+                var cmd = new CommandRequest_GetAnimeHTTP(anime.AnimeID, true, false, false);
                 cmd.Save();
             }
         }

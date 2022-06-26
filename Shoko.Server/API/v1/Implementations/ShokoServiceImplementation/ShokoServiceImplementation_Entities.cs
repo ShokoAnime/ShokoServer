@@ -2252,7 +2252,7 @@ namespace Shoko.Server
                 logger.Debug("Creating groups, series and episodes....");
                 ser = anime.CreateAnimeSeriesAndGroup(ser, animeGroupID);
 
-                ser.CreateAnimeEpisodes();
+                ser.CreateAnimeEpisodes(anime);
 
                 // check if we have any group status data for this associated anime
                 // if not we will download it now

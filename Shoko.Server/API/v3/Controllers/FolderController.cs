@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v3.Controllers
 {
     [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
     [Authorize]
-    public class FolderController : Controller
+    public class FolderController : BaseController
     {
         [HttpGet("drives")]
         public ActionResult<IEnumerable<Drive>> GetDrives()

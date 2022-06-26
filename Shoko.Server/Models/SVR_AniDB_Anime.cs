@@ -312,7 +312,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultPoster() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.Poster);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Poster);
 
         public string PosterPathNoDefault
         {
@@ -427,7 +427,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultFanart() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.Fanart);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.Fanart);
 
         public ImageDetails GetDefaultFanartDetailsNoBlanks()
         {
@@ -526,7 +526,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         public AniDB_Anime_DefaultImage GetDefaultWideBanner() =>
-            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, (int) ImageSizeType.WideBanner);
+            RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(AnimeID, ImageSizeType.WideBanner);
 
         public ImageDetails GetDefaultWideBannerDetailsNoBlanks()
         {
@@ -854,7 +854,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             List<Raw_AniDB_Anime_Title> titles, List<Raw_AniDB_Tag> tags, List<Raw_AniDB_Character> chars, List<Raw_AniDB_Staff> staff,
             List<Raw_AniDB_ResourceLink> resources,
             List<Raw_AniDB_RelatedAnime> rels, List<Raw_AniDB_SimilarAnime> sims,
-            List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth)
+            List<Raw_AniDB_Recommendation> recs, bool downloadRelations, int relDepth, bool createSeriesEntry)
         {
             logger.Trace("------------------------------------------------");
             logger.Trace($"PopulateAndSaveFromHTTP: for {animeInfo.AnimeID} - {animeInfo.MainTitle} @ Depth: {relDepth}/{ServerSettings.Instance.AniDb.MaxRelationDepth}");
@@ -907,7 +907,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             logger.Trace("CreateResources in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
 
-            CreateRelations(session, rels, downloadRelations, relDepth);
+            CreateRelations(session, rels, downloadRelations, relDepth, createSeriesEntry);
             taskTimer.Stop();
             logger.Trace("CreateRelations in : " + taskTimer.ElapsedMilliseconds);
             taskTimer.Restart();
@@ -1416,7 +1416,7 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
         }
 
         private void CreateRelations(ISession session, List<Raw_AniDB_RelatedAnime> rels, bool downloadRelations,
-            int relDepth)
+            int relDepth, bool createSeriesEntry)
         {
             if (rels == null) return;
 
@@ -1442,9 +1442,9 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
                     // I have disable the downloading of relations here because of banning issues
                     // basically we will download immediate relations, but not relations of relations
 
-                    //CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(rawrel.RelatedAnimeID, false, downloadRelations);
-                    CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID,
-                        false, false, relDepth + 1);
+                    // I have reverted the change. those who don't want to get banned can turn down the max relation depth.
+
+                    CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(anime_rel.RelatedAnimeID, false, downloadRelations, createSeriesEntry, relDepth + 1);
                     cmdsToSave.Add(cr_anime);
                 }
             }
