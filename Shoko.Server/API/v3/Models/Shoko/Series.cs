@@ -213,7 +213,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     {
                         Name = character.Name,
                         AlternateName = character.AlternateName,
-                        Image = new Image(xref.RoleID.Value, ImageEntityType.Character),
+                        Image = new Image(character.CharacterID, ImageEntityType.Character),
                         Description = character.Description
                     } : null,
                     Staff = new Role.Person
@@ -221,7 +221,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                         Name = staff.Name,
                         AlternateName = staff.AlternateName,
                         Description = staff.Description,
-                        Image = new Image(xref.StaffID, ImageEntityType.Staff),
+                        Image = staff.ImagePath != null ? new Image(staff.StaffID, ImageEntityType.Staff) : null,
                     },
                     RoleName = (Role.CreatorRoleType) xref.RoleType,
                     RoleDetails = xref.Role
