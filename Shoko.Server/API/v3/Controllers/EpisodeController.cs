@@ -141,5 +141,31 @@ namespace Shoko.Server.API.v3.Controllers
             return enumerable.Skip(pageSize * page).Take(pageSize)
                 .Select(a => new Episode(HttpContext, a)).ToList();
         }
+
+        /// <summary>
+        /// Get all episodes with no files.
+        /// </summary>
+        /// <param name="includeSpecials">Include specials in the list.</param>
+        /// <param name="onlyFinishedSeries">Only show episodes for completed series.</param>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("WithNoFiles")]
+        public List<Episode> GetMissingEpisodes([FromQuery] bool includeSpecials = false, [FromQuery] bool onlyFinishedSeries = false, [FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        {
+            IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials);
+            if (onlyFinishedSeries)
+            {
+                var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
+                    .ToDictionary(a => a.AnimeSeriesID, a => a.GetAnime().GetFinishedAiring());
+                enumerable = enumerable.Where(episode => (dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring));
+            }
+
+            if (pageSize <= 0)
+                return enumerable.Select(a => new Episode(HttpContext, a)).ToList();
+            if (page <= 0) page = 0;
+            return enumerable.Skip(pageSize * page).Take(pageSize)
+                .Select(a => new Episode(HttpContext, a)).ToList();
+        }
     }
 }
