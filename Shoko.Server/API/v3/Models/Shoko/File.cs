@@ -351,6 +351,26 @@ namespace Shoko.Server.API.v3.Models.Shoko
             }
 
             /// <summary>
+            /// Link a file to multiple episodes.
+            /// </summary>
+            public class LinkMultipleFilesBody
+            {
+                /// <summary>
+                /// An array of file identifiers to link in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
+
+                /// <summary>
+                /// The episode identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int episodeID { get; set; }
+            }
+
+            /// <summary>
             /// Link a file to an episode range in a series.
             /// </summary>
             public class LinkSeriesBody

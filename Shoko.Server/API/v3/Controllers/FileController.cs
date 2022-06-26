@@ -546,6 +546,50 @@ namespace Shoko.Server.API.v3.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Link multiple files to a single episode.
+        /// </summary>
+        /// <param name="body">The body.</param>
+        /// <returns></returns>
+        [HttpPost("Link")]
+        public ActionResult LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
+        {
+            if (body.fileIDs.Length == 0)
+                return BadRequest("`fileIDs` must contain at least one element.");
+
+            // Validate all the file ids.
+            var files = new List<SVR_VideoLocal>(body.fileIDs.Length);
+            for (int index = 0, fileID = body.fileIDs[0]; index < body.fileIDs.Length; fileID = body.fileIDs[++index])
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                if (file == null)
+                    return BadRequest($"Unable to find file entry for `fileIDs[{index}]`.");
+
+                files[index] = file;
+            }
+
+            var episode = RepoFactory.AnimeEpisode.GetByID(body.episodeID);
+            if (episode == null) return BadRequest("Unable to find episode entry");
+            var anidbEpisode = episode.AniDB_Episode;
+            if (anidbEpisode == null)
+                return InternalError("Could not find the AniDB entry for episode");
+
+            var fileCount = 1;
+            foreach (var file in files)
+            {
+                var command = new CommandRequest_LinkFileManually(file.VideoLocalID, episode.AnimeEpisodeID);
+                command.Percentage = (int)Math.Round((double)(fileCount / files.Count * 100));
+
+                if (RemoveXRefsForFile(file))
+                    return BadRequest($"Cannot remove associations created from AniDB data for file '{file.VideoLocalID}'");
+
+                fileCount++;
+                command.Save();
+            }
+
+            return Ok();
+        }
+
         [NonAction]
         private bool RemoveXRefsForFile(SVR_VideoLocal file)
         {
