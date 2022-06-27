@@ -290,6 +290,19 @@ namespace Shoko.Server.API.v3.Controllers
             Importer.UpdateAllStats();
             return Ok();
         }
+
+        /// <summary>
+        /// Update the AniDB Calendar data for use on the dashboard.
+        /// </summary>
+        /// <returns></returns>
+        [Authorize("admin")]
+        [HttpGet("UpdateAniDBCalendar")]
+        public ActionResult UpdateAniDBCalendarData()
+        {
+            Importer.CheckForCalendarUpdate(true);
+            return Ok();
+        }
+
         
         /// <summary>
         /// Queues a task to import only new files found in the import folder

@@ -12,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Models.Shoko
@@ -54,12 +55,31 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             var uid = ctx.GetUser()?.JMMUserID ?? 0;
             Watched = ep.GetVideoLocals().Select(v => v.GetUserRecord(uid)?.WatchedDate).Where(v => v.HasValue).OrderByDescending(v => v).FirstOrDefault();
-            Name = ep.Title;
+            Name = GetEpisodeTitle(ep.AniDB_EpisodeID);
 
             Size = ep.GetVideoLocals().Count;
         }
+        
+        
+        internal static string GetEpisodeTitle(int anidbEpisodeID)
+        {
+            // Try finding the 
+            var languages = Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language);
+            foreach (var language in languages)
+            {
+                var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language)
+                    .FirstOrDefault()?.Title;
+                if (!string.IsNullOrEmpty(title))
+                    return title;
+            }
 
-        private static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
+            // Fallback to English if available.
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, "EN")
+                .FirstOrDefault()
+                ?.Title;
+        }
+
+        internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
         {
             switch (episodeType)
             {
@@ -114,7 +134,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
 
                 ID = ep.EpisodeID;
-                Type = MapAniDBEpisodeType((AniDBEpisodeType)ep.EpisodeType);
+                Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
                 EpisodeNumber = ep.EpisodeNumber;
                 AirDate = ep.GetAirDateAsDate();
                 Description = ep.Description;

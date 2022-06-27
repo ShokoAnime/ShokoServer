@@ -174,5 +174,38 @@ namespace Shoko.Server.API.v3.Controllers
                 None = noneCount
             };
         }
+
+        /// <summary>
+        /// Get the next <paramref name="numberOfDays"/> from the AniDB Calendar.
+        /// </summary>
+        /// <param name="numberOfDays">Number of days to show.</param>
+        /// <param name="showAll">Show all series.</param>
+        /// <returns></returns>
+        [HttpGet("AniDBCalendar")]
+        public List<Dashboard.EpisodeDetails> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7, [FromQuery] bool showAll = false)
+        {
+            SVR_JMMUser user = HttpContext.GetUser();
+            var episodeList = RepoFactory.AniDB_Episode.GetForDate(DateTime.Today, DateTime.Today.AddDays(numberOfDays)).ToList();
+            var animeDict = episodeList
+                .Select(episode => RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID))
+                .Distinct()
+                .ToDictionary(anime => anime.AnimeID);
+            var seriesDict = episodeList
+                .Select(episode => RepoFactory.AnimeSeries.GetByAnimeID(episode.AnimeID))
+                .Where(series => series != null)
+                .Distinct()
+                .ToDictionary(anime => anime.AniDB_ID);
+            return episodeList
+                .Where(episode => user.AllowedAnime(animeDict[episode.AnimeID]) && (showAll || seriesDict.Keys.Contains(episode.AnimeID)))
+                .OrderBy(episode => episode.GetAirDateAsDate())
+                .Select(episode =>
+                {
+                    var anime = animeDict[episode.AnimeID];
+                    if (seriesDict.TryGetValue(episode.AnimeID, out var series))
+                        return new Dashboard.EpisodeDetails(episode, anime, series);
+                    return new Dashboard.EpisodeDetails(episode, anime);
+                })
+                .ToList();
+        }
     }
 }

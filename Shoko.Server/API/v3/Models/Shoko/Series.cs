@@ -324,10 +324,15 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         private static void AddAniDBPoster(HttpContext ctx, Images images, int animeID)
         {
+            images.Posters.Add(GetAniDBPoster(animeID));
+        }
+        
+        public static Image GetAniDBPoster(int animeID)
+        {
             var defaultImage = RepoFactory.AniDB_Anime_DefaultImage.GetByAnimeIDAndImagezSizeType(animeID,
                 ImageSizeType.Poster);
             bool preferred = defaultImage != null && defaultImage.ImageParentType == (int) ImageEntityType.AniDB_Cover;
-            images.Posters.Add(new Image(animeID, ImageEntityType.AniDB_Cover, preferred));
+            return new Image(animeID, ImageEntityType.AniDB_Cover, preferred);
         }
 
         private static void AddTvDBImages(HttpContext ctx, Images images, int animeID, bool includeDisabled = false)
