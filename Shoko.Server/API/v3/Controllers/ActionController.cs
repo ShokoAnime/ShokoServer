@@ -150,6 +150,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Gets files whose data does not match AniDB
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("AVDumpMismatchedFiles")]
         public ActionResult AVDumpMismatchedFiles()
         {
@@ -184,6 +185,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// C. If there was a catastrophic error.
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("DownloadMissingAniDBAnimeData")]
         public ActionResult UpdateMissingAniDBXML()
         {
@@ -227,6 +229,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// In those cases, you'd be told to.
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("RegenerateAllTvDBEpisodeMatchings")]
         public ActionResult RegenerateAllEpisodeLinks()
         {
@@ -251,6 +254,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// ONE WAY. THIS CAN ERASE ANIDB DATA IRREVERSIBLY
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("SyncMyList")]
         public ActionResult SyncMyList()
         {
@@ -262,6 +266,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Update All AniDB Series Info
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("UpdateAllAniDBInfo")]
         public ActionResult UpdateAllAniDBInfo()
         {
@@ -273,6 +278,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Queues a task to Update all media info
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("UpdateAllMediaInfo")]
         public ActionResult UpdateAllMediaInfo()
         {
@@ -284,6 +290,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Queues commands to Update All Series Stats and Force a Recalculation of All Group Filters
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("UpdateSeriesStats")]
         public ActionResult UpdateSeriesStats()
         {
@@ -308,6 +315,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// Queues a task to import only new files found in the import folder
         /// </summary>
         /// <returns></returns>
+        [Authorize("admin")]
         [HttpGet("ImportNewFiles")]
         public ActionResult ImportNewFiles()
         {
