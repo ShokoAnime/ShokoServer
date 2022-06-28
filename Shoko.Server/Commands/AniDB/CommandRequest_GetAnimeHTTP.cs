@@ -28,7 +28,7 @@ namespace Shoko.Server.Commands
 
         public int RelDepth { get; set; }
 
-        public bool CreateSeriesEntry { get; set; }
+        public bool CreateSeriesEntry { get; set; }
 
         public CommandRequest_GetAnimeHTTP()
         {
@@ -99,12 +99,14 @@ namespace Shoko.Server.Commands
                 // populate the fields
                 AnimeID = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(AnimeID)));
                 if (RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID) == null) Priority = (int) CommandRequestPriority.Priority1;
-                DownloadRelations =
-                    bool.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)));
-                ForceRefresh = bool.Parse(
-                    TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)));
-                RelDepth = int.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)));
-                CreateSeriesEntry = bool.Parse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)));
+                if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(DownloadRelations)), out var dlRelations))
+                    DownloadRelations = dlRelations;
+                if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(ForceRefresh)), out var force))
+                    ForceRefresh = force;
+                if (int.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(RelDepth)), out var depth))
+                    RelDepth = depth;
+                if (bool.TryParse(TryGetProperty(docCreator, nameof(CommandRequest_GetAnimeHTTP), nameof(CreateSeriesEntry)), out var create))
+                    CreateSeriesEntry = create;
             }
 
             return true;
