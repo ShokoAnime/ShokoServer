@@ -63,7 +63,7 @@ Name: "C:\ProgramData\ShokoServer"; Permissions: users-full
 
 [Files]
 Source: "..\..\ShokoServer\Installer\FixPermissions.bat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\Shoko.Server\bin\Release\net5.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Shoko.Server\bin\Release\net5.0-windows\win10-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Code]
 
