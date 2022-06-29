@@ -407,7 +407,11 @@ namespace Shoko.Server.Settings
             {
                 string onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
                 string inCode = Serialize(this, true);
-                if (!onDisk.Equals(inCode, StringComparison.Ordinal)) File.WriteAllText(path, inCode);
+                if (!onDisk.Equals(inCode, StringComparison.Ordinal))
+                {
+                    File.WriteAllText(path, inCode);
+                    ShokoEventHandler.Instance.OnSettingsSaved(onDisk, inCode);
+                }
             }
         }
 
