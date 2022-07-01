@@ -184,7 +184,10 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("RecentlyAddedEpisodes")]
         public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
         {
-            List<SVR_AnimeEpisode> episodeList = GetRecentlyAddedEpisodes()
+            List<SVR_AnimeEpisode> episodeList = RepoFactory.VideoLocal.Cache.Values
+                .OrderByDescending(f => f.DateTimeCreated)
+                .SelectMany(file => file.GetAnimeEpisodes())
+                .DistinctBy(episode => episode.AnimeEpisodeID)
                 .ToList();
             var seriesDict = episodeList
                 .Select(episode => episode.AnimeSeriesID)
@@ -214,13 +217,14 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("RecentlyAddedSeries")]
         public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
         {
-            var seriesList = GetRecentlyAddedEpisodes()
-                .Select(episode => episode.AnimeSeriesID)
+            var seriesList = RepoFactory.VideoLocal.Cache.Values
+                .OrderByDescending(f => f.DateTimeCreated)
+                .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
                 .Distinct()
                 .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
                 .Where(series => series != null)
                 .ToList();
-            
+
             if (pageSize <= 0)
                 return seriesList
                     .Select(a => new Series(HttpContext, a))
@@ -231,20 +235,6 @@ namespace Shoko.Server.API.v3.Controllers
                 .Take(pageSize)
                 .Select(a => new Series(HttpContext, a))
                 .ToList();
-        }
-        
-        /// <summary>
-        /// Get the most recently added episodes through the most recently added
-        /// files.
-        /// </summary>
-        /// <returns></returns>
-        [NonAction]
-        internal IEnumerable<SVR_AnimeEpisode> GetRecentlyAddedEpisodes()
-        {
-            return RepoFactory.VideoLocal.Cache.Values
-                .OrderByDescending(f => f.DateTimeCreated)
-                .SelectMany(f => f.GetAnimeEpisodes())
-                .DistinctBy(ep => ep.AnimeEpisodeID);
         }
 
         /// <summary>
