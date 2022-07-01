@@ -174,6 +174,78 @@ namespace Shoko.Server.API.v3.Controllers
                 None = noneCount
             };
         }
+        
+        /// <summary>
+        /// Get a list of recently added <see cref="Dashboard.EpisodeDetails"/>.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("RecentlyAddedEpisodes")]
+        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        {
+            List<SVR_AnimeEpisode> episodeList = GetRecentlyAddedEpisodes()
+                .ToList();
+            var seriesDict = episodeList
+                .Select(episode => episode.AnimeSeriesID)
+                .Distinct()
+                .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+                .Where(series => series != null)
+                .ToDictionary(series => series.AnimeSeriesID);
+
+            if (pageSize <= 0)
+                return episodeList
+                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                    .ToList();
+            if (page <= 0) page = 0;
+            return episodeList
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get a list of recently added <see cref="Series"/>.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("RecentlyAddedSeries")]
+        public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        {
+            var seriesList = GetRecentlyAddedEpisodes()
+                .Select(episode => episode.AnimeSeriesID)
+                .Distinct()
+                .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+                .Where(series => series != null)
+                .ToList();
+            
+            if (pageSize <= 0)
+                return seriesList
+                    .Select(a => new Series(HttpContext, a))
+                    .ToList();
+            if (page <= 0) page = 0;
+            return seriesList
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .Select(a => new Series(HttpContext, a))
+                .ToList();
+        }
+        
+        /// <summary>
+        /// Get the most recently added episodes through the most recently added
+        /// files.
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        internal IEnumerable<SVR_AnimeEpisode> GetRecentlyAddedEpisodes()
+        {
+            return RepoFactory.VideoLocal.Cache.Values
+                .OrderByDescending(f => f.DateTimeCreated)
+                .SelectMany(f => f.GetAnimeEpisodes())
+                .DistinctBy(ep => ep.AnimeEpisodeID);
+        }
 
         /// <summary>
         /// Get the next <paramref name="numberOfDays"/> from the AniDB Calendar.
