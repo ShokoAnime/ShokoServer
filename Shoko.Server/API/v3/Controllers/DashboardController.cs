@@ -184,7 +184,8 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("RecentlyAddedEpisodes")]
         public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 30, [FromQuery] int page = 0)
         {
-            List<SVR_AnimeEpisode> episodeList = RepoFactory.VideoLocal.Cache.Values
+            var user = HttpContext.GetUser();
+            var episodeList = RepoFactory.VideoLocal.Cache.Values
                 .OrderByDescending(f => f.DateTimeCreated)
                 .SelectMany(file => file.GetAnimeEpisodes())
                 .DistinctBy(episode => episode.AnimeEpisodeID)
@@ -198,10 +199,12 @@ namespace Shoko.Server.API.v3.Controllers
 
             if (pageSize <= 0)
                 return episodeList
+                    .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
                     .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
                     .ToList();
             if (page <= 0) page = 0;
             return episodeList
+                .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
                 .Skip(pageSize * page)
                 .Take(pageSize)
                 .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
@@ -217,13 +220,13 @@ namespace Shoko.Server.API.v3.Controllers
         [HttpGet("RecentlyAddedSeries")]
         public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 20, [FromQuery] int page = 0)
         {
+            var user = HttpContext.GetUser();
             var seriesList = RepoFactory.VideoLocal.Cache.Values
                 .OrderByDescending(f => f.DateTimeCreated)
                 .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
                 .Distinct()
                 .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
-                .Where(series => series != null)
-                .ToList();
+                .Where(series => series != null && user.AllowedSeries(series));
 
             if (pageSize <= 0)
                 return seriesList
