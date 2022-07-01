@@ -410,7 +410,7 @@ namespace Shoko.Server.Settings
                 if (!onDisk.Equals(inCode, StringComparison.Ordinal))
                 {
                     File.WriteAllText(path, inCode);
-                    ShokoEventHandler.Instance.OnSettingsSaved(onDisk, inCode);
+                    ShokoEventHandler.Instance.OnSettingsSaved();
                 }
             }
         }

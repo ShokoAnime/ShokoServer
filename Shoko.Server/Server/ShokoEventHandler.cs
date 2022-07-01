@@ -99,12 +99,11 @@ namespace Shoko.Server
             });
         }
 
-        internal void OnSettingsSaved(string before, string after)
+        internal void OnSettingsSaved()
         {
             SettingsSaved?.Invoke(null, new SettingsSavedEventArgs
             {
-                Before = before,
-                After = after,
+                
             });
         }
     }
