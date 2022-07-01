@@ -182,7 +182,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 30, [FromQuery] int page = 0)
         {
             List<SVR_AnimeEpisode> episodeList = RepoFactory.VideoLocal.Cache.Values
                 .OrderByDescending(f => f.DateTimeCreated)
@@ -215,7 +215,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedSeries")]
-        public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 100, [FromQuery] int page = 0)
+        public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 20, [FromQuery] int page = 0)
         {
             var seriesList = RepoFactory.VideoLocal.Cache.Values
                 .OrderByDescending(f => f.DateTimeCreated)
