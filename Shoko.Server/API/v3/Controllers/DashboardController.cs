@@ -251,7 +251,7 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocalUser.Cache.Values
-                .Where(userData => userData.WatchedDate == null && userData.ResumePosition != 0)
+                .Where(userData => userData.JMMUserID == user.JMMUserID && userData.WatchedDate == null && userData.ResumePosition != 0)
                 // TODO: order by last updated when a last updated timestamp have been added to the user data.
                 .OrderByDescending(userData => userData.VideoLocalID)
                 .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
