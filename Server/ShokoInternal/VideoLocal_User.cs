@@ -9,5 +9,7 @@ namespace Shoko.Models.Server
         public int VideoLocalID { get; set; }
         public DateTime? WatchedDate { get; set; }
         public long ResumePosition { get; set; }
+        public DateTime DateTimeUpdated { get; set; }
+        public int WatchedCount { get; set; }
     }
 }
