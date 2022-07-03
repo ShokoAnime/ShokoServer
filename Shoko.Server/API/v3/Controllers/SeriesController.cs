@@ -231,7 +231,7 @@ namespace Shoko.Server.API.v3.Controllers
                     var anime = unwatchedAnimeDict[similarTo.Key];
                     var recommendations = anime.GetRecommendations();
                     if (recommendationType.HasValue)
-                        recommendations = recommendations.Where(rec => rec.GetRecommendationTypeEnum() == (AniDBRecommendationType)recommendationType.Value).ToList();
+                        recommendations = recommendationType.Value == Series.AniDBRecommendationType.None ? new() : recommendations.Where(rec => rec.GetRecommendationTypeEnum() == (AniDBRecommendationType)recommendationType.Value).ToList();
                     return new Series.AniDBRecommendedForYou()
                     {
                         Anime = new Series.AniDB(HttpContext, anime),

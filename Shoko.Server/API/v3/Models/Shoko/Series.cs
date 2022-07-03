@@ -499,6 +499,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         [JsonConverter(typeof(StringEnumConverter))]
         public enum AniDBRecommendationType
         {
+            None = 0,
             ForFans = 1,
             Recommended = 2,
             MustSee = 3,
