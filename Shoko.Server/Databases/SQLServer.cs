@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 87;
+        public int RequiredVersion { get; } = 88;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -613,6 +613,10 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
             new DatabaseCommand(86, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
             new DatabaseCommand(87, 1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+            new DatabaseCommand(88, 1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
+            new DatabaseCommand(88, 2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
+            new DatabaseCommand(88, 3, "ALTER TABLE VideoLocal_User ADD DateTimeUpdated datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(88, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, DateTimeUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>

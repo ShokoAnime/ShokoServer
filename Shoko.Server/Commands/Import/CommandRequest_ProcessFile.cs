@@ -168,7 +168,10 @@ namespace Shoko.Server.Commands
                                 VideoLocalID = vidLocal.VideoLocalID,
                             };
 
+                            userRecord.WatchedCount++;
                             userRecord.WatchedDate = aniFile.WatchedDate ?? DateTime.Now;
+
+                            userRecord.DateTimeUpdated = DateTime.Now;
                             RepoFactory.VideoLocalUser.Save(userRecord);
                         }
                     }
@@ -201,8 +204,10 @@ namespace Shoko.Server.Commands
                             };
 
                             userRecord.WatchedDate = watchedRecord.WatchedDate;
+                            userRecord.WatchedCount = watchedRecord.WatchedCount;
                             userRecord.ResumePosition = watchedRecord.ResumePosition;
 
+                            userRecord.DateTimeUpdated = DateTime.Now;
                             RepoFactory.VideoLocalUser.Save(userRecord);
                         }
                     }

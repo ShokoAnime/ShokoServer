@@ -252,11 +252,11 @@ namespace Shoko.Server.API.v3.Controllers
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocalUser.Cache.Values
                 .Where(userData => userData.JMMUserID == user.JMMUserID && userData.WatchedDate == null && userData.ResumePosition != 0)
-                // TODO: order by last updated when a last updated timestamp have been added to the user data.
-                .OrderByDescending(userData => userData.VideoLocalID)
+                .OrderByDescending(userData => userData.DateTimeUpdated)
                 .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
                 .Where(file => file != null)
                 .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
+                .Where(xref => xref != null)
                 .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
                 .Where(episode => episode != null)
                 .DistinctBy(episode => episode.AnimeSeriesID)

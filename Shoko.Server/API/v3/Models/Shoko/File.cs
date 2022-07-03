@@ -39,7 +39,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// The last watched date for the current user. Is null if unwatched
         /// </summary>
-        /// <value></value>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? Watched { get; set; }
 
         /// <summary>
@@ -331,7 +331,45 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 SeriesIDs.AddRange(epIDs);
             }
         }
-        
+
+        /// <summary>
+        /// User stats for the file.
+        /// </summary>
+        public class FileUserStats
+        {
+            public FileUserStats(VideoLocal_User userStats)
+            {
+                ResumePosition = userStats.ResumePosition;
+                WatchedCount = userStats.WatchedCount;
+                LastWatchedAt = userStats.WatchedDate;
+                LastUpdatedAt = userStats.DateTimeUpdated;
+            }
+
+            /// <summary>
+            /// Number of ticks into the video to resume from. This is reset
+            /// upon completion.
+            /// </summary>
+            public long? ResumePosition { get; set; }
+
+            /// <summary>
+            /// Total number of times the file have been watched.
+            /// </summary>
+            public int WatchedCount { get; set; }
+
+            /// <summary>
+            /// When the file was last watched. Will be null if the full is
+            /// currently marked as unwatched.
+            /// </summary>
+            [JsonConverter(typeof(IsoDateTimeConverter))]
+            public DateTime? LastWatchedAt { get; set; }
+
+            /// <summary>
+            /// When the entry was last updated.
+            /// </summary>
+            [JsonConverter(typeof(IsoDateTimeConverter))]
+            public DateTime LastUpdatedAt { get; set; }
+        }
+
         /// <summary>
         /// Input models.
         /// </summary>

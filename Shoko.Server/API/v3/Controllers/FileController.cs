@@ -25,13 +25,15 @@ namespace Shoko.Server.API.v3.Controllers
     [Authorize]
     public class FileController : BaseController
     {
-        internal static string FileNotFoundWithFileID = "No File entry for the given episodeID";
+        internal static string FileNotFoundWithFileID = "No File entry for the given fileID";
+        
+        internal static string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
 
         internal static string FileNoPath = "Unable to get file path";
 
         internal static string FileForbiddenForUser = "Accessing File is not allowed for the current user";
 
-        internal static string AnidbNotFoundForFileID = "No File.Anidb entry for the given episodeID";
+        internal static string AnidbNotFoundForFileID = "No File.Anidb entry for the given fileID";
 
         /// <summary>
         /// Get File Details
@@ -112,6 +114,26 @@ namespace Shoko.Server.API.v3.Controllers
                 return InternalError("Unable to find media container for File");
 
             return mediaContainer;
+        }
+
+        /// <summary>
+        /// Return the user stats for the file with the given <paramref name="fileID"/>.
+        /// </summary>
+        /// <param name="fileID">Shoko file ID</param>
+        /// <returns>The user stats if found.</returns>
+        [HttpGet("{fileID}/UserStats")]
+        public ActionResult<File.FileUserStats> GetFileUserStats([FromRoute] int fileID)
+        {
+            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            if (file == null)
+                return NotFound(FileNotFoundWithFileID);
+
+            var user = HttpContext.GetUser(); 
+            var userStats = file.GetUserRecord(user.JMMUserID);
+            if (userStats == null)
+                return NotFound(FileUserStatsNotFoundWithFileID);
+
+            return new File.FileUserStats(userStats);
         }
 
         /// <summary>

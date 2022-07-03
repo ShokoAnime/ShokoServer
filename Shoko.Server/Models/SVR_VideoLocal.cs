@@ -151,13 +151,17 @@ namespace Shoko.Server.Models
             if (watched)
             {
                 if (vidUserRecord == null)
-                    vidUserRecord = new VideoLocal_User();
+                    vidUserRecord = new VideoLocal_User()
+                    {
+                        JMMUserID = userID,
+                        VideoLocalID = VideoLocalID,
+                    };
                 vidUserRecord.WatchedDate = DateTime.Now;
-                vidUserRecord.JMMUserID = userID;
-                vidUserRecord.VideoLocalID = VideoLocalID;
+                vidUserRecord.WatchedCount++;
 
                 if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
 
+                vidUserRecord.DateTimeUpdated = DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
             else
@@ -219,6 +223,8 @@ namespace Shoko.Server.Models
                 };
             else
                 vuser.ResumePosition = resumeposition;
+
+            vuser.DateTimeUpdated = DateTime.Now;
             RepoFactory.VideoLocalUser.Save(vuser);
         }
 
