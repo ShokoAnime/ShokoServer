@@ -492,7 +492,39 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public Rating Rating { get; set; }
 
         }
-        
+
+        /// <summary>
+        /// AniDB Recommendation Type.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum AniDBRecommendationType
+        {
+            ForFans = 1,
+            Recommended = 2,
+            MustSee = 3,
+        }
+
+        /// <summary>
+        /// The result entries for the "Recommended For You" algorithm.
+        /// </summary>
+        public class AniDBRecommendedForYou
+        {
+            /// <summary>
+            /// The recommended AniDB entry.
+            /// </summary>
+            public AniDB Anime;
+
+            /// <summary>
+            /// Number of similar anime that resulted in this recommendation.
+            /// </summary>
+            public int SimilarTo;
+
+            /// <summary>
+            /// Number of user recommendations that resulted in this recommendation.
+            /// </summary>
+            public int UserRecommendations;
+        }
+
         public class AniDBSearchResult
         {
             /// <summary>
