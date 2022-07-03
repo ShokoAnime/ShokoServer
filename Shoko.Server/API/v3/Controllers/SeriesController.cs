@@ -192,7 +192,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="showAll">If enabled will show recommendations across all the anidb available in Shoko, if disabled will only show for the user's collection.</param>
         /// <param name="startDate">Start date to use if recommending for a watch period. Only setting the <paramref name="startDate"/> and not <paramref name="endDate"/> will result in using the watch history from the start date to the present date.</param>
         /// <param name="endDate">End date to use if recommending for a watch period.</param>
-        /// <param name="approval">Minumum approval for similar animes.</param>
+        /// <param name="approval">Minumum approval percentage for similar animes.</param>
         /// <param name="recommendationType">Recommendation type for user reviews.</param>
         /// <returns></returns>
         [HttpGet("AniDB/RecommendedForYou")]
@@ -202,11 +202,11 @@ namespace Shoko.Server.API.v3.Controllers
             [FromQuery] bool showAll = false,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
-            [FromQuery] int? approval = null,
+            [FromQuery] double? approval = null,
             [FromQuery] Series.AniDBRecommendationType? recommendationType = null
         )
         {
-            if (approval.HasValue && approval <= 0)
+            if (approval.HasValue && (approval <= 0 || approval > 1))
                 approval = null;
             if (startDate.HasValue && !endDate.HasValue)
                 endDate = DateTime.Now;
@@ -224,7 +224,12 @@ namespace Shoko.Server.API.v3.Controllers
             var watchedAnimeList =  GetWatchedAnimeForPeriod(user, startDate, endDate);
             var unwatchedAnimeDict = GetUnwatchedAnime(user, showAll, !startDate.HasValue && !endDate.HasValue ? watchedAnimeList : null);
             var recommendations = watchedAnimeList
-                .SelectMany(anime => anime.GetSimilarAnime().Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID) && (approval.HasValue ? similar.Approval >= approval.Value : true)))
+                .SelectMany(anime => 
+                {
+                    if (approval.HasValue)
+                        return anime.GetSimilarAnime().Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID) && ((double)(similar.Approval / similar.Total) >= approval.Value));
+                    return anime.GetSimilarAnime().Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID));
+                })
                 .GroupBy(anime => anime.SimilarAnimeID)
                 .Select(similarTo =>
                 {
