@@ -101,10 +101,7 @@ namespace Shoko.Server
 
         internal void OnSettingsSaved()
         {
-            SettingsSaved?.Invoke(null, new SettingsSavedEventArgs
-            {
-                
-            });
+            SettingsSaved?.Invoke(null, new SettingsSavedEventArgs());
         }
     }
 }
