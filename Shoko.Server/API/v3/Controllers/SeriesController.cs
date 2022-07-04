@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Web;
@@ -197,8 +198,8 @@ namespace Shoko.Server.API.v3.Controllers
         /// <returns></returns>
         [HttpGet("AniDB/RecommendedForYou")]
         public ActionResult<List<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
-            [FromQuery] int pageSize = 30,
-            [FromQuery] int page = 0,
+            [FromQuery] [Range(0, 100)] int pageSize = 30,
+            [FromQuery] [Range(0, int.MaxValue)] int page = 0,
             [FromQuery] bool showAll = false,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -249,7 +250,6 @@ namespace Shoko.Server.API.v3.Controllers
             if (pageSize <= 0)
                 return recommendations
                     .ToList();
-            if (page <= 0) page = 0;
             return recommendations
                 .Skip(pageSize * page)
                 .Take(pageSize)
