@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -182,7 +183,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] int pageSize = 30, [FromQuery] int page = 0)
+        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocal.Cache.Values
@@ -218,7 +219,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("RecentlyAddedSeries")]
-        public List<Series> GetRecentlyAddedSeries([FromQuery] int pageSize = 20, [FromQuery] int page = 0)
+        public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
             var seriesList = RepoFactory.VideoLocal.Cache.Values
