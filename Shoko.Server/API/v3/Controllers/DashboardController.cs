@@ -192,23 +192,23 @@ namespace Shoko.Server.API.v3.Controllers
                 .DistinctBy(episode => episode.AnimeEpisodeID)
                 .ToList();
             var seriesDict = episodeList
-                .Select(episode => episode.AnimeSeriesID)
-                .Distinct()
-                .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
-                .Where(series => series != null)
+                .DistinctBy(episode => episode.AnimeSeriesID)
+                .Select(episode => episode.GetAnimeSeries())
+                .Where(series => series != null && user.AllowedSeries(series))
                 .ToDictionary(series => series.AnimeSeriesID);
+            var animeDict = seriesDict.Values
+                .ToDictionary(series => series.AnimeSeriesID, series => series.GetAnime());
 
             if (pageSize <= 0)
                 return episodeList
-                    .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
-                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                    .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
+                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
                     .ToList();
-            if (page <= 0) page = 0;
             return episodeList
-                .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
+                .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
                 .Skip(pageSize * page)
                 .Take(pageSize)
-                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
                 .ToList();
         }
 
@@ -233,7 +233,6 @@ namespace Shoko.Server.API.v3.Controllers
                 return seriesList
                     .Select(a => new Series(HttpContext, a))
                     .ToList();
-            if (page <= 0) page = 0;
             return seriesList
                 .Skip(pageSize * page)
                 .Take(pageSize)
