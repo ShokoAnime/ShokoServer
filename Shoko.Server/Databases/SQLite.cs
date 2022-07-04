@@ -554,8 +554,8 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(82, 1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
             new DatabaseCommand(83, 1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
             new DatabaseCommand(83, 2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
-            new DatabaseCommand(83, 3, "ALTER TABLE VideoLocal_User ADD DateTimeUpdated timestamp NOT NULL DEFAULT '2000-01-01 00:00:00';"),
-            new DatabaseCommand(83, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, DateTimeUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
+            new DatabaseCommand(83, 3, "ALTER TABLE VideoLocal_User ADD LastUpdated timestamp NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(83, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, LastUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
         };
 
         private static Tuple<bool, string> DropVideoLocal_Media(object connection)
