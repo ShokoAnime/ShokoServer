@@ -247,7 +247,7 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="page">Page number.</param>
         /// <returns></returns>
         [HttpGet("ContinueWatchingEpisodes")]
-        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] int pageSize = 20, [FromQuery] int page = 0)
+        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
             var episodeList = RepoFactory.VideoLocalUser.Cache.Values
@@ -271,7 +271,6 @@ namespace Shoko.Server.API.v3.Controllers
                     .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
                     .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
                     .ToList();
-            if (page <= 0) page = 0;
             return episodeList
                 .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
                 .Skip(pageSize * page)
