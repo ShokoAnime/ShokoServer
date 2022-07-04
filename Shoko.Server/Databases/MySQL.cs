@@ -637,7 +637,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(94, 1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
             new DatabaseCommand(95, 1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
             new DatabaseCommand(95, 2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
-            new DatabaseCommand(95, 3, "ALTER TABLE VideoLocal_User ADD DateTimeUpdated datetime NOT NULL DEFAULT '2000-01-01 00:00:00';"),
+            new DatabaseCommand(95, 3, "ALTER TABLE VideoLocal_User ADD DateTimeUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"),
             new DatabaseCommand(95, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, DateTimeUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
         };
 
