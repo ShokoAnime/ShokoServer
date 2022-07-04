@@ -161,7 +161,7 @@ namespace Shoko.Server.Models
 
                 if (watchedDate.HasValue && updateWatchedDate) vidUserRecord.WatchedDate = watchedDate.Value;
 
-                vidUserRecord.DateTimeUpdated = DateTime.Now;
+                vidUserRecord.LastUpdated = DateTime.Now;
                 RepoFactory.VideoLocalUser.Save(vidUserRecord);
             }
             else
@@ -224,7 +224,7 @@ namespace Shoko.Server.Models
             else
                 vuser.ResumePosition = resumeposition;
 
-            vuser.DateTimeUpdated = DateTime.Now;
+            vuser.LastUpdated = DateTime.Now;
             RepoFactory.VideoLocalUser.Save(vuser);
         }
 

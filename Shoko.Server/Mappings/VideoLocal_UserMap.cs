@@ -15,7 +15,7 @@ namespace Shoko.Server.Mappings
             Map(x => x.WatchedDate);
             Map(x => x.WatchedCount).Not.Nullable();
             Map(x => x.ResumePosition).Not.Nullable();
-            Map(x => x.DateTimeUpdated).Not.Nullable();
+            Map(x => x.LastUpdated).Not.Nullable();
         }
     }
 }

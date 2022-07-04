@@ -342,7 +342,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 ResumePosition = userStats.ResumePosition;
                 WatchedCount = userStats.WatchedCount;
                 LastWatchedAt = userStats.WatchedDate;
-                LastUpdatedAt = userStats.DateTimeUpdated;
+                LastUpdatedAt = userStats.LastUpdated;
             }
 
             /// <summary>
