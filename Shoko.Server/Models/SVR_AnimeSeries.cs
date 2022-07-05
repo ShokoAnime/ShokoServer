@@ -1019,23 +1019,22 @@ namespace Shoko.Server.Models
 
         public void MoveSeries(SVR_AnimeGroup newGroup)
         {
-            int oldGroupID = AnimeGroupID;
-
-            var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID)?.TopLevelAnimeGroup;
-            if (oldGroup?.GetAllSeries().Count <= 1)
-            {
-                // This series was the only one in this group. Delete it.
-                var childGroups = oldGroup.GetAllChildGroups();
-                RepoFactory.AnimeGroup.Delete(childGroups);
-            }
-            else
-            {
-                oldGroup?.UpdateStatsFromTopLevel(false, true, true);
-            }
-
+            // Update the stats for the series and group.
             AnimeGroupID = newGroup.AnimeGroupID;
-            // This also saves, so no need to do it separately
+            DateTimeUpdated = DateTime.Now;
             UpdateStats(true, true, true);
+
+            var oldGroup = RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+            if (oldGroup != null)
+            {
+                // This was the only one series in the group so delete the now orphan group.
+                if (oldGroup.GetAllSeries().Count == 0)
+                    oldGroup.DeleteGroup(false);
+                // Update the top group 
+                var topGroup = oldGroup.TopLevelAnimeGroup;
+                if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
+                    topGroup.UpdateStatsFromTopLevel(true, true, true);
+            }
         }
 
         public void QueueUpdateStats()

@@ -190,14 +190,9 @@ namespace Shoko.Server.API.v3.Controllers
                     continue;
                 // Delete the sub-groups if the old group doesn't contain any other series.
                 if (oldGroup.GetAllSeries().Count <= seriesCount)
-                {
-                    RepoFactory.AnimeGroup.Delete(oldGroup.GetAllChildGroups());
-                    RepoFactory.AnimeGroup.Delete(oldGroup);
-                }
+                    oldGroup.DeleteGroup();
                 else
-                {
-                    oldGroup.UpdateStatsFromTopLevel(false, true, true);
-                }
+                    oldGroup.TopLevelAnimeGroup.UpdateStatsFromTopLevel(false, true, true);
             }
 
             // Update the group stats for the new group.
@@ -243,12 +238,13 @@ namespace Shoko.Server.API.v3.Controllers
         {
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
             if (group == null)
-                return NotFound("No Group with ID");
+                return NotFound(GroupNotFound);
 
-            if (!deleteSeries && group.GetAllSeries().Any())
+            var seriesList = group.GetAllSeries();
+            if (!deleteSeries && seriesList.Count != 0)
                 return BadRequest($"{nameof(deleteSeries)} is not true, and the group contains series. Move them, or set {nameof(deleteSeries)} to true");
 
-            foreach (var series in group.GetAllSeries())
+            foreach (var series in seriesList)
                 series.DeleteSeries(deleteFiles, false);
 
             group.DeleteGroup();
