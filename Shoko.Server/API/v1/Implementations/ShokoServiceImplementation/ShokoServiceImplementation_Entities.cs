@@ -1892,20 +1892,11 @@ namespace Shoko.Server
             try
             {
                 SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(animeGroupID);
-                if (grp == null) return "Group does not exist";
+                if (grp == null)
+                    return "Group does not exist";
 
-                int? parentGroupID = grp.AnimeGroupParentID;
-
-                foreach (SVR_AnimeSeries ser in grp.GetAllSeries())
-                {
-                    DeleteAnimeSeries(ser.AnimeSeriesID, deleteFiles, false);
-                }
-
-                // delete all sub groups
-                foreach (SVR_AnimeGroup subGroup in grp.GetAllChildGroups())
-                {
-                    DeleteAnimeGroup(subGroup.AnimeGroupID, deleteFiles);
-                }
+                if (grp.GetAllSeries().Count != 0)
+                    return "Group must be empty to be deleted. Move the series out of the group first.";
 
                 grp.DeleteGroup();
 
@@ -2071,9 +2062,8 @@ namespace Shoko.Server
             };
             try
             {
-                SVR_AnimeSeries ser = null;
-
-                ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
+                // make sure the series exists
+                var ser = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
                 if (ser == null)
                 {
                     contractout.ErrorMessage = "Could not find existing series with ID: " + animeSeriesID;
@@ -2081,38 +2071,14 @@ namespace Shoko.Server
                 }
 
                 // make sure the group exists
-                SVR_AnimeGroup grpTemp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
-                if (grpTemp == null)
+                var grp = RepoFactory.AnimeGroup.GetByID(newAnimeGroupID);
+                if (grp == null)
                 {
                     contractout.ErrorMessage = "Could not find existing group with ID: " + newAnimeGroupID;
                     return contractout;
                 }
 
-                int oldGroupID = ser.AnimeGroupID;
-                ser.AnimeGroupID = newAnimeGroupID;
-                ser.DateTimeUpdated = DateTime.Now;
-
-                //              repSeries.Save(ser,false,false);
-
-                // update stats for new groups
-                //ser.TopLevelAnimeGroup.UpdateStatsFromTopLevel(true, true, true);
-
-                //Update and Save
-                ser.UpdateStats(true, true, true);
-
-                // update stats for old groups
-                SVR_AnimeGroup grp = RepoFactory.AnimeGroup.GetByID(oldGroupID);
-                if (grp != null)
-                {
-                    SVR_AnimeGroup topGroup = grp.TopLevelAnimeGroup;
-                    if (grp.GetAllSeries().Count == 0)
-                    {
-                        RepoFactory.AnimeGroup.Delete(grp.AnimeGroupID);
-                    }
-
-                    if (topGroup.AnimeGroupID != grp.AnimeGroupID)
-                        topGroup.UpdateStatsFromTopLevel(true, true, true);
-                }
+                ser.MoveSeries(grp);
 
                 SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 if (anime == null)
