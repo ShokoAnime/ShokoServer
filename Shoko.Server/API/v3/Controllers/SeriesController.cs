@@ -194,7 +194,6 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="startDate">Start date to use if recommending for a watch period. Only setting the <paramref name="startDate"/> and not <paramref name="endDate"/> will result in using the watch history from the start date to the present date.</param>
         /// <param name="endDate">End date to use if recommending for a watch period.</param>
         /// <param name="approval">Minumum approval percentage for similar animes.</param>
-        /// <param name="recommendationType">Recommendation type for user reviews.</param>
         /// <returns></returns>
         [HttpGet("AniDB/RecommendedForYou")]
         public ActionResult<List<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
@@ -203,12 +202,9 @@ namespace Shoko.Server.API.v3.Controllers
             [FromQuery] bool showAll = false,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
-            [FromQuery] double? approval = null,
-            [FromQuery] Series.AniDBRecommendationType? recommendationType = null
+            [FromQuery] [Range(0, 1)] double? approval = null
         )
         {
-            if (approval.HasValue && (approval <= 0 || approval > 1))
-                approval = null;
             if (startDate.HasValue && !endDate.HasValue)
                 endDate = DateTime.Now;
             if (endDate.HasValue && !startDate.HasValue)
@@ -235,17 +231,14 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(similarTo =>
                 {
                     var anime = unwatchedAnimeDict[similarTo.Key];
-                    var recommendations = anime.GetRecommendations();
-                    if (recommendationType.HasValue)
-                        recommendations = recommendationType.Value == Series.AniDBRecommendationType.None ? new() : recommendations.Where(rec => rec.GetRecommendationTypeEnum() == (AniDBRecommendationType)recommendationType.Value).ToList();
+                    var similarToCount = similarTo.Count();
                     return new Series.AniDBRecommendedForYou()
                     {
                         Anime = new Series.AniDB(HttpContext, anime),
-                        SimilarTo = similarTo.Count(),
-                        UserRecommendations = recommendations.Count(),
+                        SimilarTo = similarToCount,
                     };
                 })
-                .OrderByDescending(e => e.SimilarTo * e.UserRecommendations);
+                .OrderByDescending(e => e.SimilarTo);
 
             if (pageSize <= 0)
                 return recommendations

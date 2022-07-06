@@ -494,18 +494,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
         }
 
         /// <summary>
-        /// AniDB Recommendation Type.
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum AniDBRecommendationType
-        {
-            None = 0,
-            ForFans = 1,
-            Recommended = 2,
-            MustSee = 3,
-        }
-
-        /// <summary>
         /// The result entries for the "Recommended For You" algorithm.
         /// </summary>
         public class AniDBRecommendedForYou
@@ -519,11 +507,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// Number of similar anime that resulted in this recommendation.
             /// </summary>
             public int SimilarTo;
-
-            /// <summary>
-            /// Number of user recommendations that resulted in this recommendation.
-            /// </summary>
-            public int UserRecommendations;
         }
 
         public class AniDBSearchResult
