@@ -22,12 +22,12 @@ AllowNoIcons=yes
 OutputBaseFilename=Shoko_Server_Setup_{#AppVer}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 SolidCompression=yes
-Compression=lzma2/ultra64
 InternalCompressLevel=max
+Compression=lzma2/ultra64
 LZMAUseSeparateProcess=yes
 LZMANumBlockThreads=6
 LZMADictionarySize=1048576
-LZMANumFastBytes=273
+LZMANumFastBytes=273        
 PrivilegesRequired=admin
 
 [Languages]
@@ -59,7 +59,7 @@ Root: HKLM; Subkey: "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"; ValueNa
 
 [Dirs]
 Name: "{app}"; Permissions: users-full
-Name: "C:\ProgramData\ShokoServer"; Permissions: users-full
+Name: "{commonappdata}\ShokoServer"; Permissions: users-full
 
 [Files]
 Source: "..\..\ShokoServer\Installer\FixPermissions.bat"; DestDir: "{app}"; Flags: ignoreversion
