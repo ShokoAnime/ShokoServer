@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -173,6 +174,70 @@ namespace Shoko.Server.API.v3.Controllers
                 Other = otherCount,
                 None = noneCount
             };
+        }
+        
+        /// <summary>
+        /// Get a list of recently added <see cref="Dashboard.EpisodeDetails"/>.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("RecentlyAddedEpisodes")]
+        public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        {
+            var user = HttpContext.GetUser();
+            var episodeList = RepoFactory.VideoLocal.GetAll()
+                .OrderByDescending(f => f.DateTimeCreated)
+                .SelectMany(file => file.GetAnimeEpisodes())
+                .DistinctBy(episode => episode.AnimeEpisodeID)
+                .ToList();
+            var seriesDict = episodeList
+                .DistinctBy(episode => episode.AnimeSeriesID)
+                .Select(episode => episode.GetAnimeSeries())
+                .Where(series => series != null && user.AllowedSeries(series))
+                .ToDictionary(series => series.AnimeSeriesID);
+            var animeDict = seriesDict.Values
+                .ToDictionary(series => series.AnimeSeriesID, series => series.GetAnime());
+
+            if (pageSize <= 0)
+                return episodeList
+                    .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
+                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
+                    .ToList();
+            return episodeList
+                .Where(episode => seriesDict.Keys.Contains(episode.AnimeSeriesID))
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, animeDict[a.AnimeSeriesID], seriesDict[a.AnimeSeriesID]))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get a list of recently added <see cref="Series"/>.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("RecentlyAddedSeries")]
+        public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
+        {
+            var user = HttpContext.GetUser();
+            var seriesList = RepoFactory.VideoLocal.GetAll()
+                .OrderByDescending(f => f.DateTimeCreated)
+                .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
+                .Distinct()
+                .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
+                .Where(series => series != null && user.AllowedSeries(series));
+
+            if (pageSize <= 0)
+                return seriesList
+                    .Select(a => new Series(HttpContext, a))
+                    .ToList();
+            return seriesList
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .Select(a => new Series(HttpContext, a))
+                .ToList();
         }
 
         /// <summary>
