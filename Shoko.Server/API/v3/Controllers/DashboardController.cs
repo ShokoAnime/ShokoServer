@@ -186,7 +186,7 @@ namespace Shoko.Server.API.v3.Controllers
         public List<Dashboard.EpisodeDetails> GetRecentlyAddedEpisodes([FromQuery] [Range(0, 100)] int pageSize = 30, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
-            var episodeList = RepoFactory.VideoLocal.Cache.Values
+            var episodeList = RepoFactory.VideoLocal.GetAll()
                 .OrderByDescending(f => f.DateTimeCreated)
                 .SelectMany(file => file.GetAnimeEpisodes())
                 .DistinctBy(episode => episode.AnimeEpisodeID)
@@ -222,7 +222,7 @@ namespace Shoko.Server.API.v3.Controllers
         public List<Series> GetRecentlyAddedSeries([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, int.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
-            var seriesList = RepoFactory.VideoLocal.Cache.Values
+            var seriesList = RepoFactory.VideoLocal.GetAll()
                 .OrderByDescending(f => f.DateTimeCreated)
                 .SelectMany(file => file.GetAnimeEpisodes().Select(episode => episode.AnimeSeriesID))
                 .Distinct()
