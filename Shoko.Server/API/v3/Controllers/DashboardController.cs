@@ -250,8 +250,8 @@ namespace Shoko.Server.API.v3.Controllers
         public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0)
         {
             var user = HttpContext.GetUser();
-            var episodeList = RepoFactory.VideoLocalUser.Cache.Values
-                .Where(userData => userData.JMMUserID == user.JMMUserID && userData.WatchedDate == null && userData.ResumePosition != 0)
+            var episodeList = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID)
+                .Where(userData => userData.WatchedDate == null && userData.ResumePosition != 0)
                 .OrderByDescending(userData => userData.LastUpdated)
                 .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
                 .Where(file => file != null)
