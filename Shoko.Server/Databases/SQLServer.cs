@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases
     public class SQLServer : BaseDatabase<SqlConnection>, IDatabase
     {
         public string Name { get; } = "SQLServer";
-        public int RequiredVersion { get; } = 86;
+        public int RequiredVersion { get; } = 87;
 
         public void BackupDatabase(string fullfilename)
         {
@@ -612,6 +612,7 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(85, 1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
             new DatabaseCommand(86, 1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
             new DatabaseCommand(86, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
+            new DatabaseCommand(87, 1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
         };
 
         private List<DatabaseCommand> updateVersionTable = new List<DatabaseCommand>
