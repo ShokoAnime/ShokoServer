@@ -492,7 +492,23 @@ namespace Shoko.Server.API.v3.Models.Shoko
             public Rating Rating { get; set; }
 
         }
-        
+
+        /// <summary>
+        /// The result entries for the "Recommended For You" algorithm.
+        /// </summary>
+        public class AniDBRecommendedForYou
+        {
+            /// <summary>
+            /// The recommended AniDB entry.
+            /// </summary>
+            public AniDB Anime;
+
+            /// <summary>
+            /// Number of similar anime that resulted in this recommendation.
+            /// </summary>
+            public int SimilarTo;
+        }
+
         public class AniDBSearchResult
         {
             /// <summary>
