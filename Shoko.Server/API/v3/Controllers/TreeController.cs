@@ -105,9 +105,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// </summary>
         /// <param name="filterID"><see cref="Filter"/> ID</param>
         /// <param name="groupID"><see cref="Group"/> ID</param>
+        /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
         /// <returns></returns>
         [HttpGet("Filter/{filterID}/Group/{groupID}/Group")]
-        public ActionResult<List<Group>> GetFilteredSubGroups([FromRoute] int filterID, [FromRoute] int groupID)
+        public ActionResult<List<Group>> GetFilteredSubGroups([FromRoute] int filterID, [FromRoute] int groupID, [FromQuery] bool randomImages = false)
         {
             // Return sub-groups with no group filter applied.
             if (filterID == 0)
@@ -122,9 +123,9 @@ namespace Shoko.Server.API.v3.Controllers
             if (group == null)
                 return NotFound(GroupController.GroupNotFound);
 
-
+            // Just return early because the every gropup will be filtered out.
             if (!groupFilter.SeriesIds.TryGetValue(User.JMMUserID, out var seriesIDs))
-                seriesIDs = new();
+                return new List<Group>();
 
             return group.GetChildGroups()
                 .Where(subGroup =>
@@ -141,7 +142,7 @@ namespace Shoko.Server.API.v3.Controllers
                     return subGroup.GetAllSeries().Any(series => seriesIDs.Contains(series.AnimeSeriesID));
                 })
                 .OrderByGroupFilter(groupFilter)
-                .Select(group => new Group(HttpContext, group))
+                .Select(group => new Group(HttpContext, group, randomImages))
                 .ToList();
         }
 
@@ -154,9 +155,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// <param name="filterID"><see cref="Filter"/> ID</param>
         /// <param name="groupID"><see cref="Group"/> ID</param>
         /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
-        /// <returns></returns>
+        /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
+        /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
+        /// /// <returns></returns>
         [HttpGet("Filter/{filterID}/Group/{groupID}/Series")]
-        public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID, [FromQuery] bool recursive = false)
+        public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute] int filterID, [FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false)
         {
             // Return the groups with no group filter applied.
             if (filterID == 0)
@@ -177,8 +180,10 @@ namespace Shoko.Server.API.v3.Controllers
                     .Where(series => User.AllowedSeries(series))
                     .OrderBy(OrderByAirDate)
                     .Select(series => new Series(HttpContext, series))
+                    .Where(series => series.Size > 0 || includeMissing)
                     .ToList();
 
+            // Just return early because the every series will be filtered out.
             if (!groupFilter.SeriesIds.TryGetValue(User.JMMUserID, out var seriesIDs))
                 return new List<Series>();
 
@@ -186,6 +191,7 @@ namespace Shoko.Server.API.v3.Controllers
                 .Where(series => seriesIDs.Contains(series.AnimeSeriesID))
                 .OrderBy(OrderByAirDate)
                 .Select(series => new Series(HttpContext, series))
+                .Where(series => series.Size > 0 || includeMissing)
                 .ToList();
         }
 
@@ -196,9 +202,10 @@ namespace Shoko.Server.API.v3.Controllers
         /// Get a list of sub-<see cref="Group"/>s a the <see cref="Group"/>.
         /// </summary>
         /// <param name="groupID"></param>
+        /// <param name="randomImages">Randomise images shown for the <see cref="Group"/>.</param>
         /// <returns></returns>
         [HttpGet("Group/{groupID}/Group")]
-        public ActionResult<List<Group>> GetSubGroups([FromRoute] int groupID)
+        public ActionResult<List<Group>> GetSubGroups([FromRoute] int groupID, [FromQuery] bool randomImages = false)
         {
             // Check if the group exists.
             var group = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -206,9 +213,9 @@ namespace Shoko.Server.API.v3.Controllers
                 return NotFound(GroupController.GroupNotFound);
 
             return group.GetChildGroups()
-                .Where(a => User.AllowedGroup(a))
+                .Where(group => User.AllowedGroup(group))
                 .OrderBy(OrderByName)
-                .Select(series => new Group(HttpContext, series))
+                .Select(group => new Group(HttpContext, group, randomImages))
                 .ToList();
         }
 
@@ -221,10 +228,11 @@ namespace Shoko.Server.API.v3.Controllers
         /// </remarks>
         /// <param name="groupID"><see cref="Group"/> ID</param>
         /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
-        /// <param name="includeMissing">Include series with missing episodes in the list.</param>
+        /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
+        /// <param name="randomImages">Randomise images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
         /// <returns></returns>
         [HttpGet("Group/{groupID}/Series")]
-        public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false)
+        public ActionResult<List<Series>> GetSeriesInGroup([FromRoute] int groupID, [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false, [FromQuery] bool randomImages = false)
         {
             // Check if the group exists.
             var group = RepoFactory.AnimeGroup.GetByID(groupID);

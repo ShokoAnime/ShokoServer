@@ -65,7 +65,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public Series() {}
 
-        public Series(HttpContext ctx, SVR_AnimeSeries ser)
+        public Series(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false)
         {
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
 
@@ -76,7 +76,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             if (contract == null) ser.UpdateContract();
 
             IDs = GetIDs(ser);
-            Images = GetDefaultImages(ctx, ser);
+            Images = GetDefaultImages(ctx, ser, randomiseImages);
 
             Name = ser.GetSeriesName();
             Sizes = ModelHelper.GenerateSizes(ael, uid);
@@ -172,19 +172,19 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return defaultImage != null ? new Image(defaultImage.ImageParentID, (ImageEntityType) defaultImage.ImageParentType, true) : null;       
         }
 
-        public static Images GetDefaultImages(HttpContext ctx, SVR_AnimeSeries ser, bool randomizePoster = false)
+        public static Images GetDefaultImages(HttpContext ctx, SVR_AnimeSeries ser, bool randomiseImages = false)
         {
             var images = new Images();
-            var rand = ctx.Items["Random"] as Random;
+            var random = ctx.Items["Random"] as Random;
             var allImages = GetArt(ctx, ser.AniDB_ID);
 
-            var poster = GetDefaultImage(ser.AniDB_ID, ImageSizeType.Poster) ?? allImages.Posters.FirstOrDefault();
+            var poster = randomiseImages ? allImages.Posters.GetRandomElement(random) : GetDefaultImage(ser.AniDB_ID, ImageSizeType.Poster) ?? allImages.Posters.FirstOrDefault();
             if (poster != null) images.Posters.Add(poster);
 
-            var fanart = GetDefaultImage(ser.AniDB_ID, ImageSizeType.Fanart) ?? allImages.Fanarts.FirstOrDefault();
+            var fanart = randomiseImages ? allImages.Fanarts.GetRandomElement(random) : GetDefaultImage(ser.AniDB_ID, ImageSizeType.Fanart) ?? allImages.Fanarts.FirstOrDefault();
             if (fanart != null) images.Fanarts.Add(fanart);
 
-            var banner = GetDefaultImage(ser.AniDB_ID, ImageSizeType.WideBanner) ?? allImages.Banners.FirstOrDefault();
+            var banner = randomiseImages ? allImages.Banners.GetRandomElement(random) : GetDefaultImage(ser.AniDB_ID, ImageSizeType.WideBanner) ?? allImages.Banners.FirstOrDefault();
             if (banner != null) images.Banners.Add(banner);
 
             return images;
