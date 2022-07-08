@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -27,8 +28,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         /// </summary>
         protected override string BaseCommand => $"VOTE type=6&id={EpisodeID}&value={AniDBValue}";
 
-        protected override UDPBaseResponse<ResponseVote> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseVote> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             string[] parts = receivedData.Split('|');
             if (parts.Length != 4) throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData);
             if (!int.TryParse(parts[1], out int value)) throw new UnexpectedUDPResponseException("Value should be an int, but it's not", code, receivedData);

@@ -8,7 +8,8 @@ namespace Shoko.Server.Providers.AniDB
 {
     public abstract class ConnectionHandler
     {
-        protected ILogger<ConnectionHandler> Logger { get; set; } 
+        protected ILogger Logger { get; set; } 
+        internal ILoggerFactory LoggerFactory { get; set; }
         protected CommandProcessor GeneralQueue { get; set; }
         protected AniDBRateLimiter RateLimiter { get; set; }
         public abstract int BanTimerResetLength { get; }
@@ -89,9 +90,10 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public ConnectionHandler(ILogger<ConnectionHandler> logger, CommandProcessor queue, AniDBRateLimiter rateLimiter)
+        public ConnectionHandler(ILoggerFactory loggerFactory, CommandProcessor queue, AniDBRateLimiter rateLimiter)
         {
-            Logger = logger;
+            LoggerFactory = loggerFactory;
+            Logger = loggerFactory.CreateLogger(GetType());
             GeneralQueue = queue;
             RateLimiter = rateLimiter;
             BanResetTimer = new Timer

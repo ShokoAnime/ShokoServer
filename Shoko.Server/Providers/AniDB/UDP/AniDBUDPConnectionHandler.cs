@@ -62,7 +62,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(ILogger<AniDBUDPConnectionHandler> logger, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(logger, queue, rateLimiter)
+        public AniDBUDPConnectionHandler(ILoggerFactory loggerFactory, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(loggerFactory, queue, rateLimiter)
         {
             _socketHandler = socketHandler;
             Settings = settings;
@@ -193,7 +193,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
 
             // Check Ban State
             // Ideally, this will never happen, as we stop the queue and attempt a graceful rollback of the command
-            if (IsBanned) throw new UnexpectedUDPResponseException {ReturnCode = UDPReturnCode.BANNED};
+            if (IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
             // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
             // It wasn't handled before, and it's not caused serious problems
             if (IsInvalidSession) throw new NotLoggedInException();
@@ -277,6 +277,9 @@ namespace Shoko.Server.Providers.AniDB.UDP
             // if we get banned pause the command processor for a while
             // so we don't make the ban worse
             IsBanned = status == UDPReturnCode.BANNED;
+            
+            // if banned, then throw the ban exception. There will be no data in the response
+            if (IsBanned) throw new AniDBBannedException { BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength) };
 
             switch (status)
             {

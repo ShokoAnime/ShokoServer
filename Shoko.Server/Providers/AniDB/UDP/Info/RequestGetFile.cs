@@ -47,8 +47,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
 
         private static string PadByte(byte b) => b.ToString("X").PadLeft(2, '0');
 
-        protected override UDPBaseResponse<ResponseGetFile> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseGetFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.FILE:

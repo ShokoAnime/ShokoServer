@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User
@@ -6,8 +7,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
     public class RequestMyListStats : UDPBaseRequest<ResponseMyListStats>
     {
         protected override string BaseCommand => "MYLISTSTATS";
-        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseMyListStats> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             var parsedData = receivedData.Split('|').Select(a => !long.TryParse(a.Trim(), out var result) ? 0 : result)
                 .ToArray();
 

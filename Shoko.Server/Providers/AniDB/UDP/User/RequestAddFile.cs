@@ -40,8 +40,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.User
         public bool IsWatched { get; set; }
         public DateTime? WatchedDate { get; set; }
         
-        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<ResponseAddFile> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             switch (code)
             {
                 case UDPReturnCode.MYLIST_ENTRY_ADDED:

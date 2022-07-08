@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Generic
@@ -11,7 +12,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
         /// </summary>
         protected abstract string BaseCommand { get; }
 
-        protected abstract UDPBaseResponse<T> ParseResponse(UDPReturnCode code, string receivedData);
+        protected abstract UDPBaseResponse<T> ParseResponse(ILogger logger, UDPBaseResponse<string> response);
 
         protected static readonly Regex CommandRegex = new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
@@ -21,8 +22,9 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
             if (string.IsNullOrEmpty(handler.SessionID) && !handler.Login()) throw new NotLoggedInException();
             PreExecute(handler.SessionID);
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDP(Command);
-            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
-            PostExecute(handler.SessionID, response);
+            var logger = handler.LoggerFactory.CreateLogger(GetType());
+            var response = ParseResponse(logger, rawResponse);
+            PostExecute(logger, handler.SessionID, response);
             return response;
         }
 
@@ -34,7 +36,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
                 Command += $" s={sessionID}";
         }
 
-        protected virtual void PostExecute(string sessionID, UDPBaseResponse<T> response)
+        protected virtual void PostExecute(ILogger logger, string sessionID, UDPBaseResponse<T> response)
         {
         }
     }

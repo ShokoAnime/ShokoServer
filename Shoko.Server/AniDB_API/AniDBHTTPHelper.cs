@@ -157,7 +157,7 @@ namespace AniDBAPI
 
         public static Raw_AniDB_Anime ProcessAnimeDetails(XmlDocument docAnime, int animeID)
         {
-            // most of the genral anime data will be over written by the UDP command
+            // most of the general anime data will be overwritten by the UDP command
             Raw_AniDB_Anime anime = new Raw_AniDB_Anime
             {
                 AnimeID = animeID

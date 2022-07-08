@@ -8,8 +8,10 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
     {
         protected override string BaseCommand => "PING";
 
-        protected override UDPBaseResponse<Void> ParseResponse(UDPReturnCode code, string receivedData)
+        protected override UDPBaseResponse<Void> ParseResponse(ILogger logger, UDPBaseResponse<string> response)
         {
+            var code = response.Code;
+            var receivedData = response.Response;
             if (code != UDPReturnCode.PONG) throw new UnexpectedUDPResponseException(code, receivedData);
             return new UDPBaseResponse<Void> {Code = code};
         }
@@ -22,7 +24,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         public override UDPBaseResponse<Void> Execute(AniDBUDPConnectionHandler handler)
         {
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
-            var response = ParseResponse(rawResponse.Code, rawResponse.Response);
+            var logger = handler.LoggerFactory.CreateLogger(GetType());
+            var response = ParseResponse(logger, rawResponse);
             return response;
         }
     }
