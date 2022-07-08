@@ -8,7 +8,7 @@ namespace Shoko.Server.API.v3.Helpers
 {
     public static class APIGroupFilterSortingHelper
     {
-        public static IEnumerable<SVR_AnimeGroup> GroupFilterSort(this IEnumerable<SVR_AnimeGroup> groups, SVR_GroupFilter gf)
+        public static IEnumerable<SVR_AnimeGroup> OrderByGroupFilter(this IEnumerable<SVR_AnimeGroup> groups, SVR_GroupFilter gf)
         {
             bool isFirst = true;
             IEnumerable<SVR_AnimeGroup> query = groups;
@@ -18,6 +18,17 @@ namespace Shoko.Server.API.v3.Helpers
                 isFirst = false;
             }
             return query;
+        }
+        public static IEnumerable<SVR_AnimeSeries> OrderByGroupFilter(this IEnumerable<SVR_AnimeSeries> series, SVR_GroupFilter gf)
+        {
+            bool isFirst = true;
+            IEnumerable<SVR_AnimeSeries> result = series;
+            foreach (GroupFilterSortingCriteria gfsc in gf.SortCriteriaList)
+            {
+                result = Order(result, gfsc, isFirst);
+                isFirst = false;
+            }
+            return result;
         }
 
         private static IOrderedEnumerable<SVR_AnimeGroup> Order(IEnumerable<SVR_AnimeGroup> groups,
@@ -58,8 +69,44 @@ namespace Shoko.Server.API.v3.Helpers
             }
         }
 
-        private static IOrderedEnumerable<SVR_AnimeGroup> Order<T>(IEnumerable<SVR_AnimeGroup> groups,
-            Func<SVR_AnimeGroup, T> o,
+        private static IOrderedEnumerable<SVR_AnimeSeries> Order(IEnumerable<SVR_AnimeSeries> groups,
+            GroupFilterSortingCriteria gfsc, bool isFirst)
+        {
+            bool desc = gfsc.SortDirection == GroupFilterSortDirection.Desc;
+            switch (gfsc.SortType)
+            {
+                case GroupFilterSorting.Year:
+                    return Order(groups, a => a.Contract.AniDBAnime.AniDBAnime.AirDate, desc, isFirst);
+                case GroupFilterSorting.AniDBRating:
+                    return Order(groups, a => a.Contract.AniDBAnime.AniDBAnime.Rating, desc, isFirst);
+                case GroupFilterSorting.EpisodeAddedDate:
+                    return Order(groups, a => a.EpisodeAddedDate, desc, isFirst);
+                case GroupFilterSorting.EpisodeAirDate:
+                    return Order(groups, a => a.LatestEpisodeAirDate, desc, isFirst);
+                case GroupFilterSorting.EpisodeWatchedDate:
+                    return Order(groups, a => a.Contract.WatchedDate, desc, isFirst);
+                case GroupFilterSorting.MissingEpisodeCount:
+                    return Order(groups, a => a.MissingEpisodeCount, desc, isFirst);
+                case GroupFilterSorting.SeriesAddedDate:
+                    return Order(groups, a => a.Contract.DateTimeCreated, desc, isFirst);
+                case GroupFilterSorting.SeriesCount:
+                    return Order(groups, a => 1, desc, isFirst);
+                case GroupFilterSorting.SortName:
+                    return Order(groups, a => a.GetSeriesName(), desc, isFirst);
+                case GroupFilterSorting.UnwatchedEpisodeCount:
+                    return Order(groups, a => a.Contract.UnwatchedEpisodeCount, desc, isFirst);
+                case GroupFilterSorting.UserRating:
+                    return Order(groups, a => a.Contract.AniDBAnime.UserVote.VoteValue, desc, isFirst);
+                case GroupFilterSorting.GroupName:
+                case GroupFilterSorting.GroupFilterName:
+                    return Order(groups, a => a.GetSeriesName(), desc, isFirst);
+                default:
+                    return Order(groups, a => a.GetSeriesName(), desc, isFirst);
+            }
+        }
+
+        private static IOrderedEnumerable<U> Order<T, U>(IEnumerable<U> groups,
+            Func<U, T> o,
             bool descending, bool isFirst)
         {
             if (isFirst)
@@ -67,8 +114,8 @@ namespace Shoko.Server.API.v3.Helpers
                     ? groups.OrderByDescending(o) 
                     : groups.OrderBy(o);
             return descending
-                ? ((IOrderedEnumerable<SVR_AnimeGroup>) groups).ThenByDescending(o)
-                : ((IOrderedEnumerable<SVR_AnimeGroup>) groups).ThenBy(o);
+                ? ((IOrderedEnumerable<U>) groups).ThenByDescending(o)
+                : ((IOrderedEnumerable<U>) groups).ThenBy(o);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NutzCode.InMemoryIndex;
@@ -47,6 +48,18 @@ namespace Shoko.Server.Repositories
                 return Animes.GetMultiple(id);
             }
         }
+
+        public List<AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
+        {
+            lock (Cache)
+            {
+                return Cache.Values.Where(a => {
+                    var date = a.GetAirDateAsDate();
+                    return date.HasValue && date.Value >= startDate && date.Value <= endDate;
+                }).ToList();
+            }
+        }
+
 
         public List<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeid, int epnumber)
         {

@@ -34,9 +34,9 @@ namespace Shoko.Server.API
 {
     public class Startup
     {
-        public IWebHostEnvironment HostingEnvironment { get; }
-        public IConfiguration Configuration { get; }
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
+        private IWebHostEnvironment HostingEnvironment { get; }
+        private IConfiguration Configuration { get; }
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public Startup(IWebHostEnvironment env)
         {
@@ -79,6 +79,29 @@ namespace Shoko.Server.API
                         options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
                     }
 
+                    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme()
+                    {
+                        Description = "Shoko API Key Header",
+                        Name = "apikey",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = "apikey",
+                    });
+
+                    options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                    {
+                        {
+                            new OpenApiSecurityScheme {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id="ApiKey",
+                                },
+                            },
+                            new string[]{}
+                        },
+                    });
+
                     // add a custom operation filter which sets default values
                     //options.OperationFilter<SwaggerDefaultValues>();
 
@@ -108,7 +131,7 @@ namespace Shoko.Server.API
             });
 
             services.AddSingleton<QueueEmitter>();
-            //services.AddSingleton<AniDBEmitter>();
+            services.AddSingleton<LegacyAniDBEmitter>();
             services.AddSingleton<LoggingEmitter>();
 
             // allow CORS calls from other both local and non-local hosts
@@ -194,7 +217,7 @@ namespace Shoko.Server.API
                 catch (Exception e)
                 {
                     SentrySdk.CaptureException(e);
-                    _logger.Error(e);
+                    Logger.Error(e);
                     throw;
                 }
             });
@@ -238,7 +261,7 @@ namespace Shoko.Server.API
             app.UseEndpoints(conf =>
             {
                 conf.MapHub<QueueHub>("/signalr/events");
-                //conf.MapHub<AniDBHub>("/signalr/anidb");
+                conf.MapHub<LegacyAniDBHub>("/signalr/anidb");
                 conf.MapHub<LoggingHub>("/signalr/logging");
             });
 

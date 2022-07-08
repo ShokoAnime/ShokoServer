@@ -76,13 +76,9 @@ namespace Shoko.Server.Commands
 
                         SVR_AniDB_File.Populate(aniFile, fileInfo);
 
-                        //overwrite with local file name
-                        string localFileName = vlocal.FileName;
-                        aniFile.FileName = localFileName;
-
                         RepoFactory.AniDB_File.Save(aniFile, false);
                         aniFile.CreateLanguages();
-                        aniFile.CreateCrossEpisodes(localFileName);
+                        aniFile.CreateCrossEpisodes(vlocal.FileName);
 
                         SVR_AniDB_Anime anime = RepoFactory.AniDB_Anime.GetByAnimeID(aniFile.AnimeID);
                         if (anime != null) RepoFactory.AniDB_Anime.Save(anime);

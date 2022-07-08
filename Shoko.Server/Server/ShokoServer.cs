@@ -30,6 +30,7 @@ using Sentry;
 using Shoko.Commons.Properties;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Server.AniDB_API;
 using Shoko.Server.API;
 using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Commands;
@@ -42,6 +43,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 using Shoko.Server.UI;
 using Shoko.Server.Utilities;
@@ -108,18 +110,7 @@ namespace Shoko.Server.Server
             ServerSettings.ConfigureServices(services);
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
-            services.AddLogging(loggingBuilder => //add NLog based logging.
-            {
-                //NLog;
-                loggingBuilder.ClearProviders();
-#if DEBUG
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                loggingBuilder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
-                loggingBuilder.AddNLog(new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).Build());
-            });
+            services.AddSingleton(ShokoService.AnidbProcessor);
             Loader.Instance.Load(services);
         }
         
@@ -152,6 +143,13 @@ namespace Shoko.Server.Server
                 target.FileName = ServerSettings.ApplicationPath + "/logs/${shortdate}.log";
             }
 
+#if DEBUG
+            // Disable blackhole http info logs
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Microsoft.AspNetCore"))?.DisableLoggingForLevel(LogLevel.Info);
+            LogManager.Configuration.LoggingRules.FirstOrDefault(r => r.LoggerNamePattern.StartsWith("Shoko.Server.API.Authentication"))?.DisableLoggingForLevel(LogLevel.Info);
+            // Enable debug logging
+            LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Contains(target))?.EnableLoggingForLevel(LogLevel.Debug);
+#endif
  
             var signalrTarget =
                 new AsyncTargetWrapper(
@@ -167,7 +165,7 @@ namespace Shoko.Server.Server
             var rule = LogManager.Configuration.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b is FileTarget));
             if (rule == null) return;
             if (enabled)
-                rule.EnableLoggingForLevel(LogLevel.Trace);
+                rule.EnableLoggingForLevels(LogLevel.Trace, LogLevel.Debug);
             else
                 rule.DisableLoggingForLevel(LogLevel.Trace);
             LogManager.ReconfigExistingLoggers();
@@ -544,12 +542,12 @@ namespace Shoko.Server.Server
             }
         }
 
-        void WorkerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private static void WorkerFileEvents_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             logger.Info("Stopped thread for processing file creation events");
         }
 
-        void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
+        private static void WorkerFileEvents_DoWork(object sender, DoWorkEventArgs e)
         {
             logger.Info("Started thread for processing file events");
             FileSystemEventArgs evt;
@@ -562,62 +560,12 @@ namespace Shoko.Server.Server
                 logger.Error(exception);
                 evt = null;
             }
-            while(evt != null)
+            while (evt != null)
             {
                 try
                 {
                     // this is a message to stop processing
-                    if (evt == null)
-                    {
-                        return;
-                    }
-                    if (evt.ChangeType == WatcherChangeTypes.Created || evt.ChangeType == WatcherChangeTypes.Renamed)
-                    {
-                        // When the path that was created represents a directory we need to manually get the contained files to add.
-                        // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
-                        // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
-                        // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
-
-                        // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
-                        if (Directory.Exists(evt.FullPath)) // filter out invalid events
-                        {
-                            logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                            string[] files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
-
-                            foreach (string file in files)
-                            {
-                                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file, s)))
-                                {
-                                    logger.Info("Import exclusion, skipping file {0}", file);
-                                }
-                                else if (FileHashHelper.IsVideo(file))
-                                {
-                                    logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
-
-                                    CommandRequest_HashFile cmd = new CommandRequest_HashFile(file, false);
-                                    cmd.Save();
-                                }
-                            }
-                        }
-                        else if (File.Exists(evt.FullPath))
-                        {
-                            logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
-
-                            if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath, s)))
-                            {
-                                logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
-                            }
-                            else if (FileHashHelper.IsVideo(evt.FullPath))
-                            {
-                                logger.Info("Found file {0}", evt.FullPath);
-
-                                CommandRequest_HashFile cmd = new CommandRequest_HashFile(evt.FullPath, false);
-                                cmd.Save();
-                            }
-                        }
-                        // else it was deleted before we got here
-                    }
+                    ProcessFileEvent(evt);
                     queueFileEvents.Remove(evt);
                     try
                     {
@@ -640,6 +588,59 @@ namespace Shoko.Server.Server
                     evt = queueFileEvents.GetNextItem(); 
                 }
             }
+        }
+
+        private static void ProcessFileEvent(FileSystemEventArgs evt)
+        {
+            if (evt.ChangeType != WatcherChangeTypes.Created && evt.ChangeType != WatcherChangeTypes.Renamed) return;
+            // When the path that was created represents a directory we need to manually get the contained files to add.
+            // The reason for this is that when a directory is moved into a source directory (from the same drive) we will only recieve
+            // an event for the directory and not the contained files. However, if the folder is copied from a different drive then
+            // a create event will fire for the directory and each file contained within it (As they are all treated as separate operations)
+
+            // This is faster and doesn't throw on weird paths. I've had some UTF-16/UTF-32 paths cause serious issues
+            if (Directory.Exists(evt.FullPath)) // filter out invalid events
+            {
+                logger.Info("New folder detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                var files = Directory.GetFiles(evt.FullPath, "*.*", SearchOption.AllDirectories);
+
+                foreach (var file in files)
+                {
+                    if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(file, s)))
+                    {
+                        logger.Info("Import exclusion, skipping file {0}", file);
+                    }
+                    else if (FileHashHelper.IsVideo(file))
+                    {
+                        logger.Info("Found file {0} under folder {1}", file, evt.FullPath);
+
+                        var tup = VideoLocal_PlaceRepository.GetFromFullPath(file);
+                        ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(file));
+                        var cmd = new CommandRequest_HashFile(file, false);
+                        cmd.Save();
+                    }
+                }
+            }
+            else if (File.Exists(evt.FullPath))
+            {
+                logger.Info("New file detected: {0}: {1}", evt.FullPath, evt.ChangeType);
+
+                if (ServerSettings.Instance.Import.Exclude.Any(s => Regex.IsMatch(evt.FullPath, s)))
+                {
+                    logger.Info("Import exclusion, skipping file: {0}", evt.FullPath);
+                }
+                else if (FileHashHelper.IsVideo(evt.FullPath))
+                {
+                    logger.Info("Found file {0}", evt.FullPath);
+
+                    var tup = VideoLocal_PlaceRepository.GetFromFullPath(evt.FullPath);
+                    ShokoEventHandler.Instance.OnFileDetected(tup.Item1, new FileInfo(evt.FullPath));
+                    var cmd = new CommandRequest_HashFile(evt.FullPath, false);
+                    cmd.Save();
+                }
+            }
+            // else it was deleted before we got here
         }
 
         void InitCulture()
@@ -1287,11 +1288,7 @@ namespace Shoko.Server.Server
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-#if DEBUG
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-#else
-                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Error);
-#endif
                 }).UseNLog()
                 .UseSentry(
                     o =>
@@ -1760,7 +1757,7 @@ namespace Shoko.Server.Server
 
         private static void CreateTestCommandRequests()
         {
-            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true);
+            CommandRequest_GetAnimeHTTP cr_anime = new CommandRequest_GetAnimeHTTP(5415, false, true, false);
             cr_anime.Save();
 
             /*

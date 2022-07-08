@@ -20,6 +20,9 @@ namespace Shoko.Server.Plugin
         
         internal void Load(IServiceCollection serviceCollection)
         {
+            // add plugin api related things to service collection
+            serviceCollection.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
+
             var assemblies = new List<Assembly>();
             var assembly = Assembly.GetExecutingAssembly();
             var uri = new UriBuilder(assembly.GetName().CodeBase);

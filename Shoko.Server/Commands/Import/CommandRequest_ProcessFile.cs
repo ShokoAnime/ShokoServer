@@ -78,6 +78,8 @@ namespace Shoko.Server.Commands
                 //now that we have all the has info, we can get the AniDB Info
                 ProcessFile_AniDB(vlocal);
                 vlocal.Places.ForEach(a => { a.RenameAndMoveAsRequired(); });
+                
+                ShokoEventHandler.Instance.OnFileMatched(vlocal.GetBestVideoLocalPlace());
             }
             catch (Exception ex)
             {
@@ -148,7 +150,7 @@ namespace Shoko.Server.Commands
                         {
                             AniDB_Episode ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
 
-                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = ep == null;
+                            if (animeIDs.ContainsKey(xref.AnimeID)) animeIDs[xref.AnimeID] = animeIDs[xref.AnimeID] || ep == null;
                             else animeIDs.Add(xref.AnimeID, ep == null);
                         }
                     }
@@ -166,7 +168,10 @@ namespace Shoko.Server.Commands
                                 VideoLocalID = vidLocal.VideoLocalID,
                             };
 
+                            userRecord.WatchedCount++;
                             userRecord.WatchedDate = aniFile.WatchedDate ?? DateTime.Now;
+
+                            userRecord.LastUpdated = DateTime.Now;
                             RepoFactory.VideoLocalUser.Save(userRecord);
                         }
                     }
@@ -199,8 +204,10 @@ namespace Shoko.Server.Commands
                             };
 
                             userRecord.WatchedDate = watchedRecord.WatchedDate;
+                            userRecord.WatchedCount = watchedRecord.WatchedCount;
                             userRecord.ResumePosition = watchedRecord.ResumePosition;
 
+                            userRecord.LastUpdated = DateTime.Now;
                             RepoFactory.VideoLocalUser.Save(userRecord);
                         }
                     }
@@ -265,7 +272,7 @@ namespace Shoko.Server.Commands
                 {
                     logger.Warn($"Unable to create AniDB_Anime for file: {vidLocal.FileName}");
                     logger.Warn($"Queuing GET for AniDB_Anime: {animeID}");
-                    CommandRequest_GetAnimeHTTP animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true);
+                    CommandRequest_GetAnimeHTTP animeCommand = new CommandRequest_GetAnimeHTTP(animeID, true, true, ServerSettings.Instance.AniDb.AutomaticallyImportSeries);
                     animeCommand.Save();
                     return;
                 }
@@ -278,7 +285,7 @@ namespace Shoko.Server.Commands
                 {
                     // We will put UpdatedAt in the CreateAnimeSeriesAndGroup method, to ensure it exists at first write
                     ser = anime.CreateAnimeSeriesAndGroup();
-                    ser.CreateAnimeEpisodes();
+                    ser.CreateAnimeEpisodes(anime);
                 }
                 else
                 {
@@ -291,7 +298,7 @@ namespace Shoko.Server.Commands
                         {
                             logger.Info(
                                 $"Series {anime.MainTitle} needs episodes regenerated (an episode was added or deleted from AniDB)");
-                            ser.CreateAnimeEpisodes();
+                            ser.CreateAnimeEpisodes(anime);
                             ser.UpdatedAt = DateTime.Now;
                         }
                     }

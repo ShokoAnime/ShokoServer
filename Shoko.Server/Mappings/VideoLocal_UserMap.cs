@@ -13,7 +13,9 @@ namespace Shoko.Server.Mappings
             Map(x => x.JMMUserID).Not.Nullable();
             Map(x => x.VideoLocalID).Not.Nullable();
             Map(x => x.WatchedDate);
+            Map(x => x.WatchedCount).Not.Nullable();
             Map(x => x.ResumePosition).Not.Nullable();
+            Map(x => x.LastUpdated).Not.Nullable();
         }
     }
 }

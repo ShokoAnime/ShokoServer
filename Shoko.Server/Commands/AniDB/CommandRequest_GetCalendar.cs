@@ -83,8 +83,7 @@ namespace Shoko.Server.Commands
                         TimeSpan ts = DateTime.Now - update.UpdatedAt;
                         if (ts.TotalDays >= 2)
                         {
-                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true,
-                                false);
+                            CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
                             cmdAnime.Save();
                         }
                         else
@@ -102,8 +101,7 @@ namespace Shoko.Server.Commands
                     }
                     else
                     {
-                        CommandRequest_GetAnimeHTTP cmdAnime =
-                            new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false);
+                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(cal.AnimeID, true, false, false);
                         cmdAnime.Save();
                     }
                 }

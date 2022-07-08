@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases
     public class MySQL : BaseDatabase<MySqlConnection>, IDatabase
     {
         public string Name { get; } = "MySQL";
-        public int RequiredVersion { get; } = 93;
+        public int RequiredVersion { get; } = 95;
 
 
         private List<DatabaseCommand> createVersionTable = new List<DatabaseCommand>
@@ -634,6 +634,11 @@ namespace Shoko.Server.Databases
             new DatabaseCommand(92, 1, DropAniDBUniqueIndex),
             new DatabaseCommand(93, 1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` varchar(50) NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
             new DatabaseCommand(93, 2, DatabaseFixes.RefreshAniDBInfoFromXML),
+            new DatabaseCommand(94, 1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+            new DatabaseCommand(95, 1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
+            new DatabaseCommand(95, 2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
+            new DatabaseCommand(95, 3, "ALTER TABLE VideoLocal_User ADD LastUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"),
+            new DatabaseCommand(95, 4, "UPDATE VideoLocal_User SET WatchedCount = 1, LastUpdated = WatchedDate WHERE WatchedDate IS NOT NULL;"),
         };
 
         private DatabaseCommand linuxTableVersionsFix = new DatabaseCommand("RENAME TABLE versions TO Versions;");

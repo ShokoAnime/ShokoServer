@@ -124,7 +124,7 @@ namespace Shoko.Server.Commands
                     TimeSpan ts = DateTime.Now - update.UpdatedAt;
                     if (ts.TotalHours > 4)
                     {
-                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false);
+                        CommandRequest_GetAnimeHTTP cmdAnime = new CommandRequest_GetAnimeHTTP(animeID, true, false, false);
                         cmdAnime.Save();
                         countAnime++;
                     }

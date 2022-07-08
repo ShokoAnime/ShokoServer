@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
@@ -37,13 +39,13 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// <summary>
         /// The last watched date for the current user. Is null if unwatched
         /// </summary>
-        /// <value></value>
-        public DateTime? Watched { get; set; }
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? Watched { get; set; }
 
         /// <summary>
         /// Number of ticks into the video to resume from
         /// </summary>
-        public long? ResumePosition { get; set; }
+        public long? ResumePosition { get; set; }
         
         /// <summary>
         /// Try to fit this file's resolution to something like 1080p, 480p, etc
@@ -90,51 +92,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             return vl?.Media;
         }
 
-
-        /// <summary>
-        /// This isn't a list, because AniDB only has one File mapping, even if there are multiple episodes
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public static AniDB GetAniDBInfo(int id)
-        {
-            var vl = RepoFactory.VideoLocal.GetByID(id);
-            if (vl == null) return null;
-            var anidb = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-            // this will be true for all Manual Links
-            if (anidb == null) return null;
-
-            return new AniDB
-            {
-                Chaptered = anidb.IsChaptered == 1,
-                Duration = new TimeSpan(0, 0, anidb.File_LengthSeconds),
-                Resolution = anidb.File_VideoResolution,
-                VideoCodec = anidb.File_VideoCodec,
-                OriginalFileName = anidb.FileName,
-                Source = anidb.File_Source,
-                FileSize = anidb.FileSize,
-                ID = anidb.FileID,
-                ReleaseDate = anidb.File_ReleaseDate == 0
-                    ? null
-                    : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate),
-                IsCensored = anidb.IsCensored == 1,
-                IsDeprecated = anidb.IsDeprecated == 1,
-                Version = anidb.FileVersion,
-                Description = anidb.File_Description,
-                Updated = anidb.DateTimeUpdated,
-                ReleaseGroup = new AniDB.AniDBReleaseGroup
-                {
-                    ID = anidb.GroupID,
-                    Name = anidb.Anime_GroupName,
-                    ShortName = anidb.Anime_GroupNameShort
-                },
-                AudioCodecs = anidb.File_AudioCodec.Split(new[] {'\'', '`', '"'}, StringSplitOptions.RemoveEmptyEntries)
-                    .ToList(),
-                AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList(),
-                SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList()
-            };
-        }
-
         public class Location
         {
             /// <summary>
@@ -159,6 +116,34 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class AniDB
         {
+            public AniDB(SVR_AniDB_File anidb)
+            {
+                ID = anidb.FileID;
+                Source = anidb.File_Source;
+                ReleaseGroup = new AniDB.AniDBReleaseGroup
+                {
+                    ID = anidb.GroupID,
+                    Name = anidb.Anime_GroupName,
+                    ShortName = anidb.Anime_GroupNameShort,
+                };
+                ReleaseDate = anidb.File_ReleaseDate == 0 ? null : Commons.Utils.AniDB.GetAniDBDateAsDate(anidb.File_ReleaseDate);
+                Version = anidb.FileVersion;
+                IsDeprecated = anidb.IsDeprecated == 1;
+                IsCensored = anidb.IsCensored == 1;
+                Chaptered = anidb.IsChaptered == 1;
+                Duration = (new TimeSpan(0, 0, anidb.File_LengthSeconds));
+                Resolution = anidb.File_VideoResolution;
+                VideoCodec = anidb.File_VideoCodec;
+                OriginalFileName = anidb.FileName;
+                FileSize = anidb.FileSize;
+                Description = anidb.File_Description;
+                Updated = anidb.DateTimeUpdated;
+                AudioCodecs = anidb.File_AudioCodec.Split(new[] {'\'', '`', '"'}, StringSplitOptions.RemoveEmptyEntries)
+                    .ToList();
+                AudioLanguages = anidb.Languages.Select(a => a.LanguageName).ToList();
+                SubLanguages = anidb.Subtitles.Select(a => a.LanguageName).ToList();
+            }
+            
             /// <summary>
             /// The AniDB File ID
             /// </summary>
@@ -178,16 +163,16 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// The file's release date. This is probably not filled in
             /// </summary>
             public DateTime? ReleaseDate { get; set; }
-
-            /// <summary>
-            /// Is the file marked as deprecated. Generally, yes if there's a V2, and this isn't it
-            /// </summary>
-            public bool IsDeprecated { get; set; }
             
             /// <summary>
             /// The file's version, Usually 1, sometimes more when there are edits released later
             /// </summary>
             public int Version { get; set; }
+
+            /// <summary>
+            /// Is the file marked as deprecated. Generally, yes if there's a V2, and this isn't it
+            /// </summary>
+            public bool IsDeprecated { get; set; }
 
             /// <summary>
             /// Mostly applicable to hentai, but on occasion a TV release is censored enough to earn this.
@@ -344,6 +329,170 @@ namespace Shoko.Server.API.v3.Models.Shoko
                     };
                 });
                 SeriesIDs.AddRange(epIDs);
+            }
+        }
+
+        /// <summary>
+        /// User stats for the file.
+        /// </summary>
+        public class FileUserStats
+        {
+            public FileUserStats(VideoLocal_User userStats)
+            {
+                ResumePosition = userStats.ResumePosition;
+                WatchedCount = userStats.WatchedCount;
+                LastWatchedAt = userStats.WatchedDate;
+                LastUpdatedAt = userStats.LastUpdated;
+            }
+
+            /// <summary>
+            /// Number of ticks into the video to resume from. This is reset
+            /// upon completion.
+            /// </summary>
+            public long? ResumePosition { get; set; }
+
+            /// <summary>
+            /// Total number of times the file have been watched.
+            /// </summary>
+            public int WatchedCount { get; set; }
+
+            /// <summary>
+            /// When the file was last watched. Will be null if the full is
+            /// currently marked as unwatched.
+            /// </summary>
+            [JsonConverter(typeof(IsoDateTimeConverter))]
+            public DateTime? LastWatchedAt { get; set; }
+
+            /// <summary>
+            /// When the entry was last updated.
+            /// </summary>
+            [JsonConverter(typeof(IsoDateTimeConverter))]
+            public DateTime LastUpdatedAt { get; set; }
+        }
+
+        /// <summary>
+        /// Input models.
+        /// </summary>
+        public class Input
+        {
+            /// <summary>
+            /// Link a file to multiple episodes.
+            /// </summary>
+            public class LinkEpisodesBody
+            {
+                /// <summary>
+                /// An array of episode identifiers to link to the file.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] episodeIDs { get; set; }
+            }
+
+            /// <summary>
+            /// Link a file to multiple episodes.
+            /// </summary>
+            public class LinkMultipleFilesBody
+            {
+                /// <summary>
+                /// An array of file identifiers to link in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
+
+                /// <summary>
+                /// The episode identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int episodeID { get; set; }
+            }
+
+            /// <summary>
+            /// Link a file to an episode range in a series.
+            /// </summary>
+            public class LinkSeriesBody
+            {
+                /// <summary>
+                /// The series identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int seriesID { get; set; }
+
+                /// <summary>
+                /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public string rangeStart { get; set; }
+
+                /// <summary>
+                /// The end of the range of episodes to link to the file. The prefix used should be the same as in <see cref="rangeStart"/>.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public  string rangeEnd { get; set; }
+            }
+
+            /// <summary>
+            /// Link multiple files to an episode range in a series.
+            /// </summary>
+            public class LinkSeriesMultipleBody
+            {
+                /// <summary>
+                /// An array of file identifiers to link in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
+
+                /// <summary>
+                /// The series identifier.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int seriesID { get; set; }
+
+                /// <summary>
+                /// The start of the range of episodes to link to the file. Append a type prefix to use another episode type.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public string rangeStart { get; set; }
+
+                /// <summary>
+                /// If true then files will be linked to a single episode instead of a range spanning the amount of files to add.
+                /// </summary>
+                /// <value></value>
+                [DefaultValue(false)]
+                public bool singleEpisode { get; set; }
+            }
+
+            /// <summary>
+            /// Unlink the spesified episodes from a file.
+            /// </summary>
+            public class UnlinkEpisodesBody
+            {
+                /// <summary>
+                /// An array of episode identifiers to unlink from the file.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] episodeIDs { get; set; }
+            }
+
+            /// <summary>
+            /// Unlink multiple files in batch.
+            /// </summary>
+            public class UnlinkMultipleBody
+            {
+                /// <summary>
+                /// An array of file identifiers to unlink in batch.
+                /// </summary>
+                /// <value></value>
+                [Required]
+                public int[] fileIDs { get; set; }
             }
         }
     }

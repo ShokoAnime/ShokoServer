@@ -12,6 +12,7 @@ using Shoko.Models.Server;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Models.Shoko
@@ -54,12 +55,31 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
             var uid = ctx.GetUser()?.JMMUserID ?? 0;
             Watched = ep.GetVideoLocals().Select(v => v.GetUserRecord(uid)?.WatchedDate).Where(v => v.HasValue).OrderByDescending(v => v).FirstOrDefault();
-            Name = ep.Title;
+            Name = GetEpisodeTitle(ep.AniDB_EpisodeID);
 
             Size = ep.GetVideoLocals().Count;
         }
+        
+        
+        internal static string GetEpisodeTitle(int anidbEpisodeID)
+        {
+            // Try finding the 
+            var languages = Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language);
+            foreach (var language in languages)
+            {
+                var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, language)
+                    .FirstOrDefault()?.Title;
+                if (!string.IsNullOrEmpty(title))
+                    return title;
+            }
 
-        private static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
+            // Fallback to English if available.
+            return RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidbEpisodeID, "EN")
+                .FirstOrDefault()
+                ?.Title;
+        }
+
+        internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
         {
             switch (episodeType)
             {
@@ -77,78 +97,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
                 case AniDBEpisodeType.Other:
                     return EpisodeType.Unknown;
             }
-        }
-
-        public static AniDB GetAniDBInfo(AniDB_Episode ep)
-        {
-            decimal rating = 0;
-            int votes = 0;
-            try
-            {
-                rating = decimal.Parse(ep.Rating);
-                votes = int.Parse(ep.Votes);
-            }
-            catch {}
-
-            var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
-            return new AniDB
-            {
-                ID = ep.EpisodeID,
-                Type = MapAniDBEpisodeType((AniDBEpisodeType)ep.EpisodeType),
-                EpisodeNumber = ep.EpisodeNumber,
-                AirDate = ep.GetAirDateAsDate(),
-                Description = ep.Description,
-                Rating = new Rating
-                {
-                    Source = "AniDB",
-                    Value = rating,
-                    MaxValue = 10,
-                    Votes = votes
-                },
-                Titles = titles.Select(a => new Title
-                    {
-                        Name = a.Title,
-                        Language = a.Language.ToLower(),
-                        Default = false,
-                        Source = "AniDB",
-                    }
-                ).ToList(),
-            };
-        }
-
-        /// <summary>
-        /// Get TvDB data from AniDBEpisode ID
-        /// </summary>
-        /// <param name="id">AniDB Episode ID</param>
-        /// <returns></returns>
-        public static ActionResult<List<TvDB>> GetTvDBInfo(int id)
-        {
-            var tvdbEps = RepoFactory.CrossRef_AniDB_TvDB_Episode.GetByAniDBEpisodeID(id);
-            return tvdbEps.Select(a => RepoFactory.TvDB_Episode.GetByTvDBID(a.TvDBEpisodeID)).Where(a => a != null)
-                .Select(a =>
-                {
-                    Rating rating = a.Rating == null ? null : new Rating
-                    {
-                        Source = "TvDB",
-                        Value = a.Rating.Value,
-                        MaxValue = 10
-                    };
-                    return new TvDB
-                    {
-                        ID = a.Id,
-                        Season = a.SeasonNumber,
-                        Number = a.EpisodeNumber,
-                        AbsoluteNumber = a.AbsoluteNumber ?? 0,
-                        Title = a.EpisodeName,
-                        Description = a.Overview,
-                        AirDate = a.AirDate,
-                        Rating = rating,
-                        AirsAfterSeason = a.AirsAfterSeason ?? 0,
-                        AirsBeforeSeason = a.AirsBeforeSeason ?? 0,
-                        AirsBeforeEpisode = a.AirsBeforeEpisode ?? 0,
-                        Thumbnail = new Image(a.Id, ImageEntityType.TvDB_Episode, true)
-                    };
-                }).OrderBy(a => a.Season).ThenBy(a => a.ID).ThenBy(a => a.Number).ToList();
         }
 
         public static void AddEpisodeVote(HttpContext context, SVR_AnimeEpisode ep, int userID, Vote vote)
@@ -177,6 +125,36 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public class AniDB
         {
+            public AniDB(AniDB_Episode ep)
+            {
+                if (!decimal.TryParse(ep.Rating, out var rating))
+                    rating = 0;
+                if (!int.TryParse(ep.Votes, out var votes))
+                    votes = 0;
+                var titles = RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.EpisodeID);
+
+                ID = ep.EpisodeID;
+                Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
+                EpisodeNumber = ep.EpisodeNumber;
+                AirDate = ep.GetAirDateAsDate();
+                Description = ep.Description;
+                Rating = new Rating
+                {
+                    MaxValue = 10,
+                    Value = rating,
+                    Votes = votes,
+                    Source = "AniDB",
+                };
+                Titles = titles.Select(a => new Title
+                    {
+                        Name = a.Title,
+                        Language = a.Language.ToLower(),
+                        Default = false,
+                        Source = "AniDB",
+                    }
+                ).ToList();
+            }
+
             /// <summary>
             /// AniDB Episode ID
             /// </summary>
@@ -216,6 +194,28 @@ namespace Shoko.Server.API.v3.Models.Shoko
 
         public class TvDB
         {
+            public TvDB(TvDB_Episode tvDBEpisode)
+            {
+                Rating rating = tvDBEpisode.Rating == null ? null : new Rating
+                {
+                    MaxValue = 10,
+                    Value = tvDBEpisode.Rating.Value,
+                    Source = "TvDB",
+                };
+                ID = tvDBEpisode.Id;
+                Season = tvDBEpisode.SeasonNumber;
+                Number = tvDBEpisode.EpisodeNumber;
+                AbsoluteNumber = tvDBEpisode.AbsoluteNumber ?? 0;
+                Title = tvDBEpisode.EpisodeName;
+                Description = tvDBEpisode.Overview;
+                AirDate = tvDBEpisode.AirDate;
+                Rating = rating;
+                AirsAfterSeason = tvDBEpisode.AirsAfterSeason ?? 0;
+                AirsBeforeSeason = tvDBEpisode.AirsBeforeSeason ?? 0;
+                AirsBeforeEpisode = tvDBEpisode.AirsBeforeEpisode ?? 0;
+                Thumbnail = (new Image(tvDBEpisode.Id, ImageEntityType.TvDB_Episode, true));
+            }
+            
             /// <summary>
             /// TvDB Episode ID
             /// </summary>

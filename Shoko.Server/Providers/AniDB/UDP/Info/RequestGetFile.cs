@@ -185,8 +185,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Info
                 case "dvd": return GetFile_Source.DVD;
                 case "bluray": return GetFile_Source.BluRay;
                 case "vhs": return GetFile_Source.VHS;
-                case "hkdvd": return GetFile_Source.HDDVD;
-                case "hddvd": return GetFile_Source.HKDVD;
+                case "hkdvd": return GetFile_Source.HKDVD;
+                case "hddvd": return GetFile_Source.HDDVD;
                 case "hdtv": return GetFile_Source.HDTV;
                 case "dtv": return GetFile_Source.DTV;
                 case "camcorder": return GetFile_Source.Camcorder;

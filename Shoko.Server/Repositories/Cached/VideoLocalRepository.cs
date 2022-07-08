@@ -310,7 +310,7 @@ namespace Shoko.Server.Repositories.Cached
 
         public List<SVR_VideoLocal> GetMostRecentlyAdded(int take, int skip, int jmmuserID = -1)
         {
-            if (skip > 0) skip = 0;
+            if (skip < 0) skip = 0;
             if (take == 0) return new List<SVR_VideoLocal>();
             
             SVR_JMMUser user = jmmuserID == -1 ? null : RepoFactory.JMMUser.GetByID(jmmuserID);

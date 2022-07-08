@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Models.Enums;
 using Shoko.Models.Server;
 
 namespace Shoko.Server.Repositories.Cached
@@ -9,9 +10,20 @@ namespace Shoko.Server.Repositories.Cached
     {
         private PocoIndex<int, AniDB_Anime_DefaultImage, int> Animes;
 
-        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, int imageType)
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeType(int animeid, ImageSizeType imageType)
         {
-            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.ImageType == imageType);
+            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.ImageType == (int) imageType);
+        }
+
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImagezSizeTypeAndImageEntityType(int animeid, ImageSizeType imageType, ImageEntityType entityType)
+        {
+            var defaultImage = GetByAnimeIDAndImagezSizeType(animeid, imageType);
+            return defaultImage != null && defaultImage.ImageParentType == (int) entityType ? defaultImage : null;
+        }
+
+        public AniDB_Anime_DefaultImage GetByAnimeIDAndImageEntityType(int animeid, ImageEntityType entityType)
+        {
+            return Animes.GetMultiple(animeid).FirstOrDefault(a => a.ImageParentType == (int) entityType);
         }
 
         public List<AniDB_Anime_DefaultImage> GetByAnimeID(int id)

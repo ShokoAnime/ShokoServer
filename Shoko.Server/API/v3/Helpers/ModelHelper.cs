@@ -8,6 +8,48 @@ namespace Shoko.Server.API.v3.Helpers
 {
     public static class ModelHelper
     {
+        public static (int, EpisodeType?, string) GetEpisodeNumberAndTypeFromInput(string input)
+        {
+            EpisodeType? episodeType = null;
+            if (!int.TryParse(input, out int episodeNumber))
+            {
+                var maybeType = input[0];
+                var maybeRangeStart = input.Substring(1);
+                if (!int.TryParse(maybeRangeStart, out episodeNumber))
+                    return (0, null, "Unable to parse an int from `{VariableName}`");
+
+                episodeType = maybeType switch
+                {
+                    'S' => EpisodeType.Special,
+                    'C' => EpisodeType.Credits,
+                    'T' => EpisodeType.Trailer,
+                    'P' => EpisodeType.Parody,
+                    'O' => EpisodeType.Other,
+                    'E' => EpisodeType.Episode,
+                    _ => null,
+                };
+                if (!episodeType.HasValue) {
+                    return (0, null, $"Unknown episode type '{maybeType}' number in `{{VariableName}}`.");
+                }
+            }
+            return (episodeNumber, episodeType, null);
+        }
+        
+        public static int GetTotalEpisodesForType(List<SVR_AnimeEpisode> ael, EpisodeType episodeType)
+        {
+            var sizes = Helpers.ModelHelper.GenerateSizes(ael, 0);
+            return episodeType switch
+            {
+                EpisodeType.Episode => sizes.Total.Episodes,
+                EpisodeType.Special => sizes.Total.Specials,
+                EpisodeType.Credits => sizes.Total.Credits,
+                EpisodeType.Trailer => sizes.Total.Trailers,
+                EpisodeType.Parody => sizes.Total.Parodies,
+                EpisodeType.Other => sizes.Total.Others,
+                _ => 0,
+            };
+        }
+
         public static Sizes GenerateSizes(List<SVR_AnimeEpisode> ael, int uid)
         {
             int eps = 0;

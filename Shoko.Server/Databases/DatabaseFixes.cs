@@ -19,6 +19,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Databases
 {
@@ -351,7 +352,7 @@ namespace Shoko.Server.Databases
                     logger.Info($"Recreating Episodes for {anime.MainTitle}");
                     SVR_AnimeSeries series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                     if (series == null) continue;
-                    series.CreateAnimeEpisodes();
+                    series.CreateAnimeEpisodes(anime);
                 }
                 catch (Exception e)
                 {
@@ -530,7 +531,7 @@ namespace Shoko.Server.Databases
                     if (getAnimeCmd.Anime == null) continue;
                     using (var session = DatabaseFactory.SessionFactory.OpenSession())
                     {
-                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0);
+                        ShokoService.AnidbProcessor.SaveResultsForAnimeXML(session, animeID, false, false, getAnimeCmd, 0, false);
                     }
                 }
                 catch (Exception e)
@@ -749,6 +750,38 @@ namespace Shoko.Server.Databases
 
         public static void DummyMigrationOfObsoletion()
         {
+        }
+
+        public static void EnsureNoOrphanedGroupsOrSeries()
+        {
+            var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.GetAllSeries().Count == 0).ToArray();
+            RepoFactory.AnimeGroup.Delete(emptyGroups);
+            var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroup == null).ToArray();
+            var groupCreator = new AnimeGroupCreator();
+            using var session = DatabaseFactory.SessionFactory.OpenSession();
+            foreach (var series in orphanedSeries)
+            {
+                try
+                {
+                    var group = groupCreator.GetOrCreateSingleGroupForSeries(session.Wrap(), series);
+                    series.AnimeGroupID = group.AnimeGroupID;
+                    RepoFactory.AnimeSeries.Save(series, false, false);
+                }
+                catch (Exception e)
+                {
+                    var name = "";
+                    try
+                    {
+                        name = series.GetSeriesName();
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    logger.Error(e, $"Unable to update group for orphaned series: AniDB ID: {series.AniDB_ID} SeriesID: {series.AnimeSeriesID} Series Name: {name}");
+                }
+            }
         }
     }
 }

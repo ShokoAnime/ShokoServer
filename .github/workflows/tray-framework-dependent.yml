@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '5.0.x' ]
+        dotnet: [ '6.x' ]
 
     name: Shoko Tray Service Framework Dependent build
 

@@ -14,7 +14,7 @@ namespace Shoko.Server
         public static readonly TagFilter<string> String = new(s => s.ToLowerInvariant(), s => s.ToLowerInvariant());
 
         [Flags]
-        public enum Filter : long
+        public enum Filter : ulong
         {
             None = 0,
             AnidbInternal = 1 << 0,
@@ -27,7 +27,7 @@ namespace Shoko.Server
             Genre = 1 << 7,
 
             // This should always be last, if we get that many categories, then we should redesign this
-            Invert = 1 << 31,
+            Invert = 1L << 31,  // without L Invert is still intiger and it returns after bitshift -2147483648
         }
 
         public static readonly HashSet<string> TagBlacklistAniDBHelpers = new()
