@@ -18,6 +18,7 @@ namespace Shoko.Server
         public event EventHandler<AniDBBannedEventArgs> AniDBBanned;
         public event EventHandler<SeriesInfoUpdatedEventArgs> SeriesUpdated;
         public event EventHandler<EpisodeInfoUpdatedEventArgs> EpisodeUpdated;
+        public event EventHandler<SettingsSavedEventArgs> SettingsSaved;
 
         private static ShokoEventHandler _instance;
         public static ShokoEventHandler Instance
@@ -96,6 +97,11 @@ namespace Shoko.Server
                 AnimeInfo = anime,
                 EpisodeInfo = episode,
             });
+        }
+
+        internal void OnSettingsSaved()
+        {
+            SettingsSaved?.Invoke(null, new SettingsSavedEventArgs());
         }
     }
 }

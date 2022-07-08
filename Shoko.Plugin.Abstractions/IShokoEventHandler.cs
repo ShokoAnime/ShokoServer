@@ -30,5 +30,9 @@ namespace Shoko.Plugin.Abstractions
         /// Fired on episode info updates. Currently, AniDB, TvDB, etc will trigger this.
         /// </summary>
         event EventHandler<EpisodeInfoUpdatedEventArgs> EpisodeUpdated;
+        /// <summary>
+        /// Fired when the core settings has been saved.
+        /// </summary>
+        event EventHandler<SettingsSavedEventArgs> SettingsSaved;
     }
 }
