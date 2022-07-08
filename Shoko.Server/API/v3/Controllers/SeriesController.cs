@@ -261,10 +261,13 @@ namespace Shoko.Server.API.v3.Controllers
         [NonAction]
         private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null, DateTime? endDate = null)
         {
-            var userDataQuery = RepoFactory.VideoLocalUser.Cache.Values
-                .Where(userData => userData.JMMUserID == user.JMMUserID && userData.WatchedDate.HasValue);
+            IEnumerable<Shoko.Models.Server.VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
             if (startDate.HasValue && endDate.HasValue)
-                userDataQuery = userDataQuery.Where(userData => userData.WatchedDate.Value >= startDate.Value && userData.WatchedDate.Value <= endDate.Value);
+                userDataQuery = userDataQuery
+                    .Where(userData => userData.WatchedDate.HasValue && userData.WatchedDate.Value >= startDate.Value && userData.WatchedDate.Value <= endDate.Value);
+            else
+                userDataQuery = userDataQuery
+                    .Where(userData => userData.WatchedDate.HasValue);
             return userDataQuery
                 .OrderByDescending(userData => userData.LastUpdated)
                 .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
@@ -294,11 +297,11 @@ namespace Shoko.Server.API.v3.Controllers
                 .ToHashSet();
 
             if (showAll)
-                return RepoFactory.AniDB_Anime.Cache.Values
+                return RepoFactory.AniDB_Anime.GetAll()
                     .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID))
                     .ToDictionary(anime => anime.AnimeID);
 
-            return RepoFactory.AnimeSeries.Cache.Values
+            return RepoFactory.AnimeSeries.GetAll()
                 .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
                 .ToDictionary(series => series.AniDB_ID, series => series.GetAnime());
         }
