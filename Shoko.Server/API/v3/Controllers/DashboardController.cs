@@ -241,6 +241,45 @@ namespace Shoko.Server.API.v3.Controllers
         }
 
         /// <summary>
+        /// Get a list of the episodes to continue watching (soon-to-be) in recently watched order.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <returns></returns>
+        [HttpGet("ContinueWatchingEpisodes")]
+        public List<Dashboard.EpisodeDetails> GetContinueWatchingEpisodes([FromQuery] [Range(0, 100)] int pageSize = 20, [FromQuery] [Range(0, Int16.MaxValue)] int page = 0)
+        {
+            var user = HttpContext.GetUser();
+            var episodeList = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID)
+                .Where(userData => userData.WatchedDate == null && userData.ResumePosition != 0)
+                .OrderByDescending(userData => userData.LastUpdated)
+                .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
+                .Where(file => file != null)
+                .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
+                .Where(xref => xref != null)
+                .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
+                .Where(episode => episode != null)
+                .DistinctBy(episode => episode.AnimeSeriesID)
+                .ToList();
+            var seriesDict = episodeList
+                .Select(episode => episode.GetAnimeSeries())
+                .Where(series => series != null)
+                .ToDictionary(series => series.AnimeSeriesID);
+
+            if (pageSize <= 0)
+                return episodeList
+                    .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
+                    .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                    .ToList();
+            return episodeList
+                .Where(episode => user.AllowedSeries(seriesDict[episode.AnimeSeriesID]))
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .Select(a => new Dashboard.EpisodeDetails(a.AniDB_Episode, seriesDict[a.AnimeSeriesID].GetAnime(), seriesDict[a.AnimeSeriesID]))
+                .ToList();
+        }
+
+        /// <summary>
         /// Get the next <paramref name="numberOfDays"/> from the AniDB Calendar.
         /// </summary>
         /// <param name="numberOfDays">Number of days to show.</param>

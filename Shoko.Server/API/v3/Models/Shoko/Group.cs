@@ -42,15 +42,24 @@ namespace Shoko.Server.API.v3.Models.Shoko
         /// </summary>
         public bool HasCustomName { get; set; }
 
+        /// <summary>
+        /// The default or random pictures for the default series. This allows
+        /// the client to not need to get all images and pick one.
+        ///
+        /// There should always be a poster, but no promises on the rest.
+        /// </summary>
+        public Images Images { get; set; }
 
         #region Constructors
 
         public Group() { }
 
-        public Group(HttpContext ctx, SVR_AnimeGroup group)
+        public Group(HttpContext ctx, SVR_AnimeGroup group, bool randomiseImages = false)
         {
+            var random = ctx.Items["Random"] as Random;
             int uid = ctx.GetUser()?.JMMUserID ?? 0;
             var allSeries = group.GetAllSeries(skipSorting: true);
+            var imageSeries = randomiseImages ? allSeries.GetRandomElement(random) : group.GetDefaultSeries() ?? allSeries.FirstOrDefault();
             List<SVR_AnimeEpisode> ael = allSeries.SelectMany(a => a.GetAnimeEpisodes()).ToList();
 
             IDs = new GroupIDs { ID = group.AnimeGroupID };
@@ -59,7 +68,6 @@ namespace Shoko.Server.API.v3.Models.Shoko
             if (group.AnimeGroupParentID.HasValue)
                 IDs.ParentGroup = group.AnimeGroupParentID.Value;
             IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
-            
 
             Name = group.GroupName;
             SortName = group.SortName;
@@ -68,6 +76,8 @@ namespace Shoko.Server.API.v3.Models.Shoko
             Size = group.GetSeries().Count;
 
             HasCustomName = GetHasCustomName(group);
+
+            Images = Series.GetDefaultImages(ctx, imageSeries, randomiseImages);
         }
 
         #endregion
@@ -93,7 +103,7 @@ namespace Shoko.Server.API.v3.Models.Shoko
             /// <summary>
             /// The ID of the Default Series, if it has one.
             /// </summary>
-            public int DefaultSeries { get; set; }
+            public int? DefaultSeries { get; set; }
 
             /// <summary>
             /// The ID of the direct parent group, if it has one.

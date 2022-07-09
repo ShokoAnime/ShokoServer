@@ -610,6 +610,10 @@ ORDER BY count(DISTINCT AnimeID) DESC, Anime_GroupName ASC";
             }
         }
 
+        public List<AniDB_Recommendation> GetRecommendations() => RepoFactory.AniDB_Recommendation.GetByAnimeID(AnimeID);
+
+        public List<AniDB_Recommendation> GetRecommendations(ISessionWrapper session) => RepoFactory.AniDB_Recommendation.GetByAnimeID(session, AnimeID);
+
         public List<AniDB_Anime_Relation> GetRelatedAnime(ISessionWrapper session) => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(session, AnimeID);
 
         public List<AniDB_Anime_Similar> GetSimilarAnime()

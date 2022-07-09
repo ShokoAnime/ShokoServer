@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Web;
@@ -181,6 +182,131 @@ namespace Shoko.Server.API.v3.Controllers
                 .Select(relation => new SeriesRelation(HttpContext, relation))
                 .ToList();
         }
+
+        #region Recommended For You
+
+        /// <summary>
+        /// Gets anidb recommendation for the user.
+        /// </summary>
+        /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+        /// <param name="page">Page number.</param>
+        /// <param name="showAll">If enabled will show recommendations across all the anidb available in Shoko, if disabled will only show for the user's collection.</param>
+        /// <param name="startDate">Start date to use if recommending for a watch period. Only setting the <paramref name="startDate"/> and not <paramref name="endDate"/> will result in using the watch history from the start date to the present date.</param>
+        /// <param name="endDate">End date to use if recommending for a watch period.</param>
+        /// <param name="approval">Minumum approval percentage for similar animes.</param>
+        /// <returns></returns>
+        [HttpGet("AniDB/RecommendedForYou")]
+        public ActionResult<List<Series.AniDBRecommendedForYou>> GetAnimeRecommendedForYou(
+            [FromQuery] [Range(0, 100)] int pageSize = 30,
+            [FromQuery] [Range(0, int.MaxValue)] int page = 0,
+            [FromQuery] bool showAll = false,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] [Range(0, 1)] double? approval = null
+        )
+        {
+            if (startDate.HasValue && !endDate.HasValue)
+                endDate = DateTime.Now;
+            if (endDate.HasValue && !startDate.HasValue)
+                return BadRequest("Missing start date.");
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                if (endDate.Value > DateTime.Now)
+                    return BadRequest("End date cannot be set into the future.");
+                if (startDate.Value > endDate.Value)
+                    return BadRequest("Start date cannot be newer than the end date.");
+            }
+
+            var user = HttpContext.GetUser();
+            var watchedAnimeList =  GetWatchedAnimeForPeriod(user, startDate, endDate);
+            var unwatchedAnimeDict = GetUnwatchedAnime(user, showAll, !startDate.HasValue && !endDate.HasValue ? watchedAnimeList : null);
+            var recommendations = watchedAnimeList
+                .SelectMany(anime => 
+                {
+                    if (approval.HasValue)
+                        return anime.GetSimilarAnime().Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID) && ((double)(similar.Approval / similar.Total) >= approval.Value));
+                    return anime.GetSimilarAnime().Where(similar => unwatchedAnimeDict.Keys.Contains(similar.SimilarAnimeID));
+                })
+                .GroupBy(anime => anime.SimilarAnimeID)
+                .Select(similarTo =>
+                {
+                    var anime = unwatchedAnimeDict[similarTo.Key];
+                    var similarToCount = similarTo.Count();
+                    return new Series.AniDBRecommendedForYou()
+                    {
+                        Anime = new Series.AniDB(HttpContext, anime),
+                        SimilarTo = similarToCount,
+                    };
+                })
+                .OrderByDescending(e => e.SimilarTo);
+
+            if (pageSize <= 0)
+                return recommendations
+                    .ToList();
+            return recommendations
+                .Skip(pageSize * page)
+                .Take(pageSize)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get all watched anime in a given period of time for the <paramref name="user"/>.
+        /// If the <paramref name="startDate"/> and <paramref name="endDate"/>
+        /// is omitted then it will return all watched anime for the <paramref name="user"/>.
+        /// </summary>
+        /// <param name="user">The user to get the watched anime for.</param>
+        /// <param name="startDate">The start date of the period.</param>
+        /// <param name="endDate">The end date of the period.</param>
+        /// <returns>The watched anime for the user.</returns>
+        [NonAction]
+        private List<SVR_AniDB_Anime> GetWatchedAnimeForPeriod(SVR_JMMUser user, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            IEnumerable<Shoko.Models.Server.VideoLocal_User> userDataQuery = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID);
+            if (startDate.HasValue && endDate.HasValue)
+                userDataQuery = userDataQuery
+                    .Where(userData => userData.WatchedDate.HasValue && userData.WatchedDate.Value >= startDate.Value && userData.WatchedDate.Value <= endDate.Value);
+            else
+                userDataQuery = userDataQuery
+                    .Where(userData => userData.WatchedDate.HasValue);
+            return userDataQuery
+                .OrderByDescending(userData => userData.LastUpdated)
+                .Select(userData => RepoFactory.VideoLocal.GetByID(userData.VideoLocalID))
+                .Where(file => file != null)
+                .Select(file => file.EpisodeCrossRefs.OrderBy(xref => xref.EpisodeOrder).ThenBy(xref => xref.Percentage).FirstOrDefault())
+                .Select(xref => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(xref.EpisodeID))
+                .Where(episode => episode != null)
+                .DistinctBy(episode => episode.AnimeSeriesID)
+                .Select(episode => episode.GetAnimeSeries().GetAnime())
+                .Where(anime => user.AllowedAnime(anime))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Get all unwatched anime for the user.
+        /// </summary>
+        /// <param name="user">The user to get the unwatched anime for.</param>
+        /// <param name="showAll">If true will get a list of all available anime in shoko, regardless of if it's part of the user's collection or not.</param>
+        /// <param name="watchedAnime">Optional. Re-use an existing list of the watched anime.</param>
+        /// <returns>The unwatched anime for the user.</returns>
+        [NonAction]
+        private Dictionary<int, SVR_AniDB_Anime> GetUnwatchedAnime(SVR_JMMUser user, bool showAll, IEnumerable<SVR_AniDB_Anime> watchedAnime = null)
+        {
+            // Get all watched series (reuse if date is not set)
+            var watchedSeriesSet = (watchedAnime ?? GetWatchedAnimeForPeriod(user))
+                .Select(series => series.AnimeID)
+                .ToHashSet();
+
+            if (showAll)
+                return RepoFactory.AniDB_Anime.GetAll()
+                    .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID))
+                    .ToDictionary(anime => anime.AnimeID);
+
+            return RepoFactory.AnimeSeries.GetAll()
+                .Where(series => user.AllowedSeries(series) && !watchedSeriesSet.Contains(series.AniDB_ID))
+                .ToDictionary(series => series.AniDB_ID, series => series.GetAnime());
+        }
+
+        #endregion
 
         /// <summary>
         /// Get AniDB Info from the AniDB ID

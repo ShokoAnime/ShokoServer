@@ -287,6 +287,13 @@ namespace Shoko.Server.Models
             return grpList;
         }
 
+        public SVR_AnimeSeries GetDefaultSeries()
+        {
+            if (!DefaultAnimeSeriesID.HasValue)
+                return null;
+            return RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
+        }
+
         public List<SVR_AnimeSeries> GetSeries()
         {
             List<SVR_AnimeSeries> seriesList = RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID);
