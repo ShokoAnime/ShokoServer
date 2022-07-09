@@ -1,3 +1,5 @@
+using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Shoko.Server.Providers.AniDB.Http
@@ -12,18 +14,31 @@ namespace Shoko.Server.Providers.AniDB.Http
 
         protected abstract HttpBaseResponse<T> ParseResponse(ILogger logger, HttpBaseResponse<string> receivedData);
 
+        protected virtual HttpBaseResponse<T> ParseResponse(IServiceProvider serviceProvider, HttpBaseResponse<string> receivedData)
+        {
+            var factory = serviceProvider.GetService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
+            return ParseResponse(logger, receivedData);
+        }
+
         public virtual HttpBaseResponse<T> Execute(AniDBHttpConnectionHandler handler)
         {
             Command = BaseCommand.Trim();
             var rawResponse = handler.GetHttp(Command);
-            var logger = handler.LoggerFactory.CreateLogger(GetType());
-            var response = ParseResponse(logger, rawResponse);
-            PostExecute(logger, response);
+            var response = ParseResponse(handler.ServiceProvider, rawResponse);
+            PostExecute(handler.ServiceProvider, response);
             return response;
         }
 
         protected virtual void PostExecute(ILogger logger, HttpBaseResponse<T> response)
         {
+        }
+
+        protected virtual void PostExecute(IServiceProvider provider, HttpBaseResponse<T> response)
+        {
+            var factory = provider.GetService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
+            PostExecute(logger, response);
         }
     }
 }

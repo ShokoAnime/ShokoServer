@@ -98,7 +98,8 @@ namespace AniDBAPI
 
         public readonly static int LastVersion = 1;
 
-        private void PopulateDefaults()
+        // default constructor
+        public Raw_AniDB_Anime()
         {
             RelatedAnimeIdsRAW = string.Empty;
             RelatedAnimeTypesRAW = string.Empty;
@@ -137,21 +138,13 @@ namespace AniDBAPI
             DateTimeDescUpdated = null;
         }
 
-        // default constructor
-        public Raw_AniDB_Anime()
-        {
-            PopulateDefaults();
-        }
-
         // constructor
         // sRecMessage is the message received from ANIDB file info command
         // example response like '220 FILE .....'
-        public Raw_AniDB_Anime(string sRecMessage)
+        public Raw_AniDB_Anime(string sRecMessage) : this()
         {
-            PopulateDefaults();
-
             // remove the header info
-            string[] sDetails = sRecMessage.Substring(10).Split('|');
+            var sDetails = sRecMessage[10..].Split('|');
 
             //230 ANIME 0|0
             //  0. 6107  ** anime id

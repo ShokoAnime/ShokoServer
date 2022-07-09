@@ -41,6 +41,7 @@ using Shoko.Server.FileHelper;
 using Shoko.Server.ImageDownload;
 using Shoko.Server.Models;
 using Shoko.Server.Plugin;
+using Shoko.Server.Providers.AniDB.Http;
 using Shoko.Server.Providers.JMMAutoUpdates;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -111,6 +112,7 @@ namespace Shoko.Server.Server
             services.AddSingleton(ServerSettings.Instance);
             services.AddSingleton(Loader.Instance);
             services.AddSingleton(ShokoService.AnidbProcessor);
+            services.AddSingleton<HttpParser>();
             Loader.Instance.Load(services);
         }
         

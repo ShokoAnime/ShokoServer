@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -24,7 +25,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
         public override UDPBaseResponse<Void> Execute(AniDBUDPConnectionHandler handler)
         {
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(BaseCommand, false, true, true);
-            var logger = handler.LoggerFactory.CreateLogger(GetType());
+            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
             return response;
         }

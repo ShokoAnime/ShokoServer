@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -40,7 +41,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection
             PreExecute(handler.SessionID);
             // LOGIN commands have special needs, so we want to handle this differently
             UDPBaseResponse<string> rawResponse = handler.CallAniDBUDPDirectly(Command, false, true, false, true);
-            var logger = handler.LoggerFactory.CreateLogger(GetType());
+            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
             PostExecute(logger, handler.SessionID, response);
             return response;

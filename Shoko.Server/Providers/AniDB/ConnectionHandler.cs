@@ -1,5 +1,6 @@
 using System;
 using System.Timers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Commands;
 using Shoko.Server.Utilities;
@@ -9,7 +10,7 @@ namespace Shoko.Server.Providers.AniDB
     public abstract class ConnectionHandler
     {
         protected ILogger Logger { get; set; } 
-        internal ILoggerFactory LoggerFactory { get; set; }
+        internal IServiceProvider ServiceProvider { get; set; }
         protected CommandProcessor GeneralQueue { get; set; }
         protected AniDBRateLimiter RateLimiter { get; set; }
         public abstract int BanTimerResetLength { get; }
@@ -90,10 +91,11 @@ namespace Shoko.Server.Providers.AniDB
             }
         }
 
-        public ConnectionHandler(ILoggerFactory loggerFactory, CommandProcessor queue, AniDBRateLimiter rateLimiter)
+        public ConnectionHandler(IServiceProvider provider, CommandProcessor queue, AniDBRateLimiter rateLimiter)
         {
-            LoggerFactory = loggerFactory;
-            Logger = loggerFactory.CreateLogger(GetType());
+            var factory = provider.GetService<ILoggerFactory>();
+            ServiceProvider = provider;
+            Logger = factory.CreateLogger(GetType());
             GeneralQueue = queue;
             RateLimiter = rateLimiter;
             BanResetTimer = new Timer

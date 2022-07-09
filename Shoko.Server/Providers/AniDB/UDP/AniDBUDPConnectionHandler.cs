@@ -62,7 +62,7 @@ namespace Shoko.Server.Providers.AniDB.UDP
         private DateTime LastMessage =>
             LastAniDBMessageNonPing < LastAniDBPing ? LastAniDBPing : LastAniDBMessageNonPing;
 
-        public AniDBUDPConnectionHandler(ILoggerFactory loggerFactory, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(loggerFactory, queue, rateLimiter)
+        public AniDBUDPConnectionHandler(IServiceProvider provider, CommandProcessor queue, AniDBSocketHandler socketHandler, ServerSettings settings, UDPRateLimiter rateLimiter) : base(provider, queue, rateLimiter)
         {
             _socketHandler = socketHandler;
             Settings = settings;

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
@@ -14,6 +15,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
 
         protected abstract UDPBaseResponse<T> ParseResponse(ILogger logger, UDPBaseResponse<string> response);
 
+        // Muting the warning, I read up, and it's the intended result here
+        // ReSharper disable once StaticMemberInGenericType
         protected static readonly Regex CommandRegex = new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
         public virtual UDPBaseResponse<T> Execute(AniDBUDPConnectionHandler handler)
@@ -21,8 +24,9 @@ namespace Shoko.Server.Providers.AniDB.UDP.Generic
             Command = BaseCommand.Trim();
             if (string.IsNullOrEmpty(handler.SessionID) && !handler.Login()) throw new NotLoggedInException();
             PreExecute(handler.SessionID);
-            UDPBaseResponse<string> rawResponse = handler.CallAniDBUDP(Command);
-            var logger = handler.LoggerFactory.CreateLogger(GetType());
+            var rawResponse = handler.CallAniDBUDP(Command);
+            var factory = handler.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = factory.CreateLogger(GetType());
             var response = ParseResponse(logger, rawResponse);
             PostExecute(logger, handler.SessionID, response);
             return response;
